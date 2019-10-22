@@ -981,7 +981,7 @@ class simutil:
         if telescope==None: telescope=self.telescopename
         # Noisetemp only knows about 6 observatories, 
         # none of which have measure.observatory dicts that
-        # contain lowercase characters...so this is harmless here
+        # contain lowercase characters so str.upper is harmless here
         telescope=str.upper(telescope)
         
         obs =['ALMASD','ALMA','ACA','EVLA','VLA','SMA']
@@ -1163,7 +1163,8 @@ class simutil:
                
             found=False
             # identify the exception list
-            obslist_lower = [obs for obs in me.obslist() if any(char.islower() for char in obs)]
+            obslist_lower = [obs for obs in me.obslist() 
+                             if any(char.islower() for char in obs)]
             # sanitize input for people who don't want to use Shift key
             if telescope not in obslist_lower:
                 t = telescope.upper()
@@ -1171,14 +1172,14 @@ class simutil:
                 # it's a known observatory but we cannot sanitize to uppercase
                 # see CAS-12753 for details
                 t = telescope
-
             # attempt partial string matching
             for l in pl.arange(len(t)-1)+2:
                 if t[0:l] in me.obslist(): found=True
             if found:
                 posobs=me.measure(me.observatory(telescope),'WGS84')
             else:
-                self.msg("Unknown telescope and no antenna list.",priority="error")
+                self.msg("Unknown telescope and no antenna list.",
+                         priority="error")
                 return False
 
             obslat=qa.convert(posobs['m1'],'deg')['value']
@@ -1629,11 +1630,13 @@ class simutil:
         else:
             self.telescopename="SIMULATED"
         if self.verbose:
-            self.msg("Using observatory= %s" % self.telescopename,origin="readantenna")
+            self.msg("Using observatory= %s" % self.telescopename,
+                     origin="readantenna")
 
         found=False
         # identify the exception list
-        obslist_lower = [obs for obs in me.obslist() if any(char.islower() for char in obs)]
+        obslist_lower = [obs for obs in me.obslist() 
+                         if any(char.islower() for char in obs)]
         # again, sanitize input for people who don't want to use Shift key
         if telescope not in obslist_lower: 
             t = self.telescopename.upper()
@@ -1641,7 +1644,6 @@ class simutil:
             # it's a known observatory but we cannot sanitize to uppercase
             # see CAS-12753 for details
             t = self.telescopename
-
         # me.observatory has partial matching implemented
         for l in pl.arange(len(t)-1)+2:
             if t[0:l] in me.obslist(): found=True
