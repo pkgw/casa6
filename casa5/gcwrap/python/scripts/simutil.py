@@ -1638,9 +1638,10 @@ class simutil:
         obslist_lower = [obs for obs in me.obslist() 
                          if any(char.islower() for char in obs)]
         # again, sanitize input for people who don't want to use Shift key
-        if telescope not in obslist_lower: 
+        if self.telescopename not in obslist_lower: 
             t = self.telescopename.upper()
-        elif telescope.upper in [obs.upper() for obs in obslist_lower]:
+        elif self.telescopename.upper() in [obs.upper() 
+                                            for obs in obslist_lower]:
             # it's a known observatory but we cannot sanitize to uppercase
             # see CAS-12753 for details
             t = self.telescopename
