@@ -75,23 +75,22 @@ private:
 // multiple spectral windows.
 class SDBListGridManager {
 public:
-     casacore::Double fmin, fmax, df;
-     casacore::Double tmin, tmax, dt;
-     casacore::Int nt, totalChans = 0, nSPWChan;
+     casacore::Double fmin_, fmax_, df_;
+     casacore::Double tmin_, tmax_, dt_;
+     casacore::Int nt_, nchan_;
 private:
     SDBList& sdbs;
-    std::set< casacore::Int > spwins;
-    std::set< casacore::Double > times;
+    std::set< casacore::Int > spwins_;
+    std::set< casacore::Double > times_;
     // You can't store references in a map.
     // C++ 11 has a reference_wrapper type, but for now:
-    std::map< casacore::Int, casacore::Vector<casacore::Double> const * > spwIdToFreqMap;
+    std::map< casacore::Int, casacore::Int > spwPMap_; // Maps MS spws to indices in our visibility arrays
+    std::map< casacore::Int, casacore::Vector<casacore::Double> const * > spwIdToFreqMap_;
 public:
     SDBListGridManager(SDBList& sdbs_);
-    casacore::Int nSPW() { return spwins.size();   }
-    casacore::Int bigFreqGridIndex(casacore::Double f) { return round( (f - fmin)/df ); }
-    casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin)/dt ); }
-    casacore::Int nChannels() { return totalChans;  }
-    casacore::Int swStartIndex(casacore::Int spw);
+    casacore::Int nSPW() { return spwins_.size();   }
+    casacore::Int getLSPW(casacore::Int i) { return spwPMap_.find(i)->second; }
+    casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin_)/dt_ ); }
     void checkAllGridpoints();
 };
 
@@ -111,20 +110,16 @@ private:
     // SBDListGridManager handles all the sizing and interpolating of
     // multiple spectral windows onto a single frequency grid.
     SDBListGridManager gm_;
-    casacore::Int nPadFactor_;
     casacore::Int nt_;
-    casacore::Int nPadT_;
     casacore::Int nChan_;
-    //casacore::Int nSPWChan_;
-    casacore::Int nPadChan_;
     casacore::Int nElem_;
-    casacore::Double dt_, f0_, df_, df_all_;
-    //casacore::Double t0_, t1_;
-    //casacore::Double padBW_;
-    casacore::Array<casacore::Complex> Vpad_;
+    casacore::Int nspw_;
+    casacore::Double dt_, f0_, df_;
+    casacore::Array<casacore::Complex> Vall_;
     casacore::Array<casacore::Int> xcount_;
     casacore::Array<casacore::Float> sumw_;
     casacore::Array<casacore::Float> sumww_;
+    casacore::Array<casacore::Float> peak_;
     casacore::Int nCorr_;
     // 
     casacore::Matrix<casacore::Float> param_;
@@ -139,7 +134,7 @@ public:
                  casacore::Array<casacore::Double>& delayWindow_,
                  casacore::Array<casacore::Double>& rateWindow_
          );
-    DelayRateFFT(casacore::Array<casacore::Complex>& data, casacore::Int nPadFactor,
+    DelayRateFFT(casacore::Array<casacore::Complex>& data, 
                  casacore::Float f0, casacore::Float df, casacore::Float dt, SDBList& s,
                  casacore::Array<casacore::Double>& delayWindow_,
                  casacore::Array<casacore::Double>& rateWindow_
@@ -150,19 +145,22 @@ public:
     const std::set<casacore::Int>& getActiveAntennasCorrelation(casacore::Int icor) const
     { return activeAntennas_.find(icor)->second; }
     void removeAntennasCorrelation(casacore::Int, std::set< casacore::Int >);
-    const casacore::Array<casacore::Complex>& Vpad() const { return Vpad_; }
+    const casacore::Array<casacore::Complex>& Vall() const { return Vall_; }
     const casacore::Matrix<casacore::Bool>& flag() const { return flag_; }
     const casacore::Matrix<casacore::Float>& param() const { return param_; }
     casacore::Matrix<casacore::Float> delay() const;
     casacore::Matrix<casacore::Float> rate() const;
     casacore::Int refant() const { return refant_; }
-    casacore::Double get_df_all() { return df_all_; }
     
     void FFT();
-    std::pair<casacore::Bool, casacore::Float>  xinterp(casacore::Float alo, casacore::Float amax, casacore::Float ahi);
     void searchPeak();
     casacore::Float snr(casacore::Int icorr, casacore::Int ielem, casacore::Float delay, casacore::Float rate);
+    std::tuple<casacore::Double, casacore::Double, casacore::Double, casacore::Double>
+         refineSearch(const casacore::Cube<casacore::Complex>&,
+                      const casacore::Vector<casacore::Float>&,
+                      casacore::Int, casacore::Int);
 
+    
     void printActive();
 }; // End of class DelayRateFFT.
 
