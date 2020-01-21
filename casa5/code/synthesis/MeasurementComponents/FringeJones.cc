@@ -113,14 +113,14 @@ SDBListGridManager::SDBListGridManager(SDBList& sdbs_) :
     
     for (Int i=0; i != sdbs.nSDB(); i++) {
         SolveDataBuffer& sdb = sdbs(i);
-        Int spw = sdb.spectralWindow()(0);
+        Int pspw = sdb.spectralWindow()(0);
         Double t = sdbs(i).time()(0);
         times_.insert(t); 
-        if (spwins_.find(spw) == spwins_.end()) {
-            spwins_.insert(spw);
+        if (spwins_.find(pspw) == spwins_.end()) {
+            spwins_.insert(pspw);
             const Vector<Double>& fs = sdb.freqs();
             df_ = fs[1] - fs[0];
-            spwIdToFreqMap_[spw] = &(sdb.freqs());
+            pspwIdToFreqMap_[pspw] = &(sdb.freqs());
             nchan_ = max(nchan_, sdb.nChannels());
             if (DEVDEBUG) {
                 cerr << "adding sdb " << i << " with " << sdb.nChannels() << " channels" << endl;
@@ -143,24 +143,18 @@ SDBListGridManager::SDBListGridManager(SDBList& sdbs_) :
     dt_ = (tmax_ - tmin_)/(nt_ - 1);
 }
 
-// checkAllGridPoints is a diagnostic funtion that should not be called
-// in production releases, but it doesn't do any harm to have it
-// latent.
-void
-SDBListGridManager::checkAllGridpoints() {
-    map<Int, Vector<Double> const *>::iterator it;
-    for (it = spwIdToFreqMap_.begin(); it != spwIdToFreqMap_.end(); it++) {
-        Int spwid = it->first;
-        Vector<Double> const* fs = it->second;
-        Int length;
-        fs->shape(length);
-        for (Int i=0; i!=length; i++) {
-            Double f = (*fs)(i);
-        }
-    }
-    cerr << "[1] spwins.size() " << nSPW() << endl;
-    cerr << "[2] spwins.size() " << spwins_.size() << endl;
+
+
+Float
+SDBListGridManager::getRefFreqFromLSPW(Int lspw) {
+    auto p = spwins_.begin();
+    std::advance(p, lspw);
+    Int pspw = *p;
+    const Vector<Double>& fs = *(pspwIdToFreqMap_[pspw]);
+    return fs[0];
 }
+    
+
 
    
 // DelayRateFFT is modeled on DelayFFT in KJones.{cc|h}
@@ -401,7 +395,7 @@ DelayRateFFT::searchPeak() {
     flag_.set(true);  // all flagged initially
 
     Double bw = Float(nChan_)*df_;
-
+    Double DT = Float(nt_)*dt_;
     
     for (Int icorr=0; icorr<nCorr_; ++icorr) {
         flag_(icorr*3 + 0, refant()) = false; 
@@ -490,7 +484,7 @@ DelayRateFFT::searchPeak() {
                 if (ispw==0) {
                     phase0 = arg(p);
                 }
-                cerr << "Before refining: " << "ispw " << ispw << " peak " << abs(p) << " ang " << arg(p) << endl;
+                cerr << "   Before refining: " << "ispw " << ispw << " peak " << abs(p) << " ang " << arg(p) << endl;
             }
             
             // Finished grovelling. Now we have the location of the
@@ -504,17 +498,19 @@ DelayRateFFT::searchPeak() {
                           Slicer::endIsLength)).nonDegenerate(IPosition(1,2)));
 
             Vector<Float> offsets(nspw_);
-            for (size_t i=0; i!=nspw_; i++) {
-                // FIXME! The offsets need to be calculated from spw reference frequencies
-                // I'm coming back for that after I fill in refineSearch for multiple spectral windows
-                offsets = Float(i);
+            Double bw = gm_.nchan_ * gm_.df_;
+            for (size_t lspw=0; lspw!=nspw_; lspw++) {
+                Double f = gm_.getRefFreqFromLSPW(lspw);
+                Double f0 = gm_.getRefFreqFromLSPW(0);
+                offsets(lspw) = (f - f0)/bw;
             }
+            cerr << "Offsets: " << offsets << endl;
             tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch);
             Double pkt   = std::get<0>(p);
             Double pkch  = std::get<1>(p);
             Double peak  = std::get<2>(p);
             Double phase = std::get<3>(p);
-            cerr << "[DelayRateFFT::SearchPeak] ielem " << ielem
+            cerr << "[DelayRateFFT::SearchPeak] " << "icorr " << icorr << " ielem " << ielem
                  << " from (" << ipkt << ", " << ipkch << ", peak "  << inco(ipkt, ipkch) << ", angle " << phase0 << ")" 
                  << " to (" << pkt << ", " << pkch << ", peak " << peak << ", angle " << phase <<  ")"
                  << endl;
@@ -522,18 +518,15 @@ DelayRateFFT::searchPeak() {
             param_(icorr*3 + 0, ielem) = sgn*phase;
 
             Float delay = (pkch)/Float(nChan_);
-            cerr << "Fractional delay (before): " << delay << endl;
             if (delay > 0.5) delay -= 1.0;           // fold
-            cerr << "Fractional delay (after): " << delay << " df_ " << df_ << endl;
-            delay /= (df_);                   // nsec
-            cerr << "Delay in ns " << delay << endl;
+            delay /= df_;                            // nsec
             param_(icorr*3 + 1, ielem) = sgn*delay; 
             Double rate = (pkt)/Float(nt_);
             if (rate > 0.5) rate -= 1.0;
             Double rate0 = rate/dt_;
             Double rate1 = rate0/(1e9 * f0_); 
             param_(icorr*3 + 2, ielem) = Float(sgn*rate1);
-            cerr << "delay " << delay << " rate1 " << rate1 << endl;
+            cerr << "delay " << sgn*delay << " rate1 " << sgn*rate1 << endl;
             // Set 3 flags.
             flag_(icorr*3 + 0, ielem)=false; 
             flag_(icorr*3 + 1, ielem)=false;
@@ -556,7 +549,7 @@ DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offset
     Float imax = -1;
     Float jmax = -1;
     // Brute force first time out!
-    cerr << "Starting with k " << ipkt << " l " << ipkch << endl;
+    cerr << "Starting with k " << ipkt << " l " << ipkch << " and nr " << nr << endl;
     for (Int i=-nr+1; i!=Int(nr); i++) {
         for (Int j=-nr+1; j!=Int(nr); j++) {
             Double di = Double(i)/nr;
@@ -570,7 +563,8 @@ DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offset
             for (Int s=0; s!=nspw; s++) {
                 const Matrix<Complex>& ft_s = ft.yzPlane(s);
                 Double k_off = offsets(s);
-                Complex r = dotMatrixWithModel2(ft_s, k, l, k_off);
+                // Complex r = dotMatrixWithModel2(ft_s, k, l, k_off);
+                Complex r = dotMatrixWithModel(ft_s, k, l, k_off);
                 if (s==0) {
                     phase0 = arg(r);
                 }
@@ -1800,7 +1794,6 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         // We transcribe Casa parameters into gsl vector format, as required by the solver.
         for (size_t iant=0; iant != bundle.get_max_antenna_index()+1; iant++) {
             if (!bundle.isActive(iant)) {
-                // logSink << "Skipping antenna " << iant << " for correlation " << icor << "." << LogIO::POST;
                 continue;
             }
             Int ind = bundle.get_param_corr_index(iant);
@@ -1823,11 +1816,6 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         double chi1 = gsl_blas_dnrm2(res_f);
         
         gsl_vector_sub(gp_orig, w->x);
-        // diff is not used
-        //gsl_vector *diff = gp_orig;
-        // diffsize is not used
-        //double diffsize = gsl_blas_dnrm2(diff);
-    
         gsl_vector *res = gsl_multilarge_nlinear_position(w);
         
         // We transcribe values back from gsl_vector to the param matrix
@@ -1838,46 +1826,22 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         gsl_vector_set_zero(snr_vector);
         expb_hess(gp, &bundle, hess, chi1*chi1, snr_vector, logSink);
         
-        // Double log_det = 0;
-        // cerr << "Hessian diagonal: [" ;
-        // for (size_t i=0; i<p; i+=1)
-        // {
-        //     Double d = gsl_matrix_get(hess, i, i);
-        //     cerr << d;
-        //     if (i != p-1) cerr << ", ";
-        //     log_det += log10(fabs(d));
-        // }
-        // cerr << "]" << endl;
-        
         // Transcribe parameters back into CASA arrays
         for (size_t iant=0; iant != bundle.get_max_antenna_index()+1; iant++) {
             if (!bundle.isActive(iant)) continue;
             Int iparam = bundle.get_param_corr_index(iant);
             if (iparam<0) continue;
-            if (0) {
-                // flag unused
-                // bool flag = false;
-                // if (fabs(gsl_vector_get(diff, iparam + 0) > FLT_EPSILON)) {
-                //     flag = true;
-                // }
-                // if (fabs(gsl_vector_get(diff, iparam + 1) > FLT_EPSILON)) {
-                //     flag = true;
-                // }
-                // if (fabs(gsl_vector_get(diff, iparam + 2) > 1e-30)) {
-                //     flag = true;
-                // }
-                if (DEVDEBUG) {
-                    logSink << "Old values for ant " << iant << " correlation " << icor 
-                            << ": Angle " << casa_param(4*icor + 0, iant)
-                            << " delay " << casa_param(4*icor + 1, iant) << " ns "
-                            << " rate " << casa_param(4*icor + 2, iant) << "."
-                            << endl
-                            << "New values for ant " << iant << " correlation " << icor 
-                            << ": Angle " << gsl_vector_get(res, iparam+0)
-                            << " delay " << gsl_vector_get(res, iparam+1) << " ns "
-                            << " rate " << gsl_vector_get(res, iparam+2) << "."
-                            << LogIO::POST;
-                }
+            if (DEVDEBUG) {
+                logSink << "Old values for ant " << iant << " correlation " << icor 
+                        << " delay " << casa_param(4*icor + 1, iant) << " ns "
+                        << " rate " << casa_param(4*icor + 2, iant)
+                        << " angle " << casa_param(4*icor + 0, iant)
+                        << endl
+                        << "New values for ant " << iant << " correlation " << icor 
+                        << " delay " << gsl_vector_get(res, iparam+1) << " ns "
+                        << " rate " << gsl_vector_get(res, iparam+2)
+                        << " angle " << gsl_vector_get(res, iparam+0)
+                        << LogIO::POST;
             }
             if (status==GSL_SUCCESS || status==GSL_EMAXITER) {
                 // Current policy is to assume that exceeding max

@@ -82,16 +82,19 @@ private:
     SDBList& sdbs;
     std::set< casacore::Int > spwins_;
     std::set< casacore::Double > times_;
+public:
+    std::map< casacore::Int, casacore::Int > spwPMap_; // Maps MS spws to indices in our visibility arrays
     // You can't store references in a map.
     // C++ 11 has a reference_wrapper type, but for now:
-    std::map< casacore::Int, casacore::Int > spwPMap_; // Maps MS spws to indices in our visibility arrays
-    std::map< casacore::Int, casacore::Vector<casacore::Double> const * > spwIdToFreqMap_;
+    std::map< casacore::Int, casacore::Vector<casacore::Double> const * > pspwIdToFreqMap_;
 public:
     SDBListGridManager(SDBList& sdbs_);
     casacore::Int nSPW() { return spwins_.size();   }
+    // pspw is the physical spw; the one the SolveDataBuffer returns from ::spectralWindow()
+    // lspw is the logical spw; the one used as an index in the fringe fitter
     casacore::Int getLSPW(casacore::Int i) { return spwPMap_.find(i)->second; }
     casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin_)/dt_ ); }
-    void checkAllGridpoints();
+    casacore::Float getRefFreqFromLSPW(casacore::Int lspw);
 };
 
 
