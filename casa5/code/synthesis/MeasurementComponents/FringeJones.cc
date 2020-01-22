@@ -64,6 +64,7 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_spblas.h>
 #include <gsl/gsl_multilarge_nlinear.h>
+#include <gsl/gsl_multimin.h>
 #include <gsl/gsl_linalg.h>
 #include <iomanip>                // needed for setprecision
 
@@ -456,15 +457,12 @@ DelayRateFFT::searchPeak() {
                 inco += amplitude(aS);
             }
 
+            // We search the incoherent sum for the position of the
+            // maximum on the grid, which we will use to start the
+            // refinement process
             Int ipkch(0);
             Int ipkt(0);
             Float amax(-1.0);
-            // Unlike KJones we have to iterate in time too; note that
-            // we iterate from j0 to j1 and this range can in general
-            // span zero (because our FFT isn't shifted to the centre)
-            // and this may in turn lead to some oddness as we handle
-            // wrapping around the boundaries nt_ and nchan_ boundaries
-            // back to zero
             for (Int itime0=j0; itime0 != j1; itime0++) {
                 Int itime = (itime0 < 0) ? itime0 + nt_ : itime0;
                 for (Int ich0=i0; ich0 != i1; ich0++) {
@@ -479,7 +477,6 @@ DelayRateFFT::searchPeak() {
 
             Float phase0;
             for (size_t ispw=0; ispw!=nspw_; ispw++) {
-                // cerr << "ispw " << ispw << " nspw_ " << nspw_ << " ipkch " << ipkch <<" ipkt " << ipkt << endl;
                 Complex p = Vall_(IPosition(5, icorr, ielem, ispw, ipkt, ipkch));
                 if (ispw==0) {
                     phase0 = arg(p);
@@ -536,58 +533,114 @@ DelayRateFFT::searchPeak() {
     }
 }
 
+// We need a function to minimize, which has to return a real value,
+// but when we're done we need to find the peak and also its argument,
+// so we factor out the complex version...
+Complex
+c_peak_fn(const gsl_vector *x, void *vparams) {
+    std::pair< Cube<Complex> const *, Vector<Float> const * > *params =
+        (std::pair< Cube<Complex> const *, Vector<Float> const * > *)(vparams );
+
+    double k = gsl_vector_get(x, 0);
+    double l = gsl_vector_get(x, 1);
+
+    const Cube<Complex>& ft ( *(params->first ));
+    const Vector<Float>& offsets ( *(params->second));
+
+    Int nspw = ft.nrow();
+    Int ni = ft.ncolumn();
+    Int nj = ft.nplane();
+
+    if (k<0) k += (ni);
+    if (l<0) l += (nj);
+    Complex p(0.0, 0.0);
+    for (Int s=0; s!=nspw; s++) {
+        const Matrix<Complex>& ft_s = ft.yzPlane(s);
+        Double k_off = offsets(s);
+        Complex r = dotMatrixWithModel(ft_s, k, l, k_off);
+        p += r;
+    }    
+    return p;
+}
+
+// ... and then call it from a real version that we can give to the
+// optimizer (with a sign change; by tradition these are minimizer
+// routines and we want a maximum)
+double
+my_peak_fn(const gsl_vector *x, void *vparams) {
+    Complex p = c_peak_fn(x, vparams);
+    return -abs(p);
+}
 
 tuple<Double, Double, Double, Double>
 DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt, Int ipkch) {
-    size_t nr = 20;
-    Float peak = 0.0;
-    Float phase = 0.0;
-    size_t nspw = ft.nrow();
-    size_t ni = ft.ncolumn();
-    size_t nj = ft.nplane();
+    // small@jive.eu: I borrowed most of this code from the GSL documentation of multimin:
+    // <https://www.gnu.org/software/gsl/doc/html/multimin.html>
+    const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
+    /* Starting point */
+    gsl_vector *x = gsl_vector_alloc (2);
+    gsl_vector_set(x, 0, ipkt);
+    gsl_vector_set(x, 1, ipkch);
+    
+    /* Set initial step sizes to 1 */
+    gsl_vector* steps = gsl_vector_alloc (2);
+    gsl_vector_set_all(steps, 0.2);
+    
+    /* Initialize method and iterate */
+    
+    gsl_multimin_function minex_func;
+    std::pair< Cube<Complex> const * , Vector<Float> const * > par = make_pair(&ft, &offsets);
+     
+    minex_func.n = 2;
+    minex_func.f = my_peak_fn;
+    minex_func.params = &par;
+     
+    gsl_multimin_fminimizer *s = gsl_multimin_fminimizer_alloc(T, 2);
+    gsl_multimin_fminimizer_set (s, &minex_func, x, steps);
 
-    Float imax = -1;
-    Float jmax = -1;
-    // Brute force first time out!
-    cerr << "Starting with k " << ipkt << " l " << ipkch << " and nr " << nr << endl;
-    for (Int i=-nr+1; i!=Int(nr); i++) {
-        for (Int j=-nr+1; j!=Int(nr); j++) {
-            Double di = Double(i)/nr;
-            Double dj = Double(j)/nr;
-            Double k = ipkt+di;
-            Double l = ipkch+dj;
-            if (k<0) k += (ni);
-            if (l<0) l += (nj);
-            Complex p(0.0, 0.0);
-            Float phase0(0.0);
-            for (Int s=0; s!=nspw; s++) {
-                const Matrix<Complex>& ft_s = ft.yzPlane(s);
-                Double k_off = offsets(s);
-                // Complex r = dotMatrixWithModel2(ft_s, k, l, k_off);
-                Complex r = dotMatrixWithModel(ft_s, k, l, k_off);
-                if (s==0) {
-                    phase0 = arg(r);
-                }
-                p += r;
-            }
-            Float prod = abs(p);
-            // cerr << "k " << k << " l " << l << " prod " << prod << endl;
-            if (prod>peak) {
-                peak = prod;
-                phase = arg(p);
-                imax = k;
-                jmax = l;
-            }
+
+    int status;
+    size_t iter = 0;
+    do {
+        iter++;
+        status = gsl_multimin_fminimizer_iterate(s);
+        if (status) break;
+        double size = gsl_multimin_fminimizer_size(s);
+        status = gsl_multimin_test_size(size, 1e-4);
+        if (status == GSL_SUCCESS) {
+            printf ("converged to minimum at\n");
         }
+        printf("%5d %10.3e %10.3e f() = %7.3f size = %10.3f\n",
+               iter,
+               gsl_vector_get(s->x, 0),
+               gsl_vector_get(s->x, 1),
+               s->fval,
+               size);
     }
-    cerr << "refining k " << imax << " l " << jmax << " => peak " << peak << ", angle " << phase  << endl;
-    if (imax == -1 || jmax == -1) {
-        return std::make_tuple(ipkt, ipkch, peak, phase);
+    while (status == GSL_CONTINUE && iter < 100);
+    tuple<Double, Double, Double, Double> p;
+    if (status == GSL_SUCCESS) {
+        Double peak = gsl_multimin_fminimizer_minimum(s);
+        // FIXME: Spurious zeros!
+        Double phase = 0;
+        Double ipkt  = gsl_vector_get(s->x, 0);
+        Double ipkch = gsl_vector_get(s->x, 1);
+        Complex c = c_peak_fn(x, &par);
+        p = std::make_tuple(ipkt, ipkch, abs(c), arg(c));
     } else {
-        tuple<Double, Double, Double, Double> p = std::make_tuple(imax, jmax, peak, phase);
-        return p;
+        // FIXME: More spurious zeros!
+        p = std::make_tuple(Double(ipkt), Double(ipkch), 0.0, 0.0);
     }
+    gsl_vector_free(x);
+    gsl_vector_free(steps);
+    gsl_multimin_fminimizer_free(s);
+     
+    return p;
 }
+
+    
+    
+
 
 Float
 DelayRateFFT::snr(Int icorr, Int ielem, Float delay, Float rate) {
@@ -637,6 +690,9 @@ Double sinc(Double x) {
     return sin(p)/p;
 }
 
+// This implements a Fancy Sinc strategy for finding the peak of a
+// single SPW. I no longer know if this can be extended to multiple
+// SPWs.
 tuple<Double, Double, Double, Double>
 refineSearch2(const Cube<Complex>& ft, const Vector<Float>& offsets, Int ipkt0, Int ipkch0) {
     Double imax, jmax;
@@ -659,15 +715,12 @@ refineSearch2(const Cube<Complex>& ft, const Vector<Float>& offsets, Int ipkt0, 
             size_t j1 = (j==nj-1) ? 0 : j+1;
             Float sumAbs = (abs(ft_s(i, j)) + abs(ft_s(i, j1)));
             if ((sumAbs) > pmax) {
-                // cerr << "Updating i, j from " << ipkt << ", " << ipkch << " to " << i << ", " << j << " new peak " << sumAbs << endl;
                 ipkt = i;
                 ipkch = j;
                 pmax = sumAbs;
             }
         }
     }
-    // cerr << "Searched I guess?" << endl;
-    // I only know how to do the interpolation in one dimension; let's hope I get away with it
     Double y0 = abs(ft_s(ipkt, ipkch));
     Double y1 = abs(ft_s(ipkt, (ipkch==nj-1)? 0 : ipkch+1));
     Double ym1 = abs(ft_s(ipkt, (ipkch==0)? nj-1 : ipkch-1));
@@ -678,7 +731,8 @@ refineSearch2(const Cube<Complex>& ft, const Vector<Float>& offsets, Int ipkt0, 
     
     Double d0 = y1/(y0+y1);
     Double peak( y0/sinc(d0) );
-    cerr << "y0 " << y0 << " y1 " << y1 << " ym1 " << ym1 << " d0 " << d0 << " sinc(d0) " << sinc(d0) << " peak " << peak << endl;
+    cerr << "y0 " << y0 << " y1 " << y1 << " ym1 " << ym1 << " d0 " << d0 << " sinc(d0) "
+         << sinc(d0) << " peak " << peak << endl;
     cerr << "y0 " << y0 << " z1 " << z1 << " zm1 " << zm1 << endl;
     cerr << real(abs(ft_s.row(ipkt)))/y0 << endl;
     Double phase( 0.0 );
@@ -687,8 +741,6 @@ refineSearch2(const Cube<Complex>& ft, const Vector<Float>& offsets, Int ipkt0, 
     tuple<Double, Double, Double, Double> p = std::make_tuple(imax, jmax, peak, phase);
     return p;
 }
-
-
 
 Complex
 dotMatrixWithModel(const Matrix<Complex>& data, Double k, Double l, Double offset)
@@ -699,8 +751,8 @@ dotMatrixWithModel(const Matrix<Complex>& data, Double k, Double l, Double offse
 
     Double eps = 1e-8;
     Int k_int = floor(k);
-    Double d0 = k - k_int;
-    Bool k_flag =  (fabs(d0) < eps);
+    Double k_del = k - k_int;
+    Bool k_flag =  (fabs(k_del) < eps);
     Int l_int = floor(l);
     Double l_del = l - l_int;
     Bool l_flag = (fabs(l_del) < eps);
@@ -725,9 +777,6 @@ dotMatrixWithModel(const Matrix<Complex>& data, Double k, Double l, Double offse
             model(i, j) = t0*t1;
         }
     }
-    // offset rotation
-    // Complex rot = exp(Complex(0, C::_2pi*offset*(k+l)));
-    // Complex t2 = sum(rot*data*conj(model));
     Complex t2 = sum(data*model);
     return t2;
 }
@@ -754,11 +803,8 @@ dotMatrixWithModel2(const Matrix<Complex>& data, Double k0, Double l0, Double of
     Complex c0, c1;
 
     Complex s (0.0);
-    // cerr << "\nk0 " << k0 << " l0 " << l0 << endl;
     Complex t0 = Complex(sin(C::pi*d0)/C::pi)*exp(Complex(0, C::pi*d0));
     Complex t1 = Complex(sin(C::pi*d1)/C::pi)*exp(Complex(0, C::pi*d1));
-    // cerr << "d0 " << d0 << " d1 " << d1 << endl;
-    // cerr << "t0 " << abs(t0) << " t1 " << abs(t1) << endl;
     for (Int dk=-2; dk!=2; dk++) {
         size_t k = (k_int + dk + ni) % ni;
         if (k_flag) {
@@ -775,13 +821,9 @@ dotMatrixWithModel2(const Matrix<Complex>& data, Double k0, Double l0, Double of
             }
             Complex d = data(k, l);
             Complex m = c0*c1;
-            // fprintf(stderr, "   %02d %02d %.1g  %.1g \n", k, l, abs(d), abs(m));
-            // s += d*conj(m);
             s += d*m;
         }
-        // cerr << endl;
     }
-    // cerr << "Sum: " << abs(s) << endl;
     return s;
 }
 
