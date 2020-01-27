@@ -176,9 +176,6 @@ DelayRateFFT::DelayRateFFT(SDBList& sdbs, Int refant, Array<Double>& delayWindow
     allActiveAntennas_(),
     delayWindow_(delayWindow),
     rateWindow_(rateWindow) {
-    // This check should be commented out in production:
-    // gm_.checkAllGridpoints();
-
     if (nt_ < 2) {
         throw(AipsError("Can't do a 2-dimensional FFT on a single timestep! Please consider changing solint to avoid orphan timesteps."));
     }
