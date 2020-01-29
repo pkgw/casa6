@@ -42,7 +42,7 @@ void
 ViColumns2::attachColumns (const Table & t, bool attachSpecialColumns)
 {
     const ColumnDescSet & cds = t.tableDesc ().columnDescSet ();
-
+    cerr<<"Tablename ==="<<t.tableName()<<endl;
     antenna1_p.attach (t, MS::columnName (MS::ANTENNA1));
     antenna2_p.attach (t, MS::columnName (MS::ANTENNA2));
 
@@ -85,6 +85,7 @@ ViColumns2::attachColumns (const Table & t, bool attachSpecialColumns)
     weight_p.attach (t, MS::columnName (MS::WEIGHT));
 
     if (cds.isDefined (MS::columnName (MS::WEIGHT_SPECTRUM))) {
+        cerr <<"Attach wtspec column..."<<endl;
         weightSpectrum_p.attach (t, MS::columnName (MS::WEIGHT_SPECTRUM));
     }
 
