@@ -2496,13 +2496,27 @@ VisBufferImpl2::fillImagingWeight (Matrix<Float> & value) const
     // Extract weights correctly
     Matrix<Float> wtm;  // [nchan,nrow]
     Cube<Float> wtc;  //  [ncorr,nchan,nrow]
-    if (getViiP()->weightSpectrumExists())
+    //if (getViiP()->weightSpectrumExists())
+    //FOR DEBUG 
+    if (getViiP()->weightSpectrumExists()) {
+      cerr<<"WtSpec exists"<<endl;
       wtc.reference(weightSpectrum());
-    else 
+    //else 
+    //FOR DEBUG 
+    }
+    else {
+      cerr<<"WtSpec DOES NOT exist"<<endl;
+      Matrix<Float> testwt = weight();
+      cerr<<"WtSpec DOES NOT exist, got weight"<<endl;
+      cerr<<"testwt shape="<<testwt.shape()<<endl;
       wtc.reference(weight().reform(IPosition(3,nCorrelations(),1,nRows())));
-
+      cerr<<"WtSpec DOES NOT existDONE"<<endl;
+    //for DEBUG
+    }
     // Collapse on correlation axis
+    cerr<<"weightGenerator .."<<endl;
     weightGenerator.unPolChanWeight(wtm,wtc);
+    cerr<<"weightGenerator DONE.."<<endl;
 
 
     for (Int i = 1; i < nCorrelations(); ++ i){
@@ -2528,6 +2542,7 @@ VisBufferImpl2::fillImagingWeight (Matrix<Float> & value) const
 
         weightGenerator.filter (value, flagMat, uvw (), getFrequencies (0), wtm);
     }
+    cerr<<"fillIMagingWT done"<<endl;
 }
 
 void

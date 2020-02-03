@@ -12,8 +12,12 @@ from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import synthesisutils
     from casatasks import casalog
+    from casatools import calibrator 
+    from casatools import table 
 else:
     from taskinit import *
+    from taskinit import cbtool as calibrator 
+    from taskinit import tbtool as table
 
     synthesisutils = casac.synthesisutils
 
@@ -358,11 +362,12 @@ class ImagerParameters():
             #print("Already in correct format")
             return errs
 
+        print("allselpars=",self.allselpars)
         # msname, field, spw, etc must all be equal-length lists of strings, or all except msname must be of length 1.
         if not 'msname'in self.allselpars:
             errs = errs + 'MS name(s) not specified'
         else:
-
+            self.checkmsforwtspec()
             selkeys = self.allselpars.keys()
 
             # Convert all non-list parameters into lists.
@@ -769,4 +774,37 @@ class ImagerParameters():
                 errmsg="Mixed continuum and cube mode for multifields is currently not supported for parallel mode"
         errs = errmsg
         return errs
+
+    def checkmsforwtspec(self):
+        ''' check if WEIGHT_SPECTRUM column exist when 
+            a list of vis is given. Add the column for an MS
+            which does not have one if other MSs have the column.
+            This is a workaround for the issue probably in Vi/VB2
+            not handling the state change for the optional column
+            when dealing with multiples MSs
+        '''
+        mycb = calibrator()
+        mytb = table()
+        haswtspec=False
+        mswithnowtspec=[]
+        nms = self.allselpars['msname']
+        if nms > 0:
+            for inms in self.allselpars['msname']:
+                mytb.open(inms)
+                cols = mytb.colnames()
+                mytb.close()
+                if 'WEIGHT_SPECTRUM' in cols:
+                    print ("WEIGHT_SPECTRUM is there" )
+                    haswtspec=True
+                else:
+                    mswithnowtspec.append(inms)
+            if haswtspec and len(mswithnowtspec) > 0:
+                for inms in mswithnowtspec:    
+                    mycb.open(inms, addcorr=False, addmodel=False)
+                    mycb.initweights(wtmode='weight', dowtsp=True)
+                    mycb.close()
+        # noOp for nms==1 
+              
+            
+ 
       ############################
