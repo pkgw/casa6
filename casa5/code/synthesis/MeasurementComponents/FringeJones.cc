@@ -622,7 +622,7 @@ DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offset
         Double phase = 0;
         Double ipkt  = gsl_vector_get(s->x, 0);
         Double ipkch = gsl_vector_get(s->x, 1);
-        Complex c = c_peak_fn(x, &par);
+        Complex c = c_peak_fn(s->x, &par);
         p = std::make_tuple(ipkt, ipkch, abs(c), arg(c));
     } else {
         // FIXME: More spurious zeros!
