@@ -2575,7 +2575,6 @@ VisibilityIteratorImpl2::configureNewChunk()
 
 	if (msIter_p->newMS()) {
 
-		cerr<<"ViIterImpl2:configureNewChnunk:it's a newMS..."<<endl;
 		// Flush some cache flag values
 
 		cache_p.flush();
@@ -2590,7 +2589,7 @@ VisibilityIteratorImpl2::configureNewChunk()
 
 
 	}
-        cerr<<"ViIrerIml2: configureNewChunk:: isNewMs()="<<isNewMs()<<endl;
+
 	if (isNewMs()) { // New ms so flush pointing caches(if they exist).
 		pointingDirectionCache_p.reset();
 		pointingSource_p.reset();
@@ -3233,13 +3232,9 @@ VisibilityIteratorImpl2::weight(Matrix<Float> & wt) const
 Bool
 VisibilityIteratorImpl2::weightSpectrumExists() const
 {
-        cout <<"MS ="<<msName()<<endl;
 	if (msIter_p->newSpectralWindow()) {
-                cerr<<"weightSpectrumExists:: new specwind"<<endl;
-	//if (msIter_p->newMS()) {
 		// Cache to avoid testing unnecessarily.
 		cache_p.msHasWeightSpectrum_p = columns_p.weightSpectrum_p.hasContent();
-                cerr<<"weightSpectrumExists:: hascontent done"<<endl;
 	}
 
 	return cache_p.msHasWeightSpectrum_p;
@@ -3261,7 +3256,7 @@ void
 VisibilityIteratorImpl2::weightSpectrum(Cube<Float> & spectrum) const
 {
 	if (weightSpectrumExists()) {
-                cerr<<"weight spec exist and GetColumnRows..."<<endl;
+
 		getColumnRows(columns_p.weightSpectrum_p, spectrum);
 
 	}

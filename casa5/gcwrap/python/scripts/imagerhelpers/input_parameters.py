@@ -787,18 +787,19 @@ class ImagerParameters():
         mytb = table()
         haswtspec=False
         mswithnowtspec=[]
-        nms = self.allselpars['msname']
+        nms = len(self.allselpars['msname'])
         if nms > 0:
             for inms in self.allselpars['msname']:
                 mytb.open(inms)
                 cols = mytb.colnames()
                 mytb.close()
                 if 'WEIGHT_SPECTRUM' in cols:
-                    print ("WEIGHT_SPECTRUM is there" )
                     haswtspec=True
                 else:
                     mswithnowtspec.append(inms)
             if haswtspec and len(mswithnowtspec) > 0:
+                casalog.post("Some of the MSes donot have WEIGHT_SPECTRUM while some other do."+
+                             " Automatically adding the column and initialize for those don't to avoid a process failure.","WARN") 
                 for inms in mswithnowtspec:    
                     mycb.open(inms, addcorr=False, addmodel=False)
                     mycb.initweights(wtmode='weight', dowtsp=True)
