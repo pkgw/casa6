@@ -362,7 +362,7 @@ class ImagerParameters():
             #print("Already in correct format")
             return errs
 
-        print("allselpars=",self.allselpars)
+        #print("allselpars=",self.allselpars)
         # msname, field, spw, etc must all be equal-length lists of strings, or all except msname must be of length 1.
         if not 'msname'in self.allselpars:
             errs = errs + 'MS name(s) not specified'
@@ -787,8 +787,11 @@ class ImagerParameters():
         mytb = table()
         haswtspec=False
         mswithnowtspec=[]
-        nms = len(self.allselpars['msname'])
-        if nms > 0:
+        nms = 1
+        if type(self.allselpars['msname'])==list:
+            nms = len(self.allselpars['msname'])
+
+        if nms > 1:
             for inms in self.allselpars['msname']:
                 mytb.open(inms)
                 cols = mytb.colnames()
