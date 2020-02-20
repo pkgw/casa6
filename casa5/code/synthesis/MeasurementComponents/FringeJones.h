@@ -161,7 +161,7 @@ public:
     std::tuple<casacore::Double, casacore::Double, casacore::Double, casacore::Double>
          refineSearch(const casacore::Cube<casacore::Complex>&,
                       const casacore::Vector<casacore::Float>&,
-                      casacore::Int, casacore::Int);
+                      casacore::Double, casacore::Double);
 
     
     void printActive();

@@ -84,7 +84,16 @@ Complex
 dotMatrixWithModel2(const Matrix<Complex>& f, Double k, Double l, Double offset);
 
 tuple<Double, Double, Double, Double>
-refineSearch2(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt0, Int ipkch0);
+refineSearch2(const Cube<Complex>& ft,  const Vector<Float>& offsets, Double ipkt0, Double ipkch0);
+
+Complex
+dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, double l);
+
+tuple<Double, Double, Double, Double>
+bruteForceDelay(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt, Int ipkch);
+
+Double
+peakFromNUDFT(const Vector<Complex>& x, const Vector<Float>& p);
 
 
 static void unitize(Array<Complex>& vC) 
@@ -380,6 +389,7 @@ DelayRateFFT::FFT() {
     }
 }
 
+
 // In the new paradigm, this is where the new stuff happens. Instead of
 // interpolating the peaks on a single big grid, we have to synthesise
 // our estimate from separately FFT-ed spectral windows, using the new
@@ -450,7 +460,7 @@ DelayRateFFT::searchPeak() {
                     stop,
                     step,
                     Slicer::endIsLength);
-                Matrix<Complex> aS(Vall_(sl).nonDegenerate());
+                const Matrix<Complex>& aS(Vall_(sl).nonDegenerate());
                 inco += amplitude(aS);
             }
 
@@ -499,15 +509,39 @@ DelayRateFFT::searchPeak() {
                 offsets(lspw) = (f - f0)/bw;
             }
             cerr << "Offsets: " << offsets << endl;
+
+            Complex c0 = dotWithOffsets(blVis, offsets, double(ipkt), double(ipkch));
+
+            // tuple<Double, Double, Double, Double> p1 =
+            //     bruteForceDelay(blVis, offsets, ipkt, ipkch);
+            // Double pkt1   = std::get<0>(p1);
+            // Double pkch1  = std::get<1>(p1);
+            // Double peak1  = std::get<2>(p1);
+            // Double phase1 = std::get<3>(p1);
+            
+            Array<Complex> peaks(
+                blVis(Slicer(
+                          IPosition(3, 0,  ipkt, ipkch),
+                          IPosition(3, nspw_, 1, 1),
+                          IPosition(3, 1, 1, 1),
+                          Slicer::endIsLength)).nonDegenerate(1));
+            
+            Double mbd = peakFromNUDFT(peaks, offsets);
+            
             tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch);
             Double pkt   = std::get<0>(p);
             Double pkch  = std::get<1>(p);
             Double peak  = std::get<2>(p);
             Double phase = std::get<3>(p);
             cerr << "[DelayRateFFT::SearchPeak] " << "icorr " << icorr << " ielem " << ielem
-                 << " from (" << ipkt << ", " << ipkch << ", peak "  << inco(ipkt, ipkch) << ", angle " << phase0 << ")" 
+                 << " from (" << ipkt << ", " << ipkch << ", peak "  << abs(c0) << " (incoherently " << inco(ipkt, ipkch) << "), angle " << phase0 << ")" 
                  << " to (" << pkt << ", " << pkch << ", peak " << peak << ", angle " << phase <<  ")"
                  << endl;
+            // cerr << "[DelayRateFFT::SearchPeak] " << "icorr " << icorr << " ielem " << ielem
+            //      << " from (" << pkt1 << ", " << pkch1 << ", peak "  << peak1
+            //      << " (incoherently " << inco(ipkt, ipkch) << "), angle " << phase1 << ")" 
+            //      << endl;
+
             peak_(IPosition(2, icorr, ielem)) = peak;
             param_(icorr*3 + 0, ielem) = sgn*phase;
 
@@ -530,20 +564,10 @@ DelayRateFFT::searchPeak() {
     }
 }
 
-// We need a function to minimize, which has to return a real value,
-// but when we're done we need to find the peak and also its argument,
-// so we factor out the complex version...
+
+// Auxilliary function
 Complex
-c_peak_fn(const gsl_vector *x, void *vparams) {
-    std::pair< Cube<Complex> const *, Vector<Float> const * > *params =
-        (std::pair< Cube<Complex> const *, Vector<Float> const * > *)(vparams );
-
-    double k = gsl_vector_get(x, 0);
-    double l = gsl_vector_get(x, 1);
-
-    const Cube<Complex>& ft ( *(params->first ));
-    const Vector<Float>& offsets ( *(params->second));
-
+dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, double l) {
     Int nspw = ft.nrow();
     Int ni = ft.ncolumn();
     Int nj = ft.nplane();
@@ -560,6 +584,27 @@ c_peak_fn(const gsl_vector *x, void *vparams) {
     return p;
 }
 
+
+
+// We need a function to minimize, which has to return a real value,
+// but when we're done we need to find the peak and also its argument,
+// so we factor out the complex version...
+Complex
+c_peak_fn(const gsl_vector *x, void *vparams) {
+    std::pair< Cube<Complex> const *, Vector<Float> const * > *params =
+        (std::pair< Cube<Complex> const *, Vector<Float> const * > *)(vparams );
+
+    double k = gsl_vector_get(x, 0);
+    double l = gsl_vector_get(x, 1);
+
+    const Cube<Complex>& ft ( *(params->first ));
+    const Vector<Float>& offsets ( *(params->second));
+
+    return dotWithOffsets(ft, offsets, k, l);
+
+}
+
+
 // ... and then call it from a real version that we can give to the
 // optimizer (with a sign change; by tradition these are minimizer
 // routines and we want a maximum)
@@ -570,18 +615,74 @@ my_peak_fn(const gsl_vector *x, void *vparams) {
 }
 
 tuple<Double, Double, Double, Double>
-DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt, Int ipkch) {
+bruteForceDelay(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt, Int ipkch) {
+    Double k(ipkt);
+    Double l(ipkch);
+    Int n = 10;
+
+    Double l_p = l;
+    Complex peak = Complex(0, 0);
+    for (Int i=-n; i!=n+1; i++) {
+        Double dch = double(i)/(2*n);
+        Complex p = dotWithOffsets(ft, offsets, k, l+dch);
+        if (abs(p) > abs(peak)) {
+            cerr << "[bruteForceDelay] l " << l+dch << " peak " << abs(p) << endl;
+            peak = p;
+            l_p = l+dch;
+            
+        }
+    }            
+    tuple<Double, Double, Double, Double> t;
+    t = std::make_tuple(k, l_p, abs(peak), arg(peak));
+    return t;
+}
+
+
+Double
+peakFromNUDFT(const Vector<Complex>& x, const Vector<Float>& p) {
+    // x is an array of values (in our case normalised complex numbers
+    // with phase of peaks) p is an array of positions (in our case,
+    // offsets of spws) We calculate the peak with a non-uniform
+    // discrete fourier transform because we don't want to assume that
+    // the spws have a uniform offset
+    Int nn = ceil(max(p));
+    Int nk = nn;
+
+    Vector<Complex> X(nn);
+    for (Int k=0; k!=nk; k++) {
+        Complex s = 0;
+        Double f_k = k/nn;
+        for (Int n=0; n!=nn-1; n++) {
+            s += x[n]*exp(Complex(0, -2*C::pi*p[n]*f_k));
+        }
+        X[k] = s;
+    }
+    cerr << "multiband delay X: " << X << endl;
+    // Search for peak:
+    Double peak = 0;
+    Int i_peak = -1;
+    for (Int i=0; i!=nn; i++) {
+        if (abs(X[i]) > peak) {
+            peak = abs(X[i]);
+            i_peak = i;
+        }
+    }
+    return Double(i_peak);
+}
+
+tuple<Double, Double, Double, Double>
+DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offsets, Double pkt, Double pkch) {
     // small@jive.eu: I borrowed most of this code from the GSL documentation of multimin:
     // <https://www.gnu.org/software/gsl/doc/html/multimin.html>
     const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
     /* Starting point */
     gsl_vector *x = gsl_vector_alloc (2);
-    gsl_vector_set(x, 0, ipkt);
-    gsl_vector_set(x, 1, ipkch);
+    gsl_vector_set(x, 0, pkt);
+    gsl_vector_set(x, 1, pkch);
     
     /* Set initial step sizes to 1 */
     gsl_vector* steps = gsl_vector_alloc (2);
-    gsl_vector_set_all(steps, 0.2);
+    gsl_vector_set_all(steps, 0.5);
     
     /* Initialize method and iterate */
     
@@ -618,15 +719,13 @@ DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offset
     tuple<Double, Double, Double, Double> p;
     if (status == GSL_SUCCESS) {
         Double peak = gsl_multimin_fminimizer_minimum(s);
-        // FIXME: Spurious zeros!
-        Double phase = 0;
         Double ipkt  = gsl_vector_get(s->x, 0);
         Double ipkch = gsl_vector_get(s->x, 1);
         Complex c = c_peak_fn(s->x, &par);
         p = std::make_tuple(ipkt, ipkch, abs(c), arg(c));
     } else {
         // FIXME: More spurious zeros!
-        p = std::make_tuple(Double(ipkt), Double(ipkch), 0.0, 0.0);
+        p = std::make_tuple(pkt, pkch, 0.0, 0.0);
     }
     gsl_vector_free(x);
     gsl_vector_free(steps);
@@ -771,7 +870,7 @@ dotMatrixWithModel(const Matrix<Complex>& data, Double k, Double l, Double offse
                        (1-exp(Complex(0, C::_2pi*(l-j)/Double(nj)))) );
                 t1 /= nj;
             }
-            model(i, j) = t0*t1;
+            model(i, j) = exp(Complex(0, C::_2pi*offset*k_del))*t0*t1;
         }
     }
     Complex t2 = sum(data*model);
