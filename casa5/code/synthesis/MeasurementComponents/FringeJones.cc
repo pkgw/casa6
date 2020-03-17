@@ -92,8 +92,8 @@ dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, 
 tuple<Double, Double, Double, Double>
 bruteForceDelay(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt, Int ipkch);
 
-Double
-peakFromNUDFT(const Vector<Complex>& x, const Vector<Float>& p);
+Float
+multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets);
 
 
 static void unitize(Array<Complex>& vC) 
@@ -507,9 +507,8 @@ DelayRateFFT::searchPeak() {
                 Double f = gm_.getRefFreqFromLSPW(lspw);
                 Double f0 = gm_.getRefFreqFromLSPW(0);
                 offsets(lspw) = (f - f0)/bw;
-            }
+            } 
             cerr << "Offsets: " << offsets << endl;
-
             Complex c0 = dotWithOffsets(blVis, offsets, double(ipkt), double(ipkch));
 
             // tuple<Double, Double, Double, Double> p1 =
@@ -519,16 +518,18 @@ DelayRateFFT::searchPeak() {
             // Double peak1  = std::get<2>(p1);
             // Double phase1 = std::get<3>(p1);
             
-            Array<Complex> peaks(
+            Vector<Complex> peaks(
                 blVis(Slicer(
                           IPosition(3, 0,  ipkt, ipkch),
                           IPosition(3, nspw_, 1, 1),
                           IPosition(3, 1, 1, 1),
                           Slicer::endIsLength)).nonDegenerate(1));
             
-            Double mbd = peakFromNUDFT(peaks, offsets);
-            
-            tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch);
+            cerr << "Peaks: " << peaks << endl;
+            // In units of spw BW, like offsets
+            Float dpkch = multibandFFT(peaks, offsets);
+            Float dipkch = dpkch / gm_.nchan_;
+            tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch + dipkch);
             Double pkt   = std::get<0>(p);
             Double pkch  = std::get<1>(p);
             Double peak  = std::get<2>(p);
@@ -564,6 +565,39 @@ DelayRateFFT::searchPeak() {
     }
 }
 
+
+Float
+multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
+    // We take the individual band phases from the peaks of the SPWs
+    // and assume they are the peculiar phases for their SPW; then we
+    // calculate the Direct Discrete FT of those phases on their
+    // offsets and read the peak off of that
+    Int nspw = peaks.size();
+    Vector<Complex> phasors( peaks/amplitude(peaks) );
+
+    size_t nbins=size_t(max(offsets)+0.5);
+
+    Vector<Complex> X(nbins);
+    X = 0;
+    for (size_t k=0; k!=nbins; k++) {
+        for (size_t n=0; n!=nspw; n++) {
+            X[k] += phasors[n]*exp(Complex(0,1)*Complex(C::_2pi*n*k/Float(nspw)));
+        }
+    }
+    Int k_max = -1;
+    Float zmax = -1.0;
+    for (size_t k=0; k!=nbins; k++) {
+        Complex z = X[k];
+        Float a = abs(z);
+        // cerr << "k " << k << " a " << a << endl;
+        if (a>zmax) {
+            k_max = k;
+            zmax = a;
+        }
+    }
+    cerr << "k_max = " << k_max << endl;
+    return float(k_max/nbins);
+}
 
 // Auxilliary function
 Complex
