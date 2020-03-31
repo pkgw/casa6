@@ -389,6 +389,18 @@ class test_onefield(testref_base):
           self.delData(ms2)
           self.checkfinal(pstr=report)
 
+     def test_onefield_twoMS_weightSpectrum2(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data  and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
+          ms2 = 'refim_point_onespw1_withWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.checkfinal(pstr=report)
+
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Erratic in parallel")
      def test_onefield_briggsabs(self):
           """[onefield] test_onefield_briggsabs: """

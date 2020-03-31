@@ -352,6 +352,7 @@ class test_onefield(testref_base):
 #              correct=True
 #          self.assertTrue(correct)
           ## This run should go smoothly. 
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,weighting='briggs', interactive=0, parallel=self.parallel)
           report=self.th.checkall(ret=ret, peakres=0.365259, modflux=0.798692, imexist=[self.img+'.psf',self.img+'.residual'])
           self.delData(ms1)
           self.delData(ms2)
@@ -379,6 +380,18 @@ class test_onefield(testref_base):
           """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column  and one without the weight spectrum column  (CAS-11876 bug fix) """
           ms1 = 'refim_point_onespw0_withWtSpec.ms'
           ms2 = 'refim_point_onespw1_noWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.checkfinal(pstr=report)
+
+     def test_onefield_twoMS_weightSpectrum2(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data  and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
+          ms2 = 'refim_point_onespw1_withWtSpec.ms'
           self.prepData(ms1)
           self.prepData(ms2)
           ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
@@ -4083,7 +4096,6 @@ class test_ephemeris(testref_base):
           report = report1 + report2 + report3
           self.checkfinal(pstr=report)
 
->>>>>>> master
 
 if is_CASA6:
      if __name__ == '__main__':
