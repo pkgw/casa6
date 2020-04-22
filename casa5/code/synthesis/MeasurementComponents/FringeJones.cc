@@ -92,7 +92,7 @@ dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, 
 tuple<Double, Double, Double, Double>
 bruteForceDelay(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt, Int ipkch);
 
-Float
+Double
 multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets);
 
 
@@ -527,8 +527,8 @@ DelayRateFFT::searchPeak() {
             
             cerr << "Peaks: " << peaks << endl;
             // In units of spw BW, like offsets
-            Float dpkch = multibandFFT(peaks, offsets);
-            Float dipkch = dpkch / gm_.nchan_;
+            Double = multibandFFT(peaks, offsets);
+            Double dipkch = dpkch / gm_.nchan_;
             tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch + dipkch);
             Double pkt   = std::get<0>(p);
             Double pkch  = std::get<1>(p);
@@ -566,7 +566,40 @@ DelayRateFFT::searchPeak() {
 }
 
 
-Float
+Double
+peakFromNUDFT(const Vector<Complex>& x, const Vector<Float>& p) {
+    // x is an array of values (in our case normalised complex numbers
+    // with phase of peaks) p is an array of positions (in our case,
+    // offsets of spws) We calculate the peak with a non-uniform
+    // discrete fourier transform because we don't want to assume that
+    // the spws have a uniform offset
+    Int nn = ceil(max(p));
+    Int nk = nn;
+
+    Vector<Complex> X(nn);
+    for (Int k=0; k!=nk; k++) {
+        Complex s = 0;
+        Double f_k = k/nn;
+        for (Int n=0; n!=nn-1; n++) {
+            s += x[n]*exp(Complex(0, -2*C::pi*p[n]*f_k));
+        }
+        X[k] = s;
+    }
+    cerr << "multiband delay X: " << X << endl;
+    // Search for peak:
+    Double peak = 0;
+    Int i_peak = -1;
+    for (Int i=0; i!=nn; i++) {
+        if (abs(X[i]) > peak) {
+            peak = abs(X[i]);
+            i_peak = i;
+        }
+    }
+    return Double(i_peak);
+}
+
+
+Double
 multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
     // We take the individual band phases from the peaks of the SPWs
     // and assume they are the peculiar phases for their SPW; then we
@@ -596,7 +629,7 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
         }
     }
     cerr << "k_max = " << k_max << endl;
-    return float(k_max/nbins);
+    return Double(k_max/nbins);
 }
 
 // Auxilliary function
@@ -671,38 +704,6 @@ bruteForceDelay(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt
     return t;
 }
 
-
-Double
-peakFromNUDFT(const Vector<Complex>& x, const Vector<Float>& p) {
-    // x is an array of values (in our case normalised complex numbers
-    // with phase of peaks) p is an array of positions (in our case,
-    // offsets of spws) We calculate the peak with a non-uniform
-    // discrete fourier transform because we don't want to assume that
-    // the spws have a uniform offset
-    Int nn = ceil(max(p));
-    Int nk = nn;
-
-    Vector<Complex> X(nn);
-    for (Int k=0; k!=nk; k++) {
-        Complex s = 0;
-        Double f_k = k/nn;
-        for (Int n=0; n!=nn-1; n++) {
-            s += x[n]*exp(Complex(0, -2*C::pi*p[n]*f_k));
-        }
-        X[k] = s;
-    }
-    cerr << "multiband delay X: " << X << endl;
-    // Search for peak:
-    Double peak = 0;
-    Int i_peak = -1;
-    for (Int i=0; i!=nn; i++) {
-        if (abs(X[i]) > peak) {
-            peak = abs(X[i]);
-            i_peak = i;
-        }
-    }
-    return Double(i_peak);
-}
 
 tuple<Double, Double, Double, Double>
 DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offsets, Double pkt, Double pkch) {
