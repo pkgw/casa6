@@ -1166,23 +1166,17 @@ class simutil:
             if nant==None:
                 self.msg("Number of antennas has not been set.",priority="error")
                 return False
-               
-            found=False
-            # identify the exception list
-            obslist_lower = [obs for obs in me.obslist() 
-                             if any(char.islower() for char in obs)]
-            # sanitize input for people who don't want to use Shift key
-            if telescope not in obslist_lower:
-                t = telescope.upper()
-            elif telescope.upper in [obs.upper() for obs in obslist_lower]:
-                # it's a known observatory but we cannot sanitize to uppercase
-                # see CAS-12753 for details
-                t = telescope
-            # attempt partial string matching
-            for l in pl.arange(len(t)-1)+2:
-                if t[0:l] in me.obslist(): found=True
-            if found:
-                posobs=me.measure(me.observatory(telescope),'WGS84')
+
+            known=False
+            # check if telescope is known to measures tool
+            # ensure case insensitivity - CAS-12753
+            obslist_lower = [obs.lower() for obs in me.obslist()]
+            if self.telescope.lower() in obslist_lower:
+                t = self.telescope
+                known=True
+                        
+            if known=True:
+                posobs = me.measure(me.observatory(t), 'WGS84')
             else:
                 self.msg("Unknown telescope and no antenna list.",
                          priority="error")
@@ -1664,33 +1658,24 @@ class simutil:
             self.msg("Using observatory= %s" % self.telescopename,
                      origin="readantenna")
 
-        found=False
-        # identify the exception list
-        obslist_lower = [obs for obs in me.obslist() 
-                         if any(char.islower() for char in obs)]
-        # again, sanitize input for people who don't want to use Shift key
-        if self.telescopename not in obslist_lower: 
-            t = self.telescopename.upper()
-        elif self.telescopename.upper() in [obs.upper() 
-                                            for obs in obslist_lower]:
-            # it's a known observatory but we cannot sanitize to uppercase
-            # see CAS-12753 for details
+        known = False
+        # case insensitive check if telescopename is known
+        obslist_lower = [obs.lower() for obs in me.obslist()]
+        if self.telescopename.lower() in obslist_lower: 
             t = self.telescopename
-        # me.observatory has partial matching implemented
-        for l in pl.arange(len(t)-1)+2:
-            if t[0:l] in me.obslist(): found=True
-        if found:
-            posobs=me.measure(me.observatory(self.telescopename),'WGS84')
+            known = True
+            posobs=me.measure(me.observatory(t),'WGS84')
             
         if "COFA" in params:
+            if known: 
+                self.msg("antenna config file specifies COFA for a known observatory "+
+                         self.telescopename+", overriding with specified COFA.",priority="warn")
             obs_latlon=params["COFA"].split(",")
             cofa_lon=float(obs_latlon[0])
             cofa_lat=float(obs_latlon[1])
             cofa_alt=0.
             posobs=me.position("WGS84",qa.quantity(cofa_lon,"deg"),qa.quantity(cofa_lat,"deg"),qa.quantity(cofa_alt,"m"))
-            if found: 
-                self.msg("antenna config file specifies COFA but a known observatory "+self.telescopename+", so ignoring specified COFA.",priority="warn")
-        elif not found:
+        elif not known:
             if params["coordsys"].upper()[0:3]=="LOC":
                 self.msg("To use local coordinates in the antenna position file, you must either use a known observatory name, or provide the COFA explicitly",priority="error")
                 return -1
