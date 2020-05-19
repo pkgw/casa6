@@ -511,13 +511,6 @@ DelayRateFFT::searchPeak() {
             cerr << "Offsets: " << offsets << endl;
             Complex c0 = dotWithOffsets(blVis, offsets, double(ipkt), double(ipkch));
 
-            // tuple<Double, Double, Double, Double> p1 =
-            //     bruteForceDelay(blVis, offsets, ipkt, ipkch);
-            // Double pkt1   = std::get<0>(p1);
-            // Double pkch1  = std::get<1>(p1);
-            // Double peak1  = std::get<2>(p1);
-            // Double phase1 = std::get<3>(p1);
-            
             Vector<Complex> peaks(
                 blVis(Slicer(
                           IPosition(3, 0,  ipkt, ipkch),
@@ -527,9 +520,10 @@ DelayRateFFT::searchPeak() {
             
             cerr << "Peaks: " << peaks << endl;
             // In units of spw BW, like offsets
-            Double = multibandFFT(peaks, offsets);
-            Double dipkch = dpkch / gm_.nchan_;
-            tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch + dipkch);
+            Double dpkch = multibandFFT(peaks, offsets);
+            cerr << "dpkch " << dpkch << endl;
+            // FIXME: Sign convention dilemma: do we add or subtract dpkch?
+            tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch + dpkch);
             Double pkt   = std::get<0>(p);
             Double pkch  = std::get<1>(p);
             Double peak  = std::get<2>(p);
@@ -538,14 +532,8 @@ DelayRateFFT::searchPeak() {
                  << " from (" << ipkt << ", " << ipkch << ", peak "  << abs(c0) << " (incoherently " << inco(ipkt, ipkch) << "), angle " << phase0 << ")" 
                  << " to (" << pkt << ", " << pkch << ", peak " << peak << ", angle " << phase <<  ")"
                  << endl;
-            // cerr << "[DelayRateFFT::SearchPeak] " << "icorr " << icorr << " ielem " << ielem
-            //      << " from (" << pkt1 << ", " << pkch1 << ", peak "  << peak1
-            //      << " (incoherently " << inco(ipkt, ipkch) << "), angle " << phase1 << ")" 
-            //      << endl;
-
             peak_(IPosition(2, icorr, ielem)) = peak;
             param_(icorr*3 + 0, ielem) = sgn*phase;
-
             Float delay = (pkch)/Float(nChan_);
             if (delay > 0.5) delay -= 1.0;           // fold
             delay /= df_;                            // nsec
@@ -565,40 +553,6 @@ DelayRateFFT::searchPeak() {
     }
 }
 
-
-Double
-peakFromNUDFT(const Vector<Complex>& x, const Vector<Float>& p) {
-    // x is an array of values (in our case normalised complex numbers
-    // with phase of peaks) p is an array of positions (in our case,
-    // offsets of spws) We calculate the peak with a non-uniform
-    // discrete fourier transform because we don't want to assume that
-    // the spws have a uniform offset
-    Int nn = ceil(max(p));
-    Int nk = nn;
-
-    Vector<Complex> X(nn);
-    for (Int k=0; k!=nk; k++) {
-        Complex s = 0;
-        Double f_k = k/nn;
-        for (Int n=0; n!=nn-1; n++) {
-            s += x[n]*exp(Complex(0, -2*C::pi*p[n]*f_k));
-        }
-        X[k] = s;
-    }
-    cerr << "multiband delay X: " << X << endl;
-    // Search for peak:
-    Double peak = 0;
-    Int i_peak = -1;
-    for (Int i=0; i!=nn; i++) {
-        if (abs(X[i]) > peak) {
-            peak = abs(X[i]);
-            i_peak = i;
-        }
-    }
-    return Double(i_peak);
-}
-
-
 Double
 multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
     // We take the individual band phases from the peaks of the SPWs
@@ -606,15 +560,44 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
     // calculate the Direct Discrete FT of those phases on their
     // offsets and read the peak off of that
     Int nspw = peaks.size();
+
+    Vector<Float> amps( amplitude(peaks) );
+    Int len;
+    amps.shape(len);
+
+    Float eps = 1e-10;
+    std::set<size_t> badInds;
+    for (size_t i=0; i!=len; i++) {
+        if (amps[i] < eps) {
+            cerr << " blacklisting " << i << endl;
+            badInds.insert(i);
+        }
+    }
     Vector<Complex> phasors( peaks/amplitude(peaks) );
 
-    size_t nbins=size_t(max(offsets)+0.5);
+    // I want to print angles but I can't get the API to do that
+    // in a reasonable way; arg(phasors) doesn't work
+    // Vector<Float> angles ( arg(phasors) );
+    cerr << "phasors " << phasors << endl;
+    // FIXME: the last offset is at the *beginning* of the subband!
+    // size_t nbins=2*size_t(max(offsets)+1+0.5);
+    size_t nbins=size_t(max(offsets)+1+0.5);
 
+    Vector<Float> freqs(nbins);
+    freqs = 0;
+    for (size_t k=0; k!=nbins; k++) {
+        freqs[k] = (Float(k) - nbins/2)/float(nbins);
+    }
     Vector<Complex> X(nbins);
     X = 0;
-    for (size_t k=0; k!=nbins; k++) {
-        for (size_t n=0; n!=nspw; n++) {
-            X[k] += phasors[n]*exp(Complex(0,1)*Complex(C::_2pi*n*k/Float(nspw)));
+    for (size_t n=0; n!=nspw; n++) {
+        if (badInds.find(n) != badInds.end()) {
+            cerr << " skipping " << n << endl;
+            continue;
+        }
+        for (size_t k=0; k!=nbins; k++) {
+            // FIXME: also swap signs here!
+            X[k] += phasors[n]*exp(-Complex(0,1)*Complex(C::_2pi*offsets(n)*freqs(k)));
         }
     }
     Int k_max = -1;
@@ -622,14 +605,14 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
     for (size_t k=0; k!=nbins; k++) {
         Complex z = X[k];
         Float a = abs(z);
-        // cerr << "k " << k << " a " << a << endl;
+        cerr << "k " << k << " freq " << freqs(k) << " a " << a << endl;
         if (a>zmax) {
             k_max = k;
             zmax = a;
         }
     }
     cerr << "k_max = " << k_max << endl;
-    return Double(k_max/nbins);
+    return freqs(k_max);
 }
 
 // Auxilliary function
@@ -639,19 +622,18 @@ dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, 
     Int ni = ft.ncolumn();
     Int nj = ft.nplane();
 
+    // cerr << "ni " << ni << " nj " << nj << endl;
     if (k<0) k += (ni);
     if (l<0) l += (nj);
     Complex p(0.0, 0.0);
     for (Int s=0; s!=nspw; s++) {
         const Matrix<Complex>& ft_s = ft.yzPlane(s);
-        Double k_off = offsets(s);
-        Complex r = dotMatrixWithModel(ft_s, k, l, k_off);
+        Double f_off = offsets(s);
+        Complex r = dotMatrixWithModel(ft_s, k, l, f_off);
         p += r;
     }    
     return p;
 }
-
-
 
 // We need a function to minimize, which has to return a real value,
 // but when we're done we need to find the peak and also its argument,
@@ -666,11 +648,8 @@ c_peak_fn(const gsl_vector *x, void *vparams) {
 
     const Cube<Complex>& ft ( *(params->first ));
     const Vector<Float>& offsets ( *(params->second));
-
     return dotWithOffsets(ft, offsets, k, l);
-
 }
-
 
 // ... and then call it from a real version that we can give to the
 // optimizer (with a sign change; by tradition these are minimizer
@@ -714,10 +693,11 @@ DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offset
     gsl_vector *x = gsl_vector_alloc (2);
     gsl_vector_set(x, 0, pkt);
     gsl_vector_set(x, 1, pkch);
-    
-    /* Set initial step sizes to 1 */
+    cerr << "pkch starts at " << pkch << endl;
+    /* Set initial step sizes */
+    /* Fixme! I need to think harder about this value! */
     gsl_vector* steps = gsl_vector_alloc (2);
-    gsl_vector_set_all(steps, 0.5);
+    gsl_vector_set_all(steps, 0.005);
     
     /* Initialize method and iterate */
     
@@ -743,16 +723,17 @@ DelayRateFFT::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offset
         if (status == GSL_SUCCESS) {
             printf ("converged to minimum at\n");
         }
-        printf("%5d %10.3e %10.3e f() = %7.3f size = %10.3f\n",
+        printf("%5d ipkt %10.3e ipkch %10.3e f() = %7.3f size = %10.3f\n",
                iter,
                gsl_vector_get(s->x, 0),
                gsl_vector_get(s->x, 1),
                s->fval,
                size);
-    }
-    while (status == GSL_CONTINUE && iter < 100);
+    } while (status == GSL_CONTINUE && iter < 2);
+    // while (status == GSL_CONTINUE && iter < 100);
     tuple<Double, Double, Double, Double> p;
-    if (status == GSL_SUCCESS) {
+    // if (status == GSL_SUCCESS) {
+    if (1) {
         Double peak = gsl_multimin_fminimizer_minimum(s);
         Double ipkt  = gsl_vector_get(s->x, 0);
         Double ipkch = gsl_vector_get(s->x, 1);
@@ -880,6 +861,8 @@ dotMatrixWithModel(const Matrix<Complex>& data, Double k, Double l, Double offse
     size_t nj = data.ncolumn();
     Matrix<Complex> model(ni, nj);
 
+    // Note that k is the time index of the array, l is the frequency index.
+    // Offsets correspond to frequencies
     Double eps = 1e-8;
     Int k_int = floor(k);
     Double k_del = k - k_int;
@@ -889,23 +872,24 @@ dotMatrixWithModel(const Matrix<Complex>& data, Double k, Double l, Double offse
     Bool l_flag = (fabs(l_del) < eps);
     Complex t0;
     Complex t1;
+    // FIXME! We're messing with reversing signs
     for (size_t i=0; i!=ni; i++) {
         if (k_flag) {
             t0 = Complex(i==k);
         } else { // if k isn't an integer!
-            t0 = ( (1-exp(Complex(0, C::_2pi*(k-i))))/
-                   (1-exp(Complex(0, C::_2pi*(k-i)/Double(ni)))) );
+            t0 = ( (1-exp(Complex(0, -1.0*C::_2pi*(k-i))))/
+                   (1-exp(Complex(0, -1.0*C::_2pi*(k-i)/Double(ni)))) );
             t0 /= ni;
         }
         for (size_t j=0; j!=nj; j++) {
             if (l_flag) {
                 t1 = Complex(j==l);
             } else { // if l isn't an integer!
-                t1 = ( (1-exp(Complex(0, C::_2pi*(l-j))))/
-                       (1-exp(Complex(0, C::_2pi*(l-j)/Double(nj)))) );
+                t1 = ( (1-exp(Complex(0, -1.0*C::_2pi*(l-j))))/
+                       (1-exp(Complex(0, -1.0*C::_2pi*(l-j)/Double(nj)))) );
                 t1 /= nj;
             }
-            model(i, j) = exp(Complex(0, C::_2pi*offset*k_del))*t0*t1;
+            model(i, j) = exp(Complex(0, -1.0*C::_2pi*offset*l_del))*t0*t1;
         }
     }
     Complex t2 = sum(data*model);
