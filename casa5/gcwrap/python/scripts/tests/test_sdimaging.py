@@ -13,7 +13,7 @@ from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import ctsys, image, regionmanager, measures, msmetadata, table, quanta
     from casatools import ms as mstool
-    from casatasks import sdimaging, flagdata
+    from casatasks import sdimaging, flagdata, imhead
     from casatasks.private.sdutil import tbmanager, toolmanager, table_selector
 
     ### for selection_syntax import
@@ -3401,6 +3401,79 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
         self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
 
 
+class sdimaging_ms_order(sdimaging_unittest_base):
+    '''
+    Test MS order using the fact that sdimaging takes object name
+    from the first MS of internally sorted list of MSes.
+    '''
+    datapath = os.path.join(get_data_req_path(), 'visibilities/almasd')
+    infiles = ['PM04_A108.ms', 'PM04_T704.ms']
+    field_names = ['SUCCESS', 'FAIL']
+    outfile = 'ms_order.im'
+
+    def setUp(self):
+        self.__clear_files()
+
+        for infile, fname in zip(self.infiles, self.field_names):
+            shutil.copytree(os.path.join(self.datapath, infile), infile)
+            self.__set_field_name(infile, 2, fname)
+
+    def tearDown(self):
+        self.__clear_files()
+
+    def __set_field_name(self, infile, field_id, name):
+        with tbmanager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
+            tb.putcell('NAME', field_id, name)
+            assert tb.getcell('NAME', field_id) == name
+
+    def __clear_files(self):
+        files = self.infiles + glob.glob('{}*'.format(self.outfile))
+        for f in files:
+            if os.path.exists(f):
+                shutil.rmtree(f)
+
+    def _verify_field_name(self, imagename):
+        object_name = imhead(imagename=imagename, mode='get', hdkey='OBJECT')
+        print('imagename="{}", object name="{}"'.format(imagename, object_name))
+        self.assertEqual(object_name, self.field_names[0])
+
+    def _test_ms_order(self, infiles):
+        imsize = 11
+        params = {
+            'infiles': infiles,
+            'antenna': '2',
+            'spw': '18',
+            'phasecenter': 2,
+            'outfile': self.outfile,
+            'overwrite': False,
+            'imsize': imsize,
+            'cell': '10arcsec'
+        }
+        center = [imsize // 2, imsize // 2, 0, 0]
+        ref = {
+            'npts': [1],
+            'max': [1],
+            'min': [1],
+            'maxpos': center,
+            'minpos': center,
+            'sum': [1]
+        }
+        # test normal order
+        outputimage = params['outfile']
+        self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+        self._verify_field_name(outputimage)
+
+    def test_normal_order(self):
+        '''test_normal_order: test normal chronological order'''
+        self._test_ms_order(self.infiles)
+
+    def test_reverse_order(self):
+        '''test_reverse_order: test reverse chronological order'''
+        infiles = self.infiles[::-1]
+        self.assertEqual(infiles.index(self.infiles[0]), 1)
+        self._test_ms_order(infiles)
+
+
 """
 # utility for sdimaging_test_mapextent
 # commented out since sd tool is no longer available in CASA (CAS-10301)
@@ -3493,7 +3566,8 @@ def suite():
             sdimaging_test_interp,
             sdimaging_test_clipping,
             sdimaging_test_projection,
-            sdimaging_antenna_move
+            sdimaging_antenna_move,
+            sdimaging_ms_order
             ]
 
 if is_CASA6:

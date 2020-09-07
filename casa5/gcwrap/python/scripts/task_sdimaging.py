@@ -7,11 +7,10 @@ import shutil
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
-    from casatools import quanta, ms, image, table, msmetadata
+    from casatools import quanta, ms, image, table, msmetadata, measures
     from casatasks import casalog
     from . import sdutil
     from . import sdbeamutil
-    from .cleanhelper import cleanhelper
 else:
     from taskinit import casalog
     from taskinit import msmdtool as msmetadata
@@ -19,9 +18,9 @@ else:
     from taskinit import mstool as ms
     from taskinit import iatool as image
     from taskinit import qatool as quanta
+    from taskinit import metool as measures
     import sdutil
     import sdbeamutil
-    from cleanhelper import cleanhelper
 
 
 @sdutil.sdtask_decorator
@@ -48,6 +47,411 @@ def smart_remove(path):
         shutil.rmtree(path)
     else:
         os.remove(path)
+
+
+def get_subtable_path(vis, name):
+    return os.path.join(vis, name)
+
+
+# functions from cleanhelper
+class cleanhelper_minimal(object):
+    def __init__(self, imtool='', vis='', sort_index=None, usescratch=False, casalog=casalog):
+        if((type(vis)==list) and (len(vis)==1)):
+            vis=vis[0]
+        ####
+        if isinstance(vis, str):
+            vislist = [vis]
+        else:
+            vislist = vis
+        assert not isinstance(imtool, str)
+        self.im = imtool
+        self.vislist = vislist
+        assert sort_index is not None
+        self.sortedvisindx = sort_index
+        self.sortedvislist = [self.vislist[i] for i in sort_index]
+
+        self.dataspecframe='LSRK'
+        self.usespecframe=''
+        self.inframe=False
+        self._casalog = casalog
+
+    def convertvf(self,vf,frame,field,restf,veltype='radio'):
+        """
+        returns doppler(velocity) or frequency in string
+        currently use first rest frequency
+        Assume input vf (velocity or fequency in a string) and
+        output are the same 'frame'.
+        """
+        #pdb.set_trace()
+        docalcf=False
+        #if(frame==''): frame='LSRK'
+        #Use datasepcframe, it is cleanhelper initialized to set
+        #to LSRK
+        if(frame==''): frame=self.dataspecframe
+        qa = quanta()
+        if(qa.quantity(vf)['unit'].find('m/s') > -1):
+            docalcf=True
+        elif(qa.quantity(vf)['unit'].find('Hz') > -1):
+            docalcf=False
+        else:
+            if vf !=0:
+                raise TypeError("Unrecognized unit for the velocity or frequency parameter")
+        ##fldinds=ms.msseltoindex(self.vis, field=field)['field'].tolist()
+        myms = ms()
+        fldinds=myms.msseltoindex(self.vislist[self.sortedvisindx[0]], field=field)['field'].tolist()
+        if(len(fldinds) == 0):
+            fldid0=0
+        else:
+            fldid0=fldinds[0]
+        if restf=='':
+            #tb.open(self.vis+'/FIELD')
+            fldtab=get_subtable_path(self.vislist[self.sortedvisindx[0]],'FIELD')
+            tb = table()
+            tb.open(fldtab)
+            nfld = tb.nrows()
+            if nfld >= fldid0:
+              srcid=tb.getcell('SOURCE_ID',fldid0)
+            else:
+              raise TypeError( "Cannot set REST_FREQUENCY from the data: " +
+                               "no SOURCE corresponding field ID=%s, please supply restfreq" % fldid0 )
+            tb.close()
+            # SOUECE_ID in FIELD table = -1 if no SOURCE table
+            if srcid==-1:
+                raise TypeError("Rest frequency info is not supplied")
+            #tb.open(self.vis+'/SOURCE')
+            sourcetab=get_subtable_path(self.vislist[self.sortedvisindx[0]], 'SOURCE')
+            tb.open(sourcetab)
+            tb2=tb.query('SOURCE_ID==%s' % srcid)
+            tb.close()
+            nsrc = tb2.nrows()
+            if nsrc > 0:
+              rfreq=tb2.getcell('REST_FREQUENCY',0)
+            else:
+              raise TypeError( "Cannot set REST_FREQUENCY from the data: "+
+                               " no SOURCE corresponding field ID=%s, please supply restfreq" % fldid0 )
+            tb2.close()
+            if(rfreq<=0):
+                raise TypeError("Rest frequency does not seems to be properly set, check the data")
+        else:
+            if type(restf)==str: restf=[restf]
+            if(qa.quantity(restf[0])['unit'].find('Hz') > -1):
+                rfreq=[qa.convert(qa.quantity(restf[0]),'Hz')['value']]
+                #print("using user input rest freq=",rfreq)
+            else:
+                raise TypeError("Unrecognized unit or type for restfreq")
+        if(vf==0):
+            # assume just want to get a restfrequecy from the data
+            ret=str(rfreq[0])+'Hz'
+        else:
+            me = measures()
+            if(docalcf):
+                dop=me.doppler(veltype, qa.quantity(vf))
+                rvf=me.tofrequency(frame, dop, qa.quantity(rfreq[0],'Hz'))
+            else:
+                frq=me.frequency(frame, qa.quantity(vf))
+                rvf=me.todoppler(veltype, frq, qa.quantity(rfreq[0],'Hz'))
+            ret=str(rvf['m0']['value'])+rvf['m0']['unit']
+        return ret
+
+
+    def setChannelizeDefault(self,mode,spw,field,nchan,start,width,frame,veltype,phasec, restf,obstime=''):
+        """
+        Determine appropriate values for channelization
+        parameters when default values are used
+        for mode='velocity' or 'frequency' or 'channel'
+        This makes use of ms.cvelfreqs.
+        """
+        ###############
+        # for debugging
+        ###############
+        debug=False
+        ###############
+        spectable=get_subtable_path(self.vislist[self.sortedvisindx[0]], "SPECTRAL_WINDOW")
+        tb = table()
+        tb.open(spectable)
+        chanfreqscol=tb.getvarcol('CHAN_FREQ')
+        chanwidcol=tb.getvarcol('CHAN_WIDTH')
+        spwframe=tb.getcol('MEAS_FREQ_REF');
+        tb.close()
+        # first parse spw parameter:
+        # use MSSelect if possible
+        if len(self.sortedvislist) > 0:
+          invis = self.sortedvislist[0]
+          inspw = self.vislist.index(self.sortedvislist[0])
+        else:
+          invis = self.vislist[0]
+          inspw = 0
+        myms = ms()
+        myms.open(invis)
+        if type(spw)==list:
+          spw=spw[inspw]
+        if spw in ('-1', '*', '', ' '):
+          spw='*'
+        if field=='':
+          field='*'
+        mssel=myms.msseltoindex(vis=invis, spw=spw, field=field)
+        selspw=mssel['spw']
+        selfield=mssel['field']
+        chaninds=mssel['channel'].tolist()
+        chanst0 = chaninds[0][1]
+
+        # frame
+        spw0=selspw[0]
+        chanfreqs=chanfreqscol['r'+str(spw0+1)].transpose()[0]
+        chanres = chanwidcol['r'+str(spw0+1)].transpose()[0]
+
+        # ascending or desending data frequencies?
+        # based on selected first spw's first CHANNEL WIDTH
+        # ==> some MS data may have positive chan width
+        # so changed to look at first two channels of chanfreq (TT)
+        #if chanres[0] < 0:
+        descending = False
+        if len(chanfreqs) > 1 :
+          if chanfreqs[1]-chanfreqs[0] < 0:
+            descending = True
+        else:
+          if chanres[0] < 0:
+            descending = True
+
+        # set dataspecframe:
+        elspecframe=["REST",
+                     "LSRK",
+                     "LSRD",
+                     "BARY",
+                     "GEO",
+                     "TOPO",
+                     "GALACTO",
+                     "LGROUP",
+                     "CMB"]
+        self.dataspecframe=elspecframe[spwframe[spw0]];
+
+        # set usespecframe:  user's frame if set, otherwise data's frame
+        if(frame != ''):
+            self.usespecframe=frame
+            self.inframe=True
+        else:
+            self.usespecframe=self.dataspecframe
+
+        # some start and width default handling
+        if mode!='channel':
+          if width==1:
+             width=''
+          if start==0:
+             start=''
+
+        #get restfreq
+        if restf=='':
+          fldtab=get_subtable_path(invis,'FIELD')
+          tb.open(fldtab)
+          nfld=tb.nrows()
+          try:
+            if nfld >= selfield[0]:
+              srcid=tb.getcell('SOURCE_ID',selfield[0])
+            else:
+              if mode=='velocity':
+                raise TypeError( "Cannot set REST_FREQUENCY from the data: " +
+                                 "no SOURCE corresponding field ID=%s, please supply restfreq" % selfield[0] )
+          finally:
+            tb.close()
+          #SOUECE_ID in FIELD table = -1 if no SOURCE table
+          if srcid==-1:
+            if mode=='velocity':
+              raise TypeError("Rest frequency info is not supplied")
+          try:
+            srctab=get_subtable_path(invis, 'SOURCE')
+            tb.open(srctab)
+            tb2=tb.query('SOURCE_ID==%s' % srcid)
+            nsrc = tb2.nrows()
+            if nsrc > 0 and tb2.iscelldefined('REST_FREQUENCY',0):
+              rfqs = tb2.getcell('REST_FREQUENCY',0)
+              if len(rfqs)>0:
+                restf=str(rfqs[0])+'Hz'
+              else:
+                if mode=='velocity':
+                  raise TypeError( "Cannot set REST_FREQUENCY from the data: " +
+                                   "REST_FREQUENCY entry for ID %s in SOURCE table is empty, please supply restfreq" % srcid )
+            else:
+              if mode=='velocity':
+                raise TypeError( "Cannot set REST_FREQUENCY from the data: " +
+                                 "no SOURCE corresponding field ID=%s, please supply restfreq" % selfield[0] )
+          finally:
+            tb.close()
+            tb2.close()
+
+        if type(phasec)==list:
+           inphasec=phasec[0]
+        else:
+           inphasec=phasec
+        if type(inphasec)==str and inphasec.isdigit():
+          inphasec=int(inphasec)
+        #if nchan==1:
+          # use data chan freqs
+        #  newfreqs=chanfreqs
+        #else:
+          # obstime not included here
+        if debug: print("before ms.cvelfreqs (start,width,nchan)===>",start, width, nchan)
+        try:
+            newfreqs=myms.cvelfreqs(spwids=selspw,fieldids=selfield,mode=mode,nchan=nchan,
+                              start=start,width=width,phasec=inphasec, restfreq=restf,
+                              outframe=self.usespecframe,veltype=veltype).tolist()
+        except:
+            # ms must be closed here if ms.cvelfreqs failed with an exception
+            myms.close()
+            raise
+        myms.close()
+
+        #print(newfreqs)
+        descendingnewfreqs=False
+        if len(newfreqs)>1:
+          if newfreqs[1]-newfreqs[0] < 0:
+            descendingnewfreqs=True
+
+
+        try:
+            if((nchan in [-1, "-1", "", " "]) or (start in [-1, "-1", "", " "])):
+                frange=im.advisechansel(msname=invis, spwselection=spw, fieldid=selfield[0], getfreqrange=True)
+                startchan=0
+                endchan=len(newfreqs)-1
+                if(descendingnewfreqs):
+                    startchan=numpy.min(numpy.where(frange['freqend'] < numpy.array(newfreqs)))
+                    endchan=numpy.min(numpy.where(frange['freqstart'] < numpy.array(newfreqs)))
+                else:
+                    startchan=numpy.max(numpy.where(frange['freqstart'] > numpy.array(newfreqs)))
+                    endchan=numpy.max(numpy.where(frange['freqend'] > numpy.array(newfreqs)))
+                    if((start not in  [-1, "-1", "", " "]) and (mode=="channel")):
+                        startchan=start
+                    if(nchan not in [-1, "-1", "", " "]):
+                        endchan=startchan+nchan-1
+                    newfreqs=(numpy.array(newfreqs)[startchan:endchan]).tolist()
+        except:
+            pass
+        if debug: print("Mode, Start, width after cvelfreqs =",mode, start,width )
+        if type(newfreqs)==list and len(newfreqs) ==0:
+          raise TypeError( "Output frequency grid cannot be calculated: " +
+                           " please check start and width parameters" )
+        if debug:
+          if len(newfreqs)>1:
+            print("FRAME=",self.usespecframe)
+            print("newfreqs[0]===>",newfreqs[0])
+            print("newfreqs[1]===>",newfreqs[1])
+            print("newfreqs[-1]===>",newfreqs[-1])
+            print("len(newfreqs)===>",len(newfreqs))
+          else:
+            print("newfreqs=",newfreqs)
+
+        # set output number of channels
+        if nchan ==1:
+          retnchan=1
+        else:
+          if len(newfreqs)>1:
+            retnchan=len(newfreqs)
+          else:
+            retnchan=nchan
+            newfreqs=chanfreqs.tolist()
+
+        # set start parameter
+        # first analyze data order etc
+        reverse=False
+        negativew=False
+        if descending:
+          # channel mode case (width always >0)
+          if width!="" and (type(width)==int or type(width)==float):
+            if descendingnewfreqs:
+              reverse=False
+            else:
+              reverse=True
+          elif width=="": #default width
+            if descendingnewfreqs and mode=="frequency":
+              reverse=False
+            else:
+              reverse=True
+
+          elif type(width)==str:
+            if width.lstrip().find('-')==0:
+              negativew=True
+            if descendingnewfreqs:
+              if negativew:
+                reverse=False
+              else:
+                reverse=True
+            else:
+              if negativew:
+                reverse=True
+              else:
+                reverse=False
+        else: #ascending data
+          # depends on sign of width only
+          # with CAS-3117 latest change(rev.15179), velocity start
+          # means lowest velocity for default width
+          if width=="" and mode=="velocity": #default width
+              # ms.cvelfreqs returns correct order so no reversing
+              reverse=False
+          elif type(width)==str:
+            if width.lstrip().find('-')==0:
+                reverse=True
+            else:
+                reverse=False
+
+        if reverse:
+           newfreqs.reverse()
+        #if (start!="" and mode=='channel') or \
+        #   (start!="" and type(start)!=int and mode!='channel'):
+        # for now to avoid inconsistency later in imagecoordinates2 call
+        # user's start parameter is preserved for channel mode only.
+        # (i.e. the current code may adjust start parameter for other modes but
+        # this probably needs to be changed, especially for multiple ms handling.)
+        if ((start not in [-1, "", " "]) and mode=='channel'):
+          retstart=start
+        else:
+          # default cases
+          if mode=="frequency":
+            retstart=str(newfreqs[0])+'Hz'
+          elif mode=="velocity":
+            #startfreq=str(newfreqs[-1])+'Hz'
+            startfreq=(str(max(newfreqs))+'Hz') if(start=="") else  (str(newfreqs[-1])+'Hz')
+            retstart=self.convertvf(startfreq,frame,field,restf,veltype)
+          elif mode=="channel":
+            # default start case, use channel selection from spw
+            retstart=chanst0
+
+        # set width parameter
+        if width!="":
+          retwidth=width
+        else:
+          if nchan==1:
+            finc = chanres[0]
+          else:
+            finc = newfreqs[1]-newfreqs[0]
+            if debug: print("finc(newfreqs1-newfreqs0)=",finc)
+          if mode=="frequency":
+            # It seems that this is no longer necessary... TT 2013-08-12
+            #if descendingnewfreqs:
+            #  finc = -finc
+            retwidth=str(finc)+'Hz'
+          elif mode=="velocity":
+            # for default width assume it is vel<0 (incresing in freq)
+            if descendingnewfreqs:
+              ind1=-2
+              ind0=-1
+            else:
+              ind1=-1
+              ind0=-2
+            v1 = self.convertvf(str(newfreqs[ind1])+'Hz',frame,field,restf,veltype=veltype)
+            v0 = self.convertvf(str(newfreqs[ind0])+'Hz',frame,field,restf,veltype=veltype)
+            ##v1 = self.convertvf(str(newfreqs[-1])+'Hz',frame,field,restf,veltype=veltype)
+            ##v0 = self.convertvf(str(newfreqs[-2])+'Hz',frame,field,restf,veltype=veltype)
+            #v1 = self.convertvf(str(newfreqs[1])+'Hz',frame,field,restf,veltype=veltype)
+            #v0 = self.convertvf(str(newfreqs[0])+'Hz',frame,field,restf,veltype=veltype)
+            qa = quanta()
+            if(qa.lt(v0, v1) and start==""):
+                ###user used "" as start make sure step is +ve in vel as start is min vel possible for freqs selected
+                retwidth=qa.tos(qa.sub(v1, v0))
+            else:
+                retwidth = qa.tos(qa.sub(v0, v1))
+          else:
+            retwidth=1
+          if debug: print("setChan retwidth=",retwidth)
+        return retnchan, retstart, retwidth
 
 
 class sdimaging_worker(sdutil.sdtask_template_imaging):
@@ -228,9 +632,9 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
 
         # Work on selection of the first table in sorted list
         # to get default restfreq and outframe
-        imhelper = cleanhelper(self.imager, self.infiles, casalog=casalog)
-        imhelper.sortvislist(self.spw, self.mode, self.width)
-        self.sorted_idx = imhelper.sortedvisindx
+        # chronological sort
+        sorted_vislist = sdutil.tentative_chrono_sort(self.infiles)
+        self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
         selection_ids = self.get_selection_idx_for_ms(self.sorted_idx[0])
         self.__update_subtable_name(self.infiles[self.sorted_idx[0]])
         # field
@@ -403,8 +807,9 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         self.imager_param['movingsource'] = self.ephemsrcname
 
         # channel map
-        imhelper = cleanhelper(self.imager, self.infiles, casalog=casalog)
-        imhelper.sortvislist(self.spw, self.mode, self.width)
+        sorted_vislist = sdutil.tentative_chrono_sort(self.infiles)
+        self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
+        imhelper = cleanhelper_minimal(self.imager, self.infiles, sort_index=self.sorted_idx, casalog=casalog)
         spwsel = str(',').join([str(spwid) for spwid in selection_ids['spw']])
         srestf = self.imager_param['restfreq'] if is_string_type(self.imager_param['restfreq']) else "%fHz" % self.imager_param['restfreq']
         (imnchan, imstart, imwidth) = imhelper.setChannelizeDefault(self.mode, spwsel, self.field, self.nchan, self.start, self.width, self.imager_param['outframe'], self.veltype,self.imager_param['phasecenter'], srestf)
