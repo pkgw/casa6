@@ -4,7 +4,6 @@ import re
 import numpy
 import shutil
 import contextlib
-import functools
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -12,7 +11,6 @@ if is_CASA6:
     from casatools import quanta, imager, image, ms, table
     from . import sdutil
     from . import sdbeamutil
-    from .cleanhelper import cleanhelper
 
     ## (1) Import the python application layer
     from .imagerhelpers.imager_base import PySynthesisImager
@@ -26,7 +24,6 @@ else:
     from taskinit import tbtool as table
     import sdutil
     import sdbeamutil
-    from cleanhelper import cleanhelper
 
     ## (1) Import the python application layer
     from imagerhelpers.imager_base import PySynthesisImager
@@ -169,24 +166,26 @@ class OldImagerBasedTools(object):
                                      pointingcolumntouse=pointingcolumntouse)
         return map_param
 
-    def sort_vis(self, vislist, spw, mode, width, field, antenna, scan, intent):
-        if isinstance(vislist, str) or len(vislist) == 1:
-            return vislist, field, spw, antenna, scan, intent
-        # chronological sort
-        sorted_vislist = sdutil.tentative_chrono_sort(vislist)
-        _vislist = list(vislist)
-        sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
-        fieldsel = SelectionHandler(field)
-        sorted_field = [fieldsel(i) for i in sorted_idx]
-        spwsel = SelectionHandler(spw)
-        sorted_spw = [spwsel(i) for i in sorted_idx]
-        antennasel = SelectionHandler(antenna)
-        sorted_antenna = [antennasel(i) for i in sorted_idx]
-        scansel = SelectionHandler(scan)
-        sorted_scan = [scansel(i) for i in sorted_idx]
-        intentsel = SelectionHandler(intent)
-        sorted_intent = [intentsel(i) for i in sorted_idx]
-        return sorted_vislist, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent
+
+def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):
+    if isinstance(vislist, str) or len(vislist) == 1:
+        return vislist, field, spw, antenna, scan, intent
+    # chronological sort
+    sorted_vislist = sdutil.tentative_chrono_sort(vislist)
+    _vislist = list(vislist)
+    sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
+    fieldsel = SelectionHandler(field)
+    sorted_field = [fieldsel(i) for i in sorted_idx]
+    spwsel = SelectionHandler(spw)
+    sorted_spw = [spwsel(i) for i in sorted_idx]
+    antennasel = SelectionHandler(antenna)
+    sorted_antenna = [antennasel(i) for i in sorted_idx]
+    scansel = SelectionHandler(scan)
+    sorted_scan = [scansel(i) for i in sorted_idx]
+    intentsel = SelectionHandler(intent)
+    sorted_intent = [intentsel(i) for i in sorted_idx]
+    return sorted_vislist, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent
+
 
 def _configure_spectral_axis(mode, nchan, start, width, restfreq):
     # fix default
@@ -764,9 +763,8 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, m
                                                                 _restfreq, pointingcolumn, _ephemsrcname)
             sorted_vis = infiles
         else:
-            # sort input data using cleanhelper function to get consistent result with older sdimaging
-            o = OldImagerBasedTools()
-            _sorted = o.sort_vis(infiles, _spw, mode, imwidth, field, antenna, scan, intent)
+            # sort input data to get consistent result with older sdimaging
+            _sorted = sort_vis(infiles, _spw, mode, imwidth, field, antenna, scan, intent)
             sorted_vis, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent = _sorted
             _imsize, _cell, _phasecenter = _handle_image_params(imsize, cell, phasecenter, sorted_vis,
                                                                 sorted_field, sorted_spw, sorted_antenna,
