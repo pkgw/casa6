@@ -1770,3 +1770,26 @@ def _to_list(param, ptype=int, convert=False):
     elif convert:
         return [ ptype(p) for p in param]
     return None
+
+
+def tentative_chrono_sort(infiles):
+    assert isinstance(infiles, (list, numpy.ndarray, set))
+
+    sortedvis = []
+    sortedvisweightscale = []
+    namestuples = []
+    for name in infiles:
+        assert isinstance(name, str)
+        assert os.path.exists(name)
+        with tbmanager(name) as t:
+            t.open(name)
+            times = t.getcol('TIME')
+            times.sort()
+            namestuples.append( (times[0], name, 0) )
+
+    sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
+
+    for i in range(0,len(infiles)):
+            sortedvis.append(sorted_namestuples[i][1])
+
+    return sortedvis

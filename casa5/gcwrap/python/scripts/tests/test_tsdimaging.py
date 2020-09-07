@@ -29,6 +29,7 @@ except:
 import restfreqtool
 from tsdimaging import tsdimaging as sdimaging
 from sdutil import tbmanager, toolmanager, table_selector
+from imhead import imhead
 from task_tsdimaging import image_suffix
 
 
@@ -99,7 +100,7 @@ def remove_table(filename):
     """
     if filename == '.' or filename[:2] == '..':
         raise Exception("Dangerous! Attempting to remove '" + filename + "'!!")
-    
+
     if os.path.exists(filename):
         if os.path.isdir(filename):
             shutil.rmtree(filename)
@@ -410,7 +411,7 @@ class sdimaging_test0(sdimaging_unittest_base):
 
     def setUp(self):
         self.cache_validator = testutils.TableCacheValidator()
-        
+
         remove_table(self.rawfile)
         shutil.copytree(self.datapath+self.rawfile, self.rawfile)
 
@@ -427,7 +428,7 @@ class sdimaging_test0(sdimaging_unittest_base):
     def tearDown(self):
         remove_table(self.rawfile)
         remove_tables_starting_with(self.prefix)
-        
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_exception_case(self, task_param, expected_msg, expected_type=RuntimeError):
@@ -1339,7 +1340,7 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest,sdimaging_un
         for name in self.rawfiles:
             remove_table(name)
         remove_tables_starting_with(self.prefix)
-        
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_test(self, task_param, refstats, shape,
@@ -2345,7 +2346,7 @@ class sdimaging_test_polflag(sdimaging_unittest_base):
 
     def tearDown(self):
         remove_table(self.infiles)
-        # Since the data is flagged by flagdata, flagversions directory 
+        # Since the data is flagged by flagdata, flagversions directory
         # is automatically created. This must be removed
         flagversions = self.infiles + '.flagversions'
         remove_table(flagversions)
@@ -2493,7 +2494,7 @@ class sdimaging_test_mslist(sdimaging_unittest_base):
             remove_tables_starting_with(self.outfile)
             for name in self.infiles:
                 remove_table(name)
-                    
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_test(self, task_param=None,refstats=None):
@@ -2689,7 +2690,7 @@ class sdimaging_test_mapextent(sdimaging_unittest_base):
         remove_table(self.infiles_azel)
         #remove_table(self.outfile)
         remove_tables_starting_with(self.outfile)
-        
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_test(self, **kwargs):
@@ -2830,7 +2831,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
                   'gridfunction': 'BOX',
                   'outfile': outfile,
                   'intent': ""}
-   
+
     def __copy_table(self, f):
         remove_table(f)
         testutils.copytree_ignore_subversion(self.datapath, f)
@@ -2845,7 +2846,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
     def tearDown(self):
         remove_table(self.infiles)
         remove_tables_starting_with(self.outfile)
-        
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_test(self, **kwargs):
@@ -3158,7 +3159,7 @@ class sdimaging_test_interp_old(sdimaging_unittest_base):
         for infile in self.params['infiles']:
             remove_table(infile)
         remove_tables_starting_with(self.outfile)
-        
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_test(self, **kwargs):
@@ -3252,7 +3253,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         remove_table(outfile_ref)
         remove_table(self.outfile_ref+'.weight')
         #remove_table(self.outfile_ref+'.psf') # CAS-10893 TODO: uncomment once true PSF image is available
-    
+
     def _test_clipping(self, infiles, is_clip_effective=True):
         if isinstance(infiles, str):
             self._test_clipping([infiles], is_clip_effective)
@@ -3665,7 +3666,7 @@ class sdimaging_test_output(sdimaging_unittest_base):
         for infile in self.params['infiles']:
             remove_table(infile)
         remove_tables_starting_with(self.outfile)
-        
+
         self.assertTrue(self.cache_validator.validate())
 
     def run_test(self, **kwargs):
@@ -3691,8 +3692,8 @@ class sdimaging_test_output(sdimaging_unittest_base):
             filename = self.outfile + suffix
             mesg = '{} must not be created, but it exists.'.format(filename)
             self.assertFalse(os.path.exists(filename), msg=mesg)
-    
-    
+
+
 class sdimaging_antenna_move(sdimaging_unittest_base):
     datapath = os.path.join(get_data_req_path(), 'visibilities/almasd')
     infiles = ['PM04_A108.ms', 'PM04_T704.ms']
@@ -3740,6 +3741,79 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             'sum': [1]
         }
         self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+
+class sdimaging_ms_order(sdimaging_unittest_base):
+    '''
+    Test MS order using the fact that sdimaging takes object name
+    from the first MS of internally sorted list of MSes.
+    '''
+    datapath = os.path.join(get_data_req_path(), 'visibilities/almasd')
+    infiles = ['PM04_A108.ms', 'PM04_T704.ms']
+    field_names = ['SUCCESS', 'FAIL']
+    outfile = 'ms_order'
+
+    def setUp(self):
+        self.__clear_files()
+
+        for infile, fname in zip(self.infiles, self.field_names):
+            shutil.copytree(os.path.join(self.datapath, infile), infile)
+            self.__set_field_name(infile, 2, fname)
+
+    def tearDown(self):
+        self.__clear_files()
+
+    def __set_field_name(self, infile, field_id, name):
+        with tbmanager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
+            tb.putcell('NAME', field_id, name)
+            assert tb.getcell('NAME', field_id) == name
+
+    def __clear_files(self):
+        files = self.infiles + glob.glob('{}*'.format(self.outfile))
+        for f in files:
+            if os.path.exists(f):
+                shutil.rmtree(f)
+
+    def _verify_field_name(self, imagename):
+        object_name = imhead(imagename=imagename, mode='get', hdkey='OBJECT')
+        print('imagename="{}", object name="{}"'.format(imagename, object_name))
+        self.assertEqual(object_name, self.field_names[0])
+
+    def _test_ms_order(self, infiles):
+        imsize = 11
+        params = {
+            'infiles': infiles,
+            'antenna': '2',
+            'spw': '18',
+            'phasecenter': 2,
+            'outfile': self.outfile,
+            'overwrite': False,
+            'imsize': imsize,
+            'cell': '10arcsec'
+        }
+        center = [imsize // 2, imsize // 2, 0, 0]
+        ref = {
+            'npts': [1],
+            'max': [1],
+            'min': [1],
+            'maxpos': center,
+            'minpos': center,
+            'sum': [1]
+        }
+        # test normal order
+        outputimage = params['outfile'] + '.image'
+        self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+        self._verify_field_name(outputimage)
+
+    def test_normal_order(self):
+        '''test_normal_order: test normal chronological order'''
+        self._test_ms_order(self.infiles)
+
+    def test_reverse_order(self):
+        '''test_reverse_order: test reverse chronological order'''
+        infiles = self.infiles[::-1]
+        self.assertEqual(infiles.index(self.infiles[0]), 1)
+        self._test_ms_order(infiles)
 
 
 """
@@ -3841,5 +3915,6 @@ def suite():
             sdimaging_test_clipping,
             sdimaging_test_projection,
             sdimaging_test_output,
-            sdimaging_antenna_move
+            sdimaging_antenna_move,
+            sdimaging_ms_order
             ]
