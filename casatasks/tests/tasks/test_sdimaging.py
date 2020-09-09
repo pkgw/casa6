@@ -3411,10 +3411,9 @@ class sdimaging_test_projection(sdimaging_unittest_base):
                              projection=projection)
 
 
-class sdimaging_antenna_move(sdimaging_unittest_base):
+class sdimaging_pm04_test_base(sdimaging_unittest_base):
     datapath = ctsys_resolve('visibilities/almasd')
     infiles = ['PM04_A108.ms', 'PM04_T704.ms']
-    outfile = 'antenna_move.im'
 
     def setUp(self):
         self.__clear_files()
@@ -3431,10 +3430,10 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             if os.path.exists(f):
                 shutil.rmtree(f)
 
-    def test_antenna_move(self):
+    def _run_pm04_test(self, infiles=None):
         imsize = 11
         params = {
-            'infiles': self.infiles,
+            'infiles': self.infiles if infiles is None else infiles,
             'antenna': '2',
             'spw': '18',
             'phasecenter': 2,
@@ -3455,66 +3454,42 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
         self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
 
 
-class sdimaging_ms_order(sdimaging_unittest_base):
+class sdimaging_antenna_move(sdimaging_pm04_test_base):
+    '''
+    Test imaging multiple data from the same antenna but different stations
+    '''
+    outfile = 'antenna_move'
+
+    def test_antenna_move(self):
+        self._run_pm04_test()
+
+
+class sdimaging_ms_order(sdimaging_pm04_test_base):
     '''
     Test MS order using the fact that sdimaging takes object name
     from the first MS of internally sorted list of MSes.
     '''
-    datapath = ctsys_resolve('visibilities/almasd')
-    infiles = ['PM04_A108.ms', 'PM04_T704.ms']
     field_names = ['SUCCESS', 'FAIL']
     outfile = 'ms_order.im'
 
     def setUp(self):
-        self.__clear_files()
-
+        super(sdimaging_ms_order, self).setUp()
         for infile, fname in zip(self.infiles, self.field_names):
-            shutil.copytree(os.path.join(self.datapath, infile), infile)
             self.__set_field_name(infile, 2, fname)
-
-    def tearDown(self):
-        self.__clear_files()
 
     def __set_field_name(self, infile, field_id, name):
         with tbmanager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
             tb.putcell('NAME', field_id, name)
             assert tb.getcell('NAME', field_id) == name
 
-    def __clear_files(self):
-        files = self.infiles + glob.glob('{}*'.format(self.outfile))
-        for f in files:
-            if os.path.exists(f):
-                shutil.rmtree(f)
-
     def _verify_field_name(self, imagename):
         object_name = imhead(imagename=imagename, mode='get', hdkey='OBJECT')
-        print(f'imagename="{imagename}", object name="{object_name}"')
+        print('imagename="{}", object name="{}"'.format(imagename, object_name))
         self.assertEqual(object_name, self.field_names[0])
 
     def _test_ms_order(self, infiles):
-        imsize = 11
-        params = {
-            'infiles': infiles,
-            'antenna': '2',
-            'spw': '18',
-            'phasecenter': 2,
-            'outfile': self.outfile,
-            'overwrite': False,
-            'imsize': imsize,
-            'cell': '10arcsec'
-        }
-        center = [imsize // 2, imsize // 2, 0, 0]
-        ref = {
-            'npts': [1],
-            'max': [1],
-            'min': [1],
-            'maxpos': center,
-            'minpos': center,
-            'sum': [1]
-        }
-        # test normal order
-        outputimage = params['outfile']
-        self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+        self._run_pm04_test(infiles)
+        outputimage = self.outfile
         self._verify_field_name(outputimage)
 
     def test_normal_order(self):
