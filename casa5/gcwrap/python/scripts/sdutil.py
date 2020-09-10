@@ -1776,7 +1776,6 @@ def tentative_chrono_sort(infiles):
     assert isinstance(infiles, (list, numpy.ndarray, set))
 
     sortedvis = []
-    sortedvisweightscale = []
     namestuples = []
     for name in infiles:
         assert isinstance(name, str)
