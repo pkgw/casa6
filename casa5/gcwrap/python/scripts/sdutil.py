@@ -1788,7 +1788,7 @@ def tentative_chrono_sort(infiles):
 
     sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
 
-    for i in range(0,len(infiles)):
+    for i in range(len(infiles)):
             sortedvis.append(sorted_namestuples[i][1])
 
     return sortedvis
