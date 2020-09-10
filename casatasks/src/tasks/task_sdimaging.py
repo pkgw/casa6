@@ -812,7 +812,18 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         imhelper = cleanhelper_minimal(self.imager, self.infiles, sort_index=self.sorted_idx, casalog=casalog)
         spwsel = str(',').join([str(spwid) for spwid in selection_ids['spw']])
         srestf = self.imager_param['restfreq'] if is_string_type(self.imager_param['restfreq']) else "%fHz" % self.imager_param['restfreq']
-        (imnchan, imstart, imwidth) = imhelper.setChannelizeDefault(self.mode, spwsel, self.field, self.nchan, self.start, self.width, self.imager_param['outframe'], self.veltype,self.imager_param['phasecenter'], srestf)
+        (imnchan, imstart, imwidth) = imhelper.setChannelizeDefault(
+            self.mode,
+            spwsel,
+            self.field,
+            self.nchan,
+            self.start,
+            self.width,
+            self.imager_param['outframe'],
+            self.veltype,
+            self.imager_param['phasecenter'],
+            srestf
+        )
         del imhelper
 
         # start and width
