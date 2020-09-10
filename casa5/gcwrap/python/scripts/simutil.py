@@ -1173,9 +1173,9 @@ class simutil:
             obslist_lower = [obs.lower() for obs in me.obslist()]
             if self.telescope.lower() in obslist_lower:
                 t = self.telescope
-                known=True
+                known = True
                         
-            if known=True:
+            if known == True:
                 posobs = me.measure(me.observatory(t), 'WGS84')
             else:
                 self.msg("Unknown telescope and no antenna list.",
