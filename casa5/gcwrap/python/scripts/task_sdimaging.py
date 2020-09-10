@@ -1166,12 +1166,17 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
             qwidth = my_qa.quantity(mapextent['extent'][0], 'rad')
             qcent0 = my_qa.quantity(mapextent['center'][0], 'rad')
             qcent1 = my_qa.quantity(mapextent['center'][1], 'rad')
-            scenter = '%s %s %s'%(base_mref, my_qa.formxxx(qcent0, 'hms'),
-                                  my_qa.formxxx(qcent1, 'dms'))
+            scenter = '{ref} {longigude} {latitude}'.format(
+                ref=base_mref,
+                longigude=my_qa.formxxx(qcent0, 'hms'),
+                latitude=my_qa.formxxx(qcent1, 'dms')
+            )
 
-            casalog.post("- Pointing center: %s" % scenter)
-            casalog.post("- Pointing extent: [%s, %s] (projected)" % (my_qa.tos(qwidth), \
-                                                                  my_qa.tos(qheight)))
+            casalog.post("- Pointing center: {center}".format(center=scenter))
+            casalog.post("- Pointing extent: [{width}, {height}] (projected)".format(
+                width=my_qa.tos(qwidth),
+                height=my_qa.tos(qheight)
+            ))
             ret_dict['center'] = scenter
             ret_dict['width'] = qwidth
             ret_dict['height'] = qheight
