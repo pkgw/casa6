@@ -1785,7 +1785,7 @@ def tentative_chrono_sort(infiles):
             t.open(name)
             times = t.getcol('TIME')
             times.sort()
-            namestuples.append( (times[0], name, 0) )
+            namestuples.append((times[0], name, 0))
 
     sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
 
