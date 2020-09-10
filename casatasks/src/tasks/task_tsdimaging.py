@@ -577,7 +577,10 @@ def set_beam_size(vis, imagename,
     xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'], 'arcsec'))
     angle = qa.getvalue(qa.convert(sampling_params['angle'], 'deg'))[0]
 
-    casalog.post('Detected raster sampling = [{0:f}, {1:f}] arcsec'.format(xsampling, ysampling))
+    casalog.post('Detected raster sampling = [{x:f}, {y:f}] arcsec'.format(
+        x=xsampling,
+        y=ysampling
+    ))
 
     # handling of failed sampling detection
     valid_sampling = True

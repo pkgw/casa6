@@ -1027,8 +1027,11 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         xSampling, ySampling = my_qa.getvalue(my_qa.convert(ptg_samp['sampling'], 'arcsec'))
         angle = my_qa.getvalue(my_qa.convert(ptg_samp['angle'], "deg"))[0]
 
-        casalog.post("Detected raster sampling = [%f, %f] arcsec" %
-                     (xSampling, ySampling))
+        casalog.post("Detected raster sampling = [{x:f}, {y:f}] arcsec".format(
+            x=xSampling,
+            y=ySampling
+        ))
+
         # handling of failed sampling detection
         valid_sampling = True
         sampling = [xSampling, ySampling]
