@@ -597,9 +597,11 @@ def set_beam_size(vis, imagename,
                            jwidth, is_alma)
         bu.summary()
         imbeam_dict = bu.get_beamsize_image()
-        casalog.post("Setting image beam: major=%s, minor=%s, pa=%s" %
-                     (imbeam_dict['major'], imbeam_dict['minor'],
-                      imbeam_dict['pa'],))
+        casalog.post("Setting image beam: major={major}, minor={minor}, pa={pa}".format(
+            major=imbeam_dict['major'],
+            minor=imbeam_dict['minor'],
+            pa=imbeam_dict['pa']
+        ))
         # set beam size to image
         with open_ia(imagename) as ia:
             ia.setrestoringbeam(**imbeam_dict)
