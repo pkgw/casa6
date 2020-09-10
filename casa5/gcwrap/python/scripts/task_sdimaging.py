@@ -1166,9 +1166,9 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
             qwidth = my_qa.quantity(mapextent['extent'][0], 'rad')
             qcent0 = my_qa.quantity(mapextent['center'][0], 'rad')
             qcent1 = my_qa.quantity(mapextent['center'][1], 'rad')
-            scenter = '{ref} {longigude} {latitude}'.format(
+            scenter = '{ref} {longitude} {latitude}'.format(
                 ref=base_mref,
-                longigude=my_qa.formxxx(qcent0, 'hms'),
+                longitude=my_qa.formxxx(qcent0, 'hms'),
                 latitude=my_qa.formxxx(qcent1, 'dms')
             )
 
