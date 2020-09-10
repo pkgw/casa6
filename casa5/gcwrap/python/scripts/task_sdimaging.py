@@ -919,7 +919,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
                 raise
         if len(valid_pixels) == 0 or valid_pixels[0] == 0:
             my_ia.close()
-            casalog.post("All pixels weight zero. This indicates no data in MS is in image area. Mask will not be set. Please check your image parameters.","WARN")
+            casalog.post("All pixels have zero weight. This means the imaged region contains no MS data. Mask will not be set. Please check your image parameters.","WARN")
             return
         median_weight = stat['median'][0]
         weight_threshold = median_weight * self.minweight
