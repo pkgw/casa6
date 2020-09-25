@@ -5,6 +5,7 @@ import shutil
 import stat
 import time
 from math import sqrt
+import cleanhelper
 
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
@@ -163,8 +164,6 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                                 casalog.post('***   '+mname, 'INFO')
                         casalog.post('*** Use virtualconcat to produce a single multi-MS from several multi-MSs.', 'INFO')
 
-
-
                 doweightscale = False
                 if(len(visweightscale)>0):
                         if (len(visweightscale) != len(vis)):
@@ -174,6 +173,13 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                                         raise ValueError('parameter visweightscale must only contain positive numbers')
                                 elif factor!=1.:
                                         doweightscale=True
+
+                # test the consistency of the setup of the different MSs
+                casalog.post('Checking MS Setup Consistency ...', 'INFO')
+                mydiff = cleanhelper.check_mslist(vislist, ignore_tables=['SORTED_TABLE', 'ASDM*', 'POINTING']) # ignore POINTING since it will be taken care of later
+                if mydiff != {}:
+                        casalog.post('The setup of the input MSs is not fully consistent. The concatenation may fail.', 'WARN')
+                        casalog.post(str(mydiff), 'WARN')
 
                 # process the input MSs in chronological order
                 sortedvis = []
