@@ -8,7 +8,6 @@ import numpy
 import shutil
 import pwd
 from numpy import unique
-import fnmatch
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -35,7 +34,7 @@ else:
 
     import string
     from odict import odict
-    from taskinit import *
+
     ###some helper tools
     from  casac import *
     ms = casac.ms()
@@ -46,7 +45,7 @@ else:
     ia = casac.image()
     im = casac.imager()
     msmd=casac.msmetadata()
-    default_casalog = casalog
+    default_casalog = casac.logsink()
 
 class cleanhelper:
     def __init__(self, imtool='', vis='', usescratch=False, casalog=default_casalog):
@@ -3534,224 +3533,3 @@ def convert_numpydtype(listobj):
       temparr = listobj
       return temparr
     return temparr.tolist()
-
-def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
-    """
-    Check the consistency of the setup of the MSs in the list "vis"
-    Returns a dictionary describing the inconsistencies w.r.t. to the first MS in the list:
-       {'<vis 1>':
-              '<tablename1>': {'present_a': True/False,
-                  'present_b': True/False,
-                  'missingcol_a':[<column1>, <column2>,...],
-                  'missingcol_b':[<column1>, <column2>,...]},
-              '<tablename2>: {'present_a': True/False,
-                  'present_b': True/False,
-                  'missingcol_a':[<column1>, <column2>,...],
-                  'missingcol_b':[<column1>, <column2>,...]}
-
-         '<vis 2>':
-                ...
-        }
-
-    where <vis n> is the name of the nth MS in the intput list of MSs. An entry for a given MS
-    is only present if there are differences between that MS and the first MS in the list.
-
-    If there are no differences in the setup of the MSs, the returned dictionary is empty.
-
-    If there are differences for an MS, there is a dictionary item for each table which has a different 
-    setup and the value is a dictionary with two lists of the names of the columns which are 
-    missing in the table of MS A (the first one in the list) and table of MS B (the one compared to). 
-    "Missing" is to be understood as "present in the other table but not in this one".
-    Furthermore, the dictionary contains the items "present_a" and "present_b" which are True 
-    if the given table is present at all in MS A and MS B respectively.
-
-    The optional parameter "ignore_tables" defines the list of subtables of Main which
-    are to be ignored in the comparison. Default: ['SORTED_TABLE']
-    Table names can be provided using wildcards like "*" and "?", e.g. 'ASDM_*'.
-
-    If the optional parameter testcontent==True, then for a column which is absent in one table
-    it is tested in the other table whether the column actually contains data,
-    i.e. cell 0 can be read. If not, the absence of the column is ignored. 
-
-    """
-    
-    rval = {}
-
-    if type(vis) != list:
-        if type(vis) == str:
-            vis = [vis]
-        else:
-            raise Exception('vis parameter needs to be of type str or list.')
-
-    if type(ignore_tables) != list:
-        if type(ignore_tables) == str:
-            ignore_tables = [ignore_tables]
-        else:
-            raise Exception('ignore_tables parameter needs to be of type str or list.')
-            
-
-    if len(vis) == 1:
-        try:
-            ms.open(vis[0])
-            ms.close()
-        except:
-            raise Exception(vis[0]+' does not exist or is not a MeasurementSet.')
-            
-        return rval
-
-    # Gather information from first MS in list
-
-    tb.open(vis[0])
-    descr_a = tb.getdesc()
-    tb.close()
-
-    if testcontent:
-        descr_a['_name_'] = vis[0]
-
-    descr_a_kw = descr_a['_keywords_']
-    if not 'MS_VERSION' in descr_a_kw:
-        raise Exception(vis[0]+' is not a MeasurementSet.')
-
-    # Eliminate the tables to be ignored
-    tbdel = []
-    for mytablepattern in ignore_tables:
-        for mytable in descr_a_kw:
-            if fnmatch.fnmatch(mytable, mytablepattern):
-                tbdel.append(mytable)
-    for mytable in tbdel:
-        del descr_a_kw[mytable]
-
-    # Extract subtable details
-    subtbpaths_a = []
-    subtbnames_a = []
-    subtbdescs_a = []
-
-    for mysubtb in descr_a_kw:
-        if type(descr_a_kw[mysubtb]) == str:
-            subtbpath = descr_a_kw[mysubtb].split(' ')
-            if subtbpath[0] == 'Table:':
-                subtbpaths_a.append(subtbpath[1])
-                subtbnames_a.append(subtbpath[1].split('/')[-1])
-                tb.open(subtbpath[1])
-                mydesc = tb.getdesc()
-                if testcontent:
-                    mydesc['_name_'] = subtbpath[1]
-                subtbdescs_a.append(mydesc)
-                tb.close()
-
-    # Loop over other MSs and check against first
-
-    for myvis in vis[1:]:
-        if myvis==vis[0]:
-            raise Exception(myvis+' is contained in the list more than once.')
-
-        tb.open(myvis)
-        descr_b = tb.getdesc()
-        tb.close()
-
-        if testcontent:
-            descr_b['_name_'] = myvis
-
-        descr_b_kw = descr_b['_keywords_']
-        if not 'MS_VERSION' in descr_b_kw:
-            raise Exception(myvis+' is not a MeasurementSet.')
-
-        # Eliminate the tables to be ignored
-        tbdel = []
-        for mytablepattern in ignore_tables:
-            for mytable in descr_b_kw:
-                if fnmatch.fnmatch(mytable, mytablepattern):
-                    tbdel.append(mytable)
-        for mytable in tbdel:
-            del descr_b_kw[mytable]
-
-        # Extract subtable details
-        subtbpaths_b = []
-        subtbnames_b = []
-        subtbdescs_b = []
-
-        for mysubtb in descr_b_kw:
-            if type(descr_b_kw[mysubtb]) == str:
-                subtbpath = descr_b_kw[mysubtb].split(' ')
-                if subtbpath[0] == 'Table:':
-                    subtbpaths_b.append(subtbpath[1])
-                    subtbnames_b.append(subtbpath[1].split('/')[-1])
-                    tb.open(subtbpath[1])
-                    mydesc = tb.getdesc()
-                    if testcontent:
-                        mydesc['_name_'] = subtbpath[1]
-                    subtbdescs_b.append(mydesc)
-                    tb.close()
-
-        # Comparison
-        compresult = {}
-
-        # Main table
-        cmpres = comptbdescr(descr_a, descr_b, testcontent=testcontent)
-        if cmpres != {}:
-            compresult['Main'] = cmpres
-
-        for i in range(len(subtbnames_a)): # loop over tables in first MS
-            if not subtbnames_a[i] in subtbnames_b:
-                compresult[subtbnames_a[i]] = {'present_a': True, 'present_b': False}
-            else: # table is present in both MSs           
-                cmpres = comptbdescr(subtbdescs_a[i], subtbdescs_b[ subtbnames_b.index(subtbnames_a[i]) ],
-                                     testcontent=testcontent)
-                if cmpres != {}:
-                    compresult[subtbnames_a[i]] = cmpres
-
-        for i in range(len(subtbnames_b)): # loop over tables in second MS
-            if not subtbnames_b[i] in subtbnames_a:
-                compresult[subtbnames_b[i]] = {'present_a': False, 'present_b': True}
-            # else clause not needed since already covered in previous loop
-
-        if compresult != {}:
-            rval[myvis] = compresult
-
-    return rval
-
-
-def comptbdescr(descr_a, descr_b, ignorecol=[], testcontent=True):
-    """Utility function for check_mslist
-       - compares two table descriptions descr_a and descr_b
-       - the absence of the columns listed in ignorecol is ignored
-       - if testcontent==True, then for a column which is absent in one table
-         it is tested in the other table whether the column actually contains data,
-         i.e. cell 0 can be read. If not, the absence of the column is ignored. 
-         For this to work, the table path has to be added to the table description
-         as item "_name_". 
-    """
-    rval = {}
-    mscol_a = []
-    mscol_b = []
-    for myentry in descr_a:
-        if myentry[0]!='_' and not myentry in ignorecol: # only inspect relevant columns
-            if not myentry in descr_b:
-                if testcontent:
-                    tb.open(descr_a['_name_'])
-                    try:
-                        tb.getcell(myentry,0)
-                    except:
-                        tb.close()
-                        casalog.post('Column '+myentry+' in table '+descr_a['_name_']+' has no data.','INFO')
-                        continue # i.e. ignore this column because it has no data
-                    tb.close()
-                mscol_b.append(myentry)
-    for myentry in descr_b:
-        if myentry[0]!='_' and not myentry in ignorecol: # only inspect relevant columns
-            if not myentry in descr_a:
-                if testcontent:
-                    tb.open(descr_b['_name_'])
-                    try:
-                        tb.getcell(myentry,0)
-                    except:
-                        tb.close()
-                        casalog.post('Column '+myentry+' in table '+descr_b['_name_']+' has no data.','INFO')
-                        continue # i.e. ignore this column because it has no data
-                    tb.close()
-                mscol_a.append(myentry)
-    if mscol_a!=[] or mscol_b!=[]:
-        rval = {'present_a': True, 'present_b': True,
-                'missingcol_a': mscol_a, 'missingcol_b': mscol_b}
-
-    return rval
