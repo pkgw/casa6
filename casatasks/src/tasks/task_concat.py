@@ -5,6 +5,7 @@ import shutil
 import stat
 import time
 from math import sqrt
+from recipes.mslisthelper import check_mslist
 
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
@@ -174,6 +175,16 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                                         raise ValueError('parameter visweightscale must only contain positive numbers')
                                 elif factor!=1.:
                                         doweightscale=True
+
+                # test the consistency of the setup of the different MSs
+                casalog.post('Checking MS Setup Consistency ...', 'INFO')
+                mydiff = check_mslist(vislist, ignore_tables=['SORTED_TABLE', 
+                                                              'ASDM*']) 
+                if mydiff != {}:
+                        casalog.post('The setup of the input MSs is not fully consistent. The concatenation may fail', 'WARN')
+                        casalog.post('and/or the affected columns may contain partially only default data.', 'WARN')
+                        casalog.post(str(mydiff), 'WARN')
+
 
                 # process the input MSs in chronological order
                 sortedvis = []
