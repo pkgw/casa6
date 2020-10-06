@@ -329,6 +329,10 @@ def report_sort_result(sorted_vis, sorted_times, sorted_idx, casalog=None, prior
         casalog (logsink, optional): logsink instance for logging. Defaults to None.
         priority (str, optional): priority for logging. Defaults to 'WARN'.
     """
+    if len(sorted_vis) <= 1:
+        # trivial result. do nothing.
+        return
+
     if casalog is None:
         casalog = default_casalog
     qa = quanta()
