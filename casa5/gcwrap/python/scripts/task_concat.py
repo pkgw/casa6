@@ -10,20 +10,22 @@ from math import sqrt
 from casatasks.private.casa_transition import *
 if is_CASA6:
         from .parallel.parallel_task_helper import ParallelTaskHelper
+        from .mslisthelper import check_mslist, sort_mslist
         from casatools import calibrater, quanta
         from casatools import table as tbtool
         from casatools import ms as mstool
         from casatasks import casalog
         from .mstools import write_history
 
-        _cb = calibrater( )
-        _qa = quanta( )
+        _cb = calibrater()
+        _qa = quanta()
 else:
         from taskinit import *
         from mstools import write_history
         from parallel.parallel_task_helper import ParallelTaskHelper
+        from recipes.mslisthelper import check_mslist, sort_mslist
 
-        _cb = cbtool( )
+        _cb = cbtool()
         _qa = qa
 
 def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
@@ -175,26 +177,26 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                                 elif factor!=1.:
                                         doweightscale=True
 
+
+                # test the consistency of the setup of the different MSs
+                casalog.post('Checking MS setup consistency ...', 'INFO')
+                try:
+                        mydiff = check_mslist(vis, ignore_tables=['SORTED_TABLE', 'ASDM*']) 
+                except Exception as instance:
+                        raise RuntimeError("*** Error \'%s\' while checking MS setup consistency" % (instance))
+
+                if mydiff != {}:
+                        casalog.post('The setup of the input MSs is not fully consistent. The concatenation may fail', 'WARN')
+                        casalog.post('and/or the affected columns may contain partially only default data.', 'WARN')
+                        casalog.post(str(mydiff), 'WARN')
+
+
                 # process the input MSs in chronological order
-                sortedvis = []
-                sortedvisweightscale = []
-                namestuples = []
-                for name in vis:
-                        t.open(name)
-                        times = t.getcol('TIME')
-                        t.close()
-                        times.sort()
-                        if doweightscale:
-                                namestuples.append( (times[0], name, visweightscale[vis.index(name)]) )
-                        else:
-                                namestuples.append( (times[0], name, 0) )
-
-                sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
-    
-                for i in range(0,len(vis)):
-                        sortedvis.append(sorted_namestuples[i][1])
-                        sortedvisweightscale.append(sorted_namestuples[i][2])
-
+                casalog.post('Checking order of MS list ...', 'INFO')
+                try:
+                        sortedvis, sortedtimes, sortedvisweightscale = sort_mslist(vis, visweightscale)
+                except Exception as instance:
+                        raise RuntimeError("*** Error \'%s\' while sorting MSs chronologially." % (instance))
 
                 if((type(concatvis)!=str) or (len(concatvis.split()) < 1)):
                         raise ValueError('parameter concatvis is invalid')
@@ -203,7 +205,7 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                 if(vis.count(concatvis) > 0):
                         existingconcatvis = True
                         cvisindex =  sortedvis.index(concatvis)
-                        if not sorted_namestuples[cvisindex][0] == sorted_namestuples[0][0]:
+                        if not concatvis == sortedvis[0]:
                                 raise RuntimeError('If concatvis is set to the name of an existing MS in vis, it must be the chronologically first.'+\
                                       '\n I.e. in this case you should set concatvis to '+sortedvis[0])
                         sortedvis.pop(cvisindex)
@@ -213,12 +215,12 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                                 sortedvisweightscale = [vwscale] + sortedvisweightscale # move the corresponding weight to the front
 
                 if not vis == sortedvis:
-                        casalog.post('The list of input MSs is not in chronological order and will need to be sorted.' , 'INFO')
+                        casalog.post('The list of input MSs is not in chronological order and needed to be sorted.' , 'INFO')
                         casalog.post('The chronological order in which the concatenation will take place is:' , 'INFO')
                         if existingconcatvis:
-                                casalog.post('   MJD '+str(_qa.splitdate(_qa.quantity(sorted_namestuples[0][0],'s'))['mjd'])+': '+concatvis, 'INFO')
+                                casalog.post('   MJD '+str(_qa.splitdate(_qa.quantity(sortedtimes[0],'s'))['mjd'])+': '+concatvis, 'INFO')
                         for name in sortedvis:
-                                casalog.post('   MJD '+str(_qa.splitdate(_qa.quantity(sorted_namestuples[sortedvis.index(name)][0],'s'))['mjd'])+': '+name, 'INFO')
+                                casalog.post('   MJD '+str(_qa.splitdate(_qa.quantity(sortedtimes[sortedvis.index(name)],'s'))['mjd'])+': '+name, 'INFO')
                         if doweightscale:
                                 casalog.post('In this new order, the weights are:'+str(sortedvisweightscale) , 'INFO')
 
