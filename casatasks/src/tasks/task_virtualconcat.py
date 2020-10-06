@@ -4,7 +4,8 @@ import os
 import shutil
 import stat
 import time
-from recipes.mslisthelper import check_mslist
+#from recipes.mslisthelper import check_mslist
+from .mslisthelper import check_mslist
 
 # get is_python3 and is_CASA6
 from casatasks.private.casa_transition import *

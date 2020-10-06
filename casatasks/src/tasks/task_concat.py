@@ -5,7 +5,8 @@ import shutil
 import stat
 import time
 from math import sqrt
-from recipes.mslisthelper import check_mslist
+#from recipes.mslisthelper import check_mslist
+from .mslisthelper import check_mslist
 
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *

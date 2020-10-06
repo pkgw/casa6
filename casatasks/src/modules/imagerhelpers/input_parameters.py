@@ -14,10 +14,12 @@ if is_CASA6:
     from casatasks import casalog
     from casatools import calibrater 
     from casatools import table 
+    from casatasks.private.mslisthelper import check_mslist
 else:
     from taskinit import *
     from taskinit import cbtool as calibrater 
     from taskinit import tbtool as table
+    from recipes.mslisthelper import check_mslist
 
     synthesisutils = casac.synthesisutils
 
@@ -367,7 +369,22 @@ class ImagerParameters():
         if not 'msname'in self.allselpars:
             errs = errs + 'MS name(s) not specified'
         else:
-            self.checkmsforwtspec()
+            if type(self.allselpars['msname']) == list:
+                msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
+        
+                # only call this if vis == list and there is mismatch in wtspec columns
+                if msdiff != {}:
+                    print("MS diff===",msdiff)
+                    for msfile, diff_info in msdiff.items():
+                        print("\n MSfile:",msfile)
+                        # check Main 
+                        if 'Main' in diff_info:
+                            for diffkey in diff_info['Main']:
+                                print(diffkey+ " ::: " + str(diff_info['Main'][diffkey]))
+                                if diffkey == "missingcol_a" or diffkey == "missingcol_b":
+                                    if ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_a']) ||
+                                       ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_b']):
+                                        self.checkmsforwtspec()
             selkeys = self.allselpars.keys()
 
             # Convert all non-list parameters into lists.
