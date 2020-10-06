@@ -318,3 +318,31 @@ def sort_mslist(vis, visweightscale=None):
     else:
         return sortedvis, sortedtimes
 
+
+def report_sort_result(sorted_vis, sorted_times, sorted_idx, casalog=None, priority='INFO'):
+    """Report result of MS sort.
+
+    Args:
+        sorted_vis (list): sorted list of MS
+        sorted_times (list): sorted list of observation start time
+        sorted_idx (list): list of indices of original order of MS list
+        casalog (logsink, optional): logsink instance for logging. Defaults to None.
+        priority (str, optional): priority for logging. Defaults to 'WARN'.
+    """
+    if casalog is None:
+        casalog = default_casalog
+    qa = quanta()
+    header = 'Order {:>24s} {:>20s} Original_Order'.format('MS_Name', 'Start_Time')
+    casalog.post('Summary of the MS internal sort:', priority=priority)
+    casalog.post(header, priority=priority)
+    casalog.post('-' * len(header), priority=priority)
+    for isort, (iorig, v, t) in enumerate(zip(sorted_idx, sorted_vis, sorted_times)):
+        casalog.post(
+            '{:>3d} {:>26s} {:>20s} {:>3d}'.format(
+                isort,
+                os.path.basename(v.rstrip('/')),
+                qa.time(qa.quantity(t, 's'), form=['ymd', 'hms'])[0],
+                iorig
+            ),
+            priority=priority
+        )
