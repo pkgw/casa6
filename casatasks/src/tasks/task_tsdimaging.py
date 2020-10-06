@@ -11,6 +11,7 @@ if is_CASA6:
     from casatools import quanta, imager, image, ms, table
     from . import sdutil
     from . import sdbeamutil
+    from . import mslisthelper
 
     ## (1) Import the python application layer
     from .imagerhelpers.imager_base import PySynthesisImager
@@ -24,6 +25,7 @@ else:
     from taskinit import tbtool as table
     import sdutil
     import sdbeamutil
+    import recipes.mslisthelper as mslisthelper
 
     ## (1) Import the python application layer
     from imagerhelpers.imager_base import PySynthesisImager
@@ -171,9 +173,10 @@ def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):
     if isinstance(vislist, str) or len(vislist) == 1:
         return vislist, field, spw, antenna, scan, intent
     # chronological sort
-    sorted_vislist = sdutil.tentative_chrono_sort(vislist)
+    sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(vislist)
     _vislist = list(vislist)
     sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
+    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, casalog=casalog)
     fieldsel = SelectionHandler(field)
     sorted_field = [fieldsel(i) for i in sorted_idx]
     spwsel = SelectionHandler(spw)

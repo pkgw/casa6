@@ -11,6 +11,7 @@ if is_CASA6:
     from casatasks import casalog
     from . import sdutil
     from . import sdbeamutil
+    from . import mslisthelper
 else:
     from taskinit import casalog
     from taskinit import msmdtool as msmetadata
@@ -21,6 +22,7 @@ else:
     from taskinit import metool as measures
     import sdutil
     import sdbeamutil
+    import recipes.mslisthelper as mslisthelper
 
 
 @sdutil.sdtask_decorator
@@ -633,8 +635,9 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         # Work on selection of the first table in sorted list
         # to get default restfreq and outframe
         # chronological sort
-        sorted_vislist = sdutil.tentative_chrono_sort(self.infiles)
+        sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(self.infiles)
         self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
+        mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, casalog)
         selection_ids = self.get_selection_idx_for_ms(self.sorted_idx[0])
         self.__update_subtable_name(self.infiles[self.sorted_idx[0]])
         # field
