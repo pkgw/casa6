@@ -12,7 +12,7 @@ if is_CASA6:
     from collections import OrderedDict as odict
 
     ###some helper tools
-    from casatasks import casalog as default_casalog
+    from casatasks import casalog
     from casatools import table, quanta, msmetadata
     from casatools import ms as mstool
 
@@ -32,7 +32,6 @@ else:
     ms = casac.ms()
     tb = casac.table()
     msmd = casac.msmetadata()
-    default_casalog = casalog
 
 
 def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
