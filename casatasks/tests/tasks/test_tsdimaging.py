@@ -12,6 +12,7 @@ import copy
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import ctsys, image, regionmanager, measures, msmetadata, table, quanta
+    from casatools import calibrater
     from casatools import ms as mstool
     from casatasks import casalog
     from casatasks import flagdata
@@ -45,6 +46,7 @@ else:
     from taskinit import iatool as image
     from taskinit import rgtool as regionmanager
     from taskinit import msmdtool as msmetadata
+    from taskinit import cbtool as calibrater
 
     try:
         from . import selection_syntax
@@ -3896,6 +3898,59 @@ class sdimaging_ms_order(sdimaging_pm04_test_base):
         self._test_ms_order(infiles)
 
 
+class sdimaging_ms_conformance(sdimaging_pm04_test_base):
+    '''
+    Test handling of non-conform set of MS inputs
+    '''
+    outfile = 'ms_conformance'
+
+    @staticmethod
+    def fill_weight_spectrum(name):
+        cb = calibrater()
+        cb.open(name, addcorr=False, addmodel=False)
+        cb.initweights(wtmode='ones', dowtsp=False)
+        cb.close()
+
+    @staticmethod
+    def remove_weight_spectrum(name):
+        tb = table()
+        tb.open(name, nomodify=False)
+        if 'WEIGHT_SPECTRUM' in tb.colnames():
+            tb.removecols('WEIGHT_SPECTRUM')
+        wt = tb.getcol('WEIGHT')
+        wt[:] = 1.0
+        tb.putcol('WEIGHT', wt)
+        tb.close()
+
+    def _test_ms_conformance(self, infiles):
+        with self.assertRaises(RuntimeError) as cm:
+            self._run_pm04_test(infiles)
+
+    def test_nowsp1(self):
+        '''test_nowsp1: no WEIGHT_SPECTRUM column in the first MS'''
+        self.remove_weight_spectrum(self.infiles[0])
+        self.fill_weight_spectrum(self.infiles[1])
+        self._test_ms_conformance(self.infiles)
+
+    def test_nospw2(self):
+        '''test_nowsp2: no WEIGHT_SPECTRUM column in the second MS'''
+        self.fill_weight_spectrum(self.infiles[0])
+        self.remove_weight_spectrum(self.infiles[1])
+        self._test_ms_conformance(self.infiles)
+
+    def test_conform1(self):
+        '''test_conform1: WEIGHT_SPECTRUM exists'''
+        self.fill_weight_spectrum(self.infiles[0])
+        self.fill_weight_spectrum(self.infiles[1])
+        self._run_pm04_test(self.infiles)
+
+    def test_conform2(self):
+        '''test_conform2: WEIGHT_SPECTRUM does not exist'''
+        self.remove_weight_spectrum(self.infiles[0])
+        self.remove_weight_spectrum(self.infiles[1])
+        self._run_pm04_test(self.infiles)
+
+
 """
 # utility for sdimaging_test_mapextent
 # commented out since sd tool is no longer available in CASA (CAS-10301)
@@ -3994,7 +4049,8 @@ def suite():
             sdimaging_test_projection,
             sdimaging_test_output,
             sdimaging_antenna_move,
-            sdimaging_ms_order
+            sdimaging_ms_order,
+            sdimaging_ms_conformance,
             ]
 
 if is_CASA6:
