@@ -334,6 +334,8 @@ def report_sort_result(sorted_vis, sorted_times, sorted_idx, mycasalog=None, pri
 
     if mycasalog is None:
         local_casalog = casalog
+    else:
+        local_casalog = mycasalog
     qa = quanta()
     header = 'Order {:>24s} {:>20s} Original_Order'.format('MS_Name', 'Start_Time')
     local_casalog.post('Summary of the MS internal sort:', priority=priority)
