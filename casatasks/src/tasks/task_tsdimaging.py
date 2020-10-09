@@ -226,7 +226,7 @@ def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):
     sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(vislist)
     _vislist = list(vislist)
     sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
-    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, casalog=casalog)
+    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, mycasalog=casalog)
     # conform MS
     conform_mslist(sorted_vislist)
     fieldsel = SelectionHandler(field)

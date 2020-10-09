@@ -639,7 +639,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         # chronological sort
         sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(self.infiles)
         self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
-        mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, casalog)
+        mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, mycasalog=casalog)
         # conform MS
         conform_mslist(sorted_vislist)
         selection_ids = self.get_selection_idx_for_ms(self.sorted_idx[0])
