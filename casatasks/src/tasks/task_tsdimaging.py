@@ -4,6 +4,7 @@ import re
 import numpy
 import shutil
 import contextlib
+import time
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -169,6 +170,55 @@ class OldImagerBasedTools(object):
         return map_param
 
 
+def check_conformance(mslist, check_result):
+    process_set = set()
+    for name, summary in check_result.items():
+        if 'Main' in summary:
+            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['a', 'b']]
+            testee_list = [mslist[0], name]
+            for c, t in zip(missingcol_list, testee_list):
+                if 'WEIGHT_SPECTRUM' in c:
+                    process_set.add(t)
+    return process_set
+
+
+def report_conformance(mslist, process_set):
+    if len(process_set) > 0:
+        casalog.post('Detected non-conformance of WEIGHT_SPECTRUM column in input list of MSes.', priority='WARN')
+        cols = ['exists?', 'MS name']
+        header = ' '.join(cols)
+        casalog.post('', priority='WARN')
+        casalog.post('Summary of existence of WEIGHT_SPECTRUM:', priority='WARN')
+        casalog.post(header, priority='WARN')
+        casalog.post('-' * len(header), priority='WARN')
+        for name in mslist:
+            basename = os.path.basename(name.rstrip('/'))
+            exists = 'NO' if name in process_set else 'YES'
+            row = '{:^7s} {:<s}'.format(exists, basename)
+            casalog.post(row, priority='WARN')
+
+
+def fix_conformance(process_set):
+    backup_list = {}
+    for name in process_set:
+        basename = os.path.basename(name.rstrip('/'))
+        timestamp = time.strftime('%Y%m%dT%H%M%S', time.gmtime())
+        backup_name = basename + '.sdimaging.backup-{}'.format(timestamp)
+        # TODO: take a backup here
+        backup_list[name] = backup_name
+        casalog.post('Copy of "{}" has been saved to "{}"'.format(name, backup_name))
+        # TODO: remove WEIGHT_SPECTRUM column here
+        raise RuntimeError('TODO: implement fix_conformance')
+    return backup_list
+
+
+def conform_mslist(mslist):
+    check_result = mslisthelper.check_mslist(mslist)
+    process_set = check_conformance(mslist, check_result)
+    report_conformance(mslist, process_set)
+    backup_list = fix_conformance(process_set)
+
+
 def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):
     if isinstance(vislist, str) or len(vislist) == 1:
         return vislist, field, spw, antenna, scan, intent
@@ -177,6 +227,8 @@ def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):
     _vislist = list(vislist)
     sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
     mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, casalog=casalog)
+    # conform MS
+    conform_mslist(sorted_vislist)
     fieldsel = SelectionHandler(field)
     sorted_field = [fieldsel(i) for i in sorted_idx]
     spwsel = SelectionHandler(spw)

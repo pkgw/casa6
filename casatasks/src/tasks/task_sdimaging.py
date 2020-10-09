@@ -24,6 +24,8 @@ else:
     import sdbeamutil
     import recipes.mslisthelper as mslisthelper
 
+from .task_tsdimaging import conform_mslist
+
 
 @sdutil.sdtask_decorator
 def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
@@ -638,6 +640,8 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(self.infiles)
         self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
         mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, casalog)
+        # conform MS
+        conform_mslist(sorted_vislist)
         selection_ids = self.get_selection_idx_for_ms(self.sorted_idx[0])
         self.__update_subtable_name(self.infiles[self.sorted_idx[0]])
         # field
