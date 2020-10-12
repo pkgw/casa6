@@ -12,6 +12,7 @@ import copy
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import ctsys, image, regionmanager, measures, msmetadata, table, quanta
+    from casatools import calibrater
     from casatools import ms as mstool
     from casatasks import sdimaging, flagdata, imhead
     from casatasks.private.sdutil import tbmanager, toolmanager, table_selector
@@ -37,6 +38,7 @@ else:
     from taskinit import iatool as image
     from taskinit import rgtool as regionmanager
     from taskinit import msmdtool as msmetadata
+    from taskinit import cbtool as calibrater
 
     try:
         from . import selection_syntax
