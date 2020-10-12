@@ -3901,6 +3901,13 @@ class sdimaging_ms_order(sdimaging_pm04_test_base):
 class sdimaging_ms_conformance(sdimaging_pm04_test_base):
     '''
     Test handling of non-conform set of MS inputs
+
+    This test checks the following:
+
+      - sdimaging works on conformant input MS list
+      - sdimaging removes WEIGHT_SPECTRUM from MS if non-conformant
+      - sdimaging creates backup for data whose WEIGHT_SPECTRUM need
+        to be removed
     '''
     outfile = 'ms_conformance'
 
@@ -3922,21 +3929,39 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         tb.putcol('WEIGHT', wt)
         tb.close()
 
-    def _test_ms_conformance(self, infiles):
-        with self.assertRaises(RuntimeError) as cm:
-            self._run_pm04_test(infiles)
+    def setUp(self):
+        super(sdimaging_ms_conformance, self).setUp()
+        # keep existing backup files
+        self.existing_backup_files = set(glob.glob('*.sdimaging.backup-2*'))
+        self.additional_backup_files = set()
+
+    def tearDown(self):
+        super(sdimaging_ms_conformance, self).tearDown()
+        # remove backup files created during test
+        for name in self.additional_backup_files:
+            if os.path.exists(name):
+                shutil.rmtree(name)
+
+    def _test_backup(self, name):
+        backup_files = set(glob.glob('{}.sdimaging.backup-2*'.format(name)))
+        self.additional_backup_files.update(
+            backup_files.difference(self.existing_backup_files)
+        )
+        self.assertEqual(len(self.additional_backup_files), 1)
 
     def test_nowsp1(self):
         '''test_nowsp1: no WEIGHT_SPECTRUM column in the first MS'''
         self.remove_weight_spectrum(self.infiles[0])
         self.fill_weight_spectrum(self.infiles[1])
-        self._test_ms_conformance(self.infiles)
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[1])
 
     def test_nospw2(self):
         '''test_nowsp2: no WEIGHT_SPECTRUM column in the second MS'''
         self.fill_weight_spectrum(self.infiles[0])
         self.remove_weight_spectrum(self.infiles[1])
-        self._test_ms_conformance(self.infiles)
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[0])
 
     def test_conform1(self):
         '''test_conform1: WEIGHT_SPECTRUM exists'''
