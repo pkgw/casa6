@@ -3837,15 +3837,15 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         )
         self.assertEqual(len(self.additional_backup_files), 1)
 
-    def test_nowsp1(self):
-        '''test_nowsp1: no WEIGHT_SPECTRUM column in the first MS'''
+    def test_nowtsp1(self):
+        '''test_nowtsp1: no WEIGHT_SPECTRUM column in the first MS'''
         self.remove_weight_spectrum(self.infiles[0])
         self.fill_weight_spectrum(self.infiles[1])
         self._run_pm04_test(self.infiles)
         self._test_backup(self.infiles[1])
 
-    def test_nospw2(self):
-        '''test_nowsp2: no WEIGHT_SPECTRUM column in the second MS'''
+    def test_nowtsp2(self):
+        '''test_nowtsp2: no WEIGHT_SPECTRUM column in the second MS'''
         self.fill_weight_spectrum(self.infiles[0])
         self.remove_weight_spectrum(self.infiles[1])
         self._run_pm04_test(self.infiles)
@@ -3964,5 +3964,6 @@ def suite():
             sdimaging_test_projection,
             sdimaging_test_output,
             sdimaging_antenna_move,
-            sdimaging_ms_order
+            sdimaging_ms_order,
+            sdimaging_ms_conformance
             ]
