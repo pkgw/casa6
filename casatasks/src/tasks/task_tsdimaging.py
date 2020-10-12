@@ -56,9 +56,9 @@ def open_ms(vis):
         my_ms.close()
 
 @contextlib.contextmanager
-def open_table(vis):
+def open_table(vis, *args, **kwargs):
     tb = table( )
-    tb.open(vis)
+    tb.open(vis, *args, **kwargs)
     try:
         yield tb
     finally:
@@ -174,7 +174,7 @@ def check_conformance(mslist, check_result):
     process_set = set()
     for name, summary in check_result.items():
         if 'Main' in summary:
-            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['a', 'b']]
+            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['b', 'a']]
             testee_list = [mslist[0], name]
             for c, t in zip(missingcol_list, testee_list):
                 if 'WEIGHT_SPECTRUM' in c:
@@ -193,7 +193,7 @@ def report_conformance(mslist, process_set):
         casalog.post('-' * len(header), priority='WARN')
         for name in mslist:
             basename = os.path.basename(name.rstrip('/'))
-            exists = 'NO' if name in process_set else 'YES'
+            exists = 'YES' if name in process_set else 'NO'
             row = '{:^7s} {:<s}'.format(exists, basename)
             casalog.post(row, priority='WARN')
 
@@ -204,11 +204,14 @@ def fix_conformance(process_set):
         basename = os.path.basename(name.rstrip('/'))
         timestamp = time.strftime('%Y%m%dT%H%M%S', time.gmtime())
         backup_name = basename + '.sdimaging.backup-{}'.format(timestamp)
-        # TODO: take a backup here
+        casalog.post('WEIGHT_SPECTRUM will be removed from "{}"'.format(name), priority='WARN')
+        with open_table(name) as tb:
+            tb.copy(backup_name, deep=True, returnobject=True).close()
         backup_list[name] = backup_name
-        casalog.post('Copy of "{}" has been saved to "{}"'.format(name, backup_name))
-        # TODO: remove WEIGHT_SPECTRUM column here
-        raise RuntimeError('TODO: implement fix_conformance')
+        casalog.post('Copy of "{}" has been saved to "{}"'.format(name, backup_name), priority='WARN')
+        with open_table(name, nomodify=False) as tb:
+            if 'WEIGHT_SPECTRUM' in tb.colnames():
+                tb.removecols('WEIGHT_SPECTRUM')
     return backup_list
 
 
