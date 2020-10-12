@@ -31,6 +31,8 @@ from tsdimaging import tsdimaging as sdimaging
 from sdutil import tbmanager, toolmanager, table_selector
 from imhead import imhead
 from task_tsdimaging import image_suffix
+from taskinit import cbtool as calibrater
+from taskinit import tbtool as table
 
 
 def get_data_req_path():
