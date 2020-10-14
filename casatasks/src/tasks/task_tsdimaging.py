@@ -57,7 +57,7 @@ def open_ms(vis):
 
 @contextlib.contextmanager
 def open_table(vis, *args, **kwargs):
-    tb = table( )
+    tb = table()
     tb.open(vis, *args, **kwargs)
     try:
         yield tb
