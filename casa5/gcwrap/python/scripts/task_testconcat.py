@@ -2,6 +2,8 @@ import os
 import shutil
 import stat
 from taskinit import *
+from recipes.mslisthelper import check_mslist
+
 
 def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
 	"""
@@ -48,6 +50,19 @@ def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
 			vis=[vislist]
 		else:
 			vis=list(vislist)
+
+                # test the consistency of the setup of the different MSs
+                casalog.post('Checking MS setup consistency ...', 'INFO')
+                try:
+                        mydiff = check_mslist(vis, ignore_tables=['SORTED_TABLE', 'ASDM*']) 
+                except Exception as instance:
+                        raise RuntimeError("*** Error \'%s\' while checking MS setup consistency" % (instance))
+
+                if mydiff != {}:
+                        casalog.post('The setup of the input MSs is not fully consistent. The concatenation may fail', 'WARN')
+                        casalog.post('and/or the affected columns may contain partially only default data.', 'WARN')
+                        casalog.post(str(mydiff), 'WARN')
+
 		if((type(testconcatvis)!=str) or (len(testconcatvis.split()) < 1)):
 			raise Exception, 'parameter testconcatvis is invalid'
 		if(vis.count(testconcatvis) > 0):
