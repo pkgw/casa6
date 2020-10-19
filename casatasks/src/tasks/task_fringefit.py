@@ -21,7 +21,10 @@ def fringefit(vis=None,caltable=None,
               solint=None,combine=None,refant=None,
               minsnr=None,zerorates=None,globalsolve=None,niter=None,
               delaywindow=None,ratewindow=None,append=None,
+              corrdepflags=None,
               docallib=None,callib=None,gaintable=None,gainfield=None,interp=None,spwmap=None,
+              paramactive=None,
+              concatspws=None,
               parang=None):
 
     #Python script
@@ -33,7 +36,7 @@ def fringefit(vis=None,caltable=None,
         if ((type(vis)==str) & (os.path.exists(vis))):
             mycb.open(filename=vis,compress=False,addcorr=False,addmodel=False)
         else:
-            raise Exception('Visibility data set not found - please verify the name')
+            raise ValueError('Visibility data set not found - please verify the name')
 
         # Do data selection according to selectdata
         if (selectdata):
@@ -48,6 +51,11 @@ def fringefit(vis=None,caltable=None,
             mycb.selectvis(time='',spw=spw,scan='',field=field,intent=intent,
                            observation='', baseline='',
                            chanmode='none', msselect='')
+
+        # signal use of correlation-dependent flags, if requested
+        if corrdepflags:
+            mycb.setcorrdepflags(True)
+
                         
         # Arrange applies....
             
@@ -58,7 +66,17 @@ def fringefit(vis=None,caltable=None,
             mycb.setcallib(mycallib.cld)
 
         else:
+            if paramactive is None or paramactive==[]:
+                paramactive=[True, True, False]
+            else:
+                if len(paramactive)!=3:
+                    print >>sys.stderr, "paramactive", paramactive
+                    raise ValueError( 'Error: paramactive vector must have exactly three entries' )
+            # Have to solve for peculiar phase!
+            paramactive.insert(0, True)
 
+            if concatspws is None:
+                concatspws=True
             # by traditional parameters
 
             ngaintab = 0;
@@ -119,18 +137,15 @@ def fringefit(vis=None,caltable=None,
                       niter=niter,
                       delaywindow=delaywindow,
                       ratewindow=ratewindow,
+                      paramactive=paramactive,
+                      concatspws=concatspws,
                       table=caltable,append=append)
         mycb.solve()
 
         reportsolvestats(mycb.activityrec());
 
+    finally:
         mycb.close()
-
-    except Exception as instance:
-        print('*** Error *** %s' % str(instance))
-        mycb.close()
-        casalog.post("Error in fringefit: %s" % str(instance), "SEVERE")
-        raise Exception ("Error in fringefit: %s" % str(instance))
 
 def reportsolvestats(rec):
     if (list(rec.keys()).count('origin')==1 and

@@ -368,6 +368,8 @@ calibrater::setsolve(const std::string& type,
                      const int niter,
                      const vector<double>& delaywindow,
                      const vector<double>& ratewindow,
+                     const vector<bool>& paramactive,
+                     const bool concatspws,
 		     const std::string& solmode,
 		     const vector<double>& rmsthresh
     )
@@ -398,7 +400,8 @@ calibrater::setsolve(const std::string& type,
 			    toCasaString(refant),refantmode,
 			    solnorm,normtype, minsnr,combine,fillgaps,
 			    cfcache, painc, fitorder, fraction, numedge, radius, smooth,
-                            zerorates, globalsolve, niter, delaywindow, ratewindow, solmode, rmsthresh);
+                            zerorates, globalsolve, niter, delaywindow, ratewindow, paramactive,
+                            concatspws, solmode, rmsthresh);
   } catch(AipsError x) {
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x);
@@ -1396,6 +1399,25 @@ casac::record* calibrater::parsecallibfile(const std::string& filein )
   return( oRec );
  
 }
+
+//----------------------------------------------------------------------------
+
+bool
+calibrater::setcorrdepflags(const bool corrdepflags)
+{
+
+ bool rstat(false);
+ try {
+
+   rstat=itsCalibrater->setCorrDepFlags(corrdepflags);
+
+ } catch  (AipsError x) {
+    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
+    RETHROW(x);
+ }
+ return rstat;
+};
+
 
 //----------------------------------------------------------------------------
 

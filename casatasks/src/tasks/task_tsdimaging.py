@@ -270,7 +270,7 @@ def _calc_PB(vis, antenna_id, restfreq):
               "Your data does not seem to have valid one in selected field.\n" + \
               "PB is not calculated.\n" + \
               "Please set restreq or cell manually to generate an image."
-        raise Exception(msg)
+        raise RuntimeError(msg)
     # Antenna diameter
     with open_table(os.path.join(vis, 'ANTENNA')) as tb:
         antdiam_ave = tb.getcell('DISH_DIAMETER', antenna_id)
@@ -849,28 +849,11 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, m
         imager.initializeImagers()
         casalog.post('*** Initializing normalizers ***', origin=origin)
         imager.initializeNormalizers()
-        #imager.setWeighting()
         
         ## (5) Make the initial images 
         
-        #imager.makePSF()
-        casalog.post('*** Executing runMajorCycle ***', origin=origin)
-        casalog.post('NF = {0}'.format(imager.NF), origin=origin)
-        #imager.runMajorCycle()  # Make initial dirty / residual image
-        casalog.post('*** makeSdPSF... ***', origin=origin)
-        imager.makeSdPSF()
         casalog.post('*** makeSdImage... ***', origin=origin)
         imager.makeSdImage()
-        
-    except Exception as e:
-        casalog.post('Exception from task_tsdimaging : ' + str(e), "SEVERE", origin=origin)
-#         if imager != None:
-#             imager.deleteTools() 
-
-        larg = list(e.args)
-        larg[0] = 'Exception from task_tsdimaging : ' + str(larg[0])
-        e.args = tuple(larg)
-        raise
     
     finally:
         ## (8) Close tools.
@@ -882,7 +865,6 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, m
         # change image suffix from .residual to .image
         if os.path.exists(outfile + residual_suffix):
             os.rename(outfile + residual_suffix, outfile + image_suffix)
-        
 
     # set beam size
     # TODO: re-define related functions in the new tool framework (sdms?)
@@ -921,3 +903,11 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, m
     # mask low weight pixels 
     weightimage = outfile + weight_suffix
     do_weight_mask(imagename, weightimage, minweight)
+
+    # CAS-10891
+    _remove_image(outfile + '.sumwt')
+
+    # CAS-10893
+    # TODO: remove the following line once the 'correct' SD 
+    # PSF image based on primary beam can be generated
+    _remove_image(outfile + '.psf')
