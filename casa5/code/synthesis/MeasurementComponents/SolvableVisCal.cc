@@ -2596,12 +2596,12 @@ void SolvableVisCal::setOrVerifyCTFrequencies(Int spw) {
         fcurrFreqHz[i] = float(currFreqHz[i]);
     }
 
-    //cout << "Diff (currFreqHz) = " << (currFreqHz - fcurrFreqHz) << endl;
-    //cout << "Diff (currCTFreq) = " << (currCTFreq - fcurrCTFreq) << endl;
-    cout << "currFreqHz  = " << currFreqHz << endl;
-    cout << "fcurrFreqHz  = " << fcurrFreqHz << endl;
-    cout << "currCTFreq  = " << currCTFreq << endl;
-    cout << "fcurrCTFreq  = " << fcurrCTFreq << endl;
+    // cout << "Diff (currFreqHz) = " << (currFreqHz - fcurrFreqHz) << endl;
+    // cout << "Diff (currCTFreq) = " << (currCTFreq - fcurrCTFreq) << endl;
+    // cout << "currFreqHz  = " << currFreqHz << endl;
+    // cout << "fcurrFreqHz  = " << fcurrFreqHz << endl;
+    // cout << "currCTFreq  = " << currCTFreq << endl;
+    // cout << "fcurrCTFreq  = " << fcurrCTFreq << endl;
 
     
     //    if (!allEQ(float(currCTFreq),float(currFreqHz))) {

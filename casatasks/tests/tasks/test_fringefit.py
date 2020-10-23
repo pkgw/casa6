@@ -68,15 +68,15 @@ class Fringefit_tests(unittest.TestCase):
                    combine='spw', gaintable=[sbdcal], refant='EF')
         reference = os.path.join(datapath, mbdcal)
         self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
-    def test_mbd_combo(self):
-        sbdcal = self.prefix + '-zerorates.sbdcal'
-        mbdcal = self.prefix + '.mbdcal2'
-        fringefit(vis=self.msfile, caltable=sbdcal, field='4C39.25',
-                  refant='EF', zerorates=True)
-        fringefit(vis=self.msfile, caltable=mbdcal, field='J0916+3854',
-                   combine='spw', concatspws=False, gaintable=[sbdcal], refant='EF')
-        reference = os.path.join(datapath, self.prefix + '.mbdcal')
-        self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
+    # def test_mbd_combo(self):
+    #     sbdcal = self.prefix + '-zerorates.sbdcal'
+    #     mbdcal = self.prefix + '.mbdcal2'
+    #     fringefit(vis=self.msfile, caltable=sbdcal, field='4C39.25',
+    #               refant='EF', zerorates=True)
+    #     fringefit(vis=self.msfile, caltable=mbdcal, field='J0916+3854',
+    #                combine='spw', concatspws=False, gaintable=[sbdcal], refant='EF')
+    #     reference = os.path.join(datapath, self.prefix + '.mbdcal')
+    #     self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
 
 
 

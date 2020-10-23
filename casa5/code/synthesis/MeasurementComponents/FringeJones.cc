@@ -69,7 +69,7 @@
 
 // DEVDEBUG gates the development debugging information to standard
 // error; it should be set to 0 for production.
-#define DEVDEBUG true
+#define DEVDEBUG false
 #define KDISPSCALE 1e6
 
 using namespace casa::vi;
@@ -1121,7 +1121,6 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
 
         int info;
         int status = least_squares_inner_driver(max_iter, w, &bundle);
-        cerr << "Finished inner_driver" << endl;
         double chi1 = gsl_blas_dnrm2(res_f);
         
         gsl_vector_sub(gp_orig, w->x);
@@ -1137,15 +1136,13 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         
         // Transcribe parameters back into CASA arrays
         for (size_t iant=0; iant != bundle.get_max_antenna_index()+1; iant++) {
-            cerr << "iant " << iant << endl;
             if (!bundle.isActive(iant)) continue;
             Int iparam = bundle.get_param_corr_param_index(iant, 0);
             if (iparam<0) {
-                cerr << "skipping " << endl;
                 continue;
             }
-            cerr << "iparam " << iparam << endl;
             if (DEVDEBUG) {
+                logSink << "iparam " << iparam << endl;
                 logSink << "Old values for ant " << iant << " correlation " << icor 
                         << " delay " << casa_param(4*icor + 1, iant) << " ns "
                         << " rate " << casa_param(4*icor + 2, iant)
@@ -1654,7 +1651,9 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     DelayRateFFT *drfp = DelayRateFFT::makeAChild(concatSPWs(), sdbs, refant(), delayWindow(), rateWindow());
     // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
     // DelayRateFFTConcat drf(sdbs, refant(), delayWindow(), rateWindow());
-    cerr << "Made a DelayRateFFTConcat" << endl;
+    if (DEVDEBUG) {
+        cerr << "Made a DelayRateFFTConcat" << endl;
+    }
     drfp->FFT();
     drfp->searchPeak();
     Matrix<Float> sRP(solveRPar().nonDegenerate(1));
