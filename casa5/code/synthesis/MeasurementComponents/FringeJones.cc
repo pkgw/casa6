@@ -1655,7 +1655,7 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     // or the new one that combines spectral windows after the FFT
     DelayRateFFT *drfp = DelayRateFFT::makeAChild(concatSPWs(), sdbs, refant(), delayWindow(), rateWindow());
     // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
-    // DelayRateFFTConcat drf(sdbs, refant(), delayWindow(), rateWindow());
+    // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
     if (DEVDEBUG) {
         cerr << "Made a DelayRateFFTConcat" << endl;
     }

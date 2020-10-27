@@ -41,9 +41,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           casacore::Int nSPW() { return spwins_.size(); }
           casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin_)/dt_ ); }
           SDBListGridManager(SDBList& sdbs) :  sdbs_(sdbs) {}
-
-
-
      };
      
 // A utility class that provides an API that allows clients to find
@@ -122,6 +119,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                        casacore::Array<casacore::Double>& rateWindow_
                );
           virtual ~DelayRateFFT() {};
+          // Declaring makeAChild static seems to upset the package builder
+          // Meanwhile *not* making it static means that calling it without an object
+          // (which we do) is an error.
           static DelayRateFFT *makeAChild(int concat, SDBList& sdbs,
                                           casacore::Int refant,
                                           casacore::Array<casacore::Double>& delayWindow_,

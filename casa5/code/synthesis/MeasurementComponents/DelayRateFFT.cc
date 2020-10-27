@@ -188,11 +188,11 @@ DelayRateFFT::DelayRateFFT(SDBList& sdbs, Int refant, Array<Double>& delayWindow
     allActiveAntennas_()
 {}
 
-DelayRateFFT*
+DelayRateFFT *
 DelayRateFFT::makeAChild(int concat, SDBList& sdbs,
-                         casacore::Int refant,
-                         casacore::Array<casacore::Double>& delayWindow_,
-                         casacore::Array<casacore::Double>& rateWindow_)
+                         Int refant,
+                         Array<Double>& delayWindow_,
+                         Array<Double>& rateWindow_)
 {
     if (concat) {
         return new DelayRateFFTConcat(sdbs, refant, delayWindow_, rateWindow_);
@@ -200,7 +200,6 @@ DelayRateFFT::makeAChild(int concat, SDBList& sdbs,
         return new DelayRateFFTCombo(sdbs, refant, delayWindow_, rateWindow_);
     }
 }
-
 
 Matrix<Float>
 DelayRateFFT::delay() const {
@@ -219,6 +218,7 @@ DelayRateFFT::rate() const {
     Slicer sl(start,  stop, stride, Slicer::endIsLast);
     return param_(sl);
 }
+
 
 void DelayRateFFT::removeAntennasCorrelation(Int icor, std::set< Int > s) {
     std::set< Int > & as = activeAntennas_.find(icor)->second;
