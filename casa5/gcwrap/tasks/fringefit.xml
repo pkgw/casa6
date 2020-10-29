@@ -73,10 +73,6 @@ Previous calibrations should be applied on the fly.
                 <value type="string">inf</value>
         </param>
 
-        <param type="double" name="overlap"><shortdescription>Solution interval overlap in seconds </shortdescription><description>Solution interval overlap in seconds; default is zero</description>
-                <value>0.0</value>
-        </param>
-
         <param name="combine" type="string"><shortdescription>Data axes which to combine for solve (obs, scan, spw, and/or field)</shortdescription><description>Data axes which to combine for solve (obs, scan, spw, and/or field)</description>
                
                <value/>
