@@ -372,19 +372,28 @@ class ImagerParameters():
             if type(self.allselpars['msname']) == list:
                 msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
         
-                # only call this if vis == list and there is mismatch in wtspec columns
+                # Only call this if vis == list and there is mismatch in wtspec columns
+                # Maybe expanded for other checks later...
                 if msdiff != {}:
-                    print("MS diff===",msdiff)
+                    #print("MS diff===",msdiff)
+                    noWtspecmslist=[]
                     for msfile, diff_info in msdiff.items():
-                        print("\n MSfile:",msfile)
                         # check Main 
                         if 'Main' in diff_info:
                             for diffkey in diff_info['Main']:
-                                print(diffkey+ " ::: " + str(diff_info['Main'][diffkey]))
                                 if diffkey == "missingcol_a" or diffkey == "missingcol_b":
-                                    if ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_a']) ||
-                                       ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_b']):
-                                        self.checkmsforwtspec()
+                                    if ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_a'] and 
+                                        self.allselpars['msname'][0] not in noWtspecmslist):
+                                        noWtspecmslist.append(self.allselpars['msname'][0])
+                                    if ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_b'] and
+                                        msfile not in noWtspecmslist):
+                                        noWtspecmslist.append(msfile)
+                                        # repalce this by addwtspec(list_of_ms_withoutWtSpec)
+                                        #self.checkmsforwtspec`
+                    if noWtspecmslist!=[]:
+                        #print ("OK addwtspec to "+str(noWtspecmslist))
+                        self.addwtspec(noWtspecmslist)
+
             selkeys = self.allselpars.keys()
 
             # Convert all non-list parameters into lists.
@@ -825,7 +834,24 @@ class ImagerParameters():
                     mycb.initweights(wtmode='weight', dowtsp=True)
                     mycb.close()
         # noOp for nms==1 
-              
-            
- 
+
+    def addwtspec(self, mslist):
+        ''' 
+            Add the column for an MS which does not have one if other MSs have the column.
+            This is a workaround for the issue probably in Vi/VB2
+            not handling the state change for the optional column
+            when dealing with multiples MSs
+        ''' 
+        mycb = calibrater()
+
+        if len(mslist) > 0:
+            casalog.post("Some of the MSes donot have WEIGHT_SPECTRUM while some other do."+
+                         " Automatically adding the column and initialize using the existingi WEIGHT column  for those don't to avoid a process failure.","WARN")
+            casalog.post("Adding WEIGHT_SPECTRUM in the following MS(s): "+str(mslist),"WARN")
+            for inms in mslist:
+                mycb.open(inms, addcorr=False, addmodel=False)
+                mycb.initweights(wtmode='weight', dowtsp=True)
+                mycb.close()
+        # noOp for len(mlist) ==0
+
       ############################
