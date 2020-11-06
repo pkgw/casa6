@@ -171,6 +171,21 @@ class OldImagerBasedTools(object):
 
 
 def check_conformance(mslist, check_result):
+    """Check conformance of input MS list
+
+    Check conformance of input MS list, particularlly existence of
+    WEIGHT_SPECTRUM column.
+
+    Args:
+        mslist (list): list of names for input MS
+        check_result (dict): result of conformance check.
+            see mslisthelper.check_mslist for detail about
+            the structure of check_result.
+
+    Returns:
+        set: set of names for MS that needs to be edited to resolve
+             the conformance
+    """
     process_set = set()
     for name, summary in check_result.items():
         if 'Main' in summary:
@@ -183,6 +198,15 @@ def check_conformance(mslist, check_result):
 
 
 def report_conformance(mslist, process_set):
+    """Report conformance of input MS
+
+    Report conformance of input MS, particularlly on the existence
+    of WEIGHT_SPECTRUM column.
+
+    Args:
+        mslist (list): list of names for input MS
+        process_set (set): set of names of MS that need to be edited
+    """
     if len(process_set) > 0:
         casalog.post('Detected non-conformance of WEIGHT_SPECTRUM column in input list of MSes.', priority='WARN')
         cols = ['exists?', 'MS name']
@@ -199,6 +223,19 @@ def report_conformance(mslist, process_set):
 
 
 def fix_conformance(process_set):
+    """Resolve non-conformance by removing WEIGHT_SPECTRUM
+
+    Remove WEIGHT_SPECTRUM column from the MS provided by
+    process_set. Backup is created with the name:
+
+      <original_name>.sdimaging.backup-<timestamp>
+
+    Args:
+        process_set (set, list): list of names for MS to be edited
+
+    Returns:
+        dict: mapping of original MS name and the name of backup
+    """
     backup_list = {}
     for name in process_set:
         basename = os.path.basename(name.rstrip('/'))
@@ -216,6 +253,20 @@ def fix_conformance(process_set):
 
 
 def conform_mslist(mslist):
+    """Make given set of MS data conform
+
+    Here, only conformance on the existence of WEIGHT_SPECTRUM
+    is checked and resolved because non-conformance of WEIGHT_SPECTRUM,
+    i.e. some MS have the column while others don't, could cause
+    the task to crash. If non-conformance is detected, all existing
+    WEIGHT_SPECTRUM columns are removed. This opration modifies input
+    MS so data will be backed up with the name:
+
+      <original_name>.sdimaging.backup-<timestamp>
+
+    Args:
+        mslist (list): list of names for input MS
+    """
     check_result = mslisthelper.check_mslist(mslist)
     process_set = check_conformance(mslist, check_result)
     report_conformance(mslist, process_set)
