@@ -144,11 +144,12 @@ SDBListGridManagerCombo::SDBListGridManagerCombo(SDBList& sdbs) :
             continue;
         }
     }
+    nt_ = times_.size();
+    // nt_ = sdbs_.nSDB()/spwins_.size();
+    tmin_ = *(times_.begin());
+    tmax_ = *(times_.rbegin());
+    dt_ = (tmax_ - tmin_)/(nt_ - 1);
     if (nchan_ == 1) {
-      nt_ = sdbs_.nSDB()/spwins_.size();
-      tmin_ = *(times_.begin());
-      tmax_ = *(times_.rbegin());
-      dt_ = (tmax_ - tmin_)/(nt_ - 1);
       df_ = 1;
       return;
     }
@@ -157,10 +158,6 @@ SDBListGridManagerCombo::SDBListGridManagerCombo(SDBList& sdbs) :
         spwPMap_[*p] = i;
         i++;
     }
-    nt_ = sdbs_.nSDB()/spwins_.size();
-    tmin_ = *(times_.begin());
-    tmax_ = *(times_.rbegin());
-    dt_ = (tmax_ - tmin_)/(nt_ - 1);
 }
 
 
@@ -248,12 +245,15 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
     DelayRateFFT(sdbs, refant, delayWindow, rateWindow),
     gm_(sdbs)
 {
+    if (DEVDEBUG) {
+        gm_.describe();
+    }
     nt_ = gm_.nt_;
     nChan_ = gm_.nchan_;
     nspw_ = gm_.nSPW();
     dt_ = gm_.dt_;
     df_ = gm_.df_ / 1.e9;
-
+    
     if (nt_ < 2) {
         throw(AipsError("Can't do a 2-dimensional FFT on a single timestep! Please consider changing solint to avoid orphan timesteps."));
     }
@@ -267,16 +267,13 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
     }
     Int nCorrOrig(sdbs(0).nCorrelations());
     nCorr_ = (nCorrOrig> 1 ? 2 : 1); // number of p-hands
-
     for (Int i=0; i<nCorr_; i++) {
         activeAntennas_[i].insert(refant_);
     }
-    
     // when we get the visCubecorrected it is already
     // reduced to parallel hands, but there isn't a
     // corresponding method for flags.
     Int corrStep = (nCorrOrig > 2 ? 3 : 1); // step for p-hands
-
     for (Int ibuf=0; ibuf != sdbs.nSDB(); ibuf++) {
         SolveDataBuffer& s(sdbs(ibuf));
         for (Int irow=0; irow!=s.nRows(); irow++) {
@@ -285,15 +282,13 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
             allActiveAntennas_.insert(a2);
         }
     }
-
     nElem_ =  1 + *(allActiveAntennas_.rbegin()) ;
-
     IPosition aggregateDim(2, nCorr_, nElem_, nspw_);
     xcount_.resize(aggregateDim);
     sumw_.resize(aggregateDim);
     sumww_.resize(aggregateDim);
     peak_.resize(aggregateDim);
-    
+
     xcount_ = 0;
     sumw_ = 0.0;
     sumww_ = 0.0;
@@ -317,7 +312,7 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
             else if (a1 == refant_) { iant = a2; }
             else if (a2 == refant_) { iant = a1; }
             else { continue; } // not a baseline to reference antenna
-            // v has shape (nelems, ?, nrows, nchannels)
+            // v has shape (nelems, ?, nrows, nchannels); can't be a reference.
             Cube<Complex> v = s.visCubeCorrected();
             const Cube<Float>& w( s.weightSpectrum() );
             const Cube<Bool>& fl( s.flagCube() );
@@ -335,7 +330,21 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
             IPosition stride(5,        1,      1,    1,       1,      1);
             Slicer target_slice(start, stop, stride, Slicer::endIsLength); 
             // Slicer::endIsLast is also possible
-            
+            if (DEVDEBUG && false) {
+                cerr << " nSDBs" << sdbs.nSDB()
+                     << " nspwins " << gm_.spwins_.size() << endl;
+                cerr <<  "nCorr_ " << nCorr_
+                     << " iant " << iant
+                     << " ispw " << ispw
+                     << " t_index " << t_index
+                     << " s.time()(0) " << s.time()(0)
+                     << " nt_ " << nt_
+                     << " dt_ " << dt_
+                     << " nChan_ " << nChan_
+                     << " corrStep " << corrStep
+                     << " distinct times " << gm_.times_.size()
+                     << endl;
+            }
             Slicer source_slice(IPosition(3, 0,         0, irow),
                                 IPosition(3, nCorr_,  nChan_, 1),
                                 IPosition(3, corrStep,      1,  1), Slicer::endIsLength);
@@ -401,7 +410,7 @@ DelayRateFFTCombo::DelayRateFFTCombo(Array<Complex>& data, Float f0, Float df, F
     IPosition stride(5, 1, 1, 1, 1);
     Slicer target_slice(start, stop, stride, Slicer::endIsLength);
     Vall_(target_slice) = data;
-
+    
     unitize(Vall_);
 
 }
@@ -784,12 +793,14 @@ DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& o
         if (status == GSL_SUCCESS) {
             printf ("converged to minimum at\n");
         }
-        printf("%5d ipkt %10.3e ipkch %10.3e f() = %7.3f size = %10.3f\n",
-               iter,
-               gsl_vector_get(s->x, 0),
-               gsl_vector_get(s->x, 1),
-               s->fval,
-               size);
+        if (DEVDEBUG) {
+            printf("%5d ipkt %10.3e ipkch %10.3e f() = %7.3f size = %10.3f\n",
+                   iter,
+                   gsl_vector_get(s->x, 0),
+                   gsl_vector_get(s->x, 1),
+                   s->fval,
+                   size);
+        }
     } while (status == GSL_CONTINUE && iter < 2);
     // while (status == GSL_CONTINUE && iter < 100);
     tuple<Double, Double, Double, Double> p;
@@ -804,8 +815,8 @@ DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& o
         // FIXME: More spurious zeros!
         p = std::make_tuple(pkt, pkch, 0.0, 0.0);
     }
-    gsl_vector_free(x);
     gsl_vector_free(steps);
+    gsl_vector_free(x);
     gsl_multimin_fminimizer_free(s);
      
     return p;
@@ -1040,11 +1051,13 @@ SDBListGridManagerConcat::SDBListGridManagerConcat(SDBList& sdbs) :
             continue;
         }
     }
+    // nt_ = sdbs_.nSDB()/spwins_.size();
+    nt_ = times_.size();
+    tmin_ = *(times_.begin());
+    tmax_ = *(times_.rbegin());
+    dt_ = (tmax_ - tmin_)/(nt_ - 1);
+    nSPWChan_ = nchan;
     if (nchan == 1) {
-      nt_ = sdbs_.nSDB()/spwins_.size();
-      tmin_ = *(times_.begin());
-      tmax_ = *(times_.rbegin());
-      dt_ = (tmax_ - tmin_)/(nt_ - 1);
       nSPWChan_ = nchan;
       fmin_ = *(fmins.begin());
       fmax_ = fmin_;
@@ -1053,11 +1066,6 @@ SDBListGridManagerConcat::SDBListGridManagerConcat(SDBList& sdbs) :
       return;
     }
       
-    nt_ = sdbs_.nSDB()/spwins_.size();
-    tmin_ = *(times_.begin());
-    tmax_ = *(times_.rbegin());
-    dt_ = (tmax_ - tmin_)/(nt_ - 1);
-    nSPWChan_ = nchan;
     fmin_ = *(fmins.begin());
     fmax_ = *(fmaxes.rbegin());
     totalChans_ = round((fmax_ - fmin_)/dfn + 1);
@@ -1112,6 +1120,7 @@ DelayRateFFTConcat::DelayRateFFTConcat(SDBList& sdbs, Int refant, Array<Double>&
     gm_(sdbs)
 {
     if (DEVDEBUG) {
+        gm_.describe();
         cerr << "gm_.nSPW() " << gm_.nSPW() << endl;
     }
     nPadFactor_= max(2, 8  / gm_.nSPW());
@@ -1138,7 +1147,6 @@ DelayRateFFTConcat::DelayRateFFTConcat(SDBList& sdbs, Int refant, Array<Double>&
     }
     Int nCorrOrig(sdbs(0).nCorrelations());
     nCorr_ = (nCorrOrig> 1 ? 2 : 1); // number of p-hands
-
     for (Int i=0; i<nCorr_; i++) {
         activeAntennas_[i].insert(refant_);
     }

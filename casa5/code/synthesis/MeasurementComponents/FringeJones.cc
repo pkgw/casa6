@@ -1638,11 +1638,16 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     std::map<Int, Double> aggregateTime;
     // Set the refant to the first choice that has data!
     refant() = findRefAntWithData(sdbs, refantlist(), prtlev());
-    if (refant()<0)
+    if (refant()<0) {
+        logSink() << "Antennas " << refantlist() << LogIO::POST;
+        logSink() << "dt0 " << dt0 
+                  << " nSDB() " << sdbs.nSDB()
+                  << LogIO::POST; 
         throw(AipsError("No valid reference antenna supplied."));
-    else
+    }
+    else {
         logSink() << "Using reference antenna " << refant() << LogIO::POST;
-
+    }
     aggregateTimeCentroid(sdbs, refant(), aggregateTime);
 
     if (DEVDEBUG) {
@@ -1653,11 +1658,14 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
 
     // We arrange that we can use either the DelayRateFFT based on concatenation
     // or the new one that combines spectral windows after the FFT
+    if (DEVDEBUG) {
+        std::cerr << "Making a DelayRateFFT" << endl;
+    }
     DelayRateFFT *drfp = DelayRateFFT::makeAChild(concatSPWs(), sdbs, refant(), delayWindow(), rateWindow());
     // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
     // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
     if (DEVDEBUG) {
-        cerr << "Made a DelayRateFFTConcat" << endl;
+        cerr << "Made a DelayRateFFT of some kind!" << endl;
     }
     drfp->FFT();
     drfp->searchPeak();

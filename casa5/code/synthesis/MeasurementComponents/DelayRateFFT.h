@@ -34,12 +34,19 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           std::set< casacore::Int > spwins_;
           std::set< casacore::Double > times_;
           casacore::Int nt_;
-
      protected:
           SDBList& sdbs_;
      public:
+          virtual void describe() { std::cerr << "I'm a SDBListGridManager superclass!" << endl; }
           casacore::Int nSPW() { return spwins_.size(); }
-          casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin_)/dt_ ); }
+          casacore::Int getTimeIndex(casacore::Double t) {
+               casacore::Int i = round( (t - tmin_)/dt_ );
+               if (i < 0) {
+                    cerr << "Index < 0! " << endl;
+                    cerr << "t " << t << " tmin_ " << tmin_ << " dt_ " << dt_ << endl;
+               }
+               return i;
+          }
           SDBListGridManager(SDBList& sdbs) :  sdbs_(sdbs) {}
      };
      
@@ -55,11 +62,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           // C++ 11 has a reference_wrapper type, but for now:
           std::map< casacore::Int, casacore::Vector<casacore::Double> const * > pspwIdToFreqMap_;
      public:
-          SDBListGridManagerCombo(SDBList& sdbs_);
+          SDBListGridManagerCombo(SDBList& sdbs_); 
+          void describe() { std::cerr << "I'm a SDBListGridManagerCombo" << endl; }
           // pspw is the physical spw; the one the SolveDataBuffer returns from ::spectralWindow()
           // lspw is the logical spw; the one used as an index in the fringe fitter
           casacore::Int getLSPW(casacore::Int i) { return spwPMap_.find(i)->second; }
-          casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin_)/dt_ ); }
           casacore::Float getRefFreqFromLSPW(casacore::Int lspw);
      };
 
@@ -77,6 +84,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           casacore::Int bigFreqGridIndex(casacore::Double f) { return round( (f - fmin_)/df_ ); }
           casacore::Int swStartIndex(casacore::Int);
           casacore::Int nChannels() { return totalChans_;  }
+          void describe() { std::cerr << "I'm a SDBListGridManagerConcat" << endl; }
           void checkAllGridpoints();
      };
 
@@ -111,7 +119,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           std::map< casacore::Int, std::set<casacore::Int> > activeAntennas_;
           std::set<casacore::Int> allActiveAntennas_;
           casacore::Matrix<casacore::Float> param_;
-          casacore::Matrix<casacore::Bool> flag_; //?
+          casacore::Matrix<casacore::Bool> flag_; 
      public:
           DelayRateFFT(SDBList& sdbs,
                        casacore::Int refant,
@@ -158,6 +166,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           casacore::Int nspw_;
           // 
      public:
+          
           DelayRateFFTCombo(SDBList& sdbs, casacore::Int refant,
                             casacore::Array<casacore::Double>& delayWindow_,
                             casacore::Array<casacore::Double>& rateWindow_
@@ -185,12 +194,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 // offset parameters during fringe-fitting.
      class DelayRateFFTConcat : public DelayRateFFT {
      private:
-          SDBListGridManagerConcat gm_;
           casacore::Int nPadFactor_;
           casacore::Int nPadT_;
           casacore::Int nPadChan_;
           casacore::Double df_all_;
           casacore::Array<casacore::Complex> Vpad_;
+          SDBListGridManagerConcat gm_;
      public:
           DelayRateFFTConcat(SDBList& sdbs, casacore::Int refant,
                              casacore::Array<casacore::Double>& delayWindow_,
@@ -208,7 +217,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           void searchPeak() override;
           casacore::Float snr(casacore::Int icorr, casacore::Int ielem, casacore::Float delay,
                               casacore::Float rate) override;
-
+          
 
      }; // End of class DelayRateFFTConcat.
 
