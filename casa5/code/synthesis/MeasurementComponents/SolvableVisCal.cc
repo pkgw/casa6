@@ -3616,11 +3616,11 @@ void SolvableVisCal::calcPar() {
       if (currFreq().nelements()>1 && currFreq()(0)>currFreq()(1))
 	SBfactor=-1.0f;
       //cout << "freqOff=" << freqOff << " SBfactor=" << SBfactor << " netSB=" << msmc().msmd().getNetSidebands()[currSpw()] << endl;
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime(),(currFreq()-freqOff)*SBfactor);
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime(),(currFreq()-freqOff)*SBfactor);
     }
     else
       // absolute freq
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime(),currFreq());
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime(),currFreq());
 
     //    cout.precision(12);
     //    cout << typeName() << " t="<< currTime() << " newcal=" << boolalpha << newcal << endl;
@@ -3629,10 +3629,10 @@ void SolvableVisCal::calcPar() {
     if (parType()==VisCalEnum::COMPLEX)
       // Call w/ fiducial freq for phase-delay correction
       // TBD: improve freq spec, e.g., use spw center freq rather than _selected_ center
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime(),1.0e9*currFreq()(currFreq().nelements()/2));
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime(),1.0e9*currFreq()(currFreq().nelements()/2));
     else
       // No freq info at all
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime());
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime());
   }
 
   // TBD: signal failure to find calibration??  (e.g., for a spw?)
@@ -3647,14 +3647,14 @@ void SolvableVisCal::calcPar() {
     
     // Reference result
     if (parType()==VisCalEnum::COMPLEX) 
-      currCPar().reference(ci_->resultC(currObs(),currField(),currSpw()));
+      currCPar().reference(ci_->resultC(currObs(),currScan(),currField(),currSpw()));
     else if (parType()==VisCalEnum::REAL) 
-      currRPar().reference(ci_->resultF(currObs(),currField(),currSpw()));
+      currRPar().reference(ci_->resultF(currObs(),currScan(),currField(),currSpw()));
     else
       throw(AipsError("Bad parType() in SVC::calcPar"));
 
     // Assign _inverse_ of parameter flags
-    currParOK().reference(!ci_->rflag(currObs(),currField(),currSpw()));
+    currParOK().reference(!ci_->rflag(currObs(),currScan(),currField(),currSpw()));
 
     // Ensure shapes recorded correctly
     // (New interpolation generates cal samples for all data channels...revisit?

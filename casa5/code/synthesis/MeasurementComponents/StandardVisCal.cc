@@ -1388,8 +1388,8 @@ void BJones::calcWtScale() {
     amps.reference(tr(Slice(0,2,2),Slice(),Slice()));
   }
   else if (ci_) {
-    amps=Cube<Float>(ci_->tresultF(currObs(),currField(),currSpw()))(Slice(0,2,2),Slice(),Slice());
-    ampfl=ci_->tresultFlag(currObs(),currField(),currSpw());
+    amps=Cube<Float>(ci_->tresultF(currObs(),currScan(),currField(),currSpw()))(Slice(0,2,2),Slice(),Slice());
+    ampfl=ci_->tresultFlag(currObs(),currScan(),currField(),currSpw());
   }
   else
     // BPOLY?
