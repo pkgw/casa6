@@ -1045,7 +1045,7 @@ void CTPatchedInterp::makeInterpolators() {
 	    Matrix<Bool> tRf(timeResFlag_(iMSSpw,iMSFld,iMSObs).xyPlane(iMSElem));
 
 	    // If the ct slice exists, set up an interpolator
-	    if (ctSlices_(ictip)) {
+	    if (ctSlices_(ictip) && iMSObs < nCTObs_) {
 	      NewCalTable& ict(*ctSlices_(ictip));
 	      if (!ict.isNull()) {
 		tI_(tIip)=(*cttifactoryptr_)(ict,timeType_,tR,tRf);
