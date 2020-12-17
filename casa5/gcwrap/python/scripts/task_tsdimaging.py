@@ -251,7 +251,7 @@ def conform_mslist(mslist):
     Args:
         mslist (list): list of names for input MS
     """
-    check_result = mslisthelper.check_mslist(mslist)
+    check_result = mslisthelper.check_mslist(mslist, testcontent=False)
     process_set = check_conformance(mslist, check_result)
     report_conformance(mslist, process_set)
     backup_list = fix_conformance(process_set)
