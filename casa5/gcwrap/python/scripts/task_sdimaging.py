@@ -12,6 +12,7 @@ if is_CASA6:
     from . import sdutil
     from . import sdbeamutil
     from . import mslisthelper
+    from .task_tsdimaging import conform_mslist
 else:
     from taskinit import casalog
     from taskinit import msmdtool as msmetadata
@@ -23,8 +24,7 @@ else:
     import sdutil
     import sdbeamutil
     import recipes.mslisthelper as mslisthelper
-
-from task_tsdimaging import conform_mslist
+    from task_tsdimaging import conform_mslist
 
 
 @sdutil.sdtask_decorator
@@ -639,7 +639,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         # chronological sort
         sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(self.infiles)
         self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
-        mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, casalog)
+        mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, mycasalog=casalog)
         # conform MS
         conform_mslist(sorted_vislist)
         selection_ids = self.get_selection_idx_for_ms(self.sorted_idx[0])

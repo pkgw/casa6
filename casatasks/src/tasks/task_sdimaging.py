@@ -12,6 +12,7 @@ if is_CASA6:
     from . import sdutil
     from . import sdbeamutil
     from . import mslisthelper
+    from .task_tsdimaging import conform_mslist
 else:
     from taskinit import casalog
     from taskinit import msmdtool as msmetadata
@@ -23,8 +24,7 @@ else:
     import sdutil
     import sdbeamutil
     import recipes.mslisthelper as mslisthelper
-
-from .task_tsdimaging import conform_mslist
+    from task_tsdimaging import conform_mslist
 
 
 @sdutil.sdtask_decorator

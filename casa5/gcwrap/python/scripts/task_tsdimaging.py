@@ -1,4 +1,7 @@
 # sd task for imaging
+from __future__ import absolute_import
+from __future__ import print_function
+
 import os
 import re
 import numpy
@@ -6,15 +9,32 @@ import shutil
 import contextlib
 import time
 
-from taskinit import casalog, gentools, qatool
+from casatasks.private.casa_transition import is_CASA6
+if is_CASA6:
+    from casatasks import casalog
+    from casatools import ms as mstool
+    from casatools import quanta, imager, image, table
+    from . import sdutil
+    from . import sdbeamutil
+    from . import mslisthelper
 
-import sdutil
-import sdbeamutil
-import recipes.mslisthelper as mslisthelper
+    ## (1) Import the python application layer
+    from .imagerhelpers.imager_base import PySynthesisImager
+    from .imagerhelpers.input_parameters import ImagerParameters
+else:
+    from taskinit import casalog
+    from taskinit import qatool as quanta
+    from taskinit import imtool as imager
+    from taskinit import iatool as image
+    from taskinit import mstool
+    from taskinit import tbtool as table
+    import sdutil
+    import sdbeamutil
+    import recipes.mslisthelper as mslisthelper
 
-## (1) Import the python application layer
-from imagerhelpers.imager_base import PySynthesisImager
-from imagerhelpers.input_parameters import ImagerParameters
+    ## (1) Import the python application layer
+    from imagerhelpers.imager_base import PySynthesisImager
+    from imagerhelpers.input_parameters import ImagerParameters
 
 image_suffix = '.image'
 residual_suffix = '.residual'
@@ -23,7 +43,7 @@ associate_suffixes = ['.psf', '.sumwt', weight_suffix, residual_suffix]
 
 @contextlib.contextmanager
 def open_ia(imagename):
-    (ia,) = gentools(['ia'])
+    ia = image()
     ia.open(imagename)
     try:
         yield ia
@@ -32,7 +52,7 @@ def open_ia(imagename):
 
 @contextlib.contextmanager
 def open_ms(vis):
-    (ms,) = gentools(['ms'])
+    ms = mstool()
     ms.open(vis)
     try:
         yield ms
@@ -41,7 +61,7 @@ def open_ms(vis):
 
 @contextlib.contextmanager
 def open_table(vis, *args, **kwargs):
-    (tb,) = gentools(['tb'])
+    tb = table()
     tb.open(vis, *args, **kwargs)
     try:
         yield tb
@@ -72,7 +92,7 @@ class SelectionHandler(object):
 
 class OldImagerBasedTools(object):
     def __init__(self):
-        self.imager = gentools(['im'])[0]
+        self.imager = imager()
 
     @contextlib.contextmanager
     def open_old_imager(self, vis):
@@ -102,7 +122,7 @@ class OldImagerBasedTools(object):
             scansel = SelectionHandler(scan)
             intentsel = SelectionHandler(intent)
             try:
-                for i in xrange(len(vislist)):
+                for i in range(len(vislist)):
                     vis = vislist[i]
                     _field = fieldsel(i)
                     _spw = spwsel(i)
@@ -123,7 +143,7 @@ class OldImagerBasedTools(object):
 
     def test(self, vis):
         with self.open_old_imager(vis) as im:
-            print 'test'
+            casalog.post('test')
             raise RuntimeError('ERROR!')
 
     def get_pointing_sampling_params(self, vis, field, spw, baseline, scan, intent, outref, movingsource, pointingcolumntouse, antenna_name):
@@ -264,7 +284,7 @@ def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):
     sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(vislist)
     _vislist = list(vislist)
     sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
-    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, casalog=casalog)
+    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, mycasalog=casalog)
     # conform MS
     conform_mslist(sorted_vislist)
     fieldsel = SelectionHandler(field)
@@ -298,13 +318,13 @@ def _configure_spectral_axis(mode, nchan, start, width, restfreq):
 
     tmp_start = _format_quantum_unit(start, myunit)
     if tmp_start == None:
-        raise ValueError, "Invalid unit for %s in mode %s: %s" % ('start', mode, start)
+        raise ValueError("Invalid unit for %s in mode %s: %s" % ('start', mode, start))
     start = tmp_start
     if mode == 'channel':
         start = int(start)
     tmp_width = _format_quantum_unit(width, myunit)
     if tmp_width == None:
-        raise ValueError, "Invalid unit for %s in mode %s: %s" % ('width', mode, width)
+        raise ValueError("Invalid unit for %s in mode %s: %s" % ('width', mode, width))
     width = tmp_width
     if mode == 'channel':
         width = int(width)
@@ -322,7 +342,7 @@ def _format_quantum_unit(data, unit):
     Otherwise, returns input data as a quantum string. The input
     unit is added to the return value if no unit is in data.
     """
-    my_qa = qatool()
+    my_qa = quanta()
     if data == '' or my_qa.compare(data, unit):
         return data
     if my_qa.getunit(data) == '':
@@ -348,7 +368,7 @@ def _calc_PB(vis, antenna_id, restfreq):
     """
     casalog.post("Calculating Pirimary beam size:")
     # CAS-5410 Use private tools inside task scripts
-    my_qa = qatool()
+    my_qa = quanta()
 
     pb_factor = 1.175
     # Reference frequency
@@ -360,7 +380,7 @@ def _calc_PB(vis, antenna_id, restfreq):
               "Your data does not seem to have valid one in selected field.\n" + \
               "PB is not calculated.\n" + \
               "Please set restreq or cell manually to generate an image."
-        raise Exception, msg
+        raise RuntimeError(msg)
     # Antenna diameter
     with open_table(os.path.join(vis, 'ANTENNA')) as tb:
         antdiam_ave = tb.getcell('DISH_DIAMETER', antenna_id)
@@ -379,7 +399,7 @@ def _calc_PB(vis, antenna_id, restfreq):
 def _get_imsize(width, height, dx, dy):
     casalog.post("Calculating pixel size.")
     # CAS-5410 Use private tools inside task scripts
-    my_qa = qatool()
+    my_qa = quanta()
     ny = numpy.ceil( ( my_qa.convert(height, my_qa.getunit(dy))['value'] /  \
                        my_qa.getvalue(dy) ) )
     nx = numpy.ceil( ( my_qa.convert(width, my_qa.getunit(dx))['value'] /  \
@@ -395,7 +415,7 @@ def _get_pointing_extent(phasecenter, vislist, field, spw, antenna, scan, intent
     ### MS selection is ignored. This is not quite right.
     casalog.post("Calculating map extent from pointings.")
     # CAS-5410 Use private tools inside task scripts
-    my_qa = qatool()
+    my_qa = quanta()
     ret_dict = {}
 
     if isinstance(vislist, str):
@@ -550,7 +570,7 @@ def _remove_image(imagename):
             os.remove(imagename)
 
 def _get_restfreq_if_empty(vislist, spw, field, restfreq):
-    qa = qatool()
+    qa = quanta()
     rf = None
     # if restfreq is nonzero float value, return it
     if isinstance(restfreq, float):
@@ -626,7 +646,7 @@ def _get_restfreq_if_empty(vislist, spw, field, restfreq):
                 try:
                     nrow = t.nrows()
                     if nrow > 0:
-                        for irow in xrange(nrow):
+                        for irow in range(nrow):
                             if t.iscelldefined('REST_FREQUENCY', irow):
                                 rfs = t.getcell('REST_FREQUENCY', irow)
                                 if len(rfs) > 0:
@@ -670,7 +690,7 @@ def set_beam_size(vis, imagename,
                                                         movingsource=ephemsrcname,
                                                         pointingcolumntouse=pointingcolumntouse,
                                                         antenna_name=antenna_name)
-    qa = qatool()
+    qa = quanta()
     casalog.post('sampling_params={0}'.format(sampling_params))
     xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'], 'arcsec'))
     angle = qa.getvalue(qa.convert(sampling_params['angle'], 'deg'))[0]
@@ -776,7 +796,7 @@ def get_ms_column_unit(tb, colname):
     col_unit = ''
     if colname in tb.colnames():
         cdkw = tb.getcoldesc(colname)['keywords']
-        if cdkw.has_key('QuantumUnits'):
+        if 'QuantumUnits' in cdkw:
             u = cdkw['QuantumUnits']
             if isinstance(u, str):
                 col_unit = u.strip()
@@ -926,7 +946,7 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, m
             elif brightnessunit.lower() == 'jy/beam':
                 image_unit = 'Jy/beam'
             else:
-                raise ValueError, "Invalid brightness unit, %s" % brightnessunit
+                raise ValueError("Invalid brightness unit, %s" % brightnessunit)
 
         # TODO: handle overwrite
         # TODO: output image name
@@ -951,16 +971,6 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, m
 
         casalog.post('*** makeSdImage... ***', origin=origin)
         imager.makeSdImage()
-
-    except Exception as e:
-        casalog.post('Exception from task_tsdimaging : ' + str(e), "SEVERE", origin=origin)
-#         if imager != None:
-#             imager.deleteTools()
-
-        larg = list(e.args)
-        larg[0] = 'Exception from task_tsdimaging : ' + str(larg[0])
-        e.args = tuple(larg)
-        raise
 
     finally:
         ## (8) Close tools.

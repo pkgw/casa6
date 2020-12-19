@@ -1,4 +1,7 @@
 # sd task for imaging
+from __future__ import absolute_import
+from __future__ import print_function
+
 import os
 import re
 import numpy
@@ -9,7 +12,8 @@ import time
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatasks import casalog
-    from casatools import quanta, imager, image, ms, table
+    from casatools import ms as mstool
+    from casatools import quanta, imager, image, table
     from . import sdutil
     from . import sdbeamutil
     from . import mslisthelper
@@ -22,7 +26,7 @@ else:
     from taskinit import qatool as quanta
     from taskinit import imtool as imager
     from taskinit import iatool as image
-    from taskinit import mstool as ms
+    from taskinit import mstool
     from taskinit import tbtool as table
     import sdutil
     import sdbeamutil
@@ -39,7 +43,7 @@ associate_suffixes = ['.psf', '.sumwt', weight_suffix, residual_suffix]
 
 @contextlib.contextmanager
 def open_ia(imagename):
-    ia = image( )
+    ia = image()
     ia.open(imagename)
     try:
         yield ia
@@ -48,12 +52,12 @@ def open_ia(imagename):
 
 @contextlib.contextmanager
 def open_ms(vis):
-    my_ms = ms( )
-    my_ms.open(vis)
+    ms = mstool()
+    ms.open(vis)
     try:
-        yield my_ms
+        yield ms
     finally:
-        my_ms.close()
+        ms.close()
 
 @contextlib.contextmanager
 def open_table(vis, *args, **kwargs):
@@ -88,7 +92,7 @@ class SelectionHandler(object):
 
 class OldImagerBasedTools(object):
     def __init__(self):
-        self.imager = imager( )
+        self.imager = imager()
 
     @contextlib.contextmanager
     def open_old_imager(self, vis):
@@ -139,7 +143,7 @@ class OldImagerBasedTools(object):
 
     def test(self, vis):
         with self.open_old_imager(vis) as im:
-            print('test')
+            casalog.post('test')
             raise RuntimeError('ERROR!')
 
     def get_pointing_sampling_params(self, vis, field, spw, baseline, scan, intent, outref, movingsource, pointingcolumntouse, antenna_name):
@@ -338,7 +342,7 @@ def _format_quantum_unit(data, unit):
     Otherwise, returns input data as a quantum string. The input
     unit is added to the return value if no unit is in data.
     """
-    my_qa = quanta( )
+    my_qa = quanta()
     if data == '' or my_qa.compare(data, unit):
         return data
     if my_qa.getunit(data) == '':
@@ -364,7 +368,7 @@ def _calc_PB(vis, antenna_id, restfreq):
     """
     casalog.post("Calculating Pirimary beam size:")
     # CAS-5410 Use private tools inside task scripts
-    my_qa = quanta( )
+    my_qa = quanta()
 
     pb_factor = 1.175
     # Reference frequency
@@ -395,7 +399,7 @@ def _calc_PB(vis, antenna_id, restfreq):
 def _get_imsize(width, height, dx, dy):
     casalog.post("Calculating pixel size.")
     # CAS-5410 Use private tools inside task scripts
-    my_qa = quanta( )
+    my_qa = quanta()
     ny = numpy.ceil( ( my_qa.convert(height, my_qa.getunit(dy))['value'] /  \
                        my_qa.getvalue(dy) ) )
     nx = numpy.ceil( ( my_qa.convert(width, my_qa.getunit(dx))['value'] /  \
@@ -411,7 +415,7 @@ def _get_pointing_extent(phasecenter, vislist, field, spw, antenna, scan, intent
     ### MS selection is ignored. This is not quite right.
     casalog.post("Calculating map extent from pointings.")
     # CAS-5410 Use private tools inside task scripts
-    my_qa = quanta( )
+    my_qa = quanta()
     ret_dict = {}
 
     if isinstance(vislist, str):
@@ -566,7 +570,7 @@ def _remove_image(imagename):
             os.remove(imagename)
 
 def _get_restfreq_if_empty(vislist, spw, field, restfreq):
-    qa = quanta( )
+    qa = quanta()
     rf = None
     # if restfreq is nonzero float value, return it
     if isinstance(restfreq, float):
@@ -686,7 +690,7 @@ def set_beam_size(vis, imagename,
                                                         movingsource=ephemsrcname,
                                                         pointingcolumntouse=pointingcolumntouse,
                                                         antenna_name=antenna_name)
-    qa = quanta( )
+    qa = quanta()
     casalog.post('sampling_params={0}'.format(sampling_params))
     xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'], 'arcsec'))
     angle = qa.getvalue(qa.convert(sampling_params['angle'], 'deg'))[0]
