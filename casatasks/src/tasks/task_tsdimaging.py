@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import collections
 import os
 import re
 import numpy
@@ -187,36 +188,55 @@ def check_conformance(mslist, check_result):
             the structure of check_result.
 
     Returns:
-        set: set of names for MS that needs to be edited to resolve
-             the conformance
+        dict: Per-column set of names for MS that needs to be
+              edited to resolve the conformance. Top level dict
+              has two keys, "remove" and "add", which indicate
+              the operation to be applied to the columns.
     """
-    process_set = set()
+    process_dict = {
+        'remove': collections.defaultdict(set),
+        'add': collections.defaultdict(set)
+    }
     for name, summary in check_result.items():
         if 'Main' in summary:
-            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['b', 'a']]
-            testee_list = [mslist[0], name]
-            for c, t in zip(missingcol_list, testee_list):
+            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['a', 'b']]
+            ms_a = mslist[0]
+            ms_b = name
+
+            # "remove" operation:
+            #  - MS list is opposite order to missingcol_list
+            #  - if WEIGHT_SPECTRUM column is missing in one MS,
+            #    the column should be removed from another MS.
+            for c, t in zip(missingcol_list, [ms_b, ms_a]):
                 if 'WEIGHT_SPECTRUM' in c:
-                    process_set.add(t)
-    return process_set
+                    process_dict['remove']['WEIGHT_SPECTRUM'].add(t)
+            # "add" operation:
+            #  - MS list is same order as missingcol_list
+            #  - if CORRECTED_DATA column is missing in one MS,
+            #    the column should be added to that MS.
+            for c, t in zip(missingcol_list, [ms_a, ms_b]):
+                if 'CORRECTED_DATA' in c:
+                    process_dict['add']['CORRECTED_DATA'].add(t)
+    return process_dict
 
 
-def report_conformance(mslist, process_set):
+def report_conformance(mslist, column_name, process_set):
     """Report conformance of input MS
 
     Report conformance of input MS, particularlly on the existence
-    of WEIGHT_SPECTRUM column.
+    of the column given by column_name.
 
     Args:
         mslist (list): list of names for input MS
+        column_name (str): name of the column
         process_set (set): set of names of MS that need to be edited
     """
     if len(process_set) > 0:
-        casalog.post('Detected non-conformance of WEIGHT_SPECTRUM column in input list of MSes.', priority='WARN')
+        casalog.post('Detected non-conformance of {} column in input list of MSes.'.format(column_name), priority='WARN')
         cols = ['exists?', 'MS name']
         header = ' '.join(cols)
         casalog.post('', priority='WARN')
-        casalog.post('Summary of existence of WEIGHT_SPECTRUM:', priority='WARN')
+        casalog.post('Summary of existence of {}:'.format(column_name), priority='WARN')
         casalog.post(header, priority='WARN')
         casalog.post('-' * len(header), priority='WARN')
         for name in mslist:
@@ -226,37 +246,54 @@ def report_conformance(mslist, process_set):
             casalog.post(row, priority='WARN')
 
 
-def fix_conformance(process_set):
+def fix_conformance(process_dict):
     """Resolve non-conformance by removing WEIGHT_SPECTRUM
 
-    Remove WEIGHT_SPECTRUM column from the MS provided by
-    process_set. Backup is created with the name:
+    Two non-conformances are fixed, WEIGHT_SPECTRUM and
+    CORRECTED_DATA. Remove WEIGHT_SPECTRUM column from, or
+    add CORRECTED_DATA to the MS provided by process_dict.
+    Backup is created with the name:
 
       <original_name>.sdimaging.backup-<timestamp>
 
     Args:
-        process_set (set, list): list of names for MS to be edited
+        process_dict (dict): per-operation ("remove" and "add")
+                             key-value pair of column name and
+                             list of names for MS to be edited
 
     Returns:
         dict: mapping of original MS name and the name of backup
     """
     backup_list = {}
-    for name in process_set:
+    process_list = set()
+    for v in process_dict.values():
+        for w in v.values():
+            process_list = process_list.union(w)
+    for name in process_list:
         basename = os.path.basename(name.rstrip('/'))
         timestamp = time.strftime('%Y%m%dT%H%M%S', time.gmtime())
         backup_name = basename + '.sdimaging.backup-{}'.format(timestamp)
-        casalog.post('WEIGHT_SPECTRUM will be removed from "{}"'.format(name), priority='WARN')
         with open_table(name) as tb:
             tb.copy(backup_name, deep=True, returnobject=True).close()
         backup_list[name] = backup_name
         casalog.post('Copy of "{}" has been saved to "{}"'.format(name, backup_name), priority='WARN')
-        with open_table(name, nomodify=False) as tb:
-            if 'WEIGHT_SPECTRUM' in tb.colnames():
-                tb.removecols('WEIGHT_SPECTRUM')
+
+    for colname, msnames in process_dict['remove'].items():
+        for name in msnames:
+            casalog.post('{} will be removed from "{}"'.format(colname, name), priority='WARN')
+            with open_table(name, nomodify=False) as tb:
+                if colname in tb.colnames():
+                    tb.removecols(colname)
+
+    for colname, msnames in process_dict['add'].items():
+        for name in msnames:
+            casalog.post('{} will be added to "{}"'.format(colname, name), priority='WARN')
+            with sdutil.cbmanager(name, addmodel=False, addcorr=True):
+                pass
     return backup_list
 
 
-def conform_mslist(mslist):
+def conform_mslist(mslist, ignore_columns=['CORRECTED_DATA']):
     """Make given set of MS data conform
 
     Here, only conformance on the existence of WEIGHT_SPECTRUM
@@ -272,9 +309,15 @@ def conform_mslist(mslist):
         mslist (list): list of names for input MS
     """
     check_result = mslisthelper.check_mslist(mslist, testcontent=False)
-    process_set = check_conformance(mslist, check_result)
-    report_conformance(mslist, process_set)
-    backup_list = fix_conformance(process_set)
+    process_dict = check_conformance(mslist, check_result)
+    fix_dict = dict()
+    for op, op_dict in process_dict.items():
+        fix_dict[op] = dict()
+        for col, process_set in op_dict.items():
+            if col not in ignore_columns:
+                report_conformance(mslist, col, process_set)
+                fix_dict[op][col] = process_set
+    fix_conformance(fix_dict)
 
 
 def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent):

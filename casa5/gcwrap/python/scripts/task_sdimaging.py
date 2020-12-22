@@ -641,7 +641,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
         mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, self.sorted_idx, mycasalog=casalog)
         # conform MS
-        conform_mslist(sorted_vislist)
+        conform_mslist(sorted_vislist, ignore_columns=[])
         selection_ids = self.get_selection_idx_for_ms(self.sorted_idx[0])
         self.__update_subtable_name(self.infiles[self.sorted_idx[0]])
         # field
