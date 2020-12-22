@@ -3525,6 +3525,14 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
     outfile = 'ms_conformance'
 
     @staticmethod
+    def column_exists(name, colname):
+        tb = table()
+        tb.open(name)
+        colnames = tb.colnames()
+        tb.close()
+        return colname in colnames
+
+    @staticmethod
     def fill_weight_spectrum(name):
         cb = calibrater()
         cb.open(name, addcorr=False, addmodel=False)
@@ -3540,6 +3548,20 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         wt = tb.getcol('WEIGHT')
         wt[:] = 1.0
         tb.putcol('WEIGHT', wt)
+        tb.close()
+
+    @staticmethod
+    def fill_corrected_data(name):
+        cb = calibrater()
+        cb.open(name, addmodel=False, addcorr=True)
+        cb.close()
+
+    @staticmethod
+    def remove_corrected_data(name):
+        tb = table()
+        tb.open(name, nomodify=False)
+        if 'CORRECTED_DATA' in tb.colnames():
+            tb.removecols('CORRECTED_DATA')
         tb.close()
 
     def setUp(self):
@@ -3565,27 +3587,51 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
     def test_nowtsp1(self):
         """test_nowtsp1: no WEIGHT_SPECTRUM column in the first MS"""
         self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
         self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
         self._run_pm04_test(self.infiles)
         self._test_backup(self.infiles[1])
 
     def test_nowtsp2(self):
         """test_nowtsp2: no WEIGHT_SPECTRUM column in the second MS"""
         self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
         self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
         self._run_pm04_test(self.infiles)
         self._test_backup(self.infiles[0])
 
     def test_conform1(self):
         """test_conform1: WEIGHT_SPECTRUM exists"""
         self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
         self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
         self._run_pm04_test(self.infiles)
 
     def test_conform2(self):
         """test_conform2: WEIGHT_SPECTRUM does not exist"""
         self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
         self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform3(self):
+        """test_conform3: CORRECTED_DATA column exists only for the first MS"""
+        self.fill_corrected_data(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.remove_corrected_data(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform4(self):
+        """test_conform4: CORRECTED_DATA column exists only for the second MS"""
+        self.remove_corrected_data(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.fill_corrected_data(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
         self._run_pm04_test(self.infiles)
 
 
