@@ -256,7 +256,7 @@ def comptbdescr(descr_a, descr_b, ignorecol=[], testcontent=True):
 
 def sort_mslist(vis, visweightscale=None):
     """
-    Returns up two or three items:
+    Returns two or three items:
       1) list of MSs sorted by the earliest entry in the Main table TIME column.
       2) list of sorted MS start times
       3) if visweightscale!=None and contains a list of corresponding numbers,
