@@ -55,7 +55,7 @@ def fringefit(vis=None,caltable=None,
                                 paramactive=[True, True, False]
                         else:
                                 if len(paramactive)!=3:
-                                        print >>sys.stderr, "paramactive", paramactive
+                                        casalog.post("paramactive: ", paramactive)
                                         raise Exception, 'Error: paramactive vector must have exactly three entries'
                         # Have to solve for peculiar phase!
                         paramactive.insert(0, True)
@@ -109,7 +109,7 @@ def fringefit(vis=None,caltable=None,
 		if parang: mycb.setapply(type='P')
 
 		# Set up for solving; only support one gaintype
-		mycb.setsolve(type="FRINGE",t=solint,refant=refant,preavg=0.01,
+		mycb.setsolve(type="FRINGE",t=solint,refant=refant,preavg=0.001,
 			      minsnr=minsnr,combine=combine,
 			      zerorates=zerorates,
                               globalsolve=globalsolve,
@@ -123,7 +123,6 @@ def fringefit(vis=None,caltable=None,
 		mycb.close()
 
 	except Exception, instance:
-		print '*** Error ***', instance
 		mycb.close()
 		exc_type, exc_obj, exc_tb = sys.exc_info()
 		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
