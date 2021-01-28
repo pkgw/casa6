@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from __future__ import print_function
 
 import os
 import math
@@ -12,7 +11,7 @@ if is_CASA6:
     from collections import OrderedDict as odict
 
     ###some helper tools
-    from casatasks import casalog as default_casalog
+    from casatasks import casalog
     from casatools import table, quanta, msmetadata
     from casatools import ms as mstool
 
@@ -32,7 +31,6 @@ else:
     ms = casac.ms()
     tb = casac.table()
     msmd = casac.msmetadata()
-    default_casalog = casalog
 
 
 def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
@@ -258,7 +256,7 @@ def comptbdescr(descr_a, descr_b, ignorecol=[], testcontent=True):
 
 def sort_mslist(vis, visweightscale=None):
     """
-    Returns up two or three items:
+    Returns two or three items:
       1) list of MSs sorted by the earliest entry in the Main table TIME column.
       2) list of sorted MS start times
       3) if visweightscale!=None and contains a list of corresponding numbers,
