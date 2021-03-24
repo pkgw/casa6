@@ -202,15 +202,9 @@ def tclean(
         casalog.post( "The MSMFS algorithm (deconvolver='mtmfs') with specmode='cube' is not supported", "WARN", "task_tclean" )
         return
 
-    if(chanchunks!=-1):
-        casalog.post( "The parameter chanchunks is only used for spectral cubes with gridder='awproject'. chanchunks will be removed in a future release and awproject for cube is using pre-refactor code so is not fully commissioned.", "WARN", "task_tclean" )
-
     if((specmode=='cube' or specmode=='cubedata') and parallel==False and mpi_available):
-        casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect except for awproject.", "WARN", "task_tclean" )
+        casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect", "WARN", "task_tclean" )
         
-    if((specmode=='cube' or specmode=='cubedata') and gridder=='awproject') and (parallel):
-        casalog.post( "The awproject gridder still uses the old form python mpi parallelism pre CAS-9386.\n", "WARN", "task_tclean" )
-        #return
       
     if(perchanweightdensity==False and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with perchanweightdensity=False.", "WARN", "task_tclean" )
