@@ -705,8 +705,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
 	gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
 	//For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
-	if(gridparsVec_p[0].ftmachine.contains("awproject"))
-	   setCubeGridding(False);
+	//if(gridparsVec_p[0].ftmachine.contains("awproject"))
+	 //  setCubeGridding(False);
 	
     return true;
   }
@@ -722,6 +722,7 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
 	itsMaxShape=imshape;
 	itsMaxCoordSys=csys;
       }
+  
     mLocation_p=impars.obslocation;
     // phasecenter
     if (impars.phaseCenterFieldId == -1) {
@@ -742,6 +743,8 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
 	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
 		             gridpars.ftmachine.contains("awprojectft") )?False:True;
 	CountedPtr<refim::FTMachine> ftm, iftm;
+         
+
 	createFTMachine(ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType, 
 			gridpars.facets, gridpars.wprojplanes,
 			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
@@ -755,7 +758,8 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
 			impars.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
 			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
 			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);  
-	
+       
+        
 	if(gridpars.facets >1)
 	{
 	      // Make and connect the list.
@@ -774,6 +778,10 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
         impars_p=impars;
         gridpars_p=gridpars;
 	imageDefined_p=true;
+        imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
+        gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+	gridparsVec_p[gridparsVec_p.nelements()-1]=gridpars_p;
 	return true;
 }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, 
@@ -845,6 +853,7 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor,
 			       const Quantity& filterbmin, const Quantity& filterbpa, Double fracBW)
   {
       LogIO os(LogOrigin("SynthesisImagerVi2", "weight()", WHERE));
+      
       if(rmode=="bwtaper") //See CAS-13021 for bwtaper algorithm details
       {
           if(fracBW == 0.0)
@@ -879,6 +888,9 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor,
        try {
     	//Int nx=itsMaxShape[0];
     	//Int ny=itsMaxShape[1];
+        
+
+         ///////////////////////
 	 Quantity cellx=Quantity(itsMaxCoordSys.increment()[0], itsMaxCoordSys.worldAxisUnits()[0]);
 	 Quantity celly=Quantity(itsMaxCoordSys.increment()[1], itsMaxCoordSys.worldAxisUnits()[1]);
 	 os << LogIO::NORMAL // Loglevel INFO
@@ -1345,8 +1357,11 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
           Int spwnow=vb->spectralWindows()[0];
           Int nchaninms=MSColumns(vb->ms()).spectralWindow().numChan()(spwnow);
           //cerr << "chans " << nchaninms << "   " << nchannow << endl;
-          if (nchaninms < nchannow)
+         
+          if (nchaninms < nchannow){
+            cerr << "NCHANS ms" << nchaninms << " now " << nchannow << " spw " << spwnow << "   " << vb->spectralWindows() << endl;
             throw(AipsError("A nasty Visbuffer2 error occured...wait for CNGI"));
+          }
         }
           //////
     	for (vi_p->originChunks(); vi_p->moreChunks();vi_p->nextChunk())
@@ -2274,6 +2289,7 @@ void SynthesisImagerVi2::lockMS(MeasurementSet& thisms){
     /// write to the test !!  till someboody fixes this is vi2 or wait for cngi
     //if savescratch column we have tune...otherwise some channel may be 0
     // when chunking or in parallel
+    cerr << "nchanims " << nchaninms << endl;
     if(nchaninms <30 && !(!readOnly_p && useScratch_p))
       return dataSel_p;
     
