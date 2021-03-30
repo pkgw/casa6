@@ -632,6 +632,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
   freqInterpMethod_(freqInterpMethod0_),
   freqInterpMethodVec_(),
   byObs_(timetype.contains("perobs")), // detect slicing by obs
+  byScan_(timetype.contains("perscan")), // detect slicing by scan
   byField_(fieldtype=="nearest"),  // for now we are NOT slicing by field
   nChanIn_(),
   freqIn_(),
@@ -657,6 +658,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
   tIdel_(),
   lastFld_(ms.spectralWindow().nrow(),-1),
   lastObs_(ms.spectralWindow().nrow(),-1),
+  lastScan_(ms.spectralWindow().nrow(),-1),
   cttifactoryptr_(cttifactoryptr)
 {
     
@@ -825,7 +827,7 @@ CTPatchedInterp::~CTPatchedInterp() {
   }
 }
 
-  Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, Double time, Double freq) {
+Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, Double time, Double freq) {
 
   if (CTPATCHEDINTERPVERB) cout << "CTPatchedInterp::interpolate(...)" << endl;
 
