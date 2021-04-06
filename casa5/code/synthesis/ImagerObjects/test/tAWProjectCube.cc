@@ -1,7 +1,7 @@
 /*
  * tSynthesisImager.cc
  *SynthesisImager.cc: test of SynthesisImager
-//# Copyright (C) 2013
+//# Copyright (C) 2021
 //# Associated Universities, Inc. Washington DC, USA.
 //#
 //# This program is free software; you can redistribute it and/or modify it
@@ -24,12 +24,9 @@
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
 //#                        Charlottesville, VA 22903-2475 USA
- *  Created on: Jun 27, 2013
- *      Author: kgolap
+ *  Created on: April 01 2021
+ *      
  */
-
-
-
 
 
 #include <casa/iostream.h>
@@ -200,17 +197,18 @@ using namespace casacore;
       ////you could do a chunk at a time if memory allows
       
       {
-        
-        for (Int k=0; k < nchan; ++k){
+        Int chunksize=4;
+        for (Int k=0; k < nchan/chunksize; ++k){
+          Int startchan=k*chunksize;
+          Int endchan=k*chunksize+chunksize-1;
           
-          
-          std::shared_ptr<ImageInterface<Float> >subresid(SpectralImageUtil::getChannel(*resid, k, k, true));
-          std::shared_ptr<ImageInterface<Float> >subpsf(SpectralImageUtil::getChannel(*psf, k, k, true));
-          std::shared_ptr<ImageInterface<Float> > subwgt(SpectralImageUtil::getChannel(*wgt, k, k, true));
-          std::shared_ptr<ImageInterface<Float> > subsumwt(SpectralImageUtil::getChannel(*sumwt, k, k, true));
-          std::shared_ptr<ImageInterface<Float> > submod( SpectralImageUtil::getChannel(*mod, k, k, true));
-          std::shared_ptr<ImageInterface<Float> > subrestor(SpectralImageUtil::getChannel(*restor, k, k, true));
-          std::shared_ptr<ImageInterface<Float> > subpb(SpectralImageUtil::getChannel(*pb, k, k, true));
+          std::shared_ptr<ImageInterface<Float> >subresid(SpectralImageUtil::getChannel(*resid, startchan, endchan, true));
+          std::shared_ptr<ImageInterface<Float> >subpsf(SpectralImageUtil::getChannel(*psf, startchan, endchan, true));
+          std::shared_ptr<ImageInterface<Float> > subwgt(SpectralImageUtil::getChannel(*wgt, startchan, endchan, true));
+          std::shared_ptr<ImageInterface<Float> > subsumwt(SpectralImageUtil::getChannel(*sumwt, startchan, endchan, true));
+          std::shared_ptr<ImageInterface<Float> > submod( SpectralImageUtil::getChannel(*mod, startchan, endchan, true));
+          std::shared_ptr<ImageInterface<Float> > subrestor(SpectralImageUtil::getChannel(*restor, startchan, endchan, true));
+          std::shared_ptr<ImageInterface<Float> > subpb(SpectralImageUtil::getChannel(*pb, startchan, endchan, true));
           /*
             std::shared_ptr<ImageInterface<Float> >subresid=std::make_shared<SubImage<Float> >(SpectralImageUtil::getChannel(*resid, k, k, true));
             
