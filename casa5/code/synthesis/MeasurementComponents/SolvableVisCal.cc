@@ -3685,12 +3685,12 @@ void SolvableVisCal::calcParByCLPP() {
 
     if (freqDepPar()) {
       // Call w/ freq-dep
-      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),currFreq());
+      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),currFreq());
     }
     else {
       // Call w/ fiducial freq for phase-delay correction
       Double freq=1.0e9*currFreq()(currFreq().nelements()/2);
-      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),freq);
+      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),freq);
     }
     break;
   }
@@ -3698,10 +3698,10 @@ void SolvableVisCal::calcParByCLPP() {
     // Interpolate solution   
     if (freqDepPar()) {
       // Call w/ freq-dep
-      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),currFreq());
+      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),currFreq());
     }
     else {
-      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),-1.0);
+      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),-1.0);
     }
     break;
   }
@@ -3995,9 +3995,10 @@ Bool SolvableVisCal::VBOKforCalApply(vi::VisBuffer2& vb) {
       // Get it from the new CLPatchPanel, which has
       //  obs, fld, intent specificity, too!
       const Int& iobs(vb.observationId()(0));
+      const Int& iscan(vb.scan()(0));
       const Int& ifld(vb.fieldId()(0));
       const Int& ient(vb.stateId()(0));
-      return cpp_->MSIndicesOK(iobs,ifld,ient,ispw,-1); // all ants
+      return cpp_->MSIndicesOK(iobs,iscan,ifld,ient,ispw,-1); // all ants
     }
     else
       // Assume ok for non-interpolable types
@@ -4037,9 +4038,10 @@ Bool SolvableVisCal::calAvailable(vi::VisBuffer2& vb) {
       // Get it from the new CLPatchPanel, which has
       //  obs, fld, intent specificity, too!
       const Int& iobs(vb.observationId()(0));
+      const Int& iscan(vb.scan()(0));
       const Int& ifld(vb.fieldId()(0));
       const Int& ient(vb.stateId()(0));
-      return cpp_->calAvailable(iobs,ifld,ient,ispw,-1); // all ants
+      return cpp_->calAvailable(iobs,iscan,ifld,ient,ispw,-1); // all ants
     }
     else
       // Assume ok for non-interpolable types

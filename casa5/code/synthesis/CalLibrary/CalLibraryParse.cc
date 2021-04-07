@@ -65,12 +65,14 @@ void CalLibraryParse::resetParamRecord() {
     paramRec_.define("intent", "");
     paramRec_.define("spw", "");
     paramRec_.define("obs", "");
+    paramRec_.define("scan", "");
     paramRec_.define("tinterp", "");
     paramRec_.define("finterp", "");
     paramRec_.define("reach", "");
     addDefaultMap("antmap");
     addDefaultMap("fldmap");
     addDefaultMap("obsmap");
+    addDefaultMap("scanmap");
     addDefaultMap("spwmap");
 }
 

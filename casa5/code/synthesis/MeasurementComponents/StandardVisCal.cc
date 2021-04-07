@@ -1384,7 +1384,7 @@ void BJones::calcWtScale() {
 
   if (cpp_) {
     Cube<Float> tr;
-    cpp_->getTresult(tr,ampfl,currObs(),currField(),-1,currSpw());
+    cpp_->getTresult(tr,ampfl,currObs(),currScan(),currField(),-1,currSpw());
     amps.reference(tr(Slice(0,2,2),Slice(),Slice()));
   }
   else if (ci_) {
