@@ -56,10 +56,10 @@ void tMSCalPatchKey (Bool verbose=false) {
 
   {  
 
-    MSCalPatchKey cpk0(0,1,-1,3,4);
-    MSCalPatchKey cpk1(0,1,-1,3,4);
-    MSCalPatchKey cpk2(0,1,-1,3,5);
-    MSCalPatchKey cpk3(0,1,-1,2,5);
+    MSCalPatchKey cpk0(0,-1,1,-1,3,4);
+    MSCalPatchKey cpk1(0,-1,1,-1,3,4);
+    MSCalPatchKey cpk2(0,-1,1,-1,3,5);
+    MSCalPatchKey cpk3(0,-1,1,-1,2,5);
 
     if (v) {
       cout << "cpk0: " << cpk0.print() << endl;
@@ -113,7 +113,7 @@ void tMSCalPatchKey2 (Bool verbose=false) {
   cout << "---tMSCalPatchKey2--BEGIN--" << endl;
 
   {
-    MSCalPatchKey cpk0(0,1,-1,3,5);
+    MSCalPatchKey cpk0(0,-1,1,-1,3,5);
 
     std::map<MSCalPatchKey,String> c;
     std::map<MSCalPatchKey,String> m;
@@ -233,27 +233,30 @@ void tCalLibSlice1 (Bool verbose=false) {
   {
     
     String obs("");
+    String scan("");
     String fld("1");
     String ent("");
     String spw("0,1,2");
     String tinterp("linear"),finterp("linear");
     Vector<Int> spwmap(3,0);
     spwmap(1)=spwmap(2)=1;
-    Vector<Int> obsmap(1,-1), fldmap(1,-1), antmap(1,-1);
+    Vector<Int> obsmap(1,-1), scanmap(1, -1), fldmap(1,-1), antmap(1,-1);
 
-    CalLibSlice cls(obs,fld,ent,spw,tinterp,finterp,
-		    obsmap,fldmap,spwmap,antmap);
+    CalLibSlice cls(obs,scan,fld,ent,spw,tinterp,finterp,
+		    obsmap,scanmap,fldmap,spwmap,antmap);
 
     if (v)
       cout << cls.state();
 
     AlwaysAssert( cls.obs==obs, AipsError);
+    AlwaysAssert( cls.scan==scan, AipsError);
     AlwaysAssert( cls.fld==fld, AipsError);
     AlwaysAssert( cls.ent==ent, AipsError);
     AlwaysAssert( cls.spw==spw, AipsError);
     AlwaysAssert( cls.tinterp==tinterp, AipsError);
     AlwaysAssert( cls.finterp==finterp, AipsError);
     AlwaysAssert( allEQ(cls.obsmap.vmap(),obsmap), AipsError);
+    AlwaysAssert( allEQ(cls.scanmap.vmap(),scanmap), AipsError);
     AlwaysAssert( allEQ(cls.fldmap.vmap(),fldmap), AipsError);
     AlwaysAssert( allEQ(cls.spwmap.vmap(),spwmap), AipsError);
     AlwaysAssert( allEQ(cls.antmap.vmap(),antmap), AipsError);
@@ -300,7 +303,7 @@ void testCLPPResult (Bool verbose=true) {
       cout << "clpp.result_.nrefs() = " << clpp.result_.nrefs() << endl;
     }
 
-    CTCalPatchKey cpk0(0,1,-1,3,-1);
+    CTCalPatchKey cpk0(0,-1,1,-1,3,-1);
     std::map<CTCalPatchKey,CLPPResult> c;
     c[cpk0]=clpp;  
 
@@ -369,24 +372,25 @@ void tCLPatchPanel1 (Bool verbose=true) {
 
 
     String obs("0,1");
+    String scan("");
     String ent("");
     String spw("");
     String tinterp("linear"),finterp("linear");
-    Vector<Int> obsmap(1,-1), fldmap(1,-1),antmap(1,-1);
+    Vector<Int> obsmap(1,-1), scanmap(1,-1), fldmap(1,-1),antmap(1,-1);
 
     String fld0("0,1"); 
     Vector<Int> spwmap0(nSpw,0); indgen(spwmap0); spwmap0(1)=spwmap0(2)=1;
     Vector<Int> fldmap0(nFld,1); //fldmap0(2)=-1;
-    CalLibSlice cls0(obs,fld0,ent,spw,tinterp,finterp,
-		     obsmap,fldmap0,spwmap0,antmap);
+    CalLibSlice cls0(obs,scan,fld0,ent,spw,tinterp,finterp,
+		     obsmap,scanmap,fldmap0,spwmap0,antmap);
 
     String fld1("2");
     Vector<Int> obsmap1(nObs,0); indgen(obsmap1);
     Vector<Int> spwmap1(nSpw,2); indgen(spwmap1); spwmap1(0)=spwmap1(1)=0;
     Vector<Int> antmap1(nAnt,0); indgen(antmap1); antmap1(0)=2; antmap1(1)=1;antmap1(2)=0;
     Vector<Int> fldmap1(nFld,0);
-    CalLibSlice cls1(obs,fld1,ent,spw,tinterp,finterp,
-		     obsmap1,fldmap1,spwmap1,antmap1);
+    CalLibSlice cls1(obs,scan,fld1,ent,spw,tinterp,finterp,
+		     obsmap1,scanmap,fldmap1,spwmap1,antmap1);
 
     Record cl;
     cl.defineRecord("*0",cls0.asRecord());
@@ -404,7 +408,7 @@ void tCLPatchPanel1 (Bool verbose=true) {
       Cube<Bool> resfl;
       Double t=refTime+27.0;
       Bool newcal(false);
-      newcal=ctpp.interpolate(res,resfl,0,2,0,ispw,t,-1.0);
+      newcal=ctpp.interpolate(res,resfl,0,-1,2,0,ispw,t,-1.0);
       
       if (v) {
 	cout << "newcal = " << boolalpha << newcal << endl;
@@ -450,7 +454,7 @@ void tCLPatchPanel1 (Bool verbose=true) {
 
       freq/=1.e9;  // in GHz
 
-      newcal=ctpp.interpolate(res,resfl,0,2,0,ispw,t,freq);
+      newcal=ctpp.interpolate(res,resfl,0,-1,2,0,ispw,t,freq);
       
       if (v||true) {
 	cout << "newcal = " << boolalpha << newcal << endl;
