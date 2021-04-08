@@ -97,6 +97,8 @@ class ImagerParameters():
                  
                  pblimit=0.01,
                  normtype='flatnoise',
+                 
+                 psfcutoff=0.35,
 
                  outlierfile='',
                  restart=True,
@@ -215,6 +217,9 @@ class ImagerParameters():
             weighting='briggs'
         elif(weighting=='briggs'):
             rmode='norm'
+        elif(weighting=='briggsbwtaper'):
+            rmode='bwtaper'
+            weighting='briggs'
         self.weightpars = {'type':weighting,'rmode':rmode,'robust':robust, 'noise': noise, 'npixels':npixels,'uvtaper':uvtaper, 'multifield':mosweight, 'usecubebriggs': perchanweightdensity}
 
 
@@ -222,7 +227,7 @@ class ImagerParameters():
         self.allnormpars = { self.defaultKey : {#'mtype': mtype,
                                  'pblimit': pblimit,'nterms':nterms,'facets':facets,
                                  'normtype':normtype, 'workdir':workdir,
-                                 'deconvolver':deconvolver, 'imagename': imagename, 'restoringbeam':restoringbeam}   }
+                                 'deconvolver':deconvolver, 'imagename': imagename, 'restoringbeam':restoringbeam, 'psfcutoff':psfcutoff}   }
 
 
         ######### Deconvolution
