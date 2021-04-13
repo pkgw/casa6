@@ -34,7 +34,7 @@ else:
     cb = cbtool( )
 
     def ctsys_resolve(apath):
-        dataPath = os.path.join(os.environ['CASAPATH'].split()[0],'data')
+        dataPath = os.path.join(os.environ['CASAPATH'].split()[0],'casatestdata')
         return os.path.join(dataPath,apath)
 
 myname = 'test_testconcat'
@@ -88,7 +88,7 @@ class test_testconcat(unittest.TestCase):
     def setUp(self):
         res = None
 
-        datapath=ctsys_resolve('regression/unittest/concat/input')
+        datapath=ctsys_resolve('unittest/testconcat/')
         cpath = os.path.abspath(os.curdir)
         filespresent = sorted(glob.glob("*.ms"))
         os.chdir(datapath)
