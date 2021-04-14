@@ -15,11 +15,13 @@ if is_CASA6:
     from casatools import calibrater 
     from casatools import table 
     from casatasks.private.mslisthelper import check_mslist
+    from casatasks.private.mslisthelper import sort_mslist 
 else:
     from taskinit import *
     from taskinit import cbtool as calibrater 
     from taskinit import tbtool as table
     from recipes.mslisthelper import check_mslist
+    from recipes.mslisthelper import sort_mslist 
 
     synthesisutils = casac.synthesisutils
 
@@ -378,7 +380,13 @@ class ImagerParameters():
             errs = errs + 'MS name(s) not specified'
         else:
             if type(self.allselpars['msname']) == list:
-                msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
+                (timesortedvislist, times) = sort_mslist(self.allselpars['msname'])
+                if timesortedvislist != self.allselpars['msname']:
+                    self.allselpars['msname'] = timesortedvislist
+                    casalog.post("Sorting the vis list by time. The new vis list:"+ str(self.allselpars['msname']))
+                       
+                #msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
+                msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'], testcontent=False)
         
                 # Only call this if vis == list and there is mismatch in wtspec columns
                 # Maybe expanded for other checks later...
@@ -854,7 +862,7 @@ class ImagerParameters():
 
         if len(mslist) > 0:
             casalog.post("Some of the MSes donot have WEIGHT_SPECTRUM while some other do."+
-                         " Automatically adding the column and initialize using the existingi WEIGHT column  for those don't to avoid a process failure.","WARN")
+                         " Automatically adding the column and initialize using the existing WEIGHT column for those don't to avoid a process failure.","WARN")
             casalog.post("Adding WEIGHT_SPECTRUM in the following MS(s): "+str(mslist),"WARN")
             for inms in mslist:
                 mycb.open(inms, addcorr=False, addmodel=False)
