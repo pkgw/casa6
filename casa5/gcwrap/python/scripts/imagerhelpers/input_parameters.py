@@ -376,14 +376,18 @@ class ImagerParameters():
 
         #print("allselpars=",self.allselpars)
         # msname, field, spw, etc must all be equal-length lists of strings, or all except msname must be of length 1.
-        if not 'msname'in self.allselpars:
+        if not 'msname' in self.allselpars:
             errs = errs + 'MS name(s) not specified'
         else:
             if type(self.allselpars['msname']) == list:
-                (timesortedvislist, times) = sort_mslist(self.allselpars['msname'])
+                #(timesortedvislist, times) = sort_mslist(self.allselpars['msname'])
+                (timesortedvislist, times, newindex) = self.mslist_timesorting(self.allselpars['msname'])
                 if timesortedvislist != self.allselpars['msname']:
                     self.allselpars['msname'] = timesortedvislist
                     casalog.post("Sorting the vis list by time. The new vis list:"+ str(self.allselpars['msname']))
+                    for selp in ['spw','field','timestr','uvdist','antenna','scan','obs','state']:
+                        if len(self.allselpars[selp]) == len(newindex):
+                            self.allselpars[selp] = [self.allselpars[selp][i] for i in newindex]
                        
                 #msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
                 msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'], testcontent=False)
@@ -851,6 +855,18 @@ class ImagerParameters():
                     mycb.close()
         # noOp for nms==1 
 
+    def mslist_timesorting(self, mslist):
+        ''' 
+            wrapper for mslisthelper.sort_mslist to get a sorting order w.r.t the original
+        '''
+        (thenewmslist, times) = sort_mslist(mslist)
+        theindex = []
+        for vnew in thenewmslist:
+            for vold in mslist:
+                if vnew == vold:
+                    theindex.append(mslist.index(vnew))
+        return (thenewmslist, times, theindex)            
+ 
     def addwtspec(self, mslist):
         ''' 
             Add the column for an MS which does not have one if other MSs have the column.
@@ -868,6 +884,7 @@ class ImagerParameters():
                 mycb.open(inms, addcorr=False, addmodel=False)
                 mycb.initweights(wtmode='weight', dowtsp=True)
                 mycb.close()
+        mycb.done()
         # noOp for len(mlist) ==0
 
       ############################
