@@ -162,7 +162,31 @@ private:
 
 };
 
+class ObsCalMap : public CalMap
+{
+public:
 
+  // Null ctor
+  ObsCalMap();
+
+  // Algorithmic ctor that uses casacore::MS meta info
+  ObsCalMap(const casacore::String obscalmap,
+	    const casacore::MeasurementSet& ms);
+
+};
+
+class ScanCalMap : public CalMap
+{
+public:
+
+  // Null ctor
+  ScanCalMap();
+
+  // Algorithmic ctor that uses casacore::MS meta info
+  ScanCalMap(const casacore::String scancalmap,
+	     const casacore::MeasurementSet& ms);
+
+};
 
 
 // A class to parse the contents of a single CalLib slice 

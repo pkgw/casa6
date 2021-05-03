@@ -350,6 +350,43 @@ void FieldCalMap::setSelectedFieldMap(const String& fieldsel,
 }
 
 
+ObsCalMap::ObsCalMap() :
+  CalMap()
+{}
+
+ObsCalMap::ObsCalMap(const String obscalmap, const MeasurementSet& ms) :
+  CalMap()
+{
+  if (obscalmap=="self") {
+    vcalmap_.resize(ms.observation().nrow());
+    indgen(vcalmap_);
+  } else {
+    throw(AipsError("Observation mapping failure: unrecognized keyword '" + 
+		    obscalmap + "'."));
+  }
+}
+
+
+ScanCalMap::ScanCalMap() :
+  CalMap()
+{}
+
+ScanCalMap::ScanCalMap(const String scancalmap, const MeasurementSet& ms) :
+  CalMap()
+{
+  if (scancalmap=="self") {
+    MSColumns msc(ms);
+    Vector<Int> msScans;
+    msc.scanNumber().getColumn(msScans);
+    vcalmap_.resize(max(msScans) + 1);
+    indgen(vcalmap_);
+  } else {
+    throw(AipsError("Scan mapping failure: unrecognized keyword '" + 
+		    scancalmap + "'."));
+  }
+}
+
+
 CalLibSlice::CalLibSlice(String obs, String scan, String fld, String ent, String spw,
 			 String tinterp,String finterp,
 			 Vector<Int> obsmap, Vector<Int> scanmap,
@@ -401,11 +438,15 @@ CalLibSlice::CalLibSlice(const Record& clslice,
     //cout << "obsmap.dataType() = " << clslice.dataType("obsmap") << endl;
     if (clslice.dataType("obsmap")==TpArrayInt)
       obsmap=CalMap(Vector<Int>(clslice.asArrayInt("obsmap")));
+    if (clslice.dataType("obsmap")==TpString)
+      obsmap=ObsCalMap(clslice.asString("obsmap"),ms);
   }
   if (clslice.isDefined("scanmap")) {
     //cout << "scanmap.dataType() = " << clslice.dataType("scanmap") << endl;
     if (clslice.dataType("scanmap")==TpArrayInt)
       scanmap=CalMap(Vector<Int>(clslice.asArrayInt("scanmap")));
+    if (clslice.dataType("scanmap")==TpString)
+      scanmap=ScanCalMap(clslice.asString("scanmap"),ms);
   }
   if (clslice.isDefined("fldmap")) {
     if (clslice.dataType("fldmap")==TpArrayInt)
