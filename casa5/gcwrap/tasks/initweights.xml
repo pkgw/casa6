@@ -116,8 +116,9 @@
       interpolation method (interp), and spectral window mapping (spwmap)
       are supported, too.
       Available types of interpolation are,
-          Time: 'nearest', 'linear', the variation of those with 'perobs',
-                e.g., 'linearperobs' (enforce obsId boundaries in interpolation)
+          Time: 'nearest', 'linear', the variation of those with 'perobs'
+                or 'perscan', e.g., 'linearperobs' (enforce obsId
+                boundaries in interpolation)
           Freq: 'nearest', 'linear', 'cubic', 'spline', and the variation
                 of those with 'flag', e.g., 'linearflag' (with
                 channelized flag).
