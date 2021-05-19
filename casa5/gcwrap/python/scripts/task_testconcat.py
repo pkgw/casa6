@@ -1,9 +1,20 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import os
+import sys
 import shutil
-import stat
-from taskinit import *
-from recipes.mslisthelper import check_mslist
 
+from casatasks.private.casa_transition import *
+if is_CASA6:
+    from casatasks import casalog
+    from casatools import ms as mstool
+    from casatools import table as tbtool
+    from .mslisthelper import check_mslist
+else:
+    from taskinit import casalog
+    from taskinit import mstool
+    from taskinit import tbtool
+    from recipes.mslisthelper import check_mslist
 
 def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
 	"""
@@ -40,7 +51,6 @@ def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
 	"""
 
         ###
-	#Python script
 	try:
 		casalog.origin('testconcat')
 		t = tbtool()
@@ -79,17 +89,18 @@ def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
 				tmptb.close()
 				t.close()
 				# copy content of subtables
- 				thesubtables = os.walk(vis[0]).next()[1]
+                                thesubtables = os.walk(vis[0]).next()[1]
+
  				for subt in thesubtables:
  					if not (subt[0]=='.'):
- 						tb.open(vis[0]+'/'+subt)
+ 						t.open(vis[0]+'/'+subt)
 						no_rows = False
 						if (subt=='POINTING' and not copypointing):
 							casalog.post('*** copypointing==False: resulting MS will have empty POINTING table', 'INFO')
 							no_rows = True
- 						tmptb = tb.copy(testconcatvis+'/'+subt, deep=False, valuecopy=True, norows=no_rows)
+ 						tmptb = t.copy(testconcatvis+'/'+subt, deep=False, valuecopy=True, norows=no_rows)
 						tmptb.close()
- 						tb.close()
+ 						t.close()
  				vis.remove(vis[0])
 		# determine handling switch value
 		handlingswitch = 1
@@ -113,6 +124,6 @@ def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
 		m.close()
 
 	except Exception, instance:
-		print '*** Error ***',instance
+		print('*** Error ***',instance)
 		raise Exception, instance
 
