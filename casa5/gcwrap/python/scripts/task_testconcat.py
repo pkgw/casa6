@@ -89,7 +89,10 @@ def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
                 tmptb.close()
                 t.close()
                 # copy content of subtables
-                thesubtables = os.walk(vis[0]).next()[1]
+                if is_CASA6:
+                    thesubtables = [f.name for f in os.scandir(vis[0]) if f.is_dir()]
+                else:
+                    thesubtables = os.walk(vis[0]).next()[1]
 
                 for subt in thesubtables:
                     if not (subt[0]=='.'):

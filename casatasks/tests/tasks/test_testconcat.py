@@ -15,6 +15,7 @@ import unittest
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
+    from casatools import ctsys
     from casatools import table as tbtool
     from casatools import ms as mstool
     from casatasks import split, testconcat
