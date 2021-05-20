@@ -657,10 +657,12 @@ class applycal_test(unittest.TestCase):
         '''
 
         applycal(vis=datacopy, gaintable=[gCal], applymode='trial')
-        data = getparam(datacopy, 'DATA')
-        corrected = getparam(datacopy, 'CORRECTED_DATA')
-
-        self.assertTrue(np.all(data == corrected))
+        
+        tb.open(datacopy)
+        columns = tb.colnames()
+        tb.close()
+        
+        self.assertFalse('CORRECTED_DATA' in columns)
 
     def test_calflagstrict(self):
         '''
@@ -686,10 +688,15 @@ class applycal_test(unittest.TestCase):
             Check that flags are applied, but not the calibration itself
         '''
 
+        # CORRECTED_DATA column doesn't exist if using flagonly
         applycal(vis=datacopy, gaintable=[gCal], applymode='flagonly')
-        datamean = np.mean(getparam(datacopy, 'CORRECTED_DATA'))
-
-        self.assertTrue(np.isclose(datamean, 0.25983810264064156+0.045579181018852881j))
+        
+        tb.open(datacopy)
+        columns = tb.colnames()
+        tb.close()
+        
+        self.assertFalse('CORRECTED_DATA' in columns)
+        self.assertTrue(os.path.exists('applycalcopy.ms.flagversions'))
 
 
     def test_flagonlystrict(self):
@@ -701,9 +708,13 @@ class applycal_test(unittest.TestCase):
         '''
 
         applycal(vis=datacopy, gaintable=[gCal], applymode='flagonlystrict')
-        datamean = np.mean(getparam(datacopy, 'CORRECTED_DATA'))
-
-        self.assertTrue(np.isclose(datamean, 0.25983810264064156+0.045579181018852881j))
+        
+        tb.open(datacopy)
+        columns = tb.colnames()
+        tb.close()
+        
+        self.assertFalse('CORRECTED_DATA' in columns)
+        self.assertTrue(os.path.exists('applycalcopy.ms.flagversions'))
 
 
     def test_calonly(self):
