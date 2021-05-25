@@ -86,7 +86,6 @@ def tclean(
     gridder,#='ft',
     facets,#=1,
     psfphasecenter,#='',
-    chanchunks,#=1,
 
     wprojplanes,#=1,
 
@@ -191,6 +190,9 @@ def tclean(
     inpparams['loopgain']=inpparams.pop('gain')
     inpparams['scalebias']=inpparams.pop('smallscalebias')
 
+    # Force chanchunks=1 always now (CAS-13400)
+    inpparams['chanchunks']=1
+
     if specmode=='cont':
         specmode='mfs'
         inpparams['specmode']='mfs'
@@ -202,7 +204,8 @@ def tclean(
         casalog.post( "The MSMFS algorithm (deconvolver='mtmfs') with specmode='cube' is not supported", "WARN", "task_tclean" )
         return
 
-    if((specmode=='cube' or specmode=='cubedata') and parallel==False and mpi_available):
+
+    if((specmode=='cube' or specmode=='cubedata') and (parallel==False and mpi_available and   MPIEnvironment.is_mpi_enabled) ):
         casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect", "WARN", "task_tclean" )
         
       
@@ -246,6 +249,8 @@ def tclean(
     if(bparm['mosweight']==True and bparm['gridder'].find("mosaic") == -1):
         bparm['mosweight']=False
 
+    if specmode=='mfs':
+        bparm['perchanweightdensity'] = False
     
     # deprecation message
     if usemask=='auto-thresh' or usemask=='auto-thresh2':

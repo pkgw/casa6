@@ -133,6 +133,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     static casacore::Int getOptimumSize(const casacore::Int npix);
 
+    static casacore::Bool fitPsfBeam(const casacore::String& imagename="", const casacore::Int nterms=1, const casacore::Float psfcutoff=0.35);
+
     static void getResource(casacore::String label="", casacore::String fname="");
     
     // return comprehensible direction string from given MDirection object
@@ -290,7 +292,7 @@ public:
 		 const casacore::MFrequency::Types& dataFrame, const casacore::Quantity& qrestfreq, 
 		 const casacore::Double& freqmin, const casacore::Double& freqmax,
 		 const casacore::MDirection& phaseCenter );
-  
+  casacore::Double getCubeImageStartFreq();
   casacore::String findSpecMode(const casacore::String& mode) const;
   casacore::String MDopToVelString(casacore::Record &rec);
   casacore::Record getcsys() const;

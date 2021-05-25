@@ -86,7 +86,6 @@ def tclean(
     gridder,#='ft',
     facets,#=1,
     psfphasecenter,#='',
-    chanchunks,#=1,
 
     wprojplanes,#=1,
 
@@ -191,6 +190,9 @@ def tclean(
     inpparams['loopgain']=inpparams.pop('gain')
     inpparams['scalebias']=inpparams.pop('smallscalebias')
 
+    # Force chanchunks=1 always now (CAS-13400)
+    inpparams['chanchunks']=1
+
     if specmode=='cont':
         specmode='mfs'
         inpparams['specmode']='mfs'
@@ -202,16 +204,11 @@ def tclean(
         casalog.post( "The MSMFS algorithm (deconvolver='mtmfs') with specmode='cube' is not supported", "WARN", "task_tclean" )
         return
 
-    if(chanchunks!=-1):
-        casalog.post( "The parameter chanchunks is only used for spectral cubes with gridder='awproject'. chanchunks will be removed in a future release and awproject for cube is using pre-refactor code so is not fully commissioned.", "WARN", "task_tclean" )
 
-    if((specmode=='cube' or specmode=='cubedata') and parallel==False and mpi_available):
-        casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect except for awproject.", "WARN", "task_tclean" )
+    if((specmode=='cube' or specmode=='cubedata') and (parallel==False and mpi_available and   MPIEnvironment.is_mpi_enabled) ):
+        casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect", "WARN", "task_tclean" )
         
-    if((specmode=='cube' or specmode=='cubedata') and gridder=='awproject') and (parallel):
-        casalog.post( "The awproject gridder still uses the old form python mpi parallelism pre CAS-9386.\n", "WARN", "task_tclean" )
-        #return
-        
+      
     if(perchanweightdensity==False and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with perchanweightdensity=False.", "WARN", "task_tclean" )
         return
@@ -223,6 +220,7 @@ def tclean(
     if(npixels != 0 and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with npixels != 0.", "WARN", "task_tclean" )
         return
+
 
     if(facets>1 and parallel==True):
         casalog.post("Facetted imaging currently works only in serial. Please choose pure W-projection instead.","WARN","task_tclean")
@@ -251,6 +249,8 @@ def tclean(
     if(bparm['mosweight']==True and bparm['gridder'].find("mosaic") == -1):
         bparm['mosweight']=False
 
+    if specmode=='mfs':
+        bparm['perchanweightdensity'] = False
     
     # deprecation message
     if usemask=='auto-thresh' or usemask=='auto-thresh2':
@@ -461,7 +461,7 @@ def tclean(
                     imager.pbcorImages()
                     t1=time.time();
                     casalog.post("***Time for pb-correcting images: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
-        ######### niter >=0  end if
+        ######### niter >=0  end if 
 
     finally:
         ##close tools
