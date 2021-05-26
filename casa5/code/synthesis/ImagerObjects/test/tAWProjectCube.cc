@@ -235,7 +235,8 @@ using namespace casacore;
           subImgr.setCubeGridding(False);
           subImgr.executeMajorCycle(rec);
           subImgr.makePSF();
-                
+          subImStor->dividePSFByWeight();
+          subImStor->divideResidualByWeight();
         }
         
       }
@@ -246,8 +247,8 @@ using namespace casacore;
     
       
             //We can do the division at the end
-    si->dividePSFByWeight();
-    si->divideResidualByWeight();
+      //    si->dividePSFByWeight();
+      //si->divideResidualByWeight();
     LatticeExprNode LEN = max( *(si->residual()) );
     cerr << "Sliced cube Max of whole residual image " << LEN.getFloat() << endl;
     LatticeExprNode psfmax = max( *(si->psf()) );
