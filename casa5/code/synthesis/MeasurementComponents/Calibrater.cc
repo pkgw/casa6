@@ -797,6 +797,7 @@ Bool Calibrater::setsolve (const String& type,
                            const Vector<Double>& delaywindow, 
                            const Vector<Double>& ratewindow,
                            const Vector<Bool>& paramactive,
+                           const Bool concatspws,
 			   const String& solmode,
 			   const Vector<Double>& rmsthresh
     )
@@ -833,6 +834,7 @@ Bool Calibrater::setsolve (const String& type,
   solveparDesc.addField ("ratewindow", TpArrayDouble);
   solveparDesc.addField ("niter", TpInt);
   solveparDesc.addField ("paramactive", TpArrayBool);
+  solveparDesc.addField ("concatspws", TpBool);
 
   // single dish specific fields
   solveparDesc.addField ("fraction", TpFloat);
@@ -865,6 +867,7 @@ Bool Calibrater::setsolve (const String& type,
   solvepar.define ("solmode", solmode);
   solvepar.define ("rmsthresh", rmsthresh);
   solvepar.define ("paramactive", paramactive);
+  solvepar.define ("concatspws", concatspws);
   
   String uptype=type;
   uptype.upcase();

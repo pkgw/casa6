@@ -23,6 +23,7 @@ def fringefit(vis=None,caltable=None,
               corrdepflags=None,
               docallib=None,callib=None,gaintable=None,gainfield=None,interp=None,spwmap=None,
               paramactive=None,
+              concatspws=None,
               parang=None):
 
     #Python script
@@ -73,6 +74,8 @@ def fringefit(vis=None,caltable=None,
             # Have to solve for peculiar phase!
             paramactive.insert(0, True)
 
+            if concatspws is None:
+                concatspws=True
             # by traditional parameters
 
             ngaintab = 0;
@@ -126,7 +129,7 @@ def fringefit(vis=None,caltable=None,
         if parang: mycb.setapply(type='P')
 
         # Set up for solving; only support one gaintype
-        mycb.setsolve(type="FRINGE",t=solint,refant=refant,preavg=0.01,
+        mycb.setsolve(type="FRINGE",t=solint,refant=refant,preavg=0.001,
                       minsnr=minsnr,combine=combine,
                       zerorates=zerorates,
                       globalsolve=globalsolve,
@@ -134,6 +137,7 @@ def fringefit(vis=None,caltable=None,
                       delaywindow=delaywindow,
                       ratewindow=ratewindow,
                       paramactive=paramactive,
+                      concatspws=concatspws,
                       table=caltable,append=append)
         mycb.solve()
 
