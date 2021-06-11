@@ -672,6 +672,81 @@ void VisBuffer::freqAveCubes()
 
 }
 
+void VisBuffer::corrAveCubes()
+{
+    // small@jive.eu 2021-06-11
+    // Average correlations instead of frequencies.
+    visCube();
+
+    // Correlation-averaged shape
+    IPosition csh = visCube().shape();
+    csh(0) = 1; // One polarisation in output
+
+    Cube<Complex> newVisCube(csh);
+    newVisCube = Complex(0.0);
+    Matrix<Bool> newFlag(1, nRow());
+    newFlag = true;
+    Int nCorsFound = 0;
+    Int nChan = nChannel();
+    Int nCor = nCorr();
+    for (Int row = 0; row < nRow(); row++) {
+        if (!flagRow()(row)) {
+            Int n = 0;
+            for (Int chn = 0; chn < nChan; chn++) {
+                if (!flag()(chn, row)) {
+                    newFlag(0, row) = false;
+                    for (Int cor = 0; cor < nCor; cor++) {
+                        newVisCube(0, chn, row) += visCube()(cor, chn, row);
+                    }
+                    n++;
+                    nCorsFound++;
+                }
+            }
+            if (n == 0) {
+                flagRow()(row) = true;
+            }
+            if (n > 0) {
+                Matrix<Complex> nVC;
+                nVC.reference(newVisCube.xyPlane(row));
+                nVC *= Complex(1.0f / n);
+            }
+        }
+    }
+    visCube_p.reference(newVisCube);
+    // Now do model, if present
+    if (modelVisCubeOK_p) {
+        Cube<Complex> newModelVisCube(csh);
+        newModelVisCube = Complex(0.0);
+        for (Int row = 0; row < nRow(); row++) {
+            if (!flagRow()(row)) {
+                Int n = 0;
+                for (Int chn = 0; chn < nChan; chn++) {
+                    if (!flag()(chn, row)) {
+                        n++;
+                        for (Int cor = 0; cor < nCor; cor++) {
+                            newModelVisCube(0, chn, row) += modelVisCube()(cor, chn, row);
+                        }
+                    }
+                }
+                if (n == 0) {
+                    flagRow()(row) = true;
+                }
+                if (n > 0) {
+                    Matrix<Complex> nMVC;
+                    nMVC.reference(newModelVisCube.xyPlane(row));
+                    nMVC *= Complex(1.0f / n);
+                }
+            }
+        }
+        modelVisCube_p.reference(newModelVisCube);
+    }
+    // Use averaged flags
+    flag_p.reference(newFlag);
+}
+
+
+
+
 void VisBuffer::formStokes()
 {
 
