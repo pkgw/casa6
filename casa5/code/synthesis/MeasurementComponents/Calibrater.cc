@@ -3230,6 +3230,11 @@ casacore::Bool Calibrater::genericGatherAndSolve()
     vi2org.addTimeAve(avetime);  // use min of solint and preavg here!
   }
 
+  Int ave_pols = 1; // FIXME!
+  if (ave_pols) {
+      vi2org.addPolAve();
+  }
+
   //  vi2org should be fully configured at this point
   //-------------------------------------------------
 
