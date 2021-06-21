@@ -43,7 +43,6 @@ else:
     import string
     from odict import odict
     from taskinit import *
-
     ###some helper tools
     from  casac import *
     ms = casac.ms()
