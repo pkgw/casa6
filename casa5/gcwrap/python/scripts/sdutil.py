@@ -12,6 +12,7 @@ import contextlib
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import quanta, table, calibrater, imager
+    from casatools import ms as mstool
     from casatools.platform import bytes2str
     from casatasks import casalog
 else:
@@ -22,6 +23,7 @@ else:
     from taskinit import tbtool as table
     from taskinit import cbtool as calibrater
     from taskinit import imtool as imager
+    from taskinit import mstool
 
     #import asap as sd
     #from asap import _to_list
@@ -1023,6 +1025,77 @@ def dochannelrange(s, channelrange):
             #casalog.post("Split spectrum in the range [%d, %d]" % (channelrange[0], channelrange[1]))
             casalog.post( "Split spectrum in the range [%d, %d]" % (channelrange[0], channelrange[1]) )
             s._reshape( int(channelrange[0]), int(channelrange[1]) )
+
+
+def convert_antenna_spec_autocorr(antenna):
+    """Convert antenna (baseline) specification(s) to include autocorr data.
+
+    Args:
+        antenna (str): antenna specification
+
+    Returns:
+        str: tweaked antenna specification
+    """
+    if len(antenna) == 0:
+        return antenna
+    elif antenna.find(';') >= 0:
+        # antenna selection is semi-colon separated list of baseline
+        # specifications: 'SEL1;SEL2...'
+        return ';'.join(map(convert_antenna_spec_autocorr, antenna.split(';')))
+    elif antenna.find('&') < 0:
+        # no '&' in the selection string
+        #  -> 'ANT&&&'
+        return antenna + '&&&'
+    elif antenna.endswith('&&'):
+        # 'ANT&&' or 'ANT&&&'
+        #  -> as is
+        return antenna
+    elif antenna.endswith('&'):
+        # 'ANT&'
+        #  -> 'ANT&&&'
+        return antenna.strip('&') + '&&&'
+    else:
+        # 'ANT1&ANT2' or 'ANT1&&ANT2'
+        #  -> 'ANT1&&&;ANT2&&&'
+        specs = [a for a in antenna.split('&') if len(a) > 0]
+        return ';'.join(map(convert_antenna_spec_autocorr, specs))
+
+
+def get_antenna_selection_include_autocorr(msname, antenna):
+    """Get antenna selection string that includes autocorr data.
+
+    Args:
+        msname (str): name of MS
+        antenna (str): antenna selection string
+
+    Raises:
+        RuntimeError: failed to handle antenna selection string
+
+    Returns:
+        str: antenna selection string including autocorr data
+    """
+    if len(antenna) == 0:
+        # if no selection is specified, do nothing
+        return antenna
+
+    # test if given antenna selection is valid and if contains any autocorr data
+    ms = mstool()
+    sel = ms.msseltoindex(msname, baseline=antenna)
+    if any([b[0] == b[1] for b in sel['baselines']]):
+        antenna_autocorr = antenna
+    else:
+        antenna_autocorr = convert_antenna_spec_autocorr(antenna)
+        casalog.post(
+            'Tweaked antenna selection to include autocorr data: original "{}" tweaked "{}"'.format(
+                antenna, antenna_autocorr
+            )
+        )
+        # test if tweaked selection is valid
+        sel = ms.msseltoindex(msname, baseline=antenna_autocorr)
+        if all([b[0] != b[1] for b in sel['baselines']]):
+            raise RuntimeError('Cannot handle antenna selection properly. Abort.')
+    return antenna_autocorr
+
 
 """
 def doaverage(s, scanaverage, timeaverage, tweight, polaverage, pweight,

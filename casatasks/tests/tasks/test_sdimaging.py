@@ -18,9 +18,9 @@ if is_CASA6:
     from casatasks.private.sdutil import tbmanager, toolmanager, table_selector
 
     ### for selection_syntax import
-    sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-    import selection_syntax
-    from testhelper import TableCacheValidator
+    #sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+    from casatestutils import selection_syntax
+    from casatestutils.testhelper import TableCacheValidator
 
     # default isn't used in casatasks
     def default(atask):
@@ -39,12 +39,12 @@ else:
     from taskinit import cbtool as calibrater
 
     try:
-        from . import selection_syntax
+        from casatestutils import selection_syntax
     except:
         import tests.selection_syntax as selection_syntax
 
     try:
-        from .testutils import TableCacheValidator
+        from casatestutils.testhelper import TableCacheValidator
     except:
         from tests.testutils import TableCacheValidator
 
@@ -53,7 +53,7 @@ else:
     from imhead import imhead
     from sdutil import tbmanager, toolmanager, table_selector
 
-    casaRoot = os.environ.get('CASAPATH').split()[0]
+    dataRoot = os.path.join(os.environ.get('CASAPATH').split()[0],'casatestdata/')
     def ctsys_resolve(apath):
         subdir_hints = ['data', 'casa-data-req', 'data/casa-data-req']
         for subdir in subdir_hints:
@@ -138,7 +138,7 @@ class sdimaging_unittest_base(unittest.TestCase):
 
     """
     taskname='sdimaging'
-    datapath=ctsys_resolve('regression/unittest/sdimaging')
+    datapath=ctsys_resolve('unittest/sdimaging/')
     rawfile='sdimaging.ms'
     postfix='.im'
     ms_nchan = 1024
@@ -2546,7 +2546,7 @@ class sdimaging_test_restfreq(sdimaging_unittest_base):
     - the default cell size of the image
     - the beam size of the image
     """
-    datapath=ctsys_resolve('regression/unittest/sdimaging')
+    datapath=ctsys_resolve('unittest/sdimaging/')
     infiles = 'selection_spw.ms'
     outfile = 'sdimaging_restfreq.im'
     param_base = dict(infiles=infiles,outfile=outfile,intent="",
@@ -2705,7 +2705,7 @@ class sdimaging_test_mapextent(sdimaging_unittest_base):
                                only selected data
         test_ephemeris -- Verify phasecenter for ephemeris source
     """
-    datapath=ctsys_resolve('regression/unittest/sdimaging')
+    datapath=ctsys_resolve('unittest/sdimaging/')
     infiles_ephem = ['Uranus1.cal.Ant0.spw34.ms',
                      'Uranus2.cal.Ant0.spw34.ms']
     infiles_selection = 'selection_misc.ms'
@@ -2853,7 +2853,7 @@ class sdimaging_test_interp(sdimaging_unittest_base):
     applied.
     Also, 'pointing6-2.ms' has 5 hours lag behind 'pointing6.ms'.
     """
-    datapath = ctsys_resolve('regression/unittest/sdimaging')
+    datapath = ctsys_resolve('unittest/sdimaging/')
     params = dict(antenna = "0",
                   intent  = "*ON_SOURCE*",
                   gridfunction = "SF",
@@ -3420,7 +3420,7 @@ class sdimaging_test_projection(sdimaging_unittest_base):
 
 
 class sdimaging_pm04_test_base(sdimaging_unittest_base):
-    datapath = ctsys_resolve('visibilities/almasd')
+    datapath = ctsys_resolve('unittest/sdimaging/')
     infiles = ['PM04_A108.ms', 'PM04_T704.ms']
 
     def setUp(self):
