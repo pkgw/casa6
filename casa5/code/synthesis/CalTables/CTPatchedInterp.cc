@@ -1246,31 +1246,46 @@ void CTPatchedInterp::makeInterpolators() {
 	      tR.set(0.0);
 	      tRf.set(true);
             
-          // Get Obs Id from summary, from third set of keys get scan(s)
-          // Get antenna from scan and fields for scan
-          // Logic check -->
-          // Do you have obs -> is your field in scans? Spw in field? antenna in scan?
-          // If all true print below, else don't print anything
-            
-          Record summary = msmc_->msmd().getSummary();
-          std::set<uInt> spws = msmc_->msmd().getSpwsForField(iMSFld);
-            
-          LogIO log;
-          ostringstream msg;
-            
-          if(spws.find(iMSSpw) != spws.end() &&
-             summary.isDefined("observationID=" + String::toString(iMSObs)))
-          {
-              
-              // casa log post
-              msg  << "MS obs=" << iMSObs
-               << ",fld=" << iMSFld
-               << ",spw=" << iMSSpw
-               << ",ant=" << iMSElem
-               << " cannot be calibrated by " << tabname
-               << " as mapped, and will be flagged in this process.";
-              log << msg.str() << LogIO::WARN;
-          }
+	      // Get Obs Id from summary, from third set of keys get scan(s)
+	      // Get antenna from scan and fields for scan
+	      // Logic check -->
+	      // Do you have obs/scan -> is your field in scans? Spw in field? antenna in scan?
+	      // If all true print below, else don't print anything
+
+	      Record summary = msmc_->msmd().getSummary();
+	      std::set<uInt> spws = msmc_->msmd().getSpwsForField(iMSFld);
+	      std::set<Int> scans = msmc_->msmd().getScanNumbers(0, 0);
+
+	      LogIO log;
+	      ostringstream msg;
+
+	      if (spws.find(iMSSpw) != spws.end()) {
+		if (byScan_) {
+		  if (scans.find(iMSObs) != scans.end()) {
+
+		    // casa log post
+		    msg  << "MS scan=" << iMSObs
+		     << ",fld=" << iMSFld
+		     << ",spw=" << iMSSpw
+		     << ",ant=" << iMSElem
+		     << " cannot be calibrated by " << tabname
+		     << " as mapped, and will be flagged in this process.";
+		    log << msg.str() << LogIO::WARN;
+		  }
+		} else {
+		  if (summary.isDefined("observationID=" + String::toString(iMSObs))) {
+
+		    // casa log post
+		    msg  << "MS obs=" << iMSObs
+		     << ",fld=" << iMSFld
+		     << ",spw=" << iMSSpw
+		     << ",ant=" << iMSElem
+		     << " cannot be calibrated by " << tabname
+		     << " as mapped, and will be flagged in this process.";
+		    log << msg.str() << LogIO::WARN;
+		  }
+		}
+	      }
 	    }
 	  } // iMSElem
 	} // spwOK
