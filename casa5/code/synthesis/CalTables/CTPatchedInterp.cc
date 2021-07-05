@@ -1205,6 +1205,9 @@ void CTPatchedInterp::makeInterpolators() {
   tIdel_.resize(tIsize);
   tIdel_.set(false);
 
+  Record summary = msmc_->msmd().getSummary();
+  std::set<Int> scans = msmc_->msmd().getScanNumbers(0, 0);
+
   Bool reportBadSpw(false);
   for (Int iMSObs=0;iMSObs<nMSObs_;++iMSObs) {
   for (Int iMSFld=0;iMSFld<nMSFld_;++iMSFld) {
@@ -1213,6 +1216,8 @@ void CTPatchedInterp::makeInterpolators() {
 
       //      cout << "Making  interpolators for        " << iMSFld << " (mapped from " << fldMap_(iMSFld) << ")" << endl;
 
+      std::set<uInt> spws = msmc_->msmd().getSpwsForField(iMSFld);
+      
       for (Int iMSSpw=0;iMSSpw<nMSSpw_;++iMSSpw) { 
 	
 	// Only if the required CT spw is available
@@ -1251,10 +1256,6 @@ void CTPatchedInterp::makeInterpolators() {
 	      // Logic check -->
 	      // Do you have obs/scan -> is your field in scans? Spw in field? antenna in scan?
 	      // If all true print below, else don't print anything
-
-	      Record summary = msmc_->msmd().getSummary();
-	      std::set<uInt> spws = msmc_->msmd().getSpwsForField(iMSFld);
-	      std::set<Int> scans = msmc_->msmd().getScanNumbers(0, 0);
 
 	      LogIO log;
 	      ostringstream msg;
