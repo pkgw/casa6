@@ -1205,8 +1205,12 @@ void CTPatchedInterp::makeInterpolators() {
   tIdel_.resize(tIsize);
   tIdel_.set(false);
 
-  Record summary = msmc_->msmd().getSummary();
-  std::set<Int> scans = msmc_->msmd().getScanNumbers(0, 0);
+  Record summary;
+  std::set<Int> scans;
+  if (msmc_) {
+    summary = msmc_->msmd().getSummary();
+    scans = msmc_->msmd().getScanNumbers(0, 0);
+  }
 
   Bool reportBadSpw(false);
   for (Int iMSObs=0;iMSObs<nMSObs_;++iMSObs) {
@@ -1216,8 +1220,10 @@ void CTPatchedInterp::makeInterpolators() {
 
       //      cout << "Making  interpolators for        " << iMSFld << " (mapped from " << fldMap_(iMSFld) << ")" << endl;
 
-      std::set<uInt> spws = msmc_->msmd().getSpwsForField(iMSFld);
-      
+      std::set<uInt> spws;
+      if (msmc_)
+	spws = msmc_->msmd().getSpwsForField(iMSFld);
+
       for (Int iMSSpw=0;iMSSpw<nMSSpw_;++iMSSpw) { 
 	
 	// Only if the required CT spw is available
