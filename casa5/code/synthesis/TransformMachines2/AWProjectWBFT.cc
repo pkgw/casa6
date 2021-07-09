@@ -734,6 +734,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	resetPBs_p=false;
       }
     avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
+    
+    if(max(avgPB_p->get()) <= 0.0) avgPBReady_p = false;
+
+    
     //    avgPBReady_p = cfCache_p->avgPBReady(sensitivityPatternQualifierStr_p);
     // Need to grid the weighted Convolution Functions to make the sensitivity pattern.
     if (!avgPBReady_p)

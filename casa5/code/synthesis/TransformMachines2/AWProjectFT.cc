@@ -1263,9 +1263,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Load the average PB (sensitivity pattern) from the cache.  If
     // not found in the cache, make one and cache it.
     //
-    if (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) == CFDefs::NOTCACHED)
-	makeSensitivityImage(vb,image,*avgPB_p);
-
+    //if (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) == CFDefs::NOTCACHED)
+	//makeSensitivityImage(vb,image,*avgPB_p);
+	if((cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) == CFDefs::NOTCACHED) ||  (max(avgPB_p->get()) <= 0.0)) makeSensitivityImage(vb,image,*avgPB_p);
+    
     verifyShapes(avgPB_p->shape(), image.shape());
 
     if (paChangeDetector.changed(vb,0)) paChangeDetector.update(vb,0);
