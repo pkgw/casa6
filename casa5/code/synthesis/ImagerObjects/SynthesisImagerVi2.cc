@@ -2289,7 +2289,7 @@ void SynthesisImagerVi2::lockMS(MeasurementSet& thisms){
     /// write to the test !!  till someboody fixes this is vi2 or wait for cngi
     //if savescratch column we have tune...otherwise some channel may be 0
     // when chunking or in parallel
-    cerr << "nchanims " << nchaninms << endl;
+    //cerr << "nchanims " << nchaninms << endl;
     if(nchaninms <30 && !(!readOnly_p && useScratch_p))
       return dataSel_p;
     

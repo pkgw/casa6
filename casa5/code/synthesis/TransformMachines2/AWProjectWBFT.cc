@@ -733,9 +733,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	resetPBs_p=false;
       }
+  
     avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
     
-    if(max(avgPB_p->get()) <= 0.0) avgPBReady_p = false;
+    if(avgPBReady_p){
+        LatticeExprNode le( max( *avgPB_p ) );
+        Float avgPB_max=le.getFloat();
+        
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
+    }
 
     
     //    avgPBReady_p = cfCache_p->avgPBReady(sensitivityPatternQualifierStr_p);

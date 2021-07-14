@@ -1265,7 +1265,19 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     //if (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) == CFDefs::NOTCACHED)
 	//makeSensitivityImage(vb,image,*avgPB_p);
-	if((cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) == CFDefs::NOTCACHED) ||  (max(avgPB_p->get()) <= 0.0)) makeSensitivityImage(vb,image,*avgPB_p);
+
+    Bool avgPBReady = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
+    
+    if(avgPBReady){
+        LatticeExprNode le( max( *avgPB_p ) );
+        Float avgPB_max=le.getFloat();
+        
+        if(avgPB_max <= 0.0) avgPBReady = false;
+    }
+    
+    if(!avgPBReady) makeSensitivityImage(vb,image,*avgPB_p);
+    
+	
     
     verifyShapes(avgPB_p->shape(), image.shape());
 
