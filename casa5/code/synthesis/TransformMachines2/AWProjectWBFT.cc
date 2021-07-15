@@ -734,23 +734,29 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	resetPBs_p=false;
       }
-	TempImage<Float> tempCF(avgPB_p->shape(), avgPB_p->coordinates());
+	CountedPtr <ImageInterface<Float> > tempCF=nullptr;
+	if(!avgPB_p.null()){
+		tempCF=new TempImage<Float>(avgPB_p->shape(), avgPB_p->coordinates());
+	}
     avgPBReady_p = (cfCache_p->loadAvgPB(tempCF,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
     
     if(avgPBReady_p){
-		if(tempCF.shape()(3) > iimage.shape()(3)){
+		if((tempCF->shape()(3)) > iimage.shape()(3)){
 			Double freqofBegChan;
 			//get freq of first chan of chunk
 			spectralCoord_p.toWorld(freqofBegChan, 0.0);
-			CoordinateSystem cs=tempCF.coordinates();
-			SpectralCoordinate fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+			CoordinateSystem cs=tempCF->coordinates();
+			SpectralCoordinate  fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
 			Double startchan;
 			fsys.toPixel(startchan, freqofBegChan);
 			Int endchan=startchan+iimage.shape()(3)-1;
-			avgPB_p=SpectralImageUtil::getChannel(tempCF,Int(startchan), endchan);
+			avgPB_p=SpectralImageUtil::getChannel(*tempCF,Int(startchan), endchan);
 		}
 		else{
-			avgPB_p->copyData(tempCF);
+			if(avgPB_p.null()){
+				avgPB_p=new TempImage<Float> (tempCF->shape(), tempCF->coordinates());	
+			}
+			avgPB_p->copyData(*tempCF);
 		}
 			LatticeExprNode le( max( *avgPB_p ) );
         Float avgPB_max=le.getFloat();
