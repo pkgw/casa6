@@ -30,6 +30,7 @@
 #include <synthesis/TransformMachines2/AWProjectWBFT.h>
 #include <synthesis/TransformMachines2/AWVisResampler.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
+#include <imageanalysis/Utilities/SpectralImageUtil.h>
 #include <coordinates/Coordinates/CoordinateSystem.h>
 #include <scimath/Mathematics/FFTServer.h>
 #include <scimath/Mathematics/Convolver.h>
@@ -733,11 +734,25 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	resetPBs_p=false;
       }
-  
-    avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
+	TempImage<Float> tempCF(avgPB_p->shape(), avgPB_p->coordinates());
+    avgPBReady_p = (cfCache_p->loadAvgPB(tempCF,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
     
     if(avgPBReady_p){
-        LatticeExprNode le( max( *avgPB_p ) );
+		if(tempCF.shape()(3) > iimage.shape()(3)){
+			Double freqofBegChan;
+			//get freq of first chan of chunk
+			spectralCoord_p.toWorld(freqofBegChan, 0.0);
+			CoordinateSystem cs=tempCF.coordinates();
+			SpectralCoordinate fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+			Double startchan;
+			fsys.toPixel(startchan, freqofBegChan);
+			Int endchan=startchan+iimage.shape()(3)-1;
+			avgPB_p=SpectralImageUtil::getChannel(tempCF,Int(startchan), endchan);
+		}
+		else{
+			avgPB_p->copyData(tempCF);
+		}
+			LatticeExprNode le( max( *avgPB_p ) );
         Float avgPB_max=le.getFloat();
         
         if(avgPB_max <= 0.0) avgPBReady_p = false;
