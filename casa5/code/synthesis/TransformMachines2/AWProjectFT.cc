@@ -37,6 +37,7 @@
 
 #include <coordinates/Coordinates/CoordinateSystem.h>
 #include <images/Images/ImageInterface.h>
+#include <imageanalysis/Utilities/SpectralImageUtil.h>
 
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <synthesis/TransformMachines/SynthesisError.h>
@@ -1266,17 +1267,42 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //if (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) == CFDefs::NOTCACHED)
 	//makeSensitivityImage(vb,image,*avgPB_p);
 
-    Bool avgPBReady = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
+
+    CountedPtr <ImageInterface<Float> > tempCF=nullptr;
+    if(!avgPB_p.null()){tempCF=new TempImage<Float>(avgPB_p->shape(), avgPB_p->coordinates());}
+    Bool avgPBReady = (cfCache_p->loadAvgPB(tempCF,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
     
     if(avgPBReady){
-        LatticeExprNode le( max( *avgPB_p ) );
+		if((tempCF->shape()(3)) > image.shape()(3)){
+			Double freqofBegChan;
+			//get freq of first chan of chunk
+			spectralCoord_p.toWorld(freqofBegChan, 0.0);
+			CoordinateSystem cs=tempCF->coordinates();
+			SpectralCoordinate  fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+			Double startchan;
+			fsys.toPixel(startchan, freqofBegChan);
+			Int endchan=startchan+image.shape()(3)-1;
+			//avgPB_p=SpectralImageUtil::getChannel(*tempCF,Int(startchan), endchan);
+			
+			ImageInterface<Float>* subim=SpectralImageUtil::getChannel(*tempCF,Int(startchan), endchan);
+                        avgPB_p=new TempImage<Float> (subim->shape(), subim->coordinates());
+                        avgPB_p->copyData(*subim);
+                        delete subim;	
+		}
+		else{
+			if(avgPB_p.null()){
+				avgPB_p=new TempImage<Float> (tempCF->shape(), tempCF->coordinates());	
+			}
+			avgPB_p->copyData(*tempCF);
+		}
+	
+	LatticeExprNode le( max( *avgPB_p ) );
         Float avgPB_max=le.getFloat();
         
         if(avgPB_max <= 0.0) avgPBReady = false;
     }
-    
+	
     if(!avgPBReady) makeSensitivityImage(vb,image,*avgPB_p);
-    
 	
     
     verifyShapes(avgPB_p->shape(), image.shape());
@@ -1603,7 +1629,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   // Initialize the FFT to the Sky. Here we have to setup and
   // initialize the grid.
-  //
+  //  
   void AWProjectFT::initializeToSky(ImageInterface<Complex>& iimage,
 				     Matrix<Float>& weight,
 				     const VisBuffer2& vb)
@@ -1719,6 +1745,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     void AWProjectFT::put(const VisBuffer2& vb, Int /*row*/, Bool dopsf,
 			FTMachine::Type type)
   {
+  
     // Take care of translation of Bools to Integer
     makingPSF=dopsf;
     
@@ -2110,7 +2137,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     const IPosition latticeShape = weightImage.shape();
     const IPosition avgpbShape = avgPB_p->shape();
-    //    cout << "AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " " << sumWeight << endl;
+    //cout << "################ AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " " << sumWeight << endl;
     
     Int nx=latticeShape(0);
     Int ny=latticeShape(1);
@@ -2134,6 +2161,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //   String nameavgpb("avgpb.im");
     //   storeImg(nameavgpb,*avgPB_p);
     // }
+    
   }
   //
   //---------------------------------------------------------------

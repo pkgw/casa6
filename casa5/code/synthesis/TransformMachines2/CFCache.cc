@@ -962,6 +962,7 @@ namespace casa{
 
 	avgPB.resize(tmp.shape());
 	avgPB.put(tmp.get()*sumwt);
+	avgPB.setCoordinateInfo(tmp.coordinates());
 	//cerr << "peak = " << max(tmp.get()*sumwt) << endl;
       }
     catch(AipsError& x) // Just rethrowing the exception for now.
@@ -1000,6 +1001,7 @@ namespace casa{
 	PagedImage<Float> tmp(name.str().c_str());
 	avgPB.resize(tmp.shape());
 	avgPB.put(tmp.get());
+	avgPB.setCoordinateInfo(tmp.coordinates());
       }
     catch(AipsError& x) // Just rethrowing the exception for now.
                         // Ultimately, this should be used to make
