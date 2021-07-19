@@ -28,6 +28,7 @@
 #include <synthesis/TransformMachines/SynthesisError.h>
 #include <synthesis/TransformMachines2/CFCache.h>
 #include <synthesis/TransformMachines2/Utils.h>
+#include <imageanalysis/Utilities/SpectralImageUtil.h>
 #include <casacore/lattices/LEL/LatticeExpr.h>
 #include <casacore/casa/System/ProgressMeter.h>
 #include <casacore/casa/Exceptions/Error.h>
@@ -980,7 +981,7 @@ namespace casa{
   //-------------------------------------------------------------------------
   //Load the average PB from the disk cache.
   //
-  Int CFCache::loadAvgPB(ImageInterface<Float>& avgPB, String qualifier)
+  Int CFCache::loadAvgPB(ImageInterface<Float>& avgPB, String qualifier, std::tuple<int, double>cubeinfo)
   {
     LogIO log_l(LogOrigin("CFCache2", "loadAvgPB"));
 
@@ -999,9 +1000,27 @@ namespace casa{
     try
       {
 	PagedImage<Float> tmp(name.str().c_str());
-	avgPB.resize(tmp.shape());
-	avgPB.put(tmp.get());
-	avgPB.setCoordinateInfo(tmp.coordinates());
+	int nchan=std::get<0> (cubeinfo);
+	Double freqofBegChan=std::get<1>(cubeinfo);
+	if(nchan >1 && freqofBegChan > 0.0 && (tmp.shape()(3) > nchan)){
+		//get freq of first chan of chunk
+		CoordinateSystem cs=tmp.coordinates();
+		SpectralCoordinate  fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+		Double startchan;
+		fsys.toPixel(startchan, freqofBegChan);
+		Int endchan=startchan+nchan-1;
+		ImageInterface<Float>* subim=SpectralImageUtil::getChannel(tmp,Int(startchan), endchan);
+		avgPB.resize(subim->shape());
+		avgPB.copyData(*subim);
+		avgPB.setCoordinateInfo(subim->coordinates());
+		delete subim;		
+	}
+	else{
+		avgPB.resize(tmp.shape());
+		avgPB.copyData(tmp);
+		avgPB.setCoordinateInfo(tmp.coordinates());
+	}
+	
       }
     catch(AipsError& x) // Just rethrowing the exception for now.
                         // Ultimately, this should be used to make

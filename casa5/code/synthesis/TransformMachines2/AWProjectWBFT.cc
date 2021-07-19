@@ -30,7 +30,6 @@
 #include <synthesis/TransformMachines2/AWProjectWBFT.h>
 #include <synthesis/TransformMachines2/AWVisResampler.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
-#include <imageanalysis/Utilities/SpectralImageUtil.h>
 #include <coordinates/Coordinates/CoordinateSystem.h>
 #include <scimath/Mathematics/FFTServer.h>
 #include <scimath/Mathematics/Convolver.h>
@@ -678,13 +677,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //   wtImageFTDone_p = avgPBReady_p=false;
     // }
     // // REMOVE THIS CODE
-
-
-    if (useDoubleGrid_p){
+    if (useDoubleGrid_p)
       makeSensitivityImage(griddedWeights_D, *avgPB_p, weights, true);
-    }else{
+    else
       makeSensitivityImage(griddedWeights, *avgPB_p, weights, true);
-    }
 
     //        if (avgPBSq_p.null()) avgPBSq_p = new TempImage<Complex>();
     //    makeSensitivitySqImage(griddedWeights, *avgPBSq_p, weights, true);
@@ -737,42 +733,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	resetPBs_p=false;
       }
-      
- 
-    CountedPtr <ImageInterface<Float> > tempCF=nullptr;
-    if(!avgPB_p.null()){tempCF=new TempImage<Float>(avgPB_p->shape(), avgPB_p->coordinates());}
-
-    avgPBReady_p = (cfCache_p->loadAvgPB(tempCF,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
-
-    if(avgPBReady_p){
-		if((tempCF->shape()(3)) > iimage.shape()(3)){
-			Double freqofBegChan;
-			//get freq of first chan of chunk
-			spectralCoord_p.toWorld(freqofBegChan, 0.0);
-			CoordinateSystem cs=tempCF->coordinates();
-			SpectralCoordinate  fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
-			Double startchan;
-			fsys.toPixel(startchan, freqofBegChan);
-			Int endchan=startchan+iimage.shape()(3)-1;
-			//avgPB_p=SpectralImageUtil::getChannel(*tempCF,Int(startchan), endchan);
-			
-			ImageInterface<Float>* subim=SpectralImageUtil::getChannel(*tempCF,Int(startchan), endchan);
-                        avgPB_p=new TempImage<Float> (subim->shape(), subim->coordinates());
-                        avgPB_p->copyData(*subim);
-                        delete subim;
-		}
-		else{
-			if(avgPB_p.null()){
-				avgPB_p=new TempImage<Float> (tempCF->shape(), tempCF->coordinates());	
-			}
-			avgPB_p->copyData(*tempCF);
-		}
+	std::tuple<int, double>cubeinfo(1,-1.0);
+	if(iimage.shape()(3) >1){
+		double freqofBegChan;
+		spectralCoord_p.toWorld(freqofBegChan, 0.0);
 		
-	LatticeExprNode le( max( *avgPB_p ) );
+		cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
+	}
+    avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+    
+    if(avgPBReady_p){
+        LatticeExprNode le( max( *avgPB_p ) );
         Float avgPB_max=le.getFloat();
         
         if(avgPB_max <= 0.0) avgPBReady_p = false;
     }
+
     
     //    avgPBReady_p = cfCache_p->avgPBReady(sensitivityPatternQualifierStr_p);
     // Need to grid the weighted Convolution Functions to make the sensitivity pattern.

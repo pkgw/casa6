@@ -279,9 +279,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     void flush();
     void flush(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""));
-    casacore::Int loadAvgPB(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""));
-    casacore::Int loadAvgPB(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > & avgPB, casacore::String qualifier=casacore::String(""))
-    {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier);};
+	///cubeinfo tuple contains nchan and frequency of first channel
+    casacore::Int loadAvgPB(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""), std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0));
+    casacore::Int loadAvgPB(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > & avgPB, casacore::String qualifier=casacore::String(""), std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0))
+    {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier,cubeinfo);};
 
     // loadAvgPB calls the method below if WtImgPrefix was set.
     casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier);
