@@ -946,7 +946,7 @@ namespace casa{
 	// First try to load .weight image.  If this fails, AipsError
 	// will be caught and a NOTCACHED returned.
 	PagedImage<Float> tmp(name.str().c_str());
-        cerr << "BBBBBBBBBBBBBB " << tmp.shape() << endl;
+        //cerr << "BBBBBBBBBBBBBB " << tmp.shape() << endl;
 	// Now try to load .sumwt.  If .sumwt is not found, this is a
 	// fatal error (inconsistancy on the disk).  So this time
 	// throw a SEVER exception.
