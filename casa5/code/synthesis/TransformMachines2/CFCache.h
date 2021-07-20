@@ -285,7 +285,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier,cubeinfo);};
 
     // loadAvgPB calls the method below if WtImgPrefix was set.
-    casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier);
+    casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier, std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0));
 
     casacore::Bool avgPBReady(const casacore::String& qualifier=casacore::String("")) 
     {return (avgPBReady_p && (avgPBReadyQualifier_p == qualifier));};

@@ -1267,12 +1267,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	//makeSensitivityImage(vb,image,*avgPB_p);
 
 	std::tuple<int, double>cubeinfo(1,-1.0);
-	if(image.shape()(3) >1){
-		double freqofBegChan;
-		spectralCoord_p.toWorld(freqofBegChan, 0.0);
-		
-		cubeinfo=std::make_tuple(image.shape()(3),freqofBegChan);
-	}
+        double freqofBegChan;
+        spectralCoord_p.toWorld(freqofBegChan, 0.0);
+        
+        cubeinfo=std::make_tuple(image.shape()(3),freqofBegChan);
+	
     Bool avgPBReady = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
     if(avgPBReady){
@@ -1283,7 +1282,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
     
     if(!avgPBReady) makeSensitivityImage(vb,image,*avgPB_p);
-    
+
 	
     
     verifyShapes(avgPB_p->shape(), image.shape());

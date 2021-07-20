@@ -933,20 +933,20 @@ namespace casa{
   //-------------------------------------------------------------------------
   //Load the average PB from the disk cache.
   //
-  Int CFCache::loadWtImage(ImageInterface<Float>& avgPB, String qualifier)
+  Int CFCache::loadWtImage(ImageInterface<Float>& avgPB, String qualifier, std::tuple<int, double> cubeinfo)
   {
     LogIO log_l(LogOrigin("CFCache2", "loadWtImage"));
     ostringstream name, sumWtName;
     name << WtImagePrefix << ".weight" << qualifier;
     if (qualifier != "") sumWtName << WtImagePrefix << ".sumwt.tt0";// << qualifier;
     else                 sumWtName << WtImagePrefix << ".sumwt";
-      
+    
     try
       {
 	// First try to load .weight image.  If this fails, AipsError
 	// will be caught and a NOTCACHED returned.
 	PagedImage<Float> tmp(name.str().c_str());
-
+        cerr << "BBBBBBBBBBBBBB " << tmp.shape() << endl;
 	// Now try to load .sumwt.  If .sumwt is not found, this is a
 	// fatal error (inconsistancy on the disk).  So this time
 	// throw a SEVER exception.
@@ -961,9 +961,32 @@ namespace casa{
 	    log_l << "Sum-of-weights not found " << x.getMesg() << LogIO::SEVERE;
 	  }
 
-	avgPB.resize(tmp.shape());
-	avgPB.put(tmp.get()*sumwt);
-	avgPB.setCoordinateInfo(tmp.coordinates());
+        int nchan=std::get<0> (cubeinfo);
+	Double freqofBegChan=std::get<1>(cubeinfo);
+	if(freqofBegChan > 0.0 && (tmp.shape()(3) > nchan)){
+
+                //get freq of first chan of chunk
+                CoordinateSystem cs=tmp.coordinates();
+		SpectralCoordinate  fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+		Double startchan;
+		fsys.toPixel(startchan, freqofBegChan);
+		Int endchan=startchan+nchan-1;
+		ImageInterface<Float>* subim=SpectralImageUtil::getChannel(tmp,Int(startchan), endchan);
+		avgPB.resize(subim->shape());
+                LatticeExpr<Float> myexpr( (*subim)*sumwt);
+		avgPB.copyData(myexpr);
+		avgPB.setCoordinateInfo(subim->coordinates());
+		delete subim;		
+	}
+	else{
+		avgPB.resize(tmp.shape());
+                LatticeExpr<Float> myexpr( tmp*sumwt);
+		avgPB.copyData(myexpr);
+		avgPB.setCoordinateInfo(tmp.coordinates());
+	}
+	//avgPB.resize(tmp.shape());
+	//avgPB.put(tmp.get()*sumwt);
+	//avgPB.setCoordinateInfo(tmp.coordinates());
 	//cerr << "peak = " << max(tmp.get()*sumwt) << endl;
       }
     catch(AipsError& x) // Just rethrowing the exception for now.
@@ -987,7 +1010,7 @@ namespace casa{
 
     if (WtImagePrefix != "") 
       {
-	return loadWtImage(avgPB, qualifier);
+	return loadWtImage(avgPB, qualifier, cubeinfo);
       }
 
     if (Dir.length() == 0) 
@@ -1002,9 +1025,10 @@ namespace casa{
 	PagedImage<Float> tmp(name.str().c_str());
 	int nchan=std::get<0> (cubeinfo);
 	Double freqofBegChan=std::get<1>(cubeinfo);
-	if(nchan >1 && freqofBegChan > 0.0 && (tmp.shape()(3) > nchan)){
-		//get freq of first chan of chunk
-		CoordinateSystem cs=tmp.coordinates();
+	if(freqofBegChan > 0.0 && (tmp.shape()(3) > nchan)){
+
+                //get freq of first chan of chunk
+                CoordinateSystem cs=tmp.coordinates();
 		SpectralCoordinate  fsys=cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
 		Double startchan;
 		fsys.toPixel(startchan, freqofBegChan);

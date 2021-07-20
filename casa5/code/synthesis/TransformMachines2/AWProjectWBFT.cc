@@ -733,13 +733,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	resetPBs_p=false;
       }
-	std::tuple<int, double>cubeinfo(1,-1.0);
-	if(iimage.shape()(3) >1){
-		double freqofBegChan;
-		spectralCoord_p.toWorld(freqofBegChan, 0.0);
-		
-		cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
-	}
+	std::tuple<int, double>cubeinfo(1,-1.0);    
+        double freqofBegChan;
+        spectralCoord_p.toWorld(freqofBegChan, 0.0);
+        
+        cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
     avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
     if(avgPBReady_p){
