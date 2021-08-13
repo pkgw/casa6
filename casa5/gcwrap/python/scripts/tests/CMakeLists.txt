@@ -30,7 +30,6 @@ casa_add_python( tools tools_tests_python lib/python${PYTHONV}/tests
   test_clearstat.py
   test_componentlist.py
   test_concat.py
-  test_conjugatevis.py
   test_coordsys.py
   test_cvel.py
   test_cvel2.py
@@ -44,7 +43,6 @@ casa_add_python( tools tools_tests_python lib/python${PYTHONV}/tests
   test_flagdata.py
   test_flaghelper.py
   test_flagmanager.py
-  test_fluxscale.py
   test_fringefit.py
   test_getchunk.py
   test_gencal.py
@@ -232,9 +230,12 @@ casa_add_python( tools tools_tests_python lib/python${PYTHONV}/tests
   test_req_task_uvmodelfit.py
   test_req_task_vishead.py
   test_req_task_visstat.py
+  test_req_task_phaseshift.py
   test_req_task_imdev.py
   test_req_task_rerefant.py
   test_req_task_polcal.py
+  test_req_task_blcal.py
+  test_req_task_ft.py
 
   ### stakeholders
   test_stk_alma_pipeline_imaging.py
@@ -256,7 +257,6 @@ casa_add_python( tools tools_tests_python lib/python${PYTHONV}/tests
   test_uvfits.py
   test_viewer.py
   test_virtualconcat.py
-  test_vishead.py
   test_vpmanager.py
   test_wvrgcal.py
   test_imview.py
