@@ -87,6 +87,14 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         #dto. for concavis
         theconcatvis = concatvis
 
+        #sanitize the members of vis
+        for i in range(len(vis)):
+            if type(vis[i]) == str:
+                vis[i] = vis[i].rstrip('/')
+            else:
+                raise ValueError('Parameter vis must only contain strings.')
+                
+
         doweightscale = False
         if(len(visweightscale)>0):
             if (len(visweightscale) != len(vis)):
