@@ -158,11 +158,16 @@ Previous calibrations should be applied on the fly.
         of data from antennas with only one good polarization (e.g., one polarization
         is bad or entirely absent).  Solutions for the bad or missing polarization 
         will be rendered as flagged.
-
       </description>
       <value>False</value>
     </param>
 
+    <param name="combinepols" type="bool">
+      <shortdescription>Combine polarisations</shortdescription>
+      <description>Combine polarisations</description>
+      <value>False</value>
+    </param>
+      
   <param name="docallib" type="bool">
     <shortdescription>Use callib or traditional cal apply parameters</shortdescription>
     <description>Control means of specifying the caltables

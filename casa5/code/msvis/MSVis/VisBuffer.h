@@ -700,9 +700,6 @@ public:
     // Frequency average the buffer (visCube and [if present] modelVisCube)
     void freqAveCubes();
 
-    // Average correlations of the buffer
-    void corrAveCubes();
-
     // Average channel axis according to chanavebounds, for whichever of DATA,
     // MODEL_DATA, CORRECTED_DATA, FLOAT_DATA, FLAG, and WEIGHT_SPECTRUM are
     // present.  It will only treat the first 5 as present if they have already

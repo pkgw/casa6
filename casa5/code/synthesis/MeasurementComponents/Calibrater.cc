@@ -794,6 +794,7 @@ Bool Calibrater::setsolve (const String& type,
                            const Bool zerorates,
                            const Bool globalsolve,
                            const Int niter,
+                           const Bool polcombine,
                            const Vector<Double>& delaywindow, 
                            const Vector<Double>& ratewindow,
                            const Vector<Bool>& paramactive,
@@ -832,6 +833,7 @@ Bool Calibrater::setsolve (const String& type,
   solveparDesc.addField ("delaywindow", TpArrayDouble);
   solveparDesc.addField ("ratewindow", TpArrayDouble);
   solveparDesc.addField ("niter", TpInt);
+  solveparDesc.addField ("polcombine", TpBool);
   solveparDesc.addField ("paramactive", TpArrayBool);
 
   // single dish specific fields
@@ -860,6 +862,7 @@ Bool Calibrater::setsolve (const String& type,
   solvepar.define ("zerorates", zerorates);
   solvepar.define ("globalsolve", globalsolve);
   solvepar.define ("niter", niter);
+  solvepar.define ("polcombine", polcombine);
   solvepar.define ("delaywindow", delaywindow);
   solvepar.define ("ratewindow", ratewindow);
   solvepar.define ("solmode", solmode);
@@ -1163,6 +1166,21 @@ Calibrater::setCorrDepFlags(const Bool& corrDepFlags)
   corrDepFlags_=corrDepFlags;
 
   logSink() << "Setting correlation dependent flags = " << (corrDepFlags_ ? "True" : "False") << LogIO::POST;
+
+  return true;
+
+}
+
+Bool
+Calibrater::setPolCombine(const Bool& polCombine) 
+{
+
+  logSink() << LogOrigin("Calibrater","setPolCombine") << LogIO::NORMAL;
+
+  // Set it
+  polCombine_= polCombine;
+
+  logSink() << "Setting polarization combination = " << (polCombine ? "True" : "False") << LogIO::POST;
 
   return true;
 
@@ -3230,10 +3248,11 @@ casacore::Bool Calibrater::genericGatherAndSolve()
       avetime=svc_p->preavg();
     vi2org.addTimeAve(avetime);  // use min of solint and preavg here!
   }
-
-  Int ave_pols = 1; // FIXME!
-  if (ave_pols) {
-      vi2org.addPolAve();
+  if (svc_p->polCombine()) {
+      cerr << "Calibrater::genericGatherAndSolve(): Combining pols!" << endl;
+      vi2org.addPolCombine();
+  } else {
+      cerr << "Calibrater::genericGatherAndSolve(): Not combining pols!" << endl;
   }
 
   //  vi2org should be fully configured at this point

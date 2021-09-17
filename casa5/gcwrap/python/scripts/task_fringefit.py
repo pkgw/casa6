@@ -12,6 +12,7 @@ def fringefit(vis=None,caltable=None,
 	      minsnr=None,zerorates=None,globalsolve=None,niter=None,
               delaywindow=None,ratewindow=None,append=None,
 	      corrdepflags=None,
+              combinepols=None,
 	      docallib=None, callib=None, gaintable=None,gainfield=None,interp=None,spwmap=None,
               paramactive=None, parang=None):
 	#Python script
@@ -43,7 +44,8 @@ def fringefit(vis=None,caltable=None,
 		# signal use of correlation-dependent flags, if requested
 		if corrdepflags:
 			mycb.setcorrdepflags(True)
-
+                if combinepols:
+                        mycb.setcombinepols(True)
 			
 		if docallib:
 			# by cal library from file

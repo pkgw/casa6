@@ -2120,7 +2120,12 @@ void FringeJones::setSolve(const Record& solve) {
     if (solve.isDefined("paramactive")) {
         paramActive() = solve.asArrayBool("paramactive");
     }
-    
+    if (solve.isDefined("polcombine")) {
+        cerr << "FringeJones::setsolve() Polcombine is set! To:"
+             << solve.asBool("polcombine")
+             << endl;
+        polCombine() = solve.asBool("polcombine");
+    }
 }
 
 // Note: this was previously omitted
@@ -2397,9 +2402,21 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
             }
         }
     }
+    // Copy the results to the second polarisation for combined pols
+    if (polCombine()) { 
+        logSink() << "Polarizations combined: Copying results to other polarisation" << LogIO::POST;
+        for (Int iant=0; iant != nAnt(); iant++) {
+            for (Int i=0; i !=4; i++) {
+                sRP(4+i, iant) = sRP(i, iant);
+                sPok(4+i, iant) = sPok(i, iant);            
+                sSNR(4+i, iant) = sSNR(i, iant);
+            }
+        }
+    } 
     if (DEVDEBUG) {
         std::cerr << "sPok " << sPok << endl;
     }
+    
 }
 
 void

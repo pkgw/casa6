@@ -81,7 +81,7 @@ public:
   // Add time-averaging layer factory
   void addTimeAve(float timebin);
 
-  void addPolAve();
+  void addPolCombine();
 
   
   // Add calibration specific data filter
