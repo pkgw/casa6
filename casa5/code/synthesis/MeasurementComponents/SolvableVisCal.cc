@@ -1307,6 +1307,10 @@ void SolvableVisCal::setSolve(const Record& solve)
   if (solve.isDefined("combine"))
     combine()=solve.asString("combine");
 
+  // small@jive.eu 2021-07-07
+  if (solve.isDefined("polcombine"))
+      polCombine() = solve.asBool("polcombine");
+  
   //  cout << "SVC::setsolve: minSNR() = " << minSNR() << endl;
 
   // TBD: Warn if table exists (and append=F)!
