@@ -525,22 +525,22 @@ def generate_pyinit(moduledir,tools):
                import os as __os
                import sys as __sys
 
-               def __find_data_path( ):
-
-                   def find_mount_point(path):
-                       path = __os.path.abspath(path)
-                       while not __os.path.ismount(path):
-                           path = __os.path.dirname(path)
-                       return path
-
-                   #potential_data_paths = ['/opt/casa/data', '/home/casa/data/master', '/home/casa/data', '/export/data_1/casa/data']
-                   potential_data_paths = [ ]
-                   casadata = [ d for d in (__os.environ['CASADATA'].split(':') if 'CASADATA' in __os.environ else [ ]) if __os.path.isdir(d) ]
-                   potential = [ d for d in potential_data_paths if __os.path.isdir(d) ]
-                   potential_local = [ d for d in potential if find_mount_point(d) == '/' ]
-                   potential_remote = [ d for d in potential if find_mount_point(d) != '/' ]
-                   used = set( )
-                   return [ x for x in casadata + potential_local + potential_remote if x not in used and (used.add(x) or True)]
+               #def __find_data_path( ):
+               #
+               #    def find_mount_point(path):
+               #        path = __os.path.abspath(path)
+               #        while not __os.path.ismount(path):
+               #            path = __os.path.dirname(path)
+               #        return path
+               #
+               #    #potential_data_paths = ['/opt/casa/data', '/home/casa/data/master', '/home/casa/data', '/export/data_1/casa/data']
+               #    potential_data_paths = [ ]
+               #    casadata = [ d for d in (__os.environ['CASADATA'].split(':') if 'CASADATA' in __os.environ else [ ]) if __os.path.isdir(d) ]
+               #    potential = [ d for d in potential_data_paths if __os.path.isdir(d) ]
+               #    potential_local = [ d for d in potential if find_mount_point(d) == '/' ]
+               #    potential_remote = [ d for d in potential if find_mount_point(d) != '/' ]
+               #    used = set( )
+               #    return [ x for x in casadata + potential_local + potential_remote if x not in used and (used.add(x) or True)]
 
                def __find_user_data_path( ):
                    def is_iter_container(v):
@@ -602,8 +602,8 @@ def generate_pyinit(moduledir,tools):
 
                if _distro_dpath is None:
                    try:
-                       import casadata
-                       _distro_dpath = casadata.datapath
+                       import casaconfig
+                       _distro_dpath = casaconfig.datapath
                        _dpath = _dpath + [ _distro_dpath ]
                    except: pass
 
@@ -614,7 +614,7 @@ def generate_pyinit(moduledir,tools):
                if __sys.argv[0] != '-m':
                    __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
                    if __resolved_iers == 'geodetic/IERSeop2000':
-                       raise ImportError('measures data is not available, visit http://go.nrao.edu/casadata-info for more information')
+                       raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
                    if len(ctsys.rundata( )) == 0:
                        ctsys.setrundata(__resolved_iers[:-21])
 
