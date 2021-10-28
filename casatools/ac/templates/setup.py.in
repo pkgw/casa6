@@ -2712,4 +2712,4 @@ if __name__ == '__main__':
                                    if wheel_build \
                                    else { 'build_ext': casa_build_ext, 'test': casa_test, 'genmake': create_makefile, 'ia': create_makefile_ia },
            ext_modules=ext,
-           install_requires=[ 'numpy' ] )
+           install_requires=[ 'numpy', 'casaconfig' ] )
