@@ -22,6 +22,7 @@ wishes to do different things depending on the Python version.
 import os
 import sys
 from contextlib import contextmanager
+import pkg_resources
 
 home = os.curdir                        # Default
 if 'HOME' in os.environ:
@@ -76,11 +77,15 @@ def _merged_stderr_stdout():  # $ exec 2>&1
     return _stdout_redirected(to=sys.stdout, stdout=sys.stderr)
 
 
+# use ~/.casa/config.py if it exists
+# otherwise use default from casaconfig package
+configrc = os.path.join(home, ".casa/config.py")
+configrc = configrc if os.path.exists(configrc) else pkg_resources.resource_filename('casaconfig', 'config.py')
+
 if len(sys.argv) > 0 and sys.argv[0] == '-m':
     ##  many packages use the idiom "python -m casatools --some-flag" to query for
     ##  casatools state. Output from user files causes problems for this.
     with _stdout_redirected(to=os.devnull), _merged_stderr_stdout():
-        configrc = os.path.join(home, ".casa/config.py")
         try:
             from casatoolrc import *
         except:
@@ -95,7 +100,6 @@ if len(sys.argv) > 0 and sys.argv[0] == '-m':
                 except:
                     sys.stderr.write("error: evaluation of %s failed\n" % configrc)
 else:
-    configrc = os.path.join(home, ".casa/config.py")
     try:
         from casatoolrc import *
     except:
