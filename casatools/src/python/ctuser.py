@@ -81,6 +81,10 @@ def _merged_stderr_stdout():  # $ exec 2>&1
 # otherwise use default from casaconfig package
 configrc = os.path.join(home, ".casa/config.py")
 configrc = configrc if os.path.exists(configrc) else pkg_resources.resource_filename('casaconfig', 'config.py')
+if os.path.exists(configrc):
+    print("######## Found %s ##########" % configrc)
+else:
+    print("######## Did NOT Find %s ##########" % configrc)
 
 if len(sys.argv) > 0 and sys.argv[0] == '-m':
     ##  many packages use the idiom "python -m casatools --some-flag" to query for
