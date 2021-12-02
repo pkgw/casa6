@@ -400,7 +400,6 @@ expb_df(CBLAS_TRANSPOSE_t TransJ, const gsl_vector* param, const gsl_vector *u, 
         const Cube<Float>& weights(s.weightSpectrum());
 
         Double t1 = s.time()(0);
-        // cerr << "ibuf " << ibuf << " t1 - t0 = " << t1 - t0 << endl;
         for (Int irow=0; irow!=s.nRows(); irow++) {
             if (s.flagRow()(irow)) continue;
 
@@ -409,7 +408,6 @@ expb_df(CBLAS_TRANSPOSE_t TransJ, const gsl_vector* param, const gsl_vector *u, 
             
             if (ant1==ant2) continue;
             if (!bundle->isActive(ant1) || !bundle->isActive(ant2)) {
-                // cerr << "Skipping " << ant1 << ", " << ant2 << endl;                   
                 continue;
             }
 

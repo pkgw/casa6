@@ -73,7 +73,7 @@
 // DEVDEBUG gates the development debugging information to standard
 // error; it should be set to 0 for production.
 
-#define DEVDEBUG false
+#define DEVDEBUG true
 
 using namespace casa::vi;
 using namespace casacore;
@@ -88,6 +88,9 @@ dotMatrixWithModel2(const Matrix<Complex>& f, Double k, Double l, Double offset)
 
 Complex
 dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, double l);
+
+tuple<Double, Double, Double, Double>
+multibandFFTs(const Array<Complex>& ffts, const Vector<Float>& offsets);
 
 Double
 multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets);
@@ -135,9 +138,6 @@ SDBListGridManagerCombo::SDBListGridManagerCombo(SDBList& sdbs) :
             df_ = fs[1] - fs[0];
             pspwIdToFreqMap_[pspw] = &(sdb.freqs());
             nchan_ = max(nchan_, sdb.nChannels());
-            if (DEVDEBUG) {
-                cerr << "adding sdb " << i << " with " << sdb.nChannels() << " channels" << endl;
-            }
             fmaxes_.insert(fs(nchan_-1));
             fmins_.insert(fs(0));
         } else {
@@ -250,10 +250,15 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
     }
     nt_ = gm_.nt_;
     nChan_ = gm_.nchan_;
+    
+    // We might want to pad these too
+    nPadFactor_ = 4;
+    nPadT_ = nPadFactor_*nt_;
+    nPadChan_ = nPadFactor_*nChan_;
     nspw_ = gm_.nSPW();
     dt_ = gm_.dt_;
     df_ = gm_.df_ / 1.e9;
-    
+
     if (nt_ < 2) {
         throw(AipsError("Can't do a 2-dimensional FFT on a single timestep! Please consider changing solint to avoid orphan timesteps."));
     }
@@ -283,7 +288,8 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
         }
     }
     nElem_ =  1 + *(allActiveAntennas_.rbegin()) ;
-    IPosition aggregateDim(2, nCorr_, nElem_, nspw_);
+
+    IPosition aggregateDim(2, nCorr_, nElem_);
     xcount_.resize(aggregateDim);
     sumw_.resize(aggregateDim);
     sumww_.resize(aggregateDim);
@@ -292,10 +298,14 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
     xcount_ = 0;
     sumw_ = 0.0;
     sumww_ = 0.0;
-    IPosition dataSize(5, nCorr_, nElem_, nspw_, nt_, nChan_);
+    IPosition dataSize(5, nCorr_, nElem_, nspw_, nPadT_, nPadChan_);
     Vall_.resize(dataSize);
     Int totalRows = 0;
     Int goodRows = 0;
+
+    if (DEVDEBUG) {
+      cerr << "DelayRateFFTCombo constructor: Here" << endl;
+    }
     for (Int ibuf=0; ibuf != sdbs.nSDB(); ibuf++) {
         SolveDataBuffer& s(sdbs(ibuf));
         totalRows += s.nRows();
@@ -364,7 +374,8 @@ DelayRateFFTCombo::DelayRateFFTCombo(SDBList& sdbs, Int refant, Array<Double>& d
 
             if (!allTrue(flagged)) {
                 for (Int icorr=0; icorr<nCorr_; ++icorr) {
-                    IPosition p(2, icorr, iant);
+                    // Book keeping now done per spw!
+                    IPosition p(3, icorr, iant, ispw);
                     Bool actually = false;
                     activeAntennas_[icorr].insert(iant);
                     for (Int ichan=0; ichan != (Int) nChan_; ichan++) {
@@ -478,6 +489,8 @@ DelayRateFFTCombo::searchPeak() {
             // -nChan/2 to -1, so far as our delay is concerned.
             Int i0 = bw*d0;
             Int i1 = bw*d1;
+            i0 *= nPadFactor_;
+            i1 *= nPadFactor_;
             if (i1==i0) i1++;
             // Now for the gory details for turning rate window into index range
             Double width = nt_*dt_*1e9*f0_;
@@ -489,63 +502,13 @@ DelayRateFFTCombo::searchPeak() {
     
             Int j0 = width*r0;
             Int j1 = width*r1;
+            j0 *= nPadFactor_;
+            j1 *= nPadFactor_;
             if (j1==j0) j1++;
-            // FIXME: We now want an incoherent sum of the amplitudes of all the subbands!
-            Matrix<Float> inco(IPosition(2, nt_, nChan_));
-            inco = 0; // Note, painfully, that this is not the default!
-            // NB: Time, Channel
-            // And once again we fail at slicing
-            // IPosition stop (5,     1,     1,  spw_, nt_, nChan_);
-            // FIXME: we shouldn't but we will: just choose the first spw
-            for (size_t ispw=0; ispw!=size_t(nspw_); ispw++) {
-                IPosition start(5, icorr, ielem,     ispw,   0,      0);
-                IPosition stop (5,     1,     1,     1,    nt_, nChan_);
-                IPosition step (5,     1,     1,     1,      1,      1);
-                Slicer sl(
-                    start,
-                    stop,
-                    step,
-                    Slicer::endIsLength);
-                const Matrix<Complex>& aS(Vall_(sl).nonDegenerate());
-                inco += amplitude(aS);
-            }
-
-            // We search the incoherent sum for the position of the
-            // maximum on the grid, which we will use to start the
-            // refinement process
-            Int ipkch(0);
-            Int ipkt(0);
-            Float amax(-1.0);
-            for (Int itime0=j0; itime0 != j1; itime0++) {
-                Int itime = (itime0 < 0) ? itime0 + nt_ : itime0;
-                for (Int ich0=i0; ich0 != i1; ich0++) {
-                    Int ich = (ich0 < 0) ? ich0 + nChan_ : ich0;
-                    if (inco(itime, ich) > amax) {
-                        ipkch = ich;
-                        ipkt  = itime;
-                        amax=inco(itime, ich);
-                    }
-                }
-            }
-
-            Float phase0;
-            for (size_t ispw=0; ispw!=size_t(nspw_); ispw++) {
-                Complex p = Vall_(IPosition(5, icorr, ielem, ispw, ipkt, ipkch));
-                if (ispw==0) {
-                    phase0 = arg(p);
-                }
-                if (DEVDEBUG) {
-                    cerr << "   Before refining: " << "ispw " << ispw << " peak " << abs(p) << " ang " << arg(p) << endl;
-                }
-            }
-            
-            // Finished grovelling. Now we have the location of the
-            // maximum amplitude on the grid, and we refine it by
-            // looking off the grid a little
             Array<Complex> blVis(
                 Vall_(Slicer(
                           IPosition(5, icorr, ielem,     0,   0,      0),
-                          IPosition(5,     1,     1, nspw_, nt_, nChan_),
+                          IPosition(5,     1,     1, nspw_, nPadT_, nPadChan_),
                           IPosition(5,     1,     1,     1,   1,      1),
                           Slicer::endIsLength)).nonDegenerate(IPosition(1,2)));
 
@@ -556,47 +519,42 @@ DelayRateFFTCombo::searchPeak() {
                 Double f0 = gm_.getRefFreqFromLSPW(0);
                 offsets(lspw) = (f - f0)/bw;
             }
-            if (DEVDEBUG) {
-                cerr << "Offsets: " << offsets << endl;
-            }
-            Complex c0 = dotWithOffsets(blVis, offsets, double(ipkt), double(ipkch));
 
-            Vector<Complex> peaks(
-                blVis(Slicer(
-                          IPosition(3, 0,  ipkt, ipkch),
-                          IPosition(3, nspw_, 1, 1),
-                          IPosition(3, 1, 1, 1),
-                          Slicer::endIsLength)).nonDegenerate(1));
-            
-            // In units of spw BW, like offsets
-            Double dpkch = multibandFFT(peaks, offsets);
+            // Get the DFT estimates of peak location instead
+            tuple<Double, Double, Double, Double> mp = multibandFFTs(blVis , offsets);
+            Double mpkt  = std::get<0>(mp);
+            Double mpkch = std::get<1>(mp);
+            Double mpeak = std::get<2>(mp);
+            Double marg  = std::get<3>(mp);
+
+            Complex c0 = dotWithOffsets(blVis, offsets, mpkt, mpkch);
             if (DEVDEBUG) {
-                cerr << "Peaks: " << peaks << endl;
-                cerr << "dpkch " << dpkch << endl;
+                cerr << "DelayRateFFTCombo: abs(c1) " << abs(c0) << endl;
             }
-            // FIXME: Sign convention dilemma: do we add or subtract dpkch?
-            tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, ipkt, ipkch + dpkch);
+            tuple<Double, Double, Double, Double> p = refineSearch(blVis, offsets, mpkt, mpkch);
             Double pkt   = std::get<0>(p);
             Double pkch  = std::get<1>(p);
             Double peak  = std::get<2>(p);
             Double phase = std::get<3>(p);
+
             if (DEVDEBUG) {
                 cerr << "[DelayRateFFTCombo::SearchPeak] " << "icorr " << icorr << " ielem " << ielem
-                     << " from (" << ipkt << ", " << ipkch << ", peak "  << abs(c0) << " (incoherently " << inco(ipkt, ipkch) << "), angle " << phase0 << ")" 
+                     << " from (" << mpkt << ", " << mpkch << ", peak "  << abs(c0)
+                     <<  ", angle " << arg(c0) << ")" 
                      << " to (" << pkt << ", " << pkch << ", peak " << peak << ", angle " << phase <<  ")"
                      << endl;
             }
             peak_(IPosition(2, icorr, ielem)) = peak;
             param_(icorr*3 + 0, ielem) = sgn*phase;
-            Float delay = (pkch)/Float(nChan_);
+            Double delay = (pkch)/Double(nChan_);
             if (delay > 0.5) delay -= 1.0;           // fold
             delay /= df_;                            // nsec
             param_(icorr*3 + 1, ielem) = sgn*delay; 
-            Double rate = (pkt)/Float(nt_);
+            Double rate = (pkt)/Double(nt_);
             if (rate > 0.5) rate -= 1.0;
             Double rate0 = rate/dt_;
             Double rate1 = rate0/(1e9 * f0_); 
-            param_(icorr*3 + 2, ielem) = Float(sgn*rate1);
+            param_(icorr*3 + 2, ielem) = Double(sgn*rate1);
             if (DEVDEBUG) {
                 cerr << "delay " << sgn*delay << " rate1 " << sgn*rate1 << endl;
             }
@@ -604,10 +562,101 @@ DelayRateFFTCombo::searchPeak() {
             flag_(icorr*3 + 0, ielem)=false; 
             flag_(icorr*3 + 1, ielem)=false;
             flag_(icorr*3 + 2, ielem)=false;
-            //cerr << "Set everything " << endl;
+            if (DEVDEBUG) {
+                cerr << "End of this element/correlation combination" << endl;
+                //cerr << "Set everything " << endl;
+            }
         }
     }
 }
+
+
+tuple<Double, Double, Double, Double>
+multibandFFTs(const Array<Complex>& ffts, const Vector<Float>& offsets) {
+    if (DEVDEBUG) {
+        cerr << "multibandFFTs() " << endl;
+    }
+    // We take the individual band phases from the peaks of the SPWs
+    // and assume they are the peculiar phases for their SPW; then we
+    // calculate the Direct Discrete FT of those phases on their
+    // offsets and read the peak off of that
+
+    // This code is based on multibandFFT below, which we were using to
+    // combine the peak values of individual SPW ffts; this version
+    // combines *all* the values, because it turns out we can't
+    // reliably get the peaks first.
+    
+    IPosition shp = ffts.shape();
+    Int nspw = shp(0);
+    Int nt = shp(1);
+    Int nchan = shp(2);
+
+    Int binScale = 1;
+    size_t nbins= size_t(binScale*max(offsets)+1+0.5);
+    Vector<Double> freqs(nbins);
+    freqs = 0;
+    for (size_t k=0; k!=nbins; k++) {
+        freqs[k] = (Double(k) - nbins/2)/float(nbins);
+    }
+    // We need to store out results in an (nt, nchan, nbins) array this time
+    // We do the loop manually because array arithmetic in Casacore is beyond me
+    Array<Complex> X(IPosition(3, nbins, nt, nchan));
+    X = 0;
+
+    for (size_t ispw=0; ispw!=size_t(nspw); ispw++) {
+        for (size_t it=0; it != nt; it++) {
+            for (size_t ichan=0; ichan != nchan; ichan++) {
+                Double x = abs(ffts(IPosition(3, ispw, 0, 0)));
+                if (std::isnan(x)) {cerr << "Skipping FFT " << ispw << endl;
+                    continue;
+                }
+                for (size_t ibin=0; ibin!=nbins; ibin++) {
+                    Complex rotation = exp(-Complex(0,1)*Complex(C::_2pi*offsets(ispw)*freqs(ibin)));
+                    X(IPosition(3, ibin, it, ichan)) += ffts(IPosition(3, ispw, it, ichan))*rotation;
+                }
+            }
+        }
+    }
+    // We search for the maximum ourself, by brute force.
+    Int itmax = -1;
+    Int ichanmax = -1;
+    Int ibinmax = -1;
+    Double zmax = -1.0;
+    for (Int it = 0; it != nt; it++) {
+        for (Int ichan=0; ichan != nchan; ichan++) {
+            for (Int k=0; k!=nbins; k++) {
+                Complex c = X(IPosition(3, k, it, ichan));
+                Double a = abs(c);
+                if (a>zmax) {
+                    itmax = it;
+                    ichanmax = ichan;
+                    ibinmax = k;
+                    zmax = a;
+                }
+            }
+        }
+    }
+    /*
+    cerr << "Stacked DFT peaks at " << itmax << ", " << ichanmax << endl;
+    for (Int i=0; i < nspw; i++) {
+        cerr << "Peak for bin " << i << " = " << abs(ffts(IPosition(3, i, itmax, ichanmax))) << endl;
+    }
+    */
+    Complex c = X(IPosition(3, ibinmax, itmax, ichanmax));
+    Double dpkch = freqs(ibinmax);
+    
+    tuple<Double, Double, Double, Double> t;
+    t = std::make_tuple(Double(itmax), Double(ichanmax) + dpkch, abs(c), arg(c));
+    // t = std::make_tuple(Double(itmax), Double(ichanmax), abs(c), arg(c));
+    if (DEVDEBUG) {
+        cerr << "itmax " << itmax << " ichanmax " << ichanmax << " ibinmax " << ibinmax
+             << " peak " << abs(c) << endl;
+        cerr << "MultibandFFTs dpkch=" << dpkch << endl;
+        cerr << "multibandFFTs() finished" << endl;
+    }
+    return t;
+}
+    
 
 Double
 multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
@@ -641,7 +690,7 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
     }
     // FIXME: the last offset is at the *beginning* of the subband!
     // size_t nbins=2*size_t(max(offsets)+1+0.5);
-    size_t nbins=size_t(max(offsets)+1+0.5);
+    size_t nbins= size_t(max(offsets)+1+0.5);
 
     Vector<Float> freqs(nbins);
     freqs = 0;
@@ -659,7 +708,8 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
         }
         for (size_t k=0; k!=nbins; k++) {
             // FIXME: also swap signs here!
-            X[k] += phasors[n]*exp(-Complex(0,1)*Complex(C::_2pi*offsets(n)*freqs(k)));
+            X[k] += peaks[n]*exp(-Complex(0,1)*Complex(C::_2pi*offsets(n)*freqs(k)));
+            // X[k] += phasors[n]*exp(-Complex(0,1)*Complex(C::_2pi*offsets(n)*freqs(k)));
         }
     }
     Int k_max = -1;
@@ -668,7 +718,7 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
         Complex z = X[k];
         Float a = abs(z);
         if (DEVDEBUG) {
-            cerr << "k " << k << " freq " << freqs(k) << " a " << a << endl;
+            cerr << "DFT Bin " << k << " freq " << freqs(k) << " coeff " << a << endl;
         }
         if (a>zmax) {
             k_max = k;
@@ -676,7 +726,9 @@ multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
         }
     }
     if (DEVDEBUG) {
-        cerr << "k_max = " << k_max << endl;
+        cerr << "k_max = " << k_max 
+             << "; peak at k_max= " << abs(X[k_max]) 
+             << "; freqs(k_max) = " << freqs(k_max) << endl;
     }
     return freqs(k_max);
 }
@@ -688,7 +740,6 @@ dotWithOffsets(const Cube<Complex>& ft, const Vector<Float>& offsets, double k, 
     Int ni = ft.ncolumn();
     Int nj = ft.nplane();
 
-    // cerr << "ni " << ni << " nj " << nj << endl;
     if (k<0) k += (ni);
     if (l<0) l += (nj);
     Complex p(0.0, 0.0);
@@ -756,6 +807,9 @@ tuple<Double, Double, Double, Double>
 DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offsets, Double pkt, Double pkch) {
     // small@jive.eu: I borrowed most of this code from the GSL documentation of multimin:
     // <https://www.gnu.org/software/gsl/doc/html/multimin.html>
+    if (DEVDEBUG) {
+        cerr << "refineSearch" << endl;
+    }
     const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
     /* Starting point */
     gsl_vector *x = gsl_vector_alloc (2);
@@ -767,7 +821,7 @@ DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& o
     /* Set initial step sizes */
     /* Fixme! I need to think harder about this value! */
     gsl_vector* steps = gsl_vector_alloc (2);
-    gsl_vector_set_all(steps, 0.005);
+    gsl_vector_set_all(steps, 0.01);
     
     /* Initialize method and iterate */
     
@@ -781,27 +835,31 @@ DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& o
     gsl_multimin_fminimizer *s = gsl_multimin_fminimizer_alloc(T, 2);
     gsl_multimin_fminimizer_set (s, &minex_func, x, steps);
 
-
+    float minstep = 1e-5;
     int status;
     size_t iter = 0;
     do {
+        if (DEVDEBUG) {
+            cerr << "Starting iteration" << endl;
+        }
+        
         iter++;
         status = gsl_multimin_fminimizer_iterate(s);
         if (status) break;
         double size = gsl_multimin_fminimizer_size(s);
-        status = gsl_multimin_test_size(size, 1e-4);
+        status = gsl_multimin_test_size(size, minstep);
         if (status == GSL_SUCCESS) {
             printf ("converged to minimum at\n");
         }
         if (DEVDEBUG) {
-            printf("%5d ipkt %10.3e ipkch %10.3e f() = %7.3f size = %10.3f\n",
+            printf("%5zd ipkt %12.5e ipkch %12.5e f() = %12.5g size = %12.5f\n",
                    iter,
                    gsl_vector_get(s->x, 0),
                    gsl_vector_get(s->x, 1),
                    s->fval,
                    size);
         }
-    } while (status == GSL_CONTINUE && iter < 2);
+    } while (status == GSL_CONTINUE && iter < 5);
     // while (status == GSL_CONTINUE && iter < 100);
     tuple<Double, Double, Double, Double> p;
     // if (status == GSL_SUCCESS) {
@@ -812,7 +870,6 @@ DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& o
         Complex c = c_peak_fn(s->x, &par);
         p = std::make_tuple(ipkt, ipkch, abs(c), arg(c));
     } else {
-        // FIXME: More spurious zeros!
         p = std::make_tuple(pkt, pkch, 0.0, 0.0);
     }
     gsl_vector_free(steps);
@@ -824,13 +881,11 @@ DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& o
 
 Float
 DelayRateFFTCombo::snr(Int icorr, Int ielem, Float delay, Float rate) {
-    if (DEVDEBUG) {
-        cerr << "DelayRateFFTCombo::snr"<< endl;
-    }
     // We calculate a signal-to-noise ration for the 2D FFT fringefit
     // using a formula transcribed from AIPS FRING.
     //
     // Have to convert delay and rate back into indices on the padded 2D grid.
+
     IPosition p(2, icorr, ielem);
     Float peak = peak_(p);
     if (peak > 0.999*sumw_(p)) {
@@ -1228,7 +1283,7 @@ DelayRateFFTConcat::DelayRateFFTConcat(SDBList& sdbs, Int refant, Array<Double>&
                              IPosition(3, nCorr_, spwchans, 1),
                              IPosition(3, corrStep,        1, 1), Slicer::endIsLength);
             nr++;
-            if (DEVDEBUG) {
+            if (DEVDEBUG && false) {
                 cerr << "nr " << nr
                      << " irow " << endl
                      << "Vpad shape " << Vpad_.shape() << endl
@@ -1302,7 +1357,7 @@ DelayRateFFTConcat::DelayRateFFTConcat(Array<Complex>& data, Int nPadFactor, Flo
     DelayRateFFT(s, 0, delayWindow, rateWindow),
     gm_(s),
     nPadFactor_(nPadFactor),
-    Vpad_() {
+     Vpad_() {
     dt_ = dt;
     f0_ = f0;
     df_ = df;

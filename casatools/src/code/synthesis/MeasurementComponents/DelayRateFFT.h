@@ -164,6 +164,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
      private:
           SDBListGridManagerCombo gm_;
           casacore::Int nspw_;
+          casacore::Int nPadFactor_;
+          casacore::Int nPadChan_;
+          casacore::Int nPadT_;
           // 
      public:
           
