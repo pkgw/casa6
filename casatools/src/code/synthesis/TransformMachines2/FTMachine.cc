@@ -100,7 +100,7 @@ using namespace casa::vi;
 			   pointingDirCol_p("DIRECTION"),
 			   cfStokes_p(), cfCache_p(), cfs_p(), cfwts_p(), cfs2_p(), cfwts2_p(), 
 			   canComputeResiduals_p(false), toVis_p(true), 
-                           numthreads_p(-1), pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0)
+                           numthreads_p(-1), pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0), ftmType_p(FTMachine::CORRECTED), avgPBReady_p(false)
   {
     spectralCoord_p=SpectralCoordinate();
     isPseudoI_p=false;
@@ -228,6 +228,8 @@ using namespace casa::vi;
       mtype_p=other.mtype_p;
       briggsWeightor_p=other.briggsWeightor_p;
       ft_p=other.ft_p;
+      ftmType_p = other.ftmType_p;
+      avgPBReady_p = other.avgPBReady_p;
     };
     return *this;
   };
@@ -2534,13 +2536,16 @@ using namespace casa::vi;
 	
 	// Take sumWeights from corrToStokes here....
         LatticeLocker lock1 (*(imstore->sumwt()), FileLocker::Write);
-	Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
+        Bool donesumwt=(max(imstore->sumwt()->get()) > 0.0);
+        if(!donesumwt){
+          Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
 	StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
 
 	AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
 		      ((imstore->sumwt())->shape()[3] == sumWeightStokes.shape()[1] ) , AipsError );
 
 	(imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
+        }
         imstore->sumwt()->unlock();
 	
       }

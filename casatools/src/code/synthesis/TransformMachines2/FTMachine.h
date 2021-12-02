@@ -131,6 +131,7 @@ public:
     RESIDUAL,		// From RESIDUAL (OBSERVED-MODEL) visibility data
     PSF,		// POINT SPREAD FUNCTION
     COVERAGE,		// COVERAGE (SD only)
+    WEIGHT,             // For gridding weights
     N_types,		// Number of types
     DEFAULT=OBSERVED
   };
@@ -259,7 +260,10 @@ public:
 				const vi::VisBuffer2& /*vb*/) {};
   // Get the final weights image
   virtual void getWeightImage(casacore::ImageInterface<casacore::Float>& weightImage, casacore::Matrix<casacore::Float>& weights) = 0;
+  //Put the weights image so that it is not calculated again
+  // Useful for A-projection style gridders
 
+  virtual void setWeightImage(casacore::ImageInterface<casacore::Float>& /*weightImage*/){ /*do nothing for gridders that don't use this in degridding*/ };
   // Get a flux (divide by this to get a flux density correct image) 
   // image if there is one
   virtual void getFluxImage(casacore::ImageInterface<casacore::Float>& image){(void)image;};
@@ -385,8 +389,9 @@ public:
   ///call this to clear temporary file
   // for e.g imaging weight column associated with this ftmachine
   virtual casacore::Vector<casacore::String> cleanupTempFiles(const casacore::String& message);
+  virtual void setFTMType(const FTMachine::Type& type) {ftmType_p=type;};
+  virtual void setPBReady(const bool& isready) {avgPBReady_p=isready;};
 protected:
-
   friend class VisModelData;
   friend class MultiTermFT;
   friend class MultiTermFTNew;
@@ -549,6 +554,8 @@ protected:
   casacore::MeasTable::Types mtype_p;
   FFT2D ft_p;
   casacore::Vector<casacore::String> tempFileNames_p;
+  FTMachine::Type ftmType_p;
+  casacore::Bool avgPBReady_p;
 
  private:
   virtual casacore::Bool isSD() const {return false;}
