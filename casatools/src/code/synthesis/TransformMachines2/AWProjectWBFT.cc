@@ -101,7 +101,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			       Bool conjBeams,
 			       Bool doublePrecGrid)
     : AWProjectFT(nWPlanes,icachesize,cfcache,cf,visResampler,applyPointingOffset,pointingOffsetSigDev,doPBCorr, itilesize,pbLimit,usezero,conjBeams,doublePrecGrid),
-      avgPBReady_p(false),resetPBs_p(true),wtImageFTDone_p(false),fieldIds_p(0),rotatedCFWts_p(),visResamplerWt_p(nullptr),oneTimeMessage_p(false)
+      avgPBReady_p(false),resetPBs_p(true),wtImageFTDone_p(false),fieldIds_p(0),rotatedCFWts_p(),visResamplerWt_p(),oneTimeMessage_p(false)
   {
     (void)paSteps;
     //
@@ -317,8 +317,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 					   const ImageInterface<Complex>& /*imageTemplate*/,
 					   ImageInterface<Float>& /*sensitivityImage*/)
   {
-    if(avgPBReady_p == false)
-      {
     if (oneTimeMessage_p == false)
       {
 	LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage(Complex)[R&D]"));
@@ -330,14 +328,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      << LogIO::WARN;
 	oneTimeMessage_p=true;
       }
-      }
   }
   void AWProjectWBFT::makeSensitivityImage(const VisBuffer2&,
 					   const ImageInterface<DComplex>& /*imageTemplate*/,
 					   ImageInterface<Float>& /*sensitivityImage*/)
   {
-    if(avgPBReady_p == false)
-      {
     if (oneTimeMessage_p == false)
       {
 	LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage(DComplex)[R&D]"));
@@ -348,7 +343,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      << "Consequently, the first gridding cycle will be slower than the subsequent ones." 
 	      << LogIO::WARN;
 	oneTimeMessage_p=true;
-      }
       }
   }
   //
@@ -802,8 +796,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // cfCache_p->flush();
     // visResampler_p->finalizeToSky(griddedData, sumWeight);
 
-    if(!visResamplerWt_p)
-      return;
     if (!avgPBReady_p) 
       {
 	if (useDoubleGrid_p)
@@ -882,7 +874,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     vbs.uvw_p.reference(uvwOrigin); 
     Bool dopsf_l=true;
     vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf_l);
-    vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;
+    
     // Array<Complex> gwts; Bool removeDegenerateAxis=false;
     // wtsGrid.get(gwts, removeDegenerateAxis);
     Int nDataChan = vbs.flagCube_p.shape()[1];

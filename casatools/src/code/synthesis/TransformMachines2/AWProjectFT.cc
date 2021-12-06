@@ -57,7 +57,6 @@
 #include <synthesis/TransformMachines2/NoOpATerm.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/EVLAAperture.h>
-#include <iomanip>
 
 //#define CONVSIZE (1024*2)
 // #define OVERSAMPLING 2
@@ -169,14 +168,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       imageCache(0), cachesize(0), tilesize(16),
       gridder(0), isTiled(false), arrayLattice( ), lattice( ), 
       maxAbsData(0.0), centerLoc(IPosition(4,0)), offsetLoc(IPosition(4,0)),
-      pointingToImage(0), usezero_p(false), avgPB_p(nullptr),
+      pointingToImage(0), usezero_p(false),
       epJ_p(),
       doPBCorrection(true), conjBeams_p(true),/*cfCache_p(cfcache),*/ paChangeDetector(),
       rotateOTFPAIncr_p(0.1),
       Second("s"),Radian("rad"),Day("d"), pbNormalized_p(false), paNdxProcessed_p(),
-      visResampler_p(nullptr), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
+      visResampler_p(), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
     rotatedConvFunc_p(),
-      runTime1_p(0.0), previousSPWID_p(-1), self_p(), vb2CFBMap_p(), po_p(), wbAWP_p(true)
+    runTime1_p(0.0), previousSPWID_p(-1), self_p(), vb2CFBMap_p(), po_p()
   {
     //    convSize=0;
     tangentSpecified_p=false;
@@ -231,7 +230,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       imageCache(0), cachesize(icachesize), tilesize(itilesize),
       gridder(0), isTiled(false), arrayLattice( ), lattice( ), 
       maxAbsData(0.0), centerLoc(IPosition(4,0)), offsetLoc(IPosition(4,0)),
-      pointingToImage(0), usezero_p(usezero), avgPB_p(nullptr),
+      pointingToImage(0), usezero_p(usezero),
       // convFunc_p(), convWeights_p(),
       epJ_p(),
       doPBCorrection(doPBCorr), conjBeams_p(conjBeams), 
@@ -239,7 +238,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       rotateOTFPAIncr_p(0.1),
       Second("s"),Radian("rad"),Day("d"), pbNormalized_p(false),
       visResampler_p(visResampler), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
-      rotatedConvFunc_p(), runTime1_p(0.0),  previousSPWID_p(-1),self_p(), vb2CFBMap_p(), po_p(), wbAWP_p(true)
+    rotatedConvFunc_p(), runTime1_p(0.0),  previousSPWID_p(-1),self_p(), vb2CFBMap_p(), po_p()
   {
     //convSize=0;
     tangentSpecified_p=false;
@@ -279,13 +278,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     po_p = new PointingOffsets();
     po_p->setOverSampling(convSampling);
     vb2CFBMap_p->setPOSigmaDev(pointingOffsetSigDev);
-    wbAWP_p=convFuncCtor_p->isWBAWP();
   }
   //
   //---------------------------------------------------------------
   //
   AWProjectFT::AWProjectFT(const RecordInterface& stateRec)
-    : FTMachine(),Second("s"),Radian("rad"),Day("d"),visResampler_p(), self_p(), vb2CFBMap_p(), po_p(), wbAWP_p(true)
+    : FTMachine(),Second("s"),Radian("rad"),Day("d"),visResampler_p(), self_p(), vb2CFBMap_p(), po_p()
   {
     //
     // Construct from the input state record
@@ -379,7 +377,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	centerLoc=other.centerLoc;
 	offsetLoc=other.offsetLoc;
 	pointingToImage=other.pointingToImage;
-	useDoubleGrid_p=other.useDoubleGrid_p;
+	usezero_p=other.usezero_p;
 	doPBCorrection = other.doPBCorrection;
 	maxConvSupport= other.maxConvSupport;
 
@@ -427,7 +425,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	previousSPWID_p = other.previousSPWID_p;
 	vb2CFBMap_p = other.vb2CFBMap_p;
 	po_p = other.po_p;
-        wbAWP_p=other.wbAWP_p;
 	//	self_p = other.self_p;
       };
     return *this;
@@ -444,6 +441,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     npol  = image->shape()(2);
     nchan = image->shape()(3);
     
+    if(image->shape().product()>cachesize) 
+      isTiled=true;
+    else 
+      isTiled=false;
     
     sumWeight.resize(npol, nchan);
     sumCFWeight.resize(npol, nchan);
@@ -1458,6 +1459,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     npol  = image->shape()(2);
     nchan = image->shape()(3);
     
+    if(image->shape().product()>cachesize) isTiled=true;
+    else isTiled=false;
     //
     // If we are memory-based then read the image in and create an
     // ArrayLattice otherwise just use the PagedImage
@@ -1465,10 +1468,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     isTiled=false;
 
-    //    if(isTiled){
-    // 	lattice=CountedPtr<Lattice<Complex> > (image, false);
-    // }
-    //else 
+    if(isTiled){
+    	lattice=CountedPtr<Lattice<Complex> > (image, false);
+    }
+    else 
       {
 	IPosition gridShape(4, nx, ny, npol, nchan);
 	griddedData.resize(gridShape);
@@ -1629,9 +1632,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     npol  = image->shape()(2);
     nchan = image->shape()(3);
     
-    //    if(image->shape().product()>cachesize) isTiled=true;
-    // else                                   isTiled=false;
-    isTiled=false;
+    if(image->shape().product()>cachesize) isTiled=true;
+    else                                   isTiled=false;
+    
     sumWeight=0.0;
     sumCFWeight = 0.0;
     weight.resize(sumWeight.shape());
@@ -1724,8 +1727,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
     // Take care of translation of Bools to Integer
     makingPSF=dopsf;
-    if(dopsf)
-      ftmType_p=refim::FTMachine::PSF;
+    
     try
       {
 	findConvFunction(*image, vb);
@@ -2142,19 +2144,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   //---------------------------------------------------------------
   //
-       void AWProjectFT::setWeightImage(ImageInterface<Float>& weightImage){
-      IPosition latticeShape = weightImage.shape();
-      CoordinateSystem cs=weightImage.coordinates();
-      avgPB_p=new TempImage<Float>(latticeShape, cs);
-      avgPB_p->copyData(weightImage);
-
-
-    }
-    
-  //---------------------------------------------------------------
-
-
-    Bool AWProjectFT::toRecord(RecordInterface& outRec, Bool withImage) 
+  Bool AWProjectFT::toRecord(RecordInterface& outRec, Bool withImage) 
   {
     //    LogIO log_l(LogOrigin("AWProjectFT2", "toRecord[R&D]"));
     
@@ -2472,9 +2462,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //    Vector<Int> ConjCFMap, CFMap;
 
     vbs.vb_p = &vb;
-    vbs.wbAWP_p=wbAWP_p;
-    vbs.ftmType_p=ftmType_p;
-    vbs.nWPlanes_p = nWPlanes_p;
     makeCFPolMap(vb,cfStokes_p,CFMap_p);
     makeConjPolMap(vb,CFMap_p,ConjCFMap_p);
 
@@ -2498,7 +2485,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     vbs.paQuant_p = Quantity(getPA(vb),"rad");
     //    vbs.corrType_p.reference(vb.corrType());
     vbs.corrType_p.reference(vb.correlationTypes());
-    vbs.uvw_p=uvw;
+    vbs.uvw_p.reference(uvw);
     vbs.imagingWeight_p.reference(imagingweight);
     vbs.visCube_p.reference(visData);
     //    vbs.freq_p.reference(interpVisFreq_p);
@@ -2519,7 +2506,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //timer_p.mark();
 
     po_p->fetchPointingOffset(*image, vb, doPointing);
-    if (makingPSF || (vbs.ftmType_p==casa::refim::FTMachine::WEIGHT) ){
+    if (makingPSF){
       cfwts2_p->invokeGC(vbs.spwID_p);
       vb2CFBMap_p->setDoPointing(doPointing);
       vb2CFBMap_p->makeVBRow2CFBMap(*cfwts2_p,
