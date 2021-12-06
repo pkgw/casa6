@@ -73,7 +73,7 @@
 // DEVDEBUG gates the development debugging information to standard
 // error; it should be set to 0 for production.
 
-#define DEVDEBUG true
+#define DEVDEBUG false
 
 using namespace casa::vi;
 using namespace casacore;
@@ -617,31 +617,75 @@ multibandFFTs(const Array<Complex>& ffts, const Vector<Float>& offsets) {
             }
         }
     }
+    /* 
+    // New!
+    Array<Complex> rateAveraged(IPosition(2, nbins, nchan));
+    rateAveraged = 0;
+    for (size_t ibin; ibin!=nbins; ibin++) {
+        for (size_t ichan=0; ichan != nchan; ichan++) {
+            for (size_t it=0; it != nt; it++) {
+                rateAveraged(IPosition(2, ibin, ichan)) += abs(ffts(IPosition(3, ibin, it, ichan)));
+            }
+        }
+    }
+    
+    // Search for a peak with delay in the average first
+    Int ichanmax1 = -1;
+    Int ibinmax1 = -1;
+    Double zmax1 = -1.0;
+    for (Int ichan=0; ichan != nchan; ichan++) {
+        for (Int ibin=0; ibin != nbins; ibin++) {
+            Complex c = rateAveraged(IPosition(2, ibin, ichan));
+            Double a = abs(c);
+            if (a>zmax1) {
+                ichanmax1 = ichan;
+                ibinmax1 = ibin;
+                zmax1 = a;
+            }
+        }
+    }
+    // Then we search the time dimension
+    zmax1 = -1.0;
+    Int itmax1 = -1;
+    for (Int it = 0; it != nt; it++) {
+        Complex c = X(IPosition(3, ibinmax1, it, ichanmax1));
+        Double a = abs(c);
+        if (a>zmax1) {
+            itmax1 = it;
+        }
+    }
+    cerr << "Averaged stacked DFT peaks at " << itmax1 << "/" << nt << ", "
+         << ichanmax1 << "/" << nchan << "; Bin " << ibinmax1
+         << " Peak " << abs(X(IPosition(3, ibinmax1, itmax1, ichanmax1)))
+         << endl;
+ */
     // We search for the maximum ourself, by brute force.
     Int itmax = -1;
     Int ichanmax = -1;
     Int ibinmax = -1;
     Double zmax = -1.0;
-    for (Int it = 0; it != nt; it++) {
-        for (Int ichan=0; ichan != nchan; ichan++) {
-            for (Int k=0; k!=nbins; k++) {
-                Complex c = X(IPosition(3, k, it, ichan));
+    for (Int ibin=0; ibin != nbins; ibin++) {
+        for (Int it = 0; it != nt; it++) {
+            for (Int ichan=0; ichan != nchan; ichan++) {
+                Complex c = X(IPosition(3, ibin, it, ichan));
                 Double a = abs(c);
                 if (a>zmax) {
                     itmax = it;
                     ichanmax = ichan;
-                    ibinmax = k;
+                    ibinmax = ibin;
                     zmax = a;
                 }
             }
         }
     }
-    /*
-    cerr << "Stacked DFT peaks at " << itmax << ", " << ichanmax << endl;
+    cerr << "Unaveraged stacked DFT peaks at " << itmax << "/" << nt << ", "
+         << ichanmax << "/" << nchan << "; Bin " << ibinmax
+         << " Peak " << abs(X(IPosition(3, ibinmax, itmax, ichanmax))) 
+         << endl;
     for (Int i=0; i < nspw; i++) {
         cerr << "Peak for bin " << i << " = " << abs(ffts(IPosition(3, i, itmax, ichanmax))) << endl;
     }
-    */
+    
     Complex c = X(IPosition(3, ibinmax, itmax, ichanmax));
     Double dpkch = freqs(ibinmax);
     
@@ -657,7 +701,6 @@ multibandFFTs(const Array<Complex>& ffts, const Vector<Float>& offsets) {
     return t;
 }
     
-
 Double
 multibandFFT(const Vector<Complex>& peaks, const Vector<Float>& offsets) {
     // We take the individual band phases from the peaks of the SPWs
@@ -801,7 +844,6 @@ bruteForceDelay(const Cube<Complex>& ft,  const Vector<Float>& offsets, Int ipkt
     t = std::make_tuple(k, l_p, abs(peak), arg(peak));
     return t;
 }
-
 
 tuple<Double, Double, Double, Double>
 DelayRateFFTCombo::refineSearch(const Cube<Complex>& ft,  const Vector<Float>& offsets, Double pkt, Double pkch) {
