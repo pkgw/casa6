@@ -576,7 +576,6 @@ def generate_pyinit(moduledir,tools):
                                  __find_user_nogui( ), __find_user_agg( ), __find_user_pipeline( ) )
 
 
-               # force creation of home .casa folder if not already present
                if not __os.path.exists(__os.path.expanduser("~/.casa")):
                    __os.system('mkdir %s' % __os.path.expanduser("~/.casa"))
 
@@ -584,15 +583,12 @@ def generate_pyinit(moduledir,tools):
                if hasattr(__user,'logfile'):
                    logger = logsink(__user.logfile)
 
-               # log the config file being used
                if (logger is not None) and hasattr(__user,'configrc'):
                    print('Using %s' % __user.configrc)
                    logger.post('Using %s' % __user.configrc, 'INFO')
 
-               # automatically pull data from casaconfig repo if not already populated
                pull_data(ctsys.getpath()[0], logger=logger)
 
-               # automatically update measures data if not current
                if hasattr(__user,'measures_update') and (__user.measures_update == True):
                    measures_update(ctsys.rundata(), logger=logger)
 
