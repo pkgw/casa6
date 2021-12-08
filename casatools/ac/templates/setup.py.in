@@ -587,11 +587,11 @@ def generate_pyinit(moduledir,tools):
                    print('Using %s' % __user.configrc)
                    logger.post('Using %s' % __user.configrc, 'INFO')
 
-               pull_data(ctsys.getpath()[0], logger=logger)
+               if hasattr(__user,'populate_data') and (__user.populate_data == True):
+                   pull_data(ctsys.getpath()[0], logger=logger)
 
                if hasattr(__user,'measures_update') and (__user.measures_update == True):
                    measures_update(ctsys.rundata(), logger=logger)
-
 
                if __sys.argv[0] != '-m':
                    __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
