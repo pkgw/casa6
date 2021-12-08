@@ -502,23 +502,9 @@ def generate_pyinit(moduledir,tools):
                from .utils import utils as __utils
                import os as __os
                import sys as __sys
+               from casaconfig import pull_data, measures_update
+               from casatools import logsink
 
-               #def __find_data_path( ):
-               #
-               #    def find_mount_point(path):
-               #        path = __os.path.abspath(path)
-               #        while not __os.path.ismount(path):
-               #            path = __os.path.dirname(path)
-               #        return path
-               #
-               #    #potential_data_paths = ['/opt/casa/data', '/home/casa/data/master', '/home/casa/data', '/export/data_1/casa/data']
-               #    potential_data_paths = [ ]
-               #    casadata = [ d for d in (__os.environ['CASADATA'].split(':') if 'CASADATA' in __os.environ else [ ]) if __os.path.isdir(d) ]
-               #    potential = [ d for d in potential_data_paths if __os.path.isdir(d) ]
-               #    potential_local = [ d for d in potential if find_mount_point(d) == '/' ]
-               #    potential_remote = [ d for d in potential if find_mount_point(d) != '/' ]
-               #    used = set( )
-               #    return [ x for x in casadata + potential_local + potential_remote if x not in used and (used.add(x) or True)]
 
                def __find_user_data_path( ):
                    def is_iter_container(v):
@@ -588,6 +574,28 @@ def generate_pyinit(moduledir,tools):
                ctsys.initialize( __sys.executable, "" if _distro_dpath is None else _distro_dpath,
                                  __find_user_data_path( ) + _dpath,
                                  __find_user_nogui( ), __find_user_agg( ), __find_user_pipeline( ) )
+
+
+               # force creation of home .casa folder if not already present
+               if not __os.path.exists(__os.path.expanduser("~/.casa")):
+                   __os.system('mkdir %s' % __os.path.expanduser("~/.casa"))
+
+               logger = None
+               if hasattr(__user,'logfile'):
+                   logger = logsink(__user.logfile)
+
+               # log the config file being used
+               if (logger is not None) and hasattr(__user,'configrc'):
+                   print('Using %s' % __user.configrc)
+                   logger.post('Using %s' % __user.configrc, 'INFO')
+
+               # automatically pull data from casaconfig repo if not already populated
+               pull_data(ctsys.getpath()[0], logger=logger)
+
+               # automatically update measures data if not current
+               if hasattr(__user,'measures_update') and (__user.measures_update == True):
+                   measures_update(ctsys.rundata(), logger=logger)
+
 
                if __sys.argv[0] != '-m':
                    __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
