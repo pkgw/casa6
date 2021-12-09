@@ -502,90 +502,36 @@ def generate_pyinit(moduledir,tools):
                from .utils import utils as __utils
                import os as __os
                import sys as __sys
+               import numpy as np
                from casaconfig import pull_data, measures_update
                from casatools import logsink
 
-
-               def __find_user_data_path( ):
-                   def is_iter_container(v):
-                       try:
-                           _iter = iter(v)
-                           return not isinstance(v,str)
-                       except TypeError:
-                           return False
-
-                   if hasattr(__user,'datapath') and is_iter_container(__user.datapath):
-                       return list(filter(__os.path.isdir, list(map(__os.path.expanduser,__user.datapath))))
-                   else:
-                       return [ ]
-
-               def __find_user_nogui( ):
-                 result = False
-                 if (hasattr(__user,'nogui') and isinstance(__user.nogui,bool)):
-                    result = __user.nogui
-                 return result
-
-               def __find_user_agg( ):
-                 result = False
-                 if (hasattr(__user,'agg') and isinstance(__user.agg,bool)):
-                    result = __user.agg
-                 return result
-
-               def __find_user_pipeline( ):
-                 result = False
-                 if (hasattr(__user,'pipeline') and isinstance(__user.pipeline,bool)):
-                    result = __user.pipeline
-                 return result
-
                sakura( ).initialize_sakura( )    ## sakura requires explicit initialization
 
-               ctsys = __utils( )
-               _distro_dpath = None
-               _dpath = [ ]
+               user_datapath = list(np.atleast_1d(__user.datapath)) if hasattr(__user,'datapath') else []
+               user_datapath = [__os.path.expanduser(udp) for udp in user_datapath if __os.path.isdir(__os.path.expanduser(str(udp)))]
+               user_nogui = __user.nogui if (hasattr(__user,'nogui') and isinstance(__user.nogui,bool)) else False
+               user_agg = __user.agg if (hasattr(__user,'agg') and isinstance(__user.agg,bool)) else False
+               user_pipeline = __user.pipeline if (hasattr(__user,'pipeline') and isinstance(__user.pipeline,bool)) else False
 
-               _user_data = None
-               if hasattr(__user,'rundata'):
-                    if not __os.path.isdir(__os.path.expanduser(__user.rundata)):
-                        if __sys.argv[0] != '-m':
-                            print("ignoring rundata setting (%s) because it is not a directory" % __user.rundata,file=__sys.stderr)
-                    else:
-                        _user_data = __os.path.expanduser(__user.rundata)
+               user_rundata = __os.path.expanduser(__user.rundata) if hasattr(__user,'rundata') else ''
+               if (__sys.argv[0] != '-m') and (not __os.path.isdir(user_rundata)):
+                   user_rundata = __os.path.expanduser("~/.casa/measures")
+                   print('rundata path not found, defaulting to %s' % user_rundata)
 
-               if _user_data is None:
-                   try:
-                       import casashell as __cs
-                       _user_data = __os.path.expanduser(__os.path.join(__cs._rcdir,'data'))
-                   except Exception as e:
-                       _user_data = __os.path.expanduser("~/.casa/data")
-
-               if __os.path.isdir(_user_data):
-                   _dpath = _dpath + [ _user_data ]
-                   _iers = __os.path.join(_user_data,'geodetic','IERSeop2000')
-                   if __os.path.isdir(_iers):
-                       _distro_dpath = _user_data
-
-               if _distro_dpath is None:
-                   try:
-                       import casaconfig
-                       _distro_dpath = casaconfig.datapath
-                       _dpath = _dpath + [ _distro_dpath ]
-                   except: pass
-
-               ctsys.initialize( __sys.executable, "" if _distro_dpath is None else _distro_dpath,
-                                 __find_user_data_path( ) + _dpath,
-                                 __find_user_nogui( ), __find_user_agg( ), __find_user_pipeline( ) )
+               ctsys = __utils()
+               ctsys.initialize( __sys.executable, user_rundata, user_datapath, user_nogui, user_agg, user_pipeline )
 
 
                if not __os.path.exists(__os.path.expanduser("~/.casa")):
                    __os.system('mkdir %s' % __os.path.expanduser("~/.casa"))
 
-               logger = None
-               if hasattr(__user,'logfile'):
-                   logger = logsink(__user.logfile)
+               logger = logsink(__user.logfile) if hasattr(__user,'logfile') else None
 
-               if (logger is not None) and hasattr(__user,'configrc'):
+               if (__sys.argv[0] != '-m') and (hasattr(__user,'configrc')):
                    print('Using %s' % __user.configrc)
-                   logger.post('Using %s' % __user.configrc, 'INFO')
+                   if logger is not None:
+                       logger.post('Using %s' % __user.configrc, 'INFO')
 
                if hasattr(__user,'populate_data') and (__user.populate_data == True):
                    pull_data(ctsys.getpath()[0], logger=logger)
@@ -593,12 +539,11 @@ def generate_pyinit(moduledir,tools):
                if hasattr(__user,'measures_update') and (__user.measures_update == True):
                    measures_update(ctsys.rundata(), logger=logger)
 
+               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.join(user_rundata, 'geodetic/IERSeop2000'))):
+                   raise ImportError('cant find measures data, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+
                if __sys.argv[0] != '-m':
-                   __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
-                   if __resolved_iers == 'geodetic/IERSeop2000':
-                       raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
-                   if len(ctsys.rundata( )) == 0:
-                       ctsys.setrundata(__resolved_iers[:-21])
+                   ctsys.setrundata(user_rundata)
 
                from .coercetype import coerce as __coerce
 
@@ -609,7 +554,7 @@ def generate_pyinit(moduledir,tools):
 
                import atexit as __atexit
                __atexit.register(ctsys.shutdown) ## c++ shutdown
-              '''
+               '''
         fd.write(dedent(config))
 
 def generate_config(moduledir,propdict):

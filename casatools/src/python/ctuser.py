@@ -50,7 +50,7 @@ def _stdout_redirected(to=os.devnull, stdout=None):
     stdout_fd = _fileno(stdout)
     # copy stdout_fd before it is overwritten
     #NOTE: `copied` is inheritable on Windows when duplicating a standard stream
-    with os.fdopen(os.dup(stdout_fd), 'wb') as copied: 
+    with os.fdopen(os.dup(stdout_fd), 'wb') as copied:
         stdout.flush()  # flush library buffers that dup2 knows nothing about
         try:
             os.dup2(_fileno(to), stdout_fd)  # $ exec >&to
@@ -87,29 +87,13 @@ if len(sys.argv) > 0 and sys.argv[0] == '-m':
     ##  casatools state. Output from user files causes problems for this.
     with _stdout_redirected(to=os.devnull), _merged_stderr_stdout():
         try:
+            exec(open(configrc).read())
             from casatoolrc import *
         except:
-            try:
-                f = open(configrc)
-            except IOError:
-                pass
-            else:
-                f.close()
-                try:
-                    exec(open(configrc).read( ))
-                except:
-                    sys.stderr.write("error: evaluation of %s failed\n" % configrc)
+            sys.stderr.write("error: evaluation of %s failed\n" % configrc)
 else:
     try:
+        exec(open(configrc).read())
         from casatoolrc import *
     except:
-        try:
-            f = open(configrc)
-        except IOError:
-            pass
-        else:
-            f.close()
-            try:
-                exec(open(configrc).read( ))
-            except:
-                sys.stderr.write("error: evaluation of %s failed\n" % configrc)
+        sys.stderr.write("error: evaluation of %s failed\n" % configrc)
