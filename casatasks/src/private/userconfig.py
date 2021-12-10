@@ -73,31 +73,14 @@ if len(sys.argv) > 0 and sys.argv[0] == '-m':
     ##  casatools state. Output from user files causes problems for this.
     with _stdout_redirected(to=os.devnull):
         try:
+            exec(open(configrc).read())
             from casataskrc import *
         except:
-            try:
-                f = open(configrc)
-            except IOError:
-                pass
-            else:
-                f.close()
-                try:
-                    exec(open(configrc).read( ))
-                except:
-                    sys.stderr.write("error: evaluation of %s failed\n" % configrc)
+            sys.stderr.write("error: evaluation of %s failed\n" % configrc)
 else:
     try:
+        exec(open(configrc).read())
         from casataskrc import *
     except:
-        try:
-            f = open(configrc)
-        except IOError:
-            pass
-        else:
-            f.close()
-            try:
-                exec(open(configrc).read())
-            except:
-                import sys
-                sys.stderr.write("error: evaluation of %s failed\n" % configrc)
+        sys.stderr.write("error: evaluation of %s failed\n" % configrc)
 
