@@ -39,6 +39,7 @@ def fringefit(vis=None,caltable=None,
 
         # Do data selection according to selectdata
         if (selectdata):
+            casalog.post("Selecting data")
             # pass all data selection parameters in as specified
             mycb.selectvis(time=timerange,spw=spw, scan=scan, field=field,
                            intent=intent, observation=str(observation),
@@ -120,7 +121,7 @@ def fringefit(vis=None,caltable=None,
 
         # ...and now the specialized terms
         # (BTW, interp irrelevant for these, since they are evaluated)
-                
+
         # Apply parallactic angle, if requested
         if parang: mycb.setapply(type='P')
 
