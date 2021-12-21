@@ -21,7 +21,7 @@ def fringefit(vis=None,caltable=None,
               minsnr=None,zerorates=None,globalsolve=None,niter=None,
               delaywindow=None,ratewindow=None,append=None,
               corrdepflags=None,
-              combinepols=None,
+              corrcomb=None,
               docallib=None,callib=None,gaintable=None,gainfield=None,interp=None,spwmap=None,
               paramactive=None,
               parang=None):
@@ -29,6 +29,8 @@ def fringefit(vis=None,caltable=None,
     #Python script
     casalog.origin('fringefit')
 
+    # 
+    print("task_fringfit.py: corrcomb={}".format(corrcomb))
     try: 
         mycb = calibrater()
 
@@ -131,7 +133,7 @@ def fringefit(vis=None,caltable=None,
                       zerorates=zerorates,
                       globalsolve=globalsolve,
                       niter=niter,
-                      polcombine=combinepols,
+                      corrcomb=corrcomb,
                       delaywindow=delaywindow,
                       ratewindow=ratewindow,
                       paramactive=paramactive,

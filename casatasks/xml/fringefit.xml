@@ -162,10 +162,11 @@ Previous calibrations should be applied on the fly.
       <value>False</value>
     </param>
 
-    <param type="bool" name="combinepols">
-      <shortdescription>Combine polarisations</shortdescription>
-      <description>Combine polarisations</description>
-      <value>False</value>
+    <param type="string" name="corrcomb">
+      <shortdescription>Combine correlations</shortdescription>
+      <description>Combine correlations: "all" and "none" are currently
+      supported values</description>
+      <value>none</value>
     </param>
       
   <param type="bool" name="docallib">

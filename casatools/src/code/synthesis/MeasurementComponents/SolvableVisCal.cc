@@ -484,6 +484,7 @@ SolvableVisCal::SolvableVisCal(VisSet& vs) :
   solnorm_(false,"mean"),
   minSNR_(0.0f),
   combine_(""),
+  corrcomb_("none"),
   focusChan_(0),
   dataInterval_(0.0),
   fitWt_(0.0),
@@ -1620,11 +1621,6 @@ void SolvableVisCal::setSolve(const Record& solve)
 
   if (solve.isDefined("combine"))
     combine()=solve.asString("combine");
-
-  // small@jive.eu 2021-07-07
-  if (solve.isDefined("polcombine"))
-      polCombine() = solve.asBool("polcombine");
-  
   //  cout << "SVC::setsolve: minSNR() = " << minSNR() << endl;
 
   // TBD: Warn if table exists (and append=F)!

@@ -241,11 +241,38 @@ class FreqMetaTests(unittest.TestCase):
 
 
         
-        
+class Fringefit_corrcomb(unittest.TestCase):
+    prefix = 'n08c1-single'
+    msfile = prefix + '.ms'
+    sbdcal = prefix + '-comb.sbdcal'
+
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, self.msfile), self.msfile)
+        flagdata(self.prefix + '.ms', mode='manual', spw='*:0~2;29~31')
+        flagdata(self.prefix + '.ms', mode='manual', antenna='EF')
+
+    def tearDown(self):
+        shutil.rmtree(self.msfile)
+        shutil.rmtree(self.msfile + '.flagversions')
+        shutil.rmtree(self.sbdcal, True)
+
+    def test_comb(self):
+        print("Testing comb")
+        eps = 1e-2
+        refant_ind = 1
+        fringefit(vis=self.msfile, caltable=self.sbdcal, refant='WB', corrcomb="all", spw='0')
+        tblocal.open(self.sbdcal)
+        fparam = tblocal.getcol('FPARAM')
+        flag = tblocal.getcol('FLAG')
+        tblocal.close()
+        # FIXME: Nothing here to test...
+
         
         
 def suite():
-    return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests]
+    # return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests,
+    #         Fringefit_corrcomb]
+    return [Fringefit_corrcomb]
 
 if __name__ == '__main__':
     unittest.main()

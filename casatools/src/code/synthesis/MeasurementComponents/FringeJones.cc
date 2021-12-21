@@ -2131,11 +2131,11 @@ void FringeJones::setSolve(const Record& solve) {
     if (solve.isDefined("paramactive")) {
         paramActive() = solve.asArrayBool("paramactive");
     }
-    if (solve.isDefined("polcombine")) {
-        cerr << "FringeJones::setsolve() Polcombine is set! To:"
-             << solve.asBool("polcombine")
+    if (solve.isDefined("corrcomb")) {
+        cerr << "FringeJones::setsolve() Corrcomb is set! To:"
+             << solve.asString("corrcomb")
              << endl;
-        polCombine() = solve.asBool("polcombine");
+        corrcomb() = solve.asString("corrcomb");
     }
 }
 
@@ -2419,8 +2419,8 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
         }
     }
     // Copy the results to the second polarisation for combined pols
-    if (polCombine()) { 
-        logSink() << "Polarizations combined: Copying results to other polarisation" << LogIO::POST;
+    if (corrcomb()=="all") { 
+        logSink() << "Correlations combined: Copying results to other correlation" << LogIO::POST;
         for (Int iant=0; iant != nAnt(); iant++) {
             for (Int i=0; i !=4; i++) {
                 sRP(4+i, iant) = sRP(i, iant);

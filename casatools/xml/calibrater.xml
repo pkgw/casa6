@@ -730,9 +730,11 @@ Default is True. </description>
      </param>
 
  
-     <param name="polcombine" direction="in" type="bool">
-     <description>[FRINGE-FIT SPECIFIC] Combine polarizations</description>
-     <value>false</value>
+     <param name="corrcomb" direction="in" type="string">
+     <description>[FRINGE-FIT SPECIFIC] Combine correlations (currently
+supported values are "none" and "all")
+     </description>
+     <value>none</value>
      </param>
     
      <param name="delaywindow" direction="in" type="doubleVec">

@@ -267,7 +267,7 @@ void CalSolVi2Organizer::addCalFilter(Record const &config) {
 
 
 
-void CalSolVi2Organizer::addPolCombine() {
+void CalSolVi2Organizer::addCorrCombine() {
   //  Must be at least one other layer already...
     AlwaysAssert(factories_.nelements()>0, AipsError);
 
