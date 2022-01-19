@@ -515,7 +515,7 @@ def generate_pyinit(moduledir,tools):
                user_pipeline = __user.pipeline if (hasattr(__user,'pipeline') and isinstance(__user.pipeline,bool)) else False
 
                user_rundata = __os.path.expanduser(__user.rundata) if hasattr(__user,'rundata') else ''
-               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_rundata)):
+               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_rundata))):
                    user_rundata = __os.path.expanduser("~/.casa/measures")
                    print('rundata path not found, defaulting to %s' % user_rundata)
 
