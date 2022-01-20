@@ -31,6 +31,7 @@ configrc = os.path.join(home, ".casa/config.py")
 configrc = configrc if os.path.exists(configrc) else pkg_resources.resource_filename('casaconfig', 'config.py')
 
 # call casashell's casatoolrc in case there is a command line argument to overwrite the rcdir
+exec(open(configrc).read())
 try:
     exec(open(configrc).read())
     from casatoolrc import *
