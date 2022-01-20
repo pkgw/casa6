@@ -26,6 +26,7 @@ elif os.name == 'nt':  # Contributed by Jeff Bauer
             home = os.environ['HOMEPATH']
 
 # call casashell's casatoolrc in case there is a command line argument to overwrite the rcdir
+exec(open(configrc).read())
 try:
     # this will trigger the reading of the appropriate config.py
     from casatoolrc import *
