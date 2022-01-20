@@ -540,7 +540,7 @@ def generate_pyinit(moduledir,tools):
                    measures_update(ctsys.rundata(), logger=logger)
 
                if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(__os.path.join(user_rundata, 'geodetic/IERSeop2000')))):
-                   raise ImportError('cant find measures data, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+                   raise ImportError('cant find measures data in ' + __os.path.realpath(__os.path.join(user_rundata, 'geodetic/IERSeop2000')) +  ', visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
 
                if __sys.argv[0] != '-m':
                    ctsys.setrundata(user_rundata)
