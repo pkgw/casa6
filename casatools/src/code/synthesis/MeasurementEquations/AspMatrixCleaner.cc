@@ -1018,6 +1018,9 @@ void AspMatrixCleaner::setInitScales()
     }
     else 
     {
+      itsInitScaleSizes.resize(1, false);
+      itsInitScaleSizes[0] = 0.0f;
+
       Int scale = 1;
       while (((itsPsfWidth * pow(2, scale-1)) < itsUserLargestScale) && (scale < 5))
       {
@@ -1028,7 +1031,7 @@ void AspMatrixCleaner::setInitScales()
       if (scale <= 4) // restricted the # init scales based on `largestscale"
         itsInitScaleSizes.push_back(itsUserLargestScale);
 
-      itsNInitScales = itsInitScaleSizes.size();      
+      itsNInitScales = itsInitScaleSizes.size();     
     }
 
   }
