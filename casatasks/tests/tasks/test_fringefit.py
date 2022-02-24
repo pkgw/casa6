@@ -44,22 +44,15 @@ datapath = ctsys_resolve('unittest/fringefit/')
 class Fringefit_tests(unittest.TestCase):
     prefix = 'n08c1'
     msfile = prefix + '.ms'
-    polcombtestms = 'gaincalcopy.ms'
-    testout = 'polcombout.cal'
-
 
     def setUp(self):
         shutil.copytree(os.path.join(datapath, self.msfile), self.msfile)
-        shutil.copytree(os.path.join(datapath, 'gaincaltest2.ms'), self.polcombtestms)
 
     def tearDown(self):
         shutil.rmtree(self.msfile)
         shutil.rmtree(self.prefix + '.sbdcal', True)
         shutil.rmtree(self.prefix + '-zerorates.sbdcal', True)
         shutil.rmtree(self.prefix + '.mbdcal', True)
-        shutil.rmtree(self.polcombtestms)
-        if os.path.exists(self.testout):
-            shutil.rmtree(self.testout)
 
     def test_sbd(self):
         sbdcal = self.prefix + '.sbdcal'
@@ -76,21 +69,6 @@ class Fringefit_tests(unittest.TestCase):
                    combine='spw', gaintable=[sbdcal], refant='EF')
         reference = os.path.join(datapath, mbdcal)
         self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
-
-    def test_combinePols(self):
-        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='none')
-
-        tblocal.open(self.testout)
-        none_result = np.nanmean(tblocal.getcol('SNR'))
-        tblocal.close()
-
-        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='all')
-
-        tblocal.open(self.testout)
-        combine_result = np.nanmean(tblocal.getcol('SNR'))
-        tblocal.close()
-
-        self.assertTrue(combine_result > none_result)
 
 
 class Fringefit_single_tests(unittest.TestCase):
@@ -263,10 +241,34 @@ class FreqMetaTests(unittest.TestCase):
             self.assertTrue(True)
 
 
+class Fringefit_corrcomb(unittest.TestCase):
+    polcombtestms = 'gaincalcopy.ms'
+    testout = 'polcombout.cal'
+
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, 'gaincaltest2.ms'), self.polcombtestms)
+
+    def tearDown(self):
+        shutil.rmtree(self.polcombtestms)
+        if os.path.exists(self.testout):
+            shutil.rmtree(self.testout)
+
+    def test_comb(self):
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='none')
+
+        tblocal.open(self.testout)
+        none_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='all')
+
+        tblocal.open(self.testout)
+        combine_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        self.assertTrue(combine_result > none_result)
         
-        
-        
-        
+
 def suite():
     return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests]
 
