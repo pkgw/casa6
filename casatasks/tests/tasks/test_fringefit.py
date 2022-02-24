@@ -270,7 +270,7 @@ class Fringefit_corrcomb(unittest.TestCase):
         
 
 def suite():
-    return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests]
+    return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests, Fringefit_corrcomb]
 
 if __name__ == '__main__':
     unittest.main()
