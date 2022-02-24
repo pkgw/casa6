@@ -5,6 +5,7 @@ import sys
 import shutil
 import unittest
 import itertools
+import numpy as np
 
 # For information about parameters that are unexpectedly zero, set
 # VERBOSE to true.  Currently there are none, so this is for developers
@@ -43,15 +44,22 @@ datapath = ctsys_resolve('unittest/fringefit/')
 class Fringefit_tests(unittest.TestCase):
     prefix = 'n08c1'
     msfile = prefix + '.ms'
+    polcombtestms = 'gaincalcopy.ms'
+    testout = 'polcombout.cal'
+
 
     def setUp(self):
         shutil.copytree(os.path.join(datapath, self.msfile), self.msfile)
+        shutil.copytree(os.path.join(datapath, 'gaincaltest2.ms'), self.polcombtestms)
 
     def tearDown(self):
         shutil.rmtree(self.msfile)
         shutil.rmtree(self.prefix + '.sbdcal', True)
         shutil.rmtree(self.prefix + '-zerorates.sbdcal', True)
         shutil.rmtree(self.prefix + '.mbdcal', True)
+        shutil.rmtree(self.polcombtestms)
+        if os.path.exists(self.testout):
+            shutil.rmtree(self.testout)
 
     def test_sbd(self):
         sbdcal = self.prefix + '.sbdcal'
@@ -68,6 +76,21 @@ class Fringefit_tests(unittest.TestCase):
                    combine='spw', gaintable=[sbdcal], refant='EF')
         reference = os.path.join(datapath, mbdcal)
         self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
+
+    def test_combinePols(self):
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='none')
+
+        tblocal.open(self.testout)
+        none_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='all')
+
+        tblocal.open(self.testout)
+        combine_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        self.assertTrue(combine_result > none_result)
 
 
 class Fringefit_single_tests(unittest.TestCase):
@@ -241,38 +264,11 @@ class FreqMetaTests(unittest.TestCase):
 
 
         
-class Fringefit_corrcomb(unittest.TestCase):
-    prefix = 'n08c1-single'
-    msfile = prefix + '.ms'
-    sbdcal = prefix + '-comb.sbdcal'
-
-    def setUp(self):
-        shutil.copytree(os.path.join(datapath, self.msfile), self.msfile)
-        flagdata(self.prefix + '.ms', mode='manual', spw='*:0~2;29~31')
-        flagdata(self.prefix + '.ms', mode='manual', antenna='EF')
-
-    def tearDown(self):
-        shutil.rmtree(self.msfile)
-        shutil.rmtree(self.msfile + '.flagversions')
-        shutil.rmtree(self.sbdcal, True)
-
-    def test_comb(self):
-        print("Testing comb")
-        eps = 1e-2
-        refant_ind = 1
-        fringefit(vis=self.msfile, caltable=self.sbdcal, refant='WB', corrcomb="all", spw='0')
-        tblocal.open(self.sbdcal)
-        fparam = tblocal.getcol('FPARAM')
-        flag = tblocal.getcol('FLAG')
-        tblocal.close()
-        # FIXME: Nothing here to test...
-
+        
         
         
 def suite():
-    # return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests,
-    #         Fringefit_corrcomb]
-    return [Fringefit_corrcomb]
+    return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests]
 
 if __name__ == '__main__':
     unittest.main()
