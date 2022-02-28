@@ -25,14 +25,13 @@ elif os.name == 'nt':  # Contributed by Jeff Bauer
         else:
             home = os.environ['HOMEPATH']
 
-# use ~/.casa/config.py if it exists
-# otherwise use default from casaconfig package
-configrc = os.path.join(home, ".casa/config.py")
-configrc = configrc if os.path.exists(configrc) else pkg_resources.resource_filename('casaconfig', 'config.py')
-exec(open(configrc).read())
-
 # call casashell's casatoolrc in case there is a command line argument to overwrite the rcdir
 try:
+    # this will trigger the reading of the appropriate config.py
     from casatoolrc import *
-except:
-    pass
+except: # otherwise we do it ourselves
+    # use ~/.casa/config.py if it exists
+    # otherwise use default from casaconfig package
+    configrc = os.path.join(home, ".casa/config.py")
+    configrc = configrc if os.path.exists(configrc) else pkg_resources.resource_filename('casaconfig', 'config.py')
+    exec(open(configrc).read())
