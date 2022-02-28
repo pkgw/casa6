@@ -185,6 +185,8 @@ using namespace casa::vi;
       nVisChan_p.resize();
       nVisChan_p=other.nVisChan_p;
       spectralCoord_p=other.spectralCoord_p;
+      visPolMap_p.resize();
+      visPolMap_p=other.visPolMap_p;
       //doConversion_p.resize();
       //doConversion_p=other.doConversion_p;
       pointingDirCol_p=other.pointingDirCol_p;
@@ -477,15 +479,13 @@ using namespace casa::vi;
       nvischan  = vb.getFrequencies(0).nelements();
       interpVisFreq_p.resize();
       interpVisFreq_p=vb.getFrequencies(0);
-      /*if(selectedSpw_p.nelements() < 1){
-        Vector<Int> myspw(1);
-        myspw[0]=vb.spectralWindows()(0);
-        setSpw(myspw, freqFrameValid_p);
-      }
-      */
-
-      //matchAllSpwChans(vb);
       
+      // Polarization map
+      visPolMap_p.resize();
+      polMap.resize();
+      
+      //As matchChannel calls matchPol ...it has to be called after making sure
+      //polMap and visPolMap are zero size to force a polMap matching
       chanMap.resize();
       matchChannel(vb);
       //chanMap=multiChanMap_p[vb.spectralWindows()(0)];
@@ -500,69 +500,12 @@ using namespace casa::vi;
         logIO() << "Illegal Channel Map: " << chanMap << LogIO::EXCEPTION;
       }
 
-      // Polarization map
-      Int stokesIndex=coords.findCoordinate(Coordinate::STOKES);
-      AlwaysAssert(stokesIndex>-1, AipsError);
-      StokesCoordinate stokesCoord=coords.stokesCoordinate(stokesIndex);
-      Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
-      nvispol=visPolMap.nelements();
-      AlwaysAssert(nvispol>0, AipsError);
-      polMap.resize(nvispol);
-      polMap=-1;
-      Int pol=0;
-      Bool found=false;
-      // First we try matching Stokes in the visibilities to
-      // Stokes in the image that we are gridding into.
-      for (pol=0;pol<nvispol;pol++) {
-        Int p=0;
-        if(stokesCoord.toPixel(p, Stokes::type(visPolMap(pol)))) {
-        	AlwaysAssert(p<npol, AipsError);
-        	polMap(pol)=p;
-        	found=true;
-        }
-      }
-      // If this fails then perhaps we were looking to grid I
-      // directly. If so then we need to check that the parallel
-      // hands are present in the visibilities.
-      if(!found) {
-    	  Int p=0;
-    	  if(stokesCoord.toPixel(p, Stokes::I)) {
-    		  polMap=-1;
-    		  if(vb.polarizationFrame()==MSIter::Linear) {
-    			  p=0;
-    			  for (pol=0;pol<nvispol;pol++) {
-    				  if(Stokes::type(visPolMap(pol))==Stokes::XX)
-    				  {polMap(pol)=0;p++;found=true;};
-    				  if(Stokes::type(visPolMap(pol))==Stokes::YY)
-    				  {polMap(pol)=0;p++;found=true;};
-    			  }
-        	}
-        	else {
-        		p=0;
-        		for (pol=0;pol<nvispol;pol++) {
-        			if(Stokes::type(visPolMap(pol))==Stokes::LL)
-        			{polMap(pol)=0;p++;found=true;};
-        			if(Stokes::type(visPolMap(pol))==Stokes::RR)
-        			{polMap(pol)=0;p++;found=true;};
-        		}
-        	}
-    		if(!found) {
-    			logIO() <<  "Cannot find polarization map: visibility polarizations = "
-    					<< visPolMap << LogIO::EXCEPTION;
-    		}
-    	else {
-    		
-    		//logIO() << LogIO::DEBUGGING << "Transforming I only" << LogIO::POST;
-    	}
-    	  };
-      }
-      //logIO() << LogIO::DEBUGGING << "Polarization map = "<< polMap
-      //	    << LogIO::POST;
 
+      
       initPolInfo(vb);
-      Vector<Int> intpolmap(visPolMap.nelements());
+      Vector<Int> intpolmap(visPolMap_p.nelements());
       for (uInt kk=0; kk < intpolmap.nelements(); ++kk){
-	intpolmap[kk]=Int(visPolMap[kk]);
+	intpolmap[kk]=Int(visPolMap_p[kk]);
       }
       pop_p->initCFMaps(intpolmap, polMap);
 
@@ -1536,7 +1479,6 @@ using namespace casa::vi;
     outRecord.define("chanmap", chanMap);
     outRecord.define("polmap", polMap);
     outRecord.define("nvischanmulti", nVisChan_p);
-
     //save moving source related variables
     storeMovingSourceState(error, outRecord);
     //outRecord.define("doconversion", doConversion_p);
@@ -1735,6 +1677,7 @@ using namespace casa::vi;
       spectralCoord_p=*tmpSpec;
       delete tmpSpec;
     }
+    visPolMap_p.resize();
     if(inRecord.isDefined("ephemeristable")){
       String ephemtab;
       inRecord.get("ephemeristable", ephemtab);
@@ -1980,13 +1923,76 @@ using namespace casa::vi;
         return false;
       }
 
+      return matchPol(vb);
+      
 
-
-
-      return true;
 
     }
 
+  Bool FTMachine::matchPol(const vi::VisBuffer2& vb){
+    Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
+    if((polMap.nelements() > 0) &&(visPolMap.nelements() == visPolMap_p.nelements()) &&allEQ(visPolMap, visPolMap_p))
+      return True;
+    Int stokesIndex=image->coordinates().findCoordinate(Coordinate::STOKES);
+    AlwaysAssert(stokesIndex>-1, AipsError);
+    StokesCoordinate stokesCoord=image->coordinates().stokesCoordinate(stokesIndex);
+
+
+    visPolMap_p.resize();
+    visPolMap_p=visPolMap;
+    nvispol=visPolMap.nelements();
+    AlwaysAssert(nvispol>0, AipsError);
+    polMap.resize(nvispol);
+    polMap=-1;
+    Int pol=0;
+    Bool found=false;
+    // First we try matching Stokes in the visibilities to
+    // Stokes in the image that we are gridding into.
+    for (pol=0;pol<nvispol;pol++) {
+      Int p=0;
+      if(stokesCoord.toPixel(p, Stokes::type(visPolMap(pol)))) {
+        AlwaysAssert(p<npol, AipsError);
+        polMap(pol)=p;
+        found=true;
+      }
+    }
+      // If this fails then perhaps we were looking to grid I
+      // directly. If so then we need to check that the parallel
+      // hands are present in the visibilities.
+    if(!found) {
+      Int p=0;
+      if(stokesCoord.toPixel(p, Stokes::I)) {
+        polMap=-1;
+        if(vb.polarizationFrame()==MSIter::Linear) {
+          p=0;
+          for (pol=0;pol<nvispol;pol++) {
+            if(Stokes::type(visPolMap(pol))==Stokes::XX)
+              {polMap(pol)=0;p++;found=true;};
+            if(Stokes::type(visPolMap(pol))==Stokes::YY)
+              {polMap(pol)=0;p++;found=true;};
+          }
+        }
+        else {
+          p=0;
+          for (pol=0;pol<nvispol;pol++) {
+            if(Stokes::type(visPolMap(pol))==Stokes::LL)
+              {polMap(pol)=0;p++;found=true;};
+            if(Stokes::type(visPolMap(pol))==Stokes::RR)
+              {polMap(pol)=0;p++;found=true;};
+          }
+        }
+        if(!found) {
+          logIO() <<  "Cannot find polarization map: visibility polarizations = "
+    					<< visPolMap << LogIO::EXCEPTION;
+        }
+    	else {
+    		
+    		//logIO() << LogIO::DEBUGGING << "Transforming I only" << LogIO::POST;
+    	}
+      };
+    }
+    return True;
+  } 
 
   Vector<String> FTMachine::cleanupTempFiles(const String& mess){
     briggsWeightor_p=nullptr;
@@ -2539,12 +2545,22 @@ using namespace casa::vi;
         Bool donesumwt=(max(imstore->sumwt()->get()) > 0.0);
         if(!donesumwt){
           Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
-	StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
-
-	AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
+        CoordinateSystem incoord=image->coordinates();
+        CoordinateSystem outcoord=imstore->sumwt()->coordinates();
+        StokesImageUtil::ToStokesSumWt(sumWeightStokes, sumWeights, outcoord, incoord);
+        
+        
+        Array<Float> sumWtArr(IPosition(4,1,1,sumWeights.shape()[0], sumWeights.shape()[1]));
+        
+        IPosition blc(4, 0, 0, 0, 0);
+         IPosition trc(4, 0, 0, sumWeightStokes.shape()[0]-1, sumWeightStokes.shape()[1]-1);
+        sumWtArr(blc, trc).reform(sumWeightStokes.shape())=sumWeightStokes;
+        
+	//StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
+		AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
 		      ((imstore->sumwt())->shape()[3] == sumWeightStokes.shape()[1] ) , AipsError );
 
-	(imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
+		(imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
         }
         imstore->sumwt()->unlock();
 	
