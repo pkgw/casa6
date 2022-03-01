@@ -174,7 +174,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Method to initialize the internal memory cache.
     //
     void initCache();
-    void initCache2(casacore::Bool verbose=false, casacore::Float selectedPA=400.0, casacore::Float dPA=-1.0);
+    void initCache2(casacore::Bool verbose=false, casacore::Float selectedPA=400.0, casacore::Float dPA=-1.0,
+		    casacore::String prefix=casacore::String(""));
     void initCacheFromList2(const casacore::String& path, 
 			    const casacore::Vector<casacore::String>& cfFileNames, 
 			    const casacore::Vector<casacore::String>& cfWtFileNames, 

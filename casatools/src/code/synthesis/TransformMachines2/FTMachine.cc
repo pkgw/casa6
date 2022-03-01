@@ -2625,6 +2625,89 @@ using namespace casa::vi;
     return;
   };
 
+
+/////------------------------------------------------
+void FTMachine::finalizeToWeightImage(const VisBuffer2& vb,
+				   CountedPtr<SIImageStore> imstore  )				   
+  {
+    // Check vector lengths. 
+    AlwaysAssert( imstore->getNTaylorTerms(false)==1, AipsError);
+
+    Matrix<Float> sumWeights;
+
+    //------------------------------------------------------------------------------------
+    // Straightforward case. No extra primary beams. No image mosaic
+    if(sj_p.nelements() == 0 ) 
+      {
+       
+        
+	if( useWeightImage()  ) {
+          //if( name().contains("Mosaic") ){
+          {
+              finalizeToSky();
+            }
+          LatticeLocker lock1 (*(imstore->weight()), FileLocker::Write);
+	  getWeightImage( *(imstore->weight())  , sumWeights);
+          imstore->weight()->unlock();
+
+	  // Fill weight image only once, during PSF generation. Remember.... it is normalized only once
+	  // during PSF generation.
+	}
+	if(sumWeights.nelements() >0){
+          // Take sumWeights from corrToStokes here....
+          LatticeLocker lock1 (*(imstore->sumwt()), FileLocker::Write);
+          Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
+          StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
+          
+          AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
+                        ((imstore->sumwt())->shape()[3] == sumWeightStokes.shape()[1] ) , AipsError );
+          
+          (imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
+          imstore->sumwt()->unlock();
+        }
+	
+      }
+    //------------------------------------------------------------------------------------
+    // Image Mosaic only :  Multiply the residual, and weight image by the PB.
+    else 
+      {
+      
+      // Now, do the same with the weight image and sumwt ( only on the first pass )
+	{
+	  SubImage<Float>  weightImage(  *(imstore->weight()) , true);
+	  TempImage<Float> temp(weightImage.shape(), weightImage.coordinates());
+	  getWeightImage(temp, sumWeights);
+
+	  for (uInt k=0; k < sj_p.nelements(); ++k){
+	    (sj_p(k))->applySquare(temp,temp, vb, -1);
+	  }
+
+	  LatticeExpr<Float> addToWgt( weightImage + temp );
+	  weightImage.copyData(addToWgt);
+	  
+	  AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeights.shape()[0] ) && 
+			((imstore->sumwt())->shape()[3] == sumWeights.shape()[1] ) , AipsError );
+
+	  SubImage<Float>  sumwtImage(  *(imstore->sumwt()) , true);
+	  TempImage<Float> temp2(sumwtImage.shape(), sumwtImage.coordinates());
+	  temp2.put( sumWeights.reform(sumwtImage.shape()) );
+	  LatticeExpr<Float> addToWgt2( sumwtImage + temp2 );
+	  sumwtImage.copyData(addToWgt2);
+	  
+	  //cout << "In finalizeGridCoreMos : sumwt : " << sumwtImage.get() << endl;
+	  
+	}
+
+      }
+    //------------------------------------------------------------------------------------
+
+
+    
+    return;
+  };
+
+
+  
   Bool FTMachine::changedSkyJonesLogic(const vi::VisBuffer2& vb, Bool& firstRow, Bool& internalRow)
   {
     firstRow=false;
@@ -2644,6 +2727,19 @@ using namespace casa::vi;
     }
     return (firstRow || internalRow) ;
   }
+
+  std::shared_ptr<std::complex<double>> FTMachine::getGridPtr(size_t& size) const
+  {
+    size = 0;
+    return std::shared_ptr<std::complex<double>>();
+  }
+
+  std::shared_ptr<double> FTMachine::getSumWeightsPtr(size_t& size) const
+  {
+    size = 0;
+    return std::shared_ptr<double>();
+  }
+
   void FTMachine::setCFCache(CountedPtr<CFCache>& /*cfc*/, const Bool /*loadCFC*/) 
   {
     throw(AipsError("FTMachine::setCFCache() directly called!"));

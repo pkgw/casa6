@@ -192,7 +192,11 @@ public:
   virtual void finalizeToSkyNew(casacore::Bool dopsf, 
 				const vi::VisBuffer2& vb,
 					   casacore::CountedPtr<SIImageStore> imstore  );
+  //Do the finalization for A projection weight images
+  virtual void finalizeToWeightImage(const vi::VisBuffer2& vb,
+					   casacore::CountedPtr<SIImageStore> imstore  );
 
+  
   //-------------------------------------------------------------------------------------
 
   // Get actual coherence from grid
@@ -208,6 +212,10 @@ public:
   	           refim::FTMachine::Type type= refim::FTMachine::OBSERVED)
   {put((const vi::VisBuffer2&)vb,row,dopsf,type);};
 
+  // This is needed for A-term FTMachines. Others it is effectively a NOP
+  // Or sumweights on all pixels
+  virtual void gridImgWeights(const vi::VisBuffer2& /*vb*/) { return;   };
+  
   //-------------------------------------------------------------------------------------
   virtual void correlationToStokes(casacore::ImageInterface<casacore::Complex>& compImage, 
 				   casacore::ImageInterface<casacore::Float>& resImage, 
@@ -249,9 +257,16 @@ public:
 
 
   //-------------------------------------------------------------------------------------
- 
-  // Get the gridded visibilities or weight 
+
+  // Get the gridded visibilities or weight
   template <typename T> void getGrid(casacore::Array<T>& thegrid);
+  // get pointers to storage for gridded visibilities or weight; size
+  // to number of elements in storage; may not be implemented by all
+  // sub-classes, if not, will return empty shared_ptr and size equal
+  // to 0
+  virtual std::shared_ptr<std::complex<double>> getGridPtr(size_t& size) const;
+  virtual std::shared_ptr<double> getSumWeightsPtr(size_t& size) const;
+
   // Get the final image
   virtual casacore::ImageInterface<casacore::Complex>& getImage(casacore::Matrix<casacore::Float>&, casacore::Bool normalize=true) = 0;
   virtual const casacore::CountedPtr<refim::ConvolutionFunction>& getAWConvFunc() {return convFuncCtor_p;};
@@ -260,6 +275,8 @@ public:
 				const vi::VisBuffer2& /*vb*/) {};
   // Get the final weights image
   virtual void getWeightImage(casacore::ImageInterface<casacore::Float>& weightImage, casacore::Matrix<casacore::Float>& weights) = 0;
+
+
   //Put the weights image so that it is not calculated again
   // Useful for A-projection style gridders
 
@@ -389,9 +406,11 @@ public:
   ///call this to clear temporary file
   // for e.g imaging weight column associated with this ftmachine
   virtual casacore::Vector<casacore::String> cleanupTempFiles(const casacore::String& message);
+
   virtual void setFTMType(const FTMachine::Type& type) {ftmType_p=type;};
   virtual void setPBReady(const bool& isready) {avgPBReady_p=isready;};
 protected:
+
   friend class VisModelData;
   friend class MultiTermFT;
   friend class MultiTermFTNew;
@@ -559,6 +578,7 @@ protected:
   FTMachine::Type ftmType_p;
   casacore::Bool avgPBReady_p;
 
+
  private:
   virtual casacore::Bool isSD() const {return false;}
 
@@ -570,7 +590,6 @@ protected:
   void swapyz(casacore::Cube<casacore::Complex>& out, const casacore::Cube<casacore::Bool>& outFlag, const casacore::Cube<casacore::Complex>& in);
   void swapyz(casacore::Cube<casacore::Bool>& out, const casacore::Cube<casacore::Bool>& in);
   void convUVW(casacore::Double& dphase, casacore::Vector<casacore::Double>& thisrow);
-  
 };
 
 #include <synthesis/TransformMachines/FTMachine.tcc>
