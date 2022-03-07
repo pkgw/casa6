@@ -12,32 +12,14 @@ import numpy as np
 # only
 VERBOSE = False
 
-# is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import ms, ctsys, table
-    from casatasks import fringefit, flagmanager, flagdata
 
-    tblocal = table()
-    ctsys_resolve = ctsys.resolve
-else:
-    from __main__ import default
-    from tasks import *
-    from taskinit import tbtool
+from casatools import ms, ctsys, table
+from casatasks import fringefit, flagmanager, flagdata
 
-    dataRoot = os.path.join(os.environ.get('CASAPATH').split()[0],'casatestdata')
-    tblocal = tbtool()
-
-    def ctsys_resolve(apath):
-        return os.path.join(dataRoot,apath)
+tblocal = table()
+ctsys_resolve = ctsys.resolve
 
 from casatestutils import testhelper as th
-#if is_python3:
-##    ### for testhelper import
-#    sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-#    import testhelper as th
-#else:
-#    import testhelper as th
 
 datapath = ctsys_resolve('unittest/fringefit/')
 
@@ -268,9 +250,6 @@ class Fringefit_corrcomb(unittest.TestCase):
 
         self.assertTrue(combine_result > none_result)
         
-
-def suite():
-    return [Fringefit_tests, Fringefit_single_tests, Fringefit_dispersive_tests, Fringefit_corrcomb]
 
 if __name__ == '__main__':
     unittest.main()
