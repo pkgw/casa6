@@ -526,7 +526,6 @@ def generate_pyinit(moduledir,tools):
                import sys as __sys
                import numpy as np
                from casaconfig import pull_data, measures_update
-               from casatools import logsink
 
                sakura( ).initialize_sakura( )    ## sakura requires explicit initialization
 
@@ -548,7 +547,7 @@ def generate_pyinit(moduledir,tools):
                if not __os.path.exists(__os.path.expanduser("~/.casa")):
                    __os.system('mkdir %s' % __os.path.expanduser("~/.casa"))
 
-               logger = logsink(__user.logfile) if hasattr(__user,'logfile') else None
+               logger = logsink(__user.logfile) if (hasattr(__user,'logfile') and __user.logfile is not None) else None
 
                if (__sys.argv[0] != '-m') and (hasattr(__user,'configrc')):
                    print('Using %s' % __user.configrc)
