@@ -2657,7 +2657,7 @@ void SynthesisImagerVi2::unlockMSs()
     // static_cast<AWProjectWBFT &>(*theIFT).setObservatoryLocation(mLocation_p);
     // static_cast<AWProjectWBFT &>(*theIFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
 
-    theIFT = new refim::AWProjectWBFT(static_cast<refim::AWProjectWBFTNew &>(*theFT));
+    theIFT = new refim::AWProjectWBFT(static_cast<refim::AWProjectWBFT &>(*theFT));
 
     os << "Sending frequency selection information " <<  mssFreqSel_p  <<  " to AWP FTM." << LogIO::POST;
     theFT->setSpwFreqSelection( mssFreqSel_p );
