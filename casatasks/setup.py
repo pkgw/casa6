@@ -416,7 +416,7 @@ def generate_pyinit(moduledir,tasks):
         fd.write("      os.makedirs(telemetry_log_directory)\n")
         fd.write("    telemetrylogger = casatelemetry.casatelemetry.telemetry(telemetry_log_directory)\n")
         fd.write("  except:\n")
-        fd.write('    print("Error: can\'t initialize telemetry in given telemetry_log_directory config.py parameter")')
+        fd.write('    print("Error: can\'t initialize telemetry in given telemetry_log_directory config.py parameter")\n')
         fd.write("    telemetrylogger = casatelemetry.casatelemetry.telemetry()\n")
         fd.write("  def logstop():\n")
         # Telemetry may be stopped during runtime so check if it is still enabled
