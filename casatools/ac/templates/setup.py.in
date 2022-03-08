@@ -529,23 +529,23 @@ def generate_pyinit(moduledir,tools):
 
                sakura( ).initialize_sakura( )    ## sakura requires explicit initialization
 
+               user_rcdir = __user.rcdir if (hasattr(__user, 'rcdir') and __user.rcdir is not None) else __os.path.expanduser("~/.casa")
                user_datapath = list(np.atleast_1d(__user.datapath)) if hasattr(__user,'datapath') else []
                user_datapath = [__os.path.expanduser(udp) for udp in user_datapath if __os.path.isdir(__os.path.expanduser(str(udp)))]
                user_nogui = __user.nogui if (hasattr(__user,'nogui') and isinstance(__user.nogui,bool)) else False
                user_agg = __user.agg if (hasattr(__user,'agg') and isinstance(__user.agg,bool)) else False
                user_pipeline = __user.pipeline if (hasattr(__user,'pipeline') and isinstance(__user.pipeline,bool)) else False
 
-               user_rundata = __os.path.expanduser(__user.rundata) if hasattr(__user,'rundata') else ''
+               if not __os.path.exists(user_rcdir):
+                   __os.makedirs(user_rcdir)
+
+               user_rundata = __os.path.expanduser(__user.rundata)
                if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_rundata))):
-                   user_rundata = __os.path.expanduser("~/.casa/measures")
-                   print('rundata path not found, defaulting to %s' % user_rundata)
+                   print('rundata path not found, creating %s' % user_rundata)
+                   __os.makedirs(user_rundata)
 
                ctsys = __utils()
                ctsys.initialize( __sys.executable, user_rundata, user_datapath, user_nogui, user_agg, user_pipeline )
-
-
-               if not __os.path.exists(__os.path.expanduser("~/.casa")):
-                   __os.system('mkdir %s' % __os.path.expanduser("~/.casa"))
 
                logger = logsink(__user.logfile) if (hasattr(__user,'logfile') and __user.logfile is not None) else None
 
