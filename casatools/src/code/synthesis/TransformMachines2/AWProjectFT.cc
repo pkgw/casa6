@@ -285,7 +285,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //---------------------------------------------------------------
   //
   AWProjectFT::AWProjectFT(const RecordInterface& stateRec)
-    : FTMachine(),Second("s"),Radian("rad"),Day("d"),visResampler_p(nullptr), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true)
+    : FTMachine(),Second("s"),Radian("rad"),Day("d"),visResampler_p(nullptr), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true), timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
   {
     //
     // Construct from the input state record
@@ -430,6 +430,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	po_p = other.po_p;
 	//	self_p = other.self_p;
 	wbAWP_p=other.wbAWP_p;
+        timemass_p=0.0;
+        timegrid_p=0.0;
+        timedegrid_p=0.0;
       };
     return *this;
   };
