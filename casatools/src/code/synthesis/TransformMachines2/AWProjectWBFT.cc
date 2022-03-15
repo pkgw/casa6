@@ -540,7 +540,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     spectralCoord_p.toWorld(freqofBegChan, 0.0);
         
     cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
-    avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+
+    ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
+    //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
+    if(!avgPBReady_p)
+      avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
     if(avgPBReady_p){
         LatticeExprNode le( max( *avgPB_p ) );

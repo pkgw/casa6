@@ -742,7 +742,7 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
         }
 	itsVpTable=gridpars.vpTable;
 	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-		             gridpars.ftmachine.contains("awprojectft") )?False:True;
+                     (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
 	CountedPtr<refim::FTMachine> ftm, iftm;
          
 
@@ -2427,7 +2427,7 @@ void SynthesisImagerVi2::unlockMSs()
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
     static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
-    else if ((ftname == "awprojectft") || (ftname== "mawprojectft") || (ftname == "protoft")) {
+    else if ((ftname.at(0,3)=="awp") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
 			 padding, useAutocorr, useDoublePrec, gridFunction,
 			 aTermOn, psTermOn, mTermOn, wbAWP, cfCache, 

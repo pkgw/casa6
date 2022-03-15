@@ -1095,17 +1095,18 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         spectralCoord_p.toWorld(freqofBegChan, 0.0);
         
         cubeinfo=std::make_tuple(image.shape()(3),freqofBegChan);
-	
-    Bool avgPBReady = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+
+        if(!avgPBReady_p)
+          avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
-    if(avgPBReady){
+    if(avgPBReady_p){
         LatticeExprNode le( max( *avgPB_p ) );
         Float avgPB_max=le.getFloat();
         
-        if(avgPB_max <= 0.0) avgPBReady = false;
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
     }
     
-    if(!avgPBReady) makeSensitivityImage(vb,image,*avgPB_p);
+    if(!avgPBReady_p) makeSensitivityImage(vb,image,*avgPB_p);
 
 	
     
@@ -1812,11 +1813,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   }
   //---------------------------------------------------------------
     void AWProjectFT::setWeightImage(ImageInterface<Float>& weightImage){
+      //cerr <<"@@@loading weightimage" << endl;
       IPosition latticeShape = weightImage.shape();
       CoordinateSystem cs=weightImage.coordinates();
       avgPB_p=new TempImage<Float>(latticeShape, cs);
       avgPB_p->copyData(weightImage);
-
+      avgPBReady_p=True;
 
     }
     
