@@ -21,10 +21,11 @@
 #
 ##########################################################################
 
-mport os
+import os
 import sys
 import unittest
 import numpy as np
+import shutil
 from casatools import ctsys, msuvbinner, table
 ctsys_resolve = ctsys.resolve
 from casatestutils import testhelper as th
@@ -49,8 +50,8 @@ class msuvbinnerTest(unittest.TestCase):
         _tb.open(self.outms)
         arr=_tb.getcol('DATA')
         _tb.done()
-        self.assertAlmostEqual(np.max(arr[0,0,:]), 1.5)
-        self.assertAlmostEqual(np.max(arr[0,19,:]), 0.769271)
+        self.assertAlmostEqual(np.max(arr[0,0,:]), 1.5, 4)
+        self.assertAlmostEqual(np.max(arr[0,19,:]), 0.769271, 5)
 
 
 if __name__ == '__main__':
