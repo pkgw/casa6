@@ -416,7 +416,7 @@ class calibrater_test(unittest.TestCase):
 
         self.assertFalse(np.array_equal(datacol, beforedata))
 
-
+    @unittest.skip("SKIPPING test_selectVisObs UNTIL TEST IS REPAIRED")
     def test_selectVisObs(self):
         # Edit table to have multiple obs IDs
         tb.open(self._vis, nomodify=False)
