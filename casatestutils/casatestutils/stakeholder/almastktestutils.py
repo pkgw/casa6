@@ -215,11 +215,52 @@ def extract_expdict(testlist=None, testsrcpath=None):
         print("Extracted the fudicial value dictionaries is saved in a file, ", outfile)
 
 
+def extract_subexpdict(jsonfile, keylist, outjsonfile=''):
+    """
+    jsonfile: json file for a single testcase (saved by savematricdict=True in 
+             test_stk_alma_pipeline_imaging,py)
+    keylist: main_dict_key('eg. im_stats_dict..') with a list of 
+    metric names to be extracted
+    returns a dictionary only contains the main stats category key
+    and metric (key+its value(s))
+    outjsonfile: output json file containing the extracted dictionary (with top level key
+                 word = testcase name)
+    """
+    outdict = {}
+  
+    if outjsonfile == '':
+         outjsonfile = jsonfile.rstrip('.json') + '_subDict.json' 
+    with open(jsonfile, 'r') as f:
+        indict = json.load(f)
+    topkeyfound = False
+    # the top key should be test case name
+    topkey = list(indict.keys())[0]
+    if 'test' in topkey:
+        topkeyfound=True
+        outdict[topkey]={}
+        for k in keylist:
+            if k in indict[topkey]:
+               outdict[topkey][k]={}
+               for metrickey in keylist[k]:
+                   if metrickey in indict[topkey][k]:
+                       outdict[topkey][k].update({metrickey:indict[topkey][k][metrickey]})
+            else:
+               print("{} not found in the input json".format(k)) 
+    else:
+        print('No testcase name in the top key. Cannot process the json file')
+        return False
+       
+    if outdict != {}:
+        with open(outjsonfile, 'w') as outf:
+            json.dump(outdict, outf) 
+            print("Saving the sub-dictionary to {}".format(outjsonfile))
+    return outdict        
+
 def create_expdict_jsonfile(inmetricsfile, templatemetrics, outmetricsfile):
     """
     create the fiducial metric dictionaries
     from the corresponding metric dictionaries of the current
-    run saved as a json file
+    run saved as a json file and also returned as a dictionary
     """
     infiles = [inmetricsfile, templatemetrics]
     for f in infiles:
@@ -347,7 +388,7 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
        consist of only the testcases that need to be updated and the exp_dicts for other
        testcases not in the list won't be modified and copy to the new json as is.
 
-       jsonfilename: current json file conta:w!ins all the fiducial metrics values
+       jsonfilename: current json file contains all the fiducial metrics values
 
     """
     import copy
@@ -410,6 +451,75 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
                                     "Please modify the input file".format(tmplFidDict))
 
 
+def update_expdict_subset(expjsonfile, newvaldictjson, jiranoforcomment=''):
+    """
+    Replace selected metric values in combined (for all ALMA stk testcases) expdicts json
+    with new values. The updated json file will be named input base file name with "_updated.json"
+    and is saved in the current working directory.
+    expjsonfile: current combined exp json file (i.e. test_stk_alma_pipeline_imaging_exp_dicts.json)
+                 Note: a copy of the file will be made in the current working directory 
+    newvaldictjson: metric values to be updated (need to put in the same nested dictionary 
+                structure as the expjsonfile with only relevant keys
+    jiranoforcomment (optional): releant JIRA ticket number to be inserted as 'comment' 
+    under the sub-dictionary section of the relevant testcase. The updated matrics names
+    are also added to the comment section.
+    """
+    allreplaced = False
+    basename = os.path.basename(expjsonfile) 
+    expjsonname = basename.split('.json')[0]
+    outjsonfile = expjsonname+'_updated.json'
+    shutil.copy(expjsonfile, outjsonfile)
+
+    with open(outjsonfile, 'r') as f:
+        outdict = json.load(f)
+    with open(newvaldictjson, 'r') as newvf:
+        valdict = json.load(newvf)
+ 
+    testcases =  list(valdict.keys())
+    for tc in testcases: 
+        comment = 'Updated'
+        if jiranoforcomment != '':
+            comment += ' for '+jiranoforcomment
+        comment +=': ' 
+        if tc in outdict: # testcase name
+            for k in valdict[tc]:
+                expk = 'exp_'+k.rstrip('_dict')
+                if expk in outdict[tc]:
+                    comment += ' '+expk + ' ['
+                    for mtk in valdict[tc][k]:
+                        if mtk in outdict[tc][expk]:
+                            # exp metrics should in a list (e.g. [T/F/tol, val]
+                            if type(outdict[tc][expk][mtk])==list:
+                                # Only change val part not comparison type (True/False/tol)
+                                outdict[tc][expk][mtk][1]=valdict[tc][k][mtk]
+                                comment += mtk+','
+                                allreplaced = True
+                            else:
+                                print("Expecting a list for the matric value ([T/F/tal, val]",format(mtk))
+                                allreplaced = False
+                        else:
+                            print("{} is not found in the combined json. Skip this".format(mtk))
+                            allreplaced = False 
+                    comment = comment.rstrip(',') + ']'
+                
+                else:
+                    print("{} is not found in the combined json. Skip this".format(expk))
+                    #print("outdict[tc].keys()=", outdict[tc].keys())
+                    allreplaced = False 
+                    return False
+            outdict[tc]['comment']=comment 
+        else:
+            print("The testcase {} not found in the combined json. Check the input".format(tc))
+            return False 
+   
+    if allreplaced:
+        print("Writing to the updated values in {}".format(outjsonfile))
+        with open(outjsonfile, 'w+') as outf:
+            json.dump(outdict,outf)
+        return True
+    else:
+        return False
+                
 def compare_expdictjson(newjson, oldjson):
     """
     compare the two exp dicts - used to check updating of exp_dicts json file
