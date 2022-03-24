@@ -219,7 +219,7 @@ def extract_subexpdict(jsonfile, keylist, outjsonfile=''):
     """
     jsonfile: json file for a single testcase (saved by savematricdict=True in 
              test_stk_alma_pipeline_imaging,py)
-    keylist: main_dict_key('eg. im_stats_dict..') with a list of 
+    keylist: a dictionary contains main_metric_key('eg. im_stats_dict..') with a list of 
     metric names to be extracted
     returns a dictionary only contains the main stats category key
     and metric (key+its value(s))
@@ -454,7 +454,7 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
 def update_expdict_subset(expjsonfile, newvaldictjson, jiranoforcomment=''):
     """
     Replace selected metric values in combined (for all ALMA stk testcases) expdicts json
-    with new values. The updated json file will be named input base file name with "_updated.json"
+    with new values. The updated json file will be named input base file name with "_update.json"
     and is saved in the current working directory.
     expjsonfile: current combined exp json file (i.e. test_stk_alma_pipeline_imaging_exp_dicts.json)
                  Note: a copy of the file will be made in the current working directory 
@@ -467,7 +467,7 @@ def update_expdict_subset(expjsonfile, newvaldictjson, jiranoforcomment=''):
     allreplaced = False
     basename = os.path.basename(expjsonfile) 
     expjsonname = basename.split('.json')[0]
-    outjsonfile = expjsonname+'_updated.json'
+    outjsonfile = expjsonname+'_update.json'
     shutil.copy(expjsonfile, outjsonfile)
 
     with open(outjsonfile, 'r') as f:
@@ -530,7 +530,7 @@ def compare_expdictjson(newjson, oldjson):
         olddict = json.load(fold)
 
         if newdict == olddict:
-            return "The two json files are indentical"
+            return "The two json files are identical"
         else:
             # level 0 (testcase level)
             newkey0list = list(newdict.keys())
@@ -590,9 +590,9 @@ def compare_expdictjson(newjson, oldjson):
                         if oldonlykey2 != set():
                             finaldiffdict[key0][key1]['metric keys only in json2'] = oldonlykey2
                     if newonlykey1 != set():
-                        finaldiffdict[key0]['matric dict only in json1'] = newonlykey1
+                        finaldiffdict[key0]['metric dict only in json1'] = newonlykey1
                     if oldonlykey1 != set():
-                        finaldiffdict[key0]['matric dict only in json2'] = oldonlykey1
+                        finaldiffdict[key0]['metric dict only in json2'] = oldonlykey1
                 else:
                     if newdict[key0] != olddict[key0]:
                         finaldiffdict[key0] = 'diff info json1: {}, json2: {}'.format(newdict[key0], olddict[key0])
