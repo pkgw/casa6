@@ -864,7 +864,7 @@ def saveparams2last(func=None, multibackup=True):
         with open(outfile,'w') as _f:
             for _i in range(len(byIndex)):
                 _f.write("%-20s = %s\n" % (byIndex[_i],repr(params[byIndex[_i]])))
-            _f.write("#tclean( ")
+            _f.write("#"+func.__name__+"( ")
             for _i in range(len(byIndex)):
                 _f.write("%s=%s" % (byIndex[_i],repr(params[byIndex[_i]])))
                 if _i < len(params)-1: _f.write(",")

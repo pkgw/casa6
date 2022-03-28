@@ -1,0 +1,181 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd                              file:///opt/casa/code/tools/xml/casa.xsd" xmlns="http://casa.nrao.edu/schema/psetTypes.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <tool module="msuvbinner" name="msuvbinner">
+    <code>
+      <include>msuvbinner_forward.h</include>
+      <private>
+         <include>msuvbinner_private.h</include>
+      </private>
+    </code>
+    <shortdescription>Create a gridded/and or bin  onto a measurementset from a set of measurementsets </shortdescription>
+    <description>
+
+      
+    </description>
+
+ <method name="msuvbinner" type="constructor">
+
+      <shortdescription>create the msuvbinner tool</shortdescription>
+      <description/>
+
+      <input>
+        <param name="phasecenter" type="any">
+          <description>phasecenter of the output ms (no default)</description>
+          <type>string</type><type>record</type>
+            <value type="string"/>
+        </param>
+        <param name="nx" type="int">
+            <description>number of pixel along U axis</description>
+            <value>256</value>
+        </param>
+        <param name="ny" type="int">
+            <description>number of pixel along U axis</description>
+            <value>256</value>
+        </param>
+        <param name="ncorr" type="int">
+            <description>number of correlations per visibility point (can only be 1, 2, or 4)</description>
+            <value>1</value>
+            <allowed kind="enum">
+              <value>1</value>
+              <value>2</value>
+              <value>4</value>
+            </allowed>
+        </param>
+        <param name="nchan" type="int">
+            <description>number of channel along spectral axis</description>
+            <value>1</value>
+        </param>
+        
+        <param name="cellx" type="string">
+            <description>image domain size of pixel along x-direction</description>
+            <value>1arcsec</value>
+        </param>
+        <param name="celly" type="string">
+            <description>image domain size of pixel along y-direction</description>
+            <value>1arcsec</value>
+        </param>
+        <param name="fstart" type="string">
+            <description>frequency of first spectral channel in the LSRK frame</description>
+            <value>1GHz</value>
+        </param>
+        <param name="fstep" type="string">
+            <description>frequency width of  channels</description>
+            <value>1MHz</value>
+        </param>
+        <param name="memfrac" type="double">
+            <description>frequency width of  channels</description>
+            <value>0.5</value>
+        </param>
+        <param name="wproject" type="bool">
+            <description>correct for w term using w-projection algorithm while gridding</description>
+            <value>false</value>
+        </param>
+         <param name="doflag" type="bool">
+            <description>transfer flag from gridded visibility data back to input ms</description>
+            <value>false</value>
+        </param>
+      </input>
+      
+
+      <returns type="msuvbinner"/>
+
+      <example/>
+
+ </method>
+ <method name="selectdata" type="function">
+   <shortdescription>select the data from input ms that will go on the gridded vis</shortdescription>
+   <description>
+   </description>
+   <input>
+     <param name="msname" mustexist="true" type="path">
+       <description>Path to the MS to import</description>
+       <value/>
+     </param>
+     <param name="spw" type="string">
+       <description>
+            Spectral window selection (using MSSelection syntax)
+       </description>
+          <value></value>
+     </param>
+     <param name="field" type="string">
+       <description>
+            field selection
+       </description>
+          <value>0</value>
+     </param>
+     <param name="baseline" type="string">
+       <description>
+            baselines selection (using MSSelection syntax)
+       </description>
+          <value></value>
+     </param>
+     <param name="scan" type="string">
+       <description>
+            Scan selection
+       </description>
+          <value></value>
+     </param>
+     <param name="uvrange" type="string">
+       <description>
+            uvrange
+       </description>
+          <value></value>
+     </param>
+     <param name="taql" type="string">
+       <description>
+            Generic TaQL selection
+       </description>
+       <value></value>
+     </param>
+   </input>
+   <returns type="bool"/>
+ </method>
+ 
+ <method name="setoutputms" type="function">
+<shortdescription>define gridded visibilities output; either existing grid or a new one will be made</shortdescription>
+<description>
+  Where  gridded visibilities will be stored;  either an already existant ms or a new one will be made. If a file of the name exist and the input parameters match then new gridded data will be added to the existing one; this is the way to add data of multiple epochs on the same grid.
+   </description>
+   <input>
+     <param name="outms" type="string">
+       <description>
+         Output ms name
+       </description>
+       <value></value>
+     </param>
+   </input>
+   
+   <returns type="bool"/>
+ </method>
+<method name="filloutputms" type="function">
+<shortdescription>launch gridding process from selected input to set output</shortdescription>
+<description>
+  launch gridding process from selected input to set output
+   </description>
+   <input/>
+   <example>
+     from casatools import msuvbinner
+     ##define the output grid parameters, like phasecenter and number of channels
+     msbinner=msuvbinner(phasecenter="J2000 19h30m20.9 -19d50m22.7", nx=2000, ny=2000, ncorr=1, nchan=16, cellx='10arcsec', celly='10arcsec', fstart='975MHz', fstep='50kHz', memfrac=0.9, wproject=False, doflag=False)
+     #select the data; note taql usage to avoid a baseline band where -10m \&gt; V \&lt; 10m
+     msbinner.selectdata(msname='myinput1.ms', spw='0', field='0', taql='UVW[1] \&gt; 10 or UVW[1] \&lt; -10')
+     #define the name of the output grid
+     msbinner.setoutputms('myuvgrid.ms')
+     ## grid the input data to the output grid
+     msbinner.filloutputms()
+     ##select a second input visibilities
+     msbinner.selectdata(msname='myinput2.ms', spw='0', field='0', taql='')
+     ##add it to the previously defined output grid
+     msbinner.filloutputms()
+     del msbinner
+   </example>
+     
+   
+   <returns type="bool"/>
+ </method>
+
+
+
+ </tool>
+</casaxml>
+
+    
