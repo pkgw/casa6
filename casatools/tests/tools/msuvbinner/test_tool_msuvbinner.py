@@ -29,7 +29,7 @@ import shutil
 from casatools import ctsys, msuvbinner, table
 ctsys_resolve = ctsys.resolve
 from casatestutils import testhelper as th
-datapath = ctsys_resolve('unittest/tclean/')
+datapath = ctsys_resolve('unittest/msuvbinner/')
 _tb=table()
 class msuvbinnerTest(unittest.TestCase):
     ms1='refim_point.ms'
