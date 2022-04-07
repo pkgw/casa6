@@ -288,10 +288,11 @@ Int AspMatrixCleaner::aspclean(Matrix<Float>& model,
 
   // calculate rms residual
   float rms = 0.0;
-  int num = int(model.shape()(0) * model.shape()(1));
-  for (int j = 0; j < model.shape()(1); ++j)
+  // should be masked
+  int num = int((trcDirty(0) -blcDirty(0))* (trcDirty(1) - blcDirty(1))); 
+  for (int j = blcDirty(1); j <= trcDirty(1); ++j)
   {
-    for (int i = 0; i < model.shape()(0); ++i)
+    for (int i = blcDirty(0); i <= trcDirty(0); ++i)
     {
       rms += pow((*itsDirty)(i, j), 2);
     }
@@ -310,9 +311,9 @@ Int AspMatrixCleaner::aspclean(Matrix<Float>& model,
 
     // calculate rms residual
     rms = 0.0;
-    for (int j = 0; j < model.shape()(1); ++j)
+    for (int j = blcDirty(1); j <= trcDirty(1); ++j)
     {
-      for (int i = 0; i < model.shape()(0); ++i)
+      for (int i = blcDirty(0); i <= trcDirty(0); ++i)
       {
         rms += pow((*itsDirty)(i, j), 2);
       }
@@ -836,15 +837,17 @@ void AspMatrixCleaner::makeInitScaleImage(Matrix<Float>& iscale, const Float& sc
   {
     AlwaysAssert(scaleSize>0.0, AipsError);
 
-    /*const Int mini = max(0, (Int)(refi - scaleSize));
+    /* const Int mini = max(0, (Int)(refi - scaleSize));
     const Int maxi = min(nx-1, (Int)(refi + scaleSize));
     const Int minj = max(0, (Int)(refj - scaleSize));
     const Int maxj = min(ny-1, (Int)(refj + scaleSize));*/
+
     os << "Initial scale size " << scaleSize << " pixels." << LogIO::POST;
 
     //Gaussian2D<Float> gbeam(1.0/(sqrt(2*M_PI)*scaleSize), 0, 0, scaleSize, 1, 0);
 
-    // has to make the whole scale image
+    // 04/06/2022 Has to make the whole scale image. If only using min/max i/j, 
+    // .image looks spotty and not as smooth as before.
     for (int j = 0; j < ny; j++)
     {
       for (int i = 0; i < nx; i++)
@@ -1245,6 +1248,58 @@ Bool AspMatrixCleaner::setInitScaleMasks(const Array<Float> arrmask, const Float
     (itsInitScaleMasks[scale])(blc1,trc1) = 0.0;
   }
 
+  // set blcDirty and trcDirty here for speedup
+  blcDirty = IPosition(itsInitScaleMasks[0].shape().nelements(), 0);
+  trcDirty = IPosition(itsInitScaleMasks[0].shape() - 1);
+
+  if(!itsMask.null())
+  {
+    os << LogIO::NORMAL3 << "Finding initial scales for Asp using given mask" << LogIO::POST;
+    if (itsMaskThreshold < 0)
+    {
+        os << LogIO::NORMAL3
+           << "Mask thresholding is not used, values are interpreted as weights"
+           <<LogIO::POST;
+    }
+    else
+    {
+      // a mask that does not allow for clean was sent
+      if(noClean_p)
+        return true;
+
+      os << LogIO::NORMAL3
+         << "Finding initial scales with mask values above " << itsMaskThreshold
+         << LogIO::POST;
+    }
+
+    AlwaysAssert(itsMask->shape()(0) == nx, AipsError);
+    AlwaysAssert(itsMask->shape()(1) == ny, AipsError);
+    Int xbeg=nx-1;
+    Int ybeg=ny-1;
+    Int xend=0;
+    Int yend=0;
+    for (Int iy=0;iy<ny;iy++)
+    {
+      for (Int ix=0;ix<nx;ix++)
+      {
+        if((*itsMask)(ix,iy)>0.000001)
+        {
+          xbeg=min(xbeg,ix);
+          ybeg=min(ybeg,iy);
+          xend=max(xend,ix);
+          yend=max(yend,iy);
+        }
+      }
+    }
+    blcDirty(0)=xbeg;
+    blcDirty(1)=ybeg;
+    trcDirty(0)=xend;
+    trcDirty(1)=yend;
+  }
+  else
+    os << LogIO::NORMAL3 << "Finding initial scales using the entire image" << LogIO::POST; 
+
+
   return true;
 }
 
@@ -1252,8 +1307,8 @@ void AspMatrixCleaner::maxDirtyConvInitScales(float& strengthOptimum, int& optim
 {
   LogIO os(LogOrigin("AspMatrixCleaner", "maxDirtyConvInitScales()", WHERE));
 
-  // /* We still need the following to define a region. Using minMaxMasked itself is NOT sufficient and results in components outside of mask.
-
+  /* We still need the following to define a region. Using minMaxMasked itself is NOT sufficient and results in components outside of mask.
+  // this can be done only once at setup since maxDirtyConvInitScales is called every iter
   const int nx = itsDirty->shape()[0];
   const int ny = itsDirty->shape()[1];
 
@@ -1305,7 +1360,7 @@ void AspMatrixCleaner::maxDirtyConvInitScales(float& strengthOptimum, int& optim
     trcDirty(1)=yend;
   }
   else
-    os << LogIO::NORMAL3 << "Finding initial scales using the entire image" << LogIO::POST;  //*/
+    os << LogIO::NORMAL3 << "Finding initial scales using the entire image" << LogIO::POST;  */
 
 
   Vector<Float> maxima(itsNInitScales);
@@ -1330,6 +1385,8 @@ void AspMatrixCleaner::maxDirtyConvInitScales(float& strengthOptimum, int& optim
     cout << "posmin " << posmin << " posmax " << posmax << endl; */
 
     IPosition gip;
+    const int nx = itsDirty->shape()[0];
+    const int ny = itsDirty->shape()[1];
     gip = IPosition(2, nx, ny);
     Block<casacore::Matrix<Float>> vecWork_p;
     vecWork_p.resize(itsNInitScales);
@@ -1355,6 +1412,7 @@ void AspMatrixCleaner::maxDirtyConvInitScales(float& strengthOptimum, int& optim
       cout << "posmin " << posmin << " posmax " << posmax << endl; */
 
       // Note, must find peak from the (blcDirty, trcDirty) subregion to ensure components are within mask
+      // this is using patch already
       if (!itsMask.null())
       {
         findMaxAbsMask(vecWork_p[scale], itsInitScaleMasks[scale],
