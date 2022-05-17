@@ -368,21 +368,38 @@ template <class T> void Image2DConvolver<T>::_doSingleBeam(
     // Overwrite some bits and pieces in the output image to do with the
     // restoring beam  and image units
     casacore::Bool holdsOneSkyAxis;
-    casacore::Bool hasSky = CoordinateUtil::holdsSky (holdsOneSkyAxis, cSys, _axes.asVector());
+    const auto hasSky = casacore::CoordinateUtil::holdsSky(
+        holdsOneSkyAxis, cSys, _axes.asVector()
+    );
     if (hasSky && ! beamOut.isNull()) {
-        iiOut.setRestoringBeam(beamOut);
+        if (_targetres) {
+            GaussianBeam target(originalParms);
+            iiOut.setRestoringBeam(target);
+            if (
+                ! _suppressWarnings && ! near(
+                    beamOut, target, 1e-3, casacore::Quantity(0.01, "deg")
+                ) 
+            ) {
+                *this->_getLog() << LogIO::NORMAL << "Fitted restoring beam is "
+                    << beamOut << ", but putting requested target "
+                    << "resolution beam " << target << " in the image "
+                    << "metadata. Both beams may be considered consistent with "
+                    << "the convolution result." << LogIO::POST;
+            }
+        }
+        else {
+            iiOut.setRestoringBeam(beamOut);
+        }
     }
-    else {
+    else if (holdsOneSkyAxis) {
         // If one of the axes is in the sky plane, we must
         // delete the restoring beam as it is no longer meaningful
-        if (holdsOneSkyAxis) {
-            if (! _suppressWarnings) {
-                oss.str("");
-                oss << "Because you convolved just one of the sky axes" << endl;
-                oss << "The output image does not have a valid spatial restoring beam";
-                _log(oss.str(), LogIO::WARN);
-            }
-            iiOut.removeRestoringBeam();
+        iiOut.removeRestoringBeam();
+        if (! _suppressWarnings) {
+            oss.str("");
+            oss << "Because you convolved just one of the sky axes" << endl;
+            oss << "The output image does not have a valid spatial restoring beam";
+            _log(oss.str(), LogIO::WARN);
         }
     }
 }
@@ -416,12 +433,12 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         iiOut.removeRestoringBeam();
         iiOut.setRestoringBeam(casacore::GaussianBeam(kernelParms));
     }
-    casacore::uInt count = (nChan > 0 && nPol > 0)
+    uint count = (nChan > 0 && nPol > 0)
         ? nChan * nPol
         : nChan > 0
           ? nChan
           : nPol;
-    for (casacore::uInt i=0; i<count; ++i) {
+    for (uint i=0; i<count; ++i) {
         if (nChan > 0) {
             channel = i % nChan;
             start[specAxis] = channel;
@@ -553,7 +570,7 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
             );
             RO_MaskedLatticeIterator<T> iter(subImageOut, stepper);
             for (iter.reset(); !iter.atEnd(); iter++) {
-                casacore::IPosition cursorShape = iter.cursorShape();
+                const auto cursorShape = iter.cursorShape();
                 imageOut->putSlice(iter.cursor(), outPos);
                 if (doMask) {
                     pMaskOut->putSlice(iter.getMask(), outPos);
@@ -561,10 +578,23 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
                 outPos = outPos + cursorShape;
             }
         }
-        if (! _targetres) {
-            iiOut.setBeam(
-                channel, polarization, beamOut
-            );
+        if (_targetres) {
+            GaussianBeam target(originalParms);
+            if (
+                ! _suppressWarnings && ! near(
+                    beamOut, target, 1e-3, casacore::Quantity(0.01, "deg")
+                )
+            ) {
+                *this->_getLog() << LogIO::NORMAL << "Fitted restoring beam "
+                    << "for channel " << channel << " and polarization plane "
+                    << polarization << " is " << beamOut << " but putting "
+                    << "requested target resolution beam " << target << " in "
+                    << "the image metadata. Both beams can be considered "
+                    << "consistent with the convolution result." << LogIO::POST;
+            }
+        }
+        else {
+            iiOut.setBeam(channel, polarization, beamOut);
         }
     }
 }
@@ -813,13 +843,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
             }
         }
         else {
-            if (autoScale) {
-                // Conserve flux is the best we can do
-                scaleFactor = 1/kernelVolume;
-            }
-            else {
-                scaleFactor = _scale;
-            }
+            scaleFactor = autoScale ? 1/kernelVolume : _scale;
         }
     }
     // Put beam position angle into range
