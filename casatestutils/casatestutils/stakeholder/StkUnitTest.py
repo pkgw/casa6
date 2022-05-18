@@ -5,6 +5,7 @@ from datetime import datetime
 from collections import Iterable
 import numpy as np
 import unittest
+import glob
 
 from casatools import ctsys, table
 from casatools import image as _ia
