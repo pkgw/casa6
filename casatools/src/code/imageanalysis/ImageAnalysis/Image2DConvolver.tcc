@@ -380,7 +380,7 @@ template <class T> void Image2DConvolver<T>::_doSingleBeam(
                     beamOut, target, 1e-3, casacore::Quantity(0.01, "deg")
                 ) 
             ) {
-                *this->_getLog() << LogIO::NORMAL << "Fitted restoring beam is "
+                *this->_getLog() << LogIO::WARN << "Fitted restoring beam is "
                     << beamOut << ", but putting requested target "
                     << "resolution beam " << target << " in the image "
                     << "metadata. Both beams may be considered consistent with "
@@ -585,8 +585,8 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
                     beamOut, target, 1e-3, casacore::Quantity(0.01, "deg")
                 )
             ) {
-                *this->_getLog() << LogIO::NORMAL << "Fitted restoring beam "
-                    << "for channel " << channel << " and polarization plane "
+                *this->_getLog() << LogIO::WARN << "Fitted restoring beam for "
+                    << " channel " << channel << " and polarization plane "
                     << polarization << " is " << beamOut << " but putting "
                     << "requested target resolution beam " << target << " in "
                     << "the image metadata. Both beams can be considered "
