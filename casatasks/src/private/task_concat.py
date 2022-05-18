@@ -180,7 +180,7 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                 # test the consistency of the setup of the different MSs
                 casalog.post('Checking MS setup consistency ...', 'INFO')
                 try:
-                        mydiff = check_mslist(vis, ignore_tables=['SORTED_TABLE', 'ASDM*']) 
+                        mydiff = check_mslist(vis, ignore_tables=['SORTED_TABLE', 'ASDM*'], testcontent=False) 
                 except Exception as instance:
                         raise RuntimeError("*** Error \'%s\' while checking MS setup consistency" % (instance))
 
