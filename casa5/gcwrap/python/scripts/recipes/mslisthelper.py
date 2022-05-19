@@ -101,6 +101,9 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             
         return rval
 
+    haspointing = np.zeros(len(vis)) # track the presence of pointing tables
+    viscount = 0
+
     # Gather information from first MS in list
 
     tb.open(vis[0])
@@ -132,14 +135,22 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             subtbpath = descr_a_kw[mysubtb].split(' ')
             if subtbpath[0] == 'Table:':
                 subtbpaths_a.append(subtbpath[1])
-                subtbnames_a.append(subtbpath[1].split('/')[-1])
+                myname = subtbpath[1].split('/')[-1]
+                subtbnames_a.append(myname)
                 tb.open(subtbpath[1])
                 mydesc = tb.getdesc()
+                if myname == 'POINTING':
+                    haspointing[0] = 1
+                    casalog.post('Checking for unpopulated POINTING table in first MS ...', 'INFO')
+                    try:
+                        tb.getcell('TIME',0)
+                    except:
+                        haspointing[0] = 0
+                tb.close()
                 mydesc['_name_'] = subtbpath[1]
                 subtbdescs_a.append(mydesc)
-                tb.close()
-
-    casalog.post('Checking for unpopulated optional Main Table columns ...', 'INFO')
+                    
+    casalog.post('Checking for unpopulated optional Main Table columns in first MS ...', 'INFO')
     opt_main_populated(descr_a) # ... in first MS
 
     # Loop over other MSs and check against first
@@ -147,6 +158,8 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
     for myvis in vis[1:]:
         if myvis==vis[0]:
             raise ValueError(myvis+' is contained in the list more than once.')
+
+        viscount += 1
 
         tb.open(myvis)
         descr_b = tb.getdesc()
@@ -177,12 +190,20 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                 subtbpath = descr_b_kw[mysubtb].split(' ')
                 if subtbpath[0] == 'Table:':
                     subtbpaths_b.append(subtbpath[1])
-                    subtbnames_b.append(subtbpath[1].split('/')[-1])
+                    myname = subtbpath[1].split('/')[-1]
+                    subtbnames_b.append(myname)
                     tb.open(subtbpath[1])
                     mydesc = tb.getdesc()
+                    if myname == 'POINTING':
+                        haspointing[viscount] = 1
+                        casalog.post('Checking for unpopulated POINTING table ...', 'INFO')
+                        try:
+                            tb.getcell('TIME',0)
+                        except:
+                            haspointing[viscount] = 0
+                    tb.close()
                     mydesc['_name_'] = subtbpath[1]
                     subtbdescs_b.append(mydesc)
-                    tb.close()
 
         # Comparison
         compresult = {}
@@ -192,7 +213,8 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
         if cmpres != {}:
             compresult['Main'] = cmpres
 
-        opt_main_populated(descr_b) # warn about unpopulated optional main table columns
+        casalog.post('Checking for unpopulated optional Main Table columns ...', 'INFO')
+        opt_main_populated(descr_b) 
 
         # Subtables
         for i in range(len(subtbnames_a)): # loop over tables in first MS
@@ -211,6 +233,14 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
 
         if compresult != {}:
             rval[myvis] = compresult
+
+    # evaluate haspointing array
+    if (1 in haspointing) and (False in ( haspointing == 1 )): 
+        casalog.post('Some but not all of the input MSs are lacking a populated POINTING table:', 'WARN')
+        for i in range(len(haspointing)):
+            if haspointing[i] == 0:
+                casalog.post('   '+str(i)+': '+vis[i], 'WARN')
+        casalog.post('The joint dataset will not have a valid POINTING table.', 'WARN')
 
     return rval
 
