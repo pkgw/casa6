@@ -51,7 +51,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                 ...
         }
 
-    where <vis n> is the name of the nth MS in the intput list of MSs. An entry for a given MS
+    where <vis n> is the name of the nth MS in the input list of MSs. An entry for a given MS
     is only present if there are differences between that MS and the first MS in the list.
 
     If there are no differences in the setup of the MSs, the returned dictionary is empty.
@@ -71,8 +71,12 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
     it is tested in the other table whether the column actually contains data,
     i.e. cell 0 can be read. If not, the absence of the column is ignored. 
 
+    Independently from the value of testcontent, all optional Main table columns are
+    tested as to whether they are present and if so whether they contain data.
+    A warning is raised if they don't contain data.
+
     """
-    
+
     rval = {}
 
     if type(vis) != list:
@@ -103,8 +107,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
     descr_a = tb.getdesc()
     tb.close()
 
-    if testcontent:
-        descr_a['_name_'] = vis[0]
+    descr_a['_name_'] = vis[0]
 
     descr_a_kw = descr_a['_keywords_']
     if not 'MS_VERSION' in descr_a_kw:
@@ -132,10 +135,12 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                 subtbnames_a.append(subtbpath[1].split('/')[-1])
                 tb.open(subtbpath[1])
                 mydesc = tb.getdesc()
-                if testcontent:
-                    mydesc['_name_'] = subtbpath[1]
+                mydesc['_name_'] = subtbpath[1]
                 subtbdescs_a.append(mydesc)
                 tb.close()
+
+    casalog.post('Checking for unpopulated optional Main Table columns ...', 'INFO')
+    opt_main_populated(descr_a) # ... in first MS
 
     # Loop over other MSs and check against first
 
@@ -147,8 +152,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
         descr_b = tb.getdesc()
         tb.close()
 
-        if testcontent:
-            descr_b['_name_'] = myvis
+        descr_b['_name_'] = myvis
 
         descr_b_kw = descr_b['_keywords_']
         if not 'MS_VERSION' in descr_b_kw:
@@ -176,8 +180,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                     subtbnames_b.append(subtbpath[1].split('/')[-1])
                     tb.open(subtbpath[1])
                     mydesc = tb.getdesc()
-                    if testcontent:
-                        mydesc['_name_'] = subtbpath[1]
+                    mydesc['_name_'] = subtbpath[1]
                     subtbdescs_b.append(mydesc)
                     tb.close()
 
@@ -189,6 +192,9 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
         if cmpres != {}:
             compresult['Main'] = cmpres
 
+        opt_main_populated(descr_b) # warn about unpopulated optional main table columns
+
+        # Subtables
         for i in range(len(subtbnames_a)): # loop over tables in first MS
             if not subtbnames_a[i] in subtbnames_b:
                 compresult[subtbnames_a[i]] = {'present_a': True, 'present_b': False}
@@ -315,4 +321,39 @@ def sort_mslist(vis, visweightscale=None):
         return sortedvis, sortedtimes, sortedvisweightscale
     else:
         return sortedvis, sortedtimes
+
+
+def opt_main_populated(descr, ignorecol=[]):
+    """Utilty function for check_mslist
+       Check the optional Main Table data columns and raise warnings
+       if they exist but don't contain data.
+
+       descr - table description of the main table
+
+       The absence of columns listed in ignorecol is ignored.
+
+       Returns True if no warnings were raised.
+    """
+
+    rval = True
+
+    opt_main_cols = ['DATA', 'FLOAT_DATA', 'LAG_DATA', 'SIGMA_SPECTRUM', 'WEIGHT_SPECTRUM']
+
+    tbname = descr['_name_']
+
+    for myentry in opt_main_cols:
+        if myentry in descr and not myentry in ignorecol: # only inspect relevant columns
+            tb.open(tbname)
+            try:
+                tb.getcell(myentry,0)
+            except:
+                tb.close()
+                rval = False
+                casalog.post('Column '+myentry+' in table '+tbname+' has no data. Accessing it will cause errors.','WARN')
+                continue
+            tb.close()
+
+    return rval
+
+
 
