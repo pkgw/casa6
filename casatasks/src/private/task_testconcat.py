@@ -4,17 +4,10 @@ import os
 import sys
 import shutil
 
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import ms as mstool
-    from casatools import table as tbtool
-    from .mslisthelper import check_mslist
-else:
-    from taskinit import casalog
-    from taskinit import mstool
-    from taskinit import tbtool
-    from recipes.mslisthelper import check_mslist
+from casatasks import casalog
+from casatools import ms as mstool
+from casatools import table as tbtool
+from .mslisthelper import check_mslist
 
 def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
     """
@@ -89,10 +82,7 @@ def testconcat(vislist,testconcatvis,freqtol,dirtol,copypointing):
                 tmptb.close()
                 t.close()
                 # copy content of subtables
-                if is_CASA6:
-                    thesubtables = [f.name for f in os.scandir(vis[0]) if f.is_dir()]
-                else:
-                    thesubtables = os.walk(vis[0]).next()[1]
+                thesubtables = [f.name for f in os.scandir(vis[0]) if f.is_dir()]
 
                 for subt in thesubtables:
                     if not (subt[0]=='.'):

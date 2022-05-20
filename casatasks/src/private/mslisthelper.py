@@ -5,32 +5,17 @@ import math
 import numpy as np
 import fnmatch
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    import subprocess
-    from collections import OrderedDict as odict
+import subprocess
+from collections import OrderedDict as odict
 
-    ###some helper tools
-    from casatasks import casalog
-    from casatools import table, quanta, msmetadata
-    from casatools import ms as mstool
+###some helper tools
+from casatasks import casalog
+from casatools import table, quanta, msmetadata
+from casatools import ms as mstool
 
-    ms = mstool()
-    tb = table()
-    msmd = msmetadata()
-
-else:
-    # possibly not an exact equivalent, but as used here it is
-    import commands as subprocess
-
-    import string
-    from odict import odict
-    from taskinit import *
-    ###some helper tools
-    from  casac import *
-    ms = casac.ms()
-    tb = casac.table()
-    msmd = casac.msmetadata()
+ms = mstool()
+tb = table()
+msmd = msmetadata()
 
 
 def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):

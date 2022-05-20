@@ -5,30 +5,19 @@ import stat
 import time
 
 # get is_python3 and is_CASA6
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from . import partitionhelper as ph
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from .mslisthelper import check_mslist, sort_mslist
-    from .mstools import write_history
+from . import partitionhelper as ph
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mslisthelper import check_mslist, sort_mslist
+from .mstools import write_history
 
-    from casatools import calibrater, quanta
-    from casatools import ms as mstool
-    from casatools import table as tbtool
-    from casatasks import casalog
+from casatools import calibrater, quanta
+from casatools import ms as mstool
+from casatools import table as tbtool
+from casatasks import casalog
 
-    _cb = calibrater()
-    _qa = quanta()
+_cb = calibrater()
+_qa = quanta()
 
-else:
-    from taskinit import *
-    from mstools import write_history
-    import partitionhelper as ph
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from recipes.mslisthelper import check_mslist, sort_mslist
-    
-    _cb = cbtool()
-    _qa = qa
 
 def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
           visweightscale,keepcopy,copypointing):
@@ -336,11 +325,8 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         # Write history to MS
         try:
             param_names = virtualconcat.__code__.co_varnames[:virtualconcat.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]
             write_history(mstool(), theconcatvis, 'virtualconcat', param_names,
                           param_vals, casalog)
         except Exception as instance:

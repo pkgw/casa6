@@ -5,27 +5,16 @@ import stat
 import time
 from math import sqrt
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-        from .parallel.parallel_task_helper import ParallelTaskHelper
-        from .mslisthelper import check_mslist, sort_mslist
-        from casatools import calibrater, quanta
-        from casatools import table as tbtool
-        from casatools import ms as mstool
-        from casatasks import casalog
-        from .mstools import write_history
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mslisthelper import check_mslist, sort_mslist
+from casatools import calibrater, quanta
+from casatools import table as tbtool
+from casatools import ms as mstool
+from casatasks import casalog
+from .mstools import write_history
 
-        _cb = calibrater()
-        _qa = quanta()
-else:
-        from taskinit import *
-        from mstools import write_history
-        from parallel.parallel_task_helper import ParallelTaskHelper
-        from recipes.mslisthelper import check_mslist, sort_mslist
-
-        _cb = cbtool()
-        _qa = qa
+_cb = calibrater()
+_qa = quanta()
 
 def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
            visweightscale, forcesingleephemfield):
@@ -260,10 +249,7 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
 
                 # handle the ephemeris concatenation
                 if not forcesingleephemfield=='':
-                        if is_CASA6:
-                                from .concatephem import findephems, concatephem
-                        else:
-                                from recipes.ephemerides.concatephem import findephems, concatephem
+                        from .concatephem import findephems, concatephem
 
                         if type(forcesingleephemfield)==str or type(forcesingleephemfield)==int:
                                 forcesingleephemfield = [forcesingleephemfield]
@@ -428,13 +414,17 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                 # Write history to output MS, not the input ms.
                 try:
                         param_names = concat.__code__.co_varnames[:concat.__code__.co_argcount]
-                        if is_python3:
-                                vars = locals( )
-                                param_vals = [vars[p] for p in param_names]
-                        else:
-                                param_vals = [eval(p) for p in param_names]
-                                write_history(mstool(), concatvis, 'concat', param_names,
-                                              param_vals, casalog)
+                        vars = locals( )
+                        param_vals = [vars[p] for p in param_names]
+                        write_history(mstool(), concatvis, 'concat', param_names,
+                                      param_vals, casalog)
+                        #if is_python3:
+                        #        vars = locals( )
+                        #        param_vals = [vars[p] for p in param_names]
+                        #else:
+                        #        param_vals = [eval(p) for p in param_names]
+                        #        write_history(mstool(), concatvis, 'concat', param_names,
+                        #                      param_vals, casalog)
                 except Exception as instance:
                         casalog.post("*** Error \'%s\' updating HISTORY" % (instance),
                                      'WARN')
