@@ -520,51 +520,42 @@ def generate_pyinit(moduledir,tools):
                 fd.write("from .%s import %s\n" % (tool,tool))
 
         config='''\
-               from casatools import ctuser as __user
                from .utils import utils as __utils
                import os as __os
                import sys as __sys
                import numpy as np
-               from casaconfig import pull_data, measures_update
+               from casaconfig import pull_data, measures_update, config
 
                sakura( ).initialize_sakura( )    ## sakura requires explicit initialization
 
-               user_rcdir = __user.rcdir if (hasattr(__user, 'rcdir') and __user.rcdir is not None) else __os.path.expanduser("~/.casa")
-               user_datapath = list(np.atleast_1d(__user.datapath)) if hasattr(__user,'datapath') else []
-               user_datapath = [__os.path.expanduser(udp) for udp in user_datapath if __os.path.isdir(__os.path.expanduser(str(udp)))]
-               user_nogui = __user.nogui if (hasattr(__user,'nogui') and isinstance(__user.nogui,bool)) else False
-               user_agg = __user.agg if (hasattr(__user,'agg') and isinstance(__user.agg,bool)) else False
-               user_pipeline = __user.pipeline if (hasattr(__user,'pipeline') and isinstance(__user.pipeline,bool)) else False
+               user_datapath = config.datapath
+               user_nogui = config.nogui
+               user_agg = config.agg
+               user_pipeline = config.pipeline
 
-               if not __os.path.exists(user_rcdir):
-                   __os.makedirs(user_rcdir)
-
-               user_rundata = __os.path.expanduser(__user.rundata)
-               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_rundata))):
-                   print('rundata path not found, creating %s' % user_rundata)
-                   __os.makedirs(user_rundata)
+               user_measurespath = config.measurespath
+               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_measurespath))):
+                   print('measurespath path not found, creating %s' % user_measurespath)
+                   __os.makedirs(user_measurespath)
 
                ctsys = __utils()
-               ctsys.initialize( __sys.executable, user_rundata, user_datapath, user_nogui, user_agg, user_pipeline )
+               ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui, user_agg, user_pipeline )
 
-               logger = logsink(__user.logfile) if (hasattr(__user,'logfile') and __user.logfile is not None) else None
+               logger = logsink(config.logfile) if (hasattr(config,'logfile') and config.logfile is not None) else None
 
-               if (__sys.argv[0] != '-m') and (hasattr(__user,'configrc')):
-                   print('Using %s' % __user.configrc)
+               if (__sys.argv[0] != '-m') and (hasattr(config,'configrc')):
+                   print('Using %s' % config.configrc)
                    if logger is not None:
-                       logger.post('Using %s' % __user.configrc, 'INFO')
+                       logger.post('Using %s' % config.configrc, 'INFO')
 
-               if hasattr(__user,'populate_data') and (__user.populate_data == True):
-                   pull_data(ctsys.getpath()[0], logger=logger)
-
-               if hasattr(__user,'measures_update') and (__user.measures_update == True):
+               if hasattr(config,'measures_update') and (config.measures_update == True) and (__sys.argv[0] != '-m'):
                    measures_update(ctsys.rundata(), logger=logger)
 
-               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(__os.path.join(user_rundata, 'geodetic/IERSeop2000')))):
-                   raise ImportError('cant find measures data in ' + __os.path.realpath(__os.path.join(user_rundata, 'geodetic/IERSeop2000')) +  ', visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(__os.path.join(user_measurespath, 'geodetic/IERSeop2000')))):
+                   raise ImportError('cant find measures data in ' + __os.path.realpath(__os.path.join(user_measurespath, 'geodetic/IERSeop2000')) +  ', visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
 
                if __sys.argv[0] != '-m':
-                   ctsys.setrundata(user_rundata)
+                   ctsys.setrundata(user_measurespath)
 
                from .coercetype import coerce as __coerce
 

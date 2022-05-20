@@ -43,7 +43,7 @@ for flag in sys.argv:
             if return_code:
                 raise subprocess.CalledProcessError(return_code, cmd)
 
-        from casatools import ctuser as cfg
+        from casaconfig import config as cfg
         _user_data = __os.path.expanduser("~/.casa/data")
         if flag.startswith("--update-user-data="):
             _user_data = flag[19:]
