@@ -485,12 +485,18 @@ bool utils::initialize(const std::vector<std::string> &default_path) {
 // ------------------------------------------------------------
 // -------------------- handling rundata path -----------------
 #ifdef CASATOOLS
-std::string utils::rundata( ) {
+std::string utils::measurespath( ) {
     return casatools::get_state( ).measuresDir( );
 }
+std::string utils::rundata( ) {
+    return measurespath( );
+}
 
-void utils::setrundata( const std::string &data ) {
+void utils::setmeasurespath( const std::string &data ) {
     casatools::get_state( ).setDistroDataPath(data);
+}
+void utils::setrundata( const std::string &data ) {
+    setmeasurespath(data);
 }
 #endif
 

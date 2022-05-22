@@ -273,12 +273,34 @@ returns true if initalization was performed; returns false if initialization was
 
 
 <method name="rundata" type="function">
+  <description>path to the measures data. This function is deprecated measurespath should be used instead.</description>
+  <shortdescription>path to the measures data</shortdescription>
+  <returns type="string"/>
+</method>
+
+<method name="measurespath" type="function">
   <description>path to the measures data</description>
   <shortdescription>path to the measures data</shortdescription>
   <returns type="string"/>
 </method>
 
 <method name="setrundata" type="function">
+<description>
+Set path to the measures data. Must be called during initalization
+before Measures module is initialized. This function is deprecated.
+setmeasurespath should be used instead.
+</description>
+  <shortdescription>set path to the measures data</shortdescription>
+  <input>
+    <param name="path" type="string">
+      <description>path to IERS data</description>
+      <value/>
+    </param>
+  </input>
+  <returns/>
+</method>
+
+<method name="setmeasurespath" type="function">
 <description>
 Set path to the measures data. Must be called during initalization
 before Measures module is initialized.
@@ -292,7 +314,6 @@ before Measures module is initialized.
   </input>
   <returns/>
 </method>
-
 
 <method name="defaultpath" type="function">
 <shortdescription>returns the default data path</shortdescription>
