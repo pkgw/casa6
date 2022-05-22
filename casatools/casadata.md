@@ -31,9 +31,9 @@ There are three options for installing CASA's runtime data:
 
 ### Use Existing Data
 
-If you already have a CASA data repository that contains CASA's runtime data, you can point casatools to this data by setting ```rundata``` in CASA's config.py file, ```~/.casa/config.py```. For example:
+If you already have a CASA data repository that contains CASA's runtime data, you can point casatools to this data by setting ```measurespath``` in CASA's config.py file, ```~/.casa/config.py```. For example:
 ```
-rundata = '/home/casa/data/trunk'
+measurespath = '/home/casa/data/trunk'
 ```
 All [ALMA Regional Centers (ARC)](https://www.almaobservatory.org/en/about-alma-at-first-glance/global-collaboration/) and all NRAO sites have a copy of the runtime data used by casatools. For users at these locations, using the local copy of the runtime data is the best option because it is kept up to date by each location.
 
