@@ -124,6 +124,7 @@ casa and look for memory mismanagement:
 > --log-file=valgrind.log "${LITHDIR}/lib/py/bin/python3" -m casashell --nogui --log2term -c <yourpythonfile>.py
 ```
 Now in another terminal, attach gdb:
+
 ```
 -bash-4.2$ PATH="$EXTPATH" gdb "${LITHDIR}/lib/py/bin/python3"
 (gdb) target remote | /usr/bin/vgdb
