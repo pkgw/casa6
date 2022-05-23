@@ -238,15 +238,25 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         # by checking if any of the MSs has them.
         
         considerscrcols = False
+        considercorr = False
+        considermodel = False
         needscrcols = []
+        needmodel = []
+        needcorr = []
         if ((type(theconcatvis)==str) and (os.path.exists(theconcatvis))):
             # check if all scratch columns are present
             t.open(theconcatvis)
-            if(t.colnames().count('CORRECTED_DATA')==1 or t.colnames().count('MODEL_DATA')==1):
-                considerscrcols = True  # there are scratch columns
-                
-            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0 or t.colnames().count('MODEL_DATA')==0)
+            if (t.colnames().count('MODEL_DATA')==1):
+                considermodel = True
+            if(t.colnames().count('CORRECTED_DATA')==1):
+                considercorr = True
+
+            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0
+                               or  t.colnames().count('MODEL_DATA')==0)
+            needmodel.append(t.colnames().count('MODEL_DATA')==0)
+            needcorr.append(t.colnames().count('CORRECTED_DATA')==0)
             t.close()
+
         else:
             raise ValueError('Visibility data set '+theconcatvis+' not found - please verify the name')
 
@@ -256,20 +266,28 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
 
             # check if all scratch columns are present
             t.open(elvis)
-            if(t.colnames().count('CORRECTED_DATA')==1 
-                           or  t.colnames().count('MODEL_DATA')==1):
-                considerscrcols = True  # there are scratch columns
+            if (t.colnames().count('MODEL_DATA')==1):
+                considermodel = True
+            if(t.colnames().count('CORRECTED_DATA')==1):
+                considercorr = True
 
-            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0 
-                      or  t.colnames().count('MODEL_DATA')==0)
+            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0
+                               or  t.colnames().count('MODEL_DATA')==0)
+            needmodel.append(t.colnames().count('MODEL_DATA')==0)
+            needcorr.append(t.colnames().count('CORRECTED_DATA')==0)
             t.close()
+
+        considerscrcols = (considercorr or considermodel)   # there are scratch columns
+
 
         # start actual work, file existence has already been checked
 
         if(considerscrcols and needscrcols[0]):
             # create scratch cols            
             casalog.post('creating scratch columns in '+theconcatvis , 'INFO')
-            _cb.open(theconcatvis) # calibrator-open creates scratch columns
+            _cb.open(theconcatvis,
+                     addcorr=(considercorr and needcorr[0]),
+                     addmodel=(considermodel and needmodel[0])) # calibrator-open creates scratch columns
             _cb.close()
 
         # scale the weights of the first MS in the chain
@@ -295,7 +313,7 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
 
         i = 0
         for elvis in vis : 
-            i = i + 1
+            i += 1
 
             mmsmembers.append(elvis)
             casalog.post('adding '+elvis+' to multi-MS '+concatvis, 'INFO')
@@ -311,7 +329,9 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
             if(considerscrcols and needscrcols[i]):
                 # create scratch cols            
                 casalog.post('creating scratch columns for '+elvis, 'INFO')
-                _cb.open(elvis) # calibrator-open creates scratch columns
+                _cb.open(elvis,
+                         addcorr=(considercorr and needcorr[i]),
+                         addmodel=(considermodel and needmodel[i])) # calibrator-open creates scratch columns
                 _cb.close()
                 
             m.virtconcatenate(msfile=elvis,
@@ -339,7 +359,6 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         ptablemembers = []
         if os.path.exists(masterptable) and copypointing:
             casalog.post('Concatenating the POINTING tables ...', 'INFO')
-            i = 0
             for i in range(len(mmsmembers)):
                 ptable = mmsmembers[i]+'/POINTING'
                 if ismaster[i] and os.path.exists(ptable):

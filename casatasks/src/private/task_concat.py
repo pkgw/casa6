@@ -329,7 +329,6 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                 considerscrcols = (considercorr or considermodel)   # there are scratch columns
 
 
-
                 # start actual work, file existence has already been checked
                 i = 0
                 if(considerscrcols and needscrcols[i]):
@@ -418,13 +417,7 @@ def concat(vislist,concatvis,freqtol,dirtol,respectname,timesort,copypointing,
                         param_vals = [vars[p] for p in param_names]
                         write_history(mstool(), concatvis, 'concat', param_names,
                                       param_vals, casalog)
-                        #if is_python3:
-                        #        vars = locals( )
-                        #        param_vals = [vars[p] for p in param_names]
-                        #else:
-                        #        param_vals = [eval(p) for p in param_names]
-                        #        write_history(mstool(), concatvis, 'concat', param_names,
-                        #                      param_vals, casalog)
+
                 except Exception as instance:
                         casalog.post("*** Error \'%s\' updating HISTORY" % (instance),
                                      'WARN')
