@@ -33,9 +33,9 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
 
 
     Keyword arguments:
-    vis -- Name of input visibility files (MS)
+    vis -- Name of input visibility files (MSs, only use real paths, no symlinks)
         default: none; example: vis=['ngc5921-1.ms', 'ngc5921-2.ms']
-    concatvis -- Name of the output visibility file
+    concatvis -- Name of the output visibility file (MMS)
         default: none; example: concatvis='src2.ms'
     freqtol -- Frequency shift tolerance for considering data as the same spwid
         default: ''  means always combine
@@ -80,6 +80,9 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         for i in range(len(vis)):
             if type(vis[i]) == str:
                 vis[i] = vis[i].rstrip('/')
+                if os.path.islink(vis[i]):
+                    raise ValueError('Parameter vis must only contain real paths, not symbolic links.\n'
+                                    +vis[i]+' is a link.')
             else:
                 raise ValueError('Parameter vis must only contain strings.')
                 
