@@ -758,6 +758,19 @@ public:
 			return result;
 		}
 
+	double
+	getWidth(int channel) const
+		{
+
+			ThrowIf(channel < 0 || channel >= (int) size(),
+			        String::format("Channel %d not in range [0,%d])", channel,
+			                       size()-1));
+
+			double result = at(channel).getWidth();
+
+			return result;
+		}
+
 	Slice
 	getIntersection(double lowerFrequency, double upperFrequency) const
 		{
@@ -1730,6 +1743,35 @@ VisibilityIteratorImpl2::getFrequencies(Double time, Int frameOfReference,
 	return frequencies;
 }
 
+Vector<Double>
+VisibilityIteratorImpl2::getChanWidths(Double time, Int frameOfReference,
+				       Int spectralWindowId, Int msId) const
+{
+  // This gets the native frame channel widths (no frame conversions performed, for now)
+  
+	const SpectralWindowChannels & spectralWindowChannels =
+		getSpectralWindowChannels(msId, spectralWindowId);
+
+	// Get the channel numbers selected for this time (the spectral window and
+	// MS index are assumed to be the same as those currently pointed to by the
+	// MSIter).
+
+	Vector<Int> channels =
+		getChannels(time, frameOfReference, spectralWindowId, msId);
+
+	Vector<Double> widths(channels.nelements());
+
+	for (Int i = 0; i < (int) channels.nelements(); i++) {
+
+	  Int channelNumber = channels[i];
+
+	  widths[i] = spectralWindowChannels.getWidth(channelNumber);
+	
+	}
+
+	return widths;
+}
+
 Vector<Int>
 VisibilityIteratorImpl2::getChannels(Double time, Int /*frameOfReference*/,
                                      Int spectralWindowId, Int msId) const
@@ -2268,6 +2310,13 @@ VisibilityIteratorImpl2::next()
 
         configureNewSubchunk();
     }
+    else
+    {
+        // Leave the columns referencing a valid table. This ensures that some
+        // TVIs can still get some valid metadata when they are not at the end
+        // of iteration (even if the underlying VI2 is already at the end).
+        attachColumns(msIter_p->table());
+    }
 }
 
 Subchunk
@@ -2487,7 +2536,7 @@ VisibilityIteratorImpl2::configureNewSubchunk()
         // The remaining case is that scope of frequency selections is chunk.
         // In this case the channelSelector is constant for a chunk 
         // and has already been computed in configureNewChunk. 
-        // The number of rows still needds to be updated 
+        // The number of rows still needs to be updated 
         // to account for the the number of rows in this subchunk
         else
         {

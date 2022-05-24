@@ -1,26 +1,29 @@
 # sd task for imaging
-from __future__ import absolute_import
 import os
 import re
-import numpy
 import shutil
 
+import numpy
 from casatasks.private.casa_transition import is_CASA6
+
 if is_CASA6:
-    from casatools import quanta, ms, image, table, msmetadata, measures
     from casatasks import casalog
+    from casatools import quanta, image, ms, table, msmetadata, measures
     from . import sdutil
     from . import sdbeamutil
     from . import mslisthelper
     from .task_tsdimaging import conform_mslist
 else:
+    import sdbeamutil
+    import sdutil
+    from cleanhelper import cleanhelper
     from taskinit import casalog
-    from taskinit import msmdtool as msmetadata
-    from taskinit import tbtool as table
-    from taskinit import mstool as ms
     from taskinit import iatool as image
+    from taskinit import msmdtool as msmetadata
+    from taskinit import mstool as ms
     from taskinit import qatool as quanta
     from taskinit import metool as measures
+    from taskinit import tbtool as table
     import sdutil
     import sdbeamutil
     import recipes.mslisthelper as mslisthelper
@@ -33,7 +36,7 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               gridfunction, convsupport, truncate, gwidth, jwidth,
               imsize, cell, phasecenter, projection, ephemsrcname,
               pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax):
-    with sdutil.sdtask_manager(sdimaging_worker, locals()) as worker:
+    with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()
         worker.finalize()
@@ -465,6 +468,13 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         self.sorted_idx = []
         self.image_unit = ""
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__del__()
+        if exc_type:
+            return False
+        else:
+            return True
+
     def parameter_check(self):
         # outfile check
         sdutil.assert_outfile_canoverwrite_or_nonexistent(self.outfile,
@@ -611,7 +621,8 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
     def format_ac_baseline(self, in_antenna):
         """ format auto-correlation baseline string from antenna idx list """
         # exact match string
-        if  is_string_type(in_antenna):
+        if is_string_type(in_antenna):
+            # return sdutil.convert_antenna_spec_autocorr(in_antenna)
             if (len(in_antenna) != 0) and (in_antenna.find('&') == -1) \
                    and (in_antenna.find(';')==-1):
                 in_antenna =+ '&&&'
@@ -778,8 +789,8 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         # Calculate Pointing center and extent (if necessary)
         # return a dictionary with keys 'center', 'width', 'height'
         #imsize = self.imsize
-        imsize = sdutil._to_list(self.imsize, int) or \
-            sdutil._to_list(self.imsize, numpy.integer)
+        imsize = sdutil.to_list(self.imsize, int) or \
+            sdutil.to_list(self.imsize, numpy.integer)
         if imsize is None:
             imsize = self.imsize if hasattr(self.imsize, '__iter__') else [ self.imsize ]
             imsize = [ int(numpy.ceil(v)) for v in imsize ]
@@ -1168,7 +1179,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
 
         mapextent = self.imager.mapextent(ref=base_mref, movingsource=self.ephemsrcname,
                                           pointingcolumntouse=colname)
-        if mapextent['status'] is True:
+        if mapextent['status']:
             qheight = my_qa.quantity(mapextent['extent'][1], 'rad')
             qwidth = my_qa.quantity(mapextent['extent'][0], 'rad')
             qcent0 = my_qa.quantity(mapextent['center'][0], 'rad')
