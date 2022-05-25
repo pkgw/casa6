@@ -31,12 +31,12 @@ import unittest
 import numpy
 
 from casatasks import flagdata, imhead, sdimaging
-from casatasks.private.sdutil import table_manager, tool_manager
+from casatasks.private.sdutil import calibrater_manager, table_manager, tool_manager
 from casatestutils import selection_syntax
 from casatestutils.testhelper import TableCacheValidator
 from casatools import ctsys, image, measures
 from casatools import ms as mstool
-from casatools import calibrater, msmetadata, quanta, regionmanager, table
+from casatools import msmetadata, quanta, regionmanager
 
 ctsys_resolve = ctsys.resolve
 
@@ -44,7 +44,6 @@ _ia = image()
 _rg = regionmanager()
 me = measures()
 qa = quanta()
-tb = table()
 ms = mstool()
 
 
@@ -507,12 +506,12 @@ class sdimaging_test0(sdimaging_unittest_base):
         self._check_weight_image(self.outfile)
         self._checkfile(refimage)
         self._check_weight_image(refimage)
-        tb.open(self.outfile)
-        chunk = tb.getcol('map')
-        tb.close()
-        tb.open(refimage)
-        refchunk = tb.getcol('map')
-        tb.close()
+        with table_manager(self.outfile) as tb:
+            chunk = tb.getcol('map')
+
+        with table_manager(refimage) as tb:
+            refchunk = tb.getcol('map')
+
         ret = all(chunk.flatten() == refchunk.flatten())
         # print ret
         self.assertTrue(ret)
@@ -656,12 +655,12 @@ class sdimaging_test1(sdimaging_unittest_base):
 
     def test102(self):
         """Test 102: Full channel image."""
-        tb.open(self.rawfile)
-        if 'FLOAT_DATA' in tb.colnames():
-            nchan = tb.getcell('FLOAT_DATA').shape[1]
-        else:
-            nchan = tb.getcell('DATA').shape[1]
-        tb.close()
+        with table_manager(self.rawfile) as tb:
+            if 'FLOAT_DATA' in tb.colnames():
+                nchan = tb.getcell('FLOAT_DATA').shape[1]
+            else:
+                nchan = tb.getcell('DATA').shape[1]
+
         self.task_param.update(dict(nchan=nchan, start=0, width=1))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
@@ -2710,14 +2709,14 @@ class sdimaging_test_restfreq(sdimaging_unittest_base):
         stats = construct_refstat_uniform(self.unifval, [0, 0, 0, 0],
                                           [10, 10, 0, 9])
         # remove REST_REQUENCY in SOURCE TABLE
-        tb.open(self.infiles + '/SOURCE', nomodify=False)
-        rf = tb.getcell('REST_FREQUENCY', 0)
-        rf.resize(0)
-        for idx in range(tb.nrows()):
-            tb.putcell('REST_FREQUENCY', idx, rf)
-            self.assertTrue(len(tb.getcell('REST_FREQUENCY', idx)) == 0)
-        tb.flush()
-        tb.close()
+        with table_manager(self.infiles + '/SOURCE', nomodify=False) as tb:
+            rf = tb.getcell('REST_FREQUENCY', 0)
+            rf.resize(0)
+            for idx in range(tb.nrows()):
+                tb.putcell('REST_FREQUENCY', idx, rf)
+                self.assertTrue(len(tb.getcell('REST_FREQUENCY', idx)) == 0)
+            tb.flush()
+
         self.run_test(restfreq, beam_ref, cell_ref, stats,
                       restfreq='', imsize=[11, 11])
 
@@ -3135,7 +3134,6 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
             # pre-flag the data to be clipped
             # myme = measures()
             mymsmd = msmetadata()
-            mytb = table()
             myqa = quanta()
             # center = myme.direction('J2000', myqa.quantity(0, 'rad'), myqa.quantity(0, 'rad'))
             offset_plus = myqa.convert(myqa.quantity('1arcmin'), 'rad')
@@ -3179,11 +3177,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                     meta = gridmeta[ira][idec]
                     for imeta in range(len(meta)):
                         infile, irow = meta[imeta]
-                        mytb.open(infile)
-                        try:
+                        with table_manager(infile) as mytb:
                             data = mytb.getcell('FLOAT_DATA', irow)[0]
-                        finally:
-                            mytb.close()
+
                         grid[ira][idec].append(data)
 
             for ira in range(imsize):
@@ -3199,8 +3195,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                         print('### ira', ira, 'idec', idec, 'argmin', argmin, 'argmax', argmax)
                         for imeta in (argmin, argmax):
                             infile, irow = gridmeta[ira][idec][imeta]
-                            mytb.open(infile, nomodify=False)
-                            try:
+                            with table_manager(infile, nomodify=False) as mytb:
                                 print('### clip', infile, 'row', irow, 'chan', ichan,
                                       'data', mytb.getcell('FLOAT_DATA', irow))
                                 flag = mytb.getcell('FLAG', irow)
@@ -3208,8 +3203,6 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                                 flag[0, ichan] = True
                                 print('### flag (after)', flag)
                                 mytb.putcell('FLAG', irow, flag)
-                            finally:
-                                mytb.close()
 
         outfile = self.outfile_ref
         sdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
@@ -3593,43 +3586,35 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
 
     @staticmethod
     def column_exists(name, colname):
-        tb = table()
-        tb.open(name)
-        colnames = tb.colnames()
-        tb.close()
+        with table_manager(name) as tb:
+            colnames = tb.colnames()
+
         return colname in colnames
 
     @staticmethod
     def fill_weight_spectrum(name):
-        cb = calibrater()
-        cb.open(name, addcorr=False, addmodel=False)
-        cb.initweights(wtmode='ones', dowtsp=False)
-        cb.close()
+        with calibrater_manager(name, addcorr=False, addmodel=False) as cb:
+            cb.initweights(wtmode='ones', dowtsp=False)
 
     @staticmethod
     def remove_weight_spectrum(name):
-        tb = table()
-        tb.open(name, nomodify=False)
-        if 'WEIGHT_SPECTRUM' in tb.colnames():
-            tb.removecols('WEIGHT_SPECTRUM')
-        wt = tb.getcol('WEIGHT')
-        wt[:] = 1.0
-        tb.putcol('WEIGHT', wt)
-        tb.close()
+        with table_manager(name, nomodify=False) as tb:
+            if 'WEIGHT_SPECTRUM' in tb.colnames():
+                tb.removecols('WEIGHT_SPECTRUM')
+            wt = tb.getcol('WEIGHT')
+            wt[:] = 1.0
+            tb.putcol('WEIGHT', wt)
 
     @staticmethod
     def fill_corrected_data(name):
-        cb = calibrater()
-        cb.open(name, addmodel=False, addcorr=True)
-        cb.close()
+        with calibrater_manager(name, addmodel=False, addcorr=True):
+            pass
 
     @staticmethod
     def remove_corrected_data(name):
-        tb = table()
-        tb.open(name, nomodify=False)
-        if 'CORRECTED_DATA' in tb.colnames():
-            tb.removecols('CORRECTED_DATA')
-        tb.close()
+        with table_manager(name, nomodify=False) as tb:
+            if 'CORRECTED_DATA' in tb.colnames():
+                tb.removecols('CORRECTED_DATA')
 
     def setUp(self):
         super(sdimaging_ms_conformance, self).setUp()
