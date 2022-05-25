@@ -540,7 +540,7 @@ def tentative_chrono_sort(infiles):
     for name in infiles:
         assert isinstance(name, str)
         assert os.path.exists(name)
-        with tbmanager(name) as t:
+        with table_manager(name) as t:
             t.open(name)
             times = t.getcol('TIME')
             times.sort()
@@ -549,7 +549,7 @@ def tentative_chrono_sort(infiles):
     sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
 
     for i in range(len(infiles)):
-            sortedvis.append(sorted_namestuples[i][1])
+        sortedvis.append(sorted_namestuples[i][1])
 
     return sortedvis
 

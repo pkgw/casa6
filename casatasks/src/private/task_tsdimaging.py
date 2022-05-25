@@ -271,7 +271,7 @@ def fix_conformance(process_dict):
     for colname, msnames in process_dict['add'].items():
         for name in msnames:
             casalog.post('{} will be added to "{}"'.format(colname, name), priority='WARN')
-            with sdutil.cbmanager(name, addmodel=False, addcorr=True):
+            with sdutil.calibrater_manager(name, addmodel=False, addcorr=True):
                 pass
     return backup_list
 
@@ -971,7 +971,7 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
             sorted_vis = infiles
         else:
             # sort input data to get consistent result with older sdimaging
-            _sorted = sort_vis(infiles, _spw, mode, imwidth, field, antenna, scan, intent)
+            _sorted = sort_vis(infiles, _spw, mode, imwidth, field, antenna, scan, intent, timerange)
             sorted_vis, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent, sorted_timerange = _sorted
             _imsize, _cell, _phasecenter = _handle_image_params(imsize, cell, phasecenter, sorted_vis,
                                                                 sorted_field, sorted_spw, sorted_antenna,

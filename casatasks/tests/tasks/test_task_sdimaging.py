@@ -3553,7 +3553,7 @@ class sdimaging_ms_order(sdimaging_pm04_test_base):
             self.__set_field_name(infile, 2, fname)
 
     def __set_field_name(self, infile, field_id, name):
-        with tbmanager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
+        with table_manager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
             tb.putcell('NAME', field_id, name)
             assert tb.getcell('NAME', field_id) == name
 
