@@ -22,7 +22,6 @@ if is_CASA6:
     from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
     from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
     #from casatasks import imregrid
-    from .cleanhelper import write_tclean_history, get_func_params
     from .sdint_helper import *
     from casatools import table
     from casatools import synthesisimager,synthesisutils
@@ -34,7 +33,6 @@ else:
     from imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
     from imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
     from imagerhelpers.input_parameters import ImagerParameters
-    from cleanhelper import write_tclean_history, get_func_params
     from sdint_helper import *
     table=casac.table
     synthesisimager=casac.synthesisimager
@@ -359,7 +357,6 @@ def sdintimaging(
     scales,#=[],
     nterms,#=1,
     smallscalebias,#=0.0
-    
 
     ### restoration options
     restoration,
@@ -507,7 +504,7 @@ def sdintimaging(
 
     imager = None
     paramList = None
-    deconvolvertool = None
+    deconvolver = None
 
     # Put all parameters into dictionaries and check them.
     ##make a dictionary of parameters that ImagerParameters take
@@ -579,7 +576,7 @@ def sdintimaging(
             ### debug (remove it later) 
             casalog.post("Combined image setup ....")
             t0=time.time();
-            deconvolvertool=setup_deconvolver(decname, specmode, bparm )
+            deconvolver=setup_deconvolver(decname, specmode, bparm )
             #imager.initializeDeconvolvers()
             t1=time.time();
             #casalog.post("***Time for initializing deconvolver(s): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
@@ -610,8 +607,8 @@ def sdintimaging(
             casalog.post('Exiting from the sdintimaging task due to inconsistencies found between the interferometer-only and singledish-only image and psf cubes. Please modify inputs as needed','WARN')
             if imager != None:
                 imager.deleteTools()
-            if deconvolvertool != None:
-                deconvolvertool.deleteTools()
+            if deconvolver != None:
+                deconvolver.deleteTools()
             deleteTmpFiles()
             return
 
@@ -664,10 +661,10 @@ def sdintimaging(
             synu.fitPsfBeam(joint_multiterm,nterms=nterms)
 
         if niter>0 :
-            isit = deconvolvertool.hasConverged()
-            deconvolvertool.updateMask()
+            isit = deconvolver.hasConverged()
+            deconvolver.updateMask()
 
-            while ( not deconvolvertool.hasConverged() ):
+            while ( not deconvolver.hasConverged() ):
  
                 t0=time.time();
 
@@ -679,7 +676,7 @@ def sdintimaging(
 
 
 
-                deconvolvertool.runMinorCycle()
+                deconvolver.runMinorCycle()
 
 #                if specmode=='mfs':
 #                    print('Max of joint residual after minorcycle' + str(imstat(joint_multiterm+'.residual.tt0',verbose=False)['max'][0]))
@@ -770,17 +767,17 @@ def sdintimaging(
 #                    print('Max of residual after feather step ' + str(imstat(joint_cube+'.residual',verbose=False)['max'][0]))
 
 
-                deconvolvertool.updateMask()
+                deconvolver.updateMask()
 
                 ## Get summary from iterbot
                 if type(interactive) != bool:
                     #retrec=imager.getSummary();
-                    retrec=deconvolvertool.getSummary();
+                    retrec=deconvolver.getSummary();
 
             ## Restore images.
             if restoration==True:  
                 t0=time.time();
-                deconvolvertool.restoreImages()
+                deconvolver.restoreImages()
                 t1=time.time();
                 casalog.post("***Time for restoring images: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
                 if pbcor==True:
@@ -798,7 +795,7 @@ def sdintimaging(
         ##close tools
         # needs to deletools before concat or lock waits for ever
         imager.deleteTools()
-        deconvolvertool.deleteTools()
+        deconvolver.deleteTools()
    
         if parallel==True and not (specmode =='mfs' or specmode=='cont'):
             casalog.post("Running virtualconcat (type=%s) of sub-cubes" % concattype,"INFO2", "task_tclean")
@@ -815,15 +812,6 @@ def sdintimaging(
 
         #clean up tmp files
         deleteTmpFiles()
-
-    # Write history at the end, when hopefully all temp files are gone from disk,
-    # so they won't be picked up. They need time to disappear on NFS or slow hw.
-    # Copied from tclean.
-    try:
-        params = get_func_params(sdintimaging, locals())
-        write_tclean_history(imagename, 'sdintimaging', params, casalog)
-    except Exception as exc:
-        casalog.post("Error updating history (logtable): {} ".format(exc),'WARN')
        
     return retrec
 

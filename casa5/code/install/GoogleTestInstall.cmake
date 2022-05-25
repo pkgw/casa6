@@ -36,7 +36,7 @@ set (CasaCodeSourceRoot ${CMAKE_SOURCE_DIR})
 set (GoogleTest_Root ${CMAKE_BINARY_DIR}/gtest)
 
 set (GoogleTest_ReleaseArchive 
-     https://casa.nrao.edu/download/devel/googletest/googletest-release-${GoogleTest_Version}.tar.gz)
+     https://svn.cv.nrao.edu/casa/devel/googletest/googletest-release-${GoogleTest_Version}.tar.gz)
 
 ######################
 #                    #

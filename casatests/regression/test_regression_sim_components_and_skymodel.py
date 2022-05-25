@@ -18,14 +18,32 @@ import time
 import shutil
 import unittest
 
-from casatools import ctsys, image, componentlist
-from casatasks import simobserve, simanalyze, casalog
+CASA6 = False
+try:
+    from casatools import ctsys, image, componentlist
+    from casatasks import simobserve, simanalyze, casalog
+    CASA6 = True
+    
+    _cl = componentlist()
+    _ia = image()
+    def default(atask):
+        pass
+except ImportError:
+    from tasks import simobserve, simanalyze
+    from taskinit import cltool, iatool, casalog
+    from __main__ import default
+    
+    _cl = cltool()
+    _ia = iatool()
 
-_cl = componentlist()
-_ia = image()
+if CASA6:
+    datadir = ctsys.resolve('regression/sim_components_and_skymodel/')
+    cfgdir = ctsys.resolve('alma/simmos/')
 
-datadir = ctsys.resolve('regression/sim_components_and_skymodel/')
-cfgdir = ctsys.resolve('alma/simmos/')
+else:
+    repodir = os.path.join(os.environ['CASAPATH'].split()[0],'casatestdata/')
+    datadir = repodir + 'regression/sim_components_and_skymodel/'
+    cfgdir = repodir + 'alma/simmos/'
 
 def logprint(msg):
     print(msg)
@@ -38,6 +56,8 @@ logprint ('--Running simdata of input672GHz_50pc.image--')
 class regression_components_skymodel_test(unittest.TestCase):
 
     def setUp(self):
+        default("simanalyze")
+        default("simobserve")
         self.projname = "psim2"
         self.modelimage = datadir + "/input50pc_672GHz.fits"
         self.antennalist = cfgdir + "/alma.out20.cfg"
@@ -65,7 +85,7 @@ class regression_components_skymodel_test(unittest.TestCase):
         '''Test components and skymodel...'''
 
         startTime = time.time()
-        startProc = time.perf_counter()
+        startProc = time.clock()
         
         # Check if modelimage and antennalist are being read from original repository
         # ground must be set here to use appropriate defaults for "tsys-atm" when run without casalith sub-parameter defaults
@@ -76,13 +96,14 @@ class regression_components_skymodel_test(unittest.TestCase):
                    thermalnoise="tsys-atm", user_pwv=0.5, t_ground=269.0, maptype="ALMA2012",  graphics="file", verbose=True)
 
         # Analyze and clean  results of project created above
+        default(simanalyze)
         # skymodel is NOT set in log for ppdisk2_regression, which I don't understand, it doesn't matter as it picks up the correct one in psim2
         simanalyze(project=self.projname, skymodel="", image=True, cell="", niter=1000, 
                    threshold="1e-7Jy", imsize=[192, 192], stokes="I", weighting="natural", analyze=True, interactive=False,
                    graphics="file", verbose=True)
 
         endTime = time.time()
-        endProc = time.perf_counter()
+        endProc = time.clock()
 
         # Regression
 

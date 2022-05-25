@@ -22,14 +22,33 @@ import shutil
 import unittest
 
 
-from casatools import ctsys, image, ms
-from casatasks import simobserve, simanalyze, casalog
+CASA6 = False
+try:
+    from casatools import ctsys, image, ms
+    from casatasks import simobserve, simanalyze, casalog
+    CASA6 = True
 
-_ia = image()
-_ms = ms()
+    _ia = image()
+    _ms = ms()
+    
+    def default(atask):
+        pass
+except ImportError:
+    from tasks import simobserve, simanalyze
+    from taskinit import iatool, mstool, casalog
+    from __main__ import default
 
-datadir = ctsys.resolve('regression/sim_TP/')
-cfgdir = ctsys.resolve('alma/simmos/')
+    _ia = iatool()
+    _ms = mstool()
+
+if CASA6:
+    datadir = ctsys.resolve('regression/sim_TP/')
+    cfgdir = ctsys.resolve('alma/simmos/')
+
+else:
+    repodir = os.path.join(os.environ['CASAPATH'].split()[0],'casatestdata/')
+    datadir = repodir + 'regression/sim_TP/'
+    cfgdir = repodir + 'alma/simmos/'
 
 projname = "m51sd_co32"
 
@@ -56,8 +75,9 @@ class regression_sim_TP_test(unittest.TestCase):
         logprint('sd total power simobserve of M51')
 
         startTime = time.time()
-        startProc = time.perf_counter()
+        startProc = time.clock()
         
+        default(simobserve)
         simobserve(project = projname, skymodel = self.modelname, inbright = '0.004', indirection = 'B1950 23h59m59.96 -34d59m59.50',
                    incell = '0.5arcsec',incenter = '330.076GHz' , inwidth = '50MHz',
                    setpointings = True,integration = '10s', 
@@ -68,17 +88,18 @@ class regression_sim_TP_test(unittest.TestCase):
                    graphics="file", verbose=True, overwrite = True)
 
         obsEndTime = time.time()
-        obsEndProc = time.perf_counter()
+        obsEndProc = time.clock()
 
         logprint('simanalyze of total power (M51)')
        
+        default(simanalyze)
         simanalyze(project=projname, image=True, imsize=[512,512], cell='1.0arcsec',
                    imdirection = 'B1950 23h59m59.96 -34d59m59.50', analyze=True,
                    showpsf = False, showresidual = False, showconvolved = True, graphics='file',
                    verbose=True)
 
         endTime = time.time()
-        endProc = time.perf_counter()
+        endProc = time.clock()
 
         # Regression
 

@@ -20,12 +20,32 @@ import numpy
 import time
 import unittest
 
-from casatools import ctsys, ms
-from casatasks import simobserve, importfits, casalog
-_ms = ms()
+CASA6 = False
+try:
+    from casatools import ctsys, ms
+    from casatasks import simobserve, importfits, casalog
+    CASA6 = True
 
-datadir = ctsys.resolve("regression/sim_cube/")
-cfgdir = ctsys.resolve("alma/simmos/")
+    _ms = ms()
+
+    def default(atask):
+        pass
+    
+except ImportError:
+    from tasks import simobserve, simanalyze, importfits
+    from taskinit import mstool, casalog
+    from __main__ import default
+
+    _ms = mstool()
+
+if CASA6:
+    datadir = ctsys.resolve("regression/sim_cube/")
+    cfgdir = ctsys.resolve("alma/simmos/")
+
+else:
+    repodir = os.path.join(os.environ['CASAPATH'].split()[0],'casatestdata/')
+    datadir = repodir + 'regression/sim_cube/'
+    cfgdir = repodir + 'alma/simmos/'
 
 projname = "tc2"
 
@@ -53,15 +73,16 @@ class regression_sim_cube_test(unittest.TestCase):
         logprint("simobserve of test cube")
 
         startTime = time.time()
-        startProc = time.perf_counter()
+        startProc = time.clock()
 
+        default("simobserve")
         simobserve(project=projname, skymodel="testcube2",inbright=".1",indirection="J2000 19h00m00s -40d00m00s",
                    incell="0.2arcsec",incenter="350GHz",inwidth="0.5MHz",setpointings=False,ptgfile=datadir+"sim_alma_3dcube_128x128x10.txt",
                    obsmode="int",antennalist=cfgdir+"alma.out01.cfg",refdate="2012/06/21/03:25:00",
                    totaltime="7200s",thermalnoise="",graphics="file",verbose=True,overwrite=True)
 
         endTime = time.time()
-        endProc = time.perf_counter()
+        endProc = time.clock()
 
         # Regression
         logprint("********** Regression *****************")

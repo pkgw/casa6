@@ -34,7 +34,6 @@ if is_CASA6:
     _ia  = casatools.image()
     _cb = casatools.calibrater()
     from casatasks import casalog
-    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 
     casampi_imported = False
     import importlib
@@ -49,12 +48,6 @@ if is_CASA6:
     def tclean_param_names():
         from casatasks.tclean import _tclean_t
         return _tclean_t.__code__.co_varnames[:_tclean_t.__code__.co_argcount]
-    def decon_param_names():
-        from casatasks.deconvolve import _deconvolve_t
-        return _deconvolve_t.__code__.co_varnames[:_deconvolve_t.__code__.co_argcount]
-    def sdint_param_names():
-        from casatasks.sdintimaging import _sdintimaging_t
-        return _sdintimaging_t.__code__.co_varnames[:_sdintimaging_t.__code__.co_argcount]
 
     casa6 = True
 
@@ -83,12 +76,6 @@ else:
         # alternatively could use from tasks import tclean; tclean.parameters
         from task_tclean import tclean
         return tclean.__code__.co_varnames[:tclean.__code__.co_argcount]
-    def decon_param_names():
-        from tasks import deconvolve
-        return deconvolve.parameters.keys()
-    def sdint_param_names():
-        from tasks import sdintimaging
-        return sdintimaging.parameters.keys()
 
     casa5 = True
 
@@ -279,69 +266,20 @@ class TestHelpers:
         """ Exists """
         return os.path.exists(imname)
 
-    def _get_summary_minor_keys(self, sm):
-        chans = list( sm.keys() )
-        stokes = list( sm[chans[0]].keys() )
-        ncycles = len(sm[chans[0]][stokes[0]]['iterDone'])
-        return chans, stokes, ncycles
-
-    def _get_chanstoke_withiters_cycle0(self, summ):
-        """Finds the first possible channel/polarity index in the returned "summaryminor" from tclean that has a value."""
-        if 'summaryminor' in summ:
-            sm = summ['summaryminor'][0] # 0: just look at the first field of the multifield images
-            chans, stokes, ncycles = self._get_summary_minor_keys(sm)
-            uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
-            ret = (chans[0], stokes[0])
-            prev_chan = None
-            for chan in chans:
-                for stoke in stokes:
-                    tmp_iterdone = sm[chan][stoke]['iterDone'][0]
-                    if uss and (prev_chan != None):
-                        # horible hackaround of CAS-13683 to deal with not have access to 'startIterDone'
-                        # get the number of iterations done for just this channel
-                        prev_iterdone = sm[prev_chan][stoke]['iterDone'][0]
-                        if (prev_iterdone <= tmp_iterdone):
-                            tmp_iterdone -= prev_iterdone
-                    if (tmp_iterdone > 0):
-                        return (chan, stoke)
-                prev_chan = chan
-            return ret
-        else:
-            return None
-
-    def _get_chanstoke_withiters_cycleN(self, summ):
-        """Finds the last possible index in the returned "summaryminor" from tclean that has a value.
-        We do this to maintain the same value as was previously returned, so that we don't need to update all the values in the tests.
-        It could be that in the future we just want to return the index [chan/pol with the largest peakres, last cycle]."""
-        if 'summaryminor' in summ:
-            sm = summ['summaryminor'][0] # 0: just look at the first field of the multifield images
-            chans, stokes, ncycles = self._get_summary_minor_keys(sm)
-            uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
-            ret = (chans[0], stokes[0], 0) # 0: cycle 0
-            prev_chan = None
-            for chan in chans:
-                for stoke in stokes:
-                    for cycle in range(ncycles):
-                        tmp_iterdone = sm[chan][stoke]['iterDone'][cycle]
-                        if uss and (prev_chan != None):
-                            # horible hackaround of CAS-13683 to deal with not have access to 'startIterDone'
-                            # get the number of iterations done for just this channel
-                            prev_iterdone = sm[prev_chan][stoke]['iterDone'][cycle]
-                            if (prev_iterdone <= tmp_iterdone):
-                                tmp_iterdone -= prev_iterdone
-                        if (tmp_iterdone > 0):
-                            ret = (chan, stoke, cycle)
-                prev_chan = chan
-            return ret
-        else:
-            return None
-
     def get_peak_res(self, summ):
-        """Get the peak residual, for one major cycle, for the last channel that actually did iterations"""
+        """Get Peak Res"""
+        # AW:  This can be reduced down for readability but putting in a fix for CAS-13182
         peakres = None
-        if 'summaryminor' in summ:
-            idx = self._get_chanstoke_withiters_cycleN(summ)
-            peakres = summ['summaryminor'][0][idx[0]][idx[1]]['peakRes'][idx[2]]
+        if is_CASA6:
+            if 'summaryminor' in summ:
+                reslist = summ['summaryminor'][1,:]
+                peakres = reslist[ len(reslist)-1 ]
+
+        else:
+            if summ.has_key('summaryminor'):
+                reslist = summ['summaryminor'][1,:]
+                peakres = reslist[ len(reslist)-1 ]
+                
         return peakres
 
     def check_peak_res(self, summ,correctres, epsilon=0.05):
@@ -361,12 +299,17 @@ class TestHelpers:
         return out,peakres
 
     def get_mod_flux(self, summ):
-        """Get the modflux + startmodflux, for one major cycle, for the last channel that actually did iterations"""
         """Get Mod Flux"""
+        # AW: This can be reduced down for readability but putting in a fix for CAS-13182
         modflux = None
-        if 'summaryminor' in summ:
-            idx = self._get_chanstoke_withiters_cycleN(summ)
-            modflux = summ['summaryminor'][0][idx[0]][idx[1]]['modelFlux'][idx[2]]
+        if is_CASA6:
+            if 'summaryminor' in summ:
+                modlist = summ['summaryminor'][2,:]
+                modflux = modlist[ len(modlist)-1 ]
+        else:
+            if summ.has_key('summaryminor'):
+                modlist = summ['summaryminor'][2,:]
+                modflux = modlist[ len(modlist)-1 ]
         return modflux
 
     def check_mod_flux(self, summ,correctmod, epsilon=0.05):
@@ -384,14 +327,6 @@ class TestHelpers:
                 out=False
                 return out,modflux
         return out,modflux
-
-    def get_first_cycle_thresh(self, summ):
-        """Get the threshold, for the first minor cycle, for the first channel that actually did iterations"""
-        cycleThresh = None
-        if 'summaryminor' in summ:
-            idx = self._get_chanstoke_withiters_cycle0(summ)
-            cycleThresh = summ['summaryminor'][0][idx[0]][idx[1]]['cycleThresh'][0]
-        return cycleThresh
 
     def check_chanvals(self,msname,vallist, epsilon = 0.05): # list of tuples of (channumber, relation, value) e.g. (10,">",1.0)
         testname = "check_chanvals"
@@ -648,7 +583,7 @@ class TestHelpers:
         logging.info(pstr)
         return pstr
 
-    def check_keywords(self, imlist, testname="check_keywords", check_misc=True):
+    def check_keywords(self, imlist, testname="check_keywords"):
         """
         Keyword related checks (presence/absence of records and entries in these records,
         in the keywords of the image table).
@@ -660,7 +595,7 @@ class TestHelpers:
         pstr = ''
         for imname in imlist:
             if os.path.exists(imname):
-                issues = TestHelpers().check_im_keywords(imname, check_misc=check_misc)
+                issues = TestHelpers().check_im_keywords(imname, check_misc=True, check_extended=True)
                 if issues:
                     pstr += '[{0}] {1}: {2}'.format(testname, imname, issues)
         if not pstr:
@@ -785,8 +720,6 @@ class TestHelpers:
         :returns: the usual (test_imager_helper) string with success/error messages.
         Errors are marked with the tag '(Fail' as per self.verdict().
         """
-        import itertools
-
         ia_open = False
         try:
             _ia.open(imname)
@@ -800,22 +733,11 @@ class TestHelpers:
             if ia_open:
                 _ia.close()
 
-        # build up a list of parameter names (to be evaluated as necessary)
-        task_param_names = {
-            "tclean": tclean_param_names,
-            "deconvolve": decon_param_names,
-            "sdintimaging": sdint_param_names
-        }
-
         pstr = ''
-        ncallsdict = {}
-        ncallsdict['tclean']       = sum(line.startswith('taskname=tclean') for line in history)
-        ncallsdict['deconvolve']   = sum(line == 'taskname=deconvolve' for line in history)
-        ncallsdict['sdintimaging'] = sum(line == 'taskname=sdintimaging' for line in history)
-        ncalls                     = ncallsdict['tclean'] + ncallsdict['deconvolve'] + ncallsdict['sdintimaging']
+        ncalls = sum(line.startswith('taskname=tclean') for line in history)
         nversions = sum(line.startswith('version:') for line in history)
         if ncalls < 1:
-            pstr += ('No calls to cleaning tasks were found in history. ({})\n'.
+            pstr += ('No calls to tclean were found in history. ({})\n'.
                      format(TestHelpers().verdict(False)))
         if nversions < 1:
             pstr += ('No CASA version was found in history. ({})\n'.
@@ -825,53 +747,17 @@ class TestHelpers:
             pstr += ('The number of taskname entries ({}) and CASA version entries ({}) do '
                      'not match. ({})\n'.format(ncalls, nversions,
                                                 TestHelpers().verdict(False)))
-
-        # check parameter names for cleaning tasks
-        histories = TestHelpers().split_histories_by_task(history)
-        for tname in ['tclean', 'deconvolve', 'sdintimaging']:
-            ntcalls = ncallsdict[tname]
-            if ntcalls == 0:
-                continue
-
-            # get task parameters and history to be checked
-            if tname == 'tclean':
-                tclean_keys = list(filter(lambda line: line.startswith("taskname=tclean"), histories.keys()))
-                hist = list(itertools.chain.from_iterable([histories[k] for k in tclean_keys])) # concat all tclean* histories into one long list of lines
-                pnames = tclean_param_names()
-            else:
-                hist = histories['taskname='+tname]
-                if callable(task_param_names[tname]): # lazy evaluation of parameter names, since deconvolve doesn't exist in my branch yet
-                    task_param_names[tname] = task_param_names[tname]()
-                pnames = task_param_names[tname]
-
-            # check parameters
-            for param in pnames:
-                nparval = sum('=' in line and line.split('=')[0].strip() == param for
-                              line in hist)
-                if nparval < 1:
-                    pstr += ('No entries for {} parameter {} found in history. ({})'
-                             '.'.format(tname, param, TestHelpers().verdict(False)))
-                if nparval != ntcalls:
-                    pstr += ("The number of history entries for parameter '{}' ({}) and task "
-                             "calls ({}) do not match ({}).".
-                             format(param, nparval, ntcalls, TestHelpers().verdict(False)))
+        for param in tclean_param_names():
+            nparval = sum('=' in line and line.split('=')[0].strip() == param for
+                          line in history)
+            if nparval < 1:
+                pstr += ('No entries for tclean parameter {} found in history. ({})'
+                         '.'.format(param, TestHelpers().verdict(False)))
+            if nparval != ncalls:
+                pstr += ("The number of history entries for parameter '{}' ({}) and task "
+                         "calls ({}) do not match ({}).".
+                         format(param, nparval, ncalls, TestHelpers().verdict(False)))
         return pstr
-
-    def split_histories_by_task(self, history):
-        """
-        Given the list of strings in history, split it wherever there is a "taskname=*" line.
-        Return a dictionary where the keys are the "taskname=*" lines, and the values are all lines
-        for that taskname.
-        """
-        ret = {}
-        task_line = ""
-        for line in history:
-            if line.startswith("taskname="):
-                task_line = line
-            if task_line not in ret:
-                ret[task_line] = []
-            ret[task_line].append(line)
-        return ret
 
     def check_pix_val(self, imname, theval=0, thepos=[0, 0, 0, 0], exact=False, epsilon=0.05, testname="check_pix_val"):
         pstr = ''
@@ -935,16 +821,16 @@ class TestHelpers:
         logging.info(pstr)
         return pstr
 
-    def check_imexist(self, imgexist, check_keywords_misc=True):
+    def check_imexist(self, imgexist):
         pstr = ''
         if imgexist != None:
             if type(imgexist) == list:
                 pstr += TestHelpers().check_ims(imgexist, True)
-                #print("pstr after checkims = {}".format(pstr))
-                pstr += TestHelpers().check_keywords(imgexist, check_misc=check_keywords_misc)
-                #print("pstr after check_keywords = {}".format(pstr))
+                print("pstr after checkims = {}".format(pstr))
+                pstr += TestHelpers().check_keywords(imgexist)
+                print("pstr after check_keywords = {}".format(pstr))
                 pstr += TestHelpers().check_history(imgexist)
-                #print("pstr after check_history = {}".format(pstr))
+                print("pstr after check_history = {}".format(pstr))
         return pstr
 
     def check_imexistnot(self, imgexistnot):
@@ -1070,7 +956,7 @@ class TestHelpers:
         else:
             return "[ {} ]: found {} out of {} matching log lines (Fail, unmet expectations: {})\n".format(testname, len(expected)-len(unmet), len(expected), ", ".join(unmet))
 
-    def checkall(self, ret=None, peakres=None, modflux=None, iterdone=None, nmajordone=None, imgexist=None, imgexistnot=None, imgval=None, imgvalexact=None, imgmask=None, tabcache=True, stopcode=None, reffreq=None, firstcyclethresh=None, epsilon=0.05, tfmask=None, check_keywords_misc=True):
+    def checkall(self, ret=None, peakres=None, modflux=None, iterdone=None, nmajordone=None, imgexist=None, imgexistnot=None, imgval=None, imgvalexact=None, imgmask=None, tabcache=True, stopcode=None, reffreq=None, epsilon=0.05,tfmask=None):
         """
             ret=None,
             peakres=None, # a float
@@ -1085,7 +971,6 @@ class TestHelpers:
             tabcache=True,
             stopcode=None,
             reffreq=None # list of tuples of (imagename, reffreq)
-            firstcyclethresh = None, #a float 
             tfmask=None # list of tuples of (imagename, maskname). 
         """
         pstr = "[ checkall ] \n"
@@ -1103,14 +988,11 @@ class TestHelpers:
                 if nmajordone != None:
                     out, message = TestHelpers().check_val(val=ret['nmajordone'], correctval=nmajordone, valname="nmajordone", exact=True)
                     pstr = pstr + message
-                if firstcyclethresh != None:
-                    out, message = TestHelpers().check_val(val=TestHelpers().get_first_cycle_thresh(ret), correctval=firstcyclethresh, valname='initial cyclethreshold', epsilon=epsilon)
-                    pstr = pstr + message
             except Exception as e:
                 logging.info(ret)
                 raise
         logging.info("Epsilon: {}".format(epsilon))
-        pstr += TestHelpers().check_imexist(imgexist, check_keywords_misc=check_keywords_misc)
+        pstr += TestHelpers().check_imexist(imgexist)
         pstr += TestHelpers().check_imexistnot(imgexistnot)
         pstr += TestHelpers().check_imval(imgval, epsilon=epsilon)
         pstr += TestHelpers().check_imvalexact(imgvalexact, epsilon=epsilon)
@@ -1176,19 +1058,38 @@ class TestHelpers:
                         retNmajordone = max(ret[inode][int(inode.strip('node'))]['nmajordone'],retNmajordone)
                     mergedret['nmajordone']=retNmajordone
                 if parlist.count('peakres'):
+                    #retPeakres = 0
+                    #for inode in nodenames:
+                        #tempreslist = ret[inode][int(inode.strip('node'))]['summaryminor'][1,:]
+                        #if len(tempreslist)>0:
+                        #    tempresval = tempreslist[len(tempreslist)-1]
+                        #else:
+                        #    tempresval=0.0
+                        #retPeakres = max(tempresval,retPeakres)
+                    #mergedret['summaryminor']=ret['node1'][1]['summaryminor']
                     if 'summaryminor' not in mergedret:
                         for inode in nodenames:
                             nodeid = int(inode.strip('node'))
-                            if len(ret[inode][nodeid]['summaryminor'])!=0:
+                            if ret[inode][nodeid]['summaryminor'].size!=0:
                                 lastnode = inode
                                 lastid = nodeid
                            
                         mergedret['summaryminor']=ret[lastnode][lastid]['summaryminor']
                 if parlist.count('modflux'):
+                    #retModflux = 0
+                    #for inode in nodenames:
+                    #    tempmodlist = ret[inode][int(inode.strip('node'))]['summaryminor'][2,:]
+                    #    print "tempmodlist for ",inode,"=",tempmodlist
+                    #    if len(tempmodlist)>0:
+                    #         tempmodval=tempmodlist[len(tempmodlist)-1]
+                    #    else:
+                    #         tempmodval=0.0
+                    #    retModflux += tempmodval
+                    #mergedret['modflux']=retModflux
                     if 'summaryminor' not in mergedret:
                         for inode in nodenames:
                             nodeid = int(inode.strip('node'))
-                            if len(ret[inode][nodeid]['summaryminor'])!=0:
+                            if ret[inode][nodeid]['summaryminor'].size!=0:
                                 lastnode = inode
                                 lastid = nodeid
                            

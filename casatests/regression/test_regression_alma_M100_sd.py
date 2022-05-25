@@ -67,6 +67,18 @@ mynumsubmss = 4
 mms = False
 
 ############    Imports    #################
+CASA6 = False
+try:
+    import casatools
+    cu = casatools.utils
+    from casatasks import importasdm, listobs, flagdata, sdcal, sdbaseline, sdimaging, imhead, immoments, imstat, exportfits, casalog
+    from casaplotms import plotms
+    CASA6 = True
+except ImportError:
+    from __main__ import *
+    from tasks import *
+    from taskinit import *
+
 import time
 import os
 import numpy
@@ -76,10 +88,6 @@ import traceback
 import unittest
 import glob
 
-import casatools
-cu = casatools.utils
-from casatasks import importasdm, listobs, flagdata, sdcal, sdbaseline, sdimaging, imhead, immoments, imstat, exportfits, casalog
-from casaplotms import plotms
 
 
 #############################
@@ -144,7 +152,10 @@ steptime = []
 #    for i in range(0, len(steptime)):
 #        casalog.post( '  '+str(thesteps[i])+'   '+str(steptime[i])+'  '+str(steptime[i]/totaltime*100.) +' ['+step_title[thesteps[i]]+']', 'WARN')
 
-datapath = casatools.ctsys.resolve('regression/alma_M100_sd/')
+if CASA6:
+    datapath = casatools.ctsys.resolve('regression/alma_M100_sd/')
+else:
+    pass
 
 class regression_alma_m100_test(unittest.TestCase):
 
@@ -207,7 +218,7 @@ class regression_alma_m100_test(unittest.TestCase):
 
 
             startTime=time.time()
-            startProc=time.perf_counter()
+            startProc=time.clock()
 
 
 
@@ -224,7 +235,7 @@ class regression_alma_m100_test(unittest.TestCase):
 
             importasdm(asdm = rawname, vis=msname, overwrite=True)
 
-            importproc=time.perf_counter()
+            importproc=time.clock()
             importtime=time.time()
 
             # listobs task generates detailed information of the MS
@@ -287,7 +298,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 action = 'apply'
             )
 
-            flagproc = time.perf_counter()
+            flagproc = time.clock()
             flagtime = time.time()
 
 
@@ -301,7 +312,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 spwmap  = {'1':[9],'3':[11],'5':[13],'7':[15]},
             )
 
-            sdcalproc=time.perf_counter()
+            sdcalproc=time.clock()
             sdcaltime=time.time()
 
 
@@ -323,7 +334,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 overwrite = True
             )
 
-            sdbaselineproc = time.perf_counter()
+            sdbaselineproc = time.clock()
             sdbaselinetime = time.time()
 
             # Plot the calibrated spectra, using the plotms task.
@@ -425,7 +436,7 @@ class regression_alma_m100_test(unittest.TestCase):
             imhead(imagename=outfile, mode='put', hdkey='bunit', hdvalue='K')
 
 
-            combproc=time.perf_counter()
+            combproc=time.clock()
             combtime=time.time()
 
 
@@ -453,7 +464,7 @@ class regression_alma_m100_test(unittest.TestCase):
 
 
 
-            #imageproc=time.perf_counter()
+            #imageproc=time.clock()
             #imagetime = time.time()
 
             # -- endl of M100 script
@@ -729,6 +740,8 @@ class regression_alma_m100_test(unittest.TestCase):
 def suite():
     return [regression_alma_m100_test]
 
-if __name__ == '__main__':
-    unittest.main()
+from casatasks.private.casa_transition import is_CASA6
+if is_CASA6:
+    if __name__ == '__main__':
+        unittest.main()
 

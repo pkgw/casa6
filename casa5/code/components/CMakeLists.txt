@@ -18,7 +18,6 @@
 #
 
 casa_add_library( components
-    ComponentModels/C11Timer.cc
     ComponentModels/ComponentList.cc
     ComponentModels/ComponentShape.cc
     ComponentModels/ComponentType2.cc
@@ -37,15 +36,16 @@ casa_add_library( components
     ComponentModels/GaussianShape.cc
     ComponentModels/LimbDarkenedDiskShape.cc
     ComponentModels/PointShape.cc
-    ComponentModels/PowerLogPoly.cc
     ComponentModels/SkyCompBase.cc
     ComponentModels/SkyComponent.cc
     ComponentModels/SkyComponentFactory.cc
     ComponentModels/SkyCompRep.cc
     ComponentModels/SpectralIndex.cc
     ComponentModels/SpectralModel.cc
+    ComponentModels/C11Timer.cc
     ComponentModels/TabularSpectrum.cc
     ComponentModels/TwoSidedShape.cc
+    
     
     SpectralComponents/CompiledSpectralElement.cc
     SpectralComponents/GaussianMultipletSpectralElement.cc
@@ -64,7 +64,6 @@ casa_add_library( components
     SpectralComponents/SpectralListFactory.cc
 )
 install (FILES 
-    ComponentModels/C11Timer.h
     ComponentModels/ComponentList.h
     ComponentModels/ComponentShape.h
     ComponentModels/ComponentType.h
@@ -85,7 +84,6 @@ install (FILES
     ComponentModels/GaussianShape.h
     ComponentModels/LimbDarkenedDiskShape.h
     ComponentModels/PointShape.h
-    ComponentModels/PowerLogPoly.h
     ComponentModels/SkyCompBase.h
     ComponentModels/SkyComponent.h
     ComponentModels/SkyComponentFactory.h
@@ -94,6 +92,7 @@ install (FILES
     ComponentModels/SpectralIndex.h
     ComponentModels/SpectralModel.h
     ComponentModels/TabularSpectrum.h
+    ComponentModels/C11Timer.h
     ComponentModels/TwoSidedShape.h
 	DESTINATION include/casacode/components/ComponentModels
 )
@@ -132,7 +131,6 @@ casa_add_assay( components ComponentModels/test/tGaussianDeconvolver.cc )
 casa_add_assay( components ComponentModels/test/tGaussianShape.cc )
 casa_add_assay( components ComponentModels/test/tPointComponent.cc )
 casa_add_assay( components ComponentModels/test/tPointShape.cc )
-casa_add_assay( components ComponentModels/test/tPowerLogPoly.cc )
 casa_add_assay( components ComponentModels/test/tSkyComponentFactory.cc )
 casa_add_assay( components ComponentModels/test/tSkyCompRep.cc )
 casa_add_assay( components ComponentModels/test/tSpectralIndex.cc )
