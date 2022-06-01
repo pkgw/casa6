@@ -1718,6 +1718,33 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    LatticeFFT::cfft2d(*lattice,false);
 	  }
 	const IPosition latticeShape = lattice->shape();
+
+        int samp=getAWConvFunc()->getOversampling();
+        cerr << "SAMP " << samp << endl;
+        //Do sampling size correction    
+        Vector<Float> sincConvX(nx);
+        for (Int ix=0;ix<nx;ix++) {
+          Float x=C::pi*Float(ix-nx/2)/(Float(nx)*Float(convSampling));
+          if(ix==nx/2) {
+            sincConvX(ix)=1.0;
+          }
+          else {
+            sincConvX(ix)=sin(x)/x;
+          }
+        }
+        Vector<Float> sincConvY(ny);
+        for (Int ix=0;ix<ny;ix++) {
+          Float x=C::pi*Float(ix-ny/2)/(Float(ny)*Float(convSampling));
+          if(ix==ny/2) {
+            sincConvY(ix)=1.0;
+          }
+          else {
+            sincConvY(ix)=sin(x)/x;
+          }
+        }
+    
+
+        
 	//
 	// Now normalize the dirty image.
 	//
@@ -1741,6 +1768,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      Int pol=lix.position()(2);
 	      Int chan=lix.position()(3);
 	      {
+
+                Int iy=lix.position()(1);
+                for (Int ix=0;ix<nx;ix++) {
+                  correction(ix)=1.0/(sincConvX(ix)*sincConvY(iy));
+                 }
+                //cerr << iy << " min max corr " << min(abs(correction)) << "    " << max(abs(correction)) << endl;
+                lix.rwVectorCursor()*=correction;
 		if(fftNormalization) 
 		  {
 		    if(weights(pol,chan)!=0.0)
@@ -1800,16 +1834,63 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     Int nx=latticeShape(0);
     Int ny=latticeShape(1);
-    
-    IPosition cursorShape(4, nx, ny, latticeShape(2), latticeShape(3));
-    IPosition axisPath(4, 0, 1, 2, 3);
-    LatticeStepper lsx(latticeShape, cursorShape, axisPath);
-    LatticeIterator<Float> lix(weightImage, lsx);
-    LatticeIterator<Float> liy(*avgPB_p,lsx);
-    for(lix.reset();!lix.atEnd();lix++) 
-      {
-	lix.rwCursor()=liy.rwCursor();
+  
+
+    int samp=getAWConvFunc()->getOversampling();
+    //Do sampling size correction    
+    Vector<Float> sincConvX(nx);
+    for (Int ix=0;ix<nx;ix++) {
+      Float x=C::pi*Float(ix-nx/2)/(Float(nx)*Float(convSampling));
+      if(ix==nx/2) {
+        sincConvX(ix)=1.0;
       }
+      else {
+        sincConvX(ix)=sin(x)/x;
+      }
+    }
+    Vector<Float> sincConvY(ny);
+    for (Int ix=0;ix<ny;ix++) {
+      Float x=C::pi*Float(ix-ny/2)/(Float(ny)*Float(convSampling));
+      if(ix==ny/2) {
+        sincConvY(ix)=1.0;
+      }
+      else {
+        sincConvY(ix)=sin(x)/x;
+      }
+    }
+    
+
+       
+
+    {
+      IPosition cursorShape(4, nx, ny, latticeShape(2), latticeShape(3));
+      IPosition axisPath(4, 0, 1, 2, 3);
+      LatticeStepper lsx(latticeShape, cursorShape, axisPath);
+      LatticeIterator<Float> lix(weightImage, lsx);
+      LatticeIterator<Float> liy(*avgPB_p,lsx);
+      for(lix.reset();!lix.atEnd();lix++) 
+        {
+          lix.rwCursor()=liy.cursor();
+        }
+    }
+    {//sampling size correction
+      Vector<Float> correction(nx);
+      correction=1.0;
+      // Do the Grid-correction
+      IPosition cursorShape(4, nx, 1, 1, 1);
+      IPosition axisPath(4, 0, 1, 2, 3);
+      LatticeStepper lsx(weightImage.shape(), cursorShape, axisPath);
+      LatticeIterator<Float> lix(weightImage, lsx);
+      for(lix.reset();!lix.atEnd();lix++) 
+        {
+              
+          Int iy=lix.position()(1);
+          for (Int ix=0;ix<nx;ix++) {
+            correction(ix)=1.0/(sincConvX(ix)*sincConvY(iy));
+          }
+          lix.rwVectorCursor()*=correction;
+        }
+        }
   }
   //---------------------------------------------------------------
     void AWProjectFT::setWeightImage(ImageInterface<Float>& weightImage){

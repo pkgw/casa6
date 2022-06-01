@@ -307,13 +307,12 @@ namespace casa{
    Double vbPA = vbs.paQuant_p.getValue("rad");
 
    for(Int irow=rbeg; irow< rend; irow++){   
-      //      if ((UVW.nelements() == 0)) 
       
       if(!(*(rowFlag_ptr+irow)))
 	{   
 	  setFieldPhaseGrad((vb2CFBMap_p->vectorPhaseGradCalculator_p[vb2CFBMap_p->vbRow2BLMap_p[irow]])->field_phaseGrad_p);
 	  cfb = (*vb2CFBMap_p)[irow];
-	  //	  if (!dopsf) cerr << "UVW: " << irow << " " << UVW(0,irow) << " " << UVW(1,irow) << " " << UVW(2,irow) << endl;
+
 	  for(Int ichan=startChan; ichan< endChan; ichan++)
 	    {
 	      if (*(imgWts_ptr + ichan+irow*nDataChan)!=0.0) 
@@ -323,9 +322,8 @@ namespace casa{
 		  if((targetIMChan>=0) && (targetIMChan<nGridChan)) 
 		    {
 
-		      Double dataWVal = 0.0;
-		      if (UVW.nelements() > 0) dataWVal = UVW(2,irow);
-		      Int wndx = cfb->nearestWNdx(abs(dataWVal)*freq[ichan]/C::c);
+		      Double dataWVal = (UVW.nelements() > 0) ? UVW(2,irow) : 0.0;
+		      Int wndx = cfb->nearestWNdx(dataWVal*freq[ichan]/C::c);
 		      Int cfFreqNdx = cfb->nearestFreqNdx(vbSpw,ichan,vbs.conjBeams_p);
 		      Float s;
 		      //
@@ -344,9 +342,8 @@ namespace casa{
 			    uvwScale_p, offset_p, sampling);
 			{
 			  // Loop over all image-plane polarization planes.
-int tmp=nDataPol;
-// tmp=1;
-			  for(Int ipol=0; ipol< tmp; ipol++) 
+
+			  for(Int ipol=0; ipol< nDataPol; ipol++) 
 			    { 
 			      if((!(*(flagCube_ptr + ipol + ichan*nDataPol + irow*nDataPol*nDataChan))))
 				{  
@@ -359,12 +356,7 @@ int tmp=nDataPol;
 				      // Loop over all relevant elements of the Mueller matrix for the polarization
 				      // ipol.
 				      Vector<int> conjMRow = conjMNdx[ipol];
-				      //cerr << "conjMRow = " << conjMRow << endl;
-				      // ipol determines the targetIMPol.  Each targetIMPol gets a row of CFs (mRow).
-				      // visVecElements is gridded using the convFuncV and added to the target grid.
 
-wndx=0;
-//cfFreqNdx=0;
 				      for (uInt mCols=0;mCols<conjMRow.nelements(); mCols++) 
 					{
 					  int visVecElement=mCols, muellerElement;
@@ -389,24 +381,17 @@ wndx=0;
 					  // If the vis. vector element is flagged, don't grid it.
 					  if(((*(flagCube_ptr + visVecElement + ichan*nDataPol + irow*nDataPol*nDataChan)))) break;
 
-					  //cerr << "G: " << mCols << "-->" << visVecElement << "-->" << ipol << " " << polMap_p[ipol] << endl;
-
 					  if(dopsf) nvalue=Complex(*(imgWts_ptr + ichan + irow*nDataChan));
 					  else      nvalue=Complex(*(imgWts_ptr+ichan+irow*nDataChan))*
 					   	      (*(visCube_ptr+visVecElement+ichan*nDataPol+irow*nDataChan*nDataPol)*phasor);
 
-					  // if (!dopsf)
-					  // cerr << std::setprecision(20) << UVW(0,irow) << " "<< UVW(1,irow) << " "
-					  //      << nvalue << " "
-					  //      << dphase_p[irow] << " "
-					  //      <<-2.0*C::pi*dphase_p[irow]*freq[ichan]/C::c
-					  //      << endl;
-
 					  if (!onGrid(nx, ny, nw, loc, support)) break;
 
-					  convOrigin=cfShape/2;
-					  
-					  cacheAxisIncrements(cfShape, cfInc_p);
+					  if(cfShape[0]%2==0 && cfShape[1]%2==0)
+					    convOrigin=cfShape/2;
+                                          else
+                                            convOrigin=cfShape/2+1;
+                                          cacheAxisIncrements(cfShape, cfInc_p);
 					  nVisGridded_p++;
 #include <synthesis/TransformMachines2/accumulateToGrid.inc>
 					}
@@ -445,7 +430,7 @@ wndx=0;
     Vector<Int> cfShape=cfb->getStorage()(0,0,0)->getStorage()->shape().asVector();
     Bool finitePointingOffset=cfb->finitePointingOffsets();
 
-    Vector<Int> convOrigin = (cfShape)/2;
+    Vector<Int> convOrigin; // = ((cfShape[0]%2==0) && (cfShape[1]%2==0)) ? (cfShape)/2  : cfShape/2+1;
     Double cfRefFreq;//cfScale=1.0
     
     rbeg=0;
@@ -556,7 +541,7 @@ wndx=0;
 			      //
 			      if ((isOnGrid=onGrid(nx, ny, nw, loc, support))==false) break;
 			      cacheAxisIncrements(cfShape, cfInc_p);
-			      convOrigin = (cfShape)/2;
+			      convOrigin =  ((cfShape[0]%2==0) && (cfShape[1]%2==0)) ? (cfShape)/2  : cfShape/2+1;
 
 #include <synthesis/TransformMachines2/accumulateFromGrid.inc>
 			    }

@@ -122,7 +122,7 @@ using namespace casa::vi;
     pointingDirCol_p("DIRECTION"),
     cfStokes_p(), cfCache_p(cfcache), cfs_p(), cfwts_p(), cfs2_p(), cfwts2_p(),
     convFuncCtor_p(cf),canComputeResiduals_p(false), toVis_p(true), numthreads_p(-1), 
-    pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0)
+    pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0), ftmType_p(FTMachine::CORRECTED), avgPBReady_p(false)
   {
     spectralCoord_p=SpectralCoordinate();
     isPseudoI_p=false;
@@ -2708,6 +2708,8 @@ void FTMachine::finalizeToWeightImage(const VisBuffer2& vb,
 
 
   
+  
+/////-----------------------------------------------
   Bool FTMachine::changedSkyJonesLogic(const vi::VisBuffer2& vb, Bool& firstRow, Bool& internalRow)
   {
     firstRow=false;
