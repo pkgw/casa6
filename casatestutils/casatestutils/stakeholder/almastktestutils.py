@@ -241,7 +241,7 @@ def extract_subexpdict(jsonfile, keylist, outjsonfile=''):
         for k in keylist:
             if k in indict[topkey]:
                outdict[topkey][k]={}
-               for metrickey in keylist[k]:
+               for metrickey in keylist:
                    if metrickey in indict[topkey][k]:
                        outdict[topkey][k].update({metrickey:indict[topkey][k][metrickey]})
             else:
@@ -278,38 +278,38 @@ def create_expdict_jsonfile(inmetricsfile, templatemetrics, outmetricsfile):
                 subOutDict = outDict[testname]
                 for expkey in tmplFidDict[testname]:
                     print("Processing expkey=", expkey)
-                    curkey = expkey[4:]  # name of the dict in the current metrics
-                    print("curkey before mode=", curkey)
-                    if not curkey.endswith("_dict"):
-                        curkey += "_dict"
-                    else:
-                        isbeaminfo = True
-                    print("Processing curkey=", curkey)
-                    print("isbeaminfo=", isbeaminfo)
-                    if curkey in curDict[testname]:
-                        subOutDict[expkey] = {}
-                        if isbeaminfo:
-                            subOutDict[expkey] = curDict[testname][curkey]
+                    if expkey != 'comment' and expkey != 'comments':
+                        curkey = expkey[4:]  # name of the dict in the current metrics
+                        if not curkey.endswith("_dict"):
+                            curkey += "_dict"
                         else:
-                            # loop through each metric inside the particular exp_ dict
-                            for metrickey in tmplFidDict[testname][expkey]:
-                                # check to see if the metric exist in the input (current) metric dict
-                                if metrickey in curDict[testname][curkey]:
-                                    print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
-                                                                                          tmplFidDict[testname][expkey][
-                                                                                              metrickey][0]))
-                                    subOutDict[expkey][metrickey] = [tmplFidDict[testname][expkey][metrickey][0],
+                            isbeaminfo = True
+                        print("Processing curkey=", curkey)
+                        #print("isbeaminfo=", isbeaminfo)
+                        if curkey in curDict[testname]:
+                            subOutDict[expkey] = {}
+                            if isbeaminfo:
+                                subOutDict[expkey] = curDict[testname][curkey]
+                            else:
+                                # loop through each metric inside the particular exp_ dict
+                                for metrickey in tmplFidDict[testname][expkey]:
+                                    # check to see if the metric exist in the input (current) metric dict
+                                    if metrickey in curDict[testname][curkey]:
+                                        #print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
+                                        #                                                  tmplFidDict[testname][expkey][
+                                        #                                                      metrickey][0]))
+                                        subOutDict[expkey][metrickey] = [tmplFidDict[testname][expkey][metrickey][0],
                                                                      curDict[testname][curkey][metrickey]]
-                                else:  # metric does not exist in input cur metric dicts
-                                    raise Exception(
-                                        "Missing the metric key={} in {}. Check the input file".format(metrickey,
+                                    else:  # metric does not exist in input cur metric dicts
+                                        raise Exception(
+                                            "Missing the metric key={} in {}. Check the input file".format(metrickey,
                                                                                                        inmetricsfile))
-                    else:
-                        if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
-                            print("Missing key={} in {}. The input json is probably made from serial run"
-                                  .format(curkey, inmetricsfile))
                         else:
-                            raise Exception("Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
+                            if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
+                                print("Missing key={} in {}. The input json is probably made from serial run"
+                                  .format(curkey, inmetricsfile))
+                            else:
+                                raise Exception("Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
 
                 json.dump(outDict, outf)
             else:
@@ -407,41 +407,40 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
                         subOutDict = outDict[testname]
                         for expkey in tmplFidDict[testname]:
                             print("Processing expkey=", expkey)
-                            curkey = expkey[4:]  # name of the dict in the current metrics
-                            print("curkey before mode=", curkey)
-                            if not curkey.endswith("_dict"):
-                                curkey += "_dict"
-                            else:
-                                isbeaminfo = True
-                            print("Processing curkey=", curkey)
-                            print("isbeaminfo=", isbeaminfo)
-                            if curkey in curDict[testname]:
-                                subOutDict[expkey] = {}
-                                if isbeaminfo:
-                                    subOutDict[expkey] = curDict[testname][curkey]
+                            if expkey != 'comment' and expkey != 'comments':
+                                curkey = expkey[4:]  # name of the dict in the current metrics
+                                if not curkey.endswith("_dict"):
+                                    curkey += "_dict"
                                 else:
-                                    # loop through each metric inside the particular exp_ dict
-                                    for metrickey in tmplFidDict[testname][expkey]:
-                                        # check to see if the metric exist in the input (current) metric dict
-                                        if metrickey in curDict[testname][curkey]:
-                                            print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
-                                                                                                  tmplFidDict[testname][
-                                                                                                      expkey][
-                                                                                                      metrickey][0]))
-                                            subOutDict[expkey][metrickey] = [
-                                                tmplFidDict[testname][expkey][metrickey][0],
-                                                curDict[testname][curkey][metrickey]]
-                                        else:  # metric does not exist in input cur metric dicts
-                                            raise Exception("Missing the metric key={} in {}. Check the input file".
-                                                            format(metrickey, inmetricsfile))
-                            else:
-                                if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
-                                    print("Missing key={} in {}. The input json is probably made from serial run"
-                                          .format(curkey, inmetricsfile))
+                                    isbeaminfo = True
+                                print("Processing curkey=", curkey)
+                                if curkey in curDict[testname]:
+                                    subOutDict[expkey] = {}
+                                    if isbeaminfo:
+                                        subOutDict[expkey] = curDict[testname][curkey]
+                                    else:
+                                        # loop through each metric inside the particular exp_ dict
+                                        for metrickey in tmplFidDict[testname][expkey]:
+                                            # check to see if the metric exist in the input (current) metric dict
+                                            if metrickey in curDict[testname][curkey]:
+                                              #  print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
+                                              #                                                    tmplFidDict[testname][
+                                              #                                                        expkey][
+                                              #                                                        metrickey][0]))
+                                                subOutDict[expkey][metrickey] = [
+                                                    tmplFidDict[testname][expkey][metrickey][0],
+                                                    curDict[testname][curkey][metrickey]]
+                                            else:  # metric does not exist in input cur metric dicts
+                                                raise Exception("Missing the metric key={} in {}. Check the input file".
+                                                                format(metrickey, inmetricsfile))
                                 else:
-                                    raise Exception(
-                                        "Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
-
+                                    if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
+                                        print("Missing key={} in {}. The input json is probably made from serial run"
+                                              .format(curkey, inmetricsfile))
+                                    else:
+                                        raise Exception(
+                                            "Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
+                        # end for-loop
                         json.dump(outDict, outf)
                     else:
                         raise Exception("{} does not contain test name {} as a top level key." +
