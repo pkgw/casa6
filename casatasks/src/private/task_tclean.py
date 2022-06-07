@@ -18,6 +18,7 @@ from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
 from casatasks.private.imagerhelpers.input_parameters import saveparams2last
 from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
 from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import PyMtmfsViaCubeSynthesisImager
 from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 from .cleanhelper import write_tclean_history, get_func_params
 from casatools import table
@@ -288,7 +289,10 @@ def tclean(
     paramList=ImagerParameters(**bparm)
     ## Setup Imager objects, for different parallelization schemes.
     imagerInst=PySynthesisImager
-    if parallel==False and pcube==False:
+    if specmode == 'mtmfs_via_cube':
+        imager = PyMtmfsViaCubeSynthesisImager(params=paramList)
+        imagerInst = PyMtmfsViaCubeSynthesisImager
+    elif parallel==False and pcube==False:
          imager = PySynthesisImager(params=paramList)
          imagerInst=PySynthesisImager
     elif parallel==True:
@@ -369,7 +373,7 @@ def tclean(
                 mytb.putkeyword('imageinfo',iminf)
                 mytb.putkeyword('miscinfo',miscinf)
                 mytb.done()
-                imager = PySynthesisImager(params=paramList)
+                imager = imagerInst(params=paramList)
                 imager.initializeImagers()
                 imager.initializeNormalizers()
                 imager.setWeighting()
