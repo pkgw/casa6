@@ -217,6 +217,10 @@ def extract_expdict(testlist=None, testsrcpath=None):
 
 def extract_subexpdict(jsonfile, keylist, outjsonfile=''):
     """
+    Extract subset of metric values from a json file contains current metric values 
+    from a single testcase by specifying metric names and output a new json file contains
+    only the specfied subset of the metrics.
+
     jsonfile: json file for a single testcase (saved by savematricdict=True in 
              test_stk_alma_pipeline_imaging,py)
     keylist: a dictionary contains main_metric_key('eg. im_stats_dict..') with a list of 
