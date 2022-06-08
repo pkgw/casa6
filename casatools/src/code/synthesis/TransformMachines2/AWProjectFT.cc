@@ -193,7 +193,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     // if (!cfCache_p.null()) delete &cfCache_p;
     // cfCache_p=cfcache;
-    convSampling=OVERSAMPLING;
+    convSampling=-1;
     //convSize=CONVSIZE;
     Long hostRAM = (HostInfo::memoryTotal(true)*1024); // In bytes
     hostRAM = hostRAM/(sizeof(Float)*2); // In complex pixels
@@ -256,7 +256,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     // if (!cfCache_p.null()) delete &cfCache_p;
     // cfCache_p=cfcache;
-    convSampling=OVERSAMPLING;
+    convSampling=convFuncCtor_p->getOversampling();
     //convSize=CONVSIZE;
     Long hostRAM = (HostInfo::memoryTotal(true)*1024); // In bytes
     hostRAM = hostRAM/(sizeof(Float)*2); // In complex pixels
@@ -297,7 +297,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       log_l << "Failed to create " << name() << " object." << LogIO::EXCEPTION;
     };
     maxConvSupport=-1;
-    convSampling=OVERSAMPLING;
+    //convSampling=OVERSAMPLING;
+    convSampling=-1;
     visResampler_p->init(useDoubleGrid_p);
     //convSize=CONVSIZE;
     canComputeResiduals_p=DORES;
@@ -1028,6 +1029,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // ATerm_OVERSAMPLING env. variable, (2) ATERM.OVERSAMPLING in
     // ~/.casa and (3) from existing CFCache.  This setting in the AWP
     // constructor will only get the default value from ATerm.h
+    convSampling=convFuncCtor_p->getOversampling();
     po_p->setOverSampling(convFuncCtor_p->getOversampling());
     // PO::fetchPointingOffset() only updates the internal cache in PO
     // class.  PO::pullPointingOffset() is required to extract in the
@@ -1744,7 +1746,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         }
     
 
-        
+        //cerr << convSampling << " max min of sincs " << max(sincConvX) << "    " << min(sincConvX) << max(sincConvY) << "     " << min(sincConvY) << endl;
 	//
 	// Now normalize the dirty image.
 	//
@@ -1834,7 +1836,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     Int nx=latticeShape(0);
     Int ny=latticeShape(1);
-  
 
     int samp=getAWConvFunc()->getOversampling();
     //Do sampling size correction    
