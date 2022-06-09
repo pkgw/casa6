@@ -10,6 +10,7 @@ import copy
 import json
 import os
 import sys
+import shutil
 
 
 def extract_expdict(testlist=None, testsrcpath=None):
@@ -541,7 +542,6 @@ def compare_expdictjson(newjson, oldjson):
             newonlykey0 = set(newkey0list).difference(oldkey0list)
             oldonlykey0 = set(oldkey0list).difference(newkey0list)
             commonkey0 = set(newkey0list).intersection(oldkey0list)
-
             finaldiffdict = {}
             for key0 in commonkey0:
                 # do for each testcase, extract set of metrics  for each image type
@@ -551,51 +551,51 @@ def compare_expdictjson(newjson, oldjson):
                     newonlykey1 = set(newkey1list).difference(oldkey1list)
                     oldonlykey1 = set(oldkey1list).difference(newkey1list)
                     commonkey1 = set(newkey1list).intersection(oldkey1list)
-
                     for key1 in commonkey1:
-                        newkey2list = list(newdict[key0][key1].keys())
-                        oldkey2list = list(olddict[key0][key1].keys())
-                        newonlykey2 = set(newkey2list).difference(oldkey2list)
-                        oldonlykey2 = set(oldkey2list).difference(newkey2list)
-                        commonkey2 = set(newkey2list).intersection(oldkey2list)
-                        # Comparison of the values and test threshold type
-                        diffkey2dict = {}
-                        for key2 in commonkey2:  # a list containing [thres. type, []]
-                            if type(olddict[key0][key1][key2]) == list:
-                                if olddict[key0][key1][key2][1] != newdict[key0][key1][key2][1]:
-                                    if key2 not in diffkey2dict:
-                                        diffkey2dict[key2] = {}
-                                    diffkey2dict[key2]['msg'] = 'diff in value(s)'
-                                    diffkey2dict[key2]['json1'] = newdict[key0][key1][key2]
-                                    diffkey2dict[key2]['json2'] = olddict[key0][key1][key2]
-                                if olddict[key0][key1][key2][0] != newdict[key0][key1][key2][0]:
-                                    if 'msg' in diffkey2dict[key2]:
-                                        diffkey2dict[key2]['msg'] += ' and threshold type'
-                                    else:
-                                        diffkey2dict[key2]['msg'] = 'diff in threshold type'
-                                        diffkey2dict[key2]['json1'] = newdict[key0][key1][key2][0]
-                                        diffkey2dict[key2]['json2'] = olddict[key0][key1][key2][0]
-                            else:
-                                # non metric values (possibly comments or version info)
-                                if olddict[key0][key1][key2] != newdict[key0][key1][key2]:
-                                    diffkey2dict[key2] = \
-                                        'json1: {}, json2: {}'.format(newdict[key0][key1][key2],
-                                                                      olddict[key0][key1][key2])
+                        if key1!='comment':
+                            newkey2list = list(newdict[key0][key1].keys())
+                            oldkey2list = list(olddict[key0][key1].keys())
+                            newonlykey2 = set(newkey2list).difference(oldkey2list)
+                            oldonlykey2 = set(oldkey2list).difference(newkey2list)
+                            commonkey2 = set(newkey2list).intersection(oldkey2list)
+                            # Comparison of the values and test threshold type
+                            diffkey2dict = {}
+                            for key2 in commonkey2:  # a list containing [thres. type, []]
+                                if type(olddict[key0][key1][key2]) == list:
+                                    if olddict[key0][key1][key2][1] != newdict[key0][key1][key2][1]:
+                                        if key2 not in diffkey2dict:
+                                            diffkey2dict[key2] = {}
+                                        diffkey2dict[key2]['msg'] = 'diff in value(s)'
+                                        diffkey2dict[key2]['json1'] = newdict[key0][key1][key2]
+                                        diffkey2dict[key2]['json2'] = olddict[key0][key1][key2]
+                                    if olddict[key0][key1][key2][0] != newdict[key0][key1][key2][0]:
+                                        if 'msg' in diffkey2dict[key2]:
+                                            diffkey2dict[key2]['msg'] += ' and threshold type'
+                                        else:
+                                            diffkey2dict[key2]['msg'] = 'diff in threshold type'
+                                            diffkey2dict[key2]['json1'] = newdict[key0][key1][key2][0]
+                                            diffkey2dict[key2]['json2'] = olddict[key0][key1][key2][0]
+                                else:
+                                    # non metric values (possibly comments or version info)
+                                    if olddict[key0][key1][key2] != newdict[key0][key1][key2]:
+                                        diffkey2dict[key2] = \
+                                            'json1: {}, json2: {}'.format(newdict[key0][key1][key2],
+                                                                          olddict[key0][key1][key2])
 
-                        if diffkey2dict != dict():
-                            if key0 not in finaldiffdict:
-                                finaldiffdict[key0] = {}
-                            if key1 not in finaldiffdict:
-                                finaldiffdict[key0][key1] = {}
-                            finaldiffdict[key0][key1] = copy.deepcopy(diffkey2dict)
-                        if newonlykey2 != set():
-                            finaldiffdict[key0][key1]['metric keys only in json1'] = newonlykey2
-                        if oldonlykey2 != set():
-                            finaldiffdict[key0][key1]['metric keys only in json2'] = oldonlykey2
-                    if newonlykey1 != set():
-                        finaldiffdict[key0]['metric dict only in json1'] = newonlykey1
-                    if oldonlykey1 != set():
-                        finaldiffdict[key0]['metric dict only in json2'] = oldonlykey1
+                            if diffkey2dict != dict():
+                                if key0 not in finaldiffdict:
+                                    finaldiffdict[key0] = {}
+                                if key1 not in finaldiffdict:
+                                    finaldiffdict[key0][key1] = {}
+                                finaldiffdict[key0][key1] = copy.deepcopy(diffkey2dict)
+                            if newonlykey2 != set():
+                                finaldiffdict[key0][key1]['metric keys only in json1'] = newonlykey2
+                            if oldonlykey2 != set():
+                                finaldiffdict[key0][key1]['metric keys only in json2'] = oldonlykey2
+                        if newonlykey1 != set():
+                            finaldiffdict[key0]['metric dict only in json1'] = newonlykey1
+                        if oldonlykey1 != set():
+                            finaldiffdict[key0]['metric dict only in json2'] = oldonlykey1
                 else:
                     if newdict[key0] != olddict[key0]:
                         finaldiffdict[key0] = 'diff info json1: {}, json2: {}'.format(newdict[key0], olddict[key0])

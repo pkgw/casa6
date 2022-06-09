@@ -15,10 +15,12 @@ class Test_almastkutils(unittest.TestCase):
         cls.oldtestscr = 'test_stk_alma_pipeline_imaging_old.py'
         cls.curjson = 'test_stk_alma_pipeline_imaging_exp_dicts.json'
         cls.stdcubejson = 'test_standard_cube_cur_stats.json'
+        cls.updatedjson = 'update_exp_subdicts.json'
        
     def setUp(self):
         shutil.copy(os.path.join(self.datapath,self.stdcubejson),self.stdcubejson)
         shutil.copy(os.path.join(self.datapath,self.curjson),self.curjson)
+        shutil.copy(os.path.join(self.datapath,self.updatedjson), self.updatedjson)
 
     def compareDict(self, indict, refdict):
         nfailcontent=0
@@ -148,9 +150,46 @@ class Test_almastkutils(unittest.TestCase):
     def test_update_expdict_subset(self):
         ''' Test a fuction to update only subset of metric values to the combined expdict json '''
          # update_expdict_subset(expjsonfile, newvaldictjson, jiranoforcomment='')
-        pass
+        almastktestutils.update_expdict_subset(self.curjson, self.updatedjson, 'CAS-999999')
+        outjsonfile = os.path.splitext(self.curjson)[0]+ '_update.json'
+        print(outjsonfile)
+        with open(outjsonfile) as f:
+             expdict = json.load(f)
+        
+        # updatedjson contains updates for test_standard_cube and test_standard_mfs (sumwt values)
+        self.assertEqual(expdict['test_standard_cube']['exp_sumwt_stats']['max_val'][1],18.0)
+        self.assertEqual(expdict['test_standard_cube']['exp_sumwt_stats']['min_val'][1],17.0)
+        self.assertEqual(expdict['test_standard_cube']['exp_sumwt_stats']['im_rms'][1],17.5)
+        self.assertEqual(expdict['test_standard_mfs']['exp_sumwt_stats']['max_val'][1],6000400)
+        self.assertEqual(expdict['test_standard_mfs']['exp_sumwt_stats']['min_val'][1],6000400)
+        self.assertEqual(expdict['test_standard_mfs']['exp_sumwt_stats']['im_rms'][1],6000400)
 
 
     def test_compare_expdictjson(self):
-        pass
- 
+        ''' Test a fuction to compare the two fiducial value json files '''
+
+        # make another copy of a local copy of the fiducial value json 
+        copyofthejson = os.path.splitext(self.curjson)[0]+'_copy.json'
+        modcopyofthejson = os.path.splitext(self.curjson)[0]+'_copy.mod.json'
+        shutil.copy(self.curjson, copyofthejson)
+
+        # case 1: identical
+        ret=almastktestutils.compare_expdictjson(self.curjson,copyofthejson)
+        msg = 'The two json files are identical'
+
+        self.assertTrue(msg in ret)
+
+        # case 2: one of metric value is different
+        with open(copyofthejson, 'r') as f:
+            expdict2 = json.load(f)
+
+        expdict2['test_standard_cube']['exp_im_stats']['im_rms'][1]=0.250
+        with open(modcopyofthejson, 'w') as f2:
+            json.dump(expdict2,f2)
+
+        ret2=almastktestutils.compare_expdictjson(self.curjson,modcopyofthejson)
+        refdict = {'test_standard_cube': {'exp_im_stats': {'im_rms': 
+                                                               {'msg': 'diff in value(s)', 
+                                                                'json1': [False, 0.143986095161], 
+                                                                'json2': [False, 0.25]}}}}
+        self.assertEqual(self.compareDict(ret2,refdict),0)
