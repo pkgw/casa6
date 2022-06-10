@@ -545,7 +545,7 @@ def compare_expdictjson(newjson, oldjson):
             finaldiffdict = {}
             for key0 in commonkey0:
                 # do for each testcase, extract set of metrics  for each image type
-                if type(newdict[key0]) == dict and type(olddict[key0]) == dict:
+                if isinstance(newdict[key0], dict) and isinstance(olddict[key0], dict):
                     newkey1list = list(newdict[key0].keys())
                     oldkey1list = list(olddict[key0].keys())
                     newonlykey1 = set(newkey1list).difference(oldkey1list)
@@ -561,7 +561,7 @@ def compare_expdictjson(newjson, oldjson):
                             # Comparison of the values and test threshold type
                             diffkey2dict = {}
                             for key2 in commonkey2:  # a list containing [thres. type, []]
-                                if type(olddict[key0][key1][key2]) == list:
+                                if isinstance(olddict[key0][key1][key2], list):
                                     if olddict[key0][key1][key2][1] != newdict[key0][key1][key2][1]:
                                         if key2 not in diffkey2dict:
                                             diffkey2dict[key2] = {}

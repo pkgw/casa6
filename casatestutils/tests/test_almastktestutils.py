@@ -5,6 +5,7 @@ import shutil
 
 from casatools import ctsys 
 from casatestutils.stakeholder import almastktestutils
+from casatestutils import compare
 
 class Test_almastkutils(unittest.TestCase):
     
@@ -23,14 +24,15 @@ class Test_almastkutils(unittest.TestCase):
         shutil.copy(os.path.join(self.datapath,self.updatedjson), self.updatedjson)
 
     def compareDict(self, indict, refdict):
+        ''' compare metric dictionaries, allow the comparison on vlaues between exp_dicts with extra flags and current metric dicts '''
         nfailcontent=0
         for key in indict:
             if key in refdict:
-                if type(indict[key]==dict):
+                if isinstance(indict[key],dict):
                     # additional dict level
                     for mt in indict[key]:
                         if mt in refdict[key]:
-                            if type(refdict[key][mt])==list and type(indict[key][mt])!=list:
+                            if isinstance(refdict[key][mt],list) and not isinstance(indict[key][mt],list):
                                 if indict[key][mt] == refdict[key][mt][1]:
                                     pass
                                 else:
@@ -43,7 +45,7 @@ class Test_almastkutils(unittest.TestCase):
                         else:
                             nfailcontent += 1
                 else: 
-                   if type(refdict[key])==list and type(indict[key])!=list:
+                   if isinstance(refdict[key],list) and not isinstance(indict[key],list):
                       if indict[key] == refdict[key][1]:
                           pass
                       else:
@@ -85,8 +87,8 @@ class Test_almastkutils(unittest.TestCase):
  
         retdict = almastktestutils.read_testcase_expdicts(os.path.join(self.datapath,self.curjson), 'test_mosaic_cube', casaversion)
 
-        compres = self.compareDict(retdict,refdict['test_mosaic_cube'])
-        self.assertTrue(compres==0)
+        compres = compare.compare_dictionaries(retdict,refdict['test_mosaic_cube'])
+        self.assertTrue(compres)
 
     def test_read_testcase_expdicts_mismatchCasaVersion(self):
         ''' Test a fuction to read stored fiducial value json: CASA version check '''
@@ -192,4 +194,4 @@ class Test_almastkutils(unittest.TestCase):
                                                                {'msg': 'diff in value(s)', 
                                                                 'json1': [False, 0.143986095161], 
                                                                 'json2': [False, 0.25]}}}}
-        self.assertEqual(self.compareDict(ret2,refdict),0)
+        self.assertTrue(compare.compare_dictionaries(ret2,refdict))
