@@ -542,6 +542,7 @@ def run(testnames, branch=None, DRY_RUN=False):
                 print(workdir + "tests/")
 
             for testname in testnames:
+                print(testname)
                 cmd = []
 
                 # Copy Test To nosedir Directory if in cwd
@@ -1031,14 +1032,21 @@ if __name__ == "__main__":
                 component = c.strip()
                 for myDict in component_to_test_map["testlist"]:
                     #print(component, myDict["testGroup"])
-                    if component in myDict["testGroup"]:
+                    if component in myDict["testGroup"] or component in myDict["testType"]:
                         _isComponent = True
-                        if myDict["testScript"] not in testnames: testnames.append(myDict["testScript"])
+                        if (myDict["testScript"] not in testnames):
+                            if tests_to_ignore is not None:
+                                if myDict["testScript"] in tests_to_ignore:
+                                    continue
+                            testnames.append(myDict["testScript"])
                 if not _isComponent:
                     print("No Tests for Component: {}".format(component))
                     no_test_components.append(component)
-            if (len(no_test_components) > 0) and (len(testnames)==0):
-                print("No Test Suite for Component(s): {} Using Component 'default'".format(no_test_components))
+
+            if len(testnames)==0:
+                if len(no_test_components) > 0:
+                    print("No Test Suite for Component(s): {}".format(no_test_components))
+                print("Generating Suite Using Component 'default'")
                 component = 'default'
                 for myDict in component_to_test_map["testlist"]:
                     if component in myDict["testGroup"]:
@@ -1081,12 +1089,28 @@ if __name__ == "__main__":
     if args.test_paths is not None:
         test_paths = [x.strip() for x in args.test_paths.split(',')]
 
+    temp_storage = []
     for arg in unknownArgs:
         if arg.startswith(("-", "--")):
             raise ValueError('unrecognized argument: %s'%(arg))
             sys.exit()
         else:
-            tests = [x.strip() for x in arg.split(",")]
+            if '[' in arg:
+                tests = [x.strip() for x in arg.split("],")]
+                for i in range(len(tests)):
+                    test = tests[i]
+                    if '[' in test and not test.endswith("]"):
+                        tests[i] = tests[i] + "]"
+                for i in range(len(tests)):
+                    test = tests[i]
+                    #print(tests)
+                    if test.find(",") < test.find('['):
+                        temp_storage = temp_storage + test.split(',',1)
+                    else:
+                        temp_storage.append(test)
+                tests = temp_storage
+            else:
+                tests = [x.strip() for x in arg.split(",")]
             for test in tests:
                 try:
                     testcases = None
@@ -1149,7 +1173,7 @@ if __name__ == "__main__":
                         for root, dirs, files in os.walk(test_path):
                             for file in files:
                                 if file.endswith(".py") and file.startswith("test_"):
-                                     tests.append(os.path.join(root, file))
+                                     tests.append(os.path.realpath(os.path.join(root, file)))
                 else:
                     for test_path in test_paths:
                         #print(test_path)
@@ -1160,9 +1184,10 @@ if __name__ == "__main__":
                             for root, dirs, files in os.walk(test_path):
                                 for file in files:
                                     if file == test:
-                                        tests.append(os.path.join(root, file))
+                                        tests.append(os.path.realpath(os.path.join(root, file)))
                 testnames = tests
 
+            # This section is duplicate. TO be removed with CAS-13820
             if tests_to_ignore is not None:
                 print("\nTests to Ignore: ",tests_to_ignore )
                 indices = []
@@ -1175,6 +1200,8 @@ if __name__ == "__main__":
                 print("List of tests is empty")
                 parser.print_help(sys.stderr)
                 sys.exit(1)
+
+            print("Running {} Test(s)".format(len(testnames)))
             run(testnames, args.branch, DRY_RUN)
     except:
         traceback.print_exc()
