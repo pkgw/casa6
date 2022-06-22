@@ -251,12 +251,13 @@ using namespace casa::vi;
     
     inline casacore::Int nearestWNdx(const casacore::Double& wVal) 
     {
-      //      return SynthesisUtils::nint(sqrt(wValIncr_p*abs(wVal)));
-      return max(0,min((int)(sqrt(wValIncr_p*abs(wVal))),(int)wValues_p.nelements())-1);
-      // Int ndx=(int)(sqrt(wValIncr_p*abs(wVal)));
-      // if ((uInt)ndx >= wValues_p.nelements())
-      // 	cerr << endl << endl << ndx << " " <<  wVal << " " << wValIncr_p << endl << endl;
-      // return min(ndx,wValues_p.nelements()-1);
+      return max(0,
+		 min(
+		     (int)round(sqrt(wValIncr_p*abs(wVal))),
+		     (int)(wValues_p.nelements()-1)
+		     )
+		 ); // CAS-13191
+      //return max(0,min((int)round(sqrt(abs(wVal)/wValIncr_p)),(int)(wValues_p.nelements()-1))); // CAS-13191
     }
     
     casacore::Double nearest(casacore::Bool& found, const casacore::Double& val, const casacore::Vector<casacore::Double>& valList, const casacore::Double& incr);

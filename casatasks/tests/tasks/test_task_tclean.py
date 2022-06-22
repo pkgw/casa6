@@ -3370,14 +3370,14 @@ class test_widefield(testref_base):
      def test_widefield_aproj_cube(self):
           """ [widefield] Test_Widefield_aproj_cube_aproj : Cube with AW-Projection  and rotation off """
 
-          casalog.post("EMPTY TEST")
-          return
+          #casalog.post("EMPTY TEST")
+          #return
 
           self.prepData("refim_mawproject.ms")
           ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
                        specmode='cube',niter=1,gain=1.0,gridder='awproject',cfcache=self.img+'.cfcache',wbawp=True,
                        conjbeams=False,psterm=False,computepastep=360.0,rotatepastep=360.0,deconvolver='hogbom',parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',0.11,[256,256,0,0]),(self.img+'.weight',0.34,[256,256,0,0]) ] )
+          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',1.001,[256,256,0,0]),(self.img+'.weight',0.6403,[256,256,0,0]) ] )
           self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
           self.assertTrue(self.check_final(report))
 
