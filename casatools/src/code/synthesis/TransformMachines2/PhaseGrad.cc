@@ -176,7 +176,7 @@ namespace casa{
 	    }
 
 	    {
-	      cerr << "Cached Field Offset is : " << cached_FieldOffset_p[row](0) << " " << cached_FieldOffset_p[row](1)<< " for row " << row << " field id " << vb.fieldId()(0) << " " << needCFPhaseGrad_p<< endl;
+	      //cerr << "Cached Field Offset is : " << cached_FieldOffset_p[row](0) << " " << cached_FieldOffset_p[row](1)<< " for row " << row << " field id " << vb.fieldId()(0) << " " << needCFPhaseGrad_p<< endl;
 	      for(int ix=0;ix<nx;ix++)
 		{
 		  grad = (ix-convOrigin[0])*cached_FieldOffset_p[row](0);

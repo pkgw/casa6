@@ -1476,8 +1476,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void AWProjectFT::finalizeToSky()
   {
 
-    logIO() << LogIO::WARN << "time to massage data " << timemass_p << LogIO::POST;
-    logIO() << LogIO::WARN<< "time gridding " << timegrid_p << LogIO::POST;
+    logIO() <<   LogIO::NORMAL2 << "time to massage data " << timemass_p << LogIO::POST;
+    logIO() <<  LogIO::NORMAL2 << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
     
@@ -1722,7 +1722,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	const IPosition latticeShape = lattice->shape();
 
         int samp=getAWConvFunc()->getOversampling();
-        cerr << "SAMP " << samp << endl;
+        //cerr << "SAMP " << samp << endl;
         //Do sampling size correction    
         Vector<Float> sincConvX(nx);
         for (Int ix=0;ix<nx;ix++) {
