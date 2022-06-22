@@ -3324,7 +3324,7 @@ class test_wproject(testref_base):
           self.assertTrue(self.check_final(report))
 
   
-     @unittest.skip('Skip test for wterm imaging with awproject until the numerical error has been addressed in CAS-13191')
+     #@unittest.skip('Skip test for wterm imaging with awproject until the numerical error has been addressed in CAS-13191')
      def test_wterm_awproject(self):
           """ [wproject] Test_Widefield_wproj : W-Projection using the AWProject gridder """ 
           self.prepData("refim_point_wterm_vlad.ms")
