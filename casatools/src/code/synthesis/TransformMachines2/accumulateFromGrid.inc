@@ -23,9 +23,9 @@
   Int *cfInc_p_ptr                = cfInc_p.getStorage(Dummy);
   Int phaseGradOrigin_l[2]; 
   
-  phaseGradOrigin_l[0] = cached_phaseGrad_p.shape()(0)/2;
-  phaseGradOrigin_l[1] = cached_phaseGrad_p.shape()(1)/2;
-
+phaseGradOrigin_l[0] = cached_phaseGrad_p.shape()(0)%2==0 ? cached_phaseGrad_p.shape()(0)/2 : cached_phaseGrad_p.shape()(0)/2+1 ;
+    phaseGradOrigin_l[1] = cached_phaseGrad_p.shape()(0)%2==0 ? cached_phaseGrad_p.shape()(1)/2 : cached_phaseGrad_p.shape()(1)/2+1;
+   
   for(Int iy=-support_ptr[1]; iy <= support_ptr[1]; iy++) 
     {
       iLoc[1]    = SynthesisUtils::nint(sampling_ptr[1]*iy+off_ptr[1]-1);
