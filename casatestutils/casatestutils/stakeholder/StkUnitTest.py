@@ -189,7 +189,7 @@ class StkUnitTest(unittest.TestCase):
         fracdiff=abs(actual-expected)/abs(expected)
         return self.check_diff(actual, expected, fracdiff, valname, desired_diff, max_diff)
 
-    def check_metrics_flux(self, measured, expected, valname, rms_or_std, desired_diff=0.05, max_diff=0.1, nsigma=2):
+    def check_metrics_flux(self, actual, expected, valname, rms_or_std, desired_diff=0.05, max_diff=0.1, nsigma=2):
         """ Logs a warning if outside of desired bounds, returns False if outside required bounds
         
         Check that the given value(s) are within a reasonable tolerance of the truth value(s),
@@ -197,13 +197,13 @@ class StkUnitTest(unittest.TestCase):
         5% desired, 10% required, as from https://drive.google.com/file/d/1zw6UeDEoXoxM05oFg3rir0hrCMEJMxkH/view and https://open-confluence.nrao.edu/display/VLASS/Updated+VLASS+survey+science+requirements+and+parameters
 
         Args:
-          a_meas: measured value(s)
-          a_true: truth value(s)
+          actual: actual value(s)
+          expected: truth value(s)
           valname: name of the value to be printed in the report
           rms_or_std: root mean square of the noise floor
-          desired_diff: the tolerance for a_true we'd like to stay within, but that is not strictly required
-          max_diff: the required tolerance for a_true that causes this test to fail
-          nsigma: within how many standard deviations of the noise floor is a value considered noise
+          desired_diff: the tolerance for expected we'd like to stay within, but that is not strictly required
+          max_diff: the required tolerance for expected that causes this test to fail
+          nsigma: within how many standard deviations of rms_or_std is a value considered noise
 
         Returns:
           (success bool, report string)
@@ -215,7 +215,9 @@ class StkUnitTest(unittest.TestCase):
         std = rms_or_std
 
         #################################################
-        ###  [A] Tolerance on the metric of relative error : Based only on image noise levels
+        ### [A] Tolerance on the metric of relative error : Based only on image noise levels
+        ### At small values of "expected", rel_error == 1
+        ### At large values of "expected", rel_error ~= abs( 1/expected )
         #################################################
         calc = np.sign(expected) * ( np.abs(expected) + nsigma*std )
         rel_error = np.abs(( calc - expected ))/ np.maximum(np.abs(expected),nsigma*std)
@@ -231,13 +233,13 @@ class StkUnitTest(unittest.TestCase):
         tol_flux = np.maximum(rel_error, emp_error)  
 
         #################################################
-        ### Calculate the metrics for the input measured values
+        ### Calculate the metrics for the input actual values
         #################################################
-        rel_error_flux = np.abs( ( measured - expected) ) / np.maximum(np.abs(expected),nsigma*std)
+        rel_error_flux = np.abs( ( actual - expected) ) / np.maximum(np.abs(expected),nsigma*std)
         
-        return self.check_diff(measured, expected, rel_error_flux, valname, desired_diff, tol_flux)
+        return self.check_diff(actual, expected, rel_error_flux, valname, desired_diff, tol_flux)
 
-    def check_metrics_alpha(self, a_meas, a_true, valname, rmss_or_stds, desired_diff=0.1, max_diff=0.2, nsigma=2):
+    def check_metrics_alpha(self, alpha_actual, alpha_expected, valname, rmss_or_stds, desired_diff=0.1, max_diff=0.2, nsigma=2):
         """ Logs a warning if outside of desired bounds, returns False if outside required bounds
         
         Check that the given value(s) are within a reasonable tolerance of the truth value(s),
@@ -245,13 +247,13 @@ class StkUnitTest(unittest.TestCase):
         0.1 desired, 0.2 required, as from https://drive.google.com/file/d/1zw6UeDEoXoxM05oFg3rir0hrCMEJMxkH/view and https://open-confluence.nrao.edu/display/VLASS/Updated+VLASS+survey+science+requirements+and+parameters
 
         Args:
-          a_meas: measured value(s)
-          a_true: truth value(s)
+          alpha_actual: measured value(s)
+          alpha_expected: truth value(s)
           valname: name of the value to be printed in the report
           rmss_or_stds: rms or [rms, rms], root mean square of the noise floor for the observed .image or .image.tt0, .image.tt1
-          desired_diff: the tolerance for a_true we'd like to stay within, but that is not strictly required
-          max_diff: the required tolerance for a_true that causes this test to fail
-          nsigma: within how many standard deviations of the noise floor is a value considered noise
+          desired_diff: the tolerance for alpha_expected we'd like to stay within, but that is not strictly required
+          max_diff: the required tolerance for alpha_expected that causes this test to fail
+          nsigma: within how many standard deviations of rmss_or_stds is a value considered noise
 
         Returns:
           (success bool, report string)
@@ -267,8 +269,8 @@ class StkUnitTest(unittest.TestCase):
         #################################################
         ###  [A] Tolerance on the metric of relative error : Based only on image noise levels
         #################################################
-        #       dIa =             Ia   *    sqrt( (    dI0  /  I0    )**2 + (    dI1  /  I1    )**2 )
-        a_error_std = np.abs(   a_true * np.sqrt( (nsigma*std0/a_true)**2 + (nsigma*std1/a_true)**2 )   )
+        #       dIa =                 Ia       *    sqrt( (    dI0    /    I0        )**2 + (    dI1    /      I1      )**2 )
+        a_error_std = np.abs(   alpha_expected * np.sqrt( (nsigma*std0/alpha_expected)**2 + (nsigma*std1/alpha_expected)**2 )   )
 
         #################################################
         ### [B] Empirical tolerances
@@ -283,11 +285,11 @@ class StkUnitTest(unittest.TestCase):
         #################################################
         ### Calculate the metrics for the input measured values
         #################################################
-        abs_error_a = np.abs( a_meas - a_true )
+        abs_error_a = np.abs( alpha_actual - alpha_expected )
         
-        return self.check_diff(a_meas, a_true, abs_error_a, valname, desired_diff, tol_a)
+        return self.check_diff(alpha_actual, alpha_expected, abs_error_a, valname, desired_diff, tol_a)
 
-    def check_metrics_alpha_fitted(self, a_meas, a_true, valname, pcov, desired_diff=0.1, max_diff=0.2, nsigma=2):
+    def check_metrics_alpha_fitted(self, alpha_actual, alpha_expected, valname, pcov, desired_diff=0.1, max_diff=0.2, nsigma=2):
         """ For checking alpha, accounting for errors in fitting across several spws with scipy.optimize.curve_fit
 
         For example:
@@ -308,7 +310,7 @@ class StkUnitTest(unittest.TestCase):
 
           alpha = popt[0]
           f_nu0 = 10**popt[1]
-          success, report = tstobj.check_metrics_alpha_fitted(a_meas=alpha, a_true=0.3, valname="alpha", pcov=pcov)
+          success, report = tstobj.check_metrics_alpha_fitted(alpha_actual=alpha, alpha_expected=0.3, valname="alpha", pcov=pcov)
 
         Returns:
           (success bool, report string)
@@ -316,9 +318,9 @@ class StkUnitTest(unittest.TestCase):
         std_a = nsigma * np.sqrt(np.diag(pcov)[0])
         emp_a = max_diff ## probably 0.2, absolute error in spectral index 
         tol_a = np.max([std_a, emp_a])
-        abs_error_a = np.abs( a_meas - a_true )
+        abs_error_a = np.abs( alpha_actual - alpha_expected )
 
-        return self.check_diff(a_meas, a_true, abs_error_a, valname, desired_diff, tol_a)
+        return self.check_diff(alpha_actual, alpha_expected, abs_error_a, valname, desired_diff, tol_a)
 
     def check_column_exists(self, colname):
         """ Verifies that the given column exists in the self.vis measurement set.
