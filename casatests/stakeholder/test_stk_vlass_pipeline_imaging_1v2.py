@@ -180,6 +180,7 @@ class test_j1302(StkUnitTest):
         if not use_partial_results:
             immath(imagename=['secondmask.mask','QLcatmask.mask'],expr='IM0+IM1',outfile='sum_of_masks.mask')
             tstobj.im.mask(image='sum_of_masks.mask',mask='combined.mask',threshold=0.5)
+            self.teardown_files += ['sum_of_masks.mask', 'combined.mask']
 
         ####################################################
         # %% Prepare masks [test_j1302_mtmfs] end @
@@ -352,6 +353,7 @@ class test_j1302(StkUnitTest):
             tstobj.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", "QLcatmask.mask", "secondmask.mask")
             os.system(f"mv cfcache/{img0}.cf {cache0name}")
             os.system(f"mv cfcache/{img1}.cf {cache1name}")
+        self.teardown_files += [cache0name, cache1name]
         imsize = 5250
         rms = [0.00025982361923319354, 0.00211483438886223] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [1500,500],[3500,2000]
 
@@ -374,6 +376,7 @@ class test_j1302(StkUnitTest):
         if not use_partial_results:
             immath(imagename=['secondmask.mask','QLcatmask.mask'],expr='IM0+IM1',outfile='sum_of_masks.mask')
             tstobj.im.mask(image='sum_of_masks.mask',mask='combined.mask',threshold=0.5)
+            self.teardown_files += ['sum_of_masks.mask', 'combined.mask']
 
         ####################################################
         # %% Prepare masks [test_j1302_mtmfs] end @
@@ -1070,6 +1073,7 @@ class test_j1927(StkUnitTest):
         if not use_partial_results:
             immath(imagename=['secondmask.mask','QLcatmask.mask'],expr='IM0+IM1',outfile='sum_of_masks.mask')
             tstobj.im.mask(image='sum_of_masks.mask',mask='combined.mask',threshold=0.5)
+            self.teardown_files += ['sum_of_masks.mask', 'combined.mask']
 
         ####################################################
         # %% Prepare masks [test_j1927_mtmfs] end @

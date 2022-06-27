@@ -25,6 +25,7 @@ class StkUnitTest(unittest.TestCase):
         self.vis = "" # measurement set name
         self.parallel = ParallelTaskHelper.isMPIEnabled()
         self._clean_imgs_exist_dict()
+        self.teardown_files = []
 
     def tearDown(self):
         super().tearDown()
@@ -39,6 +40,12 @@ class StkUnitTest(unittest.TestCase):
         for img in self.imgs:
             img_files = glob.glob(img+'*')
             del_files += img_files
+        for teardown_file in self.teardown_files:
+            if teardown_file in del_files:
+                continue
+            if not os.path.exists(teardown_file):
+                continue
+            del_files.append(teardown_file)
         for f in del_files:
             shutil.rmtree(f)
 
@@ -77,6 +84,7 @@ class StkUnitTest(unittest.TestCase):
                 copysrc = os.path.join(data_path_dir, copydir)
                 casalog.post(f"{copysrc} => {copydir}", "INFO")
                 shutil.copytree(copysrc, copydir)
+                self.teardown_files.append(copydir)
         else:
             # continue running with partially computed results (eg, ran tclean last time, now check the values)
             from os.path import dirname, join
