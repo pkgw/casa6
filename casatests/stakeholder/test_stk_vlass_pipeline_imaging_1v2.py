@@ -149,21 +149,27 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         data_path_dir = 'J1302/Stakeholder-test-mosaic-data'
         img0 = 'J1302_iter2'
-        self.prepData(self.vis, data_path_dir, 'secondmask.mask','QLcatmask.mask')
-        imsize = 4000
+        masks = ['secondmask.mask', 'QLcatmask.mask']
+        quick_masks = ['secondmask_1000.mask', 'QLcatmask_1000.mask']
+
+        if not quick_test:
+            imsize=4000
+            self.prepData(self.vis, data_path_dir, *masks)
+        else:
+            imsize=1000
+            self.prepData(self.vis, data_path_dir, *quick_masks)
+            for i in range(len(masks)):
+                os.system(f"mv {quick_masks[i]} {masks[i]}")
+            self.teardown_files += masks
+
         spw = ''
         rms = [0.00017975829898762892, 0.0013099727978948515] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [700,800],[3300,1900]
+        starttime = datetime.now()
 
         #############################################
         # %% Set local vars [test_j1302_mtmfs] end  @
         # %% Prepare masks [test_j1302_mtmfs] start @
         #############################################
-
-        starttime = datetime.now()
-        if quick_test:
-            imsize = 1000
-            self.resize_mask('QLcatmask.mask', 'QLcatmask.mask', [imsize, imsize])
-            self.resize_mask('secondmask.mask', 'secondmask.mask', [imsize, imsize])
 
         # combine first and 2nd order masks
         if not use_partial_results:
@@ -200,7 +206,7 @@ class test_j1302(StkUnitTest):
         # initialize iter2, no cleaning
         run_tclean( niter=0,     datacolumn='corrected', calcres=True, calcpsf=True,                         compare_tclean_pars=script_pars_vals_0 )
 
-        # # resume iter2 with QL mask
+        # resume iter2 with QL mask
         run_tclean( niter=20000, datacolumn='corrected', mask="QLcatmask.mask", nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_1 )
 
         # save model column, doesn't happen here in acutal VLASS pipeline, but makes sure functionality works.
@@ -330,28 +336,31 @@ class test_j1302(StkUnitTest):
         img0 = 'J1302_iter0d'
         img1 = 'J1302_iter2'
         cache0name, cache1name = "cache0d.cf", "cache2.cf"
-        if quick_test:
-            self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{img0}.cf", f"cfcache_quick1/{img1}.cf", "QLcatmask.mask", "secondmask.mask")
-            os.system(f"mv cfcache_quick1/{img0}.cf {cache0name}")
-            os.system(f"mv cfcache_quick1/{img1}.cf {cache1name}")
-        else:
-            self.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", "QLcatmask.mask", "secondmask.mask")
+        masks = ['secondmask.mask', 'QLcatmask.mask']
+        quick_masks = ['secondmask_1312.mask', 'QLcatmask_1312.mask']
+
+        if not quick_test:
+            imsize=5250
+            self.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", *masks)
             os.system(f"mv cfcache/{img0}.cf {cache0name}")
             os.system(f"mv cfcache/{img1}.cf {cache1name}")
+        else:
+            imsize=1312
+            self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{img0}.cf", f"cfcache_quick1/{img1}.cf", *quick_masks)
+            os.system(f"mv cfcache_quick1/{img0}.cf {cache0name}")
+            os.system(f"mv cfcache_quick1/{img1}.cf {cache1name}")
+            for i in range(len(masks)):
+                os.system(f"mv {quick_masks[i]} {masks[i]}")
+            self.teardown_files += masks
         self.teardown_files += [cache0name, cache1name]
-        imsize = 5250
+
         rms = [0.00025982361923319354, 0.00211483438886223] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [1500,500],[3500,2000]
+        starttime = datetime.now()
 
         ################################################
         # %% Set local vars [test_j1302_awproject] end @
         # %% Prepare masks [test_j1302_mtmfs] start    @
         ################################################
-
-        starttime = datetime.now()
-        if quick_test:
-            imsize = 1312
-            self.resize_mask('QLcatmask.mask', 'QLcatmask.mask', [imsize,imsize])
-            self.resize_mask('secondmask.mask', 'secondmask.mask', [imsize,imsize])
 
         # combine first and 2nd order masks
         if not use_partial_results:
@@ -533,10 +542,22 @@ class test_j1302(StkUnitTest):
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-cube-data'
-        self.prepData(self.vis, data_path_dir, "QLcatmask.mask", "combined.mask")
-        imsize = 4000
+        masks = ['combined.mask', 'QLcatmask.mask']
+        quick_masks = ['combined_1000.mask', 'QLcatmask_1000.mask']
+
+        if not quick_test:
+            imsize=4000
+            self.prepData(self.vis, data_path_dir, *masks)
+        else:
+            imsize=1000
+            self.prepData(self.vis, data_path_dir, *quick_masks)
+            for i in range(len(masks)):
+                os.system(f"mv {quick_masks[i]} {masks[i]}")
+            self.teardown_files += masks
+
         spw_chans = ''
         rms = {'0': 0.0005612289083201638, '1': 0.0004997134396517132, '2': 0.0008543526968930547} # per-spw noise floor as measured from a full-scale image run, Range:[100,100],[3900,1900]
+        starttime = datetime.now()
 
         # reference frequence to use per spectral window (spw)
         refFreqDict  = {
@@ -547,19 +568,8 @@ class test_j1302(StkUnitTest):
 
         ###################################################
         # %% Set local vars [test_j1302_mosaic_cube] end  @
-        # %% Prepare masks [test_j1302_mosaic_cube] start @
+        # %% Run tclean [test_j1302_mosaic_cube] start    @
         ###################################################
-
-        starttime = datetime.now()
-        if quick_test:
-            imsize = 1000
-            self.resize_mask("QLcatmask.mask", "QLcatmask.mask", [imsize,imsize])
-            self.resize_mask("combined.mask", "combined.mask", [imsize,imsize])
-
-        #################################################
-        # %% Prepare masks [test_j1302_mosaic_cube] end @
-        # %% Run tclean [test_j1302_mosaic_cube] start  @
-        #################################################
 
         def iname(image_iter, spw, stokes):
             return 'J1302_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
@@ -1011,21 +1021,27 @@ class test_j1927(StkUnitTest):
         #intermediate pipeline step.
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
         img0 = 'J1927_iter2'
-        self.prepData(self.vis, data_path_dir, "secondmask.mask", "QLcatmask.mask")
-        imsize = 4000
+        masks = ['secondmask.mask', 'QLcatmask.mask']
+        quick_masks = ['secondmask_1000.mask', 'QLcatmask_1000.mask']
+
+        if not quick_test:
+            imsize=4000
+            self.prepData(self.vis, data_path_dir, *masks)
+        else:
+            imsize=1000
+            self.prepData(self.vis, data_path_dir, *quick_masks)
+            for i in range(len(masks)):
+                os.system(f"mv {quick_masks[i]} {masks[i]}")
+            self.teardown_files += masks
+
         spw = ''
         rms = [0.0001483304420688553, 0.0007968044018725578] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [500,500],[3400,1900]
+        starttime = datetime.now()
 
         #############################################
         # %% Set local vars [test_j1927_mtmfs] end  @
         # %% Prepare masks [test_j1927_mtmfs] start @
         #############################################
-
-        starttime = datetime.now()
-        if quick_test:
-            imsize = 1000
-            self.resize_mask('QLcatmask.mask', 'QLcatmask.mask', [imsize,imsize])
-            self.resize_mask('secondmask.mask', 'secondmask.mask', [imsize,imsize])
 
         # combine first and 2nd order masks
         if not use_partial_results:
@@ -1192,12 +1208,24 @@ class test_j1927(StkUnitTest):
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-cube-data'
-        self.prepData(self.vis, data_path_dir, "QLcatmask.mask", "combined.mask")
+        masks = ['combined.mask', 'QLcatmask.mask']
+        quick_masks = ['combined_1000.mask', 'QLcatmask_1000.mask']
+
+        if not quick_test:
+            imsize=4000
+            self.prepData(self.vis, data_path_dir, *masks)
+        else:
+            imsize=1000
+            self.prepData(self.vis, data_path_dir, *quick_masks)
+            for i in range(len(masks)):
+                os.system(f"mv {quick_masks[i]} {masks[i]}")
+            self.teardown_files += masks
+
         # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_cube_unittest"
         # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
-        imsize = 4000
         spw_chans = ''
         rms = {'0': 0.0004637447465635465, '1': 0.0005062325702676312, '2': 0.0004403419438565781} # per-spw noise floor as measured from a full-scale image run, Range:[100,100],[3900,1900]
+        starttime = datetime.now()
 
         # reference frequence to use per spectral window (spw)
         refFreqDict  = {
@@ -1210,12 +1238,6 @@ class test_j1927(StkUnitTest):
         # %% Set local vars [test_j1927_mosaic_cube] end  @
         # %% Prepare masks [test_j1927_mosaic_cube] start @
         ###################################################
-
-        starttime = datetime.now()
-        if quick_test:
-            imsize = 1000
-            self.resize_mask("QLcatmask.mask", "QLcatmask.mask", [imsize,imsize])
-            self.resize_mask("combined.mask", "combined.mask", [imsize,imsize])
 
         #################################################
         # %% Prepare masks [test_j1927_mosaic_cube] end @
