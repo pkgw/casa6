@@ -9,12 +9,14 @@ import copy
 import numpy as np
 
 from casatools import image as _image
-from casatools import synthesisdeconvolver
+from casatools import synthesisdeconvolver, quanta
 from casatasks import casalog, imregrid
 
 from .imager_base import PySynthesisImager
+from .input_parameters import ImagerParameters
 
 _ia = _image()
+_qa = quanta()
 
 #############################################
 
@@ -27,6 +29,18 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
     def __init__(self,params):
         super().__init__(params)
+
+        # Update some settings:
+        # - specmode to cube so that we run a cube major cycle
+        # - deconvolver to hogbom so that major cycle doesn't get confused TODO is this necessary?
+        for k in self.allimpars:
+            self.allimpars[k]['specmode'] = 'cube'
+            self.allimpars[k]['deconvolver'] = 'hogbom'
+        for k in self.allgridpars:
+            self.allgridpars[k]['deconvolver'] = 'hogbom'
+        for k in self.allnormpars:
+            self.allnormpars[k]['deconvolver'] = 'hogbom'
+
         self.verifyDecPars()
 
 #############################################
@@ -49,21 +63,33 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
              self.SDtools[immod].setupdeconvolution(decpars=self.getDecParsForImmod(immod))
 
 #############################################
+    
+    def checkPSF(self, immod):
+        self.cube2tt(immod, do_convert=['psf', 'sumwt'])
+        return super().checkPSF(immod)
 
     def runMinorCycle(self):
         # create .ttN taylor term images for the mtmfs deconvolver
         for immod in range(0,self.NF):
-            self.cube2tt(immod)
+            # only need to create the psf taylor term images once (shouldn't change after checkPSF)
+            self.cube2tt(immod, dont_convert=['psf'])
 
         # run the mtmfs deconvolver
-        super().runMinorCycle()
+        ret = super().runMinorCycle()
 
         # convert back to cube images for the cube major cycle
         for immod in range(0,self.NF):
             self.tt2cube(immod)
 
-    def cube2tt(self, immod=0):
+        return ret
+
+    def cube2tt(self, immod=0, do_convert=None, dont_convert=None):
         """ Creates the necessary taylor term images.
+
+        Args:
+          immod: which image facet/outlier field to convert
+          do_convert: whitelist of image suffixes to convert
+          dont_convert: blacklist of image suffixes to not convert
 
         Outputs:
         pb.tt0
@@ -71,12 +97,22 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         psf.tt0..psf.tt(2*N-2)
 
         If incompatible images already exist with the same name, replace them. """
-        decpars = getDecParsForImmod(immod)
+        decpars = self.getDecParsForImmod(immod)
         nterms = decpars['nterms']
         imagename = decpars['imagename']
 
+        # determine which images are being converted
+        imgs = [('residual',nterms), ('model',nterms), ('psf',nterms*2-1), ('sumwt',nterms*2-1)]
+        new_imgs = []
+        for suffix, num_terms in imgs:
+            if do_convert != None and suffix not in do_convert:
+                continue
+            if dont_convert != None and suffix in dont_convert:
+                continue
+            new_imgs.append((suffix, num_terms))
+        imgs = new_imgs
+
         # create the .ttN images
-        imgs = [('residual',nterms), ('model',nterms), ('psf',nterms*2-1)]
         for suffix, num_terms in imgs:
             basename = f"{imagename}.{suffix}"
             for N in range(num_terms):
@@ -96,9 +132,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             cubewt = ""
         for suffix, num_terms in imgs:
             basename = f"{imagename}.{suffix}"
-            reffreq = self.allimpars[immod]['reffreq']
-            dopsf = suffix == "psf"
-            self.cube_to_taylor_sum(cubename=basename, cubewt=cubewt, mtname=basename, reffreq=reffreq, nterms=nterms, dopsf=dopsf):
+            reffreq = self.allimpars[str(immod)]['reffreq']
+            dopsf = (suffix == "psf" or suffix == "sumwt")
+            self.cube_to_taylor_sum(cubename=basename, cubewt=cubewt, mtname=basename, reffreq=reffreq, nterms=nterms, dopsf=dopsf)
 
         # special case: just copy pb
         basename = f"{imagename}.pb"
@@ -109,10 +145,10 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         """ Creates or updates the .model image with all new data obtained
         from the .model.ttN images.
         """
-        decpars = getDecParsForImmod(immod)
+        decpars = self.getDecParsForImmod(immod)
         nterms = decpars['nterms']
         imagename = decpars['imagename']
-        reffreq = self.allimpars[immod]['reffreq']
+        reffreq = self.allimpars[str(immod)]['reffreq']
         
         # run the conversion
         self.taylor_model_to_cube(cubename=imagename, mtname=imagename, reffreq=reffreq, nterms=nterms)
@@ -120,11 +156,11 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     def makeImage(self, template_img='try.psf', output_img='try.zeros.psf'):
         # get the shape
         _ia.open(template_img)
-        shape = ia.shape()
-        csys = ia.coordsys()
-        pixeltype = ia.pixeltype()
-        casalog.post(f"pixeltype: {pixeltype} ({type(pixeltype)})")
-        inpixels = ia.getregion()
+        shape = _ia.shape()
+        csys = _ia.coordsys()
+        pixeltype = _ia.pixeltype()
+        _ia.close()
+        _ia.done()
 
         # get the data type
         dtype = np.single
@@ -138,12 +174,13 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pixelprefix = 'cd'
 
         # populate some pixels
+        shape[3] = 1 # taylor term images don't use channels
         pixels = np.zeros(shape, dtype=dtype)
 
         # create the new outputmask
-        ia.fromarray(output_img, csys=csys.torecord(), pixels=pixels, type=pixelprefix)
-        ia.close()
-        ia.done()
+        _ia.fromarray(output_img, csys=csys.torecord(), pixels=pixels, type=pixelprefix)
+        _ia.close()
+        _ia.done()
 
 ################################################
     def getFreqList(self,imname=''):
@@ -174,7 +211,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         return freqlist
 
 ################################################
-    def cube_to_taylor_sum(self, cubename='', cubewt='', chanwt='', mtname='',reffreq='1.5GHz',nterms=2,dopsf=False):
+    def cube_to_taylor_sum(self, cubename='', cubewt='', chanwt=None, mtname='',reffreq='1.5GHz',nterms=2,dopsf=False):
         """
         Convert Cubes (output of major cycle) to Taylor weighted averages (inputs to the minor cycle)
         Input : Cube image <cubename>, with channels weighted by image <cubewt>
@@ -193,10 +230,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
           dopsf: Signals that cubename represents a point source function, should be true if cubename ends with ".psf".
                  If true, then output 2*nterms-1 ttN images.
         """
-
-        refnu = _qa.convert( _qa.quantity(reffreq) ,'Hz' )['value']
-
-        # casalog.post("&&&&&&&&& REF FREQ : " + str(refnu))
 
         pix=[]
 
@@ -219,12 +252,18 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         cwt = _ia.getchunk()[0,0,0,:]
         _ia.close()
 
-
         freqlist = self.getFreqList(cubename)
+
+        if reffreq == '':
+            # from task_sdintimaging.py
+            reffreq =str( ( freqlist[0] + freqlist[ len(freqlist)-1 ] )/2.0 ) + 'Hz'
+        refnu = _qa.convert( _qa.quantity(reffreq) ,'Hz' )['value']
 
         if shp[3] != len(cwt) or len(freqlist) != len(cwt):
             raise Exception("Nchan shape mismatch between cube and sumwt.")
 
+        if chanwt == None:
+            chanwt = np.ones(len(freqlist), 'float')
         cwt = cwt * chanwt  ## Merge the weights and flags. 
 
         sumchanwt = np.sum(cwt)  ## This is a weight

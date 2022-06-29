@@ -2740,6 +2740,24 @@ class test_cube(testref_base):
                                   imgvalexact=[(self.img+'.model.tt0', 0, [1,1,0,0]), (self.img+'.model.tt0', 0, [10,10,0,0])])#, epsilon=0.2)
           self.assertTrue(self.check_final(pstr=report))
 
+     def test_cube_mtmfs(self):
+          """ [onefield] Test_Onefield_mtmfs : mt-mfs with minor cycle iterations """
+          self.prepData('refim_point.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',nterms=2,interactive=0,calcres=True,restoration=False,parallel=self.parallel)
+          casalog.post(ret, "SEVERE")
+          maj_outputs = [self.img+'.psf',
+                         self.img+'.residual',
+                         self.img+'.pb']
+          min_inputs  = [self.img+'.psf.tt0', self.img+'.psf.tt1', self.img+'.psf.tt2',
+                         self.img+'.residual.tt0', self.img+'.residual.tt1',
+                         self.img+'.pb.tt0',
+                         self.img+'.model.tt0', self.img+'.model.tt1']
+          min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
+          maj_inputs  = [self.img+'.model']
+          report=self.th.checkall(ret=ret, peakres=0.392, modflux=0.732, iterdone=10, imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs, imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',1.039e-05,[50,50,0,0])])
+          ## iterdone=11 only because of the return (iterdone_p+1) in MultiTermMatrixCleaner::mtclean() !
+          self.assertTrue(self.check_final(pstr=report))
+
 ##############################################
 ##############################################
 

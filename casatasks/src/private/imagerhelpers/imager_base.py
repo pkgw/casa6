@@ -357,9 +357,12 @@ class PySynthesisImager:
             if divideInPython :
                 self.PStools[immod].gatherpsfweight() 
                 self.PStools[immod].dividepsfbyweight()
-            if self.SDtools != []:
-                if immod <= len(self.SDtools) - 1:
-                    self.SDtools[immod].checkrestoringbeam()
+            self.checkPSF(immod)
+
+    def checkPSF(self, immod):
+        if self.SDtools != []:
+            if immod <= len(self.SDtools) - 1:
+                self.SDtools[immod].checkrestoringbeam()
 
 
 #############################################
