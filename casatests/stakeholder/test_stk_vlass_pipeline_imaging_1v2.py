@@ -279,13 +279,6 @@ class test_j1302(StkUnitTest):
         # (e) Confirm presence of model column in resultant MS
         success7, report7 = self.check_column_exists("MODEL_DATA")
 
-        # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report1, report3, report4, report5, report6, report7])
-        success = success1 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
-        # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
-        # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         #####################################################
         # %% Compare Expected Values [test_j1302_mtmfs] end @
         # %% Generate Images [test_j1302_mtmfs] start       @
@@ -317,10 +310,13 @@ class test_j1302(StkUnitTest):
             successr, reportr = self.check_runtime(starttime, 5373)
         else:
             successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
-        self.assertTrue(success, msg=report)
+        # TODO start obeying on-axis once on-axis passes
+        report  = "".join([report1, report3, report4, report5, report6, report7, reportr])
+        success = success1 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
+        # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
+        # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
+        self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 2
     def test_j1302_awproject(self):
@@ -492,13 +488,6 @@ class test_j1302(StkUnitTest):
         # (e) Confirm presence of model column in resultant MS
         success7, report7 = self.check_column_exists("MODEL_DATA")
 
-        # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report1, report3, report5, report6, report7])
-        success = success1 and success3 and success5 and success6 and success7 and self.th.check_final(report)
-        # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
-        # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         #########################################################
         # %% Compare Expected Values [test_j1302_awproject] end @
         # %% Generate Images [test_j1302_awproject] start       @
@@ -528,10 +517,13 @@ class test_j1302(StkUnitTest):
             successr, reportr = self.check_runtime(starttime, 9594)
         else:
             successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
-        self.assertTrue(success, msg=report)
+        # TODO start obeying on-axis once on-axis passes
+        report  = "".join([report1, report3, report5, report6, report7, reportr])
+        success = success1 and success3 and success5 and success6 and success7 and successr and self.th.check_final(report)
+        # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
+        # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
+        self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 3
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Tclean crashes with mpicasa+mosaic gridder+stokes imaging.")
@@ -802,13 +794,6 @@ class test_j1302(StkUnitTest):
             success4.append(successN)
             report4.append(reportN)
 
-        # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report1, report2, report3, *report4])
-        success = success1 and success2 and success3 and all(success4) and self.th.check_final(report)
-        # report  = "".join([report0, report1, report2, report3, *report4])
-        # success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         ###########################################################
         # %% Compare Expected Values [test_j1302_mosaic_cube] end @
         # %% Generate Images [test_j1302_mosaic_cube] start       @
@@ -842,10 +827,13 @@ class test_j1302(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
-        self.assertTrue(success, msg=report)
+        # TODO start obeying on-axis once on-axis passes
+        report  = "".join([report1, report2, report3, *report4, reportr])
+        success = success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
+        # report  = "".join([report0, report1, report2, report3, *report4])
+        # success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
+        self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 4
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Only run in serial, since John Tobin only executed this test in serial (see 01/12/22 comment on CAS-12427).")
@@ -975,10 +963,6 @@ class test_j1302(StkUnitTest):
         beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
         success4, report4 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
 
-        report  = "".join([report0, report1, report2, report4])
-        success = success1 and success2 and success4 and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         ##################################################
         # %% Compare Expected Values [test_j1302_ql] end @
         # %% Generate Images [test_j1302_ql] start       @
@@ -1002,9 +986,9 @@ class test_j1302(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
+        report  = "".join([report0, report1, report2, report4, reportr])
+        success = success1 and success2 and success4 and successr and self.th.check_final(report)
         self.assertTrue(success, msg=report)
 
 
@@ -1165,10 +1149,6 @@ class test_j1927(StkUnitTest):
         # (e) Confirm presence of model column in resultant MS
         success7, report7 = self.check_column_exists("MODEL_DATA")
 
-        report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
-        success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         #####################################################
         # %% Compare Expected Values [test_j1927_mtmfs] end @
         # %% Generate Images [test_j1927_mtmfs] start       @
@@ -1200,10 +1180,10 @@ class test_j1927(StkUnitTest):
             successr, reportr = self.check_runtime(starttime, 7129)
         else:
             successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
-        self.assertTrue(success, msg=report)
+        report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7, reportr])
+        success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
+        self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # N/A not implemented
     # def test_j1927_awproject(self):
@@ -1445,10 +1425,6 @@ class test_j1927(StkUnitTest):
             success4.append(successN)
             report4.append(reportN)
 
-        report  = "".join([report0, report1, report2, report3, *report4])
-        success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         ###########################################################
         # %% Compare Expected Values [test_j1927_mosaic_cube] end @
         # %% Generate Images [test_j1927_mosaic_cube] start       @
@@ -1482,10 +1458,10 @@ class test_j1927(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
-        self.assertTrue(success, msg=report)
+        report  = "".join([report0, report1, report2, report3, *report4, reportr])
+        success = success0 and success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
+        self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 7
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Only run in serial, since John Tobin only executed this test in serial (see 01/12/22 comment on CAS-12427).")
@@ -1617,10 +1593,6 @@ class test_j1927(StkUnitTest):
         beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
         success4, report4 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
 
-        report  = "".join([report0, report1, report2, report4])
-        success = success1 and success2 and success4 and self.th.check_final(report)
-        casalog.post(f"{report}\nSuccess: {success}", "INFO")
-
         ##################################################
         # %% Compare Expected Values [test_j1927_ql] end @
         # %% Generate Images [test_j1927_ql] start       @
@@ -1643,10 +1615,10 @@ class test_j1927(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats613['runtime'])
-        report += reportr
-        success = success and successr and self.th.check_final(report)
 
-        self.assertTrue(success, msg=report)
+        report  = "".join([report0, report1, report2, report4, reportr])
+        success = success1 and success2 and success4 and successr and self.th.check_final(report)
+        self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
 ##############################################
 ##############################################
