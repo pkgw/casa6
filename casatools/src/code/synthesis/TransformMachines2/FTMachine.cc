@@ -501,7 +501,6 @@ using namespace casa::vi;
       }
 
 
-      
       initPolInfo(vb);
       Vector<Int> intpolmap(visPolMap_p.nelements());
       for (uInt kk=0; kk < intpolmap.nelements(); ++kk){
@@ -509,7 +508,8 @@ using namespace casa::vi;
       }
       pop_p->initCFMaps(intpolmap, polMap);
 
-      //cerr << "initmaps polmap "<< polMap << endl;
+      
+      cerr << "initmaps polmap "<< polMap << endl;
 
 
       
@@ -1829,6 +1829,7 @@ using namespace casa::vi;
      // doConversion_p[spw]=freqFrameValid_p;
 
       if(lsrFreq.nelements() ==0){
+        matchPol(vb);
         return false;
       }
       lsrFreq_p.resize(lsrFreq.nelements());
@@ -1920,6 +1921,7 @@ using namespace casa::vi;
   	<<      " of ms " << vb.msId() << " is not being used "
   	<< LogIO::WARN << LogIO::POST;
         */
+        matchPol(vb); ///sometimes the polmap is needed even if chanmap failed
         return false;
       }
 

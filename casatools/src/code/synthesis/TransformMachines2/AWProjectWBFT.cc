@@ -711,6 +711,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
      return;
    else
      avgPB_p=nullptr;  ///make sure it is not pointing to anything
+   /*   // This does WEIGHTs gridding via the framework route 
+   // (set ftmType and use ::put() for *all* gridding)
+   ftmType_p=casa::refim::FTMachine::WEIGHT;
+   put(vb,-1,false);
+   return;
+   */
    try
      {
        findConvFunction(*image, vb);
@@ -732,13 +738,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
    Matrix<Float> elWeight;
    
    interpolateFrequencyTogrid(vb, imagingweight,data, flags , elWeight, FTMachine::PSF);
-   Matrix<Double> uvw(negateUV(vb));
+   //Matrix<Double> uvw(negateUV(vb));
+   Matrix<Double> uvw;
    Vector<Double> dphase(vb.nRows());
    dphase=0.0;
    doUVWRotation_p=true;
    VBStore vbs;
    Vector<Int> gridShape = griddedData2.shape().asVector();
-   setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase, True /*dopsf*/,gridShape);
+    ftmType_p=casa::refim::FTMachine::WEIGHT;
+   setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase, True ,gridShape);
    if (useDoubleGrid_p){
      	Array<DComplex> gwts; Bool removeDegenerateAxis=false;
 	griddedWeights_D.get(gwts, removeDegenerateAxis);
@@ -751,6 +759,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
      resampleCFToGrid(gwts, vbs, vb);
      
    }
+    
  }
   
   void AWProjectWBFT::setCFCache(CountedPtr<CFCache>& cfc, const Bool resetCFC) 
