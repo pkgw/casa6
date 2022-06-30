@@ -10,7 +10,7 @@
 #
 # Values to compare current versions against:
 #  1. on-axis      ---   "ground truth", I think from the (fluxscale?) task
-#  2. CASA 6.1.3   ---   pipeline approved version of casa
+#  2. CASA 6.2.1   ---   pipeline approved version of casa
 #
 # What's good enough?
 # Empirical tolerance:
@@ -39,21 +39,21 @@
 #
 # Values to be verified:                                       Compare against:
 #  Stokes I (and QL?):
-#   a. tt0:                                                    6.1.3, on-axis
-#   b. tt1:                                                    6.1.3, on-axis
-#   c. alpha:                                                  6.1.3, on-axis
-#   d. beamsize comparison:                                    6.1.3
+#   a. tt0:                                                    6.2.1, on-axis
+#   b. tt1:                                                    6.2.1, on-axis
+#   c. alpha:                                                  6.2.1, on-axis
+#   d. beamsize comparison:                                    6.2.1
 #  Stokes I:
 #   e. Confirm presence of model column in resultant MS
 #  Stokes I and Cube:
 #   f. Runtimes not significantly different relative to previous runs
 #  Cube:
-#   g. Fit F_nu0 and Alpha from three cube planes and compare: 6.1.3, on-axis
-#   h. IQUV flux densities of all three spws:                  6.1.3
+#   g. Fit F_nu0 and Alpha from three cube planes and compare: 6.2.1, on-axis
+#   h. IQUV flux densities of all three spws:                  6.2.1
 #   i. IQUV flux densities of all three spws:                  on-axis measurements
-#   j. Beam of all three spws:                                 6.1.3
+#   j. Beam of all three spws:                                 6.2.1
 #  QL:
-#   k. flux density of Calibrator source:                      6.1.3, on-axis
+#   k. flux density of Calibrator source:                      6.2.1, on-axis
 #  All:
 #   l. Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
 # Note on (i): on-axis values derived from images of calibrator using standard gridder of pointed data on calibrator
@@ -228,23 +228,23 @@ class test_j1302(StkUnitTest):
         # %% Compare Expected Values [test_j1302_mtmfs] start @
         #######################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'tt0': 0.3198292,
-                'tt1': 0.01994022,
-                'alpha': 0.06234646,
-                'beam': { 'maj': 3.1565470695495605, 'min': 2.58677792549133, 'pos': 11.282347679138184 },
+                'tt0': 0.31962126,
+                'tt1': 0.01928869,
+                'alpha': 0.06034857,
+                'beam': { 'maj': 3.15002894, 'min': 2.59177852, 'pos': 11.41288376 },
                 'runtime': 2413
             },
             '1/4': {
-                'tt0': 0.29676201939582825,
-                'tt1': -0.004495048895478249,
-                'alpha': -0.015146981924772263,
-                'beam': { 'maj': 3.138805627822876, 'min': 2.5604472160339355, 'pos': 10.93341064453125 },
+                'tt0': 0.29668888,
+                'tt1': -0.00507728,
+                'alpha': -0.01711315,
+                'beam': { 'maj': 3.13147807, 'min': 2.56502342, 'pos': 10.92203331 },
                 'runtime': 417
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         # N/A for this test
@@ -256,25 +256,25 @@ class test_j1302(StkUnitTest):
         alphastats = imstat(imagename=img0+'.alpha', box=box)
         curr_stats    = np.squeeze(np.array([ tt0stats['max'], tt1stats['max'], alphastats['max']]))
         onaxis_stats  = np.array([            0.3337,         -0.01588,        -0.0476])
-        casa613_stats = np.array([            stats613['tt0'], stats613['tt1'], stats613['alpha']])
+        casa621_stats = np.array([            stats621['tt0'], stats621['tt1'], stats621['alpha']])
 
-        # (a) tt0 vs 6.1.3, on-axis
+        # (a) tt0 vs 6.2.1, on-axis
         success0, report0 = self.check_metrics_flux(curr_stats[0], onaxis_stats[0],  valname="Frac Diff tt0 vs. on-axis", rms_or_std=rms[0])
-        success1, report1 = self.check_metrics_flux(curr_stats[0], casa613_stats[0], valname="Frac Diff tt0 vs. 6.1.3 image", rms_or_std=rms[0])
+        success1, report1 = self.check_metrics_flux(curr_stats[0], casa621_stats[0], valname="Frac Diff tt0 vs. 6.2.1 image", rms_or_std=rms[0])
 
-        # (b) tt1 vs 6.1.3, on-axis
+        # (b) tt1 vs 6.2.1, on-axis
         success2, report2 = self.check_metrics_flux(curr_stats[1], onaxis_stats[1],  valname="Frac Diff tt1 vs. on-axis", rms_or_std=rms[1])
-        success3, report3 = self.check_metrics_flux(curr_stats[1], casa613_stats[1], valname="Frac Diff tt1 vs. 6.1.3 image", rms_or_std=rms[1])
+        success3, report3 = self.check_metrics_flux(curr_stats[1], casa621_stats[1], valname="Frac Diff tt1 vs. 6.2.1 image", rms_or_std=rms[1])
 
         # (c) alpha images
         success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
-        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa613_stats[2], valname="Abs Diff alpha vs. 6.1.3 image", rmss_or_stds=rms)
+        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
 
-        # (d) beamsize comparison vs 6.1.3
+        # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img0+'.image.tt0')['restoringbeam']
         beamstats_curr    = np.array([restbeam['major']['value'], restbeam['minor']['value'], restbeam['positionangle']['value']])
-        beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
-        success6, report6 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
+        beamstats_621     = np.array([stats621['beam']['maj'],    stats621['beam']['min'],    stats621['beam']['pos']])
+        success6, report6 = self.check_fracdiff(beamstats_curr, beamstats_621, valname="Frac Diff Maj, Min, PA vs 6.2.1")
 
         # (e) Confirm presence of model column in resultant MS
         success7, report7 = self.check_column_exists("MODEL_DATA")
@@ -286,14 +286,14 @@ class test_j1302(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.05])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.30])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.01])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         #############################################
         # %% Generate Images [test_j1302_mtmfs] end @
@@ -309,7 +309,7 @@ class test_j1302(StkUnitTest):
             # runtime with MPI -n 8
             successr, reportr = self.check_runtime(starttime, 5373)
         else:
-            successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+            successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
         report  = "".join([report1, report3, report4, report5, report6, report7, reportr])
@@ -437,23 +437,23 @@ class test_j1302(StkUnitTest):
         # %% Compare Expected Values [test_j1302_awproject] start @
         ###########################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'tt0': 0.3174496,
-                'tt1': -0.01514572,
-                'alpha': -0.04771062,
-                'beam': { 'maj': 3.07221413,        'min': 2.49312615,      'pos': 11.04310322 },
+                'tt0': 0.317386,
+                'tt1': -0.01537329,
+                'alpha': -0.04843721,
+                'beam': { 'maj': 3.05415082, 'min': 2.49866414, 'pos': 11.82348919 },
                 'runtime': 21179
             },
             '1/4': {
-                'tt0': 0.21771885454654694,
-                'tt1': -0.05718548595905304,
-                'alpha': -0.26265749335289,
-                'beam': { 'maj': 3.091102123260498, 'min': 2.5045325756073, 'pos': 11.218000411987305 },
+                'tt0': 0.21766607,
+                'tt1': -0.05709893,
+                'alpha': -0.2623235,
+                'beam': { 'maj': 3.07264543, 'min': 2.5105536,  'pos': 10.96454144 },
                 'runtime': 1993 # this is with cfcache
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         # N/A: no pbcore, rms, or subim images are created for this test
@@ -465,25 +465,25 @@ class test_j1302(StkUnitTest):
         alphastats=imstat(imagename=img1+'.alpha',    box=box)
         curr_stats=np.squeeze(np.array([tt0stats['max'], tt1stats['max'], alphastats['max']]))
         onaxis_stats=np.array([         0.3337,         -0.01588,        -0.0476])
-        casa613_stats=np.array([        stats613['tt0'], stats613['tt1'], stats613['alpha']])
+        casa621_stats=np.array([        stats621['tt0'], stats621['tt1'], stats621['alpha']])
 
-        # (a) tt0 vs 6.1.3, on-axis
+        # (a) tt0 vs 6.2.1, on-axis
         success0, report0 = self.check_metrics_flux(curr_stats[0], onaxis_stats[0],  valname="Frac Diff tt0 vs. on-axis", rms_or_std=rms[0])
-        success1, report1 = self.check_metrics_flux(curr_stats[0], casa613_stats[0], valname="Frac Diff tt0 vs. 6.1.3 image", rms_or_std=rms[0])
+        success1, report1 = self.check_metrics_flux(curr_stats[0], casa621_stats[0], valname="Frac Diff tt0 vs. 6.2.1 image", rms_or_std=rms[0])
 
-        # (b) tt1 vs 6.1.3, on-axis
+        # (b) tt1 vs 6.2.1, on-axis
         success2, report2 = self.check_metrics_flux(curr_stats[1], onaxis_stats[1],  valname="Frac Diff tt1 vs. on-axis", rms_or_std=rms[1])
-        success3, report3 = self.check_metrics_flux(curr_stats[1], casa613_stats[1], valname="Frac Diff tt1 vs. 6.1.3 image", rms_or_std=rms[1])
+        success3, report3 = self.check_metrics_flux(curr_stats[1], casa621_stats[1], valname="Frac Diff tt1 vs. 6.2.1 image", rms_or_std=rms[1])
 
         # (c) alpha images
         success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
-        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa613_stats[2], valname="Abs Diff alpha vs. 6.1.3 image", rmss_or_stds=rms)
+        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
 
-        # (d) beamsize comparison vs 6.1.3
+        # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img1+'.image.tt0')['restoringbeam']
         beamstats_curr    = np.array([restbeam['major']['value'], restbeam['minor']['value'], restbeam['positionangle']['value']])
-        beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
-        success6, report6 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
+        beamstats_621     = np.array([stats621['beam']['maj'],    stats621['beam']['min'],    stats621['beam']['pos']])
+        success6, report6 = self.check_fracdiff(beamstats_curr, beamstats_621, valname="Frac Diff Maj, Min, PA vs 6.2.1")
 
         # (e) Confirm presence of model column in resultant MS
         success7, report7 = self.check_column_exists("MODEL_DATA")
@@ -495,10 +495,10 @@ class test_j1302(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.22])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         #################################################
         # %% Generate Images [test_j1302_awproject] end @
@@ -516,7 +516,7 @@ class test_j1302(StkUnitTest):
             # runtime with MPI -n 8
             successr, reportr = self.check_runtime(starttime, 9594)
         else:
-            successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+            successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
         report  = "".join([report1, report3, report5, report6, report7, reportr])
@@ -692,72 +692,73 @@ class test_j1302(StkUnitTest):
         # %% Compare Expected Values [test_j1302_mosaic_cube] start @
         #############################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'F_nu': 0.3127,
-                'alpha': 0.04134,
+                'F_nu': 0.31231569,
+                'alpha': 0.03663584,
                 'runtime': 7167
             },
             '1/4': {
-                'F_nu': 0.2835444715643381,
-                'alpha': -0.39275161146262283,
+                'F_nu': 0.28358972,
+                'alpha': -0.39547056,
                 'runtime': 902
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         # N/A: no pbcore, rms, or subim images are created for this test
 
-        # (g) Fit F_nu0 and Alpha from three cube planes and compare: 6.1.3, on-axis
-        # compare to alpha (ground truth), and 6.1.3 (fitted for spws 2, 8, 14 from mosaic gridder in CASA 6.1.3)
+        # (g) Fit F_nu0 and Alpha from three cube planes and compare: 6.2.1, on-axis
+        # compare to alpha (ground truth), and 6.2.1 (fitted for spws 2, 8, 14 from mosaic gridder in CASA 6.2.1)
         alpha = popt[0]
         f_nu0 = 10**popt[1]
         curr_stats        = np.squeeze(np.array([f_nu0,            alpha])) # [flux density, alpha]
         onaxis_stats      = np.array([           0.3337,          -0.0476])
-        casa613_stats     = np.array([           stats613['F_nu'], stats613['alpha']])
+        casa621_stats     = np.array([           stats621['F_nu'], stats621['alpha']])
         success0, report0 = self.check_metrics_flux(curr_stats[0], onaxis_stats[0],  valname="Frac Diff F_nu vs. on-axis", rms_or_std=np.mean(list(rms.values())))
-        success1, report1 = self.check_metrics_flux(curr_stats[0], casa613_stats[0], valname="Frac Diff F_nu vs. 6.1.3 image", rms_or_std=np.mean(list(rms.values())))
+        success1, report1 = self.check_metrics_flux(curr_stats[0], casa621_stats[0], valname="Frac Diff F_nu vs. 6.2.1 image", rms_or_std=np.mean(list(rms.values())))
         success2, report2 = self.check_metrics_alpha_fitted(curr_stats[1], onaxis_stats[1],  valname="Abs Diff alpha vs. on-axis", pcov=pcov)
-        success3, report3 = self.check_metrics_alpha_fitted(curr_stats[1], casa613_stats[1], valname="Abs Diff alpha vs. 6.1.3 image", pcov=pcov)
+        success3, report3 = self.check_metrics_alpha_fitted(curr_stats[1], casa621_stats[1], valname="Abs Diff alpha vs. 6.2.1 image", pcov=pcov)
 
-        spwstats_613={
+        spwstats_621={
             'full': {
-                '0': { 'IQUV':    np.array([ 0.3024486,      -0.00169682,     -0.00040808,     -0.00172231]),
-                       'rmsIQUV': np.array([ 0.00058096,      0.00053226,      0.00052702,      0.00055715]),
-                       'SNR':     np.array([ 520.60473159,    3.18793882,      0.77430771,      3.09130732]),
-                       'beam': np.array([ 4.63033438, 3.7626121, 8.42547607]),
-                       'freq': 2.028},
-                '1': { 'IQUV':    np.array([ 3.24606597e-01, -1.02521779e-04, -2.74724560e-04, -9.82215162e-04]),
-                       'rmsIQUV': np.array([ 0.00060875,      0.00056557,      0.00056437,      0.00058742]),
-                       'SNR':     np.array([ 5.33232366e+02,  1.81271795e-01,  4.86780379e-01,  1.67209226e+00]),
-                       'beam': np.array([ 3.31582212, 2.81106067, 12.23698997]),
-                       'freq': 2.796},
-                '2': { 'IQUV':    np.array([ 0.30785725,      0.00112553,     -0.00233958,     -0.00072553]),
-                       'rmsIQUV': np.array([ 0.00120004,      0.00096465,      0.00095693,      0.00094171]),
-                       'SNR':     np.array([ 256.53982683,    1.16677654,      2.44488894,      0.77044591]),
-                       'beam':np.array([ 2.06845379, 1.62075114, 8.15380859]),
-                       'freq': 3.564}
+                '0': { 'freq': 2.028,
+                       'IQUV':    np.array([ 0.30234554,     -0.00169584,     -0.00040815, -0.00173693]),
+                       'beam':    np.array([ 4.62908077,     3.75791144,      8.6552124]),
+                       'rmsIQUV': np.array([ 0.00058094,     0.000532,        0.00052686,  0.00055693]),
+                       'SNR':     np.array([ 520.43911237,   3.18764363,      0.77467731,  3.11873003]) },
+                '1': { 'freq': 2.796,
+                       'IQUV':    np.array([ 0.324628860,    -1.01364225e-04, -2.73056852e-04, -9.81398509e-04]),
+                       'beam':    np.array([ 3.31802654,     2.81110954,      11.9341383]),
+                       'rmsIQUV': np.array([ 0.00060886,     0.00056572,      0.00056446,  0.00058757]),
+                       'SNR':     np.array([ 5.33173526e+02, 0.179176112,     0.483746380, 1.67025396e+00]) },
+                '2': { 'freq': 3.594,
+                       'IQUV':    np.array([ 0.30719528,     0.00112637,      -0.00234151, -0.00072421]),
+                       'beam':    np.array([ 1.99766636,     1.61410868,      8.42595863]),
+                       'rmsIQUV': np.array([ 0.00120132,     0.00096404,      0.00095636,  0.00094095]),
+                       'SNR':     np.array([ 255.71516847,   1.16838666,      2.44836242,  0.76965535]) }
             },
             '1/4': {
-                '0': { 'IQUV':    np.array([ 0.32101429,     -0.00071505,     -0.00053584,     -0.00094223]),
-                       'rmsIQUV': np.array([ 0.00067207,      0.00051443,      0.00050779,      0.00054066]),
-                       'SNR':     np.array([ 477.64906346,    1.38996781,      1.05523628,      1.74273892]),
-                       'beam': np.array([ 4.70432472, 3.76074767, 9.39245605]),
-                       'freq': 2.028 },
-                '1': { 'IQUV':    np.array([ 3.11888933e-01,  6.64262800e-04,  6.19260682e-05, -7.18935160e-04]),
-                       'rmsIQUV': np.array([ 0.00062024,      0.00046568,      0.00046498,      0.00047676]),
-                       'SNR':     np.array([ 5.02853683e+02,  1.42643376e+00,  1.33181314e-01,  1.50796914e+00]),
-                       'beam': np.array([  3.35105848,  2.79067874, 12.36252499]),
-                       'freq': 2.796 },
-                '2': { 'IQUV':    np.array([ 0.25428799,      0.00060686,     -0.00169307,     -0.00073489]),
-                       'rmsIQUV': np.array([ 0.00096729,      0.00067782,      0.00066765,      0.00065435]),
-                       'SNR':     np.array([ 262.88833666,    0.89530696,      2.53586517,      1.1230845 ]),
-                       'beam': np.array([ 2.01840663, 1.6579901, 9.50128174]),
-                       'freq': 3.594 },
+                '0': { 'freq': 2.028,
+                       'IQUV':    np.array([ 0.32124895,     -0.00071501,    -0.00053517,    -0.00094193 ]),
+                       'beam':    np.array([ 4.70300007,     3.75634837,     9.51373291 ]),
+                       'rmsIQUV': np.array([ 0.00066714,     0.00051439,     0.00050774,     0.00054061 ]),
+                       'SNR':     np.array([ 481.53417799,   1.39002728,     1.05402692,     1.74234655 ]) },
+                '1': { 'freq': 2.796,
+                       'IQUV':    np.array([ 0.312349528,    6.64699066e-04, 6.29942224e-05, -7.18787895e-04 ]),
+                       'beam':    np.array([ 3.35121107,     2.79194474,     12.17673683 ]),
+                       'rmsIQUV': np.array([ 0.00060982,     0.0004657,      0.00046498,     0.00047679 ]),
+                       'SNR':     np.array([ 5.12196761e+02, 1.42730885,     0.135478162,    1.50756306 ]) },
+                '2': { 'freq': 3.594,
+                       'IQUV':    np.array([ 0.25404328,     0.00060382,     -0.00169632,    -0.00073403 ]),
+                       'beam':    np.array([ 2.01960516,     1.63659084,     8.21656036 ]),
+                       'rmsIQUV': np.array([ 0.000969,       0.00067771,     0.00066761,     0.00065421 ]),
+                       'SNR':     np.array([ 262.17179635,   0.89097026,     2.54089228,     1.12200519 ])
+                }
             }
         }
-        spwstats_613 = spwstats_613['full'] if (not quick_test) else spwstats_613[f"1/4"]
+        spwstats_621 = spwstats_621['full'] if (not quick_test) else spwstats_621[f"1/4"]
 
         spwstats_onaxis={
           '0': { 'IQUV':    np.array([3.09755385e-01, -1.39351614e-04, -1.01510414e-04,  3.48565959e-06]),
@@ -780,8 +781,8 @@ class test_j1302(StkUnitTest):
         success4 = []
         report4 = []
         for spw in spws:
-            # (h) IQUV flux densities of all three spws: 6.1.3
-            successN, reportN = self.check_metrics_flux(spwstats[spw]['IQUV'], spwstats_613[spw]['IQUV'],    valname=f"Stokes Comparison (spw {spw}), Frac Diff IQUV vs 6.1.3", rms_or_std=np.mean(list(rms.values())))
+            # (h) IQUV flux densities of all three spws: 6.2.1
+            successN, reportN = self.check_metrics_flux(spwstats[spw]['IQUV'], spwstats_621[spw]['IQUV'],    valname=f"Stokes Comparison (spw {spw}), Frac Diff IQUV vs 6.2.1", rms_or_std=np.mean(list(rms.values())))
             success4.append(successN)
             report4.append(reportN)
             # (i) IQUV flux densities of all three spws: on-axis measurements
@@ -789,8 +790,8 @@ class test_j1302(StkUnitTest):
             # TODO start obeying on-axis once on-axis passes
             # success4.append(successN)
             # report4.append(reportN)
-            # (j) Beam of all three spws:                6.1.3
-            successN, reportN = self.check_fracdiff(spwstats[spw]['beam'], spwstats_613[spw]['beam'],        valname=f"Stokes Comparison (spw {spw}), Frac Diff Maj, Min, PA vs 6.1.3")
+            # (j) Beam of all three spws:                6.2.1
+            successN, reportN = self.check_fracdiff(spwstats[spw]['beam'], spwstats_621[spw]['beam'],        valname=f"Stokes Comparison (spw {spw}), Frac Diff Maj, Min, PA vs 6.2.1")
             success4.append(successN)
             report4.append(reportN)
 
@@ -801,18 +802,18 @@ class test_j1302(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.26])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.33])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         ###################################################
         # %% Generate Images [test_j1302_mosaic_cube] end @
@@ -826,7 +827,7 @@ class test_j1302(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
         report  = "".join([report1, report2, report3, *report4, reportr])
@@ -924,44 +925,44 @@ class test_j1302(StkUnitTest):
         # %% Compare Expected Values [test_j1302_ql] start @
         ####################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'F_nu': 0.320879,
-                'beam': { 'min': 3.16884375,         'maj': 2.59194756,         'pos': 11.36847878 },
+                'F_nu': 0.3205489218235016,
+                'beam': { 'min': 3.12365127, 'maj': 2.62010241, 'pos': 13.79291248 },
                 'runtime': 1805
             },
             '1/4': {
-                'F_nu': 0.31872469186782837,
-                'beam': { 'min': 3.1795637607574463, 'maj': 2.5885016918182373, 'pos': 11.082575798034668 },
+                'F_nu': 0.3184760808944702,
+                'beam': { 'min': 3.13571501, 'maj': 2.6162672,  'pos': 13.37007141 },
                 'runtime': 383
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         success0, report0 = self.get_imgs_exist_results()
 
-        # (a) tt0 vs 6.1.3, on-axis
+        # (a) tt0 vs 6.2.1, on-axis
         halfsize          = round(imsize / 7290 * 1860)
         imstat_vals       = imstat(imagename=img1+'.image.pbcor.tt0.subim',box=f"{halfsize},{halfsize},{halfsize},{halfsize}")
         curr_stats        = np.squeeze(np.array([imstat_vals['max']]))
         onaxis_stats      = np.array([           0.3337])
-        casa613_stats     = np.array([           stats613['F_nu']])
+        casa621_stats     = np.array([           stats621['F_nu']])
         success1, report1 = self.check_metrics_flux(curr_stats, onaxis_stats, valname="Frac Diff F_nu vs. on-axis", rms_or_std=rms)
-        success2, report2 = self.check_metrics_flux(curr_stats, casa613_stats, valname="Frac Diff F_nu vs. 6.1.3 image", rms_or_std=rms)
+        success2, report2 = self.check_metrics_flux(curr_stats, casa621_stats, valname="Frac Diff F_nu vs. 6.2.1 image", rms_or_std=rms)
 
-        # (b) tt1 vs 6.1.3, on-axis
+        # (b) tt1 vs 6.2.1, on-axis
         # no tt1 images for this test, skip
 
         # (c) alpha images
         # TODO
         # success3, report3 = ...
 
-        # (d) beamsize comparison vs 6.1.3
+        # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img1+'.image.pbcor.tt0.subim')['restoringbeam']
         beamstats_curr    = np.array([restbeam['major']['value'], restbeam['minor']['value'], restbeam['positionangle']['value']])
-        beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
-        success4, report4 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
+        beamstats_621     = np.array([stats621['beam']['maj'],    stats621['beam']['min'],    stats621['beam']['pos']])
+        success4, report4 = self.check_fracdiff(beamstats_curr, beamstats_621, valname="Frac Diff Maj, Min, PA vs 6.2.1")
 
         ##################################################
         # %% Compare Expected Values [test_j1302_ql] end @
@@ -970,10 +971,10 @@ class test_j1302(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         ##########################################
         # %% Generate Images [test_j1302_ql] end @
@@ -985,7 +986,7 @@ class test_j1302(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         report  = "".join([report0, report1, report2, report4, reportr])
         success = success1 and success2 and success4 and successr and self.th.check_final(report)
@@ -1098,23 +1099,23 @@ class test_j1927(StkUnitTest):
         # %% Compare Expected Values [test_j1927_mtmfs] start @
         #######################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'tt0': 0.8887,
-                'tt1': 0.4148,
-                'alpha': 0.4668,
-                'beam': { 'min': 2.46035814,         'maj': 2.05488539,        'pos': -23.22724915 },
+                'tt0': 0.88789159,
+                'tt1': 0.41305166,
+                'alpha': 0.46520507,
+                'beam': { 'min': 2.44883513, 'maj': 2.04789495, 'pos': -23.64226532 },
                 'runtime': 4415
             },
             '1/4': {
-                'tt0': 0.878496527671814,
-                'tt1': 0.32516300678253174,
-                'alpha': 0.3701357841491699,
-                'beam': { 'min': 2.3685483932495117, 'maj': 1.971137285232544, 'pos': -24.036651611328125 },
+                'tt0': 0.87826717,
+                'tt1': 0.32428792,
+                'alpha': 0.36923608,
+                'beam': { 'min': 2.35327077, 'maj': 1.97257483, 'pos': -23.63233376 },
                 'runtime': 436
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         # N/A for this test
@@ -1126,25 +1127,25 @@ class test_j1927(StkUnitTest):
         alphastats = imstat(imagename=img0+'.alpha',     box=box)
         curr_stats    = np.squeeze(np.array([ tt0stats['max'], tt1stats['max'], alphastats['max']]))
         onaxis_stats  = np.array([            0.9509,          0.3601,          0.3796])
-        casa613_stats = np.array([            stats613['tt0'], stats613['tt1'], stats613['alpha']])
+        casa621_stats = np.array([            stats621['tt0'], stats621['tt1'], stats621['alpha']])
 
-        # (a) tt0 vs 6.1.3, on-axis
+        # (a) tt0 vs 6.2.1, on-axis
         success0, report0 = self.check_metrics_flux(curr_stats[0], onaxis_stats[0],  valname="Frac Diff tt0 vs. on-axis", rms_or_std=rms[0])
-        success1, report1 = self.check_metrics_flux(curr_stats[0], casa613_stats[0], valname="Frac Diff tt0 vs. 6.1.3 image", rms_or_std=rms[0])
+        success1, report1 = self.check_metrics_flux(curr_stats[0], casa621_stats[0], valname="Frac Diff tt0 vs. 6.2.1 image", rms_or_std=rms[0])
 
-        # (b) tt1 vs 6.1.3, on-axis
+        # (b) tt1 vs 6.2.1, on-axis
         success2, report2 = self.check_metrics_flux(curr_stats[1], onaxis_stats[1],  valname="Frac Diff tt1 vs. on-axis", rms_or_std=rms[1])
-        success3, report3 = self.check_metrics_flux(curr_stats[1], casa613_stats[1], valname="Frac Diff tt1 vs. 6.1.3 image", rms_or_std=rms[1])
+        success3, report3 = self.check_metrics_flux(curr_stats[1], casa621_stats[1], valname="Frac Diff tt1 vs. 6.2.1 image", rms_or_std=rms[1])
 
         # (c) alpha images
         success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
-        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa613_stats[2], valname="Abs Diff alpha vs. 6.1.3 image", rmss_or_stds=rms)
+        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
 
-        # (d) beamsize comparison vs 6.1.3
+        # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img0+'.image.tt0')['restoringbeam']
         beamstats_curr    = np.array([restbeam['major']['value'], restbeam['minor']['value'], restbeam['positionangle']['value']])
-        beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
-        success6, report6 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
+        beamstats_621     = np.array([stats621['beam']['maj'],    stats621['beam']['min'],    stats621['beam']['pos']])
+        success6, report6 = self.check_fracdiff(beamstats_curr, beamstats_621, valname="Frac Diff Maj, Min, PA vs 6.2.1")
 
         # (e) Confirm presence of model column in resultant MS
         success7, report7 = self.check_column_exists("MODEL_DATA")
@@ -1156,14 +1157,14 @@ class test_j1927(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.33])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.89])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.42])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         #############################################
         # %% Generate Images [test_j1927_mtmfs] end @
@@ -1179,7 +1180,7 @@ class test_j1927(StkUnitTest):
             # runtime with MPI -n 8
             successr, reportr = self.check_runtime(starttime, 7129)
         else:
-            successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+            successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7, reportr])
         success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
@@ -1355,73 +1356,75 @@ class test_j1927(StkUnitTest):
         # %% Compare Expected Values [test_j1927_mosaic_cube] start @
         #############################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'F_nu': 0.90649462,
-                'alpha': 0.4127,
+                'F_nu': 0.88835657,
+                'alpha': 0.41202253,
                 'runtime': 15329
             },
             '1/4': {
-                'F_nu': 0.8809638356491677,
-                'alpha': 0.2955769626453426,
+                'F_nu': 0.87965548,
+                'alpha': 0.29201263,
                 'runtime': 1022
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         # N/A: no pbcore, rms, or subim images are created for this test
 
-        # (g) Fit F_nu0 and Alpha from three cube planes and compare: 6.1.3, on-axis
-        # compare to alpha (ground truth), and 6.1.3 (fitted for spws 2, 8, 14 from mosaic gridder in CASA 6.1.3)
+        # (g) Fit F_nu0 and Alpha from three cube planes and compare: 6.2.1, on-axis
+        # compare to alpha (ground truth), and 6.2.1 (fitted for spws 2, 8, 14 from mosaic gridder in CASA 6.2.1)
         alpha = popt[0]
         f_nu0 = 10**popt[1]
         curr_stats        = np.squeeze(np.array([f_nu0,            alpha])) # [flux density, alpha]
         onaxis_stats      = np.array([           0.9509,           0.3601])
-        casa613_stats     = np.array([           stats613['F_nu'], stats613['alpha']])
+        casa621_stats     = np.array([           stats621['F_nu'], stats621['alpha']])
         success0, report0 = self.check_metrics_flux(curr_stats[0], onaxis_stats[0],  valname="Frac Diff F_nu vs. on-axis", rms_or_std=np.mean(list(rms.values())))
-        success1, report1 = self.check_metrics_flux(curr_stats[0], casa613_stats[0], valname="Frac Diff F_nu vs. 6.1.3 image", rms_or_std=np.mean(list(rms.values())))
+        success1, report1 = self.check_metrics_flux(curr_stats[0], casa621_stats[0], valname="Frac Diff F_nu vs. 6.2.1 image", rms_or_std=np.mean(list(rms.values())))
         success2, report2 = self.check_metrics_alpha_fitted(curr_stats[1], onaxis_stats[1],  valname="Abs Diff alpha vs. on-axis", pcov=pcov)
-        success3, report3 = self.check_metrics_alpha_fitted(curr_stats[1], casa613_stats[1], valname="Abs Diff alpha vs. 6.1.3 image", pcov=pcov)
+        success3, report3 = self.check_metrics_alpha_fitted(curr_stats[1], casa621_stats[1], valname="Abs Diff alpha vs. 6.2.1 image", pcov=pcov)
 
-        spwstats_613= {
+        spwstats_621= {
             'full': {
-                '0': {'freq': 2.028,
-                      'IQUV': np.array([ 0.75571942,  0.00576184,  0.00080162, -0.00630026]),
-                      'beam': np.array([  3.65375686, 3.0324676,  -22.7224865 ])},
-                '1': {'freq': 2.796,
-                      'IQUV': np.array([ 0.86450773,  0.00522543, -0.00604387, -0.00717182]),
-                      'beam': np.array([  2.66741753, 2.23318672, -26.65664101])},
-                '2': {'freq': 3.594,
-                      'IQUV': np.array([ 0.95684659, 0.00543807, -0.00958768, -0.00369545]),
-                      'beam': np.array([ 2.0738709,  1.70000803, -27.73123169])}
+                '0': { 'freq': 2.028,
+                       'IQUV': np.array([ 0.75540608, 0.00575879,  0.0007934 , -0.00628786]),
+                       'beam': np.array([ 3.65377903, 3.03121424, -22.77662277]) },
+                '1': { 'freq': 2.796,
+                       'IQUV': np.array([ 0.86449653, 0.00522652, -0.00604673, -0.00736201]),
+                       'beam': np.array([ 2.65529013, 2.2384088 , -26.70895958]) },
+                '2': { 'freq': 3.594,
+                       'IQUV': np.array([ 0.95604223, 0.00543462, -0.00965639, -0.00357582]),
+                       'beam': np.array([ 2.06172824, 1.69355631, -25.49251938]) }
             },
             '1/4': {
                 '0': { 'freq': 2.028,
-                       'IQUV': np.array([ 0.7791100144386292, 0.006753005087375641,  0.00043800054118037224, 0.005206027068197727]),
-                       'beam': np.array([ 3.659905195236206,  3.018415927886963,     -23.957826614379883]) },
+                       'IQUV': np.array([ 0.779013932, 6.74977247e-03, 4.55768779e-04, 5.20252250e-03 ]),
+                       'beam': np.array([ 3.65848589,  3.01737332,     -24.03954887 ]) },
                 '1': { 'freq': 2.796,
-                       'IQUV': np.array([ 0.876945972442627,  0.0049004945904016495, -0.005897939205169678,  0.008470434695482254]),
-                       'beam': np.array([ 2.6499712467193604, 2.2087230682373047,    -26.021034240722656]) },
+                       'IQUV': np.array([ 0.87592876,  0.00488591,     -0.00589986,    0.00847113 ]),
+                       'beam': np.array([ 2.63813567,  2.21187878,     -26.08016586 ]) },
                 '2': { 'freq': 3.594,
-                       'IQUV': np.array([ 0.9208499193191528, 0.006781525909900665,  -0.012631140649318695,  0.012594047002494335]),
-                       'beam': np.array([ 2.068054437637329,  1.6841689348220825,    -27.218856811523438]) }
+                       'IQUV': np.array([ 0.91885197,  0.00677892,     -0.01262855,    0.01252271 ]),
+                       'beam': np.array([ 2.05659461,  1.67871821,     -25.18776894 ])
+
+                }
             }
         }
 
-        spwstats_613 = spwstats_613['full'] if (not quick_test) else spwstats_613[f"1/4"]
+        spwstats_621 = spwstats_621['full'] if (not quick_test) else spwstats_621[f"1/4"]
 
         success4 = []
         report4 = []
         for spw in spws:
-            # (h) IQUV flux densities of all three spws:              6.1.3
-            successN, reportN = self.check_metrics_flux(spwstats[spw]['IQUV'], spwstats_613[spw]['IQUV'], valname=f"Stokes Comparison (spw {spw}), Frac Diff IQUV vs 6.1.3", rms_or_std=np.mean(list(rms.values())))
+            # (h) IQUV flux densities of all three spws:              6.2.1
+            successN, reportN = self.check_metrics_flux(spwstats[spw]['IQUV'], spwstats_621[spw]['IQUV'], valname=f"Stokes Comparison (spw {spw}), Frac Diff IQUV vs 6.2.1", rms_or_std=np.mean(list(rms.values())))
             success4.append(successN)
             report4.append(reportN)
             # (i) IQUV flux densities of all three spws:              on-axis measurements
             # N/A: no no-axis measurements available in VLASS_mosaic_cube_stakeholder_test_script.py
-            # (j) Beam of all three spws:                             6.1.3
-            successN, reportN = self.check_fracdiff(spwstats[spw]['beam'], spwstats_613[spw]['beam'],     valname=f"Stokes Comparison (spw {spw}), Frac Diff Maj, Min, PA vs 6.1.3")
+            # (j) Beam of all three spws:                             6.2.1
+            successN, reportN = self.check_fracdiff(spwstats[spw]['beam'], spwstats_621[spw]['beam'],     valname=f"Stokes Comparison (spw {spw}), Frac Diff Maj, Min, PA vs 6.2.1")
             success4.append(successN)
             report4.append(reportN)
 
@@ -1432,18 +1435,18 @@ class test_j1927(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.76])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.87])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
             # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.96])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         ###################################################
         # %% Generate Images [test_j1927_mosaic_cube] end @
@@ -1457,7 +1460,7 @@ class test_j1927(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         report  = "".join([report0, report1, report2, report3, *report4, reportr])
         success = success0 and success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
@@ -1553,45 +1556,45 @@ class test_j1927(StkUnitTest):
         # %% Compare Expected Values [test_j1927_ql] start @
         ####################################################
 
-        stats613 = {
+        stats621 = {
             'full': {
-                'F_nu': [0.90649462],
-                'beam': { 'min': 2.5034000873565674, 'maj': 2.0568439960479736, 'pos': -27.06390953063965 },
+                'F_nu': [0.9051663279533386],
+                'beam': { 'min': 2.45210147, 'maj': 2.07915711, 'pos': -18.88167 },
                 'runtime': 4277
             },
             '1/4': {
-                'F_nu': 0.8989461064338684,
-                'beam': { 'min': 2.487116813659668,  'maj': 2.04219126701355,   'pos': -27.007415771484375 },
+                'F_nu': 0.8975918889045715,
+                'beam': { 'min': 2.4284029,  'maj': 2.06255174, 'pos': -19.85708046 },
                 'runtime': 826
             }
         }
-        stats613 = stats613['full'] if (not quick_test) else stats613[f"1/4"]
+        stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
 
         # (l) Ensure intermediate products exist, pbcor images, RMS image (made by imdev), and cutouts (.subim) from imsubimage
         success0, report0 = self.get_imgs_exist_results()
 
-        # (a) tt0 vs 6.1.3, on-axis
+        # (a) tt0 vs 6.2.1, on-axis
         halfsize          = round(imsize / 7290 * 1860)
         box               = f"{halfsize},{halfsize},{halfsize},{halfsize}"
         imstat_vals       = imstat(imagename=img1+'.image.pbcor.tt0.subim', box=box)
         curr_stats        = np.squeeze(np.array([imstat_vals['max']]))
         onaxis_stats      = np.array([           0.9509])
-        casa613_stats     = np.array([           stats613['F_nu']])
+        casa621_stats     = np.array([           stats621['F_nu']])
         success1, report1 = self.check_metrics_flux(curr_stats, onaxis_stats,  valname="Frac Diff F_nu vs. on-axis", rms_or_std=rms)
-        success2, report2 = self.check_metrics_flux(curr_stats, casa613_stats, valname="Frac Diff F_nu vs. 6.1.3 image", rms_or_std=rms)
+        success2, report2 = self.check_metrics_flux(curr_stats, casa621_stats, valname="Frac Diff F_nu vs. 6.2.1 image", rms_or_std=rms)
 
-        # (b) tt1 vs 6.1.3, on-axis
+        # (b) tt1 vs 6.2.1, on-axis
         # no tt1 images for this test, skip
 
         # (c) alpha images
         # TODO
         # success3, report3 = ...
 
-        # (d) beamsize comparison vs 6.1.3
+        # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img1+'.image.pbcor.tt0.subim')['restoringbeam']
         beamstats_curr    = np.array([restbeam['major']['value'], restbeam['minor']['value'], restbeam['positionangle']['value']])
-        beamstats_613     = np.array([stats613['beam']['maj'],    stats613['beam']['min'],    stats613['beam']['pos']])
-        success4, report4 = self.check_fracdiff(beamstats_curr, beamstats_613, valname="Frac Diff Maj, Min, PA vs 6.1.3")
+        beamstats_621     = np.array([stats621['beam']['maj'],    stats621['beam']['min'],    stats621['beam']['pos']])
+        success4, report4 = self.check_fracdiff(beamstats_curr, beamstats_621, valname="Frac Diff Maj, Min, PA vs 6.2.1")
 
         ##################################################
         # %% Compare Expected Values [test_j1927_ql] end @
@@ -1600,10 +1603,10 @@ class test_j1927(StkUnitTest):
 
         if quick_test:
             # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
         else:
             # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
-            print("skipping image creation - casa 6.1.3 hangs with imviewer")
+            print("skipping image creation - casa 6.2.1 hangs with imviewer")
 
         ##########################################
         # %% Generate Images [test_j1927_ql] end @
@@ -1614,7 +1617,7 @@ class test_j1927(StkUnitTest):
         np.save(self.id()+'.beamstats.npy', beamstats_curr)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats613['runtime'])
+        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         report  = "".join([report0, report1, report2, report4, reportr])
         success = success1 and success2 and success4 and successr and self.th.check_final(report)
