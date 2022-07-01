@@ -358,7 +358,6 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    
 		    cfWtBuf.resize(pbshp);
 		    cfBuf.resize(pbshp);
-                    cerr << "cfBuf address " << &cfBuf << "   " << &cfWtBuf << endl;
 		    const Vector<Double> sampling_l(2,sampling);
 		    //		    Double wval = wValues[iw];
 		    Matrix<Complex> cfBufMat(cfBuf.nonDegenerate()), 

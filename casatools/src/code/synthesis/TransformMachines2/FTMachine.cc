@@ -509,7 +509,7 @@ using namespace casa::vi;
       pop_p->initCFMaps(intpolmap, polMap);
 
       
-      cerr << "initmaps polmap "<< polMap << endl;
+
 
 
       

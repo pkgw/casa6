@@ -1830,7 +1830,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     const IPosition latticeShape = weightImage.shape();
     const IPosition avgpbShape = avgPB_p->shape();
-    cout << "AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " nelems " << avgpbShape.nelements()<< "  " << sumWeight << endl;
+    //cout << "AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " nelems " << avgpbShape.nelements()<< "  " << sumWeight << endl;
      if(avgpbShape.nelements()==0 || ( avgpbShape != latticeShape) )
       avgPB_p->resize(weightImage.shape());
     
@@ -1884,7 +1884,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       LatticeIterator<Float> lix(weightImage, lsx);
       for(lix.reset();!lix.atEnd();lix++) 
         {
-              
+               
           Int iy=lix.position()(1);
           for (Int ix=0;ix<nx;ix++) {
             correction(ix)=1.0/(sincConvX(ix)*sincConvY(iy));
