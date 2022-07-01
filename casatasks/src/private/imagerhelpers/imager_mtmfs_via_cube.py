@@ -29,6 +29,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
     def __init__(self,params):
         super().__init__(params)
+        self.fresh_images = []
 
         # Update some settings:
         # - specmode to cube so that we run a cube major cycle
@@ -68,11 +69,33 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         self.cube2tt(immod, do_convert=['psf', 'sumwt'])
         return super().checkPSF(immod)
 
-    def runMinorCycle(self):
+    def get_image_name(self, immod, suffix, ttN=None):
+        decpars = self.getDecParsForImmod(immod)
+        imagename = decpars['imagename']
+        basename = f"{imagename}.{suffix}"
+
+        if ttN != None:
+            return f"{basename}.tt{ttN}"
+        return basename
+
+    def hasConverged(self):
         # create .ttN taylor term images for the mtmfs deconvolver
         for immod in range(0,self.NF):
+            # the model doesn't exist for the first iteration
+            dont_convert = []
+            if not os.path.exists(self.get_image_name(immod, 'model')):
+                dont_convert.append('model')
+
             # only need to create the psf taylor term images once (shouldn't change after checkPSF)
-            self.cube2tt(immod, dont_convert=['psf'])
+            dont_convert.append(['psf'])
+
+            self.cube2tt(immod, dont_convert=dont_convert)
+
+        return super().hasConverged()
+
+    def runMinorCycle(self):
+        # don't need to create .ttN taylor term images here, done in hasConverged()
+        pass # self.cube2tt(immod)
 
         # run the mtmfs deconvolver
         ret = super().runMinorCycle()
@@ -99,46 +122,51 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         If incompatible images already exist with the same name, replace them. """
         decpars = self.getDecParsForImmod(immod)
         nterms = decpars['nterms']
-        imagename = decpars['imagename']
 
         # determine which images are being converted
         imgs = [('residual',nterms), ('model',nterms), ('psf',nterms*2-1), ('sumwt',nterms*2-1)]
-        new_imgs = []
+        tmp_imgs = []
         for suffix, num_terms in imgs:
             if do_convert != None and suffix not in do_convert:
                 continue
             if dont_convert != None and suffix in dont_convert:
                 continue
-            new_imgs.append((suffix, num_terms))
-        imgs = new_imgs
+            tmp_imgs.append((suffix, num_terms))
+        imgs = tmp_imgs
 
         # create the .ttN images
         for suffix, num_terms in imgs:
-            basename = f"{imagename}.{suffix}"
+            basename = self.get_image_name(immod, suffix)
             for N in range(num_terms):
-                ttname = f"{imagename}.{suffix}.tt{N}"
+                ttname = self.get_image_name(immod, suffix, ttN=N)
 
                 # remove the existing image, if any
                 if os.path.exists(ttname):
+                    # only create the images once per execution
+                    if ttname in self.fresh_images:
+                        continue
                     # TODO possible optimization where all the data is set to 0 instead
                     shutil.rmtree(ttname)
 
                 # create a new, blank image based off the template baseimage
                 self.makeImage(template_img=basename, output_img=ttname)
+                self.fresh_images.append(ttname)
 
         # convert them images!
-        cubewt = f"{imagename}.sumwt"
+        cubewt = self.get_image_name(immod, "sumwt")
         if not os.path.exists(cubewt):
             cubewt = ""
         for suffix, num_terms in imgs:
-            basename = f"{imagename}.{suffix}"
+            basename = self.get_image_name(immod, suffix)
             reffreq = self.allimpars[str(immod)]['reffreq']
             dopsf = (suffix == "psf" or suffix == "sumwt")
             self.cube_to_taylor_sum(cubename=basename, cubewt=cubewt, mtname=basename, reffreq=reffreq, nterms=nterms, dopsf=dopsf)
 
         # special case: just copy pb
-        basename = f"{imagename}.pb"
-        ttname = f"{imagename}.pb.tt0"
+        basename = self.get_image_name(immod, "pb")
+        ttname = self.get_image_name(immod, "pb", ttN=0)
+        if os.path.exists(ttname):
+            shutil.rmtree(ttname)
         shutil.copytree(basename, ttname)
 
     def tt2cube(self, immod=0):
@@ -224,21 +252,17 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
           chanwt: List of 0s and 1s, one per channel, to effectively disable the effect of a channel on the resulting images.
           mtname: The prefix output name, to be concatenated with ".ttN" strings, eg "try_mt.residual", "joint.multiterm.psf"
                   These images should already exist by the time this function is called.
-                  It's suggested that this have same suffix as cubename.
+                  It's suggested that this have the same suffix as cubename.
           reffreq: reference frequency, like for tclean
           nterms: number of taylor terms to fit the spectral index to
           dopsf: Signals that cubename represents a point source function, should be true if cubename ends with ".psf".
                  If true, then output 2*nterms-1 ttN images.
         """
-
-        pix=[]
-
-        num_terms=nterms
-
         if dopsf==True:
-            num_terms=2*nterms-1
+            nterms=2*nterms-1
  
-        for tt in range(0,num_terms):
+        pix=[]
+        for tt in range(0,nterms):
             _ia.open(mtname+'.tt'+str(tt))
             pix.append( _ia.getchunk() )
             _ia.close()
@@ -253,7 +277,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         _ia.close()
 
         freqlist = self.getFreqList(cubename)
-
         if reffreq == '':
             # from task_sdintimaging.py
             reffreq =str( ( freqlist[0] + freqlist[ len(freqlist)-1 ] )/2.0 ) + 'Hz'
@@ -267,24 +290,21 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         cwt = cwt * chanwt  ## Merge the weights and flags. 
 
         sumchanwt = np.sum(cwt)  ## This is a weight
-
         if sumchanwt==0:
             raise Exception("Weights are all zero ! ")
-        else:
 
-            for i in range(len(freqlist)):
-                wt = (freqlist[i] - refnu)/refnu
-                _ia.open(cubename)
-                implane = _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
-                _ia.close()
-                for tt in range(0,num_terms):
-                    pix[tt] = pix[tt] + (wt**tt) * implane * cwt[i]
+        for i in range(len(freqlist)):
+            wt = (freqlist[i] - refnu)/refnu
+            _ia.open(cubename)
+            implane = _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
+            _ia.close()
+            for tt in range(0,nterms):
+                pix[tt] = pix[tt] + (wt**tt) * implane * cwt[i]
 
-            for tt in range(0,num_terms):
-                pix[tt] = pix[tt]/sumchanwt
-#        ia.close()
+        for tt in range(0,nterms):
+            pix[tt] = pix[tt]/sumchanwt
 
-        for tt in range(0,num_terms):
+        for tt in range(0,nterms):
             _ia.open(mtname+'.tt'+str(tt))
             _ia.putchunk(pix[tt])
             _ia.close()
@@ -308,16 +328,18 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
           reffreq: reference frequency, like for tclean
           nterms: number of taylor terms to fit the spectral index to
         """
-
         if not os.path.exists(cubename+'.model'):
             shutil.copytree(cubename+'.psf', cubename+'.model')
-            _ia.open(cubename+'.model')
-            _ia.set(0.0)
-            _ia.setrestoringbeam(remove=True)
-            _ia.setbrightnessunit('Jy/pixel')
-            _ia.close()
+        _ia.open(cubename+'.model')
+        _ia.set(0.0)
+        _ia.setrestoringbeam(remove=True)
+        _ia.setbrightnessunit('Jy/pixel')
+        _ia.close()
 
-
+        freqlist = self.getFreqList(cubename+'.psf')
+        if reffreq == '':
+            # from task_sdintimaging.py
+            reffreq =str( ( freqlist[0] + freqlist[ len(freqlist)-1 ] )/2.0 ) + 'Hz'
         refnu = _qa.convert( _qa.quantity(reffreq) ,'Hz' )['value']
 
         pix=[]
@@ -333,7 +355,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
         implane = pix[0].copy()
 
-        freqlist = self.getFreqList(cubename+'.psf')
         for i in range(len(freqlist)):
             wt = (freqlist[i] - refnu)/refnu
             implane.fill(0.0)
