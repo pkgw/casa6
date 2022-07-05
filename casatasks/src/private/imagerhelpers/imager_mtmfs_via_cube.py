@@ -100,6 +100,13 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         # convert from cube to .ttN taylor term images for the mtmfs deconvolver
         for immod in range(0,self.NF):
             # Before minorcycle : Divide out the frequency-dependent PB, multiply by a common PB.
+            inpcube = self.get_image_name(immod, "residual")
+            pbcube = self.get_image_name(immod, "pb")
+            cubewt = self.get_image_name(immod, "sumwt")
+            pblimit = self.allnormpars[str(immod)]['pblimit']
+            self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=True)
+            self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=False)
+
             suffixes = ["residual", "psf", "sumwt"]
             # TODO is the model image ever used as part of the minor cycle?
             # # the model doesn't exist for the first iteration
@@ -117,6 +124,14 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         # convert back to cube images for the cube major cycle
         for immod in range(0,self.NF):
             self.tt2cube(immod)
+
+            # After minorcycle : Divide out the common PB, Multiply by frequency-dependent PB.
+            inpcube = self.get_image_name(immod, "model")
+            pbcube = self.get_image_name(immod, "pb")
+            cubewt = self.get_image_name(immod, "sumwt")
+            pblimit = self.allnormpars[str(immod)]['pblimit']
+            self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=False)
+            self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=True)
 
         return ret
 
@@ -229,6 +244,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
         Returns:
           list[float] The frequencies for each channel in the image, in Hz.
+
+        From:
+          sdint_helper.py
         """
 
         _ia.open(imname)
@@ -270,6 +288,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
           nterms: number of taylor terms to fit the spectral index to
           dopsf: Signals that cubename represents a point source function, should be true if cubename ends with ".psf" or ".sumwt".
                  If true, then output 2*nterms-1 ttN images.
+
+        From:
+          sdint_helper.py
         """
         if dopsf==True:
             nterms=2*nterms-1
@@ -340,6 +361,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                   It's suggested that this have same suffix as cubename.
           reffreq: reference frequency, like for tclean
           nterms: number of taylor terms to fit the spectral index to
+
+        From:
+          sdint_helper.py
         """
         if not os.path.exists(cubename+'.model'):
             shutil.copytree(cubename+'.psf', cubename+'.model')
@@ -376,6 +400,145 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             _ia.open(cubename+'.model')
             _ia.putchunk(implane, blc=[0,0,0,i])
             _ia.close()
+
+################################################
+    def modify_with_pb(self, inpcube='', pbcube='',cubewt='', chanwt=None, action='mult',pblimit=0.2, freqdep=True):
+        """
+        Multiply or divide by the PB
+
+        Args:
+          inpcube: The cube to be modified. For example: "try.int.cube.model"
+          pbcube: The primary beam to multiply/divide by. For example: "try.int.cube.pb"
+          cubewt: The per-channel weight of the inpcube. For example: "try.int.cube.sumwt"
+          chanwt: List of 0s and 1s, one per channel, to effectively disable the effect of a channel on the resulting images.
+          action: 'mult' or 'div', to multiply by the PB or divide by it.
+          pblimit: For pixels less than this value in the PB, set those same pixels in the inpcube to zero.
+          freqdep: True for channel by channel, False to use a freq-independent PB from the middle of the list before/after deconvolution
+
+        From:
+          sdint_helper.py
+        """
+        casalog.post('Modify with PB : ' + action + ' with frequency dependence ' + str(freqdep), "INFO")
+
+        freqlist = self.getFreqList(inpcube)
+
+        _ia.open(inpcube)
+        shp=_ia.shape()
+        _ia.close()
+
+        ##############
+        ### Calculate a reference Primary Beam
+        ### Weighted sum of pb cube
+
+        refchan=0
+        _ia.open(pbcube)
+        pbplane = _ia.getchunk(blc=[0,0,0,refchan],trc=[shp[0],shp[1],0,refchan])
+        _ia.close()
+        pbplane.fill(0.0)
+
+        if freqdep==False:
+            _ia.open(cubewt) # .sumwt
+            cwt = _ia.getchunk()[0,0,0,:]
+            _ia.close()
+
+            if shp[3] != len(cwt) or len(freqlist) != len(cwt):
+                raise Exception("Modify with PB : Nchan shape mismatch between cube and sumwt.")
+
+            if chanwt == None:
+                chanwt = np.ones(len(freqlist), 'float')
+            cwt = cwt * chanwt  ## Merge the weights and flags
+
+            sumchanwt = np.sum(cwt)
+
+            if sumchanwt==0:
+                raise Exception("Weights are all zero ! ")
+                
+            for i in range(len(freqlist)):
+                ## Read the pb per plane
+                _ia.open(pbcube)
+                pbplane = pbplane + cwt[i] * _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
+                _ia.close()
+                
+            pbplane = pbplane / sumchanwt
+
+        ##############
+
+
+        ## Special-case for setting the PBmask to be same for all freqs
+        if freqdep==False:
+            shutil.copytree(pbcube, pbcube+'_tmpcopy')
+
+        for i in range(len(freqlist)):
+
+            ## Read the pb per plane
+            if freqdep==True:
+                _ia.open(pbcube)
+                pbplane = _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
+                _ia.close()
+
+            ## Make a tmp pbcube with the same pb in all planes. This is for the mask.
+            if freqdep==False:
+                _ia.open(pbcube+'_tmpcopy')
+                _ia.putchunk(pbplane, blc=[0,0,0,i])
+                _ia.close()
+
+            _ia.open(inpcube)
+            implane = _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
+
+            outplane = pbplane.copy()
+            outplane.fill(0.0)
+
+            if action=='mult':
+                pbplane[pbplane<pblimit]=0.0
+                outplane = implane * pbplane
+            else:
+                implane[pbplane<pblimit]=0.0
+                pbplane[pbplane<pblimit]=1.0
+                outplane = implane / pbplane
+
+            _ia.putchunk(outplane, blc=[0,0,0,i])
+            _ia.close()
+
+        # if freqdep==True:
+        #     ## Set a mask based on frequency-dependent PB
+        #     self.addmask(inpcube,pbcube,pblimit)
+        # else:
+        if freqdep==False:
+            ## Set a mask based on the PB in refchan
+            self.addmask(inpcube,pbcube+'_tmpcopy',pblimit)
+            shutil.rmtree(pbcube+'_tmpcopy')
+
+################################################
+    def addmask(self, inpimage='',pbimage='',pblimit=0.2):
+        """ Create a new mask called 'pbmask' and set it as a defualt mask.
+
+        Replaces the existing mask with a new mask based on the values in the pbimage
+        and pblimit. The new mask name is either 'pbmask' or the name of the existing
+        default mask.
+
+        Args:
+          inpimage: image to replace the mask on
+          pbimage: image used to calculate the mask values, example "try.pb"
+          pblimit: values greater than this in pbimage will be included in the mask
+
+        From:
+          sdint_helper.py
+        """
+        _ia.open(inpimage)
+        defaultmaskname=_ia.maskhandler('default')[0]
+        allmasknames = _ia.maskhandler('get')
+        
+        # casalog.post("defaultmaskname=",defaultmaskname)
+        if defaultmaskname!='' and defaultmaskname!='mask0':
+            _ia.calcmask(mask='"'+pbimage+'"'+'>'+str(pblimit), name=defaultmaskname);
+
+        elif defaultmaskname=='mask0':
+            if 'pbmask' in allmasknames:
+                _ia.maskhandler('delete','pbmask')
+            _ia.calcmask(mask='"'+pbimage+'"'+'>'+str(pblimit), name='pbmask');
+
+        _ia.close()
+        _ia.done() 
 
 #############################################
 #############################################
