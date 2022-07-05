@@ -27,9 +27,10 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     to taylor term ".ttN" images, then do the minor cycle, then convert back to cubes.
     """
 
-    def __init__(self,params):
+    def __init__(self, params):
         super().__init__(params)
-        self.fresh_images = []
+        if self.allimpars['0']['specmode'] != 'mtmfs_via_cube':
+            raise RuntimeError(f"Can't use specmode {self.allimpars['0']['specmode']} with imager helper {self.__class__.__name__}!")
 
         # Update some settings:
         # - specmode to cube so that we run a cube major cycle
@@ -42,6 +43,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         for k in self.allnormpars:
             self.allnormpars[k]['deconvolver'] = 'hogbom'
 
+        self.fresh_images = []
         self.verifyDecPars()
 
 #############################################
@@ -66,7 +68,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 #############################################
     
     def checkPSF(self, immod):
-        self.cube2tt(immod, do_convert=['psf', 'sumwt'])
+        self.cube2tt(immod, suffixes=['psf', 'sumwt'])
         return super().checkPSF(immod)
 
     def get_image_name(self, immod, suffix, ttN=None):
@@ -81,21 +83,33 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     def hasConverged(self):
         # create .ttN taylor term images for the mtmfs deconvolver
         for immod in range(0,self.NF):
-            # the model doesn't exist for the first iteration
-            dont_convert = []
-            if not os.path.exists(self.get_image_name(immod, 'model')):
-                dont_convert.append('model')
+            suffixes = ["residual", "psf", "sumwt"]
+            # TODO is the model image ever used as part of hasConverged?
+            # # the model doesn't exist for the first iteration
+            # if not os.path.exists(self.get_image_name(immod, 'model')):
+            #     suffixes.remove('model')
 
             # only need to create the psf taylor term images once (shouldn't change after checkPSF)
-            dont_convert.append(['psf'])
+            suffixes.remove('psf')
 
-            self.cube2tt(immod, dont_convert=dont_convert)
+            self.cube2tt(immod, suffixes=suffixes)
 
         return super().hasConverged()
 
     def runMinorCycle(self):
-        # don't need to create .ttN taylor term images here, done in hasConverged()
-        pass # self.cube2tt(immod)
+        # convert from cube to .ttN taylor term images for the mtmfs deconvolver
+        for immod in range(0,self.NF):
+            # Before minorcycle : Divide out the frequency-dependent PB, multiply by a common PB.
+            suffixes = ["residual", "psf", "sumwt"]
+            # TODO is the model image ever used as part of the minor cycle?
+            # # the model doesn't exist for the first iteration
+            # if not os.path.exists(self.get_image_name(immod, 'model')):
+            #     suffixes.remove('model')
+
+            # only need to create the psf taylor term images once (shouldn't change after checkPSF)
+            suffixes.remove('psf')
+
+            self.cube2tt(immod, suffixes=suffixes)
 
         # run the mtmfs deconvolver
         ret = super().runMinorCycle()
@@ -106,13 +120,12 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
         return ret
 
-    def cube2tt(self, immod=0, do_convert=None, dont_convert=None):
+    def cube2tt(self, immod=0, suffixes=None):
         """ Creates the necessary taylor term images.
 
         Args:
           immod: which image facet/outlier field to convert
-          do_convert: whitelist of image suffixes to convert
-          dont_convert: blacklist of image suffixes to not convert
+          suffixes: list of images to convert, can include any of ["residual", "psf", "sumwt"]
 
         Outputs:
         pb.tt0
@@ -120,16 +133,16 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         psf.tt0..psf.tt(2*N-2)
 
         If incompatible images already exist with the same name, replace them. """
+        if suffixes == None:
+            suffixes = ["residual", "psf", "sumwt"]
         decpars = self.getDecParsForImmod(immod)
         nterms = decpars['nterms']
 
         # determine which images are being converted
-        imgs = [('residual',nterms), ('model',nterms), ('psf',nterms*2-1), ('sumwt',nterms*2-1)]
+        imgs = [('residual',nterms), ('psf',nterms*2-1), ('sumwt',nterms*2-1)] #, ('model',nterms)]
         tmp_imgs = []
         for suffix, num_terms in imgs:
-            if do_convert != None and suffix not in do_convert:
-                continue
-            if dont_convert != None and suffix in dont_convert:
+            if suffix not in suffixes:
                 continue
             tmp_imgs.append((suffix, num_terms))
         imgs = tmp_imgs
@@ -255,7 +268,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                   It's suggested that this have the same suffix as cubename.
           reffreq: reference frequency, like for tclean
           nterms: number of taylor terms to fit the spectral index to
-          dopsf: Signals that cubename represents a point source function, should be true if cubename ends with ".psf".
+          dopsf: Signals that cubename represents a point source function, should be true if cubename ends with ".psf" or ".sumwt".
                  If true, then output 2*nterms-1 ttN images.
         """
         if dopsf==True:

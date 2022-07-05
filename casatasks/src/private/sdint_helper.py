@@ -206,8 +206,14 @@ class SDINT_helper:
         """
         Multiply or divide by the PB
 
-        freqdep = True :  Channel by channel
-        freqdep = False : Before/After deconvolution, use a freq-independent PB from the middle of the list
+        Args:
+          inpcube: The cube to be modified. For example: "try.int.cube.model"
+          pbcube: The primary beam to multiply/divide by. For example: "try.int.cube.pb"
+          cubewt: The per-channel weight of the inpcube. For example: "try.int.cube.sumwt"
+          chanwt: List of 0s and 1s, one per channel, to effectively disable the effect of a channel on the resulting images.
+          action: 'mult' or 'div', to multiply by the PB or divide by it.
+          pblimit: For pixels less than this value in the PB, set those same pixels in the inpcube to zero.
+          freqdep: True for channel by channel, False to use a freq-independent PB from the middle of the list before/after deconvolution
         """
         casalog.post('Modify with PB : ' + action + ' with frequency dependence ' + str(freqdep))
 
@@ -232,7 +238,7 @@ class SDINT_helper:
 #        pbplane = np.zeros( (shp[0],shp[1]), 'float')
 
         if freqdep==False:
-            _ia.open(cubewt)
+            _ia.open(cubewt) # .sumwt
             cwt = _ia.getchunk()[0,0,0,:]
             _ia.close()
 

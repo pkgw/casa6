@@ -2743,7 +2743,7 @@ class test_cube(testref_base):
      def test_cube_mtmfs(self):
           """ [onefield] Test_Onefield_mtmfs : mt-mfs with minor cycle iterations """
           self.prepData('refim_point.ms')
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10000,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10000,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
           casalog.post(ret, "SEVERE")
           maj_outputs = [self.img+'.psf',
                          self.img+'.residual',
