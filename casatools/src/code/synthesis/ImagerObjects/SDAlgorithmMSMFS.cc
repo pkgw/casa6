@@ -170,6 +170,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     	itsMTCleaner.setmodel( tix, tempMat2 );
     	//	itsMTCleaner.setmodel( tix, itsMatModels[tix] );
     }
+
   }
 
   Long SDAlgorithmMSMFS::estimateRAM(const vector<int>& imsize){
@@ -224,9 +225,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //peakresidual = itsPeakResidual;
 
     peakresidual = itsMTCleaner.getpeakresidual();
+    cout << "Peak res from matR : " << peakresidual << endl;
 
+
+    // Retrieve residual to be saved to the .residual file in finalizeDeconvolver
+    for(uInt tix=0; tix<itsNTerms; tix++)
+    {
+      casacore::Matrix<Float> tmp;
+      itsMTCleaner.getresidual(tix, tmp); // possible room for optimization here -> get residual without extra tmp copy? maybe change getResidual to accept an array?
+      itsMatResiduals[tix] = tmp;
+    }
+
+    peakresidual = max(abs(itsMatResiduals[0]*itsMatMask));
+    cout << "Peak res from new math : " << peakresidual << endl;
     modelflux = sum( itsMatModels[0] ); // Performance hog ?
-  }
+
+  }	    
 
   void SDAlgorithmMSMFS::finalizeDeconvolver()
   {
