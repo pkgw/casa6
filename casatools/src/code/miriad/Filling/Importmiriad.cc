@@ -43,8 +43,8 @@
 
 #include <casacore/ms/MeasurementSets.h> 
 
-#include <mirlib/maxdimc.h>
-#include <mirlib/miriad.h>
+#include <casacore/mirlib/maxdimc.h>
+#include <casacore/mirlib/miriad.h>
 #include <sstream>
 
 using namespace casa;
