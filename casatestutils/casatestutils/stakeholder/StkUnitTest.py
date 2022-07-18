@@ -13,6 +13,13 @@ from casatasks import casalog, tclean
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatestutils.imagerhelpers import TestHelpers
 
+cache_partial_results = False if ('CACHE_PARTIAL_RESULTS' not in os.environ) else os.environ['CACHE_PARTIAL_RESULTS']
+cache_partial_results = True if str(cache_partial_results).lower() in ['1', 'true'] else False
+enforce_runtime = False if ('ENFORCE_RUNTIME' not in os.environ) else os.environ['ENFORCE_RUNTIME']
+enforce_runtime = True if str(enforce_runtime).lower() in ['1', 'true'] else False
+use_partial_results = False if ('USE_PARTIAL_RESULTS' not in os.environ) else os.environ['USE_PARTIAL_RESULTS']
+use_partial_results = True if str(use_partial_results).lower() in ['1', 'true'] else False
+
 class StkUnitTest(unittest.TestCase):
     """ Adds some stakeholder test specific extensions to the general unit test class """
     
@@ -29,7 +36,7 @@ class StkUnitTest(unittest.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        if os.getenv("CACHE_PARTIAL_RESULTS") != "true":
+        if not cache_partial_results:
             self.delData()
 
     def delData(self):
@@ -73,7 +80,7 @@ class StkUnitTest(unittest.TestCase):
         """
         self.vis = msname
 
-        if os.getenv("USE_PARTIAL_RESULTS") != "true":
+        if not use_partial_results:
             # clean run
             data_path_dir = ctsys.resolve(data_path_dir)
             mssrc = os.path.join(data_path_dir, self.vis)
@@ -92,9 +99,9 @@ class StkUnitTest(unittest.TestCase):
             fromdir = join( dirname(dirname(os.getcwd())), "partial_results" )
             skipfiles = ["__pycache__"]
             files = list(filter(lambda x: x not in skipfiles, os.listdir(fromdir)))
-            casalog.post(f"Restorting partial results [{len(files)}]", "INFO")
+            casalog.post(f"Restorting partial results [{len(files)}]", "SEVERE")
             for i in range(len(files)):
-                casalog.post(f"{i}: {files[i]}", "INFO")
+                casalog.post(f"{i}: {files[i]}", "SEVERE")
                 self._copy_file_or_dir(join(fromdir, files[i]), files[i])
 
     def check_img_exists(self, img):
@@ -349,14 +356,30 @@ class StkUnitTest(unittest.TestCase):
 
         Probably only valid when running on the same hardware as was used to measure the previous runtime.
 
+        Prints out the success of the the comparison. We print this here because
+        it is easier to read this way than in an assert statement.
+
         Returns:
           (success bool, report string)
         """
         endtime         = datetime.now()
         runtime         = (endtime-starttime).total_seconds()
-        success, report = self.th.check_val(runtime, exp_runtime, valname="runtime", exact=False, epsilon=0.1, testname=self._testMethodName)
-        if not success:
-            casalog.post(report, "WARN") # easier to read this way than in an assert statement
+
+        if runtime >= exp_runtime and enforce_runtime:
+            # a longer runtime might not be ok
+            success, report = self.th.check_val(runtime, exp_runtime, valname="runtime", exact=False, epsilon=0.1, testname=self._testMethodName)
+            if not success:
+                casalog.post(report, "WARN")
+        else:
+            # a shorter runtime is fine
+            # still warn us if it is too short, so that we adjust our expectations accordingling
+            is_reasonable, ir_report = self.th.check_val(runtime, exp_runtime, valname="runtime", exact=False, epsilon=0.1, testname=self._testMethodName)
+            if not is_reasonable:
+                casalog.post(ir_report, "WARN")
+
+            # but basically, as long as the runtime isn't < 0, we're good
+            success, report = self.th.check_val(runtime, exp_runtime, valname="runtime", exact=False, epsilon=1, testname=self._testMethodName)
+        
         return success, report
 
     def get_params_as_dict(self, **wargs):
@@ -424,7 +447,7 @@ class StkUnitTest(unittest.TestCase):
             if not os.path.exists(wargs['mask']):
                 raise RuntimeError(f"Error: trying to run tclean with nonexistant mask {wargs['mask']}")
         try:
-            if os.getenv("USE_PARTIAL_RESULTS") != "true":
+            if not use_partial_results:
                 return tclean(**wargs)
                 pass
         except:
