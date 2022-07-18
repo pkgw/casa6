@@ -267,6 +267,7 @@ Bool MultiTermMatrixCleaner::setmodel(int order, Matrix<Float> & model)
 {
 	AlwaysAssert((order>=(int)0 && order<(int)vecModel_p.nelements()), AipsError);
 	vecModel_p[order].assign(model);
+	vecInitialModel_p[order].assign(model);
 	totalTaylorFlux_p[order] = (sum(vecModel_p[order]));
   return true;
 }
@@ -475,9 +476,11 @@ Int MultiTermMatrixCleaner::mtclean(Int maxniter, Float stopfraction, Float inpu
     {
       for(Int taylor2=0;taylor2<ntaylor_p;taylor2++)
 	{
+	  Matrix<Float>newModel;
+	  newModel = vecModel_p[taylor2] - vecInitialModel_p[taylor2];
 	  // Convolve model with psf
 	  Matrix<Complex> modelFT;  
-	  fftcomplex.fft0(modelFT, vecModel_p[taylor2], false);
+	  fftcomplex.fft0(modelFT, newModel, false);
 	  modelFT= ( vecPsfFT_p[taylor1+taylor2]  ) * modelFT;
 	  Matrix<Float> smoothMod(vecDirty_p[taylor1].shape());
 	  fftcomplex.fft0(smoothMod, modelFT, false);
@@ -633,10 +636,12 @@ Int MultiTermMatrixCleaner::allocateMemory()
 	// Dirty/Residual Images
 	vecDirty_p.resize(ntaylor_p);
 	vecModel_p.resize(ntaylor_p);
+	vecInitialModel_p.resize(ntaylor_p);
 	for(Int i=0;i<ntaylor_p;i++) 
 	{
 	  vecDirty_p[i].resize();
 	  vecModel_p[i].resize(gip);
+	  vecInitialModel_p[i].resize(gip);
 	}
 	
 	// (Psf * Scales) * (Psf * Scales)
