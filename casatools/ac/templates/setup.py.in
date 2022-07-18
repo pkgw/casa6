@@ -2534,7 +2534,7 @@ class create_makefile_ia(Command):
         write_makefile_begin(my_targets, "ia")
         casacore_filters = ["derivedmscal", "ms", "msfits"]
         casacode_filters = [
-            "asdmstman", "alma", "atca", "calanalysis", "casa_sakura", "casadbus", "flagging", "graphics", "mstransform", "msvis", "nrao",
+            "asdmstman", "alma", "atca", "calanalysis", "casa_sakura", "casadbus", "flagging", "graphics", "miriad", "mstransform", "msvis", "nrao",
             "parallel", "singledish", "singledishfiller", "spectrallines", "synthesis"
         ]
         additional_subdir_filters = casacore_filters + casacode_filters
