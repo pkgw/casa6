@@ -537,6 +537,7 @@ def generate_pyinit(moduledir,tools):
                user_nogui = config.nogui
                user_agg = config.agg
                user_pipeline = config.pipeline
+               user_cachedir = __os.path.abspath(__os.path.expanduser(config.cachedir))
 
                user_measurespath = config.measurespath
                if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_measurespath))):
@@ -544,7 +545,7 @@ def generate_pyinit(moduledir,tools):
                    __os.makedirs(user_measurespath)
 
                ctsys = __utils()
-               ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui, user_agg, user_pipeline )
+               ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui, user_agg, user_pipeline, user_cachedir )
 
                logger = logsink(config.logfile) if (hasattr(config,'logfile') and config.logfile is not None) else None
 

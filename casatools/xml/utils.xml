@@ -268,6 +268,12 @@ returns true if initalization was performed; returns false if initialization was
   </param>
 </input>
 
+<input>
+  <param name="cachedir" type="string">
+    <description>the cachedir used in configuration at startup</description>
+  </param>
+</input>
+
 <returns type="bool"/>
 </method>
 
@@ -414,6 +420,16 @@ elements of the data path.
   </description>
 
   <returns type="bool"/>
+</method>
+
+<method name="getcachedir" type="function">
+  <shortdescription>gets the cachedir config value</shortdescription>
+
+  <description>
+    Returns the value of the cachedir parameter used at startup.
+  </description>
+
+  <returns type="string"/>
 </method>
 
 

@@ -437,7 +437,8 @@ bool utils::initialize( const std::string &pypath,
                         const std::vector<std::string> &default_path,
                         bool nogui,
                         bool agg,
-                        bool pipeline) {
+                        bool pipeline,
+			const std::string &cache_dir) {
 #else
 // CASA 5
 bool utils::initialize(const std::vector<std::string> &default_path) {
@@ -446,6 +447,7 @@ bool utils::initialize(const std::vector<std::string> &default_path) {
     bool nogui=false;
     bool agg=false;
     bool pipeline=false;
+    std::string cache_dir;
 #endif
     static bool initialized = false;
     if ( initialized ) return false;
@@ -457,6 +459,7 @@ bool utils::initialize(const std::vector<std::string> &default_path) {
     casatools::get_state( ).setNoGui(nogui);
     casatools::get_state( ).setAgg(agg);
     casatools::get_state( ).setPipeline(pipeline);
+    casatools::get_state( ).setCachedir(cache_dir);
     // configure quanta/measures customizations...
     UnitMap::putUser( "pix", UnitVal(1.0), "pixel units" );
 
@@ -643,6 +646,9 @@ bool utils::getagg( ) {
 bool utils::getpipeline( ) {
     return casatools::get_state( ).pipeline( );
 }
+std::string utils::getcachedir( ) {
+    return casatools::get_state( ).cachedir( );
+}   
 #endif
 
 } // casac namespace
