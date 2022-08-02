@@ -28,7 +28,7 @@
 
 #include <casa/aips.h>
 #include <casa/Arrays/Vector.h>
-#include <casa/Arrays/ArrayIO.h>
+#include <casacore/casa/IO/ArrayIO.h>
 #include <casa/Exceptions/Error.h>
 #include <measures/Measures/MDirection.h>
 #include <measures/Measures/MFrequency.h>
@@ -41,6 +41,9 @@
 #include <casa/iostream.h>
 
 #include <casa/namespace.h>
+
+using namespace casa;
+
 void printComponent(const SkyCompBase & comp);
 
 int main() {

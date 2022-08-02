@@ -88,6 +88,7 @@ casa_qt4_wrap_ui( outfiles_ui
 casa_qt4_add_resources( outfiles_qrc Gui/PlotMSPlotter.qrc OPTIONS -name Gui )
 casa_qt4_add_resources( outfiles_qrc GuiTabs/GuiTabs.qrc OPTIONS -name GuiTabs )
 
+include_directories( ${CMAKE_CURRENT_BINARY_DIR}/../casaqt ) # for generated code
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/Gui ) 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GuiTabs ) 
 # because the generated code contain relative paths to the source tree
@@ -153,6 +154,7 @@ casa_add_library( plotms
   Data/PlotMSAtm.cc
   Data/PlotMSIndexer.cc
   Data/PlotMSVBAverager.cc
+  Data/PlotMSCTAverager.cc
   Gui/PlotMSAnnotator.cc
   Gui/PlotMSAveragingWidget.cc
   Gui/PlotMSAxisWidget.cc
@@ -220,6 +222,7 @@ INSTALL (FILES
 INSTALL (FILES
         Data/PlotMSIndexer.h
         Data/PlotMSVBAverager.h
+		Data/PlotMSCTAverager.h
         Data/PageHeaderCache.h
 	DESTINATION include/casacode/plotms/Data )
 

@@ -1,6 +1,6 @@
 
 ## CASAtools
-
+ 
 If you are looking for the place to check out [CASA](http://casa.nrao.edu/) with [Git](https://en.wikipedia.org/wiki/Git), this is not the right place. The repository to check out [CASA](http://casa.nrao.edu/) can be found [here](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa/browse). At some point in the future, this may form the underlying kernel for a future version of [CASA](http://casa.nrao.edu/), but at this point, this package is still in gestation.
 
 CASAtools is a self-contained python module that provides the tools from the [CASA](http://casa.nrao.edu/) project. This module only contains the non-GUI tools which are the [SWIG](http://swig.org) bound C++ functionality from CASA.
@@ -72,7 +72,6 @@ With the CASA build environment set up, the CASAtools module can be built like:
 Linux:
 ```
 -bash-4.2$ cd casa6/casatools
--bash-4.2$ scripts/gcw-pick 
 -bash-4.2$ autoconf
 -bash-4.2$ ./configure
 -bash-4.2$ ./setup.py build
@@ -81,10 +80,8 @@ Linux:
 Macos
 ```
 cd casa6/casatools
-scripts/gcw-pick && autoconf && CC=/usr/bin/cc CXX=/usr/bin/c++ ./configure && ./setup.py build
+autoconf && CC=/usr/bin/cc CXX=/usr/bin/c++ ./configure && ./setup.py build
 ```
-
-The `gcw-pick` script adjusts the standard CASA source tree for building with `setup.py`, and once CASAtools is integrated with CASA this step will not be necessary. `gcw-pick` may run for quite a while...
 
 A particular version of Python can be selected at configure time like:
 ```
@@ -97,7 +94,6 @@ but as noted above, [CASAtasks](https://open-bitbucket.nrao.edu/projects/CASA/re
 On Linux, one can alternately use **make**, which supports incremental and parallel builds that are useful for development. In this case, the steps are
 ```
 -bash-4.2$ cd casatools
--bash-4.2$ scripts/gcw-pick
 -bash-4.2$ autoconf
 -bash-4.2$ ./configure
 -bash-4.2$ ./setup.py genmake
@@ -109,7 +105,7 @@ A non-exhaustive list of when **./setup.py genmake** followed by **make** will n
 * modification of cerberus files. These are copied by **./setup.py genmake**; **make** does not deal with them
 * changes in tool dependencies when modifying *&lt;tool&gt;.xml* files. If one does not change tool dependencies when modifying *&lt;tool&gt;.xml* files, they need only rerun **make**. However, if a new tool dependency is introduced or an existing dependency removed (eg via a function return value), one will have to start by rerunning **./setup.py genmake** so the new dependency can propagate to the the *makefile*.
 
-The **debug** parameter of **make** is optional. If provided, the resulting build is configured to use the -g option when compiling C and C++ code. Otherwise, the build is configured to be optimized using the -O2 option when compiling C and C++ files. The **make** command optionally takes the **-j** option with the number of parallel threads to use while building which can significantly improve build times on multi-core machines, eg
+The **debug** parameter of **make** is optional. If provided, the resulting build is configured to use the -g option when compiling C and C++ code. Otherwise, the build is configured to be optimized using the -O2 option when compiling C and C++ files. The **make** command optionally takes the **-j** option with the number of parallel threads to use while building which can significantly improve build times on multi-core machines, e.g.:
 ```
 -bash-4.2$ make -j8
 ```
@@ -132,32 +128,42 @@ True
 >>>
 -bash-4.2$
 ```
-CASAtools can be configured using *~/.casa/toolrc.py*. For example, extra data search paths can be added like:
+CASAtools can be configured using *~/.casa/config.py*. For example, extra data search paths can be added like:
 ```
--bash-4.2$ cat ~/.casa/toolrc.py
+-bash-4.2$ cat ~/.casa/config.py
 datapath=[ "~/develop/casa/data/unittests" ]
 -bash-4.2$
 ```
 
 #### Run Available Tests
 
-A number of tests have been brought into CASAtools from CASA. Like the rest of CASAtools, the testing infrastructure is still in the process of being refined (and in need of some refactoring). However, with the proper setup it works for *some of the people, some of the time*. To run the tests, you need to check out the subset of the CASA data repository needed for CASAtools unit tests. This data repository will use about **14GB** of space. You can check out the necessary data repository like:
+A number of tests have been brought into CASAtools from CASA. To run the tests, you need to check out the CASA test data repository needed for CASAtools unit tests. The full data repository will use about **100GB** of space. You can check out the full data repository in the following way. Note that the ```--depth 1``` will avoid downloading the past history of the repository and save a few Gbytes of space:
+
 ```
--bash-4.2$ git clone --no-checkout https://open-bitbucket.nrao.edu/scm/casa/casa-data.git unittests
--bash-4.2$ cd unittests
--bash-4.2$ git show HEAD:casatools-unittests | bash
+-bash-4.2$ git clone --depth 1 https://open-bitbucket.nrao.edu/scm/casa/casatestdata.git
 ```
+
 After the checkout is complete, you must update your CASAtools RC file to indicate where the unit test data can be found. In my case it looks like:
+
 ```
--bash-4.2$ cat ~/.casa/toolrc.py
-datapath=[ "~/develop/casa/data/unittests" ]
+-bash-4.2$ cat ~/.casa/config.py
+datapath=[ "~/develop/casa/casatestdata/" ]
 -bash-4.2$
 ```
-The `datapath` list specifies directories where CASAtools should look for data files, and should include the directory we just checked out. After all of this is set, the full suite of tests can be run with:
+
+The `datapath` list specifies directories where CASAtools should look for data files, and should include the directory we just checked out. 
+
+A few of the casatools tests use the casatestutils module. That is built independently from casatools. 
+The path to a casatestutils build can be provided via PYTHONPATH prior to running the full suite of tests.
+
+After all of this is set, the full suite of tests can be run with:
 ```
--bash-4.2$ ./setup.py test
+-bash-4.2$ PYTHONPATH=../casatestutils/build/lib ./setup.py test
 ```
-There are bout 48 tests in total. Running all of them takes about 12 minutes on my laptop.
+There are about 28 tests in total. Running all of them takes about 48 minutes. 
+The test results can be found in subdirectory of the casatools/build directory (e.g. 
+casatools/build/testing.linux-x86_64-3.6). A separate directory is use for each tool 
+test script.
 
 *To run a single set of test*, you can just execute the test file:
 ```
@@ -172,14 +178,6 @@ it on the command line like:
 ```
 Here, ```test_constructor``` is one test within the ```coordsys_test``` *TestCase* specified in ```test_coordsys.py```.
 
-#### Notes
-
-If some time has passed since the last build, you should (sometimes) remove *xml-casa-assembly-1.47.jar*, e.g.
-```
--bash-4.2$ rm ./scripts/java/xml-casa-assembly-1.47.jar
--bash-4.2$ scripts/gcw-pick
-```
-before rebuilding because this [JAR](https://en.wikipedia.org/wiki/JAR_(file_format)) file is automatically fetched from a download site by *gcw-pick*. However, it is not fetched if it already exists. Deleting the current copy will result in a new copy being fetched which *may* be newer.
 
 ## Available Tools
 
@@ -208,12 +206,14 @@ before rebuilding because this [JAR](https://en.wikipedia.org/wiki/JAR_(file_for
 | regionmanager        | Create and manipulate regions of interest                       |
 | sakura               | New single dish tool interface using sakura                     |
 | sdm                  | Manipulate or examine SDM datasets                              |
+| sidebandseparator    | Tool for sideband separation                                    |
 | simulator            | Tool for simulation                                             |
 | singledishms         | New single dish tool interface to process an MS                 |
 | spectralline         | spectral line tool                                              |
 | synthesisdeconvolver | tool for synthesis imaging                                      |
 | synthesisimager      | tool for synthesis imaging                                      |
 | synthesisimstore     | tool for synthesis imaging                                      |
+| synthesismaskhandler | tool for mask handling in sysnthesis imaging                    |
 | synthesisnormalizer  | tool for synthesis imaging                                      |
 | synthesisutils       | tool for synthesis imaging                                      |
 | table                | Access tables from casapy                                       |
@@ -223,11 +223,11 @@ before rebuilding because this [JAR](https://en.wikipedia.org/wiki/JAR_(file_for
 
 ## Tool Initialization
 
-The user initalization and customization file for the CASAtools module is `~/.casa/toolrc.py`. If this file does not exist, then an attempt is mad to import the RC values from casatoolrc (i.e. `from casatoolrc import *`). If the `casatoolrc` module does not exist in `PYTHONPATH`, then the default values for all initialization state is used.
+The user initalization and customization file for the CASAtools module is `~/.casa/config.py`. If this file does not exist, then an attempt is mad to import the RC values from casaconfig (i.e. `from casatoolrc import *`). If the `casatoolrc` module does not exist in `PYTHONPATH`, then the default values for all initialization state is used.
 
 ## Changes from Standard CASA
 
-While the goal was to simply reconstitute the [CASA tools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa/browse/gcwrap/tools) within a unencumbered python module, deviations were required as work progressed. These deviations are divided into categories based upon whether the change relates to the way the tools behave or the way the XML files are structured. The *gcw-pick* script includes an automatic XML update function which is able to make some of the more basic changes to the XML code automatically as the XML files are pulled from the *casa-source/gcwrap* tree into CASAtools.
+While the goal was to simply reconstitute the [CASA tools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa/browse/gcwrap/tools) within a unencumbered python module, deviations were required as work progressed. These deviations are divided into categories based upon whether the change relates to the way the tools behave or the way the XML files are structured. 
 
 ### Changes to Behavior
 
@@ -238,9 +238,9 @@ While the goal was to simply reconstitute the [CASA tools](https://open-bitbucke
     In [1]: from casatools import ctsys
     ```
 
-3. __ctsys.resolve( )__ --- a new member function was added to resolve the path to an data file based upon **CASADATA** path (as is done for `<type mustexist="true">path</type>`)
+3. __ctsys.resolve( )__ --- a new member function was added to resolve the path to a data file based upon **CASADATA** path (as is done for `<type mustexist="true">path</type>`)
 
-3. __rc file__ --- the rc file, which is evaluated at startup to configure CASAtools, is `~/.casa/toolrc.py`; if this file is not found, then an attempt is mad to import the RC values from casatoolrc (i.e. `from casatoolrc import *`)
+3. __rc file__ --- the rc file, which is evaluated at startup to configure CASAtools, is `~/.casa/config.py`; if this file is not found, then an attempt is mad to import the RC values from casatoolrc (i.e. `from casatoolrc import *`)
 
 ### Xml Changes
 
@@ -260,6 +260,9 @@ While the goal was to simply reconstitute the [CASA tools](https://open-bitbucke
     * **`<value><value>0.0</value></value>`** --- vector with one element initialized as specified, more internal *`<value>`* elements can be used to increase the default size of the vector
 
    It is not possible to automatically adjust these because with the old XML translation `<value/>` will sometimes result in a one element vector and other times a zero element vector.
+
+6. __Array Value Types__ --- There are now two Array types `<type>Array` and `<type>Vec`, e.g. `doubleArray` and `doubleVec`. Vec implies a one dimensional value, e.g. Python list, a one dimensonal numpy array, whereas Array implies potentially an N dimensional numpy array.
+
 
 ## XML
 

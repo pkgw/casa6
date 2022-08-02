@@ -19,10 +19,13 @@
 #
 
 
+
+
 BISON_TARGET (CalLibraryGram CalLibrary/CalLibraryGram.yy ${CMAKE_CURRENT_BINARY_DIR}/CalLibraryGram.ycc COMPILE_FLAGS "-y -p CalLibraryGram --output-file=CalLibraryGram.ycc")
 FLEX_TARGET (CalLibraryGram CalLibrary/CalLibraryGram.ll ${CMAKE_CURRENT_BINARY_DIR}/CalLibraryGram.lcc COMPILE_FLAGS "-PCalLibraryGram")
 
-include_directories (${CMAKE_CURRENT_BINARY_DIR})
+include_directories (${CMAKE_CURRENT_BINARY_DIR}
+                     "/usr/include/eigen3")
 
 casa_add_library( synthesis
  TransformMachines2/Utils.cc
@@ -30,14 +33,14 @@ casa_add_library( synthesis
   TransformMachines2/BriggsCubeWeightor.cc
   TransformMachines2/ComponentFTMachine.cc
  TransformMachines2/VLAIlluminationConvFunc.cc
-  TransformMachines2/GridFT.cc	
+  TransformMachines2/GridFT.cc
   TransformMachines2/HetArrayConvFunc.cc
   TransformMachines2/FTMachine.cc
   TransformMachines2/MosaicFT.cc
   TransformMachines2/MosaicFTNew.cc
   TransformMachines2/MultiTermFTNew.cc
   TransformMachines2/SetJyGridFT.cc
-  TransformMachines2/SimplePBConvFunc.cc	
+  TransformMachines2/SimplePBConvFunc.cc
   TransformMachines2/SimpleComponentFTMachine.cc
   TransformMachines2/SkyJones.cc
   TransformMachines2/VisModelData.cc
@@ -67,6 +70,7 @@ casa_add_library( synthesis
   TransformMachines2/PolOuterProduct.cc
   TransformMachines2/AWVisResampler.cc
   TransformMachines2/VB2CFBMap.cc
+  TransformMachines2/BaselineType.cc
  TransformMachines2/VisibilityResamplerBase.cc
  TransformMachines2/VisibilityResampler.cc
   TransformMachines2/SDGrid.cc
@@ -99,9 +103,9 @@ casa_add_library( synthesis
   TransformMachines/HetArrayConvFunc.cc
   TransformMachines/MosaicFT.cc
   TransformMachines/MosaicFTNew.cc
-  TransformMachines/MultiTermFT.cc	
-  TransformMachines/MultiTermFTNew.cc	
-  TransformMachines/NewMultiTermFT.cc	
+  TransformMachines/MultiTermFT.cc
+  TransformMachines/MultiTermFTNew.cc
+  TransformMachines/NewMultiTermFT.cc
   TransformMachines/PBMath1DAiry.cc
   TransformMachines/PBMath1D.cc
   TransformMachines/PBMath1DCosPoly.cc
@@ -130,7 +134,7 @@ casa_add_library( synthesis
   TransformMachines/ATerm.cc
   TransformMachines/EVLAAperture.cc
   TransformMachines/AzElAperture.cc
-  fortran/fgridft.f		
+  fortran/fgridft.f
   fortran/fmosaic.f
   fortran/wprojgrid.f
   fortran/faccumulateToGrid.f
@@ -295,6 +299,7 @@ casa_add_library( synthesis
  MeasurementComponents/VisCalSolver.cc
  MeasurementComponents/VisCalSolver2.cc
  MeasurementComponents/VisVector.cc
+ MeasurementComponents/WriteMSAlgorithm.cc
  MeasurementComponents/FiltrationTVI.cc
  MeasurementComponents/SDDoubleCircleFilter.cc
  TransformMachines/VisibilityResamplerBase.cc
@@ -306,6 +311,7 @@ casa_add_library( synthesis
  TransformMachines/WOnlyConvFunc.cc
  TransformMachines/WTerm.cc
  MeasurementEquations/AntennaResponses.cc
+ MeasurementEquations/AspMatrixCleaner.cc
  MeasurementEquations/CCList.cc
  MeasurementEquations/CEMemModel.cc
  MeasurementEquations/CEMemProgress.cc
@@ -321,7 +327,7 @@ casa_add_library( synthesis
  MeasurementEquations/Imager2.cc
  MeasurementEquations/ImagerMultiMS.cc
  MeasurementEquations/ImageMSCleaner.cc
- MeasurementEquations/ImageNACleaner.cc	
+ MeasurementEquations/ImageNACleaner.cc
  MeasurementEquations/IncCEMemModel.cc
  MeasurementEquations/IncEntropy.cc
  MeasurementEquations/IPLatConvEquation.cc
@@ -337,6 +343,19 @@ casa_add_library( synthesis
  MeasurementEquations/StokesUtil2.cc
  MeasurementEquations/VisEquation.cc
  MeasurementEquations/VPManager.cc
+ MeasurementEquations/lbfgs/alglibinternal.cc
+ MeasurementEquations/lbfgs/alglibmisc.cc
+ MeasurementEquations/lbfgs/ap.cc
+ MeasurementEquations/lbfgs/dataanalysis.cc
+ MeasurementEquations/lbfgs/diffequations.cc
+ MeasurementEquations/lbfgs/fasttransforms.cc
+ MeasurementEquations/lbfgs/integration.cc
+ MeasurementEquations/lbfgs/interpolation.cc
+ MeasurementEquations/lbfgs/linalg.cc
+ MeasurementEquations/lbfgs/optimization.cc
+ MeasurementEquations/lbfgs/solvers.cc
+ MeasurementEquations/lbfgs/specialfunctions.cc
+ MeasurementEquations/lbfgs/statistics.cc
  TransformMachines/ALMAAperture.cc
  TransformMachines/ALMABeamCalcParams.cc
  TransformMachines/ALMACalcIlluminationConvFunc.cc
@@ -345,18 +364,22 @@ casa_add_library( synthesis
  Parallel/MPITransport.cc
  Parallel/PabloIO.cc
  Parallel/SerialTransport.cc
- Utilities/AppRC.cc		
- Utilities/FFT2D.cc	
+ Utilities/AppRC.cc
+ Utilities/FFT2D.cc
  Utilities/FixVis.cc
  Utilities/SigHandler.cc
  Utilities/ThreadCoordinator.cc
- fortran/fpbmos.f	
- fortran/fpbwproj.f	
+ fortran/fpbmos.f
+ fortran/fpbwproj.f
  fortran/leakantso.f
  ImagerObjects/SynthesisImager.cc
  ImagerObjects/SynthesisImagerVi2.cc
+ ImagerObjects/CubeMajorCycleAlgorithm.cc
+ ImagerObjects/CubeMinorCycleAlgorithm.cc
+ ImagerObjects/CubeMakeImageAlgorithm.cc
  ImagerObjects/SIImageStore.cc
  ImagerObjects/SIImageStoreMultiTerm.cc
+ ImagerObjects/SimpleSIImageStore.cc
  ImagerObjects/SIMapperCollection.cc
  ImagerObjects/SIMapper.cc
  ImagerObjects/SIMapperImageMosaic.cc
@@ -572,6 +595,7 @@ install (FILES
 	MeasurementComponents/WBCleanImageSkyModel.h
 	MeasurementComponents/WFCleanImageSkyModel.h
 	MeasurementComponents/WOnlyProjectFT.h
+        MeasurementComponents/WriteMSAlgorithm.h
 	MeasurementComponents/XCorr.h
 	MeasurementComponents/nPBWProjectFT.h
 	MeasurementComponents/rGridFT.h
@@ -584,6 +608,7 @@ install (FILES
 install (FILES
     MeasurementEquations/AntennaResponses.h
 	MeasurementEquations/ArrayModel.h
+  MeasurementEquations/AspMatrixCleaner.h
 	MeasurementEquations/CCList.h
 	MeasurementEquations/CEMemModel.h
 	MeasurementEquations/CEMemProgress.h
@@ -605,6 +630,11 @@ install (FILES
 	MeasurementEquations/Iterate.h
 	MeasurementEquations/LatConvEquation.h
 	MeasurementEquations/LatticeModel.h
+  MeasurementEquations/gslobjfunc.h
+  MeasurementEquations/objfunc_alglib.h
+  #MeasurementEquations/cudaobjfunc.h #CUDA BFGS
+  #MeasurementEquations/objfunc_cpu.h #CuLBFGSB
+  #MeasurementEquations/objfunc_cpu_bk.h
 	MeasurementEquations/LinearEquation.h
 	MeasurementEquations/LinearModel.h
 	MeasurementEquations/LinearMosaic.h
@@ -628,13 +658,31 @@ install (FILES
 	MeasurementEquations/MaskedHogbomCleanModel.tcc
 	MeasurementEquations/ResidualEquation.tcc
 	MeasurementEquations/StokesUtil.tcc
+  MeasurementEquations/lbfgs/alglibinternal.h
+  MeasurementEquations/lbfgs/alglibmisc.h
+  MeasurementEquations/lbfgs/ap.h
+  MeasurementEquations/lbfgs/dataanalysis.h
+  MeasurementEquations/lbfgs/diffequations.h
+  MeasurementEquations/lbfgs/fasttransforms.h
+  MeasurementEquations/lbfgs/integration.h
+  MeasurementEquations/lbfgs/interpolation.h
+  MeasurementEquations/lbfgs/linalg.h
+  MeasurementEquations/lbfgs/optimization.h
+  MeasurementEquations/lbfgs/solvers.h
+  MeasurementEquations/lbfgs/specialfunctions.h
+  MeasurementEquations/lbfgs/statistics.h
+  MeasurementEquations/lbfgs/stdafx.h
 	DESTINATION include/casacode/synthesis/MeasurementEquations
 	)
 install (FILES
 	ImagerObjects/SynthesisImager.h
 	ImagerObjects/SynthesisImagerVi2.h
+        ImagerObjects/CubeMajorCycleAlgorithm.h
+	ImagerObjects/CubeMinorCycleAlgorithm.h
+        ImagerObjects/CubeMakeImageAlgorithm.h
 	ImagerObjects/SIImageStore.h
 	ImagerObjects/SIImageStoreMultiTerm.h
+        ImagerObjects/SimpleSIImageStore.h
 	ImagerObjects/SIMapperCollection.h
 	ImagerObjects/SIMapper.h
 	ImagerObjects/SIMapperImageMosaic.h
@@ -679,11 +727,13 @@ install (FILES
 	Parallel/Algorithm.h
 	Parallel/Applicator.h
 	Parallel/MPIError.h
-	Parallel/PTransport.h
 	Parallel/PabloIO.h
+	Parallel/MPITransport.h
+	Parallel/PTransport.h
+	Parallel/SerialTransport.h
 	DESTINATION include/casacode/synthesis/Parallel
 	)
-install (FILES 
+install (FILES
 	TransformMachines2/ATerm.h
 #	TransformMachines2/AWConvFuncEPJones.h
 	TransformMachines2/AWConvFunc.h
@@ -710,14 +760,14 @@ install (FILES
 	TransformMachines2/IlluminationConvFunc.h
 	TransformMachines2/FTMachine.h
 	TransformMachines2/MosaicFT.h
-	TransformMachines2/MosaicFTNew.h	
+	TransformMachines2/MosaicFTNew.h
         TransformMachines2/MultiTermFTNew.h
 	TransformMachines2/NoOpATerm.h
 	TransformMachines2/PolOuterProduct.h
 	TransformMachines2/PointingOffsets.h
 	TransformMachines2/PhaseGrad.h
 	TransformMachines2/PSTerm.h
-	TransformMachines2/SetJyGridFT.h	
+	TransformMachines2/SetJyGridFT.h
 	TransformMachines2/SimpleComponentFTMachine.h
 	TransformMachines2/SimplePBConvFunc.h
 	TransformMachines2/SkyJones.h
@@ -725,6 +775,7 @@ install (FILES
 	TransformMachines2/Utils.h
 	TransformMachines2/VBStore.h
 	TransformMachines2/VB2CFBMap.h
+	TransformMachines2/BaselineType.h
 	TransformMachines2/VisibilityResamplerBase.h
 	TransformMachines2/VisibilityResampler.h
 	TransformMachines2/VisModelData.h
@@ -816,7 +867,7 @@ install (FILES
 	Utilities/AppRC.h
         Utilities/FFT2D.h
 	Utilities/FixVis.h
-	Utilities/SigHandler.h 
+	Utilities/SigHandler.h
 	Utilities/ThreadCoordinator.h
 	Utilities/PointingDirectionCalculator.h
 	Utilities/PointingDirectionProjector.h
@@ -826,6 +877,9 @@ install (FILES
 	)
 casa_add_executable( synthesis casasplit apps/casasplit/casasplit.cc )
 casa_add_executable( synthesis imageconcat apps/utils/imageconcat.cc )
+casa_add_demo( synthesis ImagerObjects/test/dMPICubeImager.cc TransformMachines2/test/MakeMS.cc )
+casa_add_demo( synthesis ImagerObjects/test/dMPICubeDeconvolver.cc )
+casa_add_demo( synthesis ImagerObjects/test/dMPIMakeCube.cc TransformMachines2/test/MakeMS.cc )
 casa_add_assay( synthesis ImagerObjects/test/tSIIterBot.cc )
 casa_add_assay( synthesis ImagerObjects/test/tSynthesisUtils.cc )
 casa_add_assay( synthesis TransformMachines2/test/tVisModelDataRefim.cc )
@@ -848,6 +902,7 @@ casa_add_assay( synthesis MeasurementComponents/test/tKJones.cc )
 casa_add_assay( synthesis MeasurementComponents/test/tPBMath.cc )
 casa_add_assay( synthesis MeasurementComponents/test/tPBMath2D.cc )
 casa_add_assay( synthesis MeasurementComponents/test/tPBTable.cc )
+casa_add_assay( synthesis MeasurementComponents/test/tWriteParallel.cc )
 #casa_add_assay( synthesis MeasurementComponents/test/tTrVI2.cc )
 casa_add_assay( synthesis MeasurementComponents/test/tVPSkyJones.cc )
 casa_add_demo ( synthesis MeasurementEquations/test/dCEMemModel.cc )
@@ -861,7 +916,6 @@ casa_add_assay( synthesis MeasurementEquations/test/tImager.cc )
 casa_add_assay( synthesis MeasurementEquations/test/tIncCEMemModel.cc )
 casa_add_assay( synthesis MeasurementEquations/test/tLatConvEquation.cc )
 casa_add_assay( synthesis MeasurementEquations/test/tStokesUtil.cc )
-casa_add_assay( synthesis Parallel/test/tApplicator.cc )
 casa_add_assay( synthesis CalTables/test/tCalInterpolation.cc )
 casa_add_assay( synthesis CalTables/test/tCalIntpMatch.cc )
 casa_add_assay( synthesis CalTables/test/tNewCalTable.cc )
@@ -876,15 +930,18 @@ casa_add_assay( synthesis CalTables/test/tCTGenericFill.cc )
 
 
 casa_add_test( synthesis CalLibrary/test/tCalLibraryParse.cc )
-casa_add_unit_test( MODULES synthesis SOURCES MeasurementEquations/test/tAntennaResponses.cc ) 
-casa_add_unit_test( MODULES synthesis SOURCES MeasurementEquations/test/tPredictComp.cc TransformMachines2/test/MakeMS.cc ) 
-casa_add_unit_test( MODULES synthesis SOURCES TransformMachines2/test/tAWPFTM.cc TransformMachines2/test/MakeMS.cc ) 
-casa_add_unit_test( MODULES synthesis SOURCES TransformMachines2/test/tFTMachine.cc TransformMachines2/test/MakeMS.cc ) 
+casa_add_unit_test( MODULES synthesis SOURCES MeasurementEquations/test/tAntennaResponses.cc )
+casa_add_unit_test( MODULES synthesis SOURCES MeasurementEquations/test/tPredictComp.cc TransformMachines2/test/MakeMS.cc )
+casa_add_unit_test( MODULES synthesis SOURCES TransformMachines2/test/tAWPFTM.cc TransformMachines2/test/MakeMS.cc )
+casa_add_unit_test( MODULES synthesis SOURCES TransformMachines2/test/tFTMachine.cc TransformMachines2/test/MakeMS.cc )
+casa_add_unit_test( MODULES synthesis SOURCES TransformMachines2/test/tCubeBriggsWeightor.cc TransformMachines2/test/MakeMS.cc )
 casa_add_unit_test( MODULES synthesis SOURCES TransformMachines/test/tGridFT.cc TransformMachines2/test/MakeMS.cc )
-casa_add_unit_test( MODULES synthesis SOURCES TransformMachines/test/tPBMath1DEVLA.cc  ) 
+casa_add_unit_test( MODULES synthesis SOURCES TransformMachines/test/tPBMath1DEVLA.cc  )
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tSynthesisImager.cc  TransformMachines2/test/MakeMS.cc )
+casa_add_unit_test( MODULES synthesis SOURCES Parallel/test/tApplicator.cc )
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tSynthesisImagerVi2.cc  TransformMachines2/test/MakeMS.cc )
-casa_add_unit_test( MODULES synthesis SOURCES Utilities/test/tFFT2D.cc  ) 
+casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tSIMakeImage.cc  TransformMachines2/test/MakeMS.cc )
+casa_add_unit_test( MODULES synthesis SOURCES Utilities/test/tFFT2D.cc  )
 casa_add_unit_test( MODULES synthesis SOURCES CalTables/test/tCTPatchedInterp.cc )
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tLabelandFindRegions.cc )
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tLabelandFindRegionsFullCube.cc )
@@ -921,6 +978,7 @@ casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/tTsys
 casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/tVisVectorJonesMueller_GT.cc )
 casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/tVisCal_GT.cc )
 casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/tGJones_GT.cc )
+casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/tJJones_GT.cc )
 casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/tVisCalGlobals_GT.cc )
 casa_add_google_test( MODULES synthesis SOURCES MeasurementComponents/test/SingleDishSkyCal_GTest.cc )
 casa_add_google_test( MODULES synthesis mstransform SOURCES MeasurementComponents/test/FiltrationTVI_GTest.cc )

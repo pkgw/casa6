@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from __future__ import print_function
 import os
 import math
 import shutil
@@ -7,6 +6,7 @@ import string
 import time
 import re
 import copy
+import pprint
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -87,10 +87,12 @@ class ImagerParameters():
                  conjbeams = True,
                  computepastep =360.0,
                  rotatepastep =360.0,
-                 pointingoffsetsigdev =0.0,
+                 pointingoffsetsigdev = [30.0,30.0],
                  
                  pblimit=0.01,
                  normtype='flatnoise',
+                 
+                 psfcutoff=0.35,
 
                  outlierfile='',
                  restart=True,
@@ -138,6 +140,8 @@ class ImagerParameters():
                  minpercentchange=0.0,
                  verbose=False,
                  fastnoise=False,
+                 fusedthreshold=0.0,
+                 largestscale=-1,
 
 #                 usescratch=True,
 #                 readonly=True,
@@ -160,6 +164,10 @@ class ImagerParameters():
                  clipminmax=False
                  ):
         self.allparameters=dict(locals())
+        ############TESTOO for debugging Felipe's crash
+        #params_str=pprint.pformat(self.allparameters)
+        #casalog.post('ALLPARAMS : ' + params_str, 'WARN', 'CAS-9386-DEBUG')
+        ################################################
         del self.allparameters['self']
         self.defaultKey="0";
         ## Selection params. For multiple MSs, all are lists.
@@ -205,6 +213,9 @@ class ImagerParameters():
             weighting='briggs'
         elif(weighting=='briggs'):
             rmode='norm'
+        elif(weighting=='briggsbwtaper'):
+            rmode='bwtaper'
+            weighting='briggs'
         self.weightpars = {'type':weighting,'rmode':rmode,'robust':robust, 'noise': noise, 'npixels':npixels,'uvtaper':uvtaper, 'multifield':mosweight, 'usecubebriggs': perchanweightdensity}
 
 
@@ -212,7 +223,7 @@ class ImagerParameters():
         self.allnormpars = { self.defaultKey : {#'mtype': mtype,
                                  'pblimit': pblimit,'nterms':nterms,'facets':facets,
                                  'normtype':normtype, 'workdir':workdir,
-                                 'deconvolver':deconvolver, 'imagename': imagename, 'restoringbeam':restoringbeam}   }
+                                 'deconvolver':deconvolver, 'imagename': imagename, 'restoringbeam':restoringbeam, 'psfcutoff':psfcutoff}   }
 
 
         ######### Deconvolution
@@ -223,6 +234,7 @@ class ImagerParameters():
                                     #'maskresolution':maskresolution, 'nmask':nmask,'autoadjust':autoadjust,
                                     'sidelobethreshold':sidelobethreshold, 'noisethreshold':noisethreshold,
                                     'lownoisethreshold':lownoisethreshold, 'negativethreshold':negativethreshold,'smoothfactor':smoothfactor,
+                                    'fusedthreshold':fusedthreshold, 'specmode':specmode,'largestscale':largestscale,
 
                                     'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations, 
                                      'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
@@ -238,6 +250,8 @@ class ImagerParameters():
         ######### CFCache params. 
         self.cfcachepars = {'cflist': cflist}
 
+        ######### parameters that may be internally modified for savemodel behavior
+        self.inpars = {'savemodel':savemodel, 'interactive':interactive, 'nsigma':nsigma, 'usemask':usemask}
 
         #self.reusename=reuse
 
@@ -257,6 +271,23 @@ class ImagerParameters():
             casalog.post('Found errors in input parameters. Please check.', 'WARN')
 
         self.printParameters()
+
+    def resetParameters(self):
+        """ reset parameters to the original settting for interactive, nsigma, auto-multithresh when savemodel!='none' """
+        if self.inpars['savemodel']!='none' and (self.inpars['interactive']==True or self.inpars['usemask']=='auto-multithresh' or \
+             self.inpars['nsigma']>0.0 ):
+           #in checkAndFixIterationPars(), when saving model is on, the internal params, readonly and usescrath are set to True and False, 
+           #respectively. So this needs to be undone before calling predictModel.
+           self.iterpars['savemodel']=self.inpars['savemodel'] 
+           if self.inpars['savemodel']=='modelcolumn':
+               for key in self.allselpars:  # for all MSes
+                   self.allselpars[key]['readonly']=False
+                   self.allselpars[key]['usescratch']=True
+              
+           elif self.inpars['savemodel']=='virtual':
+               for key in self.allselpars:  # for all MSes
+                      self.allselpars[key]['readonly']=False
+                      self.allselpars[key]['usescratch']=False
 
     def getAllPars(self):
         """Return the state of all parameters"""
@@ -339,7 +370,6 @@ class ImagerParameters():
         if len(errs) > 0:
 #            casalog.post('Parameter Errors : \n' + errs,'WARN')
             raise Exception("Parameter Errors : \n" + errs)
- #           return False
         return True
 
     ###### Start : Parameter-checking functions ##################
@@ -355,7 +385,7 @@ class ImagerParameters():
                 ok=False
 
         if ok==True:
-            #print("Already in correct format")
+            #casalog.post("Already in correct format")
             return errs
 
         # msname, field, spw, etc must all be equal-length lists of strings, or all except msname must be of length 1.
@@ -395,7 +425,7 @@ class ImagerParameters():
                 selparlist[ 'ms'+str(ms) ] = synu.checkselectionparams( selparlist[ 'ms'+str(ms)] )
                 synu.done()
 
-#            print(selparlist)
+            # casalog.post(selparlist)
 
             self.allselpars = selparlist
 
@@ -404,7 +434,7 @@ class ImagerParameters():
 
     def makeImagingParamLists(self, parallel ):
         errs=""
-        #print "specmode=",self.allimpars['0']['specmode'], " parallel=",parallel
+        # casalog.post("specmode=",self.allimpars['0']['specmode'], " parallel=",parallel)
         ## Multiple images have been specified. 
         ## (1) Parse the outlier file and fill a list of imagedefinitions
         ## OR (2) Parse lists per input parameter into a list of parameter-sets (imagedefinitions)
@@ -414,7 +444,7 @@ class ImagerParameters():
         if len(self.outlierfile)>0:
             outlierpars,parseerrors = self.parseOutlierFile(self.outlierfile) 
             if parallel:
-                print("CALLING checkParallelMFMixModes...")
+                casalog.post("CALLING checkParallelMFMixModes...")
                 errs = self.checkParallelMFMixedModes(self.allimpars,outlierpars)
                 if len(errs): 
                     return errs 
@@ -438,10 +468,10 @@ class ImagerParameters():
             self.alldecpars[ modelid ][ 'id' ] = immod+1  ## Try to eliminate.
 
 
-        #print(self.allimpars)
+        # casalog.post(self.allimpars)
 
 #
-#        print("REMOVING CHECKS to check...")
+#        casalog.post("REMOVING CHECKS to check...")
 #### This does not handle the conversions of the csys correctly.....
 ####
 #        for immod in self.allimpars.keys() :
@@ -504,6 +534,14 @@ class ImagerParameters():
                 else:
                     self.iterpars['cycleniter'] = min(self.iterpars['niter'] , 100)
 
+            # saving model is done separately outside of iter. control for interactive clean and or automasking cases
+            if self.iterpars['savemodel']!='none':
+                if self.iterpars['interactive']==True or self.alldecpars['0']['usemask']=='auto-multithresh' or \
+                  self.alldecpars['0']['nsigma']>0.0:
+                    self.iterpars['savemodel']='none' 
+                    self.allselpars['ms0']['readonly']=True
+                    self.allselpars['ms0']['usescratch']=False
+
         return errs
 
     def checkAndFixNormPars(self):  
@@ -539,7 +577,7 @@ class ImagerParameters():
             if len(aline)>0 and aline.find('#')!=0:
                 parpair = aline.split("=")  
                 parpair[0] = parpair[0].replace(' ','')
-                #print(parpair)
+                # casalog.post(parpair)
                 if len(parpair) != 2:
                     errs += 'Error in line containing : ' + oneline + '\n'
                 if parpair[0] == 'imagename' and tempimpar != {}:
@@ -567,7 +605,7 @@ class ImagerParameters():
                     tempnormpar[ parpair[0] ] = parpair[1]
                     usepar=True
                 if usepar==False:
-                    print('Ignoring unknown parameter pair : ' + oneline)
+                    casalog.post('Ignoring unknown parameter pair : ' + oneline)
 
         if len(errs)==0:
             returnlist.append( {'impars':tempimpar,'gridpars':tempgridpar, 'weightpars':tempweightpar, 'decpars':tempdecpar, 'normpars':tempnormpar} )
@@ -583,7 +621,7 @@ class ImagerParameters():
 #        returnlist = self.evalToTarget( returnlist, 'impars', 'reffreq', 'strvec' )
 
 
-        #print(returnlist)
+        # casalog.post(returnlist)
         return returnlist, errs
 
 
@@ -603,7 +641,7 @@ class ImagerParameters():
 
                     globalpars[ fld ][subparkey][parname] = val_e
         except:
-            print('Cannot evaluate outlier field parameter "' + parname + '"')
+            casalog.post('Cannot evaluate outlier field parameter "' + parname + '"', 'ERROR')
 
         return globalpars
 
@@ -645,7 +683,7 @@ class ImagerParameters():
                             maxid = val
             newimagename = dirname[2:] + prefix + '_' + str(maxid+1)
 
-        print('Using : ',  newimagename)
+        casalog.post('Using : {}'.format(newimagename))
         return newimagename
 
     def incrementImageNameList(self, inpnamelist ):
@@ -713,11 +751,11 @@ class ImagerParameters():
             else:
                 newimagenamelist[immod] = dirnames[immod][2:] + prefixes[immod] + '_' + str(maxid+1) 
 
-#        print('Input : ',  inpnamelist)
-#        print('Dirs : ', dirnames)
-#        print('Pre : ', prefixes)
-#        print('Max id : ', maxid)
-#        print('Using : ',  newimagenamelist)
+#        casalog.post('Input : ',  inpnamelist)
+#        casalog.post('Dirs : ', dirnames)
+#        casalog.post('Pre : ', prefixes)
+#        casalog.post('Max id : ', maxid)
+#        casalog.post('Using : ',  newimagenamelist)
         return newimagenamelist
 
     ## Guard against numpy int32,int64 types which don't convert well across tool boundary.
@@ -738,10 +776,10 @@ class ImagerParameters():
     #  (e.g. combination cube and continuum for main and outlier fields)
     def checkParallelMFMixedModes(self,allimpars,outlierpars):
         errmsg=''
-        print("outlierpars==",outlierpars)
+        casalog.post("outlierpars=={}".format(outlierpars))
         mainspecmode= allimpars['0']['specmode']
         mainnchan = allimpars['0']['nchan'] 
-        print("mainspecmode=",mainspecmode, "mainnchan=",mainnchan)
+        casalog.post("mainspecmode={} mainnchan={}".format(mainspecmode, mainnchan))
         cubeoutlier = False
         contoutlier = False
         isnchanmatch = True

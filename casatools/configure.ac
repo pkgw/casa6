@@ -1,5 +1,5 @@
 AC_INIT([casa], [4.6.0])
-AC_COPYRIGHT([Copyright (C) 2017 Associated Universities, Inc. Washington DC, USA.])
+AC_COPYRIGHT([Copyright (C) 2017-2021 Associated Universities, Inc. Washington DC, USA.])
 AC_REVISION([syscmd([ac/scripts/configure.commit])])
 
 m4_include([ac/m4/m4_ax_pkg_prog_pkg_config.m4])
@@ -18,6 +18,7 @@ m4_include([ac/m4/m4_ax_lib_stdcxx.m4])
 m4_include([ac/m4/m4_ax_libsakura.m4])
 m4_include([ac/m4/m4_ax_libxml2.m4])
 m4_include([ac/m4/m4_ax_openmp.m4])
+m4_include([ac/m4/ax_prog_cxx_mpi.m4])
 m4_include([ac/m4/m4_ax_path_to_binary.m4])
 m4_include([ac/m4/m4_ax_pthread.m4])
 m4_include([ac/m4/m4_ax_python_devel.m4])
@@ -33,14 +34,10 @@ AC_MSG_NOTICE([host os is ${host_osname}])
 PWD=`pwd`
 AC_SUBST(PWD)
 
-AC_ARG_ENABLE([grpc], [  --disable-grpc          compile in support for gRPC],
-  [case "${enableval}" in
-     yes ) WITH_GRPC=1 ;;
-     no ) WITH_GRPC=0 ;;
-     *) AC_MSG_ERROR(bad value ${enableval} for --disable-grpc) ;;
-   esac],
-  [WITH_GRPC=1]
-)
+WITH_GRPC=1
+AC_ARG_ENABLE( [system-grpc], AS_HELP_STRING([--enable-system-grpc],[use system grpc libraries]),
+               [SYSTEM_GRPC=1], [SYSTEM_GRPC=0] )
+
 if [[ "x${CXX}" != "x" ]]; then
     dnl#########################################################################
     dnl##### set CXX_OVERRIDE to prevent all of our C++ machinations from  #####
@@ -85,6 +82,9 @@ if [[ "${ac_success}" = "no" ]]; then
     fi
 fi
 
+if [[ ! -e "${CXX}" ]]; then
+    CXX=`which ${CXX}`
+fi
 if [[ -x "${CXX}" ]]; then
     AC_MSG_NOTICE([C++11 compiler ${CXX}])
 else
@@ -97,6 +97,49 @@ AC_COMPILE_IFELSE( [AC_LANG_PROGRAM([[#include <ios>]],
                    [AC_MSG_RESULT([yes])],
                    [AC_MSG_RESULT([no])
                     AC_MSG_ERROR([C++ compiler is not new enough]) ] )
+
+
+dnl Add --with-mpi option to configure
+AC_ARG_WITH(mpi, [AS_HELP_STRING([--with-mpi],
+    [compile with MPI (parallelization) support. Auto: if no MPI compiler/libraries are
+    found, MPI is not used. Default: auto])
+    ],,
+    [with_mpi=auto])
+
+dnl Try to find an MPI compiler wrapper. Far from ideal.
+dnl AC_PROG_CXX_MPI is meant to be used intead of AC_PROG_CXX for MPI applications.
+dnl But we have "m4_ax_cxx11" fiddling with CXX etc variables up here.
+if [test x"$with_mpi" != xno]; then
+   _PRE_MPI_CXX=$CXX
+   _PRE_MPI_CC=$CC
+   _PRE_MPI_PATH=$PATH
+   _CXX_PATH=$(dirname ${CXX})
+   _PATH_CASA_OPENMPI=$PATH${PATH_SEPARATOR}/opt/casa/03/bin/
+   AC_MSG_NOTICE([Looking for MPI compiler wrappers in extended path: ${_PATH_CASA_OPENMPI}])
+   dnl want to find this or alternatives: CXX=/opt/casa/03/bin/mpic++
+   AC_PATH_PROGS(CASA_MPI_CXX, [mpiCC, mpicxx, mpic++],,${_PATH_CASA_OPENMPI})
+   AC_MSG_NOTICE([After looking for an MPI wrapper, the C++ compiler is: ${CASA_MPI_CXX}])
+   CXX=$CASA_MPI_CXX
+   PATH=${_CXX_PATH}${PATH_SEPARATOR}${PATH}
+   dnl want to find this or alternatives: CC=/opt/casa/03/bin/mpicc
+   AC_PATH_PROGS(CASA_MPI_CC, [mpicc],,${_PATH_CASA_OPENMPI})
+   AC_MSG_NOTICE([After looking for an MPI wrapper, the C compiler is: ${CASA_MPI_CC}])
+   CC=$CASA_MPI_CC
+   AX_PROG_CXX_MPI(true,
+     [
+     CASA_HAVE_MPI=1
+     AC_SUBST(CASA_HAVE_MPI)
+     ],[
+     CXX=$_PRE_MPI_CXX
+     CC=$_PRE_MPI_CC
+     PATH=$_PRE_MPI_PATH
+     if test x"$with_mpi" = xyes; then
+       AC_MSG_FAILURE([MPI compiler requested, but couldn't use MPI.])
+     else
+       AC_MSG_WARN([No working MPI compiler could be found, won't use MPI.])
+     fi
+   ])
+fi
 
 dnl# use faster fortran rules for complex operations, removes restoring complex infinities
 dnl# if naive computation results in NAN + NAN * I  Handling complex multiplication and
@@ -143,6 +186,9 @@ ln -s `which rm`
 ln -s `which dirname`
 ln -s `which basename`
 ln -s `which grep`
+ln -s `which sort`
+ln -s `which printf`
+ln -s `which cat`
 cd $current_directory
 
 PATH=$(dirname ${CXX}):/bin:$temporary_script_dir
@@ -161,8 +207,8 @@ AC_SUBST(CC_FORTRAN_COMPLEX)
 AC_LANG_POP([C])
 
 for pp in $(dirname ${CXX})${PATH_SEPARATOR}${PATH} ${save_PATH_save}; do
-    PATH=${pp}
-    AC_PROG_FC([gfortran-mp-5 gfortran-mp-4.9 gfortran-mp-4.8 gfortran])
+    PATH=${pp}:${temporary_script_dir}
+    AC_PROG_FC([gfortran-mp-9 gfortran-mp-8 gfortran-mp-5 gfortran-mp-4.9 gfortran-mp-4.8 gfortran])
     AX_PATH_TO_BINARY(${FC},FC)
     if [[ -f "$FC" -a -x "$FC" ]]; then
         AC_MSG_NOTICE([Fortran compiler ${FC}])
@@ -228,6 +274,31 @@ AX_WCSLIB
 AX_RPFITS
 AX_GSL(2.0)
 AX_SWIG(3.0.0)
+
+if [[ "${SYSTEM_GRPC}" == "1" ]]; then
+    PKG_CHECK_MODULES( [GRPC], [grpc >= 6.0.0 grpc++ >= 1.16.1 protobuf >= 3.6.1 ], [
+                       AC_CHECK_PROGS([PROTOC], [protoc], [/usr/bin/false])
+                       if test "$PROTOC" = "/usr/bin/false"; then
+                           AC_MSG_FAILURE([grpc requested but protoc not found.])
+                       else
+                           PROTOC=`which protoc`
+                       fi
+                       AC_CHECK_PROGS([GRPC_CPP_PLUGIN], [grpc_cpp_plugin], [/usr/bin/false])
+                       if test "$GRPC_CPP_PLUGIN" = "/usr/bin/false"; then
+                           AC_MSG_FAILURE([grpc requested but grpc plugin for C++ not found.])
+		       else
+		           GRPC_CPP_PLUGIN=`which grpc_cpp_plugin`
+                       fi ] )
+    GRPC_DO_BUILD=0
+else
+    GRPC_DO_BUILD=1
+    PROTOC="/usr/bin/false"
+    GRPC_CPP_PLUGIN="/usr/bin/false"
+fi
+AC_SUBST(GRPC_CFLAGS)
+AC_SUBST(GRPC_LIBS)
+AC_SUBST(GRPC_DO_BUILD)
+AC_SUBST(PROTOC)
 
 #AC_MSG_CHECKING([for casa version number])
 #read -a full_version <<< "`scripts/version | perl -pe 's|^(\d+).(\d+).*?$|$1 $2 0 0|'`"

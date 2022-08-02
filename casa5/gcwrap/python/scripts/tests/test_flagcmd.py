@@ -19,7 +19,7 @@ if is_CASA6:
         pass
 
     # Path for data
-    datapath = ctsys.resolve("regression/unittest/flagdata")
+    datapath = ctsys.resolve("unittest/flagcmd/")
 else:
     from tasks import flagcmd, flagdata, flagmanager
     from taskinit import aftool
@@ -31,13 +31,13 @@ else:
     aflocal = aftool()
 
     # Path for data
-    datapath = os.environ.get('CASAPATH').split()[0] + "/data/regression/unittest/flagdata/"
+    datapath = os.environ.get('CASAPATH').split()[0] + "/casatestdata/unittest/flagcmd/"
 
 #
 # Test of flagcmd task. It uses flagdata to unflag and summary
 #
 
-def test_eq(result, total, flagged):
+def check_eq(result, total, flagged):
 
     print("%s of %s data was flagged, expected %s of %s" % \
           (result['flagged'], result['total'], flagged, total))
@@ -97,7 +97,7 @@ class test_base(unittest.TestCase):
         if os.path.exists(self.vis):
             print("The MS is already around, just unflag")
         else:
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' '+ self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -110,7 +110,7 @@ class test_base(unittest.TestCase):
             print("The MS is already around, just unflag")
         else:
             print("Moving data...")
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' '+ self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -124,7 +124,7 @@ class test_base(unittest.TestCase):
             print("The MS is already around, just unflag")
         else:
             print("Moving data...")
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' '+ self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -137,7 +137,7 @@ class test_base(unittest.TestCase):
             print("The MS is already around, just unflag")
         else:
             print("Moving data...")
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' '+ self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -150,7 +150,7 @@ class test_base(unittest.TestCase):
             print("The MS is already around, just unflag")
         else:
             print("Moving data...")
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' '+ self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -163,7 +163,7 @@ class test_base(unittest.TestCase):
             print("The MS is already around, just unflag")
         else:
             print("Moving data...")
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' '+ self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -176,7 +176,7 @@ class test_base(unittest.TestCase):
             print("The CalTable is already around, just unflag")
         else:
             print("Moving data...")
-            os.system('cp -r '+os.path.join(datapath,self.vis)+' ' + self.vis)
+            shutil.copytree(os.path.join(datapath,self.vis), self.vis)
 
         os.system('rm -rf ' + self.vis + '.flagversions')
         self.unflag_ms()        
@@ -203,7 +203,7 @@ class test_manual(test_base):
         
         flagcmd(vis=self.vis, inpmode='list', inpfile=filename, action='apply', savepars=False,
                 flagbackup=False)
-        test_eq(flagdata(vis=self.vis, mode='summary'), 2882778, 28500)
+        check_eq(flagdata(vis=self.vis, mode='summary'), 2882778, 28500)
 
     def test_compatibility(self):
         myinput = "observation='1' mode='manualflag'"
@@ -211,7 +211,7 @@ class test_manual(test_base):
         
         flagcmd(vis=self.vis, inpmode='list', inpfile=filename, action='apply', savepars=False,
                 flagbackup=False)
-        test_eq(flagdata(vis=self.vis, mode='summary'), 2882778, 28500)
+        check_eq(flagdata(vis=self.vis, mode='summary'), 2882778, 28500)
         
     def test_autocorr(self):
         '''flagcmd: autocorr=True'''
@@ -238,7 +238,7 @@ class test_alma(test_base):
         # flag POINTING CALIBRATION scans and ignore comment line
         flagcmd(vis=self.vis, inpmode='list', inpfile=filename, action='apply', savepars=False,
                 flagbackup=False)
-#         test_eq(flagdata(vis=self.vis,mode='summary', antenna='2'), 377280, 26200)
+#         check_eq(flagdata(vis=self.vis,mode='summary', antenna='2'), 377280, 26200)
         res = flagdata(vis=self.vis,mode='summary')
 #         self.assertEqual(res['scan']['1']['flagged'], 80184, 'Only scan 1 should be flagged')
 #         self.assertEqual(res['scan']['4']['flagged'], 0, 'Scan 4 should not be flagged')
@@ -738,6 +738,11 @@ class test_XML(test_base):
     def setUp(self):
         self.setUp_evla()
         
+    # During implementation of CAS-13049, test_xml2 would fail without a tearDown
+    def tearDown(self):
+        os.system('rm -rf tosr0001_scan3*.ms*')
+
+        
     def test_xml1(self):
         '''flagcmd: list xml file and save in outfile'''
         
@@ -1000,7 +1005,8 @@ class test_actions(test_base):
         self.setUp_data4rflag()
         
     def tearDown(self):
-        pass
+        shutil.rmtree(self.vis, ignore_errors=True)
+        os.system('rm -rf flagcmd.txt')
 #         if os.path.exists('fourplot.png'):
 #             os.remove('fourplot.png')
         
@@ -1159,7 +1165,7 @@ class test_actions(test_base):
         # Copy the input flagcmd file with a non-existing spw name
         # flagsfile has spw='"Subband:1","Subband:2","Subband:8"
         flagsfile = 'cas9366.flags.txt'
-        os.system('cp -rf '+os.path.join(datapath,flagsfile)+' '+ ' .')
+        os.system('cp -RH '+os.path.join(datapath,flagsfile)+' '+ ' .')
         
         # Save flags commands to FLAG_CMD table
         flagcmd(self.vis, inpmode='list', inpfile=flagsfile, action='list', savepars=True)
@@ -1178,6 +1184,10 @@ class test_cmdbandpass(test_base):
     
     def setUp(self):
         self.setUp_bpass_case()
+
+    def tearDown(self):
+        shutil.rmtree(self.vis, ignore_errors=True)
+        os.system('rm -rf flagcmd.txt')
 
     def test_unsupported_mode_in_list(self):
         '''Flagcmd: elevation and shadow are not supported in cal tables'''

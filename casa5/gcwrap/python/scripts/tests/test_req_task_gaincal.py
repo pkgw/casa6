@@ -25,7 +25,7 @@
 CASA6 = False
 try:
     import casatools
-    from casatasks import gaincal, casalog
+    from casatasks import gaincal, mstransform, casalog
     CASA6 = True
     tb = casatools.table()
 
@@ -36,74 +36,37 @@ except ImportError:
 
 import sys
 import os
-import testhelper as th
 import unittest
 import shutil
 import numpy as np
 import pylab as pl
 
+from casatestutils import testhelper as th
+
 if CASA6:
-    datapath = casatools.ctsys.resolve('visibilities/vla/gaincaltest2.ms')
-    compCal = casatools.ctsys.resolve('caltables/gaincaltest2.ms.G0')
-    tCal = casatools.ctsys.resolve('caltables/gaincaltest2.ms.T0')
-    # Reference Cals
-    combinedRef = casatools.ctsys.resolve('caltables/genDataCombine.G0')
-    preTRef = casatools.ctsys.resolve('caltables/genDataPreT.G0')
-    preGRef = casatools.ctsys.resolve('caltables/genDataPreG.T0')
-    calModeP = casatools.ctsys.resolve('caltables/calModeTest.G0')
-    calModeA = casatools.ctsys.resolve('caltables/calModeTest.G1')
-    typeCalK = casatools.ctsys.resolve('caltables/gaintypek.G0')
-    typeCalSpline = casatools.ctsys.resolve('caltables/gaintypeSpline.G0')
-    spwMapCal = casatools.ctsys.resolve('caltables/spwMap.G0')
-    # From merged test
-    merged_dataset1 = casatools.ctsys.resolve('visibilities/vla/ngc5921.ms')
-    merged_refcal1 = casatools.ctsys.resolve('caltables/ngc5921.ref1a.gcal')
-    merged_refcal2 = casatools.ctsys.resolve('caltables/ngc5921.ref2a.gcal')
-    merged_dataset2 = casatools.ctsys.resolve('visibilities/vla/ngc4826.ms')
-    merged_refcal3 = casatools.ctsys.resolve('caltables/ngc4826.ref1b.gcal')
-    
+    rootpath = casatools.ctsys.resolve('unittest/gaincal/')
     
 else:
-    if os.path.exists(os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req'):
-        datapath = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/visibilities/vla/gaincaltest2.ms'
-        compCal = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/gaincaltest2.ms.G0'
-        tCal = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/gaincaltest2.ms.T0'
-        
-        combinedRef = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/genDataCombine.G0'
-        preTRef = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/genDataPreT.G0'
-        preGRef = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/genDataPreG.T0'
-        calModeP = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/calModeTest.G0'
-        calModeA = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/calModeTest.G1'
-        typeCalK = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/gaintypek.G0'
-        typeCalSpline = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/gaintypeSpline.G0'
-        spwMapCal = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/spwMap.G0'
-        # From merged test
-        merged_dataset1 = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/visibilities/vla/ngc5921.ms'
-        merged_refcal1 = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/ngc5921.ref1a.gcal'
-        merged_refcal2 = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/ngc5921.ref2a.gcal'
-        merged_dataset2 = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/visibilities/vla/ngc4826.ms'
-        merged_refcal3 = os.environ.get('CASAPATH').split()[0] + '/data/casa-data-req/caltables/ngc4826.ref1b.gcal'
-        
-        
-    else:
-        datapath = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/visibilities/vla/gaincaltest2.ms'
-        compCal = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/gaincaltest2.ms.G0'
-        tCal = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/gaincaltest2.ms.T0'
-        
-        combinedRef = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/genDataCombine.G0'
-        preTRef = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/genDataPreT.G0'
-        preGRef = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/genDataPreG.T0'
-        calModeP = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/calModeTest.G0'
-        calModeA = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/calModeTest.G1'
-        typeCalK = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/gaintypek.G0'
-        typeCalSpline = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/gaintypeSpline.G0'
-        spwMapCal = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/spwMap.G0'
-        # From merged test
-        merged_dataset1 = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/visibilities/vla/ngc5921.ms/'
-        merged_refcal1 = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/ngc5921.ref1a.gcal'
-        merged_refcal2 = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/ngc5921.ref2a.gcal'
-        merged_dataset2 = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/visibilities/vla/ngc4826.ms'
-        merged_refcal3 = os.environ.get('CASAPATH').split()[0] + '/casa-data-req/caltables/ngc4826.ref1b.gcal'
+    rootpath = os.environ.get('CASAPATH').split()[0] + '/casatestdata/unittest/gaincal/'
+
+datapath = rootpath + 'gaincaltest2.ms'
+compCal = rootpath + 'gaincaltest2.ms.G0'
+tCal = rootpath + 'gaincaltest2.ms.T0'
+# Reference Cals
+combinedRef = rootpath + 'genDataCombine.G0'
+preTRef = rootpath + 'genDataPreT.G0'
+preGRef = rootpath + 'genDataPreG.T0'
+calModeP = rootpath + 'calModeTest.G0'
+calModeA = rootpath + 'calModeTest.G1'
+typeCalK = rootpath + 'gaintypek.G0'
+typeCalSpline = rootpath + 'gaintypeSpline.G0'
+spwMapCal = rootpath + 'spwMap.G0'
+# From merged test
+merged_dataset1 = rootpath + 'ngc5921.ms'
+merged_refcal1 = rootpath + 'ngc5921.ref1a.gcal'
+merged_refcal2 = rootpath + 'ngc5921.ref2a.gcal'
+merged_dataset2 = rootpath + 'ngc4826.ms'
+merged_refcal3 = rootpath + 'ngc4826.ref1b.gcal'
         
         
 fullRangeCal = 'testgaincal.cal'
@@ -219,6 +182,28 @@ class gaincal_test(unittest.TestCase):
             
         if os.path.exists(tempCal2):
             shutil.rmtree(tempCal2)
+        if os.path.exists('testcorrdepflags.ms'):
+            shutil.rmtree('testcorrdepflags.ms')
+        if os.path.exists('testcorrdepflagsF.G'):
+            shutil.rmtree('testcorrdepflagsF.G')
+        if os.path.exists('testcorrdepflagsT.G'):
+            shutil.rmtree('testcorrdepflagsT.G')
+
+        if os.path.exists('testspwmap.ms'):
+            shutil.rmtree('testspwmap.ms')
+                
+        if os.path.exists('testspwmap.G0'):
+            shutil.rmtree('testspwmap.G0')
+    
+        if os.path.exists('testspwmap.G1'):
+            shutil.rmtree('testspwmap.G1')
+
+        if os.path.exists('testspwmap.G2'):
+            shutil.rmtree('testspwmap.G2')
+
+        if os.path.exists('testspwmap.G3'):
+            shutil.rmtree('testspwmap.G3')
+            
 
     @classmethod
     def tearDownClass(cls):
@@ -240,6 +225,19 @@ class gaincal_test(unittest.TestCase):
             
         if os.path.exists(selectCal):
             shutil.rmtree(selectCal)
+
+        # Removing frequency metadata cal tables
+        if os.path.exists('fmd1a.G'):
+            shutil.rmtree('fmd1a.G')
+
+        if os.path.exists('fmd1b.G'):
+            shutil.rmtree('fmd1b.G')
+
+        if os.path.exists('fmd2a.G'):
+            shutil.rmtree('fmd2a.G')
+            
+        if os.path.exists('fmd2b.G'):
+            shutil.rmtree('fmd2b.G')
 
     def test_correctGains(self):
         '''
@@ -458,7 +456,7 @@ class gaincal_test(unittest.TestCase):
         
     def test_gainTypeSpline(self):
         '''
-            test_gainTypeK
+            test_gainTypeSpline
             ----------------
             
             Check that the output with gaintype GSPLINE is equal to a reference calibration table
@@ -480,6 +478,78 @@ class gaincal_test(unittest.TestCase):
         
         self.assertTrue(np.all(tableComp(tempCal, spwMapCal)[:,1] == 'True'))
         
+
+
+        # Add more interesting test, including test of CAS-12591 fix
+
+        tsmdata='testspwmap.ms'
+
+        # slice out just scan 2
+        mstransform(vis=datacopy,outputvis=tsmdata,scan='2',datacolumn='data')
+
+        # Run gaincal w/ solint='inf' to get solutions for all spws
+        tsmcal0='testspwmap.G0'
+        gaincal(vis=tsmdata,caltable=tsmcal0,solint='inf',refant='0',smodel=[1,0,0,0])
+
+        # change spws in tsmcal0 [0,1,2,3] to [2,3,0,1], so we can use spwmap non-trivially
+        tb.open(tsmcal0,nomodify=False)
+        spwid=tb.getcol('SPECTRAL_WINDOW_ID')
+        spwid = [(i+2)%4 for i in spwid]
+        tb.putcol('SPECTRAL_WINDOW_ID',spwid)
+        tb.close()
+
+        # Solve for gains using tsmcal0 with spwmap=[2,3,0,1], which should "undo"
+        #  spwid change made above, expecting all solutions ~= (1,0)
+        tsmcal1='testspwmap.G1'
+        gaincal(vis=tsmdata,caltable=tsmcal1,solint='inf',refant='0',smodel=[1,0,0,0],
+                gaintable=[tsmcal0],spwmap=[2,3,0,1])
+
+        # test that output calibration is ~(1,0)
+        #  gains-1.0 ~ zero (to within precision and solve convergence fuzz
+        tb.open(tsmcal1)
+        g1=tb.getcol('CPARAM')
+        tb.close()
+        self.assertTrue(np.absolute(np.mean(g1-1.0))<2e-6)
+
+
+        # Run gaincal to get solutions for spw=0,1
+        tsmcal2='testspwmap.G2'
+        gaincal(vis=tsmdata,caltable=tsmcal2,spw='0,1',solint='inf',refant='0',smodel=[1,0,0,0])
+
+        # Reset spwid  0,1->3,2 so we can exercise spwmap=[3,2,0,1]
+        # also fix FLAG_ROW in SPECTRAL_WINDOW subtable
+        tb.open(tsmcal2,nomodify=False)
+        spwid=tb.getcol('SPECTRAL_WINDOW_ID')
+        spwid[spwid==0]=3
+        spwid[spwid==1]=2
+        tb.putcol('SPECTRAL_WINDOW_ID',spwid)
+        tb.close()
+        tb.open(tsmcal2+'/SPECTRAL_WINDOW',nomodify=False)
+        fr=tb.getcol('FLAG_ROW')
+        fr=[1,1,0,0]
+        tb.putcol('FLAG_ROW',fr)
+        tb.close()
+
+        # solve again with unselected spws all mapped to unavailable solutions
+        #  this tests the fix for CAS-12591, wherein the solution-availability check
+        #  was applying the spwmap twice, causing a mysterious exception and 
+        #  failure to calibrate
+        #  (In this case, if spw 2,3 are mapped twice (to 0,1), the availability check
+        #   would fail)
+        #  (expecting g~=(1,0) if applied solutions mapped correctly)
+        tsmcal3='testspwmap.G3'
+        gaincal(vis=tsmdata,caltable=tsmcal3,spw='0,1',solint='inf',refant='0',smodel=[1,0,0,0],
+                gaintable=[tsmcal2],spwmap=[3,2,0,1])
+
+        # test that output calibration is ~(1,0)
+        #  gains-1.0 ~ zero (to within precision and solve convergence fuzz
+        tb.open(tsmcal3)
+        g3=tb.getcol('CPARAM')
+        tb.close()
+        self.assertTrue(np.absolute(np.mean(g1-1.0))<2e-6)
+
+
+
     
     def test_mergedCreatesGainTable(self):
         ''' Gaincal 1a: Default values to create a gain table '''
@@ -505,6 +575,364 @@ class gaincal_test(unittest.TestCase):
         self.assertTrue(os.path.exists(tempCal))
         
         self.assertTrue(th.compTables(tempCal, merged_refcal3, ['WEIGHT']))
+
+
+    def test_corrDepFlags(self):
+        '''
+            test_corrDepFlags
+            -----------------
+        '''
+
+
+        # This test exercises the corrdepflags parameter 
+        #
+        #  With corrdepflags=False (the default), one (or more) flagged correlations causes
+        #  all correlations (per channel, per baseline) to behave as flagged, thereby
+        #  causing both polarizations to be flagged in the output cal table
+        #
+        #  With corrdepflags=True, unflagged correlations will be used as normal, and
+        #  only the implicated polarization will be flagged in the output cal table
+        #
+        #  NB: when some data are flagged, we expect solutions to change slightly,
+        #      since available data is different.  For now, we are testing only the
+        #      resulting flags.
+
+        cdfdata='testcorrdepflags.ms'
+        # slice out just scan 2
+        mstransform(vis=datacopy,outputvis=cdfdata,scan='2',datacolumn='data')
+
+        # modify flags in interesting corr-dep ways in scan 2 for subset of antennas
+        tb.open(cdfdata,nomodify=False)
+
+        # we modify the flags as follows:
+        #  spw=0:  one antenna, one correlation (YY)
+        #  spw=1:  one antenna, one correlation (XX)
+        #  spw=2:  two antennas, opposite correlations
+        #  spw=3:  one antenna, both cross-hands flagged
+
+        # set flags for spw=0, antenna=3, corr=YY
+        st=tb.query('SCAN_NUMBER==2 && DATA_DESC_ID==0 && (ANTENNA1==3 || ANTENNA2==3)')
+        fl=st.getcol('FLAG')
+        fl[3,:,:]=True
+        st.putcol('FLAG',fl)
+        st.close()
+
+        # set flags for spw=1, antenna=6, corr=XX
+        st=tb.query('SCAN_NUMBER==2 && DATA_DESC_ID==1 && (ANTENNA1==6 || ANTENNA2==6)')
+        fl=st.getcol('FLAG')
+        fl[0,:,:]=True
+        st.putcol('FLAG',fl)
+        st.close()
+
+        # set flags for spw=2, antenna=2, corr=XX
+        st=tb.query('SCAN_NUMBER==2 && DATA_DESC_ID==2 && (ANTENNA1==2 || ANTENNA2==2)')
+        fl=st.getcol('FLAG')
+        fl[0,:,:]=True
+        st.putcol('FLAG',fl)
+        st.close()
+        # set flags for spw=2, antenna=7, corr=YY
+        st=tb.query('SCAN_NUMBER==2 && DATA_DESC_ID==2 && (ANTENNA1==7 || ANTENNA2==7)')
+        fl=st.getcol('FLAG')
+        fl[3,:,:]=True
+        st.putcol('FLAG',fl)
+        st.close()
+
+        # set flags for spw=3, antenna=8, corr=XY,YX
+        st=tb.query('SCAN_NUMBER==2 && DATA_DESC_ID==3 && (ANTENNA1==8 || ANTENNA2==8)')
+        fl=st.getcol('FLAG')
+        fl[1:3,:,:]=True
+        st.putcol('FLAG',fl)
+        st.close()
+        
+        tb.close()
+        
+        # Run gaincal on scan 2, solint='inf' with corrdepflags=False
+        #   expect both pols to be flagged for ants with one or more corr flagged
+        cdfF='testcorrdepflagsF.G'
+        gaincal(vis=cdfdata,caltable=cdfF,solint='inf',refant='0',smodel=[1,0,0,0],corrdepflags=False)
+
+        tb.open(cdfF)
+        flF=tb.getcol('FLAG')
+        tb.close()
+
+        # flag count per spw  (both pols in every case)
+        self.assertTrue(np.sum(flF[:,0,0:10])==2)    
+        self.assertTrue(np.sum(flF[:,0,10:20])==2)
+        self.assertTrue(np.sum(flF[:,0,20:30])==4)
+        self.assertTrue(np.sum(flF[:,0,30:40])==2)
+
+        # check flags set for specific antennas, each spw  (both pols each antenna)
+        self.assertTrue(np.all(flF[:,0,0:10][:,3]))        # spw 0
+        self.assertTrue(np.all(flF[:,0,10:20][:,6]))       # spw 1
+        self.assertTrue(np.all(flF[:,0,20:30][:,[2,7]]))   # spw 2
+        self.assertTrue(np.all(flF[:,0,30:40][:,8]))       # spw 3
+
+        # Run gaincal on scan 2, solint='inf' with corrdepflags=True
+        #   expect unflagged solutions for unflagged pol
+        cdfT='testcorrdepflagsT.G'
+        gaincal(vis=cdfdata,caltable=cdfT,solint='inf',refant='0',smodel=[1,0,0,0],corrdepflags=True)
+
+        tb.open(cdfT)
+        flT=tb.getcol('FLAG')
+        tb.close()
+
+        # flag count per spw (one pol per antenna, at most)
+        self.assertTrue(np.sum(flT[:,0,0:10])==1)
+        self.assertTrue(np.sum(flT[:,0,10:20])==1)
+        self.assertTrue(np.sum(flT[:,0,20:30])==2)
+        self.assertTrue(np.sum(flT[:,0,30:40])==0)
+
+        # check flags set for specific antennas, each spw (one pol per antenna, at most)
+        self.assertTrue(flT[1,0,0:10][3])        # spw 0, antenna 3, pol=Y
+        self.assertTrue(flT[0,0,10:20][6])       # spw 1, antenna 6, pol=X
+        self.assertTrue(flT[0,0,20:30][2])       # spw 2, antenna 2, pol=X
+        self.assertTrue(flT[1,0,20:30][7])       # spw 2, antenna 7, pol=Y
+        # (spw 3 tested above)
+
+
+
+    def test_FreqMetaData1a(self):
+        '''
+            test_FreqMetaData1a: No explicit spw selection + append
+            -------------------
+        '''
+        # 1a. No explicit spw selection                                                                                                                                                                           
+
+        # extract MS frequencies, upon which caltable frequency meta data are based
+        tb.open(datacopy+'/SPECTRAL_WINDOW')
+        msfreq=tb.getcol('CHAN_FREQ')
+        tb.close()
+
+
+        # the caltable
+        ct='fmd1a.G'
+
+        # create the table
+        gaincal(vis=datacopy,caltable=ct,scan='2,4,6',spw='',solint='inf',smodel=[1,0,0,0])
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ')
+        ctspwflag=tb.getcol('FLAG_ROW')  # shoule be [F,F,F,F]   # all spws unflagged
+        tb.close()
+        fdiff=(ctfreq[0,:] - np.mean(msfreq,0))/ctfreq[0,:]  # should be all ~zero  (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 120 = (nant=10)*(nspw=4)*(nscan=3)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==False))  # all spws unflagged
+        self.assertTrue(ctnrows==120)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+        #  + append=True
+        gaincal(vis=datacopy,caltable=ct,scan='14,16',spw='',solint='inf',smodel=[1,0,0,0],append=True)
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ')
+        ctspwflag=tb.getcol('FLAG_ROW')  # shoule be [F,F,F,F]   # all spws unflagged
+        tb.close()
+        fdiff=(ctfreq[0,:] - np.mean(msfreq,0))/ctfreq[0,:]  # should be all ~zero  (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 200 = (nant=10)*(nspw=4)*(nscan=3+2)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==False))  # all spws unflagged
+        self.assertTrue(ctnrows==200)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+
+
+    def test_FreqMetaData1b(self):
+        '''
+            test_FreqMetaData1b: Non-trivial spw/channel selection + append
+            -------------------
+        '''
+
+        # 1b  Non-trivial spw selection, including some channel selection
+
+        # extract MS frequencies, upon which caltable frequency meta data are based
+        tb.open(datacopy+'/SPECTRAL_WINDOW')
+        msfreq=tb.getcol('CHAN_FREQ')
+        tb.close()
+
+        # the caltable
+        ct='fmd1b.G'
+
+        # create the table
+        gaincal(vis=datacopy,caltable=ct,scan='2,4,6',spw='1:1~4,2,3:4~7',solint='inf',smodel=[1,0,0,0])
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ',1,3)  # only 1,2,3
+        ctspwflag=tb.getcol('FLAG_ROW')  # shoule be [T,F,F,F]   # spw 0 is flagged (not selected)
+        tb.close()
+        fdiff=ctfreq[0,:].copy()
+        fdiff[0]-=np.mean(msfreq[1:5,1])  # chans 1-4 
+        fdiff[1]-=np.mean(msfreq[:,2])    # all chans
+        fdiff[2]-=np.mean(msfreq[4:8,3])  # chans 4-7
+        fdiff/=ctfreq[0,:]    # should be ~zero (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 90 = (nant=10)*(nspw=3)*(nscan=3)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==[True,False,False,False]))  # only spw 0 flagged
+        self.assertTrue(ctnrows==90)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+        
+        #  different spw selection (MISMATCHED in spw 3!) + append=True   THIS SHOULD FAIL W/ EXCEPTION
+        try:
+            gaincal(vis=datacopy,caltable=ct,scan='21,23',spw='0,1:1~4,2,3:0~1',solint='inf',smodel=[1,0,0,0],append=True)
+            print("In testFreqMetaData1b, a gaincal which should have thrown an exception did not!")
+            self.assertTrue(False)
+        except RuntimeError:
+            self.assertTrue(True)
+
+
+        #  different spw selection (overlaps correctly with above) + append=True
+        gaincal(vis=datacopy,caltable=ct,scan='14,16',spw='0,1:1~4,2',solint='inf',smodel=[1,0,0,0],append=True)
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ')    # all spws now
+        ctspwflag=tb.getcol('FLAG_ROW')  # shoule be [F,F,F,F]   # all spws unflagged
+        tb.close()
+        fdiff=ctfreq[0,:].copy()
+        fdiff[0]-=np.mean(msfreq[:,0])  # all chans
+        fdiff[1]-=np.mean(msfreq[1:5,1])  # chans 1-4 
+        fdiff[2]-=np.mean(msfreq[:,2])    # all chans
+        fdiff[3]-=np.mean(msfreq[4:8,3])  # chans 4-7
+        fdiff/=ctfreq[0,:]    # should be ~zero (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 150 = (nant=10)*(nspw=3)*(nscan=3+2)  (NB: different 3 spws)  
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==False))  # solutions for all spws now
+        self.assertTrue(ctnrows==150)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+
+    def test_FreqMetaData2a(self):
+        '''
+            test_FreqMetaData2a: No explicit spw selection w/ combine=spw + append
+            -------------------
+        '''
+        # 2a. No explicit spw selection w/ combine='spw'
+
+        # extract MS frequencies, upon which caltable frequency meta data are based
+        tb.open(datacopy+'/SPECTRAL_WINDOW')
+        msfreq=tb.getcol('CHAN_FREQ')
+        tb.close()
+
+        # the caltable
+        ct='fmd2a.G'
+
+        # create table
+        gaincal(vis=datacopy,caltable=ct,scan='2,4,6',spw='',combine='spw',solint='inf',smodel=[1,0,0,0])
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ',0,1)  # only 0
+        ctspwflag=tb.getcol('FLAG_ROW')    # should be [F,T,T,T]   # only for spw 0
+        tb.close()
+        fdiff=(ctfreq[0,0]-np.mean(msfreq,(0,1)))/ctfreq[0,0]     # should be ~zero (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 30 = (nant=10)*(nspw=1)*(nscan=3)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==[False,True,True,True]))  # only spw 0 unflagged
+        self.assertTrue(ctnrows==30)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+        
+        #  + append=True
+        gaincal(vis=datacopy,caltable=ct,scan='14,16',spw='',combine='spw',solint='inf',smodel=[1,0,0,0],append=True)
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ',0,1)  # only 0
+        ctspwflag=tb.getcol('FLAG_ROW')    # should be [F,T,T,T]   # only for spw 0
+        tb.close()
+        fdiff=(ctfreq[0,0]-np.mean(msfreq,(0,1)))/ctfreq[0,0]   # should be ~zero (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 50 = (nant=10)*(nspw=1)*(nscan=3+2)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==[False,True,True,True]))  # only spw 0 unflagged
+        self.assertTrue(ctnrows==50)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+
+
+    def test_FreqMetaData2b(self):
+        '''
+            test_FreqMetaData2b: Non-trivial spw/channel selection  w/ combine=spw + append
+            -------------------
+        '''
+        # 2b. Non-trivial spw selection, including some channel selection, w/ combine='spw'  fanin:  [1,2,3]->[1]
+
+        # extract MS frequencies, upon which caltable frequency meta data are based
+        tb.open(datacopy+'/SPECTRAL_WINDOW')
+        msfreq=tb.getcol('CHAN_FREQ')
+        tb.close()
+
+
+        # the caltable
+        ct='fmd2b.G'
+
+        # create table
+        gaincal(vis=datacopy,caltable=ct,scan='2,4,6',spw='1:1~4,2,3:4~7',combine='spw',solint='inf',smodel=[1,0,0,0])
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ',1,1)  # only 1
+        ctspwflag=tb.getcol('FLAG_ROW')    # should be [T,F,T,T]   # only unflagged for spw 1
+        tb.close()
+        fdiff=(ctfreq[0,0]-np.mean(list(msfreq[1:5,1])+list(msfreq[:,2])+list(msfreq[4:8,3])))/ctfreq[0,0]   # should be ~zero (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 30 = (nant=10)*(nspw=1)*(nscan=3)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==[True,False,True,True]))  # only spw 0 unflagged
+        self.assertTrue(ctnrows==30)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+
+        # attemp to append incongruent channel selection (fanin is still [1,2,3]->[1])   SHOULD FAIL W/ EXCEPTION
+        try:
+            gaincal(vis=datacopy,caltable=ct,scan='21,23',spw='1:1~4,2,3:0~1',combine='spw',solint='inf',smodel=[1,0,0,0],append=True)
+            print("In testFreqMetaData2b, a gaincal which should have thrown an exception did not!")
+            self.assertTrue(False)
+        except RuntimeError:
+            self.assertTrue(True)
+
+        #  + append=True
+        gaincal(vis=datacopy,caltable=ct,scan='14,16',spw='1:1~4,2,3:4~7',combine='spw',solint='inf',smodel=[1,0,0,0],append=True)
+
+        tb.open(ct+'/SPECTRAL_WINDOW')
+        ctfreq=tb.getcol('CHAN_FREQ',1,1)  # only 1
+        ctspwflag=tb.getcol('FLAG_ROW')    # should be [T,F,T,T]   # only unflagged for spw 1
+        tb.close()
+        fdiff=(ctfreq[0,0]-np.mean(list(msfreq[1:5,1])+list(msfreq[:,2])+list(msfreq[4:8,3])))/ctfreq[0,0]    # should be ~zero (<1e-15)
+
+        tb.open(ct)
+        ctnrows=tb.nrows()   # ctnrows should be 50 = (nant=10)*(nspw=1)*(nscan=3+2)
+        tb.close()
+
+        #print(ctnrows, ctspwflag, fdiff)
+        self.assertTrue(np.all(ctspwflag==[True,False,True,True]))  # only spw 0 unflagged
+        self.assertTrue(ctnrows==50)
+        self.assertTrue(np.all(np.absolute(fdiff)<1e-15))
+
+
+
 
 
 def suite():

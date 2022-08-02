@@ -5,7 +5,7 @@
       xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd
       file:///opt/casa/code/xmlcasa/xml/casa.xsd">
 
-<task type="function" name="msuvbin" category="calibration" visibility="experimental">
+<task type="function" name="msuvbin" category="manipulation, imaging" visibility="experimental">
   <shortdescription>grid the visibility data onto a defined uniform grid (in the form of an ms); multiple MS\'s can be done onto the same grid</shortdescription>
   <description>
           msuvbin is a uv gridding task. The use is for large volumes
@@ -113,7 +113,7 @@
        spw -- Spw selection
                default: spw = '' (all spw)
                spw='2'
-       taql  --TaQl expression for data selection (see http://www.astron.nl/casacore/trunk/casacore/doc/notes/199.html)
+       taql  --TaQl expression for data selection (see https://casacore.github.io/casacore-notes/199.html)
                default taql=''
                Example select all data where U &gt; 1 m in the ms
                taql='UVW[0] &gt; 1'
