@@ -60,6 +60,9 @@ carmapath = ctsys.resolve('unittest/importuvfits/mirsplit.UVFITS')
 
 logpath = casalog.logfile()
 
+datapath = ctsys.resolve('uvfits')
+planets = os.path.join(datapath, 'planets_6cm.uvfits')
+
 class importuvfits_test(unittest.TestCase):
     # 06/13/2010: This seemed to be the only MS in the regression repo
     # that is a good test of padwithflag.
@@ -89,6 +92,8 @@ class importuvfits_test(unittest.TestCase):
             shutil.rmtree('kf.ms')
         if os.path.exists('xyz.uvfits'):
             os.remove('xyz.uvfits')
+        if os.path.exists('planets.ms'):
+            shutil.rmtree('planets.ms')
 
         if self.do_teardown:
             self.qa.done( )
@@ -253,6 +258,22 @@ class importuvfits_test(unittest.TestCase):
         got = tb.getcol(rec_ang)
         tb.done()
         self.assertTrue(np.max(np.abs(got-expec)) < 1e-7, "Receptor angles not preserved")
+
+
+    def test_rotation_of_vla_ant_positions(self):
+        """
+        CAS-11726 verify vla location tolerance is large enough to accomodate older
+        uvfits files
+        """
+        msname = 'planets.ms'
+        importuvfits(fitsfile=planets, vis=msname)
+        tb.open(f'{msname}/ANTENNA')
+        got = tb.getcol('POSITION')[:, 0]
+        tb.done()
+        expec = [-1601709.98866227, -5042006.97876218,  3554602.33317189]
+        self.assertTrue(np.allclose(got, expec), 'incorrect antenna posiitons')
+
+
 
 if __name__ == '__main__':
     unittest.main()
