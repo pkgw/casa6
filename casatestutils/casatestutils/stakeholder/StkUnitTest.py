@@ -23,6 +23,11 @@ use_partial_results = True if str(use_partial_results).lower() in ['1', 'true'] 
 class StkUnitTest(unittest.TestCase):
     """ Adds some stakeholder test specific extensions to the general unit test class """
     
+    def setUpClass(self):
+        png_files = glob.glob('*.png')
+        for f in png_files:
+            shutil.rmtree(f)
+
     def setUp(self):
         super().setUp()
         self.imgs = []
@@ -53,6 +58,12 @@ class StkUnitTest(unittest.TestCase):
             if not os.path.exists(teardown_file):
                 continue
             del_files.append(teardown_file)
+
+        # don't delete weblogs at the end (done in setUpClass instead)
+        keep_files = filter(lambda f: f.endswith(".png") or f.endswith(".html"), del_files)
+        del_files = filter(lambda f: f not in keep_files, del_files)
+
+        # delete the del_files
         for f in del_files:
             shutil.rmtree(f)
 
@@ -62,7 +73,7 @@ class StkUnitTest(unittest.TestCase):
         else:
             shutil.copy2(src, dst)
 
-    def prepData(self, msname, data_path_dir, *copyargs):
+    def prepData(self, msname, data_path_dir, *copyargs, partial_results_dirname=""):
         """ Copies the given measurement set (and other copyargs) to the current directory.
 
         This function fulfills a different purpose in the case that the environment variable
@@ -96,7 +107,8 @@ class StkUnitTest(unittest.TestCase):
             # continue running with partially computed results (eg, ran tclean last time, now check the values)
             from os.path import dirname, join
             import sys
-            fromdir = join( dirname(dirname(os.getcwd())), "partial_results" )
+            partial_results_dirname = "partial_results" if partial_results_dirname == "" else partial_results_dirname
+            fromdir = join( dirname(dirname(os.getcwd())), partial_results_dirname )
             skipfiles = ["__pycache__"]
             files = list(filter(lambda x: x not in skipfiles, os.listdir(fromdir)))
             casalog.post(f"Restorting partial results [{len(files)}]", "SEVERE")
@@ -382,14 +394,14 @@ class StkUnitTest(unittest.TestCase):
         
         return success, report
 
-    def get_params_as_dict(self, **wargs):
+    def get_params_as_dict(self, **kwargs):
         """ Get the parameters called of a given function as a dictionary of parameter name to value.
 
         This can be useful to, for example, get a dictionary of parameter values
         for a previous call to tclean from the casalogs:
           self.get_params_as_dict(vis='J1927_12fields.ms', selectdata=True, field='', spw='', timerange='', uvrange='', antenna='', scan='', observation='', intent='OBSERVE_TARGET#UNSPECIFIED', datacolumn='data', imagename='VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter0', imsize=[7290, 7290], cell='1.0arcsec', phasecenter='19:27:30.443 +61.17.32.898', stokes='I', projection='SIN', startmodel='', specmode='mfs', reffreq='3.0GHz', nchan=-1, start='', width='', outframe='LSRK', veltype='radio', restfreq=[], interpolation='linear', perchanweightdensity=False, gridder='mosaic', facets=1, psfphasecenter='', chanchunks=1, wprojplanes=1, vptable='', mosweight=False, aterm=True, psterm=False, wbawp=True, conjbeams=False, cfcache='', usepointing=False, computepastep=360.0, rotatepastep=360.0, pointingoffsetsigdev=[], pblimit=0.2, normtype='flatnoise', deconvolver='mtmfs', scales=[0], nterms=2, smallscalebias=0.0, restoration=False, restoringbeam='common', pbcor=False, outlierfile='', weighting='briggs', robust=1.0, noise='1.0Jy', npixels=0, uvtaper=[], niter=0, gain=0.1, threshold='0.0mJy', nsigma=0.0, cycleniter=-1, cyclefactor=1.0, minpsffraction=0.05, maxpsffraction=0.8, interactive=0, usemask='user', mask='', pbmask=0.0, sidelobethreshold=3.0, noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, smoothfactor=1.0, minbeamfrac=0.3, cutthreshold=0.01, growiterations=75, dogrowprune=True, minpercentchange=-1.0, verbose=False, fastnoise=True, restart=True, savemodel='none', calcres=True, calcpsf=True, parallel=False)
         """
-        return dict(wargs)
+        return dict(kwargs)
 
     def print_task_diff_params(self, fname, act_pars : dict, exp_pars : dict):
         """ Compare the parameter values for the "act_pars" actual parameters
@@ -434,24 +446,24 @@ class StkUnitTest(unittest.TestCase):
         if len(new_par_vals) > 0:
             casalog.post(f"                          new pars: {new_pars_str}", "INFO")
 
-    def _run_tclean(self, **wargs):
+    def _run_tclean(self, **kwargs):
         """ Tracks the "imagename" in self.imgs (for cleanup), checks for mask existance, and runs tclean.
 
         If the env var USE_PARTIAL_RESULTS == "true", then don't run tclean.
         """
-        if ('imagename' in wargs):
-            img = wargs['imagename']
+        if ('imagename' in kwargs):
+            img = kwargs['imagename']
             if (img not in self.imgs):
                 self.imgs.append(img)
-        if ('mask' in wargs) and (wargs['mask'] != ''):
-            if not os.path.exists(wargs['mask']):
-                raise RuntimeError(f"Error: trying to run tclean with nonexistant mask {wargs['mask']}")
+        if ('mask' in kwargs) and (kwargs['mask'] != ''):
+            if not os.path.exists(kwargs['mask']):
+                raise RuntimeError(f"Error: trying to run tclean with nonexistant mask {kwargs['mask']}")
         try:
             if not use_partial_results:
-                return tclean(**wargs)
+                return tclean(**kwargs)
                 pass
         except:
-            # self.print_tclean(**wargs)
+            # self.print_tclean(**kwargs)
             raise
 
     def run_tclean(self, vis='', selectdata=True, field='', spw='', timerange='', uvrange='', antenna='',
@@ -522,3 +534,19 @@ class StkUnitTest(unittest.TestCase):
         self.ia.fromarray(outputmaskname, pixels=pixels, type=pixeltype)
         self.ia.close()
         self.ia.done()
+
+    def mom8_creator(self, image, range_list):
+        """ Takes and image and turns it into a .png for weblog.
+        The output image will be named "{image}.moment8.png"
+        Note that for casa 6.2-, this function will cause casa to hang.
+
+        Copied from test_stk_alma_pipeline_imaging.py.
+
+        Args:
+            image: The ".image" casa image to generate a png from.
+            range_list: The sensitivity range to scale the image to. Example: [0, 0.1]
+        """
+        immoments(imagename = image, moments = 8, outfile = image+'.moment8')
+        imview(raster={'file': image+'.moment8', 'range': range_list}, \
+            out = {'file': image+'.moment8.png'})
+        subprocess.call('mogrify -trim '+image+'.moment8.png', shell=True)

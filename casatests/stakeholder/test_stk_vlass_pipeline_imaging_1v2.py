@@ -154,10 +154,10 @@ class test_j1302(StkUnitTest):
 
         if not quick_test:
             imsize=4000
-            self.prepData(self.vis, data_path_dir, *masks)
+            self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1302_mtmfs")
         else:
             imsize=1000
-            self.prepData(self.vis, data_path_dir, *quick_masks)
+            self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1302_mtmfs")
             for i in range(len(masks)):
                 os.system(f"mv {quick_masks[i]} {masks[i]}")
             self.teardown_files += masks
@@ -285,15 +285,11 @@ class test_j1302(StkUnitTest):
         #####################################################
 
         if quick_test:
-            # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.05])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.32])
+            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.05])
         else:
-            # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.30])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.01])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.30])
+            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.01])
 
         #############################################
         # %% Generate Images [test_j1302_mtmfs] end @
@@ -340,12 +336,12 @@ class test_j1302(StkUnitTest):
 
         if not quick_test:
             imsize=5250
-            self.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", *masks)
+            self.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", *masks, partial_results_dirname="partial_results_test_j1302_awproject")
             os.system(f"mv cfcache/{img0}.cf {cache0name}")
             os.system(f"mv cfcache/{img1}.cf {cache1name}")
         else:
             imsize=1312
-            self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{img0}.cf", f"cfcache_quick1/{img1}.cf", *quick_masks)
+            self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{img0}.cf", f"cfcache_quick1/{img1}.cf", *quick_masks, partial_results_dirname="partial_results_test_j1302_awproject")
             os.system(f"mv cfcache_quick1/{img0}.cf {cache0name}")
             os.system(f"mv cfcache_quick1/{img1}.cf {cache1name}")
             for i in range(len(masks)):
@@ -494,11 +490,15 @@ class test_j1302(StkUnitTest):
         #########################################################
 
         if quick_test:
-            # self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.22])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.22])
+            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.22])
+            self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.22])
+            self.mom8_creator(image=img1+'.image.tt1', range_list=[0, 0.22])
         else:
-            # self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.32])
+            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.32])
+            self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.32])
+            self.mom8_creator(image=img1+'.image.tt1', range_list=[0, 0.32])
 
         #################################################
         # %% Generate Images [test_j1302_awproject] end @
@@ -545,10 +545,10 @@ class test_j1302(StkUnitTest):
 
         if not quick_test:
             imsize=4000
-            self.prepData(self.vis, data_path_dir, *masks)
+            self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1302_mosaic_cube")
         else:
             imsize=1000
-            self.prepData(self.vis, data_path_dir, *quick_masks)
+            self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1302_mosaic_cube")
             for i in range(len(masks)):
                 os.system(f"mv {quick_masks[i]} {masks[i]}")
             self.teardown_files += masks
@@ -801,19 +801,13 @@ class test_j1302(StkUnitTest):
         ###########################################################
 
         if quick_test:
-            # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.26])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
+            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
+            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.26])
         else:
-            # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.33])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
+            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.33])
+            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
 
         ###################################################
         # %% Generate Images [test_j1302_mosaic_cube] end @
@@ -853,7 +847,7 @@ class test_j1302(StkUnitTest):
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-data'
         img0 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter0'
         img1 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter1'
-        self.prepData(self.vis, data_path_dir)
+        self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1302_ql")
         imsize = 7290
         rms = 0.00034846254286391285 # noise floor as measured from a full-scale image run, Range: [3000,3000],[6990,3600]
 
@@ -970,11 +964,9 @@ class test_j1302(StkUnitTest):
         ##################################################
 
         if quick_test:
-            # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
         else:
-            # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
 
         ##########################################
         # %% Generate Images [test_j1302_ql] end @
@@ -1025,10 +1017,10 @@ class test_j1927(StkUnitTest):
 
         if not quick_test:
             imsize=4000
-            self.prepData(self.vis, data_path_dir, *masks)
+            self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1927_mtmfs")
         else:
             imsize=1000
-            self.prepData(self.vis, data_path_dir, *quick_masks)
+            self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1927_mtmfs")
             for i in range(len(masks)):
                 os.system(f"mv {quick_masks[i]} {masks[i]}")
             self.teardown_files += masks
@@ -1156,15 +1148,11 @@ class test_j1927(StkUnitTest):
         #####################################################
 
         if quick_test:
-            # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.33])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88])
+            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.33])
         else:
-            # self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.89])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.42])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.89])
+            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.42])
 
         #############################################
         # %% Generate Images [test_j1927_mtmfs] end @
@@ -1213,10 +1201,10 @@ class test_j1927(StkUnitTest):
 
         if not quick_test:
             imsize=4000
-            self.prepData(self.vis, data_path_dir, *masks)
+            self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1927_mosaic_cube")
         else:
             imsize=1000
-            self.prepData(self.vis, data_path_dir, *quick_masks)
+            self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1927_mosaic_cube")
             for i in range(len(masks)):
                 os.system(f"mv {quick_masks[i]} {masks[i]}")
             self.teardown_files += masks
@@ -1437,19 +1425,13 @@ class test_j1927(StkUnitTest):
         ###########################################################
 
         if quick_test:
-            # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78])
+            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88])
+            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92])
         else:
-            # self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.76])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.87])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
-            # self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.96])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.76])
+            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.87])
+            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.96])
 
         ###################################################
         # %% Generate Images [test_j1927_mosaic_cube] end @
@@ -1486,7 +1468,7 @@ class test_j1927(StkUnitTest):
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
         img0 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter0'
         img1 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter1'
-        self.prepData(self.vis, data_path_dir)
+        self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1927_ql")
         # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_QL_unittest"
         # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
         imsize = 7290
@@ -1605,11 +1587,9 @@ class test_j1927(StkUnitTest):
         ##################################################
 
         if quick_test:
-            # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
         else:
-            # self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
-            print("skipping image creation - casa 6.2.1 hangs with imviewer")
+            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
 
         ##########################################
         # %% Generate Images [test_j1927_ql] end @
