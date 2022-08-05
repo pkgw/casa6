@@ -284,12 +284,8 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_mtmfs] start       @
         #####################################################
 
-        if quick_test:
-            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.32])
-            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.05])
-        else:
-            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.30])
-            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.01])
+        self.mom8_creator(image=img0+'.image.tt0', range_list=[0.003, 0.32], imgname="j1302_mtmfs_tt0")
+        self.mom8_creator(image=img0+'.image.tt1', range_list=[0.001, 0.04], imgname="j1302_mtmfs_tt1")
 
         #############################################
         # %% Generate Images [test_j1302_mtmfs] end @
@@ -489,16 +485,8 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_awproject] start       @
         #########################################################
 
-        if quick_test:
-            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.22])
-            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.22])
-            self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.22])
-            self.mom8_creator(image=img1+'.image.tt1', range_list=[0, 0.22])
-        else:
-            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.32])
-            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.32])
-            self.mom8_creator(image=img1+'.image.tt0', range_list=[0, 0.32])
-            self.mom8_creator(image=img1+'.image.tt1', range_list=[0, 0.32])
+        self.mom8_creator(image=img1+'.image.tt0', range_list=[0.002, 0.32], imgname="j1302_awproject_iter2_tt0")
+        self.mom8_creator(image=img1+'.image.tt1', range_list=[0.007, 0.16], imgname="j1302_awproject_iter2_tt1")
 
         #################################################
         # %% Generate Images [test_j1302_awproject] end @
@@ -558,6 +546,8 @@ class test_j1302(StkUnitTest):
         starttime = datetime.now()
 
         # reference frequence to use per spectral window (spw)
+        # The datasets were reduced to take up less space. This included dropping the unused spws.
+        # The original spws were '2', '8', and '14'. These got remapped to '0', '1', and '2', respectively.
         refFreqDict  = {
             '0' :  '2.028GHz',
             '1' :  '2.796GHz',
@@ -800,14 +790,9 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_mosaic_cube] start       @
         ###########################################################
 
-        if quick_test:
-            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
-            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.32])
-            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.26])
-        else:
-            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
-            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.33])
-            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.31])
+        self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0.002, 0.32], imgname="j1302_mosaic_cube_spw2")
+        self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0.001, 0.32], imgname="j1302_mosaic_cube_spw8")
+        self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0.001, 0.30], imgname="j1302_mosaic_cube_spw14")
 
         ###################################################
         # %% Generate Images [test_j1302_mosaic_cube] end @
@@ -963,10 +948,7 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_ql] start       @
         ##################################################
 
-        if quick_test:
-            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
-        else:
-            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.32])
+        self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0.001, 0.32], imgname="j1302_ql")
 
         ##########################################
         # %% Generate Images [test_j1302_ql] end @
@@ -1147,12 +1129,8 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_mtmfs] start       @
         #####################################################
 
-        if quick_test:
-            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88])
-            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.33])
-        else:
-            self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.89])
-            self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.42])
+        self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
+        self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.33], imgname="j1927_mtmfs_tt1")
 
         #############################################
         # %% Generate Images [test_j1927_mtmfs] end @
@@ -1216,6 +1194,8 @@ class test_j1927(StkUnitTest):
         starttime = datetime.now()
 
         # reference frequence to use per spectral window (spw)
+        # The datasets were reduced to take up less space. This included dropping the unused spws.
+        # The original spws were '2', '8', and '14'. These got remapped to '0', '1', and '2', respectively.
         refFreqDict  = {
             '0' :  '2.028GHz',
             '1' :  '2.796GHz',
@@ -1424,14 +1404,9 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_mosaic_cube] start       @
         ###########################################################
 
-        if quick_test:
-            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78])
-            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88])
-            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92])
-        else:
-            self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.76])
-            self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.87])
-            self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.96])
+        self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78], imgname="j1927_mosaic_cube_spw2")
+        self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mosaic_cube_spw8")
+        self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92], imgname="j1927_mosaic_cube_spw14")
 
         ###################################################
         # %% Generate Images [test_j1927_mosaic_cube] end @
@@ -1586,10 +1561,7 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_ql] start       @
         ##################################################
 
-        if quick_test:
-            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
-        else:
-            self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90])
+        self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90], imgname="j1927_ql")
 
         ##########################################
         # %% Generate Images [test_j1927_ql] end @

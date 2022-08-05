@@ -22,11 +22,13 @@ use_partial_results = True if str(use_partial_results).lower() in ['1', 'true'] 
 
 class StkUnitTest(unittest.TestCase):
     """ Adds some stakeholder test specific extensions to the general unit test class """
-    
-    def setUpClass(self):
+
+    @classmethod
+    def setUpClass(cls):
         png_files = glob.glob('*.png')
-        for f in png_files:
-            shutil.rmtree(f)
+        html_files = glob.glob('*.html')
+        for f in list(png_files)+list(html_files):
+            self._del_file_or_dir(f)
 
     def setUp(self):
         super().setUp()
@@ -60,18 +62,24 @@ class StkUnitTest(unittest.TestCase):
             del_files.append(teardown_file)
 
         # don't delete weblogs at the end (done in setUpClass instead)
-        keep_files = filter(lambda f: f.endswith(".png") or f.endswith(".html"), del_files)
-        del_files = filter(lambda f: f not in keep_files, del_files)
+        keep_files = list(filter(lambda f: f.endswith(".png") or f.endswith(".html"), del_files))
+        del_files  = list(filter(lambda f: f not in keep_files, del_files))
 
         # delete the del_files
         for f in del_files:
-            shutil.rmtree(f)
+            self._del_file_or_dir(f)
 
     def _copy_file_or_dir(self, src, dst):
         if (os.path.isdir(src)):
             shutil.copytree(src, dst)
         else:
             shutil.copy2(src, dst)
+
+    def _del_file_or_dir(self, filename):
+        if (os.path.isdir(filename)):
+            shutil.rmtree(filename)
+        else:
+            os.remove(filename)
 
     def prepData(self, msname, data_path_dir, *copyargs, partial_results_dirname=""):
         """ Copies the given measurement set (and other copyargs) to the current directory.
@@ -115,6 +123,7 @@ class StkUnitTest(unittest.TestCase):
             for i in range(len(files)):
                 casalog.post(f"{i}: {files[i]}", "SEVERE")
                 self._copy_file_or_dir(join(fromdir, files[i]), files[i])
+                self.teardown_files.append(files[i])
 
     def check_img_exists(self, img):
         """ Returns true if the image exists. A report is collected internally, to be returned as a group report in get_imgs_exist_results(...).
@@ -535,7 +544,7 @@ class StkUnitTest(unittest.TestCase):
         self.ia.close()
         self.ia.done()
 
-    def mom8_creator(self, image, range_list):
+    def mom8_creator(self, image, range_list, imgname=None):
         """ Takes and image and turns it into a .png for weblog.
         The output image will be named "{image}.moment8.png"
         Note that for casa 6.2-, this function will cause casa to hang.
@@ -545,8 +554,13 @@ class StkUnitTest(unittest.TestCase):
         Args:
             image: The ".image" casa image to generate a png from.
             range_list: The sensitivity range to scale the image to. Example: [0, 0.1]
+            imgname: The name of the output ".png" image. Default "{image}.moment8"
         """
+        from casatasks import immoments
+        from casaviewer import imview
+        import subprocess
+
+        imgname = image+'.moment8.png' if (imgname is None) else imgname+'.png'
         immoments(imagename = image, moments = 8, outfile = image+'.moment8')
-        imview(raster={'file': image+'.moment8', 'range': range_list}, \
-            out = {'file': image+'.moment8.png'})
-        subprocess.call('mogrify -trim '+image+'.moment8.png', shell=True)
+        imview(raster={'file': image+'.moment8', 'range': range_list}, out = {'file': imgname})
+        subprocess.call('mogrify -trim '+imgname, shell=True)
