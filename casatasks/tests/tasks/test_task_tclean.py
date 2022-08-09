@@ -196,7 +196,11 @@ class testref_base(unittest.TestCase):
               self.maskname=maskname
           if (os.path.exists(self.maskname)):
               os.system('rm -rf ' + self.maskname)
-          shutil.copytree(os.path.join(refdatapath,self.maskname), self.maskname)
+          origmask = os.path.join(refdatapath,self.maskname)
+          if os.path.isfile(origmask):
+              shutil.copyfile(origmask, self.maskname)
+          else:
+              shutil.copytree(origmask, self.maskname)
 
      def prepInputTextFile(self, textfile=""):
           if textfile!="":
@@ -338,7 +342,6 @@ class test_onefield(testref_base):
           self.prepData('refim_twochan.ms')
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs',interactive=0,parallel=self.parallel)
           report=self.th.checkall(ret=ret, peakres=0.392, modflux=0.732, iterdone=10, imgexist=[self.img+'.psf.tt0', self.img+'.residual.tt0', self.img+'.image.tt0', self.img+'.model.tt0',self.img+'.model.tt1',self.img+'.alpha'], imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',1.039e-05,[50,50,0,0])])
-          ## iterdone=11 only because of the return (iterdone_p+1) in MultiTermMatrixCleaner::mtclean() !
           self.assertTrue(self.check_final(pstr=report))
 
      def test_onefield_autonames(self):
@@ -650,7 +653,6 @@ class test_onefield(testref_base):
           self.prepData('refim_point.ms')
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs',nterms=1,interactive=0,parallel=self.parallel)
           report=self.th.checkall(ret=ret, peakres=0.369, modflux=0.689, iterdone=10, imgexist=[self.img+'.psf.tt0', self.img+'.residual.tt0', self.img+'.image.tt0', self.img+'.model.tt0'], imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.image.tt0',1.05,[50,50,0,0])])
-          ## iterdone=11 only because of the return (iterdone_p+1) in MultiTermMatrixCleaner::mtclean() !
           self.assertTrue(self.check_final(pstr=report))
           
      def test_onefield_mtmfs_smallscalebias(self):
@@ -2740,23 +2742,143 @@ class test_cube(testref_base):
                                   imgvalexact=[(self.img+'.model.tt0', 0, [1,1,0,0]), (self.img+'.model.tt0', 0, [10,10,0,0])])#, epsilon=0.2)
           self.assertTrue(self.check_final(pstr=report))
 
-     def test_cube_mtmfs(self):
-          """ [onefield] Test_Onefield_mtmfs : mt-mfs with minor cycle iterations """
-          self.prepData('refim_point.ms')
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10000,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
-          casalog.post(ret, "SEVERE")
-          maj_outputs = [self.img+'.psf',
-                         self.img+'.residual',
-                         self.img+'.pb']
-          min_inputs  = [self.img+'.psf.tt0', self.img+'.psf.tt1', self.img+'.psf.tt2',
-                         self.img+'.residual.tt0', self.img+'.residual.tt1',
-                         self.img+'.pb.tt0',
-                         self.img+'.model.tt0', self.img+'.model.tt1']
-          min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
-          maj_inputs  = [self.img+'.model']
-          report=self.th.checkall(ret=ret, peakres=0.392, modflux=0.732, iterdone=10, imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs, imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',1.039e-05,[50,50,0,0])])
-          ## iterdone=11 only because of the return (iterdone_p+1) in MultiTermMatrixCleaner::mtclean() !
-          self.assertTrue(self.check_final(pstr=report))
+     def test_cube_mtmfs_1(self):
+         """ [cube] Tests specmode='mtmfs_via_cube' """
+         ######################################################################################
+         # Test specmode='mtmfs_via_cube' for completion. The comparison values are obtained by
+         # running with specmode='mfs', niter=1000, cycleniter=100.
+         ######################################################################################
+         self.prepData('refim_point.ms')
+         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=1000,gain=0.5,cycleniter=5,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
+         # major/minor cycle inputs/outputs
+         maj_outputs = [self.img+'.psf',
+                        self.img+'.residual',
+                        self.img+'.pb']
+         min_inputs  = [self.img+'.psf.tt0', self.img+'.psf.tt1', self.img+'.psf.tt2',
+                        self.img+'.residual.tt0', self.img+'.residual.tt1',
+                        self.img+'.pb.tt0',
+                        self.img+'.model.tt0', self.img+'.model.tt1']
+         min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
+         maj_inputs  = [self.img+'.model']
+         report=self.th.checkall(ret=ret, peakres=0.392, modflux=0.732, iterdone=10,
+                                 imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs,
+                                 imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',-2.764e-07,[50,50,0,0])])
+         casalog.post(report,"SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+     def test_cube_mtmfs_startmodel(self):
+         """ [cube] Tests specmode='mtmfs_via_cube',startmodel='try.model' """
+         ######################################################################################
+         # Test specmode='mtmfs_via_cube',startmodel='try.model' for completion.
+         ######################################################################################
+         self.prepData('refim_point.ms')
+         # create the model image
+         tclean(      vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=2,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
+         shutil.copytree(self.img+'.model', self.img+'start.model')
+         os.system('rm -rf ' + self.img+'.*')
+         # evaluate with the pre-existing model image
+         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=4,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel,startmodel=self.img+'start.model')
+         report=self.th.checkall(ret=ret, iterdone=4, imgexist=[self.img+'.model',self.img+'.model.tt0',self.img+'.model.tt1'],
+                                 imgval=[(self.img+'.model',1.0,[50,50,0,0])])
+         casalog.post(report,"SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+     # tests from sdintimaging
+     #Test 2
+     #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
+     def test_singlepointing_mfs_intonly(self):
+         # Equivalent to onetest(runtype='SinglePointing', specmode='mfs', usedata='int')
+         """ [singlePointing] Test_singlepointing_mfs_intonly """
+         ######################################################################################
+         # Test single field imaging for intonly - mfs (should work without sdimage and sdpsf being set))
+         # main parameters to be tested: specmode='mfs', usedata='int', gridder='standard'
+         # with the default weighting (='natural')
+         ######################################################################################
+         # data specific parameters 
+         # imsize, cell, phasecenter, reffreq, nchan, scales 
+         #
+         # Other secondary non-default parameters: 
+         pblimit=0.1  # Set to a positive value since this is mosaics with PBs.  NOTE : pblimit=-0.1 gives NaNs (need to fix)
+         niter=1000 # Required to check absolute numerical accuracy (i.e. does it converge correctly)
+         cycleniter= 200
+         # niter=100 # Good enough for basic checks and to catch numerical changes.
+         # cycleniter= 50
+         # iterations may need to be shorten for the final version of test
+         self.prepData('papersky_standard.ms')
+         self.prepInputmask('papersky_standard.true.im.masklist')
+         ret = tclean(vis='papersky_standard.ms',imagename='tst',imsize=1500,cell='9.0arcsec',phasecenter='J2000 19:59:28.500 +40.44.01.50', specmode='mfs', gridder='standard', nchan=3, reffreq='1.5GHz', pblimit=pblimit,interpolation='nearest', deconvolver='mtmfs', scales=[0,12,20,40,60,80,100], niter=niter, cycleniter=cycleniter, mask='papersky_standard.true.im.masklist', interactive=0,pbmask=0.0)
+
+         report=self.th.checkall(imgexist=['tst.psf.tt0', 
+                                           'tst.residual.tt0', 'tst.image.tt0', 
+                                           'tst.image.tt1','tst.alpha'], 
+                                 imgval=[('tst.psf.tt0', 1.0, [400,400,0,0]),
+                                         ('tst.image.tt0', 1.09, [350,433,0,0]), # point source with alpha=-1
+                                         ('tst.image.tt0', 0.1, [300,400,0,0]),  # extended emission with alpha=0
+                                         ('tst.alpha', -0.996, [350,433,0,0]),   # point source with alpha=-1
+                                         ('tst.alpha', -2.35, [300,400,0,0]) ])  # extended emission with alpha=0 ( will be steep for intonly)
+         ## Since this is int_only, the values will be wrong.
+         casalog.post(report, "SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+     #Test8
+     #@unittest.skipIf(True, "Impact of changes to PSF fitting need to checked CAS-13022")
+     def test_mosaic_mfs_intonly(self):
+         # Equivalent to onetest(runtype='Mosaic', specmode='mfs', usedata='int')
+         """ [Mosaic] Test_mosaic_mfs_intonly """
+         ######################################################################################
+         # Test mosaic imaging for int - mfs 
+         # main parameters to be tested: specmode='mfs', usedata='int', gridder='mosaic'
+         # with the default weighting (='natural')
+         ######################################################################################
+         # data specific parameters 
+         # imsize, cell, phasecenter, reffreq, nchan, scales 
+         # set to the default values for sdgain (1.0) and dishdia (100.0)
+         #
+         # Other secondary non-default parameters: 
+         pblimit=-0.1  ## Set to negative value as the SinglePointing simulation has no primary beams
+         # niter=1000 # Required to check absolute numerical accuracy (i.e. does it converge correctly)
+         # cycleniter= 200
+         niter=100 # Good enough for basic checks and to catch numerical changes.
+         cycleniter=50
+         # iterations may need to be shorten for the final version of test
+         self.prepData('papersky_mosaic.ms')
+         self.prepInputmask('papersky_mosaic.true.im.masklist')
+         ret = sdintimaging(usedata='int', vis='papersky_mosaic.ms',imagename='tst.mos_mfs_intonly',imsize=800,cell='9.0arcsec',phasecenter='J2000 19:59:28.500 +40.44.01.50', specmode='mfs', gridder='mosaic', nchan=3, reffreq='1.5GHz', pblimit=pblimit,interpolation='nearest', deconvolver='mtmfs', scales=[0,12,20,40,60,80,100], niter=niter, cycleniter=cycleniter, mask='papersky_mosaic.true.im.masklist', interactive=0,pbmask=0.2)
+         outimg = 'tst.mos_mfs_intonly.joint.multiterm'
+         report=self.th.checkall(imgexist=[outimg+'.psf.tt0', 
+                                           outimg+'.residual.tt0', outimg+'.image.tt0', 
+                                           outimg+'.image.tt1',outimg+'.alpha'], 
+                                 imgval=[(outimg+'.psf.tt0', 1.0, [750,750,0,0]),
+                                         (outimg+'.image.tt0', 1.05, [700,783,0,0]),  # point source with alpha=-1
+                                         (outimg+'.image.tt0', 0.147, [650,720,0,0]), # extended emission with alpha=0
+                                         (outimg+'.alpha', -1.016, [700,783,0,0]),    # point source with alpha=-1
+                                         (outimg+'.alpha', -0.78, [650,720,0,0]) ])   # extended emission with alpha=0 (steep with intonly)
+         casalog.post(report, "SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+     #Test17
+     #17. Single pointing test with INT-only data from refim_point.ms : Compare with tclean mtmfs
+     #testname: test_intonly_mfs_compare_with_tclean
+     def test_intonly_mfs_compare_with_tclean(self):
+         """ [Compare] Test_intonly_mfs_compare_with_tclean """
+         self.prepData('refim_point.ms')
+         outimname1 = 'tst.mfs'
+         outimname2 = 'tst.mtmfs_via_cube'
+
+         ret2 = tclean(vis='refim_point.ms',imagename=outimname1, imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', specmode='mfs',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
+
+         ret2 = tclean(vis='refim_point.ms',imagename=outimname2, imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', specmode='mtmfs_via_cube',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
+
+         report=self.th.checkall(imgexist=[outimname1+'.psf.tt0', outimname1+'.image.tt0',
+                                           outimname2+'.psf.tt0', outimname2+'.image.tt0'], 
+                                 imgval=[(outimname1+'.psf.tt0', 1.0, [100,100,0,0]),
+                                         (outimname2+'.psf.tt0', 1.0, [100,100,0,0]),
+                                         (outimname1+'.image.tt0', 1.04, [100,100,0,0]),
+                                         (outimname2+'.image.tt0', 1.04, [100,100,0,0]),
+                                         (outimname1+'.alpha', -1.06, [100,100,0,0]),
+                                         (outimname2+'.alpha', -1.06, [100,100,0,0]) ])
+         casalog.post(report, "SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
 
 ##############################################
 ##############################################
