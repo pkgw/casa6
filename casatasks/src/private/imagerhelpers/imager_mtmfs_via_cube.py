@@ -44,10 +44,10 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             self.allnormpars[k]['deconvolver'] = 'hogbom'
 
         self.fresh_images = []
-        self.verifyDecPars()
+        self.verify_dec_pars()
 
 #############################################
-    def verifyDecPars(self):
+    def verify_dec_pars(self):
         for immod in range(0,self.NF):
             pars = self.alldecpars[str(immod)]
             if pars['specmode'] != 'mtmfs_via_cube':
@@ -55,7 +55,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             if pars['deconvolver'] != 'mtmfs':
                 raise RuntimeError(f"specmode {pars['specmode']} requires 'mtmfs' deconvolver but instead got '{pars['deconvolver']}'!")
 
-    def getDecParsForImmod(self, immod):
+    def get_dec_pars_for_immod(self, immod):
         pars = self.alldecpars[str(immod)]
         pars['specmode'] = 'mfs'
         return pars
@@ -63,16 +63,16 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     def initializeDeconvolvers(self):
         for immod in range(0,self.NF):
              self.SDtools.append(synthesisdeconvolver())
-             self.SDtools[immod].setupdeconvolution(decpars=self.getDecParsForImmod(immod))
+             self.SDtools[immod].setupdeconvolution(decpars=self.get_dec_pars_for_immod(immod))
 
 #############################################
     
-    def checkPSF(self, immod):
+    def check_psf(self, immod):
         self.cube2tt(immod, suffixes=['psf', 'sumwt'])
-        return super().checkPSF(immod)
+        return super().check_psf(immod)
 
     def get_image_name(self, immod, suffix, ttN=None):
-        decpars = self.getDecParsForImmod(immod)
+        decpars = self.get_dec_pars_for_immod(immod)
         imagename = decpars['imagename']
         basename = f"{imagename}.{suffix}"
 
@@ -150,7 +150,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         If incompatible images already exist with the same name, replace them. """
         if suffixes == None:
             suffixes = ["residual", "psf", "sumwt"]
-        decpars = self.getDecParsForImmod(immod)
+        decpars = self.get_dec_pars_for_immod(immod)
         nterms = decpars['nterms']
 
         # determine which images are being converted
@@ -177,7 +177,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                     shutil.rmtree(ttname)
 
                 # create a new, blank image based off the template baseimage
-                self.makeImage(template_img=basename, output_img=ttname)
+                self.copy_image(template_img=basename, output_img=ttname)
                 self.fresh_images.append(ttname)
 
         # convert them images!
@@ -201,7 +201,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         """ Creates or updates the .model image with all new data obtained
         from the .model.ttN images.
         """
-        decpars = self.getDecParsForImmod(immod)
+        decpars = self.get_dec_pars_for_immod(immod)
         nterms = decpars['nterms']
         imagename = decpars['imagename']
         reffreq = self.allimpars[str(immod)]['reffreq']
@@ -209,7 +209,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         # run the conversion
         self.taylor_model_to_cube(cubename=imagename, mtname=imagename, reffreq=reffreq, nterms=nterms)
 
-    def makeImage(self, template_img='try.psf', output_img='try.zeros.psf'):
+    def copy_image(self, template_img='try.psf', output_img='try.zeros.psf'):
         # get the shape
         _ia.open(template_img)
         shape = _ia.shape()
@@ -239,7 +239,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         _ia.done()
 
 ################################################
-    def getFreqList(self,imname=''):
+    def get_freq_list(self,imname=''):
         """ Get the list of frequencies for the given image, one for each channel.
 
         Returns:
@@ -310,7 +310,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         cwt = _ia.getchunk()[0,0,0,:]
         _ia.close()
 
-        freqlist = self.getFreqList(cubename)
+        freqlist = self.get_freq_list(cubename)
         if reffreq == '':
             # from task_sdintimaging.py
             reffreq =str( ( freqlist[0] + freqlist[ len(freqlist)-1 ] )/2.0 ) + 'Hz'
@@ -373,7 +373,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         _ia.setbrightnessunit('Jy/pixel')
         _ia.close()
 
-        freqlist = self.getFreqList(cubename+'.psf')
+        freqlist = self.get_freq_list(cubename+'.psf')
         if reffreq == '':
             # from task_sdintimaging.py
             reffreq =str( ( freqlist[0] + freqlist[ len(freqlist)-1 ] )/2.0 ) + 'Hz'
@@ -420,7 +420,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         """
         casalog.post('Modify with PB : ' + action + ' with frequency dependence ' + str(freqdep), "INFO")
 
-        freqlist = self.getFreqList(inpcube)
+        freqlist = self.get_freq_list(inpcube)
 
         _ia.open(inpcube)
         shp=_ia.shape()
@@ -501,15 +501,15 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
         # if freqdep==True:
         #     ## Set a mask based on frequency-dependent PB
-        #     self.addmask(inpcube,pbcube,pblimit)
+        #     self.add_mask(inpcube,pbcube,pblimit)
         # else:
         if freqdep==False:
             ## Set a mask based on the PB in refchan
-            self.addmask(inpcube,pbcube+'_tmpcopy',pblimit)
+            self.add_mask(inpcube,pbcube+'_tmpcopy',pblimit)
             shutil.rmtree(pbcube+'_tmpcopy')
 
 ################################################
-    def addmask(self, inpimage='',pbimage='',pblimit=0.2):
+    def add_mask(self, inpimage='',pbimage='',pblimit=0.2):
         """ Create a new mask called 'pbmask' and set it as a defualt mask.
 
         Replaces the existing mask with a new mask based on the values in the pbimage
