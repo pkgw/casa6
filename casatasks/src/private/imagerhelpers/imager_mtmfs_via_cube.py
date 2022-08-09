@@ -8,7 +8,7 @@ import re;
 import copy
 import numpy as np
 
-from casatools import image as _image
+from casatools import image as _image, table as _table
 from casatools import synthesisdeconvolver, quanta
 from casatasks import casalog, imregrid
 
@@ -16,6 +16,7 @@ from .imager_base import PySynthesisImager
 from .input_parameters import ImagerParameters
 
 _ia = _image()
+_tb = _table()
 _qa = quanta()
 
 #############################################
@@ -74,24 +75,24 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     def get_image_name(self, immod, suffix, ttN=None):
         decpars = self.get_dec_pars_for_immod(immod)
         imagename = decpars['imagename']
-        basename = f"{imagename}.{suffix}"
+        basename = lambda img: f"{img}.{suffix}"
 
+        if suffix == 'model':
+            if not os.path.exists(basename(imagename)):
+                decpars = self.get_dec_pars_for_immod(immod)
+                imagename = decpars['startmodel']
+
+        bn = basename(imagename)
         if ttN != None:
-            return f"{basename}.tt{ttN}"
-        return basename
+            return f"{bn}.tt{ttN}"
+        return bn
 
     def hasConverged(self):
         # create .ttN taylor term images for the mtmfs deconvolver
         for immod in range(0,self.NF):
-            suffixes = ["residual", "psf", "sumwt"]
-            # TODO is the model image ever used as part of hasConverged?
-            # # the model doesn't exist for the first iteration
-            # if not os.path.exists(self.get_image_name(immod, 'model')):
-            #     suffixes.remove('model')
-
-            # only need to create the psf taylor term images once (shouldn't change after checkPSF)
+            suffixes = ["residual", "psf", "sumwt", "model"]
+            # only need to create the psf taylor term images once (shouldn't change after check_psf)
             suffixes.remove('psf')
-
             self.cube2tt(immod, suffixes=suffixes)
 
         return super().hasConverged()
@@ -107,15 +108,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=True)
             self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=False)
 
-            suffixes = ["residual", "psf", "sumwt"]
-            # TODO is the model image ever used as part of the minor cycle?
-            # # the model doesn't exist for the first iteration
-            # if not os.path.exists(self.get_image_name(immod, 'model')):
-            #     suffixes.remove('model')
-
-            # only need to create the psf taylor term images once (shouldn't change after checkPSF)
+            suffixes = ["residual", "psf", "sumwt", "model"]
+            # only need to create the psf taylor term images once (shouldn't change after check_psf)
             suffixes.remove('psf')
-
             self.cube2tt(immod, suffixes=suffixes)
 
         # run the mtmfs deconvolver
@@ -237,6 +232,20 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         _ia.fromarray(output_img, csys=csys.torecord(), pixels=pixels, type=pixelprefix)
         _ia.close()
         _ia.done()
+
+################################################
+    def copy_nonexistant_keywords(self, template_img='try.psf', output_img='try.zeros.psf'):
+        _tb.open(template_img)
+        new_kws = _tb.getkeywords()
+        _tb.close()
+
+        _tb.open(output_img, nomodify=False)
+        old_kws = _tb.getkeywords()
+        for kw in old_kws:
+            del new_kws[kw]
+        casalog.post(f"new keywords: {new_kws}\n\n\n", "SEVERE")
+        _tb.putkeywords(new_kws)
+        _tb.close()
 
 ################################################
     def get_freq_list(self,imname=''):
