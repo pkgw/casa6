@@ -20,6 +20,18 @@ enforce_runtime = True if str(enforce_runtime).lower() in ['1', 'true'] else Fal
 use_partial_results = False if ('USE_PARTIAL_RESULTS' not in os.environ) else os.environ['USE_PARTIAL_RESULTS']
 use_partial_results = True if str(use_partial_results).lower() in ['1', 'true'] else False
 
+def _copy_file_or_dir(src, dst):
+    if (os.path.isdir(src)):
+        shutil.copytree(src, dst)
+    else:
+        shutil.copy2(src, dst)
+
+def _del_file_or_dir(filename):
+    if (os.path.isdir(filename)):
+        shutil.rmtree(filename)
+    else:
+        os.remove(filename)
+
 class StkUnitTest(unittest.TestCase):
     """ Adds some stakeholder test specific extensions to the general unit test class """
 
@@ -28,7 +40,7 @@ class StkUnitTest(unittest.TestCase):
         png_files = glob.glob('*.png')
         html_files = glob.glob('*.html')
         for f in list(png_files)+list(html_files):
-            self._del_file_or_dir(f)
+            _del_file_or_dir(f)
 
     def setUp(self):
         super().setUp()
@@ -40,6 +52,7 @@ class StkUnitTest(unittest.TestCase):
         self.parallel = ParallelTaskHelper.isMPIEnabled()
         self._clean_imgs_exist_dict()
         self.teardown_files = []
+        self.mom8_images = []
 
     def tearDown(self):
         super().tearDown()
@@ -67,19 +80,7 @@ class StkUnitTest(unittest.TestCase):
 
         # delete the del_files
         for f in del_files:
-            self._del_file_or_dir(f)
-
-    def _copy_file_or_dir(self, src, dst):
-        if (os.path.isdir(src)):
-            shutil.copytree(src, dst)
-        else:
-            shutil.copy2(src, dst)
-
-    def _del_file_or_dir(self, filename):
-        if (os.path.isdir(filename)):
-            shutil.rmtree(filename)
-        else:
-            os.remove(filename)
+            _del_file_or_dir(f)
 
     def prepData(self, msname, data_path_dir, *copyargs, partial_results_dirname=""):
         """ Copies the given measurement set (and other copyargs) to the current directory.
@@ -122,7 +123,7 @@ class StkUnitTest(unittest.TestCase):
             casalog.post(f"Restorting partial results [{len(files)}]", "SEVERE")
             for i in range(len(files)):
                 casalog.post(f"{i}: {files[i]}", "SEVERE")
-                self._copy_file_or_dir(join(fromdir, files[i]), files[i])
+                _copy_file_or_dir(join(fromdir, files[i]), files[i])
                 self.teardown_files.append(files[i])
 
     def check_img_exists(self, img):
@@ -564,3 +565,110 @@ class StkUnitTest(unittest.TestCase):
         immoments(imagename = image, moments = 8, outfile = image+'.moment8')
         imview(raster={'file': image+'.moment8', 'range': range_list}, out = {'file': imgname})
         subprocess.call('mogrify -trim '+imgname, shell=True)
+        self.mom8_images.append(imgname)
+
+    def _get_taskcall_parts(self, single_taskcall):
+        """ Splits the task call into the function call and parameters """
+        braces_stack = []
+        string_depth = 0
+        task_name_part, taskcall = single_taskcall.split("(", 1)
+        task_params = {}
+
+        # parse out the task name
+        last_splitchar = 0
+        for i in range(len(task_name_part)):
+            if task_name_part[i] in [' ', '\t', ',', '=', '+', '.', '-', '(', '[']:
+                last_splitchar = i+1
+        pre_task_name = task_name_part[:last_splitchar]
+        task_name = task_name_part[last_splitchar:]
+
+        # parse out the task parameters
+        idx = 0
+        curr = ""
+        param_name = ""
+        post_task_call = ""
+        for cval in taskcall:
+            if cval in [',',')'] and len(braces_stack) == 0 and string_depth == 0:
+                task_params[param_name.strip()] = curr.strip()
+                curr = ""
+
+                # is this the closing task parenthesis?
+                if cval == ')':
+                    post_task_call = taskcall[idx+1:]
+                    break
+            elif cval == '=':
+                param_name = curr
+                curr = ""
+            else:
+                if cval == '[' and string_depth == 0:
+                    braces_stack += '['
+                elif cval == ']' and string_depth == 0:
+                    braces_stack.pop()
+                elif cval == '"':
+                    string_depth = 1 if string_depth == 0 else 0
+                curr += cval
+            idx += 1
+
+        # ignore comments
+        if "#" in post_task_call:
+            post_task_call = post_task_call.split("#")[0]
+
+        return pre_task_name, task_name, task_params, post_task_call
+
+    def clean_taskcall(self, taskcall, localvars):
+        """ The default code from casatestutils/__init__.py doesn't do a great job
+        of finding task executions. Let's clean that up a little bit. """
+        run_tclean_call = None
+        task_calls = []
+        ret = []
+
+        for single_taskcall in taskcall:
+            pre_task_name, task_name, task_params, post_task_call = self._get_taskcall_parts(single_taskcall)
+
+            # remove certain parameters that are custom to the test scripts
+            if "compare_tclean_pars" in task_params:
+                del task_params["compare_tclean_pars"]
+
+            # replace parameter values with those from localvars
+            for param_name in task_params:
+                param_val = task_params[param_name]
+                try:
+                    param_val = eval(param_val, {}, localvars)
+                except Exception as ex:
+                    pass
+                task_params[param_name] = param_val
+
+            # register our custom run_tclean call
+            task_call = { "orig": single_taskcall, "pre": pre_task_name, "tn": task_name, "pars": task_params, "post": post_task_call }
+            if pre_task_name.strip() == "def" and task_name.strip() == "run_tclean":
+                run_tclean_call = task_call
+            elif pre_task_name+task_name == "records.append":
+                pass
+            else:
+                task_calls.append(task_call)
+
+        # replace our custom run_tclean calls with tclean calls
+        if run_tclean_call != None:
+            for task_call in task_calls:
+                if task_call['tn'] == 'run_tclean':
+                    task_call['tn'] = 'tclean'
+                    for param_name in run_tclean_call['pars']:
+                        if param_name not in task_call['pars']:
+                            task_call['pars'][param_name] = run_tclean_call['pars'][param_name]
+
+        # stringify!
+        for task_call in task_calls:
+            pars = []
+            for param_name in task_call['pars']:
+                par = "" if param_name == "" else f"{param_name}="
+                param_val = task_call['pars'][param_name]
+                if type(param_val) == str:
+                    par += f"'{param_val}'"
+                else:
+                    par += f"{param_val}"
+                pars.append(par)
+            pars = ", ".join(pars)
+            new_call = f"{task_call['pre']}{task_call['tn']}({pars}){task_call['post']}"
+            ret.append(new_call)
+
+        return ret

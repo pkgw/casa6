@@ -111,6 +111,9 @@ from casatools import imager
 from casatasks import casalog, impbcor, imdev, imhead, imsubimage, imstat, immath
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatestutils.stakeholder import StkUnitTest
+from casatestutils import generate_weblog
+from casatestutils import add_to_dict
+from casatestutils import stats_dict
 
 quick_test = False if ('QUICK_TEST' not in os.environ) else os.environ['QUICK_TEST']
 quick_test = True if str(quick_test).lower() in ['1', 'true'] else False
@@ -122,6 +125,8 @@ else:
     casalog.post("QUICK_TEST env variable not found or is false\nRunning tests with full image sizes", "INFO")
 casalog.post(f"USE_PARTIAL_RESULTS: {use_partial_results}", "INFO")
 
+test_dict = {}
+
 ##############################################
 ##############################################
 class test_j1302(StkUnitTest):
@@ -132,7 +137,12 @@ class test_j1302(StkUnitTest):
         self.phasecenter = '13:03:13.874 -10.51.16.73'
         self.im = imager()
 
+    def tearDown(self):
+        generate_weblog("tclean_VLASS_1v2_pipeline", test_dict)
+        super().tearDown()
+
     # Test 1
+    @stats_dict(test_dict)
     def test_j1302_mtmfs(self):
         """ [j1302] test_j1302_mtmfs """
         ######################################################################################
@@ -147,6 +157,7 @@ class test_j1302(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir = 'J1302/Stakeholder-test-mosaic-data'
         img0 = 'J1302_iter2'
         masks = ['secondmask.mask', 'QLcatmask.mask']
@@ -308,9 +319,16 @@ class test_j1302(StkUnitTest):
         success = success1 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 2
+    @stats_dict(test_dict)
     def test_j1302_awproject(self):
         """ [j1302] test_j1302_awproject """
         ######################################################################################
@@ -323,6 +341,7 @@ class test_j1302(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-awproject-data'
         img0 = 'J1302_iter0d'
         img1 = 'J1302_iter2'
@@ -511,10 +530,17 @@ class test_j1302(StkUnitTest):
         success = success1 and success3 and success5 and success6 and success7 and successr and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 3
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Tclean crashes with mpicasa+mosaic gridder+stokes imaging.")
+    @stats_dict(test_dict)
     def test_j1302_mosaic_cube(self):
         """ [j1302] test_j1302_mosaic_cube """
         ######################################################################################
@@ -527,6 +553,7 @@ class test_j1302(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-cube-data'
         masks = ['combined.mask', 'QLcatmask.mask']
         quick_masks = ['combined_1000.mask', 'QLcatmask_1000.mask']
@@ -813,10 +840,17 @@ class test_j1302(StkUnitTest):
         success = success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, *report4])
         # success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 4
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Only run in serial, since John Tobin only executed this test in serial (see 01/12/22 comment on CAS-12427).")
+    @stats_dict(test_dict)
     def test_j1302_ql(self):
         """ [j1302] test_j1302_ql """
         ######################################################################################
@@ -829,6 +863,7 @@ class test_j1302(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-data'
         img0 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter0'
         img1 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter1'
@@ -961,9 +996,14 @@ class test_j1302(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats621['runtime'])
-
         report  = "".join([report0, report1, report2, report4, reportr])
         success = success1 and success2 and success4 and successr and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
 
@@ -977,7 +1017,12 @@ class test_j1927(StkUnitTest):
         self.phasecenter = '19:27:30.443 +61.17.32.898'
         self.im = imager()
 
+    def tearDown(self):
+        generate_weblog("tclean_VLASS_1v2_pipeline", test_dict)
+        super().tearDown()
+
     # Test 5
+    @stats_dict(test_dict)
     def test_j1927_mtmfs(self):
         """ [j1927] test_j1927_mtmfs """
         ######################################################################################
@@ -992,6 +1037,7 @@ class test_j1927(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
         img0 = 'J1927_iter2'
         masks = ['secondmask.mask', 'QLcatmask.mask']
@@ -1153,6 +1199,12 @@ class test_j1927(StkUnitTest):
         success = success0 and success1 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7, reportr])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # N/A not implemented
@@ -1161,6 +1213,7 @@ class test_j1927(StkUnitTest):
 
     # Test 6
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Tclean crashes with mpicasa+mosaic gridder+stokes imaging.")
+    @stats_dict(test_dict)
     def test_j1927_mosaic_cube(self):
         """ [j1927] test_j1927_mosaic_cube """
         ######################################################################################
@@ -1173,6 +1226,7 @@ class test_j1927(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-cube-data'
         masks = ['combined.mask', 'QLcatmask.mask']
         quick_masks = ['combined_1000.mask', 'QLcatmask_1000.mask']
@@ -1421,13 +1475,19 @@ class test_j1927(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats621['runtime'])
-
         report  = "".join([report0, report1, report2, report3, *report4, reportr])
         success = success0 and success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
     # Test 7
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Only run in serial, since John Tobin only executed this test in serial (see 01/12/22 comment on CAS-12427).")
+    @stats_dict(test_dict)
     def test_j1927_ql(self):
         """ [j1927] test_j1927_ql """
         ######################################################################################
@@ -1440,6 +1500,7 @@ class test_j1927(StkUnitTest):
 
         #previous steps in the pipeline would have created mask files from catalogs and images that were created as an
         #intermediate pipeline step.
+        test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
         img0 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter0'
         img1 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter1'
@@ -1573,9 +1634,14 @@ class test_j1927(StkUnitTest):
 
         # (f) Runtimes not significantly different relative to previous runs
         successr, reportr = self.check_runtime(starttime, stats621['runtime'])
-
         report  = "".join([report0, report1, report2, report4, reportr])
         success = success1 and success2 and success4 and successr and self.th.check_final(report)
+
+        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        test_dict[test_name]['report'] = report
+        test_dict[test_name]['images'] = self.mom8_images
+        test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
+
         self.assertTrue(success, msg=self.th.extract_failing_lines(report))
 
 ##############################################
