@@ -5,8 +5,8 @@ from xml.dom import minidom
 import casatasks
 
 __FUNCTION = 'override_args'
-__VAL_ARGS = '_a'
-__VAL_ARGS_DICT = '_d'
+__ARGS = '_a'
+__ARGS_DICT = '_d'
 
 __DEBUG = False
 if __DEBUG:
@@ -77,25 +77,33 @@ def constraints_injector(func):
             funcname = func.__name__
 
             # load the function name and arguments which is wrapped the decorator
+            # get an object reference to read informantion of argument
             if func.__dict__.get('__wrapped__'):
-                arg_keys = func.__dict__['__wrapped__'].__code__.co_varnames
-                args_ = list(args)
-            else: # for __main__ execution
-                arg_keys = func.__code__.co_varnames
-                args_ = [''] * len(arg_keys)
-                for i in range(len(args)):
-                    args_[i] = args[i]
+                func_ = func.__dict__['__wrapped__']
+            else:
+                func_ = func
+
+            # There is a case the length between a position argument and a names list of position argument has different
+            arg_keys = func_.__code__.co_varnames
+            if len(arg_keys) == len(func_.__defaults__):
+                default_arg_length = len(arg_keys)
+            else:
+                default_arg_length = len(func_.__defaults__)
+            args_ = [''] * default_arg_length
+
+            for i in range(len(args)):
+                args_[i] = args[i]
 
             args_position_dict = {key: i for i, key in enumerate(arg_keys)}
             kwargs_ = dict()
             for k, v in kwargs.items():
-                if args_position_dict.get(k):
+                if args_position_dict.get(k) is not None and args_position_dict[k] < len(args_):
                     args_[args_position_dict[k]] = v
                 else:
                     kwargs_[k] = v
 
-            exec(f'{__VAL_ARGS} = args_')
-            exec(f'{__VAL_ARGS_DICT} = args_position_dict')
+            exec(f'{__ARGS} = args_')
+            exec(f'{__ARGS_DICT} = args_position_dict')
 
             func_ = __generate_constraints_from_xml(funcname)
             exec(func_)
@@ -138,7 +146,7 @@ def __generate_constraints_from_xml(task):
 
 
 def __convert_stmt_to_pycode(stmt_list):
-    ret = f'def {__FUNCTION}({__VAL_ARGS}, {__VAL_ARGS_DICT}):\n'
+    ret = f'def {__FUNCTION}({__ARGS}, {__ARGS_DICT}):\n'
     if len(stmt_list) > 0:
         for [stmt, indent] in stmt_list:
             ret += __indent(indent) + stmt + '\n'
@@ -180,11 +188,11 @@ def __handle_default(left, right):
         quote = __QUOTE
     right = f'{quote}{right}{quote}'
     if_ = __if(
-        __and(__get(__VAL_ARGS_DICT, left),
-              __equals(__list(__VAL_ARGS, __dict(__VAL_ARGS_DICT, left)), "''")
+        __and(__get(__ARGS_DICT, left),
+              __equals(__list(__ARGS, __dict(__ARGS_DICT, left)), "''")
               )
         )
-    return if_ + ' ' + __is(__list(__VAL_ARGS, __dict(__VAL_ARGS_DICT, left)), right)
+    return if_ + ' ' + __is(__list(__ARGS, __dict(__ARGS_DICT, left)), right)
 
 
 def __descend_value_tree(_element, type_='int'):
@@ -218,13 +226,13 @@ def __get_attr(doc, param):
 def __when(left, operator, right):
     if ',' in right:
         right_ = ','.join(sorted([s.strip() for s in right.split(',')]))
-        left_ = f"','.join(sorted([s.strip() for s in {__list(__VAL_ARGS, __dict(__VAL_ARGS_DICT, left))}.split(',')]))"
+        left_ = f"','.join(sorted([s.strip() for s in {__list(__ARGS, __dict(__ARGS_DICT, left))}.split(',')]))"
     else:
         right_ = right
-        left_ = f'{__VAL_ARGS}[{__VAL_ARGS_DICT}[{__QUOTE}{left}{__QUOTE}]]'
+        left_ = f'{__ARGS}[{__ARGS_DICT}[{__QUOTE}{left}{__QUOTE}]]'
     right_ = f'{__QUOTE}{right_}{__QUOTE}'
 
-    return __if(__and(__get(__VAL_ARGS_DICT, left), __exp(left_, operator, right_)))
+    return __if(__and(__get(__ARGS_DICT, left), __exp(left_, operator, right_)))
 
 
 def __and(left, right):
