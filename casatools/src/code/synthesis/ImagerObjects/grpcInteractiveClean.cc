@@ -2,7 +2,7 @@
 #include <synthesis/ImagerObjects/SIMinorCycleController.h>
 #include <casatools/Config/State.h>
 #include <casacore/casa/Logging/LogIO.h>
-#include <images/Images/PagedImage.h>
+#include <casacore/images/Images/PagedImage.h>
 #include <stdcasa/StdCasa/CasacSupport.h>
 #include <string.h>
 #include <stdlib.h>
@@ -151,9 +151,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
 
 	void grpcInteractiveCleanManager::pushDetails() {
-#ifdef INTERACTIVE_ITERATION
-        /*FIXME    detailUpdate(fromRecord(getDetailsRecord())); */
-#endif
 	}
 
     grpcInteractiveCleanState::grpcInteractiveCleanState( ) : SummaryMinor(casacore::IPosition(2, 
@@ -619,7 +616,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            return rec; }) );
     }
 
-	int grpcInteractiveCleanManager::cleanComplete( bool lastcyclecheck ){
+	int grpcInteractiveCleanManager::cleanComplete( bool lastcyclecheck, bool reachedMajorLimit ){
         LogIO os( LogOrigin("grpcInteractiveCleanManager",__FUNCTION__,WHERE) );
 
 		int stopCode=0;
@@ -699,6 +696,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		      }
 
 		  }
+
+		if (stopCode == 0 && reachedMajorLimit) {
+		  stopCode = 9;
+		}
 
 		/*
 		if( lastcyclecheck==False)
