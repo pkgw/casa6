@@ -1,0 +1,290 @@
+import functools
+import os
+from xml.dom import minidom
+
+import casatasks
+
+__FUNCTION = 'override_args'
+__VAL_ARGS = '_a'
+__VAL_ARGS_DICT = '_d'
+
+__DEBUG = False
+if __DEBUG:
+    from pprint import pprint
+
+
+def constraints_injector(func):
+    """Load constraints from a task XML file and set them the arguments of a task calling.
+
+    This method decorating a task method converts a constraints element of a CASA XML into Python code as below:
+
+    XML:
+    <constraints>
+            <when param="timebin">
+                <notequals type="string" value="">
+                        <default param="timespan"><value type="string"/></default>
+                </notequals>
+            </when>
+            <when param="fitmode">
+                <equals value="list">
+                        <default param="nfit"><value type="vector"><value>0</value></value></default>
+                </equals>
+                <equals value="auto">
+                        <default param="thresh"><value>5.0</value></default>
+                        <default param="avg_limit"><value>4</value></default>
+                        <default param="minwidth"><value>4</value></default>
+                        <default param="edge"><value type="vector"><value>0</value></value></default>
+                </equals>
+                <equals value="interact">
+                        <default param="nfit"><value type="vector"><value>0</value></value></default>
+                </equals>
+            </when>
+    </constraints>
+
+    Python:
+    def override_args(kwargs):
+        if _d.get('timebin') and _a[_d['timebin']] != '':
+            if _d.get('timespan') and _a[_d['timespan']] == '': _a[_d['timespan']] = ''
+        if _d.get('fitmode') and _a[_d['fitmode']] == 'list':
+            if _d.get('nfit') and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
+        if _d.get('fitmode') and _a[_d['fitmode']] == 'auto':
+            if _d.get('thresh') and _a[_d['thresh']] == '': _a[_d['thresh']] = 5.0
+            if _d.get('avg_limit') and _a[_d['avg_limit']] == '': _a[_d['avg_limit']] = 4
+            if _d.get('minwidth') and _a[_d['minwidth']] == '': _a[_d['minwidth']] = 4
+            if _d.get('edge') and _a[_d['edge']] == '': _a[_d['edge']] = 0
+        if _d.get('fitmode') and _a[_d['fitmode']] == 'interact':
+            if _d.get('nfit') and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
+
+    Then, it evaluates the function above, and the function modifies arguments of a task which decorates the decorator.
+
+    Parameters
+    ----------
+    func : str
+        The task name
+
+    Returns
+    -------
+    wrapper
+        A function of decorator
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        retval = None
+        # Any errors are handled outside the task.
+        # however, the implementation below is effectively
+        # equivalent to handling it inside the task.
+        try:
+            funcname = func.__name__
+
+            # load the function name and arguments which is wrapped the decorator
+            if func.__dict__.get('__wrapped__'):
+                arg_keys = func.__dict__['__wrapped__'].__code__.co_varnames
+                args_ = list(args)
+            else: # for __main__ execution
+                arg_keys = func.__code__.co_varnames
+                args_ = [''] * len(arg_keys)
+                for i in range(len(args)):
+                    args_[i] = args[i]
+
+            args_position_dict = {key: i for i, key in enumerate(arg_keys)}
+            kwargs_ = dict()
+            for k, v in kwargs.items():
+                if args_position_dict.get(k):
+                    args_[args_position_dict[k]] = v
+                else:
+                    kwargs_[k] = v
+
+            exec(f'{__VAL_ARGS} = args_')
+            exec(f'{__VAL_ARGS_DICT} = args_position_dict')
+
+            func_ = __generate_constraints_from_xml(funcname)
+            exec(func_)
+
+            if __DEBUG:
+                print(func_)
+                pprint(args_position_dict)
+                pprint(args_)
+
+            # override args
+            exec(f'{__FUNCTION}(args_, args_position_dict)')
+
+            # execute task
+            retval = func(*args_, **kwargs_)
+        except Exception:
+            raise
+        return retval
+    return wrapper
+
+
+def __get_taskxmlfilepath(task):
+    if isinstance(task, str) is False:
+        return False
+    xmlpath = os.path.abspath(casatasks.__path__[0]) + '/__xml__'
+    taskxmlfile = f'{xmlpath}/{task}.xml'
+    if os.path.isfile(taskxmlfile) and os.access(taskxmlfile, os.R_OK):
+        return taskxmlfile
+    return False
+
+
+def __generate_constraints_from_xml(task):
+    taskxml = __get_taskxmlfilepath(task)
+    stmt = []
+    if taskxml:
+        dom = minidom.parse(taskxml)
+        constraints = dom.getElementsByTagName('constraints')[0]
+        for s in constraints.getElementsByTagName('when'):
+            __handle_when(s, stmt)
+    return __convert_stmt_to_pycode(stmt)
+
+
+def __convert_stmt_to_pycode(stmt_list):
+    ret = f'def {__FUNCTION}({__VAL_ARGS}, {__VAL_ARGS_DICT}):\n'
+    if len(stmt_list) > 0:
+        for [stmt, indent] in stmt_list:
+            ret += __indent(indent) + stmt + '\n'
+    else:
+        ret += __indent(1) + 'pass\n'
+    return ret
+
+
+""" constants and methods for converting from XML tree to Python code """
+__QUOTE = '\''
+__OP_EQUALS = '=='
+__OP_IS = '='
+__OP_NOT_EQUAL = '!='
+__OP_AND = 'and'
+
+
+def __handle_when(when, stmt):
+    for equals in when.getElementsByTagName('equals'):
+        __handle_when_child(when, equals, stmt, __OP_EQUALS)
+    for notequals in when.getElementsByTagName('notequals'):
+        __handle_when_child(when, notequals, stmt, __OP_NOT_EQUAL)
+
+
+def __handle_when_child(when, elem, stmt, operator):
+    indent_level = 1
+    defaults = elem.getElementsByTagName('default')
+    if len(defaults) > 0:
+        stmt.append([__when(__get_param(when), operator, __get_value(elem)), indent_level])
+        for default_ in defaults:
+            left = __get_param(default_)
+            right = default_.getElementsByTagName('value')[0]
+            stmt.append([__handle_default(left, right), indent_level + 1])
+
+
+def __handle_default(left, right):
+    quote = ''
+    right, type_ = __descend_value_tree(right)
+    if type_ == 'string' or type_ == 'record' or type_ == 'stringVec':
+        quote = __QUOTE
+    right = f'{quote}{right}{quote}'
+    if_ = __if(
+        __and(__get(__VAL_ARGS_DICT, left),
+              __equals(__list(__VAL_ARGS, __dict(__VAL_ARGS_DICT, left)), "''")
+              )
+        )
+    return if_ + ' ' + __is(__list(__VAL_ARGS, __dict(__VAL_ARGS_DICT, left)), right)
+
+
+def __descend_value_tree(_element, type_='int'):
+    if _element.nodeName == 'value':
+        if _element.hasAttribute('type'):
+            type_ = _element.getAttribute('type')
+        if _element.firstChild:
+            return __descend_value_tree(_element.firstChild, type_)
+    elif hasattr(_element, 'data'):
+        return _element.data, type_
+    return '', type_
+
+
+def __get_param(doc):
+    return __get_attr(doc, 'param')
+
+
+def __get_value(doc):
+    if doc.hasAttribute('type') and doc.getAttribute('type') == 'vector':
+        return __get_attr(doc.firstChild)
+    return __get_attr(doc, 'value')
+
+
+def __get_attr(doc, param):
+    s = doc.getAttribute(param)
+    if s == '' or s:
+        return s
+    raise Exception('XML Parse Error')
+
+
+def __when(left, operator, right):
+    if ',' in right:
+        right_ = ','.join(sorted([s.strip() for s in right.split(',')]))
+        left_ = f"','.join(sorted([s.strip() for s in {__list(__VAL_ARGS, __dict(__VAL_ARGS_DICT, left))}.split(',')]))"
+    else:
+        right_ = right
+        left_ = f'{__VAL_ARGS}[{__VAL_ARGS_DICT}[{__QUOTE}{left}{__QUOTE}]]'
+    right_ = f'{__QUOTE}{right_}{__QUOTE}'
+
+    return __if(__and(__get(__VAL_ARGS_DICT, left), __exp(left_, operator, right_)))
+
+
+def __and(left, right):
+    return __exp(left, __OP_AND, right)
+
+
+def __is(left, right):
+    return __exp(left, __OP_IS, right)
+
+
+def __equals(left, right):
+    return __exp(left, __OP_EQUALS, right)
+
+
+def __exp(left, operator, right):
+    return f'{left} {operator} {right}'
+
+
+def __if(exp):
+    return f'if {exp}:'
+
+
+def __get(val, operand, exp=None):
+    if exp:
+        return f'{val}.get({__QUOTE}{operand}{__QUOTE}, {exp})'
+    return f'{val}.get({__QUOTE}{operand}{__QUOTE})'
+
+
+def __dict(val, pos):
+    return f'{val}[{__QUOTE}{pos}{__QUOTE}]'
+
+
+def __list(val, pos):
+    return f'{val}[{pos}]'
+
+
+def __indent(level):
+    return ' ' * 4 * level
+
+
+if __name__ == '__main__':
+
+    @constraints_injector
+    def sdcal(infile=None, calmode='tsys', fraction='10%', noff=-1,
+            width=0.5, elongated=False, applytable='', interp='', spwmap={},
+            outfile='', overwrite=False, field='', spw='', scan='', intent=''):
+        print(calmode)
+        print(fraction)
+        print(intent)
+
+
+    @constraints_injector
+    def sdfit(infile=None, datacolumn=None, antenna=None, field=None, spw=None,
+            timerange=None, scan=None, pol=None, intent=None,
+            timebin=None, timespan=None,
+            polaverage=None,
+            fitfunc=None, fitmode=None, nfit=None, thresh=None, avg_limit=None,
+            minwidth=None, edge=None, outfile=None, overwrite=None):
+        print(nfit)
+        print(thresh)
+
+    sdcal('test', calmode='otfraster,apply')
+    sdfit('test', fitmode='auto')
