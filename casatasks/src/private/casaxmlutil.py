@@ -83,13 +83,9 @@ def constraints_injector(func):
             else:
                 func_ = func
 
-            # There is a case the length between a position argument and a names list of position argument has different
             arg_keys = func_.__code__.co_varnames
-            if len(arg_keys) == len(func_.__defaults__):
-                default_arg_length = len(arg_keys)
-            else:
-                default_arg_length = len(func_.__defaults__)
-            args_ = [''] * default_arg_length
+            arg_count = func_.__code__.co_argcount
+            args_ = [''] * arg_count
 
             for i in range(len(args)):
                 args_[i] = args[i]
@@ -106,7 +102,6 @@ def constraints_injector(func):
             exec(f'{__ARGS_DICT} = args_position_dict')
 
             func_ = __generate_constraints_from_xml(funcname)
-            exec(func_)
 
             if __DEBUG:
                 print(func_)
@@ -114,10 +109,14 @@ def constraints_injector(func):
                 pprint(args_)
 
             # override args
+            exec(func_)
             exec(f'{__FUNCTION}(args_, args_position_dict)')
 
             # execute task
             retval = func(*args_, **kwargs_)
+
+            casatasks.casalog.post('loaded constraints from XML', 'INFO')
+
         except Exception:
             raise
         return retval
@@ -135,7 +134,9 @@ def __get_taskxmlfilepath(task):
 
 
 def __generate_constraints_from_xml(task):
+    # raise Exception if file loadging faults
     taskxml = __get_taskxmlfilepath(task)
+
     stmt = []
     if taskxml:
         dom = minidom.parse(taskxml)
@@ -186,7 +187,12 @@ def __handle_default(left, right):
     right, type_ = __descend_value_tree(right)
     if type_ == 'string' or type_ == 'record' or type_ == 'stringVec':
         quote = __QUOTE
-    right = f'{quote}{right}{quote}'
+    if type_[-3:] == 'Vec':
+        if isinstance(right, list):
+            right = ','.join([f'{quote}{r}{quote}' for r in right])
+        right = f'[{right}]'
+    else:
+        right = f'{quote}{right}{quote}'
     if_ = __if(
         __and(__get(__ARGS_DICT, left),
               __equals(__list(__ARGS, __dict(__ARGS_DICT, left)), "''")
@@ -201,6 +207,8 @@ def __descend_value_tree(_element, type_='int'):
             type_ = _element.getAttribute('type')
         if _element.firstChild:
             return __descend_value_tree(_element.firstChild, type_)
+        # ToDo: add a logic of treating 'value' tags of *Vec type contain multiple values.
+        # We cannot test it because we have XML files contain 'value' tags with single value.
     elif hasattr(_element, 'data'):
         return _element.data, type_
     return '', type_
@@ -212,7 +220,7 @@ def __get_param(doc):
 
 def __get_value(doc):
     if doc.hasAttribute('type') and doc.getAttribute('type') == 'vector':
-        return __get_attr(doc.firstChild)
+        return __get_value(doc.firstChild)
     return __get_attr(doc, 'value')
 
 
