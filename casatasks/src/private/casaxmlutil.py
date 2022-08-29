@@ -4,6 +4,7 @@ from xml.dom import minidom
 
 import casatasks
 
+# constants for generating converter method
 __FUNCTION = 'override_args'
 __ARGS = '_a'
 __ARGS_DICT = '_d'
@@ -42,18 +43,18 @@ def constraints_injector(func):
     </constraints>
 
     Python:
-    def override_args(kwargs):
-        if _d.get('timebin') and _a[_d['timebin']] != '':
-            if _d.get('timespan') and _a[_d['timespan']] == '': _a[_d['timespan']] = ''
-        if _d.get('fitmode') and _a[_d['fitmode']] == 'list':
-            if _d.get('nfit') and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
-        if _d.get('fitmode') and _a[_d['fitmode']] == 'auto':
-            if _d.get('thresh') and _a[_d['thresh']] == '': _a[_d['thresh']] = 5.0
-            if _d.get('avg_limit') and _a[_d['avg_limit']] == '': _a[_d['avg_limit']] = 4
-            if _d.get('minwidth') and _a[_d['minwidth']] == '': _a[_d['minwidth']] = 4
-            if _d.get('edge') and _a[_d['edge']] == '': _a[_d['edge']] = 0
-        if _d.get('fitmode') and _a[_d['fitmode']] == 'interact':
-            if _d.get('nfit') and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
+    def override_args(_a, _d): # _a: position args, _d: dict[key: position name, val: corresponding position index of the key]
+        if _d.get('timebin') is not None and _a[_d['timebin']] != '':
+            if _d.get('timespan') is not None and _a[_d['timespan']] == '': _a[_d['timespan']] = ''
+        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'list':
+            if _d.get('nfit') is not None and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
+        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'auto':
+            if _d.get('thresh') is not None and _a[_d['thresh']] == '': _a[_d['thresh']] = 5.0
+            if _d.get('avg_limit') is not None and _a[_d['avg_limit']] == '': _a[_d['avg_limit']] = 4
+            if _d.get('minwidth') is not None and _a[_d['minwidth']] == '': _a[_d['minwidth']] = 4
+            if _d.get('edge') is not None and _a[_d['edge']] == '': _a[_d['edge']] = 0
+        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'interact':
+            if _d.get('nfit') is not None and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
 
     Then, it evaluates the function above, and the function modifies arguments of a task which decorates the decorator.
 
@@ -87,9 +88,11 @@ def constraints_injector(func):
             arg_count = func_.__code__.co_argcount
             args_ = [''] * arg_count
 
+            # copy all arguments into args_
+            # Note: all arguments (args, kwargs) defined a task are converted into
+            # position args by task.__call__() generated from task XML
             for i in range(len(args)):
                 args_[i] = args[i]
-
             args_position_dict = {key: i for i, key in enumerate(arg_keys)}
             kwargs_ = dict()
             for k, v in kwargs.items():
@@ -98,9 +101,9 @@ def constraints_injector(func):
                 else:
                     kwargs_[k] = v
 
+            # generate the converter method
             exec(f'{__ARGS} = args_')
             exec(f'{__ARGS_DICT} = args_position_dict')
-
             func_ = __generate_constraints_from_xml(funcname)
 
             if __DEBUG:
@@ -108,7 +111,7 @@ def constraints_injector(func):
                 pprint(args_position_dict)
                 pprint(args_)
 
-            # override args
+            # override args by the converter generated
             exec(func_)
             exec(f'{__FUNCTION}(args_, args_position_dict)')
 
@@ -194,7 +197,7 @@ def __handle_default(left, right):
     else:
         right = f'{quote}{right}{quote}'
     if_ = __if(
-        __and(__get(__ARGS_DICT, left),
+        __and(__can_get(__ARGS_DICT, left),
               __equals(__list(__ARGS, __dict(__ARGS_DICT, left)), "''")
               )
         )
@@ -207,8 +210,8 @@ def __descend_value_tree(_element, type_='int'):
             type_ = _element.getAttribute('type')
         if _element.firstChild:
             return __descend_value_tree(_element.firstChild, type_)
-        # ToDo: add a logic of treating 'value' tags of *Vec type contain multiple values.
-        # We cannot test it because we have XML files contain 'value' tags with single value.
+        # ToDo: add a logic of treating multiple 'value' tags of *Vec type in a constraints tree.
+        # We cannot test it because the casa XML files contain 'value' tags with *single* value only.
     elif hasattr(_element, 'data'):
         return _element.data, type_
     return '', type_
@@ -240,7 +243,7 @@ def __when(left, operator, right):
         left_ = f'{__ARGS}[{__ARGS_DICT}[{__QUOTE}{left}{__QUOTE}]]'
     right_ = f'{__QUOTE}{right_}{__QUOTE}'
 
-    return __if(__and(__get(__ARGS_DICT, left), __exp(left_, operator, right_)))
+    return __if(__and(__can_get(__ARGS_DICT, left), __exp(left_, operator, right_)))
 
 
 def __and(left, right):
@@ -267,6 +270,10 @@ def __get(val, operand, exp=None):
     if exp:
         return f'{val}.get({__QUOTE}{operand}{__QUOTE}, {exp})'
     return f'{val}.get({__QUOTE}{operand}{__QUOTE})'
+
+
+def __can_get(val, operand):
+    return f'{__get(val, operand)} is not None'
 
 
 def __dict(val, pos):
