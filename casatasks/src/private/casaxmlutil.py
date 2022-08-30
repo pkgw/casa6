@@ -162,19 +162,24 @@ def __convert_stmt_to_pycode(stmt_list):
 """ constants and methods for converting from XML tree to Python code """
 __QUOTE = '\''
 __OP_EQUALS = '=='
-__OP_IS = '='
+__OP_EQ = '='
+__OP_IS = 'is'
 __OP_NOT_EQUAL = '!='
 __OP_AND = 'and'
+__OP_NOT = 'not'
+__NONE = 'None'
 
 
 def __handle_when(when, stmt):
+    # <when>
     for equals in when.getElementsByTagName('equals'):
-        __handle_when_child(when, equals, stmt, __OP_EQUALS)
+        __handle_equals_or_not_equals(when, equals, stmt, __OP_EQUALS)
     for notequals in when.getElementsByTagName('notequals'):
-        __handle_when_child(when, notequals, stmt, __OP_NOT_EQUAL)
+        __handle_equals_or_not_equals(when, notequals, stmt, __OP_NOT_EQUAL)
 
 
-def __handle_when_child(when, elem, stmt, operator):
+def __handle_equals_or_not_equals(when, elem, stmt, operator):
+    # <equals> or <notequals>
     indent_level = 1
     defaults = elem.getElementsByTagName('default')
     if len(defaults) > 0:
@@ -186,11 +191,12 @@ def __handle_when_child(when, elem, stmt, operator):
 
 
 def __handle_default(left, right):
+    # <default>
     quote = ''
-    right, type_ = __descend_value_tree(right)
+    right, type_ = __handle_value(right)
     if type_ == 'string' or type_ == 'record' or type_ == 'stringVec':
         quote = __QUOTE
-    if type_[-3:] == 'Vec':
+    if type_[-3:] == 'Vec' or type_ == 'vector':
         if isinstance(right, list):
             right = ','.join([f'{quote}{r}{quote}' for r in right])
         right = f'[{right}]'
@@ -201,17 +207,19 @@ def __handle_default(left, right):
               __equals(__list(__ARGS, __dict(__ARGS_DICT, left)), "''")
               )
         )
-    return if_ + ' ' + __is(__list(__ARGS, __dict(__ARGS_DICT, left)), right)
+    return if_ + ' ' + __is_equal(__list(__ARGS, __dict(__ARGS_DICT, left)), right)
 
 
-def __descend_value_tree(_element, type_='int'):
+def __handle_value(_element, type_='int'):
+    # <value>, it contains <value> tags or a value
     if _element.nodeName == 'value':
         if _element.hasAttribute('type'):
             type_ = _element.getAttribute('type')
+        values = _element.getElementsByTagName('value')
+        if len(values) > 0:
+            return [__handle_value(v, type_)[0] for v in values], type_
         if _element.firstChild:
-            return __descend_value_tree(_element.firstChild, type_)
-        # ToDo: add a logic of treating multiple 'value' tags of *Vec type in a constraints tree.
-        # We cannot test it because the casa XML files contain 'value' tags with *single* value only.
+            return __handle_value(_element.firstChild, type_)
     elif hasattr(_element, 'data'):
         return _element.data, type_
     return '', type_
@@ -250,6 +258,10 @@ def __and(left, right):
     return __exp(left, __OP_AND, right)
 
 
+def __is_equal(left, right):
+    return __exp(left, __OP_EQ, right)
+
+
 def __is(left, right):
     return __exp(left, __OP_IS, right)
 
@@ -260,6 +272,10 @@ def __equals(left, right):
 
 def __exp(left, operator, right):
     return f'{left} {operator} {right}'
+
+
+def __not(right):
+    return f'{__OP_NOT} {right}'
 
 
 def __if(exp):
@@ -273,7 +289,7 @@ def __get(val, operand, exp=None):
 
 
 def __can_get(val, operand):
-    return f'{__get(val, operand)} is not None'
+    return __is(__get(val, operand), __not(__NONE))
 
 
 def __dict(val, pos):
