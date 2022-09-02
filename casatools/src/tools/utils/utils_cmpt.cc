@@ -313,7 +313,7 @@ bool utils::initialize( const std::string &pypath,
 
 // ------------------------------------------------------------
 // -------------------- handling rundata path -----------------
-#ifdef CASATOOLS
+
 std::string utils::measurespath( ) {
     return casatools::get_state( ).measuresDir( );
 }
@@ -327,7 +327,6 @@ void utils::setmeasurespath( const std::string &data ) {
 void utils::setrundata( const std::string &data ) {
     setmeasurespath(data);
 }
-#endif
 
 // ------------------------------------------------------------
 // -------------------- handling data path --------------------
@@ -464,6 +463,5 @@ bool utils::getpipeline( ) {
 std::string utils::getcachedir( ) {
     return casatools::get_state( ).cachedir( );
 }   
-#endif
 
 } // casac namespace
