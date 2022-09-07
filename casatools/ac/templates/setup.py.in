@@ -2567,7 +2567,7 @@ def generate_casacore_version_header():
     casacore_version_from_project = None
     with open("casacore/CMakeLists.txt") as f:
         for line in f:
-            r = re.match('project\(casacore VERSION (\d+).(\d+).(\d+)\)', line)
+            r = re.match(".*set\(PROJECT_VERSION_MAJOR (\d+)\)",line)
             if r is not None:
                 casacore_version_major = r.group(1)
 
