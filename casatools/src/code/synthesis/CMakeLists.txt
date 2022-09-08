@@ -43,6 +43,10 @@ target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::CASACORE)
 target_link_libraries(casacpp_synthesis PUBLIC OpenMP::OpenMP_CXX)
 # Libsakura dependency
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::SAKURA)
+# Optional HPG dependency
+if(DEFINED hpg_FOUND AND ${hpg_FOUND})
+  target_link_libraries(casacpp_synthesis PRIVATE hpg::hpg)
+endif()
 
 # Internal dependencies
 target_link_libraries(casacpp_synthesis PUBLIC casacpp_casatools casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_protobuf casacpp_imageanalysis casacpp_mstransform)
