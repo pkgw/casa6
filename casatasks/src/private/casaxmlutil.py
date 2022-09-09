@@ -1,6 +1,8 @@
-import functools
 import os
+import functools
+import inspect
 from xml.dom import minidom
+import opcode
 
 import casatasks
 
@@ -8,8 +10,10 @@ import casatasks
 __FUNCTION = 'override_args'
 __ARGS = '_a'
 __ARGS_DICT = '_d'
+__ARGS_SUPPLIED = '_s'
+__LOGLEVEL_IN_FUNCTION = 'INFO'
 
-__DEBUG = False
+__DEBUG = True
 if __DEBUG:
     from pprint import pprint
 
@@ -44,17 +48,31 @@ def constraints_injector(func):
 
     Python:
     def override_args(_a, _d): # _a: position args, _d: dict[key: position name, val: corresponding position index of the key]
-        if _d.get('timebin') is not None and _a[_d['timebin']] != '':
-            if _d.get('timespan') is not None and _a[_d['timespan']] == '': _a[_d['timespan']] = ''
-        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'list':
-            if _d.get('nfit') is not None and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
-        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'auto':
-            if _d.get('thresh') is not None and _a[_d['thresh']] == '': _a[_d['thresh']] = 5.0
-            if _d.get('avg_limit') is not None and _a[_d['avg_limit']] == '': _a[_d['avg_limit']] = 4
-            if _d.get('minwidth') is not None and _a[_d['minwidth']] == '': _a[_d['minwidth']] = 4
-            if _d.get('edge') is not None and _a[_d['edge']] == '': _a[_d['edge']] = 0
-        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'interact':
-            if _d.get('nfit') is not None and _a[_d['nfit']] == '': _a[_d['nfit']] = 0
+    if _d.get('timebin') is not None and _a[_d['timebin']] != '':
+        if _d.get('timespan') is not None and _a[_d['timespan']] == '':
+            _a[_d['timespan']] = ''
+            casatasks.casalog.post("override argument: timespan -> ''", "INFO")
+    if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'list':
+        if _d.get('nfit') is not None and _a[_d['nfit']] == '':
+            _a[_d['nfit']] = [0]
+            casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
+    if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'auto':
+        if _d.get('thresh') is not None and _a[_d['thresh']] == '':
+            _a[_d['thresh']] = 5.0
+            casatasks.casalog.post("override argument: thresh -> 5.0", "INFO")
+        if _d.get('avg_limit') is not None and _a[_d['avg_limit']] == '':
+            _a[_d['avg_limit']] = 4
+            casatasks.casalog.post("override argument: avg_limit -> 4", "INFO")
+        if _d.get('minwidth') is not None and _a[_d['minwidth']] == '':
+            _a[_d['minwidth']] = 4
+            casatasks.casalog.post("override argument: minwidth -> 4", "INFO")
+        if _d.get('edge') is not None and _a[_d['edge']] == '':
+            _a[_d['edge']] = [0]
+            casatasks.casalog.post("override argument: edge -> [0]", "INFO")
+    if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'interact':
+        if _d.get('nfit') is not None and _a[_d['nfit']] == '':
+            _a[_d['nfit']] = [0]
+            casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
 
     Then, it evaluates the function above, and the function modifies arguments of a task which decorates the decorator.
 
@@ -84,9 +102,31 @@ def constraints_injector(func):
             else:
                 func_ = func
 
+            # load user-supplied arguments from current bytecode
+            # task calling bytecode (dumped by dis.dis()):
+            #  [opcode]         [opland]
+            #  LOAD_CONST       [n]
+            #  CALL_FUNCTION_KW [m]  <- current
+            # current program counter - 2 is the opcode of LOAD_CONST, counter - 1 is index of co_consts [n].
+            # co_consts[n] points the user-supplied arguments of the task called.
+            outer_call = args_on_code = False
+            for frame in inspect.stack():
+                if outer_call:
+                    if hasattr(frame.frame, 'f_code'):
+                        dyn_args = frame.frame.f_code.co_consts
+                        bytecodes = frame.frame.f_code.co_code
+                        code_index = frame.frame.f_lasti
+                        if bytecodes[code_index - 2] == opcode.opmap['LOAD_CONST']:
+                            args_on_code = dyn_args[bytecodes[code_index - 1]]
+                            casatasks.casalog.post(f'user-supplied arguments:{args_on_code}', 'INFO')
+                    outer_call = False
+                if frame.function == '__call__':
+                    outer_call = True
+
             arg_keys = func_.__code__.co_varnames
             arg_count = func_.__code__.co_argcount
             args_ = [''] * arg_count
+            supplied_args_flags = [False] * arg_count
 
             # copy all arguments into args_
             # Note: all arguments (args, kwargs) defined a task are converted into
@@ -101,9 +141,16 @@ def constraints_injector(func):
                 else:
                     kwargs_[k] = v
 
+            if args_on_code and isinstance(args_on_code, tuple):
+                for k in args_on_code:
+                    i = args_position_dict.get(k, False)
+                    if i is not False:
+                        supplied_args_flags[i] = True
+
             # generate the converter method
             exec(f'{__ARGS} = args_')
             exec(f'{__ARGS_DICT} = args_position_dict')
+            exec(f'{__ARGS_SUPPLIED} = supplied_args_flags')
             func_ = __generate_constraints_from_xml(funcname)
 
             if __DEBUG:
@@ -113,7 +160,7 @@ def constraints_injector(func):
 
             # override args by the converter generated
             exec(func_)
-            exec(f'{__FUNCTION}(args_, args_position_dict)')
+            exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
 
             # execute task
             retval = func(*args_, **kwargs_)
@@ -150,7 +197,7 @@ def __generate_constraints_from_xml(task):
 
 
 def __convert_stmt_to_pycode(stmt_list):
-    ret = f'def {__FUNCTION}({__ARGS}, {__ARGS_DICT}):\n'
+    ret = f'def {__FUNCTION}({__ARGS}, {__ARGS_DICT}, {__ARGS_SUPPLIED}):\n'
     if len(stmt_list) > 0:
         for [stmt, indent] in stmt_list:
             ret += __indent(indent) + stmt + '\n'
@@ -187,10 +234,10 @@ def __handle_equals_or_not_equals(when, elem, stmt, operator):
         for default_ in defaults:
             left = __get_param(default_)
             right = default_.getElementsByTagName('value')[0]
-            stmt.append([__handle_default(left, right), indent_level + 1])
+            __handle_default(left, right, stmt, indent_level)
 
 
-def __handle_default(left, right):
+def __handle_default(left, right, stmt, indent_level):
     # <default>
     quote = ''
     right, type_ = __handle_value(right)
@@ -204,10 +251,12 @@ def __handle_default(left, right):
         right = f'{quote}{right}{quote}'
     if_ = __if(
         __and(__can_get(__ARGS_DICT, left),
-              __equals(__list(__ARGS, __dict(__ARGS_DICT, left)), "''")
+              __is(__list(__ARGS_SUPPLIED, __dict(__ARGS_DICT, left)), False)
               )
         )
-    return if_ + ' ' + __is_equal(__list(__ARGS, __dict(__ARGS_DICT, left)), right)
+    stmt.append([if_, indent_level + 1])
+    stmt.append([__is_equal(__list(__ARGS, __dict(__ARGS_DICT, left)), right), indent_level + 2])
+    stmt.append([__casalog(left, right), indent_level + 2])
 
 
 def __handle_value(_element, type_='int'):
@@ -290,6 +339,10 @@ def __get(val, operand, exp=None):
 
 def __can_get(val, operand):
     return __is(__get(val, operand), __not(__NONE))
+
+
+def __casalog(left, right):
+    return f'casatasks.casalog.post("override argument: {left} -> {right}", "{__LOGLEVEL_IN_FUNCTION}")'
 
 
 def __dict(val, pos):
