@@ -444,17 +444,19 @@ String BriggsCubeWeightor::initImgWeightCol(vi::VisibilityIterator2& vi,
 	auto itf=firstchanfreq.begin();
 	auto itmax=localmaxfreq.begin();
 	Double firstchanshift=0.0;
-	Double minfirstchan=min(Vector<Double>(firstchanfreq));
-	for (auto itmin=localminfreq.begin(); itmin != localminfreq.end(); ++itmin){
-	  if(swingFreq < abs(*itmin -minFreq))
-	    swingFreq=abs(*itmin -minFreq);
-	  if(swingFreq < abs(*itmax -maxFreq))
-	    swingFreq=abs(*itmax -maxFreq);
-	  if(firstchanshift < abs(*itf-minfirstchan))
-	    firstchanshift=abs(*itf-minfirstchan);
-	  itf++;
-	  itmax++;
-	}
+        if(firstchanfreq.size() >0){
+          Double minfirstchan=min(Vector<Double>(firstchanfreq));
+          for (auto itmin=localminfreq.begin(); itmin != localminfreq.end(); ++itmin){
+            if(swingFreq < abs(*itmin -minFreq))
+              swingFreq=abs(*itmin -minFreq);
+            if(swingFreq < abs(*itmax -maxFreq))
+              swingFreq=abs(*itmax -maxFreq);
+            if(firstchanshift < abs(*itf-minfirstchan))
+              firstchanshift=abs(*itf-minfirstchan);
+            itf++;
+            itmax++;
+          }
+        }
         Int extrapad=max(min(4, Int(imNChan/10)),1);
 	swingpad=2*(Int(std::ceil((swingFreq+firstchanshift)/freqincr))+extrapad);
 	//cerr <<" swingfreq " << (swingFreq/freqincr) << " firstchanshift " << (firstchanshift/freqincr) << " SWINGPAD " << swingpad << endl;

@@ -131,8 +131,11 @@ class PySynthesisImager:
         ###CAS-11687
         # For cube imaging:  align the data selections and image setup
         #if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
-         #   self.SItool.tuneselectdata()
-        #self.makeCFCache(exists);
+        #   self.SItool.tuneselectdata()
+        ###For cubes create cfcache ahead of each partition trying
+        ### to create it as it is not multiprocess safe
+        if("cube" in self.allimpars['0']['specmode']):
+            self.makeCFCache(exists);
 
 #############################################
 

@@ -2619,7 +2619,7 @@ void SynthesisImagerVi2::unlockMSs()
 					/*true */usePointing, pointingOffsetSigDev ,doPBCorr, 
 			      tile, computePAStep, pbLimit_l, true,conjBeams,
 			      useDoublePrec);
-
+    
     cfCacheObj = new refim::CFCache();
     cfCacheObj->setCacheDir(cfCache.data());
     // Get the LAZYFILL setting from the user configuration.  If not
@@ -2628,7 +2628,11 @@ void SynthesisImagerVi2::unlockMSs()
     // With lazy fill ON, CFCache loads the required CFs on-demand
     // from the disk.  And periodically triggers garbage collection to
     // release CFs that aren't required immediately.
-    cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
+    if(impars_p.mode.contains("cube")){
+      cfCacheObj->setLazyFill(False);
+    }
+    else
+      cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
     //    cerr << "Setting wtImagePrefix to " << imageNamePrefix.c_str() << endl;
     cfCacheObj->setWtImagePrefix(imageNamePrefix.c_str());
     cfCacheObj->initCache2(CFC_VERBOSE);
