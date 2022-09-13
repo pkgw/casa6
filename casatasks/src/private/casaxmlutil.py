@@ -13,7 +13,7 @@ __ARGS_DICT = '_d'
 __ARGS_SUPPLIED = '_s'
 __LOGLEVEL_IN_FUNCTION = 'INFO'
 
-__DEBUG = True
+__DEBUG = False
 if __DEBUG:
     from pprint import pprint
 
@@ -47,32 +47,32 @@ def constraints_injector(func):
     </constraints>
 
     Python:
-    def override_args(_a, _d): # _a: position args, _d: dict[key: position name, val: corresponding position index of the key]
-    if _d.get('timebin') is not None and _a[_d['timebin']] != '':
-        if _d.get('timespan') is not None and _a[_d['timespan']] == '':
-            _a[_d['timespan']] = ''
-            casatasks.casalog.post("override argument: timespan -> ''", "INFO")
-    if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'list':
-        if _d.get('nfit') is not None and _a[_d['nfit']] == '':
-            _a[_d['nfit']] = [0]
-            casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
-    if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'auto':
-        if _d.get('thresh') is not None and _a[_d['thresh']] == '':
-            _a[_d['thresh']] = 5.0
-            casatasks.casalog.post("override argument: thresh -> 5.0", "INFO")
-        if _d.get('avg_limit') is not None and _a[_d['avg_limit']] == '':
-            _a[_d['avg_limit']] = 4
-            casatasks.casalog.post("override argument: avg_limit -> 4", "INFO")
-        if _d.get('minwidth') is not None and _a[_d['minwidth']] == '':
-            _a[_d['minwidth']] = 4
-            casatasks.casalog.post("override argument: minwidth -> 4", "INFO")
-        if _d.get('edge') is not None and _a[_d['edge']] == '':
-            _a[_d['edge']] = [0]
-            casatasks.casalog.post("override argument: edge -> [0]", "INFO")
-    if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'interact':
-        if _d.get('nfit') is not None and _a[_d['nfit']] == '':
-            _a[_d['nfit']] = [0]
-            casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
+    def override_args(_a, _d, _s):  # _a: position args, _d: dict[key: position name, val: corresponding position index of the key]
+        if _d.get('timebin') is not None and _a[_d['timebin']] != '':
+            if _d.get('timespan') is not None and _s[_d['timespan']] is False and _a[_d['timespan']] == "":
+                _a[_d['timespan']] = ''
+                casatasks.casalog.post("override argument: timespan -> ''", "INFO")
+        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'list':
+            if _d.get('nfit') is not None and _s[_d['nfit']] is False and _a[_d['nfit']] == "":
+                _a[_d['nfit']] = [0]
+                casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
+        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'auto':
+            if _d.get('thresh') is not None and _s[_d['thresh']] is False and _a[_d['thresh']] == "":
+                _a[_d['thresh']] = 5.0
+                casatasks.casalog.post("override argument: thresh -> 5.0", "INFO")
+            if _d.get('avg_limit') is not None and _s[_d['avg_limit']] is False and _a[_d['avg_limit']] == "":
+                _a[_d['avg_limit']] = 4
+                casatasks.casalog.post("override argument: avg_limit -> 4", "INFO")
+            if _d.get('minwidth') is not None and _s[_d['minwidth']] is False and _a[_d['minwidth']] == "":
+                _a[_d['minwidth']] = 4
+                casatasks.casalog.post("override argument: minwidth -> 4", "INFO")
+            if _d.get('edge') is not None and _s[_d['edge']] is False and _a[_d['edge']] == "":
+                _a[_d['edge']] = [0]
+                casatasks.casalog.post("override argument: edge -> [0]", "INFO")
+        if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'interact':
+            if _d.get('nfit') is not None and _s[_d['nfit']] is False and _a[_d['nfit']] == "":
+                _a[_d['nfit']] = [0]
+                casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
 
     Then, it evaluates the function above, and the function modifies arguments of a task which decorates the decorator.
 
@@ -102,68 +102,85 @@ def constraints_injector(func):
             else:
                 func_ = func
 
-            # load user-supplied arguments from current bytecode
-            # task calling bytecode (dumped by dis.dis()):
+            # load user-supplied arguments from current bytecode.
+            # task calling bytecode (dumped by dis.dis()) is:
+            #
             #  [opcode]         [opland]
+            #  ...
             #  LOAD_CONST       [n]
-            #  CALL_FUNCTION_KW [m]  <- current
-            # current program counter - 2 is the opcode of LOAD_CONST, counter - 1 is index of co_consts [n].
-            # co_consts[n] points the user-supplied arguments of the task called.
-            outer_call = args_on_code = False
+            #  CALL_FUNCTION_KW [m]  <- current, pointed by frame.f_lasti
+            #  ...
+            #
+            # At the frame next to '__call__' on the call stack,
+            # bytecode[f_lasti] is the opcode of CALL_FUNCTION_KW executing currently.
+            # then, bytecode[f_lasti-2] is the opcode of LOAD_CONST,
+            # bytecode[f_lasti-1] is an index of the constant stack co_consts.
+            # co_consts[bytecode[f_lasti-1]] points the user-supplied arguments of the task called currently.
+
+            is_recursive_load = False
+            next_to_call = args_on_code = False
             for frame in inspect.stack():
-                if outer_call:
+                if frame.function == func_.__name__:
+                    # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
+                    is_recursive_load = True
+                if next_to_call:
                     if hasattr(frame.frame, 'f_code'):
-                        dyn_args = frame.frame.f_code.co_consts
+                        const_stack = frame.frame.f_code.co_consts
                         bytecodes = frame.frame.f_code.co_code
                         code_index = frame.frame.f_lasti
                         if bytecodes[code_index - 2] == opcode.opmap['LOAD_CONST']:
-                            args_on_code = dyn_args[bytecodes[code_index - 1]]
+                            args_on_code = const_stack[bytecodes[code_index - 1]]
                             casatasks.casalog.post(f'user-supplied arguments:{args_on_code}', 'INFO')
-                    outer_call = False
+                    next_to_call = False
                 if frame.function == '__call__':
-                    outer_call = True
+                    # the order of stacktrace should be '__call__' -> '<module>',
+                    # we should load user-supplied arguments from the next to '__call__'
+                    next_to_call = True
 
-            arg_keys = func_.__code__.co_varnames
-            arg_count = func_.__code__.co_argcount
-            args_ = [''] * arg_count
-            supplied_args_flags = [False] * arg_count
+            if is_recursive_load:
+                retval = func(*args, **kwargs)
+            else:
+                arg_keys = func_.__code__.co_varnames
+                arg_count = func_.__code__.co_argcount
+                args_ = [''] * arg_count
+                supplied_args_flags = [False] * arg_count
 
-            # copy all arguments into args_
-            # Note: all arguments (args, kwargs) defined a task are converted into
-            # position args by task.__call__() generated from task XML
-            for i in range(len(args)):
-                args_[i] = args[i]
-            args_position_dict = {key: i for i, key in enumerate(arg_keys)}
-            kwargs_ = dict()
-            for k, v in kwargs.items():
-                if args_position_dict.get(k) is not None and args_position_dict[k] < len(args_):
-                    args_[args_position_dict[k]] = v
-                else:
-                    kwargs_[k] = v
+                # copy all arguments into args_
+                # Note: all arguments (args, kwargs) defined a task are converted into
+                # position args by task.__call__() generated from task XML
+                for i in range(len(args)):
+                    args_[i] = args[i]
+                args_position_dict = {key: i for i, key in enumerate(arg_keys)}
+                kwargs_ = dict()
+                for k, v in kwargs.items():
+                    if args_position_dict.get(k) is not None and args_position_dict[k] < len(args_):
+                        args_[args_position_dict[k]] = v
+                    else:
+                        kwargs_[k] = v
 
-            if args_on_code and isinstance(args_on_code, tuple):
-                for k in args_on_code:
-                    i = args_position_dict.get(k, False)
-                    if i is not False:
-                        supplied_args_flags[i] = True
+                if args_on_code and isinstance(args_on_code, tuple):
+                    for k in args_on_code:
+                        i = args_position_dict.get(k, False)
+                        if i is not False:
+                            supplied_args_flags[i] = True
 
-            # generate the converter method
-            exec(f'{__ARGS} = args_')
-            exec(f'{__ARGS_DICT} = args_position_dict')
-            exec(f'{__ARGS_SUPPLIED} = supplied_args_flags')
-            func_ = __generate_constraints_from_xml(funcname)
+                # generate the converter method
+                exec(f'{__ARGS} = args_')
+                exec(f'{__ARGS_DICT} = args_position_dict')
+                exec(f'{__ARGS_SUPPLIED} = supplied_args_flags')
+                func_ = __generate_constraints_from_xml(funcname)
 
-            if __DEBUG:
-                print(func_)
-                pprint(args_position_dict)
-                pprint(args_)
+                if __DEBUG:
+                    print(func_)
+                    pprint(args_position_dict)
+                    pprint(args_)
 
-            # override args by the converter generated
-            exec(func_)
-            exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
+                # override args by the converter generated
+                exec(func_)
+                exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
 
-            # execute task
-            retval = func(*args_, **kwargs_)
+                # execute task
+                retval = func(*args_, **kwargs_)
 
             casatasks.casalog.post('loaded constraints from XML', 'INFO')
 
@@ -251,7 +268,9 @@ def __handle_default(left, right, stmt, indent_level):
         right = f'{quote}{right}{quote}'
     if_ = __if(
         __and(__can_get(__ARGS_DICT, left),
-              __is(__list(__ARGS_SUPPLIED, __dict(__ARGS_DICT, left)), False)
+              __and(
+                __is(__list(__ARGS_SUPPLIED, __dict(__ARGS_DICT, left)), False),
+                __equals(__list(__ARGS, __dict(__ARGS_DICT, left)), '""'))
               )
         )
     stmt.append([if_, indent_level + 1])
@@ -359,24 +378,11 @@ def __indent(level):
 
 if __name__ == '__main__':
 
-    @constraints_injector
-    def sdcal(infile=None, calmode='tsys', fraction='10%', noff=-1,
-            width=0.5, elongated=False, applytable='', interp='', spwmap={},
-            outfile='', overwrite=False, field='', spw='', scan='', intent=''):
-        print(calmode)
-        print(fraction)
-        print(intent)
+    from casatasks import sdcal, sdfit
 
+    #sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otf')
+    sdfit(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, fitmode='auto')
 
-    @constraints_injector
-    def sdfit(infile=None, datacolumn=None, antenna=None, field=None, spw=None,
-            timerange=None, scan=None, pol=None, intent=None,
-            timebin=None, timespan=None,
-            polaverage=None,
-            fitfunc=None, fitmode=None, nfit=None, thresh=None, avg_limit=None,
-            minwidth=None, edge=None, outfile=None, overwrite=None):
-        print(nfit)
-        print(thresh)
-
-    sdcal('test', calmode='otfraster,apply')
-    sdfit('test', fitmode='auto')
+    def test():
+        sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otfraster,apply')
+    test()
