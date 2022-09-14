@@ -78,8 +78,8 @@ def constraints_injector(func):
 
     Parameters
     ----------
-    func : str
-        The task name
+    func : function
+        The casatask function to be decorated
 
     Returns
     -------
@@ -257,7 +257,7 @@ def __handle_default(left, right, stmt, indent_level):
     right, type_ = __handle_value(right)
     if type_ == 'string' or type_ == 'record' or type_ == 'stringVec':
         quote = __QUOTE
-    if type_[-3:] == 'Vec' or type_ == 'vector':
+    if type_.endswith('Vec') or type_ == 'vector':
         if isinstance(right, list):
             right = ','.join([f'{quote}{r}{quote}' for r in right])
         right = f'[{right}]'
