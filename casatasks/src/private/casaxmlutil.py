@@ -138,6 +138,7 @@ def constraints_injector(func):
                     next_to_call = True
 
             if is_recursive_load:
+                casatasks.casalog.post('recursive task call', 'INFO')
                 retval = func(*args, **kwargs)
             else:
                 arg_keys = func_.__code__.co_varnames
@@ -173,13 +174,12 @@ def constraints_injector(func):
                     pprint(args_)
 
                 # override args by the converter generated
+                casatasks.casalog.post('loaded constraints from XML and injected them to arguments', 'INFO')
                 exec(func_)
                 exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
 
                 # execute task
                 retval = func(*args_, **kwargs_)
-
-            casatasks.casalog.post('loaded constraints from XML', 'INFO')
 
         except Exception:
             raise
