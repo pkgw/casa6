@@ -101,10 +101,7 @@ def constraints_injector(func):
 
             # load the function name and arguments which is wrapped the decorator
             # get an object reference to read informantion of argument
-            if func.__dict__.get('__wrapped__'):
-                func_ = func.__dict__['__wrapped__']
-            else:
-                func_ = func
+            func_ = func.__dict__.get('__wrapped__', func)
 
             # load user-supplied arguments from current bytecode.
             # task calling bytecode (dumped by dis.dis()) is:
