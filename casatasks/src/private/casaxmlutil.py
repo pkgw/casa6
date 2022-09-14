@@ -191,7 +191,7 @@ def constraints_injector(func):
 
 
 def __get_taskxmlfilepath(task):
-    if isinstance(task, str) is False:
+    if not isinstance(task, str):
         return False
     xmlpath = os.path.abspath(casatasks.__path__[0]) + '/__xml__'
     taskxmlfile = f'{xmlpath}/{task}.xml'
