@@ -83,8 +83,8 @@ def constraints_injector(func):
 
     Returns
     -------
-    wrapper
-        A function of decorator
+    wrapper: function
+        A decorated casatask satisfying the XML constraints
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
