@@ -42,9 +42,12 @@ target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::CASACORE)
 # OpenMP dependency
 if (OPENMP_FOUND)
   target_link_libraries(casacpp_synthesis PUBLIC OpenMP::OpenMP_CXX)
-end()
+endif()
 # Libsakura dependency
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::SAKURA)
+# FFTW dependency
+target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::FFTW ${FFTW_DOUBLE_THREADS_LIB})
+target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::FFTWF ${FFTW_FLOAT_THREADS_LIB})
 
 # Internal dependencies
 target_link_libraries(casacpp_synthesis PUBLIC casacpp_casatools casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_protobuf casacpp_imageanalysis casacpp_mstransform)

@@ -84,6 +84,16 @@ pkg_check_modules(XSLT REQUIRED IMPORTED_TARGET libxslt)
 # CFITSIO dependecy
 pkg_check_modules(CFITSIO REQUIRED IMPORTED_TARGET cfitsio)
 
+# FFTW dependency
+pkg_search_module(FFTW REQUIRED IMPORTED_TARGET fftw3)
+pkg_search_module(FFTWF REQUIRED IMPORTED_TARGET fftw3f)
+find_library(FFTW_DOUBLE_THREADS_LIB
+             NAMES "fftw3_threads"
+             PATHS ${PKG_FFTW_LIBRARY_DIRSOOO} REQUIRED)
+find_library(FFTW_FLOAT_THREADS_LIB
+             NAMES "fftw3f_threads"
+             PATHS ${PKG_FFTWF_LIBRARY_DIRS} REQUIRED)
+
 # sqllite3 dependency
 find_package(SQLite3 REQUIRED)
 
