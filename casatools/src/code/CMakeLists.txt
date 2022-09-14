@@ -88,7 +88,7 @@ pkg_check_modules(CFITSIO REQUIRED IMPORTED_TARGET cfitsio)
 find_package(SQLite3 REQUIRED)
 
 # OpenMP dependency
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
 
 # SAKURA dependency
 pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
