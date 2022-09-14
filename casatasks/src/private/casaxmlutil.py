@@ -153,7 +153,7 @@ def constraints_injector(func):
                 args_position_dict = {key: i for i, key in enumerate(arg_keys)}
                 kwargs_ = dict()
                 for k, v in kwargs.items():
-                    if args_position_dict.get(k) is not None and args_position_dict[k] < len(args_):
+                    if args_position_dict.get(k) is not None and args_position_dict[k] < arg_count:
                         args_[args_position_dict[k]] = v
                     else:
                         kwargs_[k] = v
