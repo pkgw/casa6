@@ -47,7 +47,11 @@ def constraints_injector(func):
     </constraints>
 
     Python:
-    def override_args(_a, _d, _s):  # _a: position args, _d: dict[key: position name, val: corresponding position index of the key]
+    def override_args(_a, _d, _s):  # _a: position args based on *args
+                                    # _d: dict[key: position name, val: corresponding position index of a key]
+                                    #     to use to get a position index of args by position name
+                                    # _s: boolean array, it is the same length as the position args,
+                                    #     and the positions of user-supplied arguments are set to True
         if _d.get('timebin') is not None and _a[_d['timebin']] != '':
             if _d.get('timespan') is not None and _s[_d['timespan']] is False and _a[_d['timespan']] == "":
                 _a[_d['timespan']] = ''
