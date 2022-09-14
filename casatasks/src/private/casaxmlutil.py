@@ -19,7 +19,7 @@ if __DEBUG:
 
 
 def constraints_injector(func):
-    """Load constraints from a task XML file and set them the arguments of a task calling.
+    """Decorator which loads constraints from a casatask XML file and apply them to the arguments of the decorated casatask.
 
     This method decorating a task method converts a constraints element of a CASA XML into Python code as below:
 
