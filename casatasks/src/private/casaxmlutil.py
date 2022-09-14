@@ -198,7 +198,7 @@ def __get_taskxmlfilepath(task):
 
 
 def __generate_constraints_from_xml(task):
-    # raise Exception if file loadging faults
+    # return False if file loadging faults
     taskxml = __get_taskxmlfilepath(task)
 
     stmt = []
