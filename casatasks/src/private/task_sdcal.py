@@ -18,7 +18,7 @@ cb = calibrater()
 myms = ms()
 
 
-@casaxmlutil.constraints_injector
+@casaxmlutil.xml_constraints_injector
 @sdutil.sdtask_decorator
 def sdcal(infile=None, calmode='tsys', fraction='10%', noff=-1,
           width=0.5, elongated=False, applytable='', interp='', spwmap={},

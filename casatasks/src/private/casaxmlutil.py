@@ -18,7 +18,7 @@ if __DEBUG:
     from pprint import pprint
 
 
-def constraints_injector(func):
+def xml_constraints_injector(func):
     """Decorator which loads constraints from a casatask XML file and apply them to the arguments of the decorated casatask.
 
     This method decorating a task method converts a constraints element of a CASA XML into Python code as below:

@@ -12,7 +12,7 @@ ms = mstool()
 sdms = singledishms()
 tb = table()
 
-@casaxmlutil.constraints_injector
+@casaxmlutil.xml_constraints_injector
 @sdutil.sdtask_decorator
 def sdfit(infile=None, datacolumn=None, antenna=None, field=None, spw=None,
           timerange=None, scan=None, pol=None, intent=None,
