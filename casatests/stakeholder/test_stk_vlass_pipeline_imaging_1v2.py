@@ -1,6 +1,7 @@
 ##########################################################################
 #
-# Run the tests as described in https://open-confluence.nrao.edu/pages/viewpage.action?spaceKey=CASA&title=Requirements+for+VLASS+Imaging+Pipeline+Stakeholders+Tests
+# Run the tests as described in
+# # https://open-confluence.nrao.edu/pages/viewpage.action?spaceKey=CASA&title=Requirements+for+VLASS+Imaging+Pipeline+Stakeholders+Tests
 # There wasn't a great definition of the work to be done, so much of it is being interpretted by me (BGB).
 #
 ##########################################################################
@@ -245,14 +246,14 @@ class test_j1302(StkUnitTest):
                 'tt1': 0.01928869,
                 'alpha': 0.06034857,
                 'beam': { 'maj': 3.15002894, 'min': 2.59177852, 'pos': 11.41288376 },
-                'runtime': 2413
+                #'runtime': 2413
             },
             '1/4': {
                 'tt0': 0.29668888,
                 'tt1': -0.00507728,
                 'alpha': -0.01711315,
                 'beam': { 'maj': 3.13147807, 'min': 2.56502342, 'pos': 10.92203331 },
-                'runtime': 417
+                #'runtime': 417
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -308,15 +309,15 @@ class test_j1302(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        if ParallelTaskHelper.isMPIEnabled():
-            # runtime with MPI -n 8
-            successr, reportr = self.check_runtime(starttime, 5373)
-        else:
-            successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        # if ParallelTaskHelper.isMPIEnabled():
+        #     # runtime with MPI -n 8
+        #     successr, reportr = self.check_runtime(starttime, 5373)
+        # else:
+        #     successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report1, report3, report4, report5, report6, report7, reportr])
-        success = success1 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
+        report  = "".join([report1, report3, report4, report5, report6, report7])
+        success = success1 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
 
@@ -454,14 +455,14 @@ class test_j1302(StkUnitTest):
                 'tt1': -0.01537329,
                 'alpha': -0.04843721,
                 'beam': { 'maj': 3.05415082, 'min': 2.49866414, 'pos': 10.82348919 },
-                'runtime': 21179
+                #'runtime': 21179
             },
             '1/4': {
                 'tt0': 0.21766607,
                 'tt1': -0.05709893,
                 'alpha': -0.2623235,
                 'beam': { 'maj': 3.07264543, 'min': 2.5105536,  'pos': 10.96454144 },
-                'runtime': 1993 # this is with cfcache
+                #'runtime': 1993 # this is with cfcache
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -519,15 +520,15 @@ class test_j1302(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        if ParallelTaskHelper.isMPIEnabled():
-            # runtime with MPI -n 8
-            successr, reportr = self.check_runtime(starttime, 9594)
-        else:
-            successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        # if ParallelTaskHelper.isMPIEnabled():
+        #     # runtime with MPI -n 8
+        #     successr, reportr = self.check_runtime(starttime, 9594)
+        # else:
+        #     successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report1, report3, report5, report6, report7, reportr])
-        success = success1 and success3 and success5 and success6 and success7 and successr and self.th.check_final(report)
+        report  = "".join([report1, report3, report5, report6, report7])
+        success = success1 and success3 and success5 and success6 and success7 and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
 
@@ -713,12 +714,12 @@ class test_j1302(StkUnitTest):
             'full': {
                 'F_nu': 0.31231569,
                 'alpha': 0.03663584,
-                'runtime': 7167
+                #'runtime': 7167
             },
             '1/4': {
                 'F_nu': 0.28358972,
                 'alpha': -0.39547056,
-                'runtime': 902
+                #'runtime': 902
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -833,11 +834,11 @@ class test_j1302(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        # successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report1, report2, report3, *report4, reportr])
-        success = success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
+        report  = "".join([report1, report2, report3, *report4])
+        success = success1 and success2 and success3 and all(success4) and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, *report4])
         # success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
 
@@ -943,12 +944,12 @@ class test_j1302(StkUnitTest):
             'full': {
                 'F_nu': 0.3205489218235016,
                 'beam': { 'maj': 3.12365127, 'min': 2.62010241, 'pos': 13.79291248 },
-                'runtime': 1805
+                #'runtime': 1805
             },
             '1/4': {
                 'F_nu': 0.3184760808944702,
                 'beam': { 'maj': 3.13571501, 'min': 2.6162672,  'pos': 13.37007141 },
-                'runtime': 383
+                #'runtime': 383
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -995,9 +996,9 @@ class test_j1302(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
-        report  = "".join([report0, report1, report2, report4, reportr])
-        success = success1 and success2 and success4 and successr and self.th.check_final(report)
+        # successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        report  = "".join([report0, report1, report2, report4])
+        success = success1 and success2 and success4 and self.th.check_final(report)
 
         add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
         test_dict[test_name]['report'] = report
@@ -1125,14 +1126,14 @@ class test_j1927(StkUnitTest):
                 'tt1': 0.41305166,
                 'alpha': 0.46520507,
                 'beam': { 'maj': 2.44883513, 'min': 2.04789495, 'pos': -23.64226532 },
-                'runtime': 4415
+                #'runtime': 4415
             },
             '1/4': {
                 'tt0': 0.87826717,
                 'tt1': 0.32428792,
                 'alpha': 0.36923608,
                 'beam': { 'maj': 2.35327077, 'min': 1.97257483, 'pos': -23.63233376 },
-                'runtime': 436
+                #'runtime': 436
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -1188,15 +1189,15 @@ class test_j1927(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        if ParallelTaskHelper.isMPIEnabled():
-            # runtime with MPI -n 8
-            successr, reportr = self.check_runtime(starttime, 7129)
-        else:
-            successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        # if ParallelTaskHelper.isMPIEnabled():
+        #     # runtime with MPI -n 8
+        #     successr, reportr = self.check_runtime(starttime, 7129)
+        # else:
+        #     successr, reportr = self.check_runtime(starttime, stats621['runtime'])
 
         # TODO start obeying on-axis once on-axis passes
-        report  = "".join([report0, report1, report3, report4, report5, report6, report7, reportr])
-        success = success0 and success1 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
+        report  = "".join([report0, report1, report3, report4, report5, report6, report7])
+        success = success0 and success1 and success3 and success4 and success5 and success6 and success7 and self.th.check_final(report)
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7, reportr])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
 
@@ -1385,12 +1386,12 @@ class test_j1927(StkUnitTest):
             'full': {
                 'F_nu': 0.88835657,
                 'alpha': 0.41202253,
-                'runtime': 15329
+                #'runtime': 15329
             },
             '1/4': {
                 'F_nu': 0.87965548,
                 'alpha': 0.29201263,
-                'runtime': 1022
+                #'runtime': 1022
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -1474,9 +1475,9 @@ class test_j1927(StkUnitTest):
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
-        report  = "".join([report0, report1, report2, report3, *report4, reportr])
-        success = success0 and success1 and success2 and success3 and all(success4) and successr and self.th.check_final(report)
+        # successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        report  = "".join([report0, report1, report2, report3, *report4])
+        success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
 
         add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
         test_dict[test_name]['report'] = report
@@ -1581,12 +1582,12 @@ class test_j1927(StkUnitTest):
             'full': {
                 'F_nu': [0.9051663279533386],
                 'beam': { 'maj': 2.45210147, 'min': 2.07915711, 'pos': -18.88167 },
-                'runtime': 4277
+                #'runtime': 4277
             },
             '1/4': {
                 'F_nu': 0.8975918889045715,
                 'beam': { 'maj': 2.4284029,  'min': 2.06255174, 'pos': -19.85708046 },
-                'runtime': 826
+                #'runtime': 826
             }
         }
         stats621 = stats621['full'] if (not quick_test) else stats621[f"1/4"]
@@ -1633,9 +1634,9 @@ class test_j1927(StkUnitTest):
         np.save(self.id()+'.beamstats.npy', beamstats_curr)
 
         # (f) Runtimes not significantly different relative to previous runs
-        successr, reportr = self.check_runtime(starttime, stats621['runtime'])
-        report  = "".join([report0, report1, report2, report4, reportr])
-        success = success1 and success2 and success4 and successr and self.th.check_final(report)
+        #successr, reportr = self.check_runtime(starttime, stats621['runtime'])
+        report  = "".join([report0, report1, report2, report4])
+        success = success1 and success2 and success4 and self.th.check_final(report)
 
         add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
         test_dict[test_name]['report'] = report
@@ -1646,10 +1647,6 @@ class test_j1927(StkUnitTest):
 
 ##############################################
 ##############################################
-
-## List to be run0
-def suite():
-    return [test_j1302, test_j1927]
 
 if __name__ == '__main__':
     unittest.main()
