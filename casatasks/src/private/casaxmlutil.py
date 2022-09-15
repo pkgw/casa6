@@ -150,8 +150,7 @@ def constraints_injector(func):
                 # copy all arguments into args_
                 # Note: all arguments (args, kwargs) defined a task are converted into
                 # position args by task.__call__() generated from task XML
-                for i in range(len(args)):
-                    args_[i] = args[i]
+                args_[:len(args)] = args
                 args_position_dict = {key: i for i, key in enumerate(arg_keys)}
                 kwargs_ = dict()
                 for k, v in kwargs.items():
