@@ -55,28 +55,28 @@ def xml_constraints_injector(func):
         if _d.get('timebin') is not None and _a[_d['timebin']] != '':
             if _d.get('timespan') is not None and _s[_d['timespan']] is False and _a[_d['timespan']] == "":
                 _a[_d['timespan']] = ''
-                casatasks.casalog.post("override argument: timespan -> ''", "INFO")
+                casatasks.casalog.post("overrode argument: timespan -> ''", "INFO")
         if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'list':
             if _d.get('nfit') is not None and _s[_d['nfit']] is False and _a[_d['nfit']] == "":
                 _a[_d['nfit']] = [0]
-                casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
+                casatasks.casalog.post("overrode argument: nfit -> [0]", "INFO")
         if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'auto':
             if _d.get('thresh') is not None and _s[_d['thresh']] is False and _a[_d['thresh']] == "":
                 _a[_d['thresh']] = 5.0
-                casatasks.casalog.post("override argument: thresh -> 5.0", "INFO")
+                casatasks.casalog.post("overrode argument: thresh -> 5.0", "INFO")
             if _d.get('avg_limit') is not None and _s[_d['avg_limit']] is False and _a[_d['avg_limit']] == "":
                 _a[_d['avg_limit']] = 4
-                casatasks.casalog.post("override argument: avg_limit -> 4", "INFO")
+                casatasks.casalog.post("overrode argument: avg_limit -> 4", "INFO")
             if _d.get('minwidth') is not None and _s[_d['minwidth']] is False and _a[_d['minwidth']] == "":
                 _a[_d['minwidth']] = 4
-                casatasks.casalog.post("override argument: minwidth -> 4", "INFO")
+                casatasks.casalog.post("overrode argument: minwidth -> 4", "INFO")
             if _d.get('edge') is not None and _s[_d['edge']] is False and _a[_d['edge']] == "":
                 _a[_d['edge']] = [0]
-                casatasks.casalog.post("override argument: edge -> [0]", "INFO")
+                casatasks.casalog.post("overrode argument: edge -> [0]", "INFO")
         if _d.get('fitmode') is not None and _a[_d['fitmode']] == 'interact':
             if _d.get('nfit') is not None and _s[_d['nfit']] is False and _a[_d['nfit']] == "":
                 _a[_d['nfit']] = [0]
-                casatasks.casalog.post("override argument: nfit -> [0]", "INFO")
+                casatasks.casalog.post("overrode argument: nfit -> [0]", "INFO")
 
     Then, it evaluates the function above, and the function modifies arguments of a task which decorates the decorator.
 
@@ -174,7 +174,7 @@ def xml_constraints_injector(func):
                     pprint(args_)
 
                 # override args by the converter generated
-                casatasks.casalog.post('loaded constraints from XML and injected them to arguments', 'INFO')
+                casatasks.casalog.post('loaded constraints from XML', 'INFO')
                 exec(func_)
                 exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
 
@@ -358,7 +358,7 @@ def __can_get(val, operand):
 
 
 def __casalog(left, right):
-    return f'casatasks.casalog.post("override argument: {left} -> {right}", "{__LOGLEVEL_IN_FUNCTION}")'
+    return f'casatasks.casalog.post("overrode argument: {left} -> {right}", "{__LOGLEVEL_IN_FUNCTION}")'
 
 
 def __dict(val, pos):
