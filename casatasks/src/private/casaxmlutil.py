@@ -375,9 +375,28 @@ def __indent(level):
 
 if __name__ == '__main__':
 
+    @xml_constraints_injector
+    def sdcal(infile=None, calmode='tsys', fraction='10%', noff=-1,
+            width=0.5, elongated=False, applytable='', interp='', spwmap={},
+            outfile='', overwrite=False, field='', spw='', scan='', intent=''):
+        print(calmode)
+        print(fraction)
+        print(intent)
+    @xml_constraints_injector
+    def sdfit(infile=None, datacolumn=None, antenna=None, field=None, spw=None,
+            timerange=None, scan=None, pol=None, intent=None,
+            timebin=None, timespan=None,
+            polaverage=None,
+            fitfunc=None, fitmode=None, nfit=None, thresh=None, avg_limit=None,
+            minwidth=None, edge=None, outfile=None, overwrite=None):
+        print(nfit)
+        print(thresh)
+    sdcal('test', calmode='otfraster,apply')
+    sdfit('test', fitmode='auto')
+
     from casatasks import sdcal, sdfit
 
-    #sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otf')
+    sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otf')
     sdfit(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, fitmode='auto')
 
     def test():
