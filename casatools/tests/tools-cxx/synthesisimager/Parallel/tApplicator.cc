@@ -44,7 +44,7 @@ class TestAlgorithm : public casa::Algorithm {
 void TestAlgorithm::get(){
 
       cout << "In TestAlgorithm::get\n";
-
+      cerr << "Is worker " << casa::applicator.isWorker() << endl;
       // This sequence of gets must match the sequence of puts in the "applicator" below
       casa::applicator.get(one);
       cout << "got one " << one << '\n';
@@ -71,9 +71,12 @@ void TestAlgorithm::get(){
       cout << "got aFour " << '\n';
       casa::applicator.get(aFive);
       cout << "got aFive " << '\n';
-
-      casa::applicator.get(rec);
-      cout << "got record: " << rec << '\n';
+      for (uInt k=1; k < 10 ; ++k){
+        casa::applicator.get(rec);
+        cerr << "Got record with " << k*10000000 << " array" << rec  << endl;
+      }
+      //casa::applicator.get(rec);
+      //cout << "got record: " << rec << '\n';
 
 
       DComplex val;
@@ -190,13 +193,18 @@ int main(Int argc, Char *argv[]){
       Record rec;
       rec.define("field_a", "example");
       rec.define("field_b", 3.45);
-      rec.define("field_c", aFour);
+      
       Record subrec;
       subrec.define("fs1", true);
       subrec.define("fs2", "bla1 bla2");
       subrec.define("fs3", aOne);
       rec.defineRecord("field_d", subrec);
-      casa::applicator.put(rec);
+      for (uInt k=1; k < 10 ; ++k){
+        Vector<Complex> bigArray(10000000*k, Complex(k,0));
+        rec.define("field_c", bigArray);
+        cerr << "put rec with " << 10000000*k << " elements array " << endl; 
+        casa::applicator.put(rec);
+      }
 
       // send a bunch of items
       DComplex val(3.4, -5.6);
