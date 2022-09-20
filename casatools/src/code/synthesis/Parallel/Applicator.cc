@@ -40,6 +40,9 @@
 #include <synthesis/ImagerObjects/CubeMakeImageAlgorithm.h>
 #include <synthesis/ImagerObjects/CubeMinorCycleAlgorithm.h>
 #include <synthesis/Parallel/MPIError.h>
+#ifdef PABLO_IO
+#include <synthesis/Parallel/PabloIO.h>
+#endif
 
 using namespace casacore;
 using namespace std;
@@ -77,10 +80,26 @@ Applicator::~Applicator()
 
 void Applicator::initThreads(Int argc, Char *argv[]){
 
+  Int numprocs=0;
+ 
    // A no-op if not using MPI
 #ifdef HAVE_MPI
   //if (debug_p) {
+
   if(initialized_p) return;
+  int flag=0;
+   MPI_Initialized(&flag);
+   //cerr << "FLAG " << flag << endl;
+   if(flag || MPI_Init(&argc, &argv)==MPI_SUCCESS){
+     Int numproc=0;
+     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+     if(numprocs < 2){
+       initThreads();
+       MPI_Finalize();
+       return;
+     }
+   }
+  
   //  cerr << "In initThreads. argc: " << argc << ", argv: " << argv << '\n';
       //}
   // Initialize the MPI transport layer
@@ -88,6 +107,9 @@ void Applicator::initThreads(Int argc, Char *argv[]){
      comm = new MPITransport(argc, argv);
 
      // Initialize the process status list
+#ifdef PABLO_IO
+     PabloIO::init(argc, argv, comm->cpu());
+#endif
      setupProcStatus();
 
      // If controller then exit, else loop, waiting for an assigned task
@@ -161,6 +183,9 @@ void Applicator::init(Int argc, Char *argv[])
   if (debug_p) {
       cerr << "In init threads, not HAVE_MPI...\n";
   }
+#ifdef PABLO_IO
+     PabloIO::init(argc, argv, 0);
+#endif
   (void)argc;
   (void)argv;
   initThreads();
