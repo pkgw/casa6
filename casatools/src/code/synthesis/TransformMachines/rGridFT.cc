@@ -43,6 +43,7 @@
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <msvis/MSVis/VisBuffer.h>
 #include <msvis/MSVis/VisSet.h>
+<<<<<<< HEAD
 #include <casacore/images/Images/ImageInterface.h>
 #include <casacore/images/Images/PagedImage.h>
 #include <casacore/casa/Containers/Block.h>
@@ -70,7 +71,7 @@
 #include <casacore/casa/Utilities/CompositeNumber.h>
 #include <casacore/casa/OS/Timer.h>
 #include <sstream>
-#ifdef HAS_OMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 

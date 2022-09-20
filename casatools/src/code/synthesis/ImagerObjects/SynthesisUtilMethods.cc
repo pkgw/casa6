@@ -74,7 +74,7 @@
 
 // supporting code for getAllocatedMemoryInBytes()
 #if defined(AIPS_DARWIN) || defined(AIPS_CRAY_PGI) || __cplusplus <= 199711L
-#include <casa/OS/Memory.h>
+#include <casacore/casa/OS/Memory.h>
 #else
 #include <malloc.h>
 #include <string>

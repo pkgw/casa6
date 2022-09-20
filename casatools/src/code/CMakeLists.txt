@@ -65,7 +65,7 @@ find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
 # Try to detect GRPC using native cmake support (for distributions like Fedora or source compilation)
 find_package(gRPC QUIET)
 # If that fails, try detecting GRPC with pkgconfig (for distributions like Ubuntu, Rocky Linux)
-if(NOT DEFINED gRPC_FOUND OR gRPC_FOUND EQUAL 0libprotobuf-dev:amd64)
+if(NOT DEFINED gRPC_FOUND OR gRPC_FOUND EQUAL 0)
   pkg_check_modules(GRPC REQUIRED IMPORTED_TARGET grpc++)
   set(gRPC_USES_FIND_PACKAGE OFF)
 else()
@@ -85,11 +85,21 @@ pkg_check_modules(XSLT REQUIRED IMPORTED_TARGET libxslt)
 # CFITSIO dependecy
 pkg_check_modules(CFITSIO REQUIRED IMPORTED_TARGET cfitsio)
 
+# FFTW dependency
+pkg_search_module(FFTW REQUIRED IMPORTED_TARGET fftw3)
+pkg_search_module(FFTWF REQUIRED IMPORTED_TARGET fftw3f)
+find_library(FFTW_DOUBLE_THREADS_LIB
+             NAMES "fftw3_threads"
+             PATHS ${PKG_FFTW_LIBRARY_DIRSOOO} REQUIRED)
+find_library(FFTW_FLOAT_THREADS_LIB
+             NAMES "fftw3f_threads"
+             PATHS ${PKG_FFTWF_LIBRARY_DIRS} REQUIRED)
+
 # sqllite3 dependency
 find_package(SQLite3 REQUIRED)
 
 # OpenMP dependency
-find_package(OpenMP REQUIRED)
+find_package(OpenMP)
 
 # SAKURA dependency
 pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
