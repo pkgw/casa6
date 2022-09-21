@@ -221,15 +221,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   /*  template <typename T> void  FTMachine::getGrid(Array<T>& thegrid){
     thegrid.resize();
-    if(whatType(&thegrid)==TpArrayComplex)
+    if(whatType<Array<T>>()==TpArrayComplex)
       thegrid.assign(griddedData);
-    else if((whatType(&thegrid)==TpArrayDComplex))
+      else if((whatType<Array<T>>()==TpArrayDComplex))
       thegrid.assign(griddedData2);
-    else if(((whatType(&thegrid)==TpArrayFloat))){
+      else if(((whatType<Array<T>>()==TpArrayFloat))){
       thegrid.resize(griddedData.shape());
       thegrid=real(griddedData);
     }
-    else if(((whatType(&thegrid)==TpArrayDouble))){
+    else if(((whatType<Array<T>>()==TpArrayDouble))){
       thegrid.resize(griddedData2.shape());
       thegrid=real(griddedData2);
     }  
