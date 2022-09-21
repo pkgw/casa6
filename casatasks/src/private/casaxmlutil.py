@@ -223,7 +223,7 @@ def __convert_stmt_to_pycode(stmt_list):
 """ constants and methods for converting from XML tree to Python code """
 __QUOTE = '\''
 __OP_EQUALS = '=='
-__OP_EQ = '='
+__OP_ASSIGN = '='
 __OP_IS = 'is'
 __OP_NOT_EQUAL = '!='
 __OP_AND = 'and'
@@ -271,7 +271,7 @@ def __handle_default(left, right, stmt, indent_level):
               )
         )
     stmt.append([if_, indent_level + 1])
-    stmt.append([__is_equal(__list(__ARGS, __dict(__ARGS_DICT, left)), right), indent_level + 2])
+    stmt.append([__assign(__list(__ARGS, __dict(__ARGS_DICT, left)), right), indent_level + 2])
     stmt.append([__casalog(left, right), indent_level + 2])
 
 
@@ -323,8 +323,8 @@ def __and(left, right):
     return __exp(left, __OP_AND, right)
 
 
-def __is_equal(left, right):
-    return __exp(left, __OP_EQ, right)
+def __assign(left, right):
+    return __exp(left, __OP_ASSIGN, right)
 
 
 def __is(left, right):
