@@ -50,14 +50,21 @@ namespace casa{
     xSupport_p=other.xSupport_p;
     ySupport_p=other.ySupport_p;
     wValue_p = other.wValue_p;
+    wIncr_p=other.wIncr_p;
+    fileName_p=other.fileName_p;
     freqValue_p = other.freqValue_p;
     freqIncr_p = other.freqIncr_p;
     muellerElement_p = other.muellerElement_p;
     pa_p = other.pa_p;
-    cfShape_p=other.storage_p->shape().asVector();
+    //cfShape_p=other.storage_p->shape().asVector();
+    cfShape_p.resize();
     cfShape_p.assign(other.cfShape_p);
     conjFreq_p = other.conjFreq_p;
     conjPoln_p = other.conjPoln_p;
+    telescopeName_p=other.telescopeName_p;
+    bandName_p=other.bandName_p;
+    diameter_p=other.diameter_p;
+    isRotationallySymmetric_p=other.isRotationallySymmetric_p;
   }
 
   void CFCell::show(const char *Mesg,ostream &os)
@@ -119,7 +126,10 @@ namespace casa{
     //cerr << storage_p->shape() << endl;
 
     if ((storage_p->shape()).nelements()>0) thisCF.put(*storage_p);
-
+    //cerr << "INPERS " << bandName_p << " tel " << telescopeName_p << endl;
+    //If there is no telescope name it barfs later especially in parallel continuum
+    //So assuming it has to be EVLA
+    if(telescopeName_p.size() <2) telescopeName_p="EVLA";
     Record miscinfo;
     miscinfo.define("Xsupport", xSupport_p);
     miscinfo.define("Ysupport", ySupport_p);

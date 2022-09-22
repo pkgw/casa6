@@ -1984,6 +1984,10 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 			   //use.  While not accurate, may be
 			   //sufficient for the purpose of the
 			   //anti-aliasing operator.
+                           ///At this stage if telescopeName is blank or empty spaces
+                           //then it is EVLA
+                           if(miscInfo.telescopeName.size() < 2)
+                             miscInfo.telescopeName="EVLA";
 			   Int bandID = BeamCalc::Instance()->getBandID(miscInfo.freqValue,miscInfo.telescopeName,miscInfo.bandName);
 			   skyMinFreq = casa::EVLABandMinFreqDefaults[bandID];
 			 }

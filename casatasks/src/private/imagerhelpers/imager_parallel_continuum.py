@@ -72,16 +72,17 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                  self.allselpars[n][v]['usescratch']=mainparams[v]['usescratch']
 
 #############################################
-    def initializeImagers(self):
-        ### Drygridding, and Coordsys comes from a single imager on MAIN node.
-        ### No startmodel confusion. It's created only once and then scattered.
-        self.initializeImagers()
-
-        ### Note : Leftover from CAS-9977 
-        ### There is a coord system mismatch at scatter/gather, if the MAIN version already
-        ###   exists on disk. With startmodel, it's xxx.model.  With aproject, it's xxx.residual.
-        ### There is an exception in SIImageStore::openImage to handle this. 
-        ### Turn on casalog.filter('DEBUG1') to see the warning message.
+#    def initializeImagers(self):
+#        ### Drygridding, and Coordsys comes from a single imager on MAIN node.
+#        ### No startmodel confusion. It's created only once and then scattered.
+        #self.initializeImagers()
+#        pdb.set_trace()
+#        super().initializeImagers()
+#        ### Note : Leftover from CAS-9977 
+#        ### There is a coord system mismatch at scatter/gather, if the MAIN version already
+#        ###   exists on disk. With startmodel, it's xxx.model.  With aproject, it's xxx.residual.
+#        ### There is an exception in SIImageStore::openImage to handle this. 
+#        ### Turn on casalog.filter('DEBUG1') to see the warning message.
 
 
 #############################################
@@ -171,21 +172,21 @@ class PyParallelContSynthesisImager(PySynthesisImager):
 #############################################
 
     def initializeImagers(self):
-
         #---------------------------------------
         #  Check if cfcache exists.
         #
         cfCacheName=''
+        cfcExists=False
         if(self.allgridpars['0']['gridder'].startswith('awp')):
             cfCacheName=self.allgridpars['0']['cfcache']
         else:
             self.allgridpars['0']['cfcache']=''
-        cfcExists=False
+            cfcExists=True
         if(self.allgridpars['0']['gridder'] == 'awproject' or self.allgridpars['0']['gridder'] == 'awprojectft'):
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
                 cfCacheName=self.allgridpars['0']['cfcache'] = cfCacheName
- 
+                self.allgridpars['0']['cfcache']= cfCacheName
             cfcExists = (os.path.exists(cfCacheName) and os.path.isdir(cfCacheName));
             if (cfcExists):
                 nCFs = len(os.listdir(cfCacheName));
@@ -208,8 +209,8 @@ class PyParallelContSynthesisImager(PySynthesisImager):
 #            self.allimpars[str(fld)]['csys']=self.coordsyspars[str(fld)]['coordsys'].copy()
 
         # Dry Gridding on the MAIN node ( i.e. on self.toolsi)
-        if (not cfcExists):
-            self.dryGridding();
+        #if (not cfcExists):
+        #    self.dryGridding();
 
         ##weighting with mosfield=True
         if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
@@ -218,16 +219,25 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             self.toolsi.getweightdensity()
             
         # Clean up the single imager (MAIN node)
-        self.toolsi.done()
-        self.toolsi = None
+        #self.toolsi.done()
+        #self.toolsi = None
 
         # Do the second round, initializing imagers on ALL nodes
         self.initializeImagersBase(self.allselpars,True);
 
         # Fill CFCache - it uses all nodes.
         if (not cfcExists):
-            self.fillCFCache();
-        self.reloadCFCache();
+            self.SItool=self.toolsi
+            #super().initializeImagers()
+            ###Doing this serially as in parallel it randomly has race condition
+            ###about table.dat not available
+            super().makeCFCache(False)
+            #self.fillCFCache()
+            self.reloadCFCache();
+            self.SItool=None
+        self.toolsi.done()
+        self.toolsi = None
+
 
 ######################################################################################################################################
         #---------------------------------------
@@ -445,39 +455,43 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             joblist.append(self.PH.runcmd(cmd,node));
         self.PH.checkJobs(joblist);
 #############################################
-    def fillCFCache(self):
-        #casalog.post("-----------------------fillCFCache------------------------------------")
-        # cflist=[f for f in os.listdir(self.allgridpars['cfcache']) if re.match(r'CFS*', f)];
-        # partCFList = 
-        if(not str(self.allgridpars['0']['gridder']).startswith("awp")):
-            return
-         
-        allcflist = self.PH.partitionCFCacheList(self.allgridpars['0']);
-        cfcPath = "\""+str(self.allgridpars['0']['cfcache'])+"\"";
-        ftmname = "\""+str(self.allgridpars['0']['gridder'])+"\"";
-        psTermOn = str(self.allgridpars['0']['psterm']);
-        aTermOn = str(self.allgridpars['0']['aterm']);
-        conjBeams = str(self.allgridpars['0']['conjbeams']);
-        #aTermOn = str(True);
-        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        # casalog.post("AllCFList = ",allcflist)
-        m = len(allcflist);
-        # casalog.post("No. of nodes used: " + m,cfcPath,ftmname)
-        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+#    def fillCFCache(self):
+#        #casalog.post("-----------------------fillCFCache------------------------------------")
+#        # cflist=[f for f in os.listdir(self.allgridpars['cfcache']) if re.match(r'CFS*', f)];
+#        # partCFList = 
+#        if(not str(self.allgridpars['0']['gridder']).startswith("awp")):
+#            return
+#        allcflist = self.PH.partitionCFCacheList(self.allgridpars['0']);
+#        cfcPath = "\""+str(self.allgridpars['0']['cfcache'])+"\"";
+#        ftmname = "\""+str(self.allgridpars['0']['gridder'])+"\"";
+#        psTermOn = str(self.allgridpars['0']['psterm']);
+#        aTermOn = str(self.allgridpars['0']['aterm']);
+#        conjBeams = str(self.allgridpars['0']['conjbeams']);
+#        #aTermOn = str(True);
+#        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+#        # casalog.post("AllCFList = ",allcflist)
+#        m = len(allcflist);
+#        # casalog.post("No. of nodes used: " + m,cfcPath,ftmname)
+#        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
-        joblist=[];
-        for node in self.listOfNodes[:m]:
-            # casalog.post("#!$#!%#!$#@$#@$ " + allcflist)
-            cmd = "toolsi.fillcfcache("+str(allcflist[node])+","+str(ftmname)+","+str(cfcPath)+","+psTermOn+","+aTermOn+","+conjBeams+")";
-            # casalog.post("CMD = " + str(node) +" " + cmd)
-            joblist.append(self.PH.runcmd(cmd,node));
-        self.PH.checkJobs(joblist);
+#        joblist=[];
+#        for node in self.listOfNodes[:m]:
+#            # casalog.post("#!$#!%#!$#@$#@$ " + allcflist)
+#           cmd = "toolsi.fillcfcache("+str(allcflist[node])+","+str(ftmname)+","+str(cfcPath)+","+psTermOn+","+aTermOn+","+conjBeams+")";
+#            # casalog.post("CMD = " + str(node) +" " + cmd)
+#            joblist.append(self.PH.runcmd(cmd,node));
+#        self.PH.checkJobs(joblist);
 
-        # Linear code
-        # cfcName = self.allgridpars['0']['cfcache'];
-        # cflist=[f for f in os.listdir(cfcName) if re.match(r'CFS*', f)];
-        # self.cfcachepars['cflist']=cflist;
-        # self.SItool.fillcfcache(**(self.cfcachepars)) ;
+#       # Linear code
+#        cfcName = self.allgridpars['0']['cfcache'];
+#        cflist=[f for f in os.listdir(cfcName) if re.match(r'CFS*', f)];
+#        self.cfcachepars['cflist']=cflist;
+#        self.toolsi.fillcfcache(cflist, self.allgridpars['0']['gridder'],
+#                                cfcName,
+#                                self.allgridpars['0']['psterm'],
+#                                self.allgridpars['0']['aterm'],
+#                                self.allgridpars['0']['conjbeams']);
+#        # self.SItool.fillcfcache(**(self.cfcachepars)) ;
 #############################################
     def makePSFCore(self):
         ### Make PSFs
