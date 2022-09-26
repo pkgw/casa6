@@ -6,7 +6,6 @@ import string
 import time
 import re
 import copy
-
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import synthesisimager, synthesisdeconvolver, synthesisnormalizer, iterbotsink, ctsys, table, image
@@ -89,6 +88,7 @@ class PySynthesisImager:
         if (exists):
             casalog.post("CFCache already exists")
         else:
+            
             self.dryGridding();
             self.fillCFCache();
             self.reloadCFCache();
@@ -115,11 +115,18 @@ class PySynthesisImager:
         # If cfcache directory already exists, assume that it is
         # usable and is correct.  makeCFCache call then becomes a
         # NoOp.
-        cfCacheName=self.allgridpars['0']['cfcache'];
-        exists=False;
-        if (not (cfCacheName == '')):
+        cfCacheName=''
+        exists=False
+        if(self.allgridpars['0']['gridder'].startswith('awp')):
+            cfCacheName=self.allgridpars['0']['cfcache'];
+            if (cfCacheName == ''):
+                cfCacheName = self.allimpars['0']['imagename'] + '.cf'
+                self.allgridpars['0']['cfcache']= cfCacheName 
             exists = (os.path.exists(cfCacheName) and os.path.isdir(cfCacheName));
-
+        else:
+            cfCacheName=''
+            exists=True
+            
         for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
             self.SItool.defineimage( self.allimpars[str(fld)] , self.allgridpars[str(fld)] )
