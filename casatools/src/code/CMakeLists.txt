@@ -133,4 +133,5 @@ set(casacpp_all_components
 # Add a subdirectory per casacpp component
 foreach(_component IN LISTS casacpp_all_components)
   add_subdirectory(${CMAKE_SOURCE_DIR}/${_component})
+  set(PRIVATE_LIBS "${PRIVATE_LIBS} -lcasacpp_${_component}")
 endforeach()
