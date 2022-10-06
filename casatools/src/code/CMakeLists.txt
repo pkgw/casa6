@@ -46,6 +46,9 @@ set(default_build_type RelWithDebInfo)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+## Set definitions global to the whole project
+add_definitions(-DCASACORE_NEEDS_RETHROW)
+
 ## Check for dependencies
 
 # Find MPI compiler

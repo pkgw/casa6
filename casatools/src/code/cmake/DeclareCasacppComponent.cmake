@@ -73,7 +73,6 @@ macro(declare_casacpp_component name)
     # to the test
     target_link_libraries(${test_name} PRIVATE casacpp_${name})
     add_dependencies(${test_name} casacpp_${name})
-   #target_link_libraries( ${filename}  celma ${Boost_Test_Link_Libs} )
 
 
     # Declare this is a test
