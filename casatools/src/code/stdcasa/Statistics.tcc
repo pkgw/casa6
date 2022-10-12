@@ -23,7 +23,7 @@
 //#                        Charlottesville, VA 22903-2475 USA
 
 
-#include <tools/table/Statistics.h>
+#include <stdcasa/Statistics.h>
 
 #include <casacore/lattices/LatticeMath/LatticeStatistics.h>
 #include <casacore/lattices/Lattices/SubLattice.h>

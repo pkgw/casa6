@@ -103,7 +103,7 @@ class Statistics {
 }
 
 #ifndef AIPS_NO_TEMPLATE_SRC
-#include <tools/table/Statistics.tcc>
+#include <stdcasa/Statistics.tcc>
 #endif //# AIPS_NO_TEMPLATE_SRC
 
 #endif

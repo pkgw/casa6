@@ -26,24 +26,13 @@
 //# $Id$
 
 #include <casacore/casa/System/Aipsrc.h>
-#include <TSLogSink.h>
+#include <stdcasa/TSLogSink.h>
 #include <casacore/casa/Logging/LogFilter.h>
+#include <casacore/casa/Logging/StreamLogSink.h>
 #include <casacore/casa/Exceptions/Error.h>
 #include <casacore/casa/Utilities/Assert.h>
 #include <casacore/casa/OS/Time.h>
 #include <casacore/casa/Quanta/MVTime.h>
-
-#ifdef AIPS_LOG4CPLUS
-#include <log4cplus/logger.h>
-#include <log4cplus/configurator.h>
-
-using namespace log4cplus;
-#else
-#include <iostream>
-#include <fstream>
-#include <casacore/casa/Logging/LogSink.h>
-#include <casacore/casa/Logging/StreamLogSink.h>
-#endif
 
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
