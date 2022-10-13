@@ -34,7 +34,7 @@
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/OS/File.h>
 #include <tools/utils/stdBaseInterface.h>
-#include <tools/table/Statistics.h>
+#include <stdcasa/Statistics.h>
 //begin modification
 //july 4 2007
 #include <tools/table/asdmCasaXMLUtil.h>
