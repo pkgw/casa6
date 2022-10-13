@@ -50,8 +50,8 @@ target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::FFTW ${FFTW_DOUBLE_THR
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::FFTWF ${FFTW_FLOAT_THREADS_LIB})
 
 # Internal dependencies
-target_link_libraries(casacpp_synthesis PUBLIC casacpp_casatools casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_protobuf_generated casacpp_imageanalysis casacpp_mstransform)
-add_dependencies(casacpp_synthesis casacpp_casatools casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_protobuf_generated casacpp_imageanalysis casacpp_mstransform)
+add_dependencies(casacpp_synthesis casacpp_mstransform casacpp_msvis casacpp_imageanalysis casacpp_casatools casacpp_asdmstman casacpp_stdcasa casacpp_atmosphere casacpp_protobuf_generated)
+target_link_libraries(casacpp_synthesis PUBLIC casacpp_mstransform casacpp_msvis casacpp_imageanalysis casacpp_casatools casacpp_asdmstman casacpp_stdcasa casacpp_atmosphere casacpp_protobuf_generated)
 # the generated protobuf headers
 target_include_directories(casacpp_synthesis PRIVATE ${CMAKE_BINARY_DIR}/protobuf_generated)
 # Include directory for the generated flex/bison

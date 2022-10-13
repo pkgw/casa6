@@ -28,7 +28,7 @@ target_link_libraries(casacpp_spectrallines PUBLIC SQLite::SQLite3)
 target_link_libraries(casacpp_spectrallines PUBLIC PkgConfig::CFITSIO)
 
 # Internal dependencies
-add_dependencies(casacpp_spectrallines casacpp_casatools casacpp_imageanalysis)
-target_link_libraries(casacpp_spectrallines PUBLIC casacpp_casatools casacpp_imageanalysis)
+add_dependencies(casacpp_spectrallines casacpp_imageanalysis casacpp_casatools)
+target_link_libraries(casacpp_spectrallines PUBLIC casacpp_imageanalysis casacpp_casatools)
 # the top level source directory, so that we can find all the includes
 target_include_directories(casacpp_spectrallines PUBLIC ${CMAKE_SOURCE_DIR})

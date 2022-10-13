@@ -48,6 +48,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Set definitions global to the whole project
 add_definitions(-DCASACORE_NEEDS_RETHROW)
+add_definitions(-DAIPS_DEBUG)
 
 ## Check for dependencies
 
@@ -106,6 +107,21 @@ find_package(OpenMP)
 # SAKURA dependency
 pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
 
+option(ENABLE_RPATH "Include rpath in shared libraries and executables" YES)
+if(ENABLE_RPATH)
+  # Optional but helpful for macosx (install_name field)
+  set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib" )
+  # Ensure (but this is expected default:)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  # Not needed, it should be auto-done by the next setting
+  # set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  # Rquired for rpath to be set depending on linked libs
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+  set(CMAKE_MACOSX_RPATH TRUE)
+  # Ensure (but this is expected default:)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+endif()
+
 # Create a list with all the components
 set(casacpp_all_components
   alma
@@ -138,3 +154,8 @@ foreach(_component IN LISTS casacpp_all_components)
   add_subdirectory(${CMAKE_SOURCE_DIR}/${_component})
   set(PRIVATE_LIBS "${PRIVATE_LIBS} -lcasacpp_${_component}")
 endforeach()
+
+# Install pkg-config support file
+CONFIGURE_FILE("casacpp.pc.in" "casacpp.pc" @ONLY)
+set(CASACPP_PKGCONFIG_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig")
+INSTALL(FILES "${CMAKE_CURRENT_BINARY_DIR}/casacpp.pc" DESTINATION "${CASACPP_PKGCONFIG_INSTALL_PREFIX}")

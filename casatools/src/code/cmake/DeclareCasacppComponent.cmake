@@ -89,6 +89,6 @@ macro(declare_casacpp_component name)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/${name}
       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/casacpp
       FILES_MATCHING
-      REGEX "/.*(h|tcc)$")
+      REGEX "/.*(h|tcc|hpp)$")
 
 endmacro()

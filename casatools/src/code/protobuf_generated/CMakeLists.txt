@@ -72,7 +72,7 @@ install(TARGETS casacpp_protobuf_generated
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # Install the header and template header files
 # Note that this preserves the directory structure of the files
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/protobuf_generated
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/casacpp
     FILES_MATCHING
     REGEX "/.*h$")
