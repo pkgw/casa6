@@ -33,11 +33,10 @@
 #include <casacore/casa/Exceptions/Error.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/OS/File.h>
-#include <tools/utils/stdBaseInterface.h>
 #include <tools/table/Statistics.h>
 //begin modification
 //july 4 2007
-#include <tools/table/asdmCasaXMLUtil.h>
+#include "asdmCasaXMLUtil.h"
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/TableRow.h>
