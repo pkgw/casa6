@@ -30,7 +30,7 @@ if (OPENMP_FOUND)
 endif()
 
 # Internal dependencies
-add_dependencies(casacpp_mstransform casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_asdmstman casacpp_imageanalysis)
-target_link_libraries(casacpp_mstransform PUBLIC casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_asdmstman casacpp_imageanalysis)
+add_dependencies(casacpp_mstransform casacpp_msvis casacpp_imageanalysis casacpp_stdcasa casacpp_atmosphere casacpp_asdmstman)
+target_link_libraries(casacpp_mstransform PUBLIC casacpp_msvis casacpp_imageanalysis casacpp_stdcasa casacpp_atmosphere casacpp_asdmstman)
 # the top level source directory, so that we can find all the includes
 target_include_directories(casacpp_mstransform PUBLIC ${CMAKE_SOURCE_DIR})

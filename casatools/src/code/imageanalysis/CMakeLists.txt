@@ -28,6 +28,6 @@ target_link_libraries(casacpp_imageanalysis PUBLIC PkgConfig::CFITSIO)
 
 # Internal dependencies
 add_dependencies(casacpp_imageanalysis casacpp_casatools casacpp_stdcasa casacpp_components)
-target_link_libraries(casacpp_imageanalysis PUBLIC casacpp_components)
+target_link_libraries(casacpp_imageanalysis PUBLIC casacpp_casatools casacpp_stdcasa casacpp_components)
 # the top level source directory, so that we can find all the includes
 target_include_directories(casacpp_imageanalysis PUBLIC ${CMAKE_SOURCE_DIR})
