@@ -50,21 +50,10 @@ using namespace SubscanIntentMod;
 static bool ddebug = false;
 
 /*
-** A simplistic tracing toolbox.
-*/
-static bool debug = (getenv("ASDM_DEBUG") != NULL);
-
-static vector<char> logIndent;
-#define LOGENTER(name) if (debug) { std::for_each(logIndent.begin(), logIndent.end(), [](char v) { cout << v; }); logIndent.push_back('\t'); cout << #name ": entering" << endl; }
-#define LOGEXIT(name)  if (debug) { logIndent.pop_back(); std::for_each(logIndent.begin(), logIndent.end(), [](char v) { cout << v; } ); cout << #name ": exiting" << endl; }
-#define LOG(msg) if (debug) { std::for_each(logIndent.begin(), logIndent.end(), [](char v) { cout << v; } ); cout << msg << endl; }
-
-/*
 ** Two string streams used all over the applications in general to prepare messages sent to the logging facilities.
 */
 #include <casacore/casa/Logging/StreamLogSink.h>
 #include <casacore/casa/Logging/LogSink.h>
-#include <sdm_cmpt.h>
 
 namespace casac {
 
