@@ -6383,3 +6383,5 @@ namespace casac {
     }
 
 }
+
+#include "BdFlagger.inc"
