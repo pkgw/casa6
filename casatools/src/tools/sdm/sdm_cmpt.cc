@@ -44,6 +44,7 @@
 #include <alma/Enumerations/CSubscanIntent.h>
 #include <alma/Enumerations/CTimeSampling.h>
 #include <alma/Enumerations/CWindowFunction.h>
+#include <alma/Enumtcl/SubscanIntent.h>
 #include <casacore/casa/Logging/StreamLogSink.h>
 #include <casacore/casa/Logging/LogSink.h>
 
@@ -61,7 +62,6 @@
 #include "UvwCoords.h"
 #include "Name2Table.h"
 #include "BDF2AsdmStManIndex.h"
-#include "SubscanIntent.h"
 
 using namespace std;
 using namespace asdm;
