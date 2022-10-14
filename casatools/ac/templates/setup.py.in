@@ -1347,14 +1347,7 @@ def do_cerberus():
                     fd.write(s)
 
 def generate_casac_init_py():
-    ### this generates the __init__.py for the __casac__ submodule...
-    imports = "\n".join([ "from %s.__casac__.%s import %s" % (module_name,t,t) for t in TOOLS ])
-    alllist = ",\n            ".join([ "'%s'" % t for t in TOOLS ])
-    with open(os.path.join(casacdir,'__init__.py'),"w") as fd:
-        fd.write("from __future__ import absolute_import\n")
-        fd.write("__name__ = '__casac__'\n")
-        fd.write("__all__ = [ %s ]\n\n" % alllist)
-        fd.write("%s\n" % imports)
+    pass
 
 # run the customize_compiler
 class casa_build_ext(build_ext):
