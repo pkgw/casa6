@@ -121,7 +121,8 @@ def download_data(testfiles: list):
     subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
     os.remove(sh_filename)
     
-    gitpaths = open("datafile_list.txt","r").readlines()
+    datafile = open("datafile_list.txt","r")
+    gitpaths = datafile.readlines()
 
     fetch_path = []
     for testfile in testfiles:
@@ -129,10 +130,15 @@ def download_data(testfiles: list):
         datapaths = [x.rstrip() for x in datapaths if not x.startswith("unittest")]
         datapaths = list(set(["/".join(x.split("/")[:-2]) if not x.startswith(tuple(["text","fits"])) else x for x in datapaths]))
         for datapath in datapaths:
-            if testfile in datapath: 
+            if datapath.endswith(testfile): 
                 val = datapath
                 fetch_path.append(val)
                 break
+            elif testfile in datapath:
+                val = datapath
+                fetch_path.append(val)
+                break
+    datafile.close()
 
     sh_filename = "checkout_unit_dir.sh"
     bashFile = open(sh_filename, 'w')
