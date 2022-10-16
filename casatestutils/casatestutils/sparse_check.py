@@ -125,20 +125,33 @@ def download_data(testfiles: list):
     gitpaths = datafile.readlines()
 
     fetch_path = []
+    failedfind = []
     for testfile in testfiles:
+        startlen = len( fetch_path) 
         datapaths = [gitpaths[x] for x in [i for i, x in enumerate(gitpaths) if testfile in x]]
         datapaths = [x.rstrip() for x in datapaths if not x.startswith("unittest")]
         datapaths = list(set(["/".join(x.split("/")[:-2]) if not x.startswith(tuple(["text","fits"])) else x for x in datapaths]))
+        #print(datapaths)
+        # Check For Path explicitly 1st 
         for datapath in datapaths:
             if datapath.endswith(testfile): 
                 val = datapath
                 fetch_path.append(val)
                 break
-            elif testfile in datapath:
-                val = datapath
-                fetch_path.append(val)
-                break
+        # Check For Path implicitly if not found initially 
+        if len(fetch_path) == 0:
+            for datapath in datapaths:
+                if testfile in datapath:
+                    val = datapath
+                    fetch_path.append(val)
+                    break
+        if len(fetch_path) == startlen:
+            failedfind.append(testfile)
     datafile.close()
+
+    if len(failedfind) > 0:
+        print("Cannot Find Requested Data File(s) {}:.\nPlease Check File Names or contact Verification Team".format(",".join(failedfind)))
+        return
 
     sh_filename = "checkout_unit_dir.sh"
     bashFile = open(sh_filename, 'w')
@@ -149,6 +162,7 @@ def download_data(testfiles: list):
     print('git config --global filter.lfs.clean "git-lfs clean -- %f"',file = bashFile)
     print('git config --global filter.lfs.smudge "git-lfs smudge -- %f"',file = bashFile)
     print('git config --global filter.lfs.process "git-lfs filter-process"',file = bashFile)
+
 
     for path in fetch_path:
         substring = ''
