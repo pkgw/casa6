@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
       if (casadata.empty()) {
           throw(AipsError("CASADATA env variable not defined and no file given in command line"));
       }
-      source_input_ms = casadata + "/unittest/hanningsmooth/ngc5921_ut.ms/";
+      source_input_ms = casadata + "/unittest/hanningsmooth/ngc5921_ut.ms";
     }
     else
     {
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 
     // Make a copy of the MS in the working directory
     // TODO: Use C++17 filesystem copy https://en.cppreference.com/w/cpp/filesystem/copy
-    String cp_command = std::string("cp -r ") + source_input_ms + " .";
+    String cp_command = std::string("cp -RL ") + source_input_ms + " .";
     auto cmd_ecode = system(cp_command.c_str());
     if (!cmd_ecode)
         std::cerr << "Failed to copy " << copy_input_ms << " to current directory" <<std::endl;
