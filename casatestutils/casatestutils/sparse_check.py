@@ -134,7 +134,7 @@ def download_data(testfiles: list):
         #print(datapaths)
         # Check For Path explicitly 1st 
         for datapath in datapaths:
-            if datapath.endswith(testfile): 
+            if datapath.endswith(testfile) and datapath.split("/")[-1] == testfile: 
                 val = datapath
                 fetch_path.append(val)
                 break
