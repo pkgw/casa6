@@ -112,7 +112,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
    void addSummaryMinor(casacore::uInt deconvolverid, casacore::uInt channel, casacore::uInt polarity,
                         casacore::Int cycleStartIter, casacore::Int startIterDone, casacore::Float startmodel, casacore::Float startpeakresidual, casacore::Float startpeakresidualnomask,
-                        casacore::Float model, casacore::Float peakresidual, casacore::Float peakresidualnomask, casacore::Float masksum, casacore::Int mpiRank, casacore::Float peakMem, casacore::Float runtime, casacore::Int stopCode);
+                        casacore::Float model, casacore::Float peakresidual, casacore::Float peakresidualnomask, casacore::Float masksum, casacore::Int mpiRank, casacore::Float peakMem, casacore::Float runtime, casacore::Int stopCode, bool fullsummary);
     
     /* Variables to track status inside each Deconvolver */
     casacore::Float getPeakResidual();
@@ -132,11 +132,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
    void setNsigma(casacore::Float nsigma);
 
    void setPBMask(casacore::Float pbMaskLevel);
+   void setFullSummary(bool fullSummary);
 
    void resetMinResidual();
 
     // temporary CAS-13683 workaround
-    static casacore::Bool useSmallSummaryminor();
+    //static casacore::Bool useSmallSummaryminor();
 
  protected:
     /* Control Variables */
@@ -176,6 +177,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     /* Summary Variable */
     casacore::Array<casacore::Double> itsSummaryMinor;
     casacore::Int itsDeconvolverID;    /* An ID per Deconvolver. Used only for the summary */
+    bool itsFullSummary;    
   };
 
     

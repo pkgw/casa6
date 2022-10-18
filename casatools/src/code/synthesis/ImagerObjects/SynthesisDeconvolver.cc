@@ -221,6 +221,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      itsIsInteractive = decpars.interactive;
         itsNsigma = decpars.nsigma;
         itsNoRequireSumwt = decpars.noRequireSumwt;
+        itsFullSummary = decpars.fullsummary;
       }
     catch(AipsError &x)
       {
@@ -412,7 +413,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       itsLoopController.setNsigmaThreshold(nsigmathresh);
       itsLoopController.setPBMask(itsPBMask);
-
+      itsLoopController.setFullSummary(itsFullSummary);
 
       if ( itsAutoMaskAlgorithm=="multithresh" && !initializeChanMaskFlag ) {
         IPosition maskshp = itsImages->mask()->shape();
@@ -584,7 +585,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
       //itsDeconvolver->deconvolve( itsLoopController, itsImages, itsDeconvolverId, automaskon, itsFastNoise );
       // include robust stats rec
-      itsDeconvolver->deconvolve( itsLoopController, itsImages, itsDeconvolverId, automaskon, itsFastNoise, itsRobustStats );
+      itsDeconvolver->deconvolve( itsLoopController, itsImages, itsDeconvolverId, automaskon, itsFastNoise, itsRobustStats, itsFullSummary );
 
       returnRecord = itsLoopController.getCycleExecutionRecord();
 
@@ -854,7 +855,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void SynthesisDeconvolver::mergeReturnRecord(const Record& inRec, Record& outRec, const Int chan){
 
     ///Something has to be done about what is done in SIIterBot_state::mergeMinorCycleSummary if it is needed
-    int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
     Matrix<Double> summaryminor(nSummaryFields,0);
     if(outRec.isDefined("summaryminor"))
       summaryminor=Matrix<Double>(outRec.asArrayDouble("summaryminor"));

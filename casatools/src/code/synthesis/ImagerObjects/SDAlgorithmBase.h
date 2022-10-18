@@ -91,7 +91,8 @@ public:
                    casacore::Bool isautomasking=false, 
                    //casacore::Bool fastnoise=true);
                    casacore::Bool fastnoise=true,
-                   casacore::Record robuststats=casacore::Record());
+                   casacore::Record robuststats=casacore::Record(),
+                   bool fullsummary=false);
 
   void setRestoringBeam( casacore::GaussianBeam restbeam, casacore::String usebeam );
   //  void setMaskOptions( casacore::String maskstring );

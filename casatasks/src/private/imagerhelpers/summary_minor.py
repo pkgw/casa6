@@ -46,7 +46,7 @@ class SummaryMinor:
     rowDescriptions         = ["startIterDone", "iterDone", "startPeakRes", "peakRes", "startModelFlux", "modelFlux", "startPeakResNM", "peakResNM", "cycleThresh", "cycleStartIters", "masksum", "mpiServer", "peakMem", "runtime", "stopCode"]
     rowStartDescs           = ["startIterDone",             "startPeakRes",            "startModelFlux",              "startPeakResNM"]
 
-    def convertMatrix(summaryminor_matrix, calc_iterdone_deltas=None, keep_startvals=None):
+    def convertMatrix(summaryminor_matrix, fullsummary, calc_iterdone_deltas=None, keep_startvals=None):
         # casalog.post(summaryminor_matrix, "SEVERE")
         ret = {}
 
@@ -55,32 +55,32 @@ class SummaryMinor:
             return { 0: {} }
 
         # get individual dictionaries for each field id
-        field_ids = SummaryMinor._getFieldIds(summaryminor_matrix)
+        field_ids = SummaryMinor._getFieldIds(summaryminor_matrix, fullsummary)
         if len(field_ids) > 1:
             for fieldId in field_ids:
-                singleFieldMatrix = SummaryMinor._getSingleFieldMatrix(summaryminor_matrix, field_ids[fieldId])
-                ret[fieldId] = SummaryMinor._convertSingleFieldMatrix(singleFieldMatrix, calc_iterdone_deltas, keep_startvals)
+                singleFieldMatrix = SummaryMinor._getSingleFieldMatrix(summaryminor_matrix, field_ids[fieldId], fullsummary)
+                ret[fieldId] = SummaryMinor._convertSingleFieldMatrix(singleFieldMatrix, fullsummary, calc_iterdone_deltas, keep_startvals)
         elif len(field_ids) == 1:
-            ret[field_ids[0]] = SummaryMinor._convertSingleFieldMatrix(summaryminor_matrix, calc_iterdone_deltas, keep_startvals)
+            ret[field_ids[0]] = SummaryMinor._convertSingleFieldMatrix(summaryminor_matrix, fullsummary, calc_iterdone_deltas, keep_startvals)
         else:
             raise RuntimeError("No multifield ids were found. Failed to parse summary minor matrix after tclean finished running.")
 
         return ret
 
-    def _convertSingleFieldMatrix(single_field_matrix, calc_iterdone_deltas=None, keep_startvals=None):
+    def _convertSingleFieldMatrix(single_field_matrix, fullsummary, calc_iterdone_deltas=None, keep_startvals=None):
         # edge case: no iterations were done (eg threshold < model flux)
         if single_field_matrix.shape[1] == 0:
             return {}
 
-        summaryminor_dict = SummaryMinor.indexMinorCycleSummaryBySubimage(single_field_matrix)
+        summaryminor_dict = SummaryMinor.indexMinorCycleSummaryBySubimage(single_field_matrix, fullsummary)
         percycleiters_dict = SummaryMinor._getPerCycleDict(copy.deepcopy(summaryminor_dict), calc_iterdone_deltas, keep_startvals)
         return percycleiters_dict
 
-    def _getFieldIds(matrix):
+    def _getFieldIds(matrix, fullsummary):
         """ Get a sorted list of available outlier field ids in the given matrix """
 
         # edge case: running with MPI and CAS-13683 hasn't been fixed yet
-        availRows = SummaryMinor.getRowDescriptionsOldOrder()
+        availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
         if not "multifieldId" in availRows:
             return [0] # can't differentiate multiple fields from available data, assume one field
 
@@ -91,9 +91,9 @@ class SummaryMinor:
         fieldIds = list(map(lambda x: int(x), fieldIds))
         return fieldIds
 
-    def _getSingleFieldMatrix(matrixIn, fieldId):
+    def _getSingleFieldMatrix(matrixIn, fieldId, fullsummary):
         """ Create a new matrix to hold all the values of the given matrix, but only for the given outlier field id """
-        availRows = SummaryMinor.getRowDescriptionsOldOrder()
+        availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
         if not "multifieldId" in availRows:
             return matrixIn
         multifieldIdx = availRows.index("multifieldId")
@@ -118,49 +118,61 @@ class SummaryMinor:
 
         return matrixOut
 
-    def useSmallSummaryminor(ignored_parameter=None):
-        """Temporary CAS-13683 workaround"""
-        if ('USE_SMALL_SUMMARYMINOR' in os.environ):
-            uss = os.environ['USE_SMALL_SUMMARYMINOR'].lower()
-            if (uss == "true"):
-                return True
-        return False
+    #def useSmallSummaryminor(ignored_parameter=None):
+    #    """Temporary CAS-13683 workaround"""
+    #    if ('USE_SMALL_SUMMARYMINOR' in os.environ):
+    #        uss = os.environ['USE_SMALL_SUMMARYMINOR'].lower()
+    #        if (uss == "true"):
+    #            return True
+    #    return False
 
-    def _getRowDescriptionsOldOrder(useSmallSummaryminor):
+    #def _getRowDescriptionsOldOrder(useSmallSummaryminor):
+    def _getRowDescriptionsOldOrder(fullsummary):
         """Temporary CAS-13683 workaround"""
-        if (useSmallSummaryminor):
+        #if (useSmallSummaryminor):
+        if (not fullsummary):
             return SummaryMinor.rowDescriptions13683
         return SummaryMinor.rowDescriptionsOldOrder
 
-    def getRowDescriptionsOldOrder():
+    #def getRowDescriptionsOldOrder():
+    def getRowDescriptionsOldOrder(fullsummary):
         """ Retrieves brief descriptions of the available minor cycle summary rows, in the old (matrix) order. """
-        return SummaryMinor._getRowDescriptionsOldOrder(SummaryMinor.useSmallSummaryminor())
+        #return SummaryMinor._getRowDescriptionsOldOrder(SummaryMinor.useSmallSummaryminor())
+        return SummaryMinor._getRowDescriptionsOldOrder(fullsummary)
 
-    def _getRowDescriptions(useSmallSummaryminor):
+    #def _getRowDescriptions(useSmallSummaryminor):
+    def _getRowDescriptions(fullsummary):
         """Temporary CAS-13683 workaround"""
         ret = SummaryMinor.rowDescriptions
-        availRows = SummaryMinor._getRowDescriptionsOldOrder(useSmallSummaryminor)
+        #availRows = SummaryMinor._getRowDescriptionsOldOrder(useSmallSummaryminor)
+        availRows = SummaryMinor._getRowDescriptionsOldOrder(fullsummary)
         ret = list(filter(lambda x: x in availRows, ret))
         return ret
 
-    def getRowDescriptions():
+    #def getRowDescriptions():
+    def getRowDescriptions(fullsummary):
         """ Retrieves brief descriptions of the available minor cycle summary rows """
-        return SummaryMinor._getRowDescriptions(SummaryMinor.useSmallSummaryminor())
+        #return SummaryMinor._getRowDescriptions(SummaryMinor.useSmallSummaryminor())
+        return SummaryMinor._getRowDescriptions(fullsummary)
 
-    def _getRowStartDescs(useSmallSummaryminor):
+    #def _getRowStartDescs(useSmallSummaryminor):
+    def _getRowStartDescs(fullsummary):
         """Temporary CAS-13683 workaround"""
         ret = SummaryMinor.rowStartDescs
-        availRows = SummaryMinor._getRowDescriptionsOldOrder(useSmallSummaryminor)
+        #availRows = SummaryMinor._getRowDescriptionsOldOrder(useSmallSummaryminor)
+        availRows = SummaryMinor._getRowDescriptionsOldOrder(fullsummary)
         ret = list(filter(lambda x: x in availRows, ret))
         return ret
 
-    def getRowStartDescs():
+    #def getRowStartDescs():
+    def getRowStartDescs(fullsummary):
         """ Retrieves abreviated names of the available minor cycle summary "start" rows.
 
         These are the rows that catalog the values at the beggining of a minor cycle (pre-deconvolution). """
-        return SummaryMinor._getRowStartDescs(SummaryMinor.useSmallSummaryminor())
+        #return SummaryMinor._getRowStartDescs(SummaryMinor.useSmallSummaryminor())
+        return SummaryMinor._getRowStartDescs(fullsummary)
 
-    def indexMinorCycleSummaryBySubimage(matrix):
+    def indexMinorCycleSummaryBySubimage(matrix,fullsummary):
         """ Re-indexes matrix from [row,column] to [channel,stokes,row,cycle]. 
 
         Param matrix: the original matrix to convert.
@@ -168,14 +180,16 @@ class SummaryMinor:
         # get some properties of the summary_minor matrix
         nrows = matrix.shape[0]
         ncols = matrix.shape[1]
-        uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
+        #uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
         import sys
-        oldChanIdx = SummaryMinor.getRowDescriptionsOldOrder().index("chan")
-        if not uss:
-            oldStokeIdx  = SummaryMinor.getRowDescriptionsOldOrder().index("stoke")
+        oldChanIdx = SummaryMinor.getRowDescriptionsOldOrder(fullsummary).index("chan")
+        #if not uss:
+        if fullsummary:
+            oldStokeIdx  = SummaryMinor.getRowDescriptionsOldOrder(fullsummary).index("stoke")
         chans = list(np.sort(np.unique(matrix[oldChanIdx])))
         chans = [int(x) for x in chans]
-        if uss:
+        #if uss:
+        if not fullsummary:
             stokes = [0]
         else:
             stokes = list(np.sort(np.unique(matrix[oldStokeIdx])))
@@ -183,7 +197,8 @@ class SummaryMinor:
         ncycles = 0
         if len(chans) > 0 and len(stokes) > 0:
             ncycles = int( ncols / (len(chans)*len(stokes)) )
-            if uss:
+            #if uss:
+            if not fullsummary:
                 try:
                     from casampi.MPIEnvironment import MPIEnvironment
                     if MPIEnvironment.is_mpi_enabled:
@@ -202,17 +217,21 @@ class SummaryMinor:
 
         # ret is the return dictionary[chans][stokes][rows][cycles]
         # cummulativeCnt counts how many cols we've read for each channel/stokes/row
-        ret = {desc:[0]*ncycles for desc in SummaryMinor.getRowDescriptions()}
+        #ret = {desc:[0]*ncycles for desc in SummaryMinor.getRowDescriptions()}
+        ret = {desc:[0]*ncycles for desc in SummaryMinor.getRowDescriptions(fullsummary)}
         ret = {stoke:copy.deepcopy(ret) for stoke in stokes}
         ret = {chan:copy.deepcopy(ret) for chan in chans}
         cummulativeCnt = copy.deepcopy(ret) # copy ret's structure
 
         # reindex based on subimage index (aka chan/stoke index)
-        for desc in SummaryMinor.getRowDescriptions():
-            oldRowIdx = SummaryMinor.getRowDescriptionsOldOrder().index(desc)
+        #for desc in SummaryMinor.getRowDescriptions():
+        for desc in SummaryMinor.getRowDescriptions(fullsummary):
+            #oldRowIdx = SummaryMinor.getRowDescriptionsOldOrder().index(desc)
+            oldRowIdx = SummaryMinor.getRowDescriptionsOldOrder(fullsummary).index(desc)
             for colIdx in range(ncols):
                 chan = int(matrix[oldChanIdx][colIdx])
-                if uss:
+                #if uss:
+                if not fullsummary:
                     stoke = 0
                 else:
                     stoke = int(matrix[oldStokeIdx][colIdx])
@@ -223,11 +242,12 @@ class SummaryMinor:
 
         return ret
 
-    def _getPerCycleDict(summaryminor_dict, calc_iterdone_deltas=None, keep_startvals=None):
+    def _getPerCycleDict(summaryminor_dict, fullsummary, calc_iterdone_deltas=None, keep_startvals=None):
         calc_iterdone_deltas = True if (calc_iterdone_deltas == None) else calc_iterdone_deltas
         keep_startvals       = True if (keep_startvals == None)       else keep_startvals
         ret = summaryminor_dict
-        availRows = SummaryMinor.getRowDescriptionsOldOrder()
+        #availRows = SummaryMinor.getRowDescriptionsOldOrder()
+        availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
 
         if (calc_iterdone_deltas) and ("startIterDone" in availRows):
             for chan in ret:

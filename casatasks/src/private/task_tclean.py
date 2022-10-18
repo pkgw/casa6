@@ -145,6 +145,7 @@ def tclean(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
+    fullsummary,#=False,
     nmajor,#=-1,
 
     ##### (new) Mask parameters
@@ -198,7 +199,8 @@ def tclean(
     inpparams['state']= inpparams.pop('intent')
     inpparams['loopgain']=inpparams.pop('gain')
     inpparams['scalebias']=inpparams.pop('smallscalebias')
-
+    #
+    casalog.post('fullsummary='+str(fullsummary))
     # Force chanchunks=1 always now (CAS-13400)
     inpparams['chanchunks']=1
 
@@ -253,14 +255,17 @@ def tclean(
     # Put all parameters into dictionaries and check them.
     ##make a dictionary of parameters that ImagerParameters take
 
+    casalog.post('check1 fullsummary='+str(fullsummary))
     if is_python3:
         defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
     else:
         defparm=dict(zip(ImagerParameters.__init__.__func__.__code__.co_varnames[1:], ImagerParameters.__init__.func_defaults))
         
+    casalog.post('check2 fullsummary='+str(fullsummary))
     ###assign values to the ones passed to tclean and if not defined yet in tclean...
     ###assign them the default value of the constructor
     bparm={k:  inpparams[k] if k in inpparams else defparm[k]  for k in defparm.keys()}
+    casalog.post('check3 fullsummary='+str(fullsummary))
 
     ###default mosweight=True is tripping other gridders as they are not
     ###expecting it to be true
@@ -315,6 +320,7 @@ def tclean(
         casalog.post( "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F", "WARN", "task_tclean" )
         return False
     #casalog.post('parameters {}'.format(bparm))    
+    casalog.post('check4 fullsummary='+str(fullsummary))
     paramList=ImagerParameters(**bparm)
     ## Setup Imager objects, for different parallelization schemes.
     imagerInst=PySynthesisImager
@@ -335,6 +341,7 @@ def tclean(
          return
     
     retrec={}
+    casalog.post('check5 fullsummary='+str(fullsummary))
 
     try: 
     #if (1):
@@ -470,8 +477,9 @@ def tclean(
                     isit = imager.hasConverged() or (not doneMinor)
                     
                 ## Get summary from iterbot
-                if type(interactive) != bool:
-                    retrec=imager.getSummary();
+                #if type(interactive) != bool:
+                casalog.post("calling getSummary, fullsummary ====",fullsummary)
+                retrec=imager.getSummary(fullsummary);
                 
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()

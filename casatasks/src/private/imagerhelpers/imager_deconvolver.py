@@ -112,10 +112,10 @@ class PyDeconvolver:
               self.SDtools[immod].pbcor()
 
 #############################################
-    def getSummary(self,fignum=1):
+    def getSummary(self,fullsummary, fignum=1):
         summ = self.IBtool.getiterationsummary()
         if ('summaryminor' in summ):
-            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'])
+            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'], fullsummary)
         return summ
 
 #############################################
@@ -249,7 +249,7 @@ class PyDeconvolver:
 
         # Get iteration control parameters
         iterbotrec = self.IBtool.getminorcyclecontrols()
-        ##print("Minor Cycle controls : ", iterbotrec)
+        print("In synthdeconv. Minor Cycle controls : ", iterbotrec)
 
         self.IBtool.resetminorcycleinfo() 
 

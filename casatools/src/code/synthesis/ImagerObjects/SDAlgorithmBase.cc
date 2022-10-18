@@ -80,7 +80,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void SDAlgorithmBase::deconvolve( SIMinorCycleController &loopcontrols, 
 				    std::shared_ptr<SIImageStore> &imagestore,
 				    Int deconvolverid,
-                                    Bool isautomasking, Bool fastnoise, Record robuststats)
+                                    Bool isautomasking, Bool fastnoise, Record robuststats, bool fullsummary)
   {
     LogIO os( LogOrigin("SDAlgorithmBase","deconvolve",WHERE) );
 
@@ -355,12 +355,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    Float runtime = (  (Float) std::chrono::duration_cast<std::chrono::milliseconds>(profileFinishTime - profileStartTime).count()  )/1000.0;
 	    Float fpeakMem = (Float) peakMem / 1000000.0; // to MB
 	    int chunkId = chanid; // temporary CAS-13683 workaround
-	    if (SIMinorCycleController::useSmallSummaryminor()) { // temporary CAS-13683 workaround
+	    //if (SIMinorCycleController::useSmallSummaryminor()) { // temporary CAS-13683 workaround
+	    if (!fullsummary) { // temporary CAS-13683 workaround
 	        chunkId = chanid + nSubChans*polid;
 	    }
+            //TT Debug
+            os<<" fullsummary before addSummaryMinor call=="<<fullsummary<<LogIO::POST;
 	    loopcontrols.addSummaryMinor( deconvolverid, chunkId, polid, cycleStartIteration,
 	                                  startiteration, startmodelflux, startpeakresidual, startpeakresidualnomask,
-	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, fpeakMem, runtime, stopCode);
+	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, fpeakMem, runtime, stopCode, fullsummary);
 
 	    loopcontrols.resetCycleIter(); 
 

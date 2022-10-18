@@ -461,6 +461,8 @@ public:
   // task deconvolve needs to tell siimagestore that we don't need to check for the sumwt image
   casacore::Bool noRequireSumwt = casacore::False;
 
+  // return dictionary size control
+  casacore::Bool fullsummary;
  
   casacore::Bool interactive;
 

@@ -154,7 +154,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	}
 
     grpcInteractiveCleanState::grpcInteractiveCleanState( ) : SummaryMinor(casacore::IPosition(2, 
-                                                                                                 SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                                                           SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                                              //                                   SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
                                                                                                  0)),
                                                               SummaryMajor(casacore::IPosition(1,0)) {
 		LogIO os( LogOrigin("grpcInteractiveCleanState",__FUNCTION__,WHERE) );
@@ -195,7 +196,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         MinPeakResidual = 1e+9;
         MaskSum = -1.0;
         MadRMS = 0.0;
-        int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
         SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
         SummaryMajor.reformOrResize(casacore::IPosition(1,0));
         SummaryMinor = 0;
@@ -354,6 +356,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            if ( nsigma != iterpars.end( ) ) {
                                state.Nsigma = (float) nsigma->second.toDouble( );
                                if ( debug ) std::cerr << " nsigma=" << state.Nsigma;
+                           }
+                           auto fullsummary = iterpars.find("fullsummary");
+                           if ( fullsummary != iterpars.end() ) {
+                               state.FullSummary = fullsummary->second.toBool();
+                               if ( debug ) std::cerr << " fullsummry=" << state.FullSummary;
                            }
                            if ( debug ) std::cerr << std::endl;
 
@@ -655,6 +662,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            os <<LogIO::DEBUG1<<"Threshold="<<state.Threshold<<" itsNsigmaThreshold===="<<state.NsigmaThreshold<<LogIO::POST;
                            os <<LogIO::DEBUG1<<"usePeakRes="<<usePeakRes<<" itsPeakResidual="<<state.PeakResidual<<" itsPrevPeakRes="<<state.PrevPeakResidual<<LogIO::POST;
                            os <<LogIO::DEBUG1<<"itsIterDone="<<state.IterDone<<" itsNiter="<<state.Niter<<LogIO::POST;
+                           os <<LogIO::DEBUG1<<"FullSummary="<<state.FullSummary<<LogIO::POST;
 
                            /// This may interfere with some other criterion... check.
                            float tol = 0.01; // threshold test torelance (CAS-11278)
@@ -820,8 +828,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		IPosition cShp = state.SummaryMinor.shape();
 		IPosition nShp = summary.shape();
 
-		bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
-        int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+		//bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
+        //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+        int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
 		if( cShp.nelements() != 2 || cShp[0] != nSummaryFields ||
 		    nShp.nelements() != 2 || nShp[0] != nSummaryFields )
 			throw(AipsError("Internal error in shape of global minor-cycle summary record"));
@@ -838,7 +847,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			state.SummaryMinor( IPosition(2,2,cShp[1]+row) ) = summary(IPosition(2,2,row));
 			// cycle threshold
 			state.SummaryMinor( IPosition(2,3,cShp[1]+row) ) = summary(IPosition(2,3,row));
-			if (uss) { // temporary CAS-13683 workaround
+			//if (uss) { // temporary CAS-13683 workaround
+			if (!state.FullSummary) { // temporary CAS-13683 workaround
 				// swap out mapper id with multifield id
 				state.SummaryMinor( IPosition(2,4,cShp[1]+row) ) = immod;
 				// chunk id (channel/stokes)
