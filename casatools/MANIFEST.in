@@ -1,4 +1,5 @@
 graft src/casatools
 graft src/tools
-graft xml
+graft src/casa_cerberus
 graft binding
+graft xml
