@@ -11,7 +11,7 @@
 from __future__ import absolute_import
 
 from ast import literal_eval
-from collections import Hashable, Iterable, Mapping, Sequence
+from collections.abc import Hashable, Iterable, Mapping, Sequence
 from copy import copy
 from datetime import date, datetime
 import re
