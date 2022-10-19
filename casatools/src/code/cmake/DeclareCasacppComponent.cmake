@@ -56,7 +56,7 @@ macro(declare_casacpp_component name)
   # set for certain casacore header or template files, 
   # even if the component does not use directly OpenMP
   if (OPENMP_FOUND)
-    target_link_libraries(casacpp_mstransform PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(casacpp_${name} PUBLIC OpenMP::OpenMP_CXX)
   endif()
 
   # Add C++ tests
