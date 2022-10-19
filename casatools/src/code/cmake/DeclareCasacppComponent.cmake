@@ -52,6 +52,13 @@ macro(declare_casacpp_component name)
       $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
           -Wall>)
 
+  # OpenMP must be set globally, since it adds compiler flags that need to be
+  # set for certain casacore header or template files, 
+  # even if the component does not use directly OpenMP
+  if (OPENMP_FOUND)
+    target_link_libraries(casacpp_mstransform PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+
   # Add C++ tests
   # Take all files under /test/ directory
   file(GLOB_RECURSE ${name}_cpp_tests_sources "*.cc")

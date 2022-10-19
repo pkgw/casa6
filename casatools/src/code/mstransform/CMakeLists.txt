@@ -25,9 +25,6 @@ declare_casacpp_component("mstransform")
 # External dependencies
 target_link_libraries(casacpp_mstransform PUBLIC PkgConfig::CASACORE)
 target_link_libraries(casacpp_mstransform PUBLIC GSL::gsl)
-if (OPENMP_FOUND)
-  target_link_libraries(casacpp_mstransform PUBLIC OpenMP::OpenMP_CXX)
-endif()
 
 # Internal dependencies
 add_dependencies(casacpp_mstransform casacpp_msvis casacpp_stdcasa casacpp_atmosphere casacpp_asdmstman casacpp_imageanalysis)
