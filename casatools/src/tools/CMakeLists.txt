@@ -68,6 +68,9 @@ pkg_check_modules(CASACPP REQUIRED IMPORTED_TARGET casacpp)
 # some tools depend on casacore directly
 pkg_check_modules(CASACORE REQUIRED IMPORTED_TARGET casacore)
 
+# OpenMP dependency
+find_package(OpenMP)
+
 # Set version
 set(CASATOOLS_MAJOR "${CMAKE_PROJECT_VERSION_MAJOR}")
 set(CASATOOLS_MINOR "${CMAKE_PROJECT_VERSION_MINOR}")
@@ -150,9 +153,6 @@ add_library(casatools SHARED)
 set_target_properties (casatools PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/casatools/__casac__/lib")
 set_property(TARGET casatools PROPERTY SUFFIX ".${Python3_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
-# Link with dependencies of casatools
-target_link_libraries(casatools PRIVATE Python3::NumPy)
-
 # Specify which files belong to the casatools target
 # Add the binding files to the list of casatool files to compile
 file(GLOB_RECURSE casatools_binding_sources ${CMAKE_SOURCE_DIR}/../../binding/source/*.cc)
@@ -180,6 +180,12 @@ target_link_libraries(casatools PUBLIC PkgConfig::CASACPP)
 target_link_libraries(casatools PRIVATE Python3::NumPy)
 target_link_libraries(casatools PUBLIC PkgConfig::XERCES)
 target_link_libraries(casatools PUBLIC readline)
+# OpenMP must be set globally, since it adds compiler flags that need to be
+# set for certain casacore header or template files, 
+# even if the component does not use directly OpenMP
+if (OPENMP_FOUND)
+  target_link_libraries(casatools PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # Macro to define each tool
 macro(declare_casatool_component name)
@@ -205,6 +211,12 @@ macro(declare_casatool_component name)
   target_link_libraries(${name} PRIVATE casatools)
   target_link_libraries(${name} PRIVATE Python3::Module)
   target_link_libraries(${name} PRIVATE Python3::NumPy)
+  # OpenMP must be set globally, since it adds compiler flags that need to be
+  # set for certain casacore header or template files, 
+  # even if the component does not use directly OpenMP
+  if (OPENMP_FOUND)
+    target_link_libraries(${name} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
 endmacro()
 
 
