@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from collections import Callable, Hashable, Iterable, Mapping, MutableMapping
+from collections.abc import Callable, Hashable, Iterable, Mapping, MutableMapping
 from copy import copy
 
 from casatools.__cerberus__ import errors

@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from casatools.__cerberus__.platform import _int_types, _str_type
 
