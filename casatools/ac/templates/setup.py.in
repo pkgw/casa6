@@ -133,7 +133,7 @@ if "--stripsyms" in sys.argv:
 module_name = 'casatools'
 
 pyversion = float(sys.version_info[0]) + float(sys.version_info[1]) / 10.0
-xml_jar_file = 'xml-casa-assembly-1.71.jar'
+xml_jar_file = 'xml-casa-assembly-1.72.jar'
 xml_jar_path = os.path.join( 'scripts', 'java', xml_jar_file)
 xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
 
@@ -1347,14 +1347,9 @@ def do_cerberus():
                     fd.write(s)
 
 def generate_casac_init_py():
-    ### this generates the __init__.py for the __casac__ submodule...
-    imports = "\n".join([ "from %s.__casac__.%s import %s" % (module_name,t,t) for t in TOOLS ])
-    alllist = ",\n            ".join([ "'%s'" % t for t in TOOLS ])
+    ### the absence of a casatools/__casac__/__init__.py may cause a double free in python
     with open(os.path.join(casacdir,'__init__.py'),"w") as fd:
-        fd.write("from __future__ import absolute_import\n")
-        fd.write("__name__ = '__casac__'\n")
-        fd.write("__all__ = [ %s ]\n\n" % alllist)
-        fd.write("%s\n" % imports)
+        fd.write("\n")
 
 # run the customize_compiler
 class casa_build_ext(build_ext):
