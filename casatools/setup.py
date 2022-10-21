@@ -156,6 +156,16 @@ class XmlCMakeBuildExt(build_ext):
 
     def build_extension(self, ext):
 
+        # Helper methods to determine if we are running in a virtual environment.
+        # This is needed since '-DPython3_FIND_VIRTUALENV=FIRST' is broken and picks
+        # Python versions outside of the virtual environment.
+        def get_base_prefix_compat():
+            """Get base/real prefix, or sys.prefix if there is none."""
+            return getattr(sys, "base_prefix", None) or getattr(sys, "real_prefix", None) or sys.prefix
+
+        def in_virtualenv():
+            return get_base_prefix_compat() != sys.prefix 
+
         # Generate the SWIG *.i files, the tool python and the tool C++ code
         self._generate_code_from_xml()
 
@@ -170,6 +180,9 @@ class XmlCMakeBuildExt(build_ext):
         # Call cmake to compile the tools C++ code (as well as SWIG processing)
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPYTHON_EXECUTABLE=' + sys.executable]
+
+        if in_virtualenv():
+            cmake_args.append('-DPython3_FIND_VIRTUALENV=ONLY')
 
         if self.with_casacpp is not None:
             cmake_args.append('-DCASACPP_ROOT=' + self.with_casacpp)
