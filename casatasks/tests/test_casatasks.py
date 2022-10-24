@@ -24,9 +24,8 @@ import unittest
 import numpy as np
 from casatools import table
 from casatasks import importasdm, importfits, listobs, flagdata, gencal, setjy, fluxscale
-from casatasks import gaincal
+from casatasks import gaincal, bandpass, mstransform, tclean
 from casatestutils import sparse_check
-
 
 class BaseClass(unittest.TestCase):
     def getdata(testfiles=None):
@@ -35,7 +34,7 @@ class BaseClass(unittest.TestCase):
 
 class CasaTasksTests(BaseClass):
     """ Unit tests for CASA tasks
-        The test script will download the test data automatically to
+        The test script will download test data automatically to
         the local directory and will remove them afterwards
         """
     @classmethod
@@ -43,15 +42,17 @@ class CasaTasksTests(BaseClass):
         cls.asdm = 'AutocorrASDM'
         cls.fitsimage = 'two_gaussian_model.fits'
         cls.listobs_ms = 'uid___X02_X3d737_X1_01_small.ms'
-        cls.dummy = 'pm_ngc5921.ms'
         cls.flagdata_ms = 'ngc5921.ms'
         cls.gencal_ms = 'tdem0003gencal.ms'
         cls.setjy_ms = 'ngc5921.ms'
         cls.fluxscale_ms = 'CalMSwithModel.ms'
         cls.fluxscale_gtable = 'ModelGcal.G0'
         cls.gaincal_ms = 'gaincaltest2.ms'
-        cls.input_files = [cls.asdm, cls.fitsimage, cls.listobs_ms, cls.dummy, cls.flagdata_ms,
-                           cls.gencal_ms, cls.fluxscale_ms, cls.fluxscale_gtable, cls.gaincal_ms]
+        cls.split_ms = 'Four_ants_3C286.ms'
+        cls.tclean_ms = 'refim_oneshiftpoint.mosaic.ms'
+        cls.input_files = [cls.asdm, cls.fitsimage, cls.listobs_ms, cls.flagdata_ms,
+                           cls.gencal_ms, cls.fluxscale_ms, cls.fluxscale_gtable,
+                           cls.gaincal_ms, cls.split_ms, cls.tclean_ms]
         # Fetch input data
         cls.getdata(testfiles=cls.input_files)
 
@@ -62,8 +63,12 @@ class CasaTasksTests(BaseClass):
         cls.gentable = 'gencal_antpos.cal'
         cls.fluxscale_out = 'fluxout.cal'
         cls.gaincal_out = 'gaincaltable.cal'
-        cls.output_files = [cls.asdm_ms, cls.onlineflags, cls.casaimage, cls.gentable, cls.fluxscale_out,
-                            cls.gaincal_out]
+        cls.bandpass_out = 'bandpass.bcal'
+        cls.split_out = 'split_model.ms'
+        cls.tclean_img = 'tclean_test_'
+        cls.output_files = [cls.asdm_ms, cls.onlineflags, cls.casaimage, cls.gentable,
+                            cls.fluxscale_out, cls.gaincal_out, cls.bandpass_out,
+                            cls.split_out]
     @classmethod
     def tearDownClass(cls) -> None:
         # Remove input files
@@ -73,6 +78,7 @@ class CasaTasksTests(BaseClass):
         # Remove output files
         for outfile in cls.output_files:
             os.system('rm -rf ' + outfile)
+        os.system('rm -rf '+cls.tclean_img+'*')
 
     def setUp(self):
         print("%s: %s" % (self._testMethodName, self._testMethodDoc))
@@ -164,6 +170,37 @@ class CasaTasksTests(BaseClass):
         gaincal(vis=self.gaincal_ms, caltable=self.gaincal_out, refant='0', field='0', solint='inf',
                 combine='scan', antenna='0~5&', smodel=[1,0,0,0], gaintype='G')
         self.assertTrue(os.path.exists(self.gaincal_out))
+
+    def test_bandpass_solint_inf(self):
+        """Test bandpass using solint=inf using a field selection"""
+        bandpass(vis=self.flagdata_ms, caltable=self.bandpass_out, field='0',uvrange='>0.0',
+                 bandtype='B',solint='inf',combine='scan',refant='VA15')
+        self.assertTrue(os.path.exists(self.bandpass_out))
+
+    def test_mstransform_split_model_col(self):
+        """Test mstransform to split out the MODEL column"""
+        mytb = table()
+        mytb.open(self.split_ms)
+        cols=mytb.colnames()
+        mytb.done()
+        self.assertTrue("MODEL_DATA" in cols)
+        mstransform(vis=self.split_ms, outputvis=self.split_out,field='1',spw='0:0~61',
+                    datacolumn='model')
+        self.assertTrue(os.path.exists(self.split_out))
+
+    def test_mtmfs_mosaic_cbFalse_onefield(self):
+        """Test tclean with mosaic gridder and specmode mfs"""
+        tclean(vis=self.tclean_ms, imagename=self.tclean_img, niter=0, specmode='mfs', spw='*', imsize=1024,
+               phasecenter='', cell='10.0arcsec', gridder='mosaic', field='0', conjbeams=False,
+               wbawp=True, psterm=False, pblimit=0.1, deconvolver='mtmfs', nterms=2, reffreq='1.5GHz', pbcor=False,
+               parallel=False);
+        self.assertTrue(os.path.exists(self.tclean_img + '.image.tt0'))
+        self.assertTrue(os.path.exists(self.tclean_img + '.pb.tt0'))
+        self.assertTrue(os.path.exists(self.tclean_img + '.psf.tt0'))
+        self.assertTrue(os.path.exists(self.tclean_img + '.residual.tt0'))
+        self.assertTrue(os.path.exists(self.tclean_img + '.weight.tt0'))
+
+
 
 if __name__ == '__main__':
     unittest.main()
