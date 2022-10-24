@@ -139,7 +139,7 @@ $ sudo port install fftw-3 fftw-3-single eigen3
 # Additional packages needed for CASA development
 $ sudo port install ccache pkgconfig protobuf3-cpp grpc gsl libxslt openmpi-clang libxmlxx2 fftw-3 fftw-3-single
 
-(note that we exclude boost related packages that are optional in the casacore build instructions: libboost-dev, libboost-python-dev. We do not need those as CASA does nott use the python bindings from casacore. In addition, if one wanted to compile all the boost related functionality of casacore (there is additional code that uses boost for Arrays and Dysco tests), the following packages would be needed: libboost-filesystem-dev libboost-test-dev libboost-system-dev).
+(note that we exclude boost related packages that are optional in the casacore build instructions: libboost-dev, libboost-python-dev. We do not need those as CASA does not use the python bindings from casacore. In addition, if one wanted to compile all the boost related functionality of casacore (there is additional code that uses boost for Arrays and Dysco tests), the following packages would be needed: libboost-filesystem-dev libboost-test-dev libboost-system-dev).
 
 Install casacore and libsakura
 ==============================

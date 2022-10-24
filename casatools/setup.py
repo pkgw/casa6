@@ -105,7 +105,7 @@ class XmlCMakeBuildExt(build_ext):
         print(f' * Found destination dir for SWIG generated tool modules / .py files: {casatools_dir}')
         print(f' * Copying SWIG generated files for every tool module into {casatools_dir}...')
         for fname in glob.glob('src/casatools/*.py'):
-            print(f'Copyying file {fname} -> {casatools_dir}')
+            print(f'Copying file {fname} -> {casatools_dir}')
             shutil.copy2(fname, casatools_dir)
 
 
