@@ -24,9 +24,14 @@
 # Minimum cmake required version
 cmake_minimum_required(VERSION 3.12)
 
+execute_process(COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/../../version.txt
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE CASATOOLS_VERSION)
+string(REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)" CASATOOLS_VERSION ${CASATOOLS_VERSION})
+
 project(
   casatools
-  VERSION 6.5.2.0
+  VERSION ${CASATOOLS_VERSION}
   DESCRIPTION "CASATOOLS SWIG wrappers"
   HOMEPAGE_URL https://casa.nrao.edu/
   LANGUAGES CXX)

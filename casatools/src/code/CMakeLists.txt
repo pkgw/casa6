@@ -24,9 +24,15 @@
 # Minimum cmake required version
 cmake_minimum_required(VERSION 3.12)
 
+execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/version
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE CASACPP_VERSION)
+string(REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)" CASACPP_VERSION ${CASACPP_VERSION})
+message("CASACPP version: " ${CASACPP_VERSION})
+
 project(
   casacpp
-  VERSION 6.5.2.0
+  VERSION ${CASACPP_VERSION}
   DESCRIPTION "CASA C++ libraries"
   HOMEPAGE_URL https://casa.nrao.edu/
   LANGUAGES CXX Fortran C)

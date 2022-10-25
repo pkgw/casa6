@@ -203,6 +203,39 @@ def generate_extensions():
 
     return extensions, cmdclass
 
+def compute_version():
+    # If version.txt is found then use it. This would be the case if
+    # building from source tarball, which is not longer a git repo.
+    # Otherwise get the version from a logic on the git history.
+    if not os.path.exists("version.txt") :
+        with open("version.txt", "w") as version_stdout:
+            proc = subprocess.Popen( [ "scripts/version" ], stdout=version_stdout, stderr=subprocess.PIPE )
+            out,err = proc.communicate()
+    with open("version.txt", "r") as version_stdout:
+        out_version = version_stdout.readline()
+        
+    devbranchtag = out_version.split(" ")[0].strip() 
+    releasetag = out_version.split(" ")[1].strip()
+    dirty=""
+    if (len(out_version.split(" ")) == 3): 
+        print("Latest commit doesn't have a tag. Adding -dirty flag to version string.")
+        dirty="+" + out_version.split(" ")[2].strip() # "+" denotes local version identifier as described in PEP440
+    devbranchversion = ""
+    devbranchrevision = ""
+    if (devbranchtag != releasetag):
+        devbranchrevision = devbranchtag.split("-")[-1]
+        if (devbranchtag.startswith("CAS-")):
+            devbranchversion=devbranchtag.split("-")[1] 
+        else:
+            devbranchversion=100
+        devbranchrevision = devbranchtag.split("-")[-1]
+
+    casatools_version = '%s%s' % (releasetag,dirty)
+    if devbranchversion !="":
+        casatools_version = '%sa%s.dev%s%s' % (releasetag,devbranchversion,devbranchrevision,dirty)
+    print("casatools version: ", casatools_version)
+    return casatools_version
+
 def setup_package():
 
     META_DATA = dict(
@@ -216,6 +249,7 @@ def setup_package():
         # Generate extensions
         extensions, cmd_class = generate_extensions()
 
+        META_DATA["version"] = compute_version()
         META_DATA["cmdclass"] = cmd_class
         META_DATA["ext_modules"] = extensions
 
