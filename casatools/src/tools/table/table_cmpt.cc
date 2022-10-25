@@ -27,7 +27,7 @@
 #include <casacore/tables/Tables/TableLock.h>
 #include <casacore/fits/FITS/FITSTable.h>
 #include <casacore/fits/FITS/SDFITSTable.h>
-#include <casa/Inputs/Input.h>
+#include <casacore/casa/Inputs/Input.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Containers/ValueHolder.h>
 #include <casacore/casa/Exceptions/Error.h>
