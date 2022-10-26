@@ -2,7 +2,6 @@ import os
 import functools
 import inspect
 from xml.dom import minidom
-import opcode
 
 import casatasks
 
@@ -103,79 +102,40 @@ def xml_constraints_injector(func):
             # get an object reference to read informantion of argument
             func_ = func.__dict__.get('__wrapped__', func)
 
-            # load user-supplied arguments from current bytecode.
-            # task calling bytecode (dumped by dis.dis()) is:
-            #
-            #  [opcode]         [opland]
-            #  ...
-            #  LOAD_CONST       [n]
-            #  CALL_FUNCTION_KW [m]  <- current, pointed by frame.f_lasti
-            #  ...
-            #
-            # At the frame next to '__call__' on the call stack,
-            # bytecode[f_lasti] is the opcode of CALL_FUNCTION_KW executing currently.
-            # then, bytecode[f_lasti-2] is the opcode of LOAD_CONST,
-            # bytecode[f_lasti-1] is an index of the constant stack co_consts.
-            # co_consts[bytecode[f_lasti-1]] points the user-supplied arguments of the task called currently.
-
             is_recursive_load = False
-            next_to_call = args_on_code = False
             for frame in inspect.stack():
                 if frame.function == func_.__name__:
                     # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
                     is_recursive_load = True
-                if next_to_call:
-                    if hasattr(frame.frame, 'f_code'):
-                        const_stack = frame.frame.f_code.co_consts
-                        bytecodes = frame.frame.f_code.co_code
-                        code_index = frame.frame.f_lasti
-                        if bytecodes[code_index - 2] == opcode.opmap['LOAD_CONST']:
-                            args_on_code = const_stack[bytecodes[code_index - 1]]
-                            casatasks.casalog.post(f'user-supplied arguments:{args_on_code}', 'INFO')
-                    next_to_call = False
-                if frame.function == '__call__':
-                    # the order of stacktrace should be '__call__' -> '<module>',
-                    # we should load user-supplied arguments from the next to '__call__'
-                    next_to_call = True
 
             if is_recursive_load:
                 casatasks.casalog.post('recursive task call', 'INFO')
                 retval = func(*args, **kwargs)
             else:
-                arg_keys = func_.__code__.co_varnames
-                arg_count = func_.__code__.co_argcount
-                args_ = [''] * arg_count
-                supplied_args_flags = [False] * arg_count
 
-                # copy all arguments into args_
-                # Note: all arguments (args, kwargs) defined a task are converted into
-                # position args by task.__call__() generated from task XML
-                args_[:len(args)] = args
-                args_position_dict = {key: i for i, key in enumerate(arg_keys)}
+                # generate the converter method
+                args_, args_position_dict, converter_function_string = __load_xml(funcname)
+
+                for i in range(len(args)):
+                    args_[i] = args[i]
+                supplied_args_flags = [False] * len(args_position_dict)
+
                 kwargs_ = dict()
                 for k, v in kwargs.items():
-                    if args_position_dict.get(k) is not None and args_position_dict[k] < arg_count:
+                    if args_position_dict.get(k) is not None:
                         args_[args_position_dict[k]] = v
+                        supplied_args_flags[args_position_dict[k]] = True
                     else:
                         kwargs_[k] = v
 
-                if args_on_code and isinstance(args_on_code, tuple):
-                    for k in args_on_code:
-                        i = args_position_dict.get(k, False)
-                        if i is not False:
-                            supplied_args_flags[i] = True
-
-                # generate the converter method
-                func_ = __generate_constraints_from_xml(funcname)
-
                 if __DEBUG:
-                    print(func_)
+                    print(converter_function_string)
                     pprint(args_position_dict)
                     pprint(args_)
 
-                # override args by the converter generated
+                # override args by the converter generated from xml
                 casatasks.casalog.post('loaded constraints from XML', 'INFO')
-                exec(func_)
+                exec(converter_function_string)
                 exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
 
                 # execute task
@@ -197,7 +157,7 @@ def __get_taskxmlfilepath(task):
     return False
 
 
-def __generate_constraints_from_xml(task):
+def __load_xml(task):
     # return False if file loadging faults
     taskxml = __get_taskxmlfilepath(task)
 
@@ -207,7 +167,21 @@ def __generate_constraints_from_xml(task):
         constraints = dom.getElementsByTagName('constraints')[0]
         for s in constraints.getElementsByTagName('when'):
             __handle_when(s, stmt)
-    return __convert_stmt_to_pycode(stmt)
+        args = [__generate_default_value(param) for param in dom.getElementsByTagName('param')]
+        args_position_dict = {param.getAttribute('name'): i for i, param in enumerate(dom.getElementsByTagName('param'))}
+    return args, args_position_dict, __convert_stmt_to_pycode(stmt)
+
+
+def __generate_default_value(param):
+    type_ = param.getAttribute('type')
+    value_, type_ = __handle_value(param.getElementsByTagName('value')[0], type_)
+    if type_ == 'int':
+        return int(value_)
+    elif type_ == 'double':
+        return float(value_)
+    elif type_ == 'bool':
+        return value_ == 'True'
+    return value_
 
 
 def __convert_stmt_to_pycode(stmt_list):
