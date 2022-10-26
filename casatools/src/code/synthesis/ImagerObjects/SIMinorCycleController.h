@@ -112,7 +112,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
    void addSummaryMinor(casacore::uInt deconvolverid, casacore::uInt channel, casacore::uInt polarity,
                         casacore::Int cycleStartIter, casacore::Int startIterDone, casacore::Float startmodel, casacore::Float startpeakresidual, casacore::Float startpeakresidualnomask,
-                        casacore::Float model, casacore::Float peakresidual, casacore::Float peakresidualnomask, casacore::Float masksum, casacore::Int mpiRank, casacore::Float peakMem, casacore::Float runtime, casacore::Int stopCode, bool fullsummary);
+                        casacore::Float model, casacore::Float peakresidual, casacore::Float peakresidualnomask, casacore::Float masksum, casacore::Int mpiRank, casacore::Int stopCode, bool fullsummary);
     
     /* Variables to track status inside each Deconvolver */
     casacore::Float getPeakResidual();

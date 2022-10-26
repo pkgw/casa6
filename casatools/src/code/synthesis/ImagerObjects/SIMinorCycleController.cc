@@ -201,7 +201,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void SIMinorCycleController::setFullSummary(bool fullSummary)
   {
     itsFullSummary = fullSummary;
-  } 
+  }
+
   void SIMinorCycleController::resetMinResidual()
   {
     itsMinResidual = itsPeakResidual;
@@ -348,7 +349,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   void SIMinorCycleController::addSummaryMinor(uInt deconvolverid, uInt chan, uInt pol,
                                                Int cycleStartIter, Int startIterDone, Float startmodelflux, Float startpeakresidual, Float startpeakresidualnomask,
-                                               Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Float peakMem, Float runtime, Int stopCode, bool fullsummary)
+                                               Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Int stopCode, bool fullsummary)
   {
     LogIO os( LogOrigin("SIMinorCycleController", __FUNCTION__ ,WHERE) );
 

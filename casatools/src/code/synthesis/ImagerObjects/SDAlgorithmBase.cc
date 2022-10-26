@@ -350,7 +350,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
             os<<" fullsummary before addSummaryMinor call=="<<fullsummary<<LogIO::POST;
 	    loopcontrols.addSummaryMinor( deconvolverid, chunkId, polid, cycleStartIteration,
 	                                  startiteration, startmodelflux, startpeakresidual, startpeakresidualnomask,
-	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, fpeakMem, runtime, stopCode, fullsummary);
+	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, stopCode, fullsummary);
 
 	    loopcontrols.resetCycleIter(); 
 

@@ -194,7 +194,7 @@ class PySynthesisImager:
 
     def getSummary(self,fullsummary,fignum=1):
         summ = self.IBtool.getiterationsummary()
-        casalog.post('getSummary call: fullsummary=', fullsummary)
+        casalog.post('getSummary call: fullsummary='+str(fullsummary))
         if ('stopcode' in summ):
             summ['stopDescription'] = self.getStopDescription(summ['stopcode'])
         if ('summaryminor' in summ):
@@ -572,7 +572,7 @@ class PySynthesisImager:
         iterbotrec = self.IBtool.getminorcyclecontrols()
         
         # TT debug - comment out after debugging....
-        casalog.post("Minor Cycle controls : ", iterbotrec)
+        casalog.post("Minor Cycle controls : " + str(iterbotrec))
 
         self.IBtool.resetminorcycleinfo() 
 

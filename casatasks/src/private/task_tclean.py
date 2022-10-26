@@ -478,7 +478,7 @@ def tclean(
                     
                 ## Get summary from iterbot
                 #if type(interactive) != bool:
-                casalog.post("calling getSummary, fullsummary ====",fullsummary)
+                casalog.post("calling getSummary, fullsummary ====" + str(fullsummary))
                 retrec=imager.getSummary(fullsummary);
                 
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):

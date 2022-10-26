@@ -159,6 +159,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                                                                                  0)),
                                                               SummaryMajor(casacore::IPosition(1,0)) {
 		LogIO os( LogOrigin("grpcInteractiveCleanState",__FUNCTION__,WHERE) );
+                std::cerr << "  HERE    SIMinorCycleContoller::nSummaryFields=" << SIMinorCycleController::nSummaryFields << endl;
         reset( );
     }
 
@@ -197,7 +198,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         MaskSum = -1.0;
         MadRMS = 0.0;
         //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        std::cerr << "SIMinorCycleContoller::nSummaryFields=" << SIMinorCycleController::nSummaryFields << endl;
         int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        std::cerr << "in reset() FullSummary="<<FullSummary<<endl;      
+        //int nSummaryFields = !FullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
         SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
         SummaryMajor.reformOrResize(casacore::IPosition(1,0));
         SummaryMinor = 0;
@@ -465,6 +469,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                 setControlsFromRecord( iterpars );
+                std::cerr <<" now state.FullSummary is ..." << state.FullSummary <<endl;
+                Int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
+                std::cerr <<" After restting  nSummaryFields is ..." << nSummaryFields <<endl;
+                state.SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
 
             } catch( AipsError &x ) {
                 throw( AipsError("Error in updating iteration parameters : " + x.getMesg()) );
@@ -827,10 +835,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	void grpcInteractiveCleanManager::mergeMinorCycleSummary( const Array<Double> &summary, grpcInteractiveCleanState &state, Int immod ){
 		IPosition cShp = state.SummaryMinor.shape();
 		IPosition nShp = summary.shape();
+                cerr<< "cShp=="<<cShp<<endl;
+                cerr<< "nShp=="<<nShp<<endl;
 
 		//bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
         //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
         int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
+                cerr<<"nSummaryFields now===="<<nSummaryFields<<endl;
 		if( cShp.nelements() != 2 || cShp[0] != nSummaryFields ||
 		    nShp.nelements() != 2 || nShp[0] != nSummaryFields )
 			throw(AipsError("Internal error in shape of global minor-cycle summary record"));
