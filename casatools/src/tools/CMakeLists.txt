@@ -210,7 +210,7 @@ macro(declare_casatool_component name)
   set_property(TARGET ${name} PROPERTY SWIG_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/../../binding/include)
   set_property(TARGET ${name} PROPERTY SWIG_GENERATED_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/${name} ${CMAKE_SOURCE_DIR}/../../binding/include)
   set_property(TARGET ${name} PROPERTY INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/${name} ${CMAKE_SOURCE_DIR}/../../binding/include)
-  set_property(TARGET ${name} PROPERTY SUFFIX ".${Python3_SOABI}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set_property(TARGET ${name} PROPERTY SUFFIX ".${Python3_SOABI}.so")
   set_property(TARGET ${name} PROPERTY LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/casatools/__casac__")
   
   # Add the includes for all tools, since there are some dependencies between them
