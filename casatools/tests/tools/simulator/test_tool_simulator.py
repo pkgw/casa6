@@ -47,11 +47,10 @@ class sm_settrop_test(unittest.TestCase):
     """
     """
     
-    vis_file = 'settrop_split_ant_spw.ms'
-    vis_copy = 'settrop_split_ant_spw_copy.ms'
-    res_table = 'settrop_table'
-    
     def setUp(self):
+    	self.vis_file = 'settrop_split_ant_spw.ms'
+    	self.vis_copy = 'settrop_split_ant_spw_copy.ms'
+    	self.res_table = 'settrop_table'
         if os.path.exists(self.vis_copy):
             shutil.rmtree(self.vis_copy)
         shutil.copytree(os.path.join(datapath,self.vis_file), self.vis_copy)
@@ -62,10 +61,6 @@ class sm_settrop_test(unittest.TestCase):
         if os.path.exists(self.res_table):
             shutil.rmtree(self.res_table)
         
-    @classmethod
-    def tearDownClass(cls):
-        pass
-    
     def test_smsettrop(self):
         """  """
         _sm.openfromms(self.vis_copy)
