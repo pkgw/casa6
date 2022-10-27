@@ -82,7 +82,7 @@ def xml_constraints_injector(func):
     Note: handling of <kwarg> tag of task xml files
         Subparameters for which have empty characters '' as default values and '' have some meanings
         need to determine whether the empty characters are user-supplied or default values when overridden it.
-        Therefore, for the determination process, the <kwtag> tag must be set in the definition of that parameter
+        Therefore, for the determination process, the <kwarg> tag must be set in the definition of that parameter
         in an XML file. This is currently the case only for 'intent' of sdcal (intent='' means "set intent 'all'"),
         so please see sdcal.xml.
 
