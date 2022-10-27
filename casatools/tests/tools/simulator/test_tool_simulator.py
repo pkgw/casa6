@@ -48,9 +48,9 @@ class sm_settrop_test(unittest.TestCase):
     """
     
     def setUp(self):
-    	self.vis_file = 'settrop_split_ant_spw.ms'
-    	self.vis_copy = 'settrop_split_ant_spw_copy.ms'
-    	self.res_table = 'settrop_table'
+        self.vis_file = 'settrop_split_ant_spw.ms'
+        self.vis_copy = 'settrop_split_ant_spw_copy.ms'
+        self.res_table = 'settrop_table'
         if os.path.exists(self.vis_copy):
             shutil.rmtree(self.vis_copy)
         shutil.copytree(os.path.join(datapath,self.vis_file), self.vis_copy)
