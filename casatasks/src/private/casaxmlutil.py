@@ -20,9 +20,14 @@ if __DEBUG:
 def xml_constraints_injector(func):
     """Decorator which loads constraints from a casatask XML file and apply them to the arguments of the decorated casatask.
 
-    This method decorating a task method. It converts a constraints element of a CASA XML into Python code as below:
+    This method is designed as decorator for task methods. It executes as below:
+    1. converts a constraints element of a CASA task XML to a Python code.
+    2. evaluates the code, then a Python function is generated.
+    3. executes the function and overrides task arguments to values defined by constraints tag.
 
-    XML:
+    ex)
+    a constraints tag of a CASA task XML:
+
     <constraints>
             <when param="timebin">
                 <notequals type="string" value="">
@@ -45,7 +50,8 @@ def xml_constraints_injector(func):
             </when>
     </constraints>
 
-    Python:
+    generated Python function code from the above XML:
+
     def override_args(_a, _d, _s):  # _a: position args based on *args
                                     # _d: dict[key: position name, val: corresponding position index of a key]
                                     #     to use to get a position index of args by position name
@@ -76,8 +82,6 @@ def xml_constraints_injector(func):
             if _d.get('nfit') is not None and _s[_d['nfit']] is False and _a[_d['nfit']] == "":
                 _a[_d['nfit']] = [0]
                 casatasks.casalog.post("overrode argument: nfit -> [0]", "INFO")
-
-    Then, it evaluates the function above, and the function modifies arguments of a task which decorates the decorator.
 
     Note: handling of <kwarg> tag of task xml files
         Subparameters for which have empty characters '' as default values and '' have some meanings
