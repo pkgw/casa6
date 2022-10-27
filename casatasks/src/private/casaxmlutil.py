@@ -112,10 +112,10 @@ def xml_constraints_injector(func):
                 casatasks.casalog.post('recursive task call', 'INFO')
                 retval = func(*args, **kwargs)
             else:
-
-                # generate the converter method
+                # generate the argument specification and the injector method from a task xml
                 args_, args_position_dict, converter_function_string = __load_xml(funcname)
 
+                # Note: the length of args is reduced by the length of kwargs.
                 for i in range(len(args)):
                     args_[i] = args[i]
                 supplied_args_flags = [False] * len(args_position_dict)
@@ -148,27 +148,25 @@ def xml_constraints_injector(func):
 
 
 def __get_taskxmlfilepath(task):
-    if not isinstance(task, str):
-        return False
     xmlpath = os.path.abspath(casatasks.__path__[0]) + '/__xml__'
     taskxmlfile = f'{xmlpath}/{task}.xml'
-    if os.path.isfile(taskxmlfile) and os.access(taskxmlfile, os.R_OK):
-        return taskxmlfile
-    return False
+    if not os.path.isfile(taskxmlfile):
+        raise ValueError
+    if not os.access(taskxmlfile, os.R_OK):
+        return PermissionError
+    return taskxmlfile
 
 
 def __load_xml(task):
-    # return False if file loadging faults
     taskxml = __get_taskxmlfilepath(task)
 
     stmt = []
-    if taskxml:
-        dom = minidom.parse(taskxml)
-        constraints = dom.getElementsByTagName('constraints')[0]
-        for s in constraints.getElementsByTagName('when'):
-            __handle_when(s, stmt)
-        args = [__generate_default_value(param) for param in dom.getElementsByTagName('param')]
-        args_position_dict = {param.getAttribute('name'): i for i, param in enumerate(dom.getElementsByTagName('param'))}
+    dom = minidom.parse(taskxml)
+    constraints = dom.getElementsByTagName('constraints')[0]
+    for s in constraints.getElementsByTagName('when'):
+        __handle_when(s, stmt)
+    args = [__generate_default_value(param) for param in dom.getElementsByTagName('param')]
+    args_position_dict = {param.getAttribute('name'): i for i, param in enumerate(dom.getElementsByTagName('param'))}
     return args, args_position_dict, __convert_stmt_to_pycode(stmt)
 
 
