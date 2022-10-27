@@ -118,6 +118,7 @@ def xml_constraints_injector(func):
                 if frame.function == func_.__name__:
                     # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
                     is_recursive_load = True
+                    break
 
             if is_recursive_load:
                 casatasks.casalog.post('recursive task call', 'INFO')
