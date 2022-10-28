@@ -206,8 +206,9 @@ def generate_extensions():
 def compute_version():
     # If version.txt is found then use it. This would be the case if
     # building from source tarball, which is not longer a git repo.
-    # Otherwise get the version from a logic on the git history.
+    # Otherwise get the version using some logic on the git history and tags.
     if not os.path.exists("version.txt") :
+        print("Getting version from git... ")
         with open("version.txt", "w") as version_stdout:
             proc = subprocess.Popen( [ "scripts/version" ], stdout=version_stdout, stderr=subprocess.PIPE )
             out,err = proc.communicate()
@@ -254,6 +255,8 @@ def setup_package():
         META_DATA["ext_modules"] = extensions
 
     setup(**META_DATA)
+    if os.path.exists("version.txt") and "sdist" in sys.argv:
+        os.remove("version.txt")
 
 if __name__ == '__main__':
     setup_package()
