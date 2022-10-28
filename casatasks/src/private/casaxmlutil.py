@@ -83,12 +83,14 @@ def xml_constraints_injector(func):
                 _a[_d['nfit']] = [0]
                 casatasks.casalog.post("overrode argument: nfit -> [0]", "INFO")
 
-    Note: handling of <kwarg> tag of task xml files
-        Subparameters for which have empty characters '' as default values and '' have some meanings
-        need to determine whether the empty characters are user-supplied or default values when overridden it.
-        Therefore, for the determination process, the <kwarg> tag must be set in the definition of that parameter
-        in an XML file. This is currently the case only for 'intent' of sdcal (intent='' means "set intent 'all'"),
-        so please see sdcal.xml.
+    Note: handling of <kwarg/> tag of task XML files
+        Subparameters whose default value is the empty string '' - but where the empty string means in fact that 
+        the real default value must be set to some non-empty string - require special care. One must be able to
+        determine whether the empty string was user-supplied or not.
+        To make this determination possible, the <kwarg/> tag must be set in the <param> tag definition of such
+        parameters in the task XML file. This is currently the case only for parameter 'intent' of task sdcal,
+        where intent='' means intent='all'. See sdcal.xml.
+
 
     Parameters
     ----------
@@ -380,7 +382,7 @@ if __name__ == '__main__':
 
     from casatasks import sdcal, sdfit
 
-    sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otf')
+    sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otfraster,tsys,apply')
     sdfit(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, fitmode='auto')
 
     def test():
