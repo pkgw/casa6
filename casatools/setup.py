@@ -179,7 +179,7 @@ class XmlCMakeBuildExt(build_ext):
 
         # Call cmake to compile the tools C++ code (as well as SWIG processing)
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-                      '-DPYTHON_EXECUTABLE=' + sys.executable]
+                      '-DPython3_EXECUTABLE=' + sys.executable]
 
         if in_virtualenv():
             cmake_args.append('-DPython3_FIND_VIRTUALENV=ONLY')
