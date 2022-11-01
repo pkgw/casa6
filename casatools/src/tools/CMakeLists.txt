@@ -209,7 +209,10 @@ macro(declare_casatool_component name)
                    OUTPUT_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/casatools/__casac__" OUTFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
   set_property(TARGET ${name} PROPERTY SWIG_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/../../binding/include)
   set_property(TARGET ${name} PROPERTY SWIG_GENERATED_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/${name} ${CMAKE_SOURCE_DIR}/../../binding/include)
+  set_property(TARGET ${name} PROPERTY SWIG_COMPILE_OPTIONS -threads)
+
   set_property(TARGET ${name} PROPERTY INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/${name} ${CMAKE_SOURCE_DIR}/../../binding/include)
+
   set_property(TARGET ${name} PROPERTY SUFFIX ".${Python3_SOABI}.so")
   set_property(TARGET ${name} PROPERTY LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/casatools/__casac__")
   
