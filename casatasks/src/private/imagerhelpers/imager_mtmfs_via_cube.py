@@ -38,11 +38,11 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         # - deconvolver to hogbom so that major cycle doesn't get confused TODO is this necessary?
         for k in self.allimpars:
             self.allimpars[k]['specmode'] = 'cube'
-            self.allimpars[k]['deconvolver'] = 'hogbom'
-        for k in self.allgridpars:
-            self.allgridpars[k]['deconvolver'] = 'hogbom'
-        for k in self.allnormpars:
-            self.allnormpars[k]['deconvolver'] = 'hogbom'
+            #self.allimpars[k]['deconvolver'] = 'hogbom'
+        #for k in self.allgridpars:
+            #self.allgridpars[k]['deconvolver'] = 'hogbom'
+        #for k in self.allnormpars:
+        #    self.allnormpars[k]['deconvolver'] = 'hogbom'
 
         self.fresh_images = []
         self.verify_dec_pars()
