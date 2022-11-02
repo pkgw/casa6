@@ -59,6 +59,15 @@ macro(declare_casacpp_component name)
     target_link_libraries(casacpp_${name} PUBLIC OpenMP::OpenMP_CXX)
   endif()
 
+  # Effective use of MPI in synthesis needs to be enabled with
+  # -DHAVE_MPI. For now MPI is linked here to all the casacpp_ libs as
+  # this is more similar to the setup.py based CASA6 build
+  # system. Only casacpp_synthesis should need it.
+  if(MPI_FOUND)
+    target_compile_definitions(casacpp_${name} PRIVATE -DHAVE_MPI)
+    target_link_libraries(casacpp_${name} PRIVATE MPI::MPI_CXX)
+  endif()
+
   # Add C++ tests
   # Take all files under /test/ directory
   file(GLOB_RECURSE ${name}_cpp_tests_sources "*.cc")

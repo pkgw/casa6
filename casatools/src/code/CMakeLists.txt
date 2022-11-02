@@ -64,9 +64,6 @@ add_definitions(-DAIPS_DEBUG)
 
 ## Check for dependencies
 
-# Find MPI compiler
-find_package(MPI)
-
 # casacore dependency
 pkg_check_modules(CASACORE REQUIRED IMPORTED_TARGET casacore)
 
@@ -113,11 +110,14 @@ find_library(FFTW_FLOAT_THREADS_LIB
 # sqllite3 dependency
 find_package(SQLite3 REQUIRED)
 
+# SAKURA dependency
+pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
+
 # OpenMP dependency
 find_package(OpenMP)
 
-# SAKURA dependency
-pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
+# Find MPI compiler
+find_package(MPI)
 
 option(ENABLE_RPATH "Include rpath in shared libraries and executables" YES)
 if(ENABLE_RPATH)
