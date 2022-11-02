@@ -64,7 +64,7 @@ try:
     import casatools
     from casatools.config import build as tools_config
 except ImportError:
-    print(f'No casatools found, using XML casa jar directly')
+    print(f'casatools.config.build could not be imported, using XML casa jar directly')
     tools_config = None
 
 from setuptools import setup, find_packages
