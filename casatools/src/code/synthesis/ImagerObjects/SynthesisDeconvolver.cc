@@ -856,7 +856,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     ///Something has to be done about what is done in SIIterBot_state::mergeMinorCycleSummary if it is needed
     //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
-    int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    //int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    int nSummaryFields = !itsFullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    cerr<<"mergeReturnRecord:: itsFullSummary="<< itsFullSummary << "  nSummaryFields="<< nSummaryFields <<endl;
+
     Matrix<Double> summaryminor(nSummaryFields,0);
     if(outRec.isDefined("summaryminor"))
       summaryminor=Matrix<Double>(outRec.asArrayDouble("summaryminor"));

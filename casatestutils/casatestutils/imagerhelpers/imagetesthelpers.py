@@ -290,7 +290,8 @@ class TestHelpers:
         if 'summaryminor' in summ:
             sm = summ['summaryminor'][0] # 0: just look at the first field of the multifield images
             chans, stokes, ncycles = self._get_summary_minor_keys(sm)
-            uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
+            uss = True if self.checkKeyInNestedDict('startIterDone', sm) == None else False
+            #uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
             ret = (chans[0], stokes[0])
             prev_chan = None
             for chan in chans:
@@ -316,7 +317,8 @@ class TestHelpers:
         if 'summaryminor' in summ:
             sm = summ['summaryminor'][0] # 0: just look at the first field of the multifield images
             chans, stokes, ncycles = self._get_summary_minor_keys(sm)
-            uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
+            uss = True if self.checkKeyInNestedDict('startIterDone', sm) == None else False
+            #uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
             ret = (chans[0], stokes[0], 0) # 0: cycle 0
             prev_chan = None
             for chan in chans:
@@ -1200,3 +1202,16 @@ class TestHelpers:
 
         return mergedret
 
+    def checkKeyInNestedDict(self,k,d):
+        """
+        Check if a specific key is in a nested dictionary recursively and
+        if the key exists it returns the value of the first encounter of the key.
+        It returns None if the key does not exist in the dictionary.
+
+        """
+        if k in d:
+            return d[k]
+        for v in d.values():
+            if isinstance(v, dict):
+                return self.checkKeyInNestedDict(k,v)
+        return None

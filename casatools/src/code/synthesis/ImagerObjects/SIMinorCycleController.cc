@@ -404,6 +404,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
          // stopcode
          itsSummaryMinor( IPosition(2, 16, shp[1] ) ) = stopCode;
      }
+     os<<"addSummaryMinor end"<<endl;
 
   }// end of addSummaryMinor
 

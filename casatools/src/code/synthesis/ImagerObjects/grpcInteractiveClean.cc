@@ -471,7 +471,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                 setControlsFromRecord( iterpars );
                 std::cerr <<" now state.FullSummary is ..." << state.FullSummary <<endl;
                 Int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
-                std::cerr <<" After restting  nSummaryFields is ..." << nSummaryFields <<endl;
+                std::cerr <<" After resetting  nSummaryFields is ..." << nSummaryFields <<endl;
                 state.SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
 
             } catch( AipsError &x ) {
