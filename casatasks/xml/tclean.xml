@@ -454,6 +454,13 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         in the rest frame emission region may be
                                                         moving w.r.t the systemic velocity frame)
 
+                                                        mode='mtmfs_via_cube' : multiterm spectralindex  continuum imaging with only one output image
+                                                        channel but this mode requires nterms > 1 and deconvolver to be mtmfs. Very similar to mfs with
+                                                        nterms > 1 and deconvolver=mtmfs except the weighting correction is done per channel before combining
+                                                        to the continuum images.
+                                                        
+                                             
+                               
 
 </description>
      <value type="string">mfs</value>
@@ -463,6 +470,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
        <value>cube</value>
        <value>cubedata</value>
        <value>cubesource</value>
+       <value>mtmfs_via_cube</value>
      </allowed>
     </param>
 
@@ -2549,6 +2557,10 @@ to use the correct direction in which the antenna is pointing with respect to th
        <equals type="string" value="mfs">
          <default param="reffreq"><value>&quot;&quot;</value></default>
 
+       </equals>
+       <equals type="string" value="mtmfs_via_cube">
+         <default param="reffreq"><value>&quot;&quot;</value></default>
+         <default param="nchan"><value>-1</value></default>
        </equals>
        <equals type="string" value="cube">
          <default param="nchan"><value>-1</value></default>

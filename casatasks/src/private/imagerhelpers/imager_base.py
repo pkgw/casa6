@@ -6,6 +6,7 @@ import string
 import time
 import re
 import copy
+import pdb
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -361,7 +362,6 @@ class PySynthesisImager:
 
 #############################################
     def makePSF(self):
-
         self.makePSFCore()
         divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs' or ("awproj" in self.allgridpars['0']['gridder'])
         ### Gather PSFs (if needed) and normalize by weight

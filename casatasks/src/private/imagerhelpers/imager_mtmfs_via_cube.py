@@ -29,20 +29,30 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     """
 
     def __init__(self, params):
+        mfsparams=copy.deepcopy(params)
+        mfsparams.allimpars['0']['specmode']='mfs'
+        mfsparams.alldecpars['0']['specmode']='mfs'
+        
+        print("params.decpars", mfsparams.alldecpars)
+        self.mfsImager=PySynthesisImager(mfsparams)
         super().__init__(params)
+        print(f'self all impars {self.allimpars}, \n allvars={vars(self)}')
         if self.allimpars['0']['specmode'] != 'mtmfs_via_cube':
             raise RuntimeError(f"Can't use specmode {self.allimpars['0']['specmode']} with imager helper {self.__class__.__name__}!")
+        
 
         # Update some settings:
         # - specmode to cube so that we run a cube major cycle
         # - deconvolver to hogbom so that major cycle doesn't get confused TODO is this necessary?
         for k in self.allimpars:
             self.allimpars[k]['specmode'] = 'cube'
-            #self.allimpars[k]['deconvolver'] = 'hogbom'
-        #for k in self.allgridpars:
-            #self.allgridpars[k]['deconvolver'] = 'hogbom'
-        #for k in self.allnormpars:
-        #    self.allnormpars[k]['deconvolver'] = 'hogbom'
+            #self.alldecpars[k]['specmode']='cube'
+            ###this is needed for basic check...it is not used
+            self.allimpars[k]['deconvolver'] = 'hogbom'
+        for k in self.allgridpars:
+            self.allgridpars[k]['deconvolver'] = 'hogbom'
+        for k in self.allnormpars:
+            self.allnormpars[k]['deconvolver'] = 'hogbom'
 
         self.fresh_images = []
         self.verify_dec_pars()
@@ -62,10 +72,11 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         return pars
 
     def initializeDeconvolvers(self):
-        for immod in range(0,self.NF):
-             self.SDtools.append(synthesisdeconvolver())
-             self.SDtools[immod].setupdeconvolution(decpars=self.get_dec_pars_for_immod(immod))
-
+        #for immod in range(0,self.NF):
+        #     self.SDtools.append(synthesisdeconvolver())
+        #     self.SDtools[immod].setupdeconvolution(decpars=self.get_dec_pars_for_immod(immod))
+        ##should initialize mfs deconvolvers
+        self.mfsImager.initializeDeconvolvers()
 #############################################
     
     def check_psf(self, immod):
@@ -96,7 +107,26 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             self.cube2tt(immod, suffixes=suffixes)
 
         return super().hasConverged()
+#############################################
 
+    def initializeIterationControl(self):
+        self.mfsImager.initializeIterationControl()
+
+    #############################################
+    def runMajorCycle(self, isCleanCycle=True):
+        ###hopefully this carries all info for writing last model
+        self.IBtool=self.mfsImager.IBtool
+        super().runMajorCycle(isCleanCycle)
+        suffixes = ["residual", "sumwt"]
+        for immod in range(0,self.NF):
+            inpcube = self.get_image_name(immod, "residual")
+            pbcube = self.get_image_name(immod, "pb")
+            cubewt = self.get_image_name(immod, "sumwt")
+            pblimit = self.allnormpars[str(immod)]['pblimit']
+            self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=True)
+            self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=False)
+            self.cube2tt(immod, suffixes=suffixes)
+    ##############################################
     def runMinorCycle(self):
         # convert from cube to .ttN taylor term images for the mtmfs deconvolver
         for immod in range(0,self.NF):
@@ -114,7 +144,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             self.cube2tt(immod, suffixes=suffixes)
 
         # run the mtmfs deconvolver
-        ret = super().runMinorCycle()
+        ret = self.mfsImager.runMinorCycle()
 
         # convert back to cube images for the cube major cycle
         for immod in range(0,self.NF):
@@ -129,7 +159,21 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=True)
 
         return ret
+    #############################################################    
+    def hasConverged(self):
+        return self.mfsImager.hasConverged()
+    #############################################################
+    def updateMask(self):
+        return self.mfsImager.updateMask()
+    ###########################################################
+    def getSummary(self,fignum=1):
+        return self.mfsImager.getSummary(fignum)
+    ##########################################################
+    def restoreImages(self):
+        return self.mfsImager.restoreImages()
 
+
+    ####################################
     def cube2tt(self, immod=0, suffixes=None):
         """ Creates the necessary taylor term images.
 
