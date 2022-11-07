@@ -1153,12 +1153,10 @@ class test_iterbot(testref_base):
          self.prepData('refim_twochan.ms')
          ret = tclean(vis=self.msfile, imagename=self.img, imsize=100, cell='8.0arcsec', deconvolver='hogbom', niter=20, threshold='0.01Jy', cycleniter=10, fullsummary=True, parallel=self.parallel)
 
-         print('ret=',ret)
+         #print('ret=',ret)
          refsumminorkeys = SummaryMinor.rowDescriptionsOldOrder
          thissumminorkeys = ret['summaryminor'][0][0][0].keys()
-         print('this summin=',thissumminorkeys)
-         print('ref summin=',refsumminorkeys)
-          report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
+         report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
 ##############################################
 ##############################################
 ##############################################
