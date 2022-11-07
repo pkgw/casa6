@@ -312,6 +312,16 @@ namespace casac {
         return result;
     }
 
+    // RAII for PyGILState_Ensure()/Release()
+    class GILState_Ensurer {
+        PyGILState_STATE state;
+        bool inited;
+    public:
+        void release() { if (inited) { PyGILState_Release(state); inited = false; } }
+        GILState_Ensurer() : inited(true), state(PyGILState_Ensure()) {}
+        ~GILState_Ensurer() { release(); }
+    };
+
     PyObj* tablerow::__getitem__( PyObj *rownr ) {
         PyObject *obj = (PyObject*) rownr;
         if ( PyNumber_Check(obj) ) {
@@ -331,11 +341,13 @@ namespace casac {
             // index indicates a slice
             if ( itsProxy && itsRow ) {
                 Py_ssize_t start, stop, step;
+                GILState_Ensurer gilState;
                 if ( PySlice_Unpack( obj, &start, &stop, &step ) < 0 ) {
                     throw PyExc_IndexError;
                 }
                 auto slice_length = PySlice_AdjustIndices( itsProxy->nrows( ), &start, &stop, step );
                 auto result = PyList_New( slice_length );
+                gilState.release();
                 for ( ssize_t i=0, row=start; i < slice_length; ++i, row += step ) {
                     if ( row < 0 || row >= itsProxy->nrows( ) ) throw PyExc_IndexError;
                     PyObject *newobj = 0;
