@@ -4,3 +4,5 @@ graft src/casa_cerberus
 graft xml
 graft binding
 include version.txt
+include scripts/mod-closure
+include scripts/find-glibc-private

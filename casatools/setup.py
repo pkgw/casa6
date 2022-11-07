@@ -31,6 +31,7 @@ import sys
 import shutil
 import platform
 import subprocess
+from subprocess import call as Proc
 import glob
 
 from setuptools import setup, Extension
@@ -44,6 +45,7 @@ from shutil import copyfileobj
 casacpp_user_options = [
    ("with-casacpp=", None, "location where casacpp is installed")
 ]
+mod_closure = False
 
 class XmlCMakeExtension(Extension):
     def __init__(self, name, sourcedir=''):
@@ -166,6 +168,9 @@ class XmlCMakeBuildExt(build_ext):
         def in_virtualenv():
             return get_base_prefix_compat() != sys.prefix 
 
+        def isexe(f):
+            return os.path.isfile(f) and os.access(f, os.X_OK)
+
         # Generate the SWIG *.i files, the tool python and the tool C++ code
         self._generate_code_from_xml()
 
@@ -190,6 +195,17 @@ class XmlCMakeBuildExt(build_ext):
         sourcedir="src/tools"
         subprocess.check_call(['cmake', sourcedir] + cmake_args)
         subprocess.check_call(['cmake', '--build', '.'])
+
+        # Collect all the libraries in a private directory and set relative rpaths
+        if mod_closure:
+            if isexe("scripts/mod-closure"):
+                print("generating module closure...")
+                if Proc([ "scripts/mod-closure", "--preserve-relative-paths", extdir ]) != 0:
+                    sys.exit("\tclosure generation failed...")
+                if isexe("scripts/find-glibc-private"):
+                    if Proc(["scripts/find-glibc-private", "--delete", extdir]) != 0:
+                        sys.exit("\tGLIBC_PRIVATE cleanup failed...")
+
 
 def generate_extensions():
 
@@ -242,6 +258,17 @@ def setup_package():
     META_DATA = dict(
         zip_safe=False,
         )
+
+    # Set parameter 
+    if '--mod-closure' in sys.argv:
+        global mod_closure
+        mod_closure = True
+        mod_opt_pos = sys.argv.index('--mod-closure')
+        sys.argv.pop(mod_opt_pos)
+        if(mod_opt_pos < len(sys.argv)) :
+            if sys.argv[mod_opt_pos] == 'yes' :
+                sys.argv.pop(mod_opt_pos)
+
 
     if '--help' in sys.argv[1:] or \
       sys.argv[1] in ('--help-commands', 'egg_info', '--version'):
