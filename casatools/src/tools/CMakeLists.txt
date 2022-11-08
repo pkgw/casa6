@@ -93,15 +93,23 @@ configure_file("${CMAKE_SOURCE_DIR}/utils/toolversion.h.in" "${CMAKE_SOURCE_DIR}
 option(ENABLE_RPATH "Include rpath in shared libraries and executables" YES)
 if(ENABLE_RPATH)
   # Optional but helpful for macosx (install_name field)
-  set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib" )
+  set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" )
   # Ensure (but this is expected default:)
   set(CMAKE_SKIP_BUILD_RPATH FALSE)
   # Use ORIGIN / rpaths within the build area
   # (python build-install path of wheel would be meaningless)
   set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+
+  # macOS requires this variable to set the dir part of the lib install_name
+  # to rpath but then also manual addition of loader_path paths, as
+  # CMAKE_BUILD_RPATH_USE_ORIGIN does not do anything on macOS
+  set(CMAKE_MACOSX_RPATH TRUE)
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    list(APPEND CMAKE_BUILD_RPATH "@loader_path/lib" "@loader_path")
+  endif()
+
   # Also add auto-found dirs (outside build) to install rpath
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-  set(CMAKE_MACOSX_RPATH TRUE)
   # Ensure (but this is expected default:)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 endif()
