@@ -221,6 +221,8 @@ macro(declare_casatool_component name)
 
   set_property(TARGET ${name} PROPERTY INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/${name} ${CMAKE_SOURCE_DIR}/../../binding/include)
 
+  # Use .so as library extension rather than CMAKE_SHARED_LIBRARY_SUFFIX, etc. for macos
+  # (https://bugs.python.org/issue43898)
   set_property(TARGET ${name} PROPERTY SUFFIX ".${Python3_SOABI}.so")
   set_property(TARGET ${name} PROPERTY LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/casatools/__casac__")
   
