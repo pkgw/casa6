@@ -1832,7 +1832,7 @@ to use the correct direction in which the antenna is pointing with respect to th
     </param>
 
 
-    <param subparam="true" name="interactive" type="any">
+    <param subparam="true" name="interactive" type="bool">
      <shortdescription>Modify masks and parameters at runtime</shortdescription>
 <description>Modify masks and parameters at runtime
 
@@ -1881,12 +1881,25 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                     once minor cycles begin.
 
 
-                       [ For scripting purposes, replacing True/False with 1/0 will get sdintimaging to
-                         return an imaging summary dictionary to python ]
 
 </description>
-      <type>bool</type><type>int</type>
       <value type="bool">False</value>
+    </param>
+
+    <param type="bool" name="fullsummary" subparam="true">
+      <shortdescription>Full summary of the run in the returned dictionary</shortdescription>
+      <description>Full summmary of the run in the returned dictionary
+                         fullsummary=False: shorten version of the summary dictionary is returned (default)
+                         fullsummary=True: full version of the summary dictionary is returned    
+                        
+                         Setting of fullsummary=False limit the minor cycle summary keys to be
+                         listed in the returned dictionary. In some cube imaging with a large 
+                         number of channels in a parallel run, there is a chance that the size of
+                         the summary information passing across servers become too large and that 
+                         causes CASA to crash.
+                         More info at casadocs > Synthesis Imaging > Returned Dictionary. 
+       </description>
+       <value type='bool'>False</value>
     </param>
     
     <param type="int" name="nmajor">
@@ -2462,6 +2475,7 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="minpsffraction"><value>0.05</value></default>
          <default param="maxpsffraction"><value>0.8</value></default>
          <default param="interactive"><value>False</value></default>
+         <default param="fullsummary"><value>False</value></default>
 
          <default param="calcres"><value>True</value></default>
          <default param="calcpsf"><value>True</value></default>  --&gt;
