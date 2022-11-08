@@ -1594,6 +1594,33 @@ windows in the dataset and close the tool.
             </example>
         </method>
         
+        <method direction="in" name="rxbands" type="function">
+            <shortdescription>ALMA-specific. Get the values of the receiver bands for the specified spws.</shortdescription>
+             <input>
+                <param name="spwids" direction="in" type="any">
+                    <description>Zero-based spw ID(s) for which to get the values (integer or interger array). Unspecified will return all receiver band values.</description>
+                     <value type="string"/>
+                    <type>string</type><type>int</type><type>intVec</type>
+                </param>
+            </input>
+            <returns type="intVec"/>
+            <description>
+                ALMA-only. Get the values for the receiver band of the specified spw(s).
+                A return value of -1 means no receiver band number could be determined.
+                The name of the spw is first checked to see if the receiver band value
+                is encoded there. If not, the frequencyBand column of the ASDM_RECEIVER
+                table is checked, if that table exists.
+            </description>
+            <example>
+    msmd.open(&quot;my.ms&quot;)
+    # get the receiver bands for spws 8 and 2.
+    rx_bands = msmd.rxbands([8, 2])
+    # get all receiver bands
+    all_rx_bands = msmd.rxbands()
+    msmd.done()
+            </example>
+        </method>
+
         <method name="scannumbers" type="function">
             <shortdescription>Get an array of the unique scan numbers associated with the MS for the specified observation ID and array ID.</shortdescription>
             <input>
@@ -2146,6 +2173,32 @@ windows in the dataset and close the tool.
             </example>
         </method>
         
+        <method direction="in" name="subwindows" type="function">
+            <shortdescription>ALMA-specific. Get the values of the subwindows for the specified spws.</shortdescription>
+             <input>
+                <param name="spwids" direction="in" type="any">
+                    <description>Zero-based spw ID(s) for which to get the values (integer or interger array). Unspecified will return all receiver band values.</description>
+                     <value type="string"/>
+                    <type>string</type><type>int</type><type>intVec</type>
+                </param>
+            </input>
+            <returns type="intVec"/>
+            <description>
+                ALMA-only. Get the values for the subwindow of the specified spw(s).
+                A return value of -1 means no subwindow number could be determined.
+                The spw name is checked to see if the subwindow value is encoded within it.
+                table is checked, if that table exists.
+            </description>
+            <example>
+    msmd.open(&quot;my.ms&quot;)
+    # get the subwindows for spws 8 and 2.
+    sws = msmd.subwindows([8, 2])
+    # get all subwindows
+    all_sws = msmd.subwindows()
+    msmd.done()
+            </example>
+        </method>
+
         <method name="statesforscan" type="function">
             <shortdescription>Get an array of the unique state IDs for the specified scan number, observation ID, and array ID.</shortdescription>
              <input>
