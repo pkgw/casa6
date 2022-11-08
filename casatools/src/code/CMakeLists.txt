@@ -122,12 +122,12 @@ find_package(MPI)
 option(ENABLE_RPATH "Include rpath in shared libraries and executables" YES)
 if(ENABLE_RPATH)
   # Optional but helpful for macosx (install_name field)
-  set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib" )
+  set(CMAKE_INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" )
   # Ensure (but this is expected default:)
   set(CMAKE_SKIP_BUILD_RPATH FALSE)
   # Not needed, it should be auto-done by the next setting
   # set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-  # Rquired for rpath to be set depending on linked libs
+  # Required for rpath to be set depending on linked libs
   set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
   set(CMAKE_MACOSX_RPATH TRUE)
   # Ensure (but this is expected default:)
