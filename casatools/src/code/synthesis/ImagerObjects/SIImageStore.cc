@@ -1676,15 +1676,19 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
 
     // Normalize by the sumwt, per plane. 
     Bool didNorm = divideImageByWeightVal(*residual());
+
     if (itsUseWeight) {
       for(Int pol = 0; pol < itsImageShape[2]; pol++) {
         for(Int chan = 0; chan < itsImageShape[3]; chan++) {
+
 	  itsPBScaleFactor = getPbMax(pol, chan);
           // cout << " pbscale : " << itsPBScaleFactor << endl;
+
           if (itsPBScaleFactor <= 0) {
             os << LogIO::NORMAL1 
                << "Skipping normalization for C:" << chan << " P:" << pol 
                << " because pb max is zero " << LogIO::POST;
+
           } else {
             CountedPtr<ImageInterface<Float> > wtsubim = makeSubImage(0, 1,
                                                                       chan, itsImageShape[3],
@@ -1694,11 +1698,11 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
 								       chan, itsImageShape[3],
 								       pol, itsImageShape[2], 
 								       *residual());
-
             LatticeExpr<Float> ratio;
             Float scalepb = 1.0;
+
             if (normtype == "flatnoise") {
-              LatticeExpr<Float>deno = LatticeExpr<Float>(sqrt(abs(*(wtsubim))) * itsPBScaleFactor);
+              LatticeExpr<Float> deno = LatticeExpr<Float>(sqrt(abs(*(wtsubim))) * itsPBScaleFactor);
 
               os << LogIO::NORMAL1;
               os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
@@ -1715,7 +1719,7 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
               Float deno = itsPBScaleFactor * itsPBScaleFactor;
 
               os << LogIO::NORMAL1;
-              os <<  "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
+              os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
               os << "Dividing " << itsImageName + String(".residual");
               os << itsPBScaleFactor;
               os << " ] to get optimal noise with unit pb peak." << LogIO::POST;
@@ -1729,7 +1733,7 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
               LatticeExpr<Float> deno = LatticeExpr<Float>(*(wtsubim));
 
               os << LogIO::NORMAL1;
-              os <<  "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
+              os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
               os << "Dividing " << itsImageName + String(".residual");
               os << " by [ weight ] to get flat sky" << LogIO::POST;
 
