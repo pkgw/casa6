@@ -108,55 +108,52 @@ def xml_constraints_injector(func):
         # Any errors are handled outside the task.
         # however, the implementation below is effectively
         # equivalent to handling it inside the task.
-        try:
-            funcname = func.__name__
+        funcname = func.__name__
 
-            # load the function name and arguments which is wrapped the decorator
-            # get an object reference to read informantion of argument
-            func_ = func.__dict__.get('__wrapped__', func)
+        # load the function name and arguments which is wrapped the decorator
+        # get an object reference to read informantion of argument
+        func_ = func.__dict__.get('__wrapped__', func)
 
-            is_recursive_load = False
-            for frame in inspect.stack():
-                if frame.function == func_.__name__:
-                    # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
-                    is_recursive_load = True
-                    break
+        is_recursive_load = False
+        for frame in inspect.stack():
+            if frame.function == func_.__name__:
+                # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
+                is_recursive_load = True
+                break
 
-            if is_recursive_load:
-                casatasks.casalog.post('recursive task call', 'INFO')
-                retval = func(*args, **kwargs)
-            else:
-                # generate the argument specification and the injector method from a task xml
-                args_, args_position_dict, converter_function_string = __load_xml(funcname)
+        if is_recursive_load:
+            casatasks.casalog.post('recursive task call', 'INFO')
+            retval = func(*args, **kwargs)
+        else:
+            # generate the argument specification and the injector method from a task xml
+            args_, args_position_dict, converter_function_string = __load_xml(funcname)
 
-                # Note: the length of args is reduced by the length of kwargs.
-                for i in range(len(args)):
-                    args_[i] = args[i]
-                supplied_args_flags = [False] * len(args_position_dict)
+            # Note: the length of args is reduced by the length of kwargs.
+            for i in range(len(args)):
+                args_[i] = args[i]
+            supplied_args_flags = [False] * len(args_position_dict)
 
-                kwargs_ = dict()
-                for k, v in kwargs.items():
-                    if args_position_dict.get(k) is not None:
-                        args_[args_position_dict[k]] = v
-                        supplied_args_flags[args_position_dict[k]] = True
-                    else:
-                        kwargs_[k] = v
+            kwargs_ = dict()
+            for k, v in kwargs.items():
+                if args_position_dict.get(k) is not None:
+                    args_[args_position_dict[k]] = v
+                    supplied_args_flags[args_position_dict[k]] = True
+                else:
+                    kwargs_[k] = v
 
-                if __DEBUG:
-                    print(converter_function_string)
-                    pprint(args_position_dict)
-                    pprint(args_)
+            if __DEBUG:
+                print(converter_function_string)
+                pprint(args_position_dict)
+                pprint(args_)
 
-                # override args by the converter generated from xml
-                casatasks.casalog.post('loaded constraints from XML', 'DEBUG')
-                exec(converter_function_string)
-                exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
+            # override args by the converter generated from xml
+            casatasks.casalog.post('loaded constraints from XML', 'DEBUG')
+            exec(converter_function_string)
+            exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
 
-                # execute task
-                retval = func(*args_, **kwargs_)
+            # execute task
+            retval = func(*args_, **kwargs_)
 
-        except Exception:
-            raise
         return retval
     return wrapper
 
