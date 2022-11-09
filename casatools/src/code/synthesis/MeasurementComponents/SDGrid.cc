@@ -2680,7 +2680,7 @@ void SDGrid::initRamPointingTable(
     logger << "Done" << LogIO::POST;
 }
 
-std::pair<MeasFrame,MDirection::Convert> 
+std::pair<MeasFrame,MDirection::Convert>
 SDGrid::setupConversionTools(
     const MeasurementSet & ms,
     const casacore::MDirection::Types refType) {
