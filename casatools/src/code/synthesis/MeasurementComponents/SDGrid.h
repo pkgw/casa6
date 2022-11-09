@@ -554,6 +554,30 @@ private:
   sdgrid_perfs::ChronoStat cHandleMovingSource;
   sdgrid_perfs::ChronoStat cGridData;
 #endif
+
+    // Computation of image's spatial coordinates:
+    // conversion-interpolation scheme
+    casacore::Bool convertFirst;
+    casacore::MSPointing ramPointingTable;
+    void handleNewMs(
+        ROVisibilityIterator &vi,
+        const casacore::ImageInterface<Complex>& image
+    );
+    void convertPointingColumn(
+        const casacore::MeasurementSet & ms,
+        const casacore::MSPointingEnums::PredefinedColumns columnEnum,
+        const casacore::MDirection::Types refTypeType
+    );
+    void initRamPointingTable(
+        const casacore::MSPointing & pointingTable,
+        const casacore::MSPointingEnums::PredefinedColumns columnEnum,
+        const casacore::MDirection::Types refType
+    );
+    std::pair<casacore::MeasFrame,casacore::MDirection::Convert>
+    setupConversionTools(
+        const MeasurementSet & ms,
+        const casacore::MDirection::Types refType
+    );
 };
 
 } //# NAMESPACE CASA - END

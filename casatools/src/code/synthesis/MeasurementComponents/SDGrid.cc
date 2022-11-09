@@ -1504,7 +1504,7 @@ void SDGrid::makeImage(FTMachine::Type inType,
         Bool doPSF;
         if (vi.newMS()) { // Note: the first MS is a new MS
             getParamsForFTMachineType(vi, inType, doPSF, actualType);
-            if (cacheIsEnabled) cache.newMS(vi.ms());
+            handleNewMs(vi, theImage);
         }
         for (vi.origin(); vi.more(); vi++) {
             setupVisBufferForFTMachineType(actualType, vb);
@@ -2400,7 +2400,330 @@ SDGrid::CacheWriter::~CacheWriter()
     }
 }
 
+void SDGrid::handleNewMs(
+    ROVisibilityIterator &vi,
+    const ImageInterface<Complex>& image) {
+    // Synchronize spatial coordinates cache
+    if (cacheIsEnabled) cache.newMS(vi.ms());
+
+    auto mustConvertPointingColumn = False;
+    // Spatial coordinates conversion scheme
+    if (mustConvertPointingColumn) {
+        const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
+        const auto refType =
+            image.coordinates().directionCoordinate().directionType();
+
+        convertPointingColumn(vi.ms(), columnEnum, refType);
+    }
+}
+
+namespace convert_pointing_column_helpers {
+using DirectionComputer = std::function<MDirection (rownr_t)>;
+
+DirectionComputer
+metaDirectionComputer(
+    const MSPointingColumns &pointingColumns,
+    MSPointing::PredefinedColumns columnEnum) {
+    using std::placeholders::_1;
+    using Column = MSPointing::PredefinedColumns;
+    const auto & encoderDirections = pointingColumns.encoderMeas();
+    switch(columnEnum) {
+        case Column::DIRECTION:
+            return std::bind(
+                &MSPointingColumns::directionMeas,
+                &pointingColumns,
+                _1,
+                Double {0.0}
+            );
+            break;
+        case Column::TARGET:
+            return std::bind(
+                &MSPointingColumns::targetMeas,
+                &pointingColumns,
+                _1,
+                Double {0.0}
+            );
+            break;
+        case Column::SOURCE_OFFSET:
+            return std::bind(
+                &MSPointingColumns::sourceOffsetMeas,
+                &pointingColumns,
+                _1,
+                Double {0.0}
+            );
+            break;
+        case Column::POINTING_OFFSET:
+            return std::bind(
+                &MSPointingColumns::pointingOffsetMeas,
+                &pointingColumns,
+                _1,
+                Double {0.0}
+            );
+            break;
+        case Column::ENCODER:
+            return std::bind(
+                &ScalarMeasColumn<MDirection>::operator(),
+                &encoderDirections,
+                _1
+            );
+            break;
+        default:
+            throw AipsError(
+                String("Illegal Pointing Column Enum: " + String::toString(columnEnum)),
+                AipsError::INVALID_ARGUMENT
+            );
+    }
+}
+
+// DirectionArchiver
+class DirectionArchiver {
+public:
+    virtual void put(rownr_t row, const MDirection & dir) = 0;
+};
+
+// Derived Templated Class,
+// implementing the shared constructor.
+template<typename ColumnType, typename CellType>
+class DirectionArchiver_ : public DirectionArchiver {
+public:
+    DirectionArchiver_(ColumnType &columnIn)
+        : column {columnIn}
+        {}
+    void put(rownr_t row, const MDirection & dir);
+private:
+    ColumnType & column;
+};
+
+// Specializations of "put" member
+template<>
+void DirectionArchiver_<MDirection::ScalarColumn, MDirection>::put(
+    rownr_t row, const MDirection &dir) {
+    column.put(row, dir);
+}
+
+template<>
+void DirectionArchiver_<MDirection::ArrayColumn, Array<MDirection>>::put(
+    rownr_t row, const MDirection &dir) {
+    column.put(row, Vector<MDirection> {dir});
+}
+
+// Template instantiations for the types we are interested in.
+template class DirectionArchiver_ <MDirection::ArrayColumn, Array<MDirection>>;
+template class DirectionArchiver_ <MDirection::ScalarColumn, MDirection>;
+
+// Aliases
+using ScalarArchiver =
+        DirectionArchiver_ <MDirection::ScalarColumn, MDirection>;
+using ArrayArchiver =
+        DirectionArchiver_ <MDirection::ArrayColumn, Array<MDirection>>;
 
 
+struct ArchiverFactory {
+    static DirectionArchiver * createArchiver(
+        TableMeasColumn & column
+    );
+};
 
-} //#End casa namespace
+DirectionArchiver *
+ArchiverFactory::createArchiver(TableMeasColumn &column) {
+        try {
+            auto & scalarColumn = dynamic_cast<MDirection::ScalarColumn &>(column);
+            return new ScalarArchiver(scalarColumn);
+        }
+        catch(std::bad_cast & exception) {
+            auto & arrayColumn = dynamic_cast<MDirection::ArrayColumn &>(column);
+            return  new ArrayArchiver(arrayColumn);
+        }
+}
+
+TableMeasColumn &
+columnData(
+    MSPointingColumns & pointingColumns,
+    MSPointing::PredefinedColumns columnEnum) {
+    using Column = MSPointing::PredefinedColumns;
+    switch(columnEnum){
+        // Array Columns
+        case Column::DIRECTION:
+            return pointingColumns.directionMeasCol();
+        case Column::TARGET:
+            return pointingColumns.targetMeasCol();
+        case Column::SOURCE_OFFSET:
+            return pointingColumns.sourceOffsetMeasCol();
+        case Column::POINTING_OFFSET:
+            return pointingColumns.pointingOffsetMeasCol();
+        // Scalar Column
+        case Column::ENCODER:
+            return pointingColumns.encoderMeas();
+        default:
+            {
+                LogIO logger {LogOrigin {"columnData"} };
+                logger << LogIO::EXCEPTION
+                    << "Expected a column of directions, got: " << MSPointing::columnName(columnEnum)
+                    << LogIO::POST;
+            }
+    }
+}
+
+} // namespace convert_pointing_column_helpers
+using namespace convert_pointing_column_helpers;
+
+void SDGrid::convertPointingColumn(
+    const MeasurementSet & ms,
+    const MSPointingEnums::PredefinedColumns columnEnum,
+    const MDirection::Types refType) {
+
+    LogIO logger {LogOrigin {"SDGrid", "convertPointingColumn"}};
+    logger << "Start" << LogIO::POST;
+
+    initRamPointingTable(ms.pointing(), columnEnum, refType);
+
+    // Setup helper tools
+    // ---- Conversion Tools
+    MeasFrame pointingMeasurements;
+    MDirection::Convert convertToImageDirectionRef;
+    std::tie(
+        pointingMeasurements,
+        convertToImageDirectionRef
+    ) = setupConversionTools(ms, refType);
+
+    // ---- Direction Computer
+    MSPointingColumns pointingColumns {ms.pointing()};
+    auto userSpecifiedDirection =
+         metaDirectionComputer(pointingColumns, columnEnum);
+
+   // ---- Direction Archiver
+    MSPointingColumns ramPointingColumns {ramPointingTable};
+    std::unique_ptr<DirectionArchiver> correspondingRamPointingColumn {
+        ArchiverFactory::createArchiver(
+            columnData(
+                ramPointingColumns,
+                columnEnum
+            )
+        )
+    };
+
+    // Convert directions stored in user-specified
+    // POINTING column (of some direction),
+    // and store the result into the corresponding column
+    // of the RAM POINTING table
+    const auto & epoch =  pointingColumns.timeMeas();
+    const auto & antennaId = pointingColumns.antennaId();
+
+    MSAntennaColumns antennaColumns(ms.antenna());
+    const auto & antennaPosition  = antennaColumns.positionMeas();
+
+    // Main loop control
+    const auto pointingRows = ms.pointing().nrow();
+    constexpr Int invalidAntennaId = -1;
+    auto previousPointing_AntennaId {invalidAntennaId};
+
+    // Main loop
+    for (rownr_t pointingRow = 0; pointingRow < pointingRows ; ++pointingRow){
+        // Collect pointing measurements
+        const auto pointing_Epoch = epoch(pointingRow);
+        pointingMeasurements.resetEpoch(pointing_Epoch);
+
+        const auto pointing_AntennaId = antennaId(pointingRow);
+        const auto antennaChanged =
+            ( pointing_AntennaId != previousPointing_AntennaId );
+        if (antennaChanged) {
+            const auto new_AntennaPosition =
+                antennaPosition(pointing_AntennaId);
+            pointingMeasurements.resetPosition(new_AntennaPosition);
+            previousPointing_AntennaId = pointing_AntennaId;
+        }
+
+        // Convert
+        const auto convertedDirection =
+            convertToImageDirectionRef(
+                userSpecifiedDirection(pointingRow)
+            );
+
+        // Store
+        correspondingRamPointingColumn->put(
+             pointingRow,
+             convertedDirection
+        );
+    }
+
+    logger << "Done" << LogIO::POST;
+}
+
+void SDGrid::initRamPointingTable(
+    const MSPointing & pointingTable,
+    const MSPointingEnums::PredefinedColumns columnEnum,
+    const MDirection::Types refType) {
+
+    LogIO logger {LogOrigin {"SDGrid", "initRamPointingTable"}};
+    logger << "Start" << LogIO::POST;
+
+    constexpr auto doNotCopyRows = True;
+    ramPointingTable = pointingTable.copyToMemoryTable(
+        pointingTable.tableName() +
+        "." + MSPointing::columnName(columnEnum) +
+        "." + MDirection::showType(refType),
+        doNotCopyRows
+    );
+
+    MSPointingColumns pointingColumns {pointingTable};
+    MSPointingColumns ramPointingColumns {ramPointingTable};
+
+    ramPointingColumns.setDirectionRef(refType);
+    ramPointingColumns.setEncoderDirectionRef(refType);
+
+    ramPointingTable.addRow(pointingTable.nrow());
+
+    ramPointingColumns.antennaId().putColumn(pointingColumns.antennaId());
+    ramPointingColumns.time().putColumn(pointingColumns.time());
+    ramPointingColumns.numPoly().fillColumn(0);
+
+    logger << "Done" << LogIO::POST;
+}
+
+std::pair<MeasFrame,MDirection::Convert> 
+SDGrid::setupConversionTools(
+    const MeasurementSet & ms,
+    const casacore::MDirection::Types refType) {
+
+    LogIO logger {LogOrigin {"SDGrid", "setupConversionTools"}};
+    logger << "Start" << LogIO::POST;
+
+    MSPointingColumns pointingColumns(ms.pointing());
+    MSAntennaColumns antennaColumns(ms.antenna());
+
+    auto firstPointing_Epoch = pointingColumns.timeMeas()(0);
+    auto firstPointing_AntennaId = pointingColumns.antennaId()(0);
+    auto firstPointing_AntennaPosition = antennaColumns.positionMeas()(
+        static_cast<rownr_t>(firstPointing_AntennaId)
+    );
+
+    MeasFrame measFrame(firstPointing_Epoch, firstPointing_AntennaPosition);
+
+    // Direction Conversion Machine
+    MDirection::Ref dstRef(refType, measFrame);
+    auto firstPointing_Direction = pointingColumns.directionMeas(0);
+    MDirection::Convert convert(firstPointing_Direction, dstRef);
+
+    // ---- Perform 1 dummy conversion at a time far before
+    //      the first pointing time, so that when we will next convert
+    //      the first user-specified direction,
+    //      we are sure that values cached in static variables
+    //      of casacore functions like dUT1() will be cleared
+    static const MVEpoch oneYear {
+        Quantity {
+            365,
+            Unit { "d" }
+        }
+    };
+    const MEpoch dummy_Epoch {
+        firstPointing_Epoch.getValue() - oneYear,
+        firstPointing_Epoch.getRef()
+    };
+    measFrame.resetEpoch(dummy_Epoch);
+    const auto dummy_Direction = convert();
+
+    logger << "Done" << LogIO::POST;
+    return std::make_pair(measFrame, convert);
+}
+
+} // casa namespace
