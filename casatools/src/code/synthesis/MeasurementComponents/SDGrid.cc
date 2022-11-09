@@ -1477,8 +1477,6 @@ void SDGrid::makeImage(FTMachine::Type inType,
                 ImageInterface<Complex>& theImage,
                 Matrix<Float>& weight) {
 
-    logIO() << LogOrigin("FTMachine", "makeImage0") << LogIO::NORMAL;
-
     // Attach visibility buffer (VisBuffer) to visibility iterator (VisibilityIterator)
     VisBuffer vb(vi);
 
@@ -1522,7 +1520,8 @@ void SDGrid::makeImage(FTMachine::Type inType,
 
     // Warning message
     if (allEQ(weight, 0.0f)) {
-        logIO() << LogIO::SEVERE
+        LogIO logger(LogOrigin(name(),"makeImage"));
+        logger << LogIO::SEVERE
                 << "No useful data in SDGrid: all weights are zero"
                 << LogIO::POST;
     }
