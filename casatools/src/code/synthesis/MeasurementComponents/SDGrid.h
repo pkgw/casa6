@@ -382,6 +382,11 @@ private:
   casacore::Int getIndex(const casacore::MSPointingColumns& mspc, const casacore::Double& time,
 	       const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);
 
+  void createInterpolator(
+      const VisBuffer &vb,
+      const casacore::Bool useConvertedColumn
+  );
+
   casacore::Bool getXYPos(const VisBuffer& vb, casacore::Int row);
 
   //get the casacore::MDirection from a chosen column of pointing table
@@ -575,7 +580,7 @@ private:
     );
     std::pair<casacore::MeasFrame,casacore::MDirection::Convert>
     setupConversionTools(
-        const MeasurementSet & ms,
+        const casacore::MeasurementSet & ms,
         const casacore::MDirection::Types refType
     );
 };

@@ -1697,6 +1697,30 @@ Int SDGrid::getIndex(const MSPointingColumns& mspc, const Double& time,
   return -1;
 }
 
+void SDGrid::createInterpolator(
+        const VisBuffer &vb,
+        const Bool useConvertedColumn
+    ) {
+    if (not useConvertedColumn) {
+        // Interpolate original user-specified pointing column
+        interpolator = new SDPosInterpolator(
+            vb,
+            pointingDirCol_p
+        );
+    } else {
+        // Interpolate user-specified pointing column,
+        // pre-converted to image's direction reference frame
+        const auto nant = static_cast<size_t>(
+            vb.msColumns().antenna().nrow()
+        );
+        interpolator = new SDPosInterpolator(
+            ramPointingTable,
+            pointingDirCol_p,
+            nant
+        );
+    }
+}
+
 Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
 
     // Cache control
@@ -1784,26 +1808,33 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     //    we'll do so when data is sampled faster than pointings are recorded
     const auto pointingInterval = act_mspc.interval()(pointingIndex);
     const auto needInterpolation = (rowTimeInterval < pointingInterval);
+    const auto mustInterpolate = havePointings && needInterpolation;
+    //    If we must interpolate, the next question is against what:
+    //       * the original pointing column or 
+    //       * the converted one, which we may have pre-computed
+    const auto haveConvertedColumn =
+        ramPointingTable.nrow() > 0;
 
     // 3. Create interpolator if needed
-    auto dointerp = false;
-    if (havePointings && needInterpolation) {
-        dointerp = true;
-        // Known points are the directions of the specified
-        // POINTING table column, 
-        // relative to the reference frame of the POINTING table
+    if (mustInterpolate) {
         if (not isSplineInterpolationReady) {
             #if defined(SDGRID_PERFS)
             StartStop trigger(cComputeSplines);
             #endif
-            interpolator = new SDPosInterpolator(vb, pointingDirCol_p);
+            createInterpolator(vb, haveConvertedColumn);
             isSplineInterpolationReady = true;
         } else {
-            if (not interpolator->inTimeRange(rowTime, rowAntenna1)) {
+            // We have an interpolator. Can we re-use it ?
+            // The current answer is:
+            const auto canReuseInterpolator = interpolator->inTimeRange(rowTime, rowAntenna1);
+            if (not canReuseInterpolator) {
                 // setup spline interpolator for the current dataset (CAS-11261, 2018/5/22 WK)
+                // delete and re-create it
                 delete interpolator;
                 interpolator = 0;
-                interpolator = new SDPosInterpolator(vb, pointingDirCol_p);
+                createInterpolator(vb, haveConvertedColumn);
+                // TODO: why don't we in this case set:
+                // isSplineInterpolationReady = true;
             }
         }
     }
@@ -1822,8 +1853,9 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
 
         // Compute the "model" required to setup the conversion machine
         if (havePointings) {
-            worldPosMeas = dointerp ? directionMeas(act_mspc, pointingIndex, rowTime)
-                                    : directionMeas(act_mspc, pointingIndex);
+            worldPosMeas = mustInterpolate ? 
+                directionMeas(act_mspc, pointingIndex, rowTime)
+              : directionMeas(act_mspc, pointingIndex);
         } else {
             // Without pointings, this sets the direction to the phase center
             worldPosMeas = vb.direction1()(row);
@@ -1880,7 +1912,7 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     // 6. First: interpolate pointing direction if needed,
     //    Then: convert the result to image's reference frame
     if (havePointings) {
-        if (dointerp) {
+        if (mustInterpolate) {
             #if defined(SDGRID_PERFS)
             cInterpolateDirection.start();
             #endif
@@ -2560,6 +2592,10 @@ columnData(
                 logger << LogIO::EXCEPTION
                     << "Expected a column of directions, got: " << MSPointing::columnName(columnEnum)
                     << LogIO::POST;
+
+                // This is just to silence the following compiler warning:
+                // warning: control reaches end of non-void function [-Wreturn-type]
+                return pointingColumns.directionMeasCol();
             }
     }
 }
