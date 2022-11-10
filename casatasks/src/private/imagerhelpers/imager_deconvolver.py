@@ -249,7 +249,7 @@ class PyDeconvolver:
 
         # Get iteration control parameters
         iterbotrec = self.IBtool.getminorcyclecontrols()
-        print("In synthdeconv. Minor Cycle controls : ", iterbotrec)
+        #print("In synthdeconv. Minor Cycle controls : ", iterbotrec)
 
         self.IBtool.resetminorcycleinfo() 
 

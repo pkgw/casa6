@@ -84,10 +84,15 @@ class SummaryMinor:
 
         # edge case: running with MPI and CAS-13683 hasn't been fixed yet
         availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
-        if not "multifieldId" in availRows:
+        print('availRows==',availRows)
+        if (fullsummary and not "multifieldId" in availRows)  or (not fullsummary and not "deconId" in availRows):
             return [0] # can't differentiate multiple fields from available data, assume one field
-
-        multifieldIdx = availRows.index("multifieldId")
+    
+        if fullsummary:
+            multifieldIdx = availRows.index("multifieldId")
+        else:
+            multifieldIdx = availRows.index("deconId")
+        print('multifieldIdx=',multifieldIdx)
         nrows = matrix.shape[0]
         ncols = matrix.shape[1]
         fieldIds = sorted(np.unique(matrix[multifieldIdx,:]).tolist())
@@ -97,9 +102,11 @@ class SummaryMinor:
     def _getSingleFieldMatrix(matrixIn, fieldId, fullsummary):
         """ Create a new matrix to hold all the values of the given matrix, but only for the given outlier field id """
         availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
-        if not "multifieldId" in availRows:
+        #if not "multifieldId" in availRows:
+        if (fullsummary and not "multifieldId" in availRows) or (not fullsummary and not "deconId" in availRows):
             return matrixIn
-        multifieldIdx = availRows.index("multifieldId")
+        #multifieldIdx = availRows.index("multifieldId")
+        multifieldIdx = availRows.index("multifieldId") if fullsummary else availRows.index("deconId")
         nrowsIn = matrixIn.shape[0]
         ncolsIn = matrixIn.shape[1]
         nrowsOut = nrowsIn
@@ -183,8 +190,6 @@ class SummaryMinor:
         # get some properties of the summary_minor matrix
         nrows = matrix.shape[0]
         ncols = matrix.shape[1]
-        print('nrows={}, ncols={}'.format(nrows, ncols))
-        print('matrix====',matrix)
         #uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
         import sys
         oldChanIdx = SummaryMinor.getRowDescriptionsOldOrder(fullsummary).index("chan")
@@ -193,7 +198,6 @@ class SummaryMinor:
             oldStokeIdx  = SummaryMinor.getRowDescriptionsOldOrder(fullsummary).index("stoke")
         chans = list(np.sort(np.unique(matrix[oldChanIdx])))
         chans = [int(x) for x in chans]
-        print('chans=',chans)
         #if uss:
         if not fullsummary:
             stokes = [0]
@@ -228,20 +232,15 @@ class SummaryMinor:
         ret = {stoke:copy.deepcopy(ret) for stoke in stokes}
         ret = {chan:copy.deepcopy(ret) for chan in chans}
         cummulativeCnt = copy.deepcopy(ret) # copy ret's structure
-        print('ncycle=', ncycles)
-        print('ret2=',ret)
-        print('cummCnt=',cummulativeCnt)
+        #print('ncycle=', ncycles)
+        #print('ret2=',ret)
+        #print('cummCnt=',cummulativeCnt)
         # reindex based on subimage index (aka chan/stoke index)
         #for desc in SummaryMinor.getRowDescriptions():
         for desc in SummaryMinor.getRowDescriptions(fullsummary):
-            print('desc=',desc)
             #oldRowIdx = SummaryMinor.getRowDescriptionsOldOrder().index(desc)
             oldRowIdx = SummaryMinor.getRowDescriptionsOldOrder(fullsummary).index(desc)
-            #print('oldRowIdx:{0}, desc:{1}'.format(oldRowIdx, desc))
-            #print('SummMin.getRowDescriptionoldOrder=',SummaryMinor.getRowDescriptionsOldOrder(fullsummary))
             for colIdx in range(ncols):
-                print('ncols=',ncols)
-                #print('matrix={} oldChanIndx={} colIdx={}'.format(matrix,oldChanIdx,colIdx))
                 chan = int(matrix[oldChanIdx][colIdx])
                 #if uss:
                 if not fullsummary:
@@ -249,14 +248,11 @@ class SummaryMinor:
                 else:
                     stoke = int(matrix[oldStokeIdx][colIdx])
                 val = matrix[oldRowIdx][colIdx]
-                print('oldRowIdx={} colIdx={} val={}'.format(oldRowIdx,colIdx,val))
-                #print("cummCnt[{}][{}][{}]={}".format(chan,stoke,desc,cummulativeCnt[chan][stoke][desc]))
                 cummulativeCol = int(cummulativeCnt[chan][stoke][desc][0]) # const 0: cummulativeCnt doesn't make use of 'cycle' index from copied ret structure
-                print('cummulativeCol=',cummulativeCol)
                 ret[chan][stoke][desc][cummulativeCol] = val
-                print('ret[{}][{}][{}][{}] = {}'.format(chan,stoke,desc,cummulativeCol,ret[chan][stoke][desc][cummulativeCol])) 
+                #print('ret[{}][{}][{}][{}] = {}'.format(chan,stoke,desc,cummulativeCol,ret[chan][stoke][desc][cummulativeCol])) 
                 cummulativeCnt[chan][stoke][desc][0] += 1
-                print('cummulativeCnt now==', cummulativeCnt)
+                #print('cummulativeCnt now==', cummulativeCnt)
 
         return ret
 

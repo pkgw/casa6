@@ -275,9 +275,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO os( LogOrigin("SIMinorCycleController",__FUNCTION__,WHERE) );
 
     Record returnRecord;
-    //TT Deubug
-    os << "In getCycleINIT..."<<LogIO::POST;
-    os << "itsFullSummary="<<itsFullSummary<<LogIO::POST;
 
     /* Control Variables */
     returnRecord.define(RecordFieldId("peakresidual"), itsPeakResidual);
@@ -301,8 +298,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   void SIMinorCycleController::setCycleControls(Record &recordIn) {
     LogIO os( LogOrigin("SIMinorCycleController",__FUNCTION__,WHERE) );
-    //TT Debug
-    os<<" in setCycleControls ... "<<LogIO::POST;
 
     if (recordIn.isDefined("cycleniter"))
       {recordIn.get(RecordFieldId("cycleniter"), itsCycleNiter);}
@@ -354,16 +349,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO os( LogOrigin("SIMinorCycleController", __FUNCTION__ ,WHERE) );
 
     IPosition shp = itsSummaryMinor.shape();
-    //TT Debug
-    os<<"itsSummaryMinor.shape()="<<shp<<"nelement="<<shp.nelements()<<LogIO::POST;
     //bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
     //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
     //int nSummaryFields = fullsummary ? 6 : SIMinorCycleController::nSummaryFields;
-    //TT Debug
-    os<<"fullsummary="<<fullsummary<<endl;
 
     int nSummaryFields = !fullsummary ? 6 : SIMinorCycleController::nSummaryFields;
-    os<<"nSummaryFields="<<nSummaryFields<<endl;
     if( shp.nelements() != 2 && shp[0] != nSummaryFields ) 
       throw(AipsError("Internal error in shape of minor-cycle summary record"));
      itsSummaryMinor.resize( IPosition( 2, nSummaryFields, shp[1]+1 ) , true );
@@ -404,7 +394,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
          // stopcode
          itsSummaryMinor( IPosition(2, 16, shp[1] ) ) = stopCode;
      }
-     os<<"addSummaryMinor end"<<endl;
 
   }// end of addSummaryMinor
 

@@ -835,13 +835,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	void grpcInteractiveCleanManager::mergeMinorCycleSummary( const Array<Double> &summary, grpcInteractiveCleanState &state, Int immod ){
 		IPosition cShp = state.SummaryMinor.shape();
 		IPosition nShp = summary.shape();
-                cerr<< "cShp=="<<cShp<<endl;
-                cerr<< "nShp=="<<nShp<<endl;
 
 		//bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
         //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
-        int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
-                cerr<<"nSummaryFields now===="<<nSummaryFields<<endl;
+                int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
+        
 		if( cShp.nelements() != 2 || cShp[0] != nSummaryFields ||
 		    nShp.nelements() != 2 || nShp[0] != nSummaryFields )
 			throw(AipsError("Internal error in shape of global minor-cycle summary record"));
