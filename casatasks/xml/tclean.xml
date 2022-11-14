@@ -2015,8 +2015,8 @@ to use the correct direction in which the antenna is pointing with respect to th
     <param type="bool" name="fullsummary" subparam="true">
       <shortdescription>Full summary of the run in the returned dictionary</shortdescription>
       <description>Full summmary of the run in the returned dictionary
-                         fullsummary=False: shorten version of the summary dictionary is returned (default)
-                         fullsummary=True: full version of the summary dictionary is returned    
+                         fullsummary=True: full version of the summary dictionary is returned (default)
+                         fullsummary=False: shorten version of the summary dictionary is returned
                         
                          Setting of fullsummary=False limit the minor cycle summary keys to be
                          listed in the returned dictionary. In some cube imaging with a large 
@@ -2025,7 +2025,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                          causes CASA to crash.
                          More info at casadocs > Synthesis Imaging > Returned Dictionary. 
        </description>
-       <value type='bool'>False</value>
+       <value type='bool'>True</value>
     </param>
     
     <param type="int" name="nmajor">

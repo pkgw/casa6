@@ -159,7 +159,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                                                                                  0)),
                                                               SummaryMajor(casacore::IPosition(1,0)) {
 		LogIO os( LogOrigin("grpcInteractiveCleanState",__FUNCTION__,WHERE) );
-                std::cerr << "  HERE    SIMinorCycleContoller::nSummaryFields=" << SIMinorCycleController::nSummaryFields << endl;
         reset( );
     }
 
@@ -198,9 +197,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         MaskSum = -1.0;
         MadRMS = 0.0;
         //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
-        std::cerr << "SIMinorCycleContoller::nSummaryFields=" << SIMinorCycleController::nSummaryFields << endl;
         int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
-        std::cerr << "in reset() FullSummary="<<FullSummary<<endl;      
         //int nSummaryFields = !FullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
         SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
         SummaryMajor.reformOrResize(casacore::IPosition(1,0));
@@ -469,9 +466,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                 setControlsFromRecord( iterpars );
-                std::cerr <<" now state.FullSummary is ..." << state.FullSummary <<endl;
                 Int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
-                std::cerr <<" After resetting  nSummaryFields is ..." << nSummaryFields <<endl;
                 state.SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
 
             } catch( AipsError &x ) {

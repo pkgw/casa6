@@ -56,11 +56,9 @@ class SummaryMinor:
 
         # get individual dictionaries for each field id
         field_ids = SummaryMinor._getFieldIds(summaryminor_matrix, fullsummary)
-        print('FIELD_IDS=',field_ids)
         if len(field_ids) > 1:
             for fieldId in field_ids:
                 singleFieldMatrix = SummaryMinor._getSingleFieldMatrix(summaryminor_matrix, field_ids[fieldId], fullsummary)
-                print('matrix for {}={}'.format(fieldId, singleFieldMatrix))
                 ret[fieldId] = SummaryMinor._convertSingleFieldMatrix(singleFieldMatrix, fullsummary, calc_iterdone_deltas, keep_startvals)
         elif len(field_ids) == 1:
             ret[field_ids[0]] = SummaryMinor._convertSingleFieldMatrix(summaryminor_matrix, fullsummary, calc_iterdone_deltas, keep_startvals)
@@ -71,7 +69,6 @@ class SummaryMinor:
 
     def _convertSingleFieldMatrix(single_field_matrix, fullsummary, calc_iterdone_deltas=None, keep_startvals=None):
         # edge case: no iterations were done (eg threshold < model flux)
-        print("single_field_matrix=",single_field_matrix)
         if single_field_matrix.shape[1] == 0:
             return {}
 
@@ -84,7 +81,6 @@ class SummaryMinor:
 
         # edge case: running with MPI and CAS-13683 hasn't been fixed yet
         availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
-        print('availRows==',availRows)
         if (fullsummary and not "multifieldId" in availRows)  or (not fullsummary and not "deconId" in availRows):
             return [0] # can't differentiate multiple fields from available data, assume one field
     
@@ -92,7 +88,6 @@ class SummaryMinor:
             multifieldIdx = availRows.index("multifieldId")
         else:
             multifieldIdx = availRows.index("deconId")
-        print('multifieldIdx=',multifieldIdx)
         nrows = matrix.shape[0]
         ncols = matrix.shape[1]
         fieldIds = sorted(np.unique(matrix[multifieldIdx,:]).tolist())

@@ -1122,7 +1122,7 @@ class test_iterbot(testref_base):
                                   nmajordone=3) # 1 for calcres + 2 major cycle during cleaning
  
           #print(ret['summaryminor'][0][0][0]['iterDone'])
-          print('ret=',ret)
+          #print('ret=',ret)
           iterDone_vec=ret['summaryminor'][0][0][0]['iterDone']
           report2 = self.th.check_val(len(iterDone_vec), 2,valname='iterdone len:', exact=True)
           report = report + report2[1]
@@ -1145,7 +1145,6 @@ class test_iterbot(testref_base):
                if report3[0]==True:
                     report = report + (self.th.check_val(stopCode_vec[0], 2,valname='stopcode test1:', exact=True))[1]
                     report = report + (self.th.check_val(stopCode_vec[1], 2,valname='stopcode test2:', exact=True))[1]
-          print('report===',report)
           self.assertTrue(self.check_final(report))
 
      def test_iterbot_mfs_fullsummary(self):
@@ -1172,7 +1171,6 @@ class test_multifield(testref_base):
                logstart = self.th.get_log_length()
           self.th.write_file(self.img+'.out.txt', 'imagename='+self.img+'1\nnchan=1\nimsize=[80,80]\ncell=[8.0arcsec,8.0arcsec]\nphasecenter=J2000 19:58:40.895 +40.55.58.543\nusemask=user\nmask=circle[[40pix,40pix],10pix]')
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=10,deconvolver='hogbom',parallel=self.parallel)
-          print("RET==",ret)
           report=self.th.checkall(ret=ret, 
                         iterdone=13, 
                         nmajordone=2,
