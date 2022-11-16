@@ -346,8 +346,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    if (!fullsummary) { // temporary CAS-13683 workaround
 	        chunkId = chanid + nSubChans*polid;
 	    }
-            //TT Debug
-            os<<" fullsummary before addSummaryMinor call=="<<fullsummary<<LogIO::POST;
 	    loopcontrols.addSummaryMinor( deconvolverid, chunkId, polid, cycleStartIteration,
 	                                  startiteration, startmodelflux, startpeakresidual, startpeakresidualnomask,
 	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, stopCode, fullsummary);
