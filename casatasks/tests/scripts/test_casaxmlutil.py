@@ -5,9 +5,9 @@ Unit test methods in this class are based on the tests of sdcal/sdfit.
 If a method decorated by xml_constraints_injector of casaxmlutil.py are going to be added,
 then you should consider adding some tests in this module for new constraints.
 """
+import inspect
 import os
 import shutil
-import sys
 from typing import NamedTuple
 import unittest
 
@@ -87,21 +87,22 @@ class CasaxmlutilTest(unittest.TestCase):
                 return True
         return False
 
-    def __test_positive(self, method, args: dict, desired: dict):
-        """Execute a task with args, and check whether desired parameters have been overridden or not."""
-        test_name = sys._getframe().f_back.f_code.co_name
-        logfile = test_name + '.log'
+    def __test(self, method, args: dict):
+        """Execute a task with args and return logfile name."""
+        logfile = inspect.stack()[2].function + '.log'
         casalog.setlogfile(logfile)
         method(**args)
+        return logfile
+
+    def __test_positive(self, method, args: dict, desired: dict):
+        """Execute a task with args, and check whether desired parameters have been overridden or not."""
+        logfile = self.__test(method, args)
         for k, v in desired.items():
             self.assertTrue(self.__check_log(logfile, f"overrode argument: {k} -> '{v}'"))
 
     def __test_negative(self, method, args: dict):
         """Execute a task with args, and check desired parameters have been not overridden."""
-        test_name = sys._getframe().f_back.f_code.co_name
-        logfile = test_name + '.log'
-        casalog.setlogfile(logfile)
-        method(**args)
+        logfile = self.__test(method, args)
         self.assertFalse(self.__check_log(logfile, "overrode argument:"))
 
     @xml_constraints_injector
