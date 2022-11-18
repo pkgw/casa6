@@ -2030,7 +2030,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                          Detailed  information about the return dictionary fields may be found 
                          at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary. 
                          
-                         Note :  With some parallel cube imaging runs that have a large number of channels
+                         Note : With some parallel cube imaging runs that have a large number of channels
                          and iterations per cube partition in a parallel run, an MPI message passing limit may
                          be reached due to the size of the return dictionaries being passed around, causing
                          CASA to crash (with fullsummary=True). The limit has been estimated to be reached

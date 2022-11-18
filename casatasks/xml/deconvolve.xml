@@ -507,7 +507,7 @@
                          at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary. 
                          
        </description>
-       <value type='bool'>False</value>
+       <value type='bool'>True</value>
     </param>
     
     <param type="bool" name="fastnoise" subparam="true">

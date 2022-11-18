@@ -1904,7 +1904,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                          Detailed  information about the return dictionary fields may be found 
                          at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary. 
        </description>
-       <value type='bool'>False</value>
+       <value type='bool'>True</value>
     </param>
     
     <param type="int" name="nmajor">
