@@ -546,6 +546,10 @@ class TestHelpers:
         summtype = 'not dictionary'
  
         if isinstance(summ,dict):       
+           # case for deconvolve 
+           if 'summarymajor' in summ and isinstance(summ['summarymajor'], numpy.ndarray):
+               if len(summ['summarymajor'])==0:
+                   refkeys.remove('stopDescription')
            message='' 
            missingkeys = [elm for elm in refkeys if elm not in summ]
            extrakeys = [elm for elm in summ if elm not in refkeys]

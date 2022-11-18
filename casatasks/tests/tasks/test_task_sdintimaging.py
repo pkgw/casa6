@@ -275,7 +275,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'], 
                            imgval=[(outimg+'.psf.tt0', 0.991, [400,400,0,0]),
@@ -313,7 +313,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'], 
                            imgval=[(outimg+'.psf.tt0', 1.0, [400,400,0,0]),
@@ -352,7 +352,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'],
                                      check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
@@ -362,7 +362,6 @@ class test_singlepointing(testref_base):
                                    (outimg+'.alpha', -0.137, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.018, [300,400,0,0]) ])      # extended emission with alpha=0
         self.checkfinal(pstr=report)
-
 
     #Test4
     #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
@@ -391,7 +390,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
                            imgval=[(outimg+'.psf', 0.99, [400,400,0,0]),
                                    (outimg+'.psf', 0.99, [400,400,0,1]),
@@ -431,7 +430,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
                            imgval=[(outimg+'.psf', 1.0, [400,400,0,0]),
                                    (outimg+'.psf', 1.0, [400,400,0,1]),
@@ -470,7 +469,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'],
                                      check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
                            imgval=[(outimg+'.psf', 1.0, [400,400,0,0]),
@@ -512,7 +511,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'], 
                            imgval=[(outimg+'.psf.tt0', 0.991, [400,400,0,0]),
@@ -554,7 +553,7 @@ class test_singlepointing(testref_base):
         ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
 
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
                            imgval=[(outimg+'.psf', 0.99, [400,400,0,0]),
                                    (outimg+'.psf', 0, [400,400,0,2]),
@@ -593,7 +592,7 @@ class test_singlepointing(testref_base):
 
 
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'], 
                            imgval=[(outimg+'.psf.tt0', 0.990, [400,400,0,0]),
@@ -731,7 +730,7 @@ class test_mosaic(testref_base):
         ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
 
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'], 
                            imgval=[(outimg+'.psf.tt0', 0.9905, [750,750,0,0]),
@@ -769,7 +768,7 @@ class test_mosaic(testref_base):
         imname=self.img+'.mos_mfs_intonly'
         ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'], 
                            imgval=[(outimg+'.psf.tt0', 1.0, [750,750,0,0]),
@@ -806,7 +805,7 @@ class test_mosaic(testref_base):
         imname=self.img+'.mos_mfs_sdonly'
         ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
         outimg = imname+'.joint.multiterm'
-        report=th.checkall(imgexist=[outimg+'.psf.tt0', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
                                      outimg+'.image.tt1',outimg+'.alpha'],
                                      check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
@@ -844,7 +843,7 @@ class test_mosaic(testref_base):
         imname=self.img+'.mos_cube_sdint'
         ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret,imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
                            imgval=[(outimg+'.psf', 0.99, [750,750,0,0]),
                                    (outimg+'.psf', 0.99, [750,750,0,1]),
@@ -882,7 +881,7 @@ class test_mosaic(testref_base):
         imname=self.img+'.mos_cube_intonly'
         ret = sdintimaging(usedata='int', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
                            imgval=[(outimg+'.psf', 1.0, [750,750,0,0]),
                                    (outimg+'.psf', 1.0, [750,750,0,1]),
@@ -919,7 +918,7 @@ class test_mosaic(testref_base):
         imname=self.img+'.mos_cube_sdonly'
         ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
         outimg = imname+'.joint.cube'
-        report=th.checkall(imgexist=[outimg+'.psf', 
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'],
                                      check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
                            imgval=[(outimg+'.psf', 1.0, [750,750,0,0]),
@@ -957,7 +956,7 @@ class test_compare_sdint_tclean(testref_base):
 
         outimname1 = imname1+'.joint.cube'
 
-        report=th.checkall(imgexist=[outimname1+'.psf', outimname1+'.image',
+        report=th.checkall(ret=ret1, imgexist=[outimname1+'.psf', outimname1+'.image',
                                      imname2+'.psf', imname2+'.image'],
                            imgval=[(outimname1+'.psf', 1.0, [100,100,0,0]),
                                    (imname2+'.psf', 1.0, [100,100,0,0]),
@@ -985,7 +984,7 @@ class test_compare_sdint_tclean(testref_base):
 
         outimname1 = imname1+'.joint.multiterm'
 
-        report=th.checkall(imgexist=[outimname1+'.psf.tt0', outimname1+'.image.tt0',
+        report=th.checkall(ret=ret1, imgexist=[outimname1+'.psf.tt0', outimname1+'.image.tt0',
                                      imname2+'.psf.tt0', imname2+'.image.tt0'], 
                            imgval=[(outimname1+'.psf.tt0', 1.0, [100,100,0,0]),
                                    (imname2+'.psf.tt0', 1.0, [100,100,0,0]),

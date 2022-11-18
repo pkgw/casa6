@@ -1117,7 +1117,7 @@ class test_iterbot(testref_base):
      def test_iterbot_nmajor_2(self):
           """ [iterbot] Test_Iterbot_nmajor_2 : Performs two major cycle iterations """
           self.prepData('refim_point_onespw0.ms') # smaller dataset for a faster test
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',nmajor=2,niter=500,calcres=True, fullsummary=True, parallel=self.parallel)
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',nmajor=2,niter=500,calcres=True, parallel=self.parallel)
           report=self.th.checkall(ret=ret, stopcode=9, imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'],
                                   nmajordone=3) # 1 for calcres + 2 major cycle during cleaning
  
@@ -1291,9 +1291,10 @@ class test_multifield(testref_base):
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Diffirent nchans of cubes in multi-field imaging is  not supported in parallel mode")
      def test_multifield_both_cube_diffshape(self):
           """ [multifield] Test_Multifield_both_cube : Two fields, both cube but different nchans"""
+          # set fullsummary=False to specifically test fixed bug while working on CAS-13924
           self.prepData("refim_twopoints_twochan.ms")
           self.th.write_file(self.img+'.out.txt', 'imagename='+self.img+'1\nimsize=[80,80]\ncell=[8.0arcsec,8.0arcsec]\nphasecenter=J2000 19:58:40.895 +40.55.58.543\nnchan=3\n')
-          retpar = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=10,deconvolver='hogbom',specmode='cube',nchan=2,interpolation='nearest', parallel=self.parallel)
+          retpar = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=10,deconvolver='hogbom',specmode='cube',nchan=2,interpolation='nearest', fullsummary=False,  parallel=self.parallel)
           ret={}
           if self.parallel:
             ret=self.th.mergeParaCubeResults(retpar, ['iterdone', 'nmajordone'])
