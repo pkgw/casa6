@@ -1147,14 +1147,64 @@ class test_iterbot(testref_base):
                     report = report + (self.th.check_val(stopCode_vec[1], 2,valname='stopcode test2:', exact=True))[1]
           self.assertTrue(self.check_final(report))
 
-     def test_iterbot_mfs_fullsummary(self):
-         """ [iterbot] Test_Iterbot_Mfs_Fullsummary : test fullsummary parameter T/F (use hogbom deconvolver)"""
-         self.prepData('refim_twochan.ms')
-         ret = tclean(vis=self.msfile, imagename=self.img, imsize=100, cell='8.0arcsec', deconvolver='hogbom', niter=20, threshold='0.01Jy', cycleniter=10, fullsummary=True, parallel=self.parallel)
+     def test_iterbot_mfs_fullsummary_true(self):
+          """ [iterbot] Test_Iterbot_Mfs_Fullsummary_True : test fullsummary parameter = T (use hogbom deconvolver)"""
+          self.prepData('refim_twochan.ms')
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=100, cell='8.0arcsec', deconvolver='hogbom', niter=20, threshold='0.01Jy', cycleniter=10, fullsummary=True, parallel=self.parallel)
 
-         refsumminorkeys = SummaryMinor.rowDescriptionsOldOrder
-         thissumminorkeys = ret['summaryminor'][0][0][0].keys()
-         report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
+          report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
+
+          _, report2 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['iterDone'], [10, 10], test='iterDone per cycle')
+          _, report3 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['startIterDone'], [0, 10], test='startIterDone per cycle')
+          _, report4 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['peakRes'], [0.35304, 0.14190], test='peakRes per cycle', epsilon=0.05)
+          self.assertTrue(self.check_final(report+report2+report3+report4))
+         
+     def test_iterbot_mfs_fullsummary_false(self):
+          """ [iterbot] Test_Iterbot_Mfs_Fullsummary_False : test fullsummary parameter = F (use hogbom deconvolver)"""
+          self.prepData('refim_twochan.ms')
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=100, cell='8.0arcsec', deconvolver='hogbom', niter=20, threshold='0.01Jy', cycleniter=10, fullsummary=False, parallel=self.parallel)
+
+          report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
+
+          _, report2 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['iterDone'],[10.0, 20.0] , test='iterDone per cycle')
+          _, report3 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['peakRes'], [0.35304, 0.14190], test='peakRes per cycle', epsilon=0.05)
+          self.assertTrue(self.check_final(report+report2+report3))
+
+     def test_iterbot_cube_fullsummary_true(self):
+          """ [iterbot] Test_Iterbot_Cube_Fullsummry_True : test fullsummary paramater = True (cube)"""
+          self.prepData('refim_point_withline.ms')
+          retpar = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',specmode='cube',deconvolver='clark',niter=10,threshold='0.75Jy',fullsummary=True, parallel=self.parallel)
+          ret={}
+          if self.parallel:
+              ret=self.th.mergeParaCubeResults(retpar, ['iterdone', 'nmajordone'])
+          else:
+              ret=retpar 
+          report=self.th.checkall(ret=ret, iterdone=90,nmajordone=2,imgexist=[self.img+'.psf', self.img+'.residual'])
+          ## Only chans 6 and 7 reach cycleniter, others reach threshold in fewer than 10 iters per chan.
+          _, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0], 3, valname='chan10 iterDone', exact=True)
+          _, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['startIterDone'][0], 70, valname='chan10 startIterDone', exact=True)
+          _, report4 = self.th.check_val(ret['summaryminor'][0][10][0]['peakRes'][0], 0.72901, valname='chan10 peakRes', exact=False)
+          self.assertTrue(self.check_final(report+report2+report3+report4))
+
+     def test_iterbot_cube_fullsummary_false(self):
+          """ [iterbot] Test_Iterbot_Cube_Fullsummry_True : test fullsummary paramater = false (cube)"""
+          self.prepData('refim_point_withline.ms')
+          retpar = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',specmode='cube',deconvolver='clark',niter=10,threshold='0.75Jy',fullsummary=False, parallel=self.parallel)
+          ret={}
+          if self.parallel:
+              ret=self.th.mergeParaCubeResults(retpar, ['iterdone', 'nmajordone'])
+          else:
+              ret=retpar 
+          report=self.th.checkall(ret=ret, iterdone=90,nmajordone=2,imgexist=[self.img+'.psf', self.img+'.residual'])
+          ## Only chans 6 and 7 reach cycleniter, others reach threshold in fewer than 10 iters per chan.
+
+          # Currently the shorten summaryminor dict's iterDone gives cummulative value across chan/stoke for fullsummary=F
+          # for BOTH serial and MPI  
+          #_, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0],3, valname='chan10 iterDone', exact=True)
+          _, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0], 73, valname='chan10 iterDone', exact=True)
+          _, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['peakRes'][0], 0.72901, valname='chan10 peakRes', exact=False)
+          self.assertTrue(self.check_final(report + str(report2) + str(report3)))
+
 ##############################################
 ##############################################
 ##############################################

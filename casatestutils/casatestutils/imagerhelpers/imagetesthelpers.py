@@ -493,6 +493,96 @@ class TestHelpers:
         else:
             return True, pstr
 
+    def check_ret_structure(self, summ, testname = "check_ret_structure"):
+        """Check the return dictionary structure - no value checks 
+           
+           Check against predifined keys and determine if it is a full summary or reduced version.
+          
+           Returns: a tuple (summary_type, isconformant, message)
+                    1st element: summary_type: string -  'full', 'reduced', 'undefined'
+                    2nd element: isconformant: boolean - True/False
+                    3ed element: message: string - '' or info about missing keys
+
+        """
+        refkeys = ['cleanstate',
+                   'cyclefactor',
+                   'cycleiterdone',
+                   'cycleniter',
+                   'cyclethreshold',
+                   'interactiveiterdone',
+                   'interactivemode',
+                   'interactiveniter',
+                   'interactivethreshold',
+                   'iterdone',
+                   'loopgain',
+                   'maxpsffraction',
+                   'maxpsfsidelobe',
+                   'minpsffraction',
+                   'niter',
+                   'nmajordone',
+                   'nsigma',
+                   'stopcode',
+                   'summarymajor',
+                   'summaryminor',
+                   'threshold',
+                   'stopDescription']
+        # sub-keys for summaryminor
+        refsubkeys =  ['startIterDone',
+                       'iterDone',
+                       'startPeakRes',
+                       'peakRes',
+                       'startModelFlux',
+                       'modelFlux',
+                       'startPeakResNM',
+                       'peakResNM',
+                       'cycleThresh',
+                       'cycleStartIters',
+                       'masksum',
+                       'mpiServer',
+                       'stopCode']
+        # reduced version of sub-keys for summaryminor
+        refshortsubkeys=['iterDone', 'peakRes', 'modelFlux', 'cycleThresh']
+
+        summtype = 'not dictionary'
+ 
+        if isinstance(summ,dict):       
+           message='' 
+           missingkeys = [elm for elm in refkeys if elm not in summ]
+           extrakeys = [elm for elm in summ if elm not in refkeys]
+ 
+           if 'summaryminor' in summ:
+               try:
+                   chk = summ['summaryminor'][0][0][0]             
+                   if 'startIterDone' in chk:
+                       summtype = 'full'
+                       missingsubkeys = [elm for elm in refsubkeys if elm not in chk]
+                       extrasubkeys = [elm for elm in chk if elm not in refsubkeys]
+                   else:
+                       summtype = 'reduced'
+                       missingsubkeys = [elm for elm in refshortsubkeys if elm not in chk]
+                       extrasubkeys = [elm for elm in chk if elm not in refshortsubkeys]
+                   if len(missingsubkeys) != 0 or len(missingkeys) != 0:
+                       isconform = False
+                   else:
+                       isconform = True
+
+                   if len(missingkeys) > 0:
+                       message += 'Misssing key(s):'+str(missingkeys)
+                   if len(extrakeys) > 0:
+                       message += 'Extra key(s):'+str(extrakeys)
+                   if len(missingsubkeys) > 0:
+                       message += 'Missing summaryminor key(s):'+str(missingsubkeys)
+                   if len(extrasubkeys) > 0:
+                       message += 'Extra summaryminor key(s):'+str(extrasubkeys)
+                   return (summtype, isconform, message)
+               except:
+                   chk = 'Return dictionary deos not have expected summaryminor structure'
+                   return ('undefined',False,chk)
+        else:
+            #not dictionary
+            return ('not dictionary', F, '')
+ 
+        
     def check_val(self, val, correctval, valname='Value', exact=False, epsilon=0.05, testname = "check_val"):
         pstr = ''
         out = True
@@ -1093,6 +1183,17 @@ class TestHelpers:
         pstr = "[ checkall ] \n"
         if ret != None and type(ret) == dict:
             try:
+                pstr = "[ check_ret_structure ] "
+                summtype, isconform, emsg = TestHelpers().check_ret_structure(ret)
+                if isconform:
+                    msg = ' ( Pass : found all expected keys '
+                    if len(emsg):
+                        msg += ' : ' + emsg
+                    msg += ' ) '
+                else:
+                    msg = ' ( Failed : some keys are missing ' + emsg + ' ) '
+                message = 'Return dictionary struture check: type='+summtype+msg
+                pstr = pstr + message + "\n"
                 if peakres != None:
                     out, message = TestHelpers().check_val(val=TestHelpers().get_peak_res(ret), correctval=peakres, valname="peak res", epsilon=epsilon)
                     pstr = pstr + message
