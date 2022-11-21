@@ -580,8 +580,13 @@ class TestHelpers:
                        message += 'Extra summaryminor key(s):'+str(extrasubkeys)
                    return (summtype, isconform, message)
                except:
-                   chk = 'Return dictionary deos not have expected summaryminor structure'
-                   return ('undefined',False,chk)
+                   print('len(summ_minor)=',len(summ['summaryminor']))
+                   if len(summ['summaryminor'][0])==0:
+                      # probably exited before deconvolution
+                      return('undefined', True, 'no minor cylcle information')
+                   else:
+                      chk = 'Return dictionary deos not have expected summaryminor structure'
+                      return ('undefined',False,chk)
         else:
             #not dictionary
             return ('not dictionary', F, '')
@@ -1185,7 +1190,7 @@ class TestHelpers:
             tfmask=None # list of tuples of (imagename, maskname). 
         """
         pstr = "[ checkall ] \n"
-        if ret != None and type(ret) == dict:
+        if ret != None and type(ret) == dict and len(ret) != 0:
             try:
                 pstr = "[ check_ret_structure ] "
                 summtype, isconform, emsg = TestHelpers().check_ret_structure(ret)

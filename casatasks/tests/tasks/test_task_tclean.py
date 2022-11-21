@@ -757,7 +757,7 @@ class test_onefield(testref_base):
           # Current fails with "wcs wcsset_error: Invalid parameter value" for HEALPix
           #ret5 = tclean(vis=self.msfile,imagename=self.img+'HPX',projection='HPX',imsize=100,cell='8.0arcsec',parallel=self.parallel)
           testname=inspect.stack()[0][3]
-          report=self.th.checkall(ret=ret, imgexist=[self.img+'SIN.image', self.img+'NCP.image', self.img+'TAN.image',self.img+'ARC.image'], imgval=[(self.img+'SIN.psf',1.0,[50,50,0,0])])
+          report=self.th.checkall(imgexist=[self.img+'SIN.image', self.img+'NCP.image', self.img+'TAN.image',self.img+'ARC.image'], imgval=[(self.img+'SIN.psf',1.0,[50,50,0,0])])
           retSIN = imhead(self.img+"SIN.image", mode='list')
           retNCP = imhead(self.img+"NCP.image", mode='list')
           retTAN = imhead(self.img+"TAN.image", mode='list')
@@ -3321,7 +3321,6 @@ class test_mask(testref_base):
           _ia.close()
 
           ret = tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='10.0arcsec',niter=10,mask=self.img+'2.inpmask')
-
           report=self.th.checkall(ret=ret, imgexist=[self.img+'2.mask'], imgval=[(self.img+'2.model',0.0,[50,50,0,0]),(self.img+'2.mask',0.0,[50,50,0,0])], stopcode=7)
 
           self.assertTrue(self.check_final(report))
