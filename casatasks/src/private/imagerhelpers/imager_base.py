@@ -123,6 +123,7 @@ class PySynthesisImager:
 
         for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
+            #print(f'####allimpars={self.allimpars[str(fld)]} \n    allgridpars={self.allgridpars[str(fld)]}') 
             self.SItool.defineimage( self.allimpars[str(fld)] , self.allgridpars[str(fld)] )
 
         ###for cases when synthesisnormalizer is setup in c++ send the normalizer info

@@ -3015,7 +3015,7 @@ class test_cube(testref_base):
          # running with specmode='mfs', niter=1000, cycleniter=100.
          ######################################################################################
          self.prepData('refim_point.ms')
-         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=1000,gain=0.5,cycleniter=5,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
+         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,gain=0.1,cycleniter=5,specmode='mtmfs_via_cube',nchan=5,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
          # major/minor cycle inputs/outputs
          maj_outputs = [self.img+'.psf',
                         self.img+'.residual',
@@ -3026,9 +3026,9 @@ class test_cube(testref_base):
                         self.img+'.model.tt0', self.img+'.model.tt1']
          min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
          maj_inputs  = [self.img+'.model']
-         report=self.th.checkall(ret=ret, peakres=0.392, modflux=0.732, iterdone=10,
+         report=self.th.checkall(ret=ret, peakres=0.369, modflux=0.689, iterdone=10,
                                  imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs,
-                                 imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',-2.764e-07,[50,50,0,0])])
+                                 imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',0.0,[50,50,0,0])])
          casalog.post(report,"SEVERE")
          self.assertTrue(self.check_final(pstr=report))
 
@@ -3040,12 +3040,13 @@ class test_cube(testref_base):
          self.prepData('refim_point.ms')
          # create the model image
          tclean(      vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=2,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
-         shutil.copytree(self.img+'.model', self.img+'start.model')
-         os.system('rm -rf ' + self.img+'.*')
+         shutil.copytree(self.img+'.model.tt0', self.img+'start.model.tt0')
+         shutil.copytree(self.img+'.model.tt1', self.img+'start.model.tt1')
+         os.system('rm -rf ' + self.img+'.model.tt*')
          # evaluate with the pre-existing model image
-         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=4,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel,startmodel=self.img+'start.model')
+         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=4,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel,startmodel=[self.img+'start.model.tt0', self.img+'start.model.tt1'])
          report=self.th.checkall(ret=ret, iterdone=4, imgexist=[self.img+'.model',self.img+'.model.tt0',self.img+'.model.tt1'],
-                                 imgval=[(self.img+'.model',1.0,[50,50,0,0])])
+                                 imgval=[(self.img+'.model.tt0',1.0,[50,50,0,0])])
          casalog.post(report,"SEVERE")
          self.assertTrue(self.check_final(pstr=report))
 
@@ -3131,9 +3132,9 @@ class test_cube(testref_base):
          outimname1 = 'tst.mfs'
          outimname2 = 'tst.mtmfs_via_cube'
 
-         ret2 = tclean(vis='refim_point.ms',imagename=outimname1, imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', specmode='mfs',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
+         ret2 = tclean(vis='refim_point.ms',imagename=outimname1, imsize=200, cell='10.0arcsec', nchan=20, reffreq='1.5GHz', specmode='mfs',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
 
-         ret2 = tclean(vis='refim_point.ms',imagename=outimname2, imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', specmode='mtmfs_via_cube',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
+         ret2 = tclean(vis='refim_point.ms',imagename=outimname2, imsize=200, cell='10.0arcsec', nchan=20, reffreq='1.5GHz', specmode='mtmfs_via_cube',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
 
          report=self.th.checkall(imgexist=[outimname1+'.psf.tt0', outimname1+'.image.tt0',
                                            outimname2+'.psf.tt0', outimname2+'.image.tt0'], 
