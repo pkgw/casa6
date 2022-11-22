@@ -50,29 +50,29 @@ foreach(protobuf_file ${protobuf_files})
 endforeach()
 
 # Create a library with the generated source files
-add_library(casacpp_protobuf SHARED)
+add_library(casacpp_protobuf_generated SHARED)
 
 # Specify which files belong to the target
-target_sources(casacpp_protobuf
+target_sources(casacpp_protobuf_generated
   PRIVATE
     ${proto_generated_srcs} ${proto_generated_hdrs})
 
 # Add external GRPC dependency.
 if (gRPC_USES_FIND_PACKAGE)
   # GRPC has been detected using native cmake support
-  target_link_libraries(casacpp_protobuf PUBLIC gRPC::grpc++)
+  target_link_libraries(casacpp_protobuf_generated PUBLIC gRPC::grpc++)
 else()
   # GRPC has been detected using pkgconfig
-  target_link_libraries(casacpp_protobuf PUBLIC PkgConfig::GRPC)
-  target_link_libraries(casacpp_protobuf PUBLIC ${Protobuf_LIBRARIES})
+  target_link_libraries(casacpp_protobuf_generated PUBLIC PkgConfig::GRPC)
+  target_link_libraries(casacpp_protobuf_generated PUBLIC ${Protobuf_LIBRARIES})
 endif()
 
 # Install the library
-install(TARGETS casacpp_protobuf
+install(TARGETS casacpp_protobuf_generated
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 # Install the header and template header files
 # Note that this preserves the directory structure of the files
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/protobuf_generated
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/casacpp
     FILES_MATCHING
     REGEX "/.*h$")

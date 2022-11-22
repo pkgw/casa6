@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: Casacpp
+Description: @CMAKE_PROJECT_DESCRIPTION@
+Version: @PROJECT_VERSION@
+Requires: @pc_req_public@
+Requires.private: @pc_req_private@
+Libs: -L${libdir} @PRIVATE_LIBS@
+Cflags: -DWITHOUT_ACS -DWITHOUT_BOOST -I${includedir}/casacpp -I${includedir}/casacpp/protobuf_generated -I@CASACORE_INCLUDE_DIRS@ -I@CFITSIO_INCLUDE_DIRS@ -I@LibXML++_INCLUDE_DIRS@ -I@GSL_INCLUDE_DIRS@

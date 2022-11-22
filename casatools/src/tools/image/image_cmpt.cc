@@ -4567,7 +4567,7 @@ bool image::putregion(
             );
         }
         else {
-            ThrowCc("Logic error")
+            ThrowCc("Logic error");
         }
         if (ret) {
             _statsF.reset();
