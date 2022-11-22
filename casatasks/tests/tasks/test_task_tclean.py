@@ -3053,6 +3053,7 @@ class test_cube(testref_base):
      # tests from sdintimaging
      #Test 2
      #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
+     @unittest.skip('Skip. This test need data that i have no idea where it is')
      def test_singlepointing_mfs_intonly(self):
          # Equivalent to onetest(runtype='SinglePointing', specmode='mfs', usedata='int')
          """ [singlePointing] Test_singlepointing_mfs_intonly """
@@ -3089,6 +3090,7 @@ class test_cube(testref_base):
 
      #Test8
      #@unittest.skipIf(True, "Impact of changes to PSF fitting need to checked CAS-13022")
+     @unittest.skip('Skip. This test needs data that the test system does not know about')
      def test_mosaic_mfs_intonly(self):
          # Equivalent to onetest(runtype='Mosaic', specmode='mfs', usedata='int')
          """ [Mosaic] Test_mosaic_mfs_intonly """
