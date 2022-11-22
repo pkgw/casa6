@@ -52,6 +52,22 @@ macro(declare_casacpp_component name)
       $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:
           -Wall>)
 
+  # OpenMP must be set globally, since it adds compiler flags that need to be
+  # set for certain casacore header or template files, 
+  # even if the component does not use directly OpenMP
+  if (OPENMP_FOUND)
+    target_link_libraries(casacpp_${name} PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+
+  # Effective use of MPI in synthesis needs to be enabled with
+  # -DHAVE_MPI. For now MPI is linked here to all the casacpp_ libs as
+  # this is more similar to the setup.py based CASA6 build
+  # system. Only casacpp_synthesis should need it.
+  if(MPI_FOUND)
+    target_compile_definitions(casacpp_${name} PRIVATE -DHAVE_MPI)
+    target_link_libraries(casacpp_${name} PRIVATE MPI::MPI_CXX)
+  endif()
+
   # Add C++ tests
   # Take all files under /test/ directory
   file(GLOB_RECURSE ${name}_cpp_tests_sources "*.cc")
@@ -73,7 +89,6 @@ macro(declare_casacpp_component name)
     # to the test
     target_link_libraries(${test_name} PRIVATE casacpp_${name})
     add_dependencies(${test_name} casacpp_${name})
-   #target_link_libraries( ${filename}  celma ${Boost_Test_Link_Libs} )
 
 
     # Declare this is a test
@@ -90,6 +105,6 @@ macro(declare_casacpp_component name)
   install(DIRECTORY ${CMAKE_SOURCE_DIR}/${name}
       DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/casacpp
       FILES_MATCHING
-      REGEX "/.*(h|tcc)$")
+      REGEX "/.*(h|tcc|hpp)$")
 
 endmacro()

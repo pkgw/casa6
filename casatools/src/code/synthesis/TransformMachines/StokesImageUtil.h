@@ -29,8 +29,11 @@
 #ifndef SYNTHESIS_STOKESIMAGEUTIL_H
 #define SYNTHESIS_STOKESIMAGEUTIL_H
 
+#include <array>
+
 #include <casacore/casa/aips.h>
 #include <casacore/casa/BasicSL/Complex.h>
+#include <casacore/casa/BasicSL/String.h>
 #include <casacore/images/Images/ImageInterface.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -72,6 +75,18 @@ public:
     LINEAR,
     UNKNOWN=-1
   };
+
+  static const casacore::String & toString(PolRep polRep) {
+      static const std::array<const casacore::String,3> polRepName {"CIRCULAR", "LINEAR", "UNKOWN"};
+      switch(polRep) {
+      case PolRep::CIRCULAR:
+      case PolRep::LINEAR:
+          return polRepName[polRep];
+          break;
+      default:
+          return polRepName.back();
+      }
+  }
   // Make a Gaussian PSF
   //<group>
   static void MakeGaussianPSF(casacore::ImageInterface<casacore::Float>& psf, casacore::Vector<casacore::Float>& beam,

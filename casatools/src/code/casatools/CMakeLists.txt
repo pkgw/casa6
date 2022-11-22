@@ -24,7 +24,7 @@ declare_casacpp_component("casatools")
 
 # External dependencies
 target_link_libraries(casacpp_casatools PUBLIC PkgConfig::CASACORE)
-target_link_libraries(casacpp_casatools PRIVATE casacpp_protobuf)
+target_link_libraries(casacpp_casatools PRIVATE casacpp_protobuf_generated)
 
 # Internal dependencies
 # the top level source directory, so that we can find all the includes
