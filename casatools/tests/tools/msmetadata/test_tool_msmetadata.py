@@ -33,6 +33,7 @@ fixture = os.path.join(datadir,'MSMetaData.ms')
 writeable = os.path.join(datadir,'checker.ms')
 tdm2fdm = os.path.join(datadir, 'uid___A002_Xd7be9d_X4838-spw16-18-20-22.ms')
 rxband_ms = os.path.join(datadir, 'uid___A002_Xa1f062_X37e3.ms')
+rxband_ms2 = os.path.join(datadir, 'uid___A002_X7b13df_X68f.ms')
 
 def near(a, b, epsilon):
     return abs((a-b)/max(a,b)) <= epsilon
@@ -1855,7 +1856,7 @@ class msmetadata_test(unittest.TestCase):
         """CAS-13973 test rxbands() method"""
         expec = [
             7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9
+            7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9
         ]
         self.md.open(rxband_ms)
         self.assertTrue(
@@ -1868,6 +1869,17 @@ class msmetadata_test(unittest.TestCase):
         )
         self.assertTrue(
             (self.md.rxbands(29) == [9]).all(),
+            'Incorrect result for rxbands()'
+        )
+        self.md.done()
+        expec = [
+            -1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6, -1, -1, -1, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6
+        ]
+        self.md.open(rxband_ms2)
+        self.assertTrue(
+            (self.md.rxbands() == expec).all(),
             'Incorrect result for rxbands()'
         )
         self.md.done()
