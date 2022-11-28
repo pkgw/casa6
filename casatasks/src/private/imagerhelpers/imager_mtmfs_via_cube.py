@@ -9,7 +9,8 @@ from casatools import quanta, ms
 from casatasks import casalog
 from casatools import synthesisutils as su
 from .imager_base import PySynthesisImager
-
+from .input_parameters import ImagerParameters
+from typing import Tuple, List
 
 _ia = _image()
 _tb = _table()
@@ -27,7 +28,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     to taylor term ".ttN" images, then do the minor cycle, then convert back to cubes.
     """
 
-    def __init__(self, params):
+    def __init__(self, params: ImagerParameters) -> None:
 
         # Set up the mfs part for deconv
         mfsparams = copy.deepcopy(params)
@@ -78,11 +79,11 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         for k in self.allnormpars:
             self.allnormpars[k]["deconvolver"] = "hogbom"
 
-        self.fresh_images = []
+        self.fresh_images: List[str] = []
         self.verify_dec_pars()
         #######################################
 
-    def determineFreqRange(self):
+    def determineFreqRange(self) -> Tuple[np.double, np.double]:
         minFreq = 1e13
         maxFreq = 0.0
         for msid in self.allselpars:
@@ -109,7 +110,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         return (minFreq, freqwidth)
 
     #############################################
-    def verify_dec_pars(self):
+    def verify_dec_pars(self) -> bool:
         for immod in range(0, self.NF):
             pars = self.alldecpars[str(immod)]
             if pars["specmode"] != "mtmfs_via_cube":
@@ -120,8 +121,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 raise RuntimeError(
                     f"specmode {pars['specmode']} requires 'mtmfs' deconvolver but instead got '{pars['deconvolver']}'!"
                 )
+        return True
 
-    def get_dec_pars_for_immod(self, immod):
+    def get_dec_pars_for_immod(self, immod: int) -> dict:
         pars = self.alldecpars[str(immod)]
         # Do not do these sneaky things here ...let the user change the parameters themselves
         # pars['specmode'] = 'mfs'
@@ -145,7 +147,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         return super().check_psf(immod)
 
     ##################################################
-    def copy_startmodel(self, decpars, impars, normpars):
+    def copy_startmodel(self, decpars: dict, impars: dict, normpars: dict):
         """
         As tclean provides capacity for startmodel to be for field 0 only we don't
         need to deal with outlier fields
