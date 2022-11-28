@@ -1121,30 +1121,28 @@ class test_iterbot(testref_base):
           report=self.th.checkall(ret=ret, stopcode=9, imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'],
                                   nmajordone=3) # 1 for calcres + 2 major cycle during cleaning
  
-          #print(ret['summaryminor'][0][0][0]['iterDone'])
-          #print('ret=',ret)
           iterDone_vec=ret['summaryminor'][0][0][0]['iterDone']
           report2 = self.th.check_val(len(iterDone_vec), 2,valname='iterdone len:', exact=True)
           report = report + report2[1]
           if report2[0]==True:
                 report = report + (self.th.check_val(iterDone_vec[0], 15,valname='iterdone test1:', exact=True))[1]
+                ## running with fullsummary default (currently = True) 
                 ## See the documentation note for 'iterDone' in the table being cumulative across cycles for 
                 ## MPI runs with use_small_summaryminor=True (i.e. the default for MPI runs). 
                 ## https://casadocs.readthedocs.io/en/latest/notebooks/synthesis_imaging.html#Returned-Dictionary
-                if ParallelTaskHelper.isMPIEnabled():
-                     iterdone2=15+15  
-                else:
-                     iterdone2=15
+                #if ParallelTaskHelper.isMPIEnabled():
+                #     iterdone2=15+15  
+                #else:
+                iterdone2=15
                 report = report + (self.th.check_val(iterDone_vec[1], iterdone2,valname='iterdone test2:', exact=True))[1]
 
-          if not ParallelTaskHelper.isMPIEnabled(): ## This tests the default setting of USE_SMALL_SUMMARYMINOR='false' with serial runs (full dictionary exists)
-               #print(ret['summaryminor'][0][0][0]['stopCode'])
-               stopCode_vec=ret['summaryminor'][0][0][0]['stopCode']
-               report3 = self.th.check_val(len(stopCode_vec), 2,valname='stopcode len:', exact=True)
-               report = report + report3[1]
-               if report3[0]==True:
-                    report = report + (self.th.check_val(stopCode_vec[0], 2,valname='stopcode test1:', exact=True))[1]
-                    report = report + (self.th.check_val(stopCode_vec[1], 2,valname='stopcode test2:', exact=True))[1]
+          #if not ParallelTaskHelper.isMPIEnabled(): ## This tests the default setting of USE_SMALL_SUMMARYMINOR='false' with serial runs (full dictionary exists)
+          stopCode_vec=ret['summaryminor'][0][0][0]['stopCode']
+          report3 = self.th.check_val(len(stopCode_vec), 2,valname='stopcode len:', exact=True)
+          report = report + report3[1]
+          if report3[0]==True:
+               report = report + (self.th.check_val(stopCode_vec[0], 2,valname='stopcode test1:', exact=True))[1]
+               report = report + (self.th.check_val(stopCode_vec[1], 2,valname='stopcode test2:', exact=True))[1]
           self.assertTrue(self.check_final(report))
 
      def test_iterbot_mfs_fullsummary_true(self):
@@ -1179,12 +1177,14 @@ class test_iterbot(testref_base):
               ret=self.th.mergeParaCubeResults(retpar, ['iterdone', 'nmajordone'])
           else:
               ret=retpar 
+          #print('ret=',ret)
           report=self.th.checkall(ret=ret, iterdone=90,nmajordone=2,imgexist=[self.img+'.psf', self.img+'.residual'])
           ## Only chans 6 and 7 reach cycleniter, others reach threshold in fewer than 10 iters per chan.
           _, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0], 3, valname='chan10 iterDone', exact=True)
-          _, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['startIterDone'][0], 70, valname='chan10 startIterDone', exact=True)
-          _, report4 = self.th.check_val(ret['summaryminor'][0][10][0]['peakRes'][0], 0.72901, valname='chan10 peakRes', exact=False)
-          self.assertTrue(self.check_final(report+report2+report3+report4))
+          # only true for serial
+          #_, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['startIterDone'][0], 70, valname='chan10 startIterDone', exact=True)
+          _, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['peakRes'][0], 0.72901, valname='chan10 peakRes', exact=False)
+          self.assertTrue(self.check_final(report+report2+report3))
 
      def test_iterbot_cube_fullsummary_false(self):
           """ [iterbot] Test_Iterbot_Cube_Fullsummry_True : test fullsummary paramater = false (cube)"""
@@ -1199,11 +1199,15 @@ class test_iterbot(testref_base):
           ## Only chans 6 and 7 reach cycleniter, others reach threshold in fewer than 10 iters per chan.
 
           # Currently the shorten summaryminor dict's iterDone gives cummulative value across chan/stoke for fullsummary=F
-          # for BOTH serial and MPI  
+          # for BOTH serial and MPI. For MPI it is cummulative within each node so the iterDone value changes with 
+          # the number of nodes 
+          # if it is not cummulative the following should pass
           #_, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0],3, valname='chan10 iterDone', exact=True)
-          _, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0], 73, valname='chan10 iterDone', exact=True)
+          # this only passes with serial. For mpicasa run iterDone value can be different for different number of nodes used
+          #_, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0], 73, valname='chan10 iterDone', exact=True)
           _, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['peakRes'][0], 0.72901, valname='chan10 peakRes', exact=False)
-          self.assertTrue(self.check_final(report + str(report2) + str(report3)))
+          #self.assertTrue(self.check_final(report + str(report2) + str(report3)))
+          self.assertTrue(self.check_final(report + str(report3)))
 
 ##############################################
 ##############################################
