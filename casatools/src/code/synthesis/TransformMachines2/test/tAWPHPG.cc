@@ -53,7 +53,7 @@
 //#include <synthesis/TransformMachines2/AWConvFuncEPJones.h>
 #include <synthesis/TransformMachines2/EVLAAperture.h>
 #include <synthesis/TransformMachines2/AWVisResampler.h>
-//#include <synthesis/TransformMachines2/AWVisResamplerHPG.h>
+#include <synthesis/TransformMachines2/AWVisResamplerHPG.h>
 #include <synthesis/TransformMachines2/PointingOffsets.h>
 #include <synthesis/TransformMachines2/VBStore.h>
 #include <casacore/images/Images/ImageUtilities.h>
@@ -69,6 +69,7 @@ using namespace casa;
 using namespace casacore;
 using namespace casa::refim;
 using namespace casacore;
+using namespace std;
 //using namespace casa::test;
 
 void createAWPFTMachine(const String ftmName,
@@ -325,7 +326,7 @@ Int main(int argc, char **argv)
   system("rm -rf ./refim_mawproject.ms");
   system("cp -r /home/casa/data/casatestdata/measurementset/evla/refim_mawproject.ms .");
   string MSNBuf="./refim_mawproject.ms";
-  string ftmName="awphpg",
+  string ftmName="awphpg";
   string cfCache="test.cf";
   string fieldStr="";
   string spwStr="*";
