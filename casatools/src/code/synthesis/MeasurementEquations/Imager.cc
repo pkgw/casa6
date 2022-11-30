@@ -1901,6 +1901,8 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
   clipminmax_p = clipminmax;
   enablecache_p = enablecache;
   convertfirst_p = convertfirst;
+  convertfirst_p.upcase();
+
 
   // Destroy the FTMachine
   if(ft_p) {delete ft_p; ft_p=0;}
