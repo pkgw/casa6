@@ -1876,7 +1876,7 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
                           const Quantity gwidth, const Quantity jwidth,
                           const Float minweight, const Bool clipminmax,
                           const Bool enablecache,
-                          const String &convertfirst)
+                          const String & convertfirst)
 {
   LogIO os(LogOrigin("imager", "setsdoptions()", WHERE));
   

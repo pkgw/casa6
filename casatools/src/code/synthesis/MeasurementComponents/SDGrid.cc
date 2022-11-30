@@ -2515,9 +2515,11 @@ Bool SDGrid::mustConvertPointingColumn(
     case ConvertFirst::ALWAYS: return True;
     case ConvertFirst::NEVER:  return False;
     case ConvertFirst::AUTO:
-        const auto nPointings = ms.pointing().nrow();
-        const auto nSelectedDataRows = ms.nrow();
-        return nSelectedDataRows > nPointings ? True : False;
+        {
+            const auto nPointings = ms.pointing().nrow();
+            const auto nSelectedDataRows = ms.nrow();
+            return nSelectedDataRows > nPointings ? True : False;
+        }
     default:
         String errMsg {"Unexpected invalid state: "};
         errMsg += "ConvertFirst processingScheme=";

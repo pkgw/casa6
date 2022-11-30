@@ -272,7 +272,7 @@ class Imager
                    const casacore::Float minweight=0.,
                    const casacore::Bool clipminmax=false,
                    const casacore::Bool enablecache=false,
-                   const casacore::String convertfirst="NEVER");
+                   const casacore::String & convertfirst="NEVER");
 
   // Set the voltage pattern
   casacore::Bool setvp(const casacore::Bool dovp,
