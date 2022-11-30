@@ -277,6 +277,16 @@ public:
   // Enable/disable SDGrid::Cache
   void setEnableCache(casacore::Bool doEnable);
 
+  // Interpolation-Conversion processing scheme
+  enum class ConvertFirst {
+    NEVER = 0,
+    ALWAYS = 1,
+    AUTO = 2
+  };
+  static const casacore::String & toString(const ConvertFirst convertFirst);
+  static ConvertFirst fromString(const casacore::String & name);
+  void setConvertFirst(const casacore::String &convertFirst);
+
 private:
 
   // Find the Primary beam and convert it into a convolution buffer
@@ -563,7 +573,16 @@ private:
     // Computation of image's spatial coordinates:
     // conversion-interpolation scheme
     casacore::Bool convertFirst;
+    ConvertFirst processingScheme;
+
     casacore::MSPointing ramPointingTable;
+    casacore::CountedPtr<casacore::MSPointingColumns> ramPointingColumnsPtr;
+
+    // Control logic
+    // Decide if we must convert the user-specified pointing column
+    casacore::Bool mustConvertPointingColumn(
+        const casacore::MeasurementSet &ms
+    );
     void handleNewMs(
         ROVisibilityIterator &vi,
         const casacore::ImageInterface<Complex>& image

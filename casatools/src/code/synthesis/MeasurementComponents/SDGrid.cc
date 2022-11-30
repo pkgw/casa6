@@ -1489,7 +1489,7 @@ void SDGrid::makeImage(FTMachine::Type inType,
     StokesImageUtil::changeCStokesRep(theImage, imgPolRep);
     const auto firstMsName = vb.msName();
 
-    initializeToSky(theImage,weight,vb);
+    initializeToSky(theImage, weight, vb);
 
     // Setup SDGrid Cache Manager
     const auto onDuty = cacheIsEnabled;
@@ -1499,7 +1499,7 @@ void SDGrid::makeImage(FTMachine::Type inType,
 
     // Loop over the visibilities, putting VisBuffers
     for (vi.originChunks(); vi.moreChunks(); nextChunk(vi)) {
-        abortOnPolFrameChange(imgPolRep,firstMsName,vi);
+        abortOnPolFrameChange(imgPolRep, firstMsName, vi);
         FTMachine::Type actualType;
         Bool doPSF;
         if (vi.newMS()) { // Note: the first MS is a new MS
@@ -1701,22 +1701,23 @@ void SDGrid::createInterpolator(
         const VisBuffer &vb,
         const Bool useConvertedColumn
     ) {
+    const auto nAntennas = static_cast<size_t>(
+            vb.msColumns().antenna().nrow()
+    );
     if (not useConvertedColumn) {
         // Interpolate original user-specified pointing column
         interpolator = new SDPosInterpolator(
-            vb,
-            pointingDirCol_p
+            vb.msColumns().pointing(),
+            pointingDirCol_p,
+            nAntennas
         );
     } else {
         // Interpolate user-specified pointing column,
         // pre-converted to image's direction reference frame
-        const auto nant = static_cast<size_t>(
-            vb.msColumns().antenna().nrow()
-        );
         interpolator = new SDPosInterpolator(
             ramPointingTable,
             pointingDirCol_p,
-            nant
+            nAntennas
         );
     }
 }
@@ -1734,9 +1735,13 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     // Until we manage to compute a valid one ...
     rowPixel.isValid = false;
 
-    // Check POINTING table.
-    const MSPointingColumns& act_mspc = vb.msColumns().pointing();
-    const auto nPointings = act_mspc.nrow();
+    // Select the POINTING table (columns) we'll work with.
+    const auto haveConvertedColumn = ramPointingTable.nrow() > 0;
+    const MSPointingColumns& pointingColumns = haveConvertedColumn ?
+              *ramPointingColumnsPtr
+            : vb.msColumns().pointing();
+
+    const auto nPointings = pointingColumns.nrow();
     const auto havePointings = (nPointings >= 1);
 
     // We'll need to call these many times, so let's call them once for good
@@ -1778,12 +1783,12 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
 
         // Try first using a tiny tolerance
         constexpr Double useTinyTolerance = -1.0;
-        pointingIndex = getIndex(act_mspc, rowTime, useTinyTolerance , rowAntenna1);
+        pointingIndex = getIndex(pointingColumns, rowTime, useTinyTolerance , rowAntenna1);
 
         auto foundPointing = (pointingIndex >= 0);
         if (not foundPointing) {
             // Try again using tolerance = MAIN.INTERVAL
-            pointingIndex = getIndex(act_mspc, rowTime, rowTimeInterval, rowAntenna1);
+            pointingIndex = getIndex(pointingColumns, rowTime, rowTimeInterval, rowAntenna1);
             foundPointing = (pointingIndex >= 0);
         }
 
@@ -1806,14 +1811,9 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     //    Decide now if we need to interpolate antenna's pointing direction
     //    at data-taking time: 
     //    we'll do so when data is sampled faster than pointings are recorded
-    const auto pointingInterval = act_mspc.interval()(pointingIndex);
+    const auto pointingInterval = pointingColumns.interval()(pointingIndex);
     const auto needInterpolation = (rowTimeInterval < pointingInterval);
     const auto mustInterpolate = havePointings && needInterpolation;
-    //    If we must interpolate, the next question is against what:
-    //       * the original pointing column or 
-    //       * the converted one, which we may have pre-computed
-    const auto haveConvertedColumn =
-        ramPointingTable.nrow() > 0;
 
     // 3. Create interpolator if needed
     if (mustInterpolate) {
@@ -1821,57 +1821,73 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
             #if defined(SDGRID_PERFS)
             StartStop trigger(cComputeSplines);
             #endif
-            createInterpolator(vb, haveConvertedColumn);
+            const auto nAntennas = static_cast<size_t>(
+                vb.msColumns().antenna().nrow()
+            );
+            interpolator = new SDPosInterpolator(
+                pointingColumns,
+                pointingDirCol_p,
+                nAntennas
+            );
             isSplineInterpolationReady = true;
         } else {
-            // We have an interpolator. Can we re-use it ?
-            // The current answer is:
+            // We have an interpolator. Re-use it if possible.
             const auto canReuseInterpolator = interpolator->inTimeRange(rowTime, rowAntenna1);
             if (not canReuseInterpolator) {
                 // setup spline interpolator for the current dataset (CAS-11261, 2018/5/22 WK)
                 // delete and re-create it
                 delete interpolator;
                 interpolator = 0;
-                createInterpolator(vb, haveConvertedColumn);
-                // TODO: why don't we in this case set:
-                // isSplineInterpolationReady = true;
+                const auto nAntennas = static_cast<size_t>(
+                    vb.msColumns().antenna().nrow()
+                );
+                interpolator = new SDPosInterpolator(
+                    pointingColumns,
+                    pointingDirCol_p,
+                    nAntennas
+                );
             }
         }
     }
 
-    // 4. If it does not already exist, create the machine to convert pointings directions
-    if (not pointingToImage) {
-        // Set the frame
-        const auto & rowAntenna1Position = 
-                vb.msColumns().antenna().positionMeas()(rowAntenna1);
-        const MEpoch dummyEpoch(Quantity(0, "s"));
-        mFrame_p = MeasFrame(dummyEpoch, rowAntenna1Position);
-
-        // Remember antenna id for next call,
-        // which may be done using a different VisBuffer ...
-        lastAntID_p = rowAntenna1;
-
-        // Compute the "model" required to setup the conversion machine
-        if (havePointings) {
-            worldPosMeas = mustInterpolate ? 
-                directionMeas(act_mspc, pointingIndex, rowTime)
-              : directionMeas(act_mspc, pointingIndex);
-        } else {
-            // Without pointings, this sets the direction to the phase center
-            worldPosMeas = vb.direction1()(row);
-        }
-
-        // Make a machine to convert from the worldPosMeas to the output
-        // Direction Measure type for the relevant frame
-        MDirection::Ref outRef(directionCoord.directionType(), mFrame_p);
-        pointingToImage = new MDirection::Convert(worldPosMeas, outRef);
+    // 4. Create the direction conversion machine if needed
+    const auto needDirectionConverter = (
+        not havePointings or not haveConvertedColumn
+    );
+    if (needDirectionConverter) {
         if (not pointingToImage) {
-            logIO_p << "Cannot make direction conversion machine" << LogIO::EXCEPTION;
+            // Set the frame
+            const auto & rowAntenna1Position =
+                    vb.msColumns().antenna().positionMeas()(rowAntenna1);
+            const MEpoch dummyEpoch(Quantity(0, "s"));
+            mFrame_p = MeasFrame(dummyEpoch, rowAntenna1Position);
+
+            // Remember antenna id for next call,
+            // which may be done using a different VisBuffer ...
+            lastAntID_p = rowAntenna1;
+
+            // Compute the "model" required to setup the conversion machine
+            if (havePointings) {
+                worldPosMeas = mustInterpolate ?
+                    directionMeas(pointingColumns, pointingIndex, rowTime)
+                  : directionMeas(pointingColumns, pointingIndex);
+            } else {
+                // Without pointings, this sets the direction to the phase center
+                worldPosMeas = vb.direction1()(row);
+            }
+
+            // Make a machine to convert from the worldPosMeas to the output
+            // Direction Measure type for the relevant frame
+            MDirection::Ref outRef(directionCoord.directionType(), mFrame_p);
+            pointingToImage = new MDirection::Convert(worldPosMeas, outRef);
+            if (not pointingToImage) {
+                logIO_p << "Cannot make direction conversion machine" << LogIO::EXCEPTION;
+            }
+            // Perform 1 dummy direction conversion to clear values
+            // cached in static variables of casacore functions like MeasTable::dUT1
+            MDirection _dir_tmp = (*pointingToImage)();
         }
-        // Perform 1 dummy direction conversion to clear values
-        // cached in static variables of casacore functions like MeasTable::dUT1
-        MDirection _dir_tmp = (*pointingToImage)();
-    } 
+    }
 
     // 5. Update the frame holding the measurements for this row
     const MEpoch rowEpoch(Quantity(rowTime, "s"));
@@ -1909,19 +1925,22 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
         lastAntID_p = rowAntenna1;
     }
 
-    // 6. First: interpolate pointing direction if needed,
-    //    Then: convert the result to image's reference frame
+    // 6. Compute user-specified column direction at data-taking time,
+    //    in image's direction reference frame
     if (havePointings) {
         if (mustInterpolate) {
             #if defined(SDGRID_PERFS)
             cInterpolateDirection.start();
             #endif
-            MDirection newdir = directionMeas(act_mspc, pointingIndex, rowTime);
+            const auto interpolatedDirection =
+                directionMeas(pointingColumns, pointingIndex, rowTime);
             #if defined(SDGRID_PERFS)
             cInterpolateDirection.stop();
             cConvertDirection.start();
             #endif
-            worldPosMeas = (*pointingToImage)(newdir);
+            worldPosMeas = haveConvertedColumn ?
+                  interpolatedDirection
+                : (*pointingToImage)(interpolatedDirection);
             #if defined(SDGRID_PERFS)
             cConvertDirection.stop();
             #endif
@@ -1933,7 +1952,10 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
             //fprintf(pfile,"%.8f %.8f \n", newdirv(0), newdirv(1));
             //printf("%lf %lf \n", newdirv(0), newdirv(1));
         } else {
-            worldPosMeas = (*pointingToImage)(directionMeas(act_mspc, pointingIndex));
+            const auto columnDirection = directionMeas(pointingColumns, pointingIndex);
+            worldPosMeas = haveConvertedColumn ?
+                    columnDirection
+                  : (*pointingToImage)(columnDirection);
         }
     } else {
         // Without pointings, this converts the direction of the phase center
@@ -2432,20 +2454,103 @@ SDGrid::CacheWriter::~CacheWriter()
     }
 }
 
+const String & SDGrid::toString(const ConvertFirst convertFirst) {
+    static const std::array<String,3> name {
+        "NEVER",
+        "ALWAYS",
+        "AUTO"
+    };
+    switch(convertFirst){
+    case ConvertFirst::NEVER:
+    case ConvertFirst::ALWAYS:
+    case ConvertFirst::AUTO:
+        return name[static_cast<size_t>(convertFirst)];
+    default:
+        String errMsg {"Illegal ConvertFirst enum: "};
+        errMsg += String::toString(static_cast<Int>(convertFirst));
+        throw AipsError(
+            errMsg,
+            __FILE__,
+            __LINE__,
+            AipsError::Category::INVALID_ARGUMENT
+        );
+        // Avoid potential compiler warning
+        return name[static_cast<size_t>(ConvertFirst::NEVER)];
+    }
+}
+
+SDGrid::ConvertFirst SDGrid::fromString(const String & name) {
+    static const std::array<ConvertFirst,3> schemes {
+        ConvertFirst::NEVER,
+        ConvertFirst::ALWAYS,
+        ConvertFirst::AUTO
+    };
+    for ( const auto scheme : schemes ) {
+        if (name == toString(scheme)) return scheme;
+    }
+    String errMsg {"Illegal ConvertFirst name: "};
+    errMsg += name;
+    throw AipsError(
+        errMsg,
+        __FILE__,
+        __LINE__,
+        AipsError::Category::INVALID_ARGUMENT
+    );
+    // Avoid potential compiler warning
+    return ConvertFirst::NEVER;
+}
+
+ void SDGrid::setConvertFirst(const casacore::String &name) {
+    processingScheme = fromString(name);
+ }
+
+Bool SDGrid::mustConvertPointingColumn(
+        const MeasurementSet &ms
+    ) {
+    const auto haveCachedSpectraPixelCoordinates =
+        cacheIsEnabled and cache.isReadable();
+    if (haveCachedSpectraPixelCoordinates) return False;
+
+    switch(processingScheme){
+    case ConvertFirst::ALWAYS: return True;
+    case ConvertFirst::NEVER:  return False;
+    case ConvertFirst::AUTO:
+        const auto nPointings = ms.pointing().nrow();
+        const auto nSelectedDataRows = ms.nrow();
+        return nSelectedDataRows > nPointings ? True : False;
+    default:
+        String errMsg {"Unexpected invalid state: "};
+        errMsg += "ConvertFirst processingScheme=";
+        errMsg += String::toString<Int>(static_cast<Int>(processingScheme));
+        errMsg += " ms=" + ms.tableName();
+        throw AipsError(
+            errMsg,
+            __FILE__,
+            __LINE__,
+            AipsError::Category::GENERAL
+        );
+    }
+    // Avoid potential compiler warning
+    return False;
+}
+
 void SDGrid::handleNewMs(
     ROVisibilityIterator &vi,
     const ImageInterface<Complex>& image) {
+
     // Synchronize spatial coordinates cache
     if (cacheIsEnabled) cache.newMS(vi.ms());
 
-    auto mustConvertPointingColumn = False;
-    // Spatial coordinates conversion scheme
-    if (mustConvertPointingColumn) {
+    // Handle interpolate-convert processing scheme
+    if (mustConvertPointingColumn(vi.ms())) {
         const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
         const auto refType =
             image.coordinates().directionCoordinate().directionType();
-
         convertPointingColumn(vi.ms(), columnEnum, refType);
+    }
+    else {
+        ramPointingTable = MSPointing();
+        ramPointingColumnsPtr.reset();
     }
 }
 
@@ -2700,18 +2805,19 @@ void SDGrid::initRamPointingTable(
         "." + MDirection::showType(refType),
         doNotCopyRows
     );
+    ramPointingColumnsPtr.reset( new MSPointingColumns {ramPointingTable});
 
     MSPointingColumns pointingColumns {pointingTable};
-    MSPointingColumns ramPointingColumns {ramPointingTable};
 
-    ramPointingColumns.setDirectionRef(refType);
-    ramPointingColumns.setEncoderDirectionRef(refType);
+    ramPointingColumnsPtr->setDirectionRef(refType);
+    ramPointingColumnsPtr->setEncoderDirectionRef(refType);
 
     ramPointingTable.addRow(pointingTable.nrow());
 
-    ramPointingColumns.antennaId().putColumn(pointingColumns.antennaId());
-    ramPointingColumns.time().putColumn(pointingColumns.time());
-    ramPointingColumns.numPoly().fillColumn(0);
+    ramPointingColumnsPtr->antennaId().putColumn(pointingColumns.antennaId());
+    ramPointingColumnsPtr->time().putColumn(pointingColumns.time());
+    ramPointingColumnsPtr->interval().putColumn(pointingColumns.interval());
+    ramPointingColumnsPtr->numPoly().fillColumn(0);
 
     logger << "Done" << LogIO::POST;
 }

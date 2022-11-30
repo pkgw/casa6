@@ -18,7 +18,9 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               mode, nchan, start, width, veltype, outframe,
               gridfunction, convsupport, truncate, gwidth, jwidth,
               imsize, cell, phasecenter, projection, ephemsrcname,
-              pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax, enablecache):
+              pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax,
+              # Performances optimiztion options
+              enablecache, convertfirst):
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()
@@ -498,7 +500,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         # it should be called after infiles are registered to imager
         self._configure_map_property()
 
-        casalog.post("Using phasecenter \"%s\"" % (self.imager_param['phasecenter']), "INFO")
+        casalog.post(f"Using phasecenter {self.imager_param['phasecenter']}", "INFO")
 
         self.imager.defineimage(**self.imager_param)  # self.__get_param())
         self.imager.setoptions(ftmachine='sd', gridfunction=self.gridfunction)
@@ -510,7 +512,8 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
             jwidth=self.jwidth,
             minweight = 0.,
             clipminmax=self.clipminmax,
-            enablecache=self.enablecache
+            enablecache=self.enablecache,
+            convertfirst=self.convertfirst
         )
 
         # Create images

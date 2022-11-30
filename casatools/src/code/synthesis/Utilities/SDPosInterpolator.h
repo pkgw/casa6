@@ -60,6 +60,11 @@ public:
         const size_t nant
     );
     SDPosInterpolator(
+        const casacore::MSPointingColumns& pointingColumns,
+        const casacore::String& columnName,
+        const size_t nant
+    );
+    SDPosInterpolator(
         const casacore::Vector<casacore::Vector<casacore::Double> >& time,
         const casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > >& dir
     );
