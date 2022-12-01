@@ -730,7 +730,7 @@ class PySynthesisImager:
             )
             return summ
 
-        import pylab as pl
+        import matplotlib.pyplot as pl
         from numpy import max as amax
 
         # 0 : iteration number (within deconvolver, per cycle)

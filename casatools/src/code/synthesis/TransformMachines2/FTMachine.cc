@@ -704,7 +704,7 @@ using namespace casa::vi;
         weight.reference(wt);
         interpVisFreq_p.resize();
         interpVisFreq_p=lsrFreq_p;
-
+        //cerr << "INTERPTOGRID " << interpVisFreq_p.nelements() << " vb.nchan  " << vb.nChannels() << endl;
         return false;
       }
 
@@ -987,6 +987,8 @@ using namespace casa::vi;
     if((imageFreq_p.nelements()==1) || 
        (vb.nChannels()==1) || 
        (freqInterpMethod_p== InterpolateArray1D<Double, Complex>::nearestNeighbour) ){
+      interpVisFreq_p=visFreq;
+      //cerr << "INTERPFROMGRID " << interpVisFreq_p << " vb.nchan " << vb.nChannels() << endl;
         origdata->reference(data);
         return false;
       }
