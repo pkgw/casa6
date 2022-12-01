@@ -207,7 +207,7 @@ class SummaryMinor:
                 try:
                     from casampi.MPIEnvironment import MPIEnvironment
                     mpi_available = True
-                except ModuleNoFoundError:
+                except ModuleNotFoundError:
                     mpi_available = False
 
                 if mpi_available and MPIEnvironment.is_mpi_enabled:
