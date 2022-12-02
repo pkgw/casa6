@@ -1855,8 +1855,8 @@ class msmetadata_test(unittest.TestCase):
     def test_rxbands(self):
         """CAS-13973 test rxbands() method"""
         expec = [
-            7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-            7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9
+            -1, -1, -1, -1, 7, 7, 7, 7, 7, 7, 7, 7, -1, -1, -1, -1, 7, 7, 7, 7,
+            7, 7, 7, 7, -1, -1, -1, -1, 9, 9, 9, 9, 9, 9, 9, 9
         ]
         self.md.open(rxband_ms)
         self.assertTrue(
@@ -1864,7 +1864,7 @@ class msmetadata_test(unittest.TestCase):
             'Incorrect result for rxbands()'
         )
         self.assertTrue(
-            (self.md.rxbands([0, 29]) == [7, 9]).all(),
+            (self.md.rxbands([0, 29]) == [-1, 9]).all(),
             'Incorrect result for rxbands()'
         )
         self.assertTrue(
