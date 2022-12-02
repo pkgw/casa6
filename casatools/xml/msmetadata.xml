@@ -1610,14 +1610,15 @@ windows in the dataset and close the tool.
                 be determined. The name of the spw is first checked to see if
                 the receiver band value is encoded there. If not, the
                 corresponding spectral window ID is sought in the ASDM_RECEIVER
-                table, if it exists. If the corresponding spectral window can be
-                found, the frequencyBand column entry for that row of the
-                ASDM_RECEIVER table is checked to determine if the receiver band
-                information is encoded there. In the case where the spectral
-                window ID is present in multiple cells of the spectralWindowId
-                column, the first row in which the ID is found is used to
-                determine the receiver band. If all these tests fail, -1 is
-                returned for the spectral window.
+                table, if it exists, and if it has fewer or equal number of rows
+                than the SPECTRAL_WINDOW table. If the corresponding spectral
+                window can be found in the ASDM_RECEIVER table, then the
+                corresponding frequencyBand column value is checked to determine
+                if the receiver band information is encoded there. In the case
+                where the spectral window ID is present in multiple cells of
+                the spectralWindowId column, the first row in which the ID is
+                found is used to determine the receiver band. If all these tests
+                fail, -1 is returned for the specified spectral window.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
