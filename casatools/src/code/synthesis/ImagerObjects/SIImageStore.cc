@@ -1399,8 +1399,10 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
 							  pol, itsImageShape[2], 
 							  *weight(0) );
 
-    LatticeExprNode le( sqrt(max( *subim )) );
-    return le.getFloat();
+    //LatticeExprNode le( sqrt(max( *subim )) );
+    //return le.getFloat();
+    LatticeExprNode le(max(*subim));
+    return sqrt(le.getFloat());
   }
 
   void  SIImageStore::makePBFromWeight(const Float pblimit)
@@ -1678,8 +1680,8 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
     Bool didNorm = divideImageByWeightVal(*residual());
 
     if (itsUseWeight) {
-      for(Int pol = 0; pol < itsImageShape[2]; pol++) {
-        for(Int chan = 0; chan < itsImageShape[3]; chan++) {
+      for(Int chan = 0; chan < itsImageShape[3]; chan++) {
+        for(Int pol = 0; pol < itsImageShape[2]; pol++) {
 
 	  itsPBScaleFactor = getPbMax(pol, chan);
           // cout << " pbscale : " << itsPBScaleFactor << endl;
@@ -1702,7 +1704,8 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
             Float scalepb = 1.0;
 
             if (normtype == "flatnoise") {
-              LatticeExpr<Float> deno = LatticeExpr<Float>(sqrt(abs(*(wtsubim))) * itsPBScaleFactor);
+              //LatticeExpr<Float> deno = LatticeExpr<Float>(sqrt(abs(*(wtsubim))) * itsPBScaleFactor);
+              LatticeExpr<Float> deno =  itsPBScaleFactor * sqrt(abs(LatticeExpr<Float>(*(wtsubim))));
 
               os << LogIO::NORMAL1;
               os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
@@ -1711,9 +1714,10 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
               os << " ] to get flat noise with unit pb peak." << LogIO::POST;
 
               scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
-              LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
-              LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
-              ratio = (((*(ressubim)) * mask) / (deno + maskinv));
+              //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
+              //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
+              //ratio = (((*(ressubim)) * mask) / (deno + maskinv));
+              ratio = iif((deno) > scalepb, ((*(ressubim)) / (deno)), 0.0);
 
             } else if (normtype == "pbsquare") {
               Float deno = itsPBScaleFactor * itsPBScaleFactor;
@@ -1727,7 +1731,7 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
               scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
               //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
               //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
-              ratio = ((*(ressubim))/(deno));
+              ratio = ((*(ressubim)) / (deno));
 
             } else if (normtype == "flatsky") {
               LatticeExpr<Float> deno = LatticeExpr<Float>(*(wtsubim));
@@ -1738,9 +1742,10 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
               os << " by [ weight ] to get flat sky" << LogIO::POST;
 
               scalepb = fabs(pblimit * pblimit) * itsPBScaleFactor * itsPBScaleFactor;
-              LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
-              LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
-              ratio = (((*(ressubim)) * mask) / (deno + maskinv));
+              //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
+              //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
+              //ratio = (((*(ressubim)) * mask) / (deno + maskinv));
+              ratio = iif((deno) > scalepb, ((*(ressubim)) / (deno)), 0.0);
 
             }
 
