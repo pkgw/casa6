@@ -60,6 +60,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
 				 Vector<Int> fldmap,
 				 const CTTIFactoryPtr cttifactoryptr) :
   ct_(ct),
+  ctname_(),
   msmc_(NULL),
   mtype_(mtype),
   isCmplx_(false),
@@ -96,6 +97,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
   resFlag_(),
   tI_(),
   tIdel_(),
+  tIMissingLogged_(),
   lastFld_(ct.spectralWindow().nrow(),-1),
   lastObs_(ct.spectralWindow().nrow(),-1),
   lastScan_(ct.spectralWindow().nrow(),-1),
@@ -283,6 +285,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
 				 Vector<Int> spwmap,
 				 const CTTIFactoryPtr cttifactoryptr) :
   ct_(ct),
+  ctname_(),
   msmc_(&msmc),
   mtype_(mtype),
   isCmplx_(false),
@@ -319,6 +322,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
   resFlag_(),
   tI_(),
   tIdel_(),
+  tIMissingLogged_(),
   lastFld_(ms.spectralWindow().nrow(),-1),
   lastObs_(ms.spectralWindow().nrow(),-1),
   lastScan_(ms.spectralWindow().nrow(),-1),
@@ -457,7 +461,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
 
     }
   }
-
+  
   // Initialize caltable slices
   sliceTable();
 
@@ -504,6 +508,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
 				 Vector<Int> spwmap,
 				 const CTTIFactoryPtr cttifactoryptr) :
   ct_(ct),
+  ctname_(),
   msmc_(NULL),
   mtype_(mtype),
   isCmplx_(false),
@@ -538,6 +543,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
   resFlag_(),
   tI_(),
   tIdel_(),
+  tIMissingLogged_(),
   lastFld_(mscol.spectralWindow().nrow(),-1),
   lastObs_(mscol.spectralWindow().nrow(),-1),
   lastScan_(mscol.spectralWindow().nrow(),-1),
@@ -640,6 +646,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
                  Vector<Int> spwmap,
                  const CTTIFactoryPtr cttifactoryptr) :
   ct_(ct),
+  ctname_(),
   msmc_(NULL),
   mtype_(mtype),
   isCmplx_(false),
@@ -676,6 +683,7 @@ CTPatchedInterp::CTPatchedInterp(NewCalTable& ct,
   resFlag_(),
   tI_(),
   tIdel_(),
+  tIMissingLogged_(),
   lastFld_(ms.spectralWindow().nrow(),-1),
   lastObs_(ms.spectralWindow().nrow(),-1),
   lastScan_(ms.spectralWindow().nrow(),-1),
@@ -852,7 +860,8 @@ Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, D
   if (CTPATCHEDINTERPVERB) cout << "CTPatchedInterp::interpolate(...)" << endl;
 
   Bool newcal(false);
-  IPosition ip(4,0,msspw,msfld,thisTimeSeg(msobs,msscan));
+  Int scanOrObsInt=thisTimeSeg(msobs,msscan);
+  IPosition ip(4,0,msspw,msfld,scanOrObsInt);
 
   // Loop over _output_ elements
   for (Int iMSElem=0;iMSElem<nMSElem_;++iMSElem) {
@@ -861,7 +870,22 @@ Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, D
     ip(0)=iMSElem;
     
     if (!tI_(ip)) {
-      //cout << "Flagging: " << ip << endl;
+      //if (iMSElem==0) cout << "Flagging: " << ip << endl;
+
+      // casa log post
+      if (!tIMissingLogged_(ip)) {  // only if these coords not logged before
+	LogIO log;
+	ostringstream msg;
+	String scanOrObsStr=(byScan_ ? "scan" : "obs");
+	msg  << "MS " << scanOrObsStr << "=" << scanOrObsInt;
+	if (byField_) msg << " in fld=" << msfld;
+	msg << ",spw=" << msspw
+	    << ",ant=" << iMSElem
+	    << " is selected for processing, but has no available calibration in " << ctname_
+	    << " as mapped, and will be flagged.";
+	log << msg.str() << LogIO::WARN;
+	tIMissingLogged_(ip)=true;
+      }
       newcal=true;
     }
     else {
@@ -873,8 +897,8 @@ Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, D
   }
 
   // Whole result referred to time result:
-  result_(msspw,msfld,thisTimeSeg(msobs,msscan)).reference(timeResult_(msspw,msfld,thisTimeSeg(msobs,msscan)));
-  resFlag_(msspw,msfld,thisTimeSeg(msobs,msscan)).reference(timeResFlag_(msspw,msfld,thisTimeSeg(msobs,msscan)));
+  result_(msspw,msfld,scanOrObsInt).reference(timeResult_(msspw,msfld,scanOrObsInt));
+  resFlag_(msspw,msfld,scanOrObsInt).reference(timeResFlag_(msspw,msfld,scanOrObsInt));
 
   // Detect if obs or fld changed, and cal is obs- or fld-dep
   Bool diffobsfld(false);
@@ -994,24 +1018,43 @@ Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, D
   freqInterpMethod_=freqInterpMethodVec_(msspw);
 
   Bool newcal(false);
-  IPosition ip(4,0,msspw,msfld,thisTimeSeg(msobs,msscan));
+  Int scanOrObsInt=thisTimeSeg(msobs,msscan);
+  IPosition ip(4,0,msspw,msfld,scanOrObsInt);
+
   // Loop over _output_ antennas
   for (Int iMSElem=0;iMSElem<nMSElem_;++iMSElem) {
     // Call time interpolation calculation; resample in freq if new
     //   (fills timeResult_/timeResFlag_ implicitly)
     ip(0)=iMSElem;
     if (!tI_(ip)) {
-      //      if (iMSElem==0) cout << "Flagging: " << ip << endl;
+      //if (iMSElem==0) cout << "Flagging: " << ip << endl;
+
+      // casa log post
+      if (!tIMissingLogged_(ip)) {  // only if these coords not logged before
+	LogIO log;
+	ostringstream msg;
+	String scanOrObsStr=(byScan_ ? "scan" : "obs");
+	msg  << "MS " << scanOrObsStr << "=" << scanOrObsInt;
+	if (byField_) msg << " in fld=" << msfld;
+	msg << ",spw=" << msspw
+	    << ",ant=" << iMSElem
+	    << " is selected for processing, but has no available calibration in " << ctname_
+	    << " as mapped, and will be flagged.";
+	log << msg.str() << LogIO::WARN;
+	tIMissingLogged_(ip)=true;
+      }
+      
+      
       newcal=true;
     }
     else {
-
+      
       if (tI_(ip)->interpolate(time)) { 
 	// Resample in frequency
-	Matrix<Float> fR(freqResult_(msspw,msfld,thisTimeSeg(msobs,msscan)).xyPlane(iMSElem));
-	Matrix<Bool> fRflg(freqResFlag_(msspw,msfld,thisTimeSeg(msobs,msscan)).xyPlane(iMSElem));
-	Matrix<Float> tR(timeResult_(msspw,msfld,thisTimeSeg(msobs,msscan)).xyPlane(iMSElem));
-	Matrix<Bool> tRflg(timeResFlag_(msspw,msfld,thisTimeSeg(msobs,msscan)).xyPlane(iMSElem));
+	Matrix<Float> fR(freqResult_(msspw,msfld,scanOrObsInt).xyPlane(iMSElem));
+	Matrix<Bool> fRflg(freqResFlag_(msspw,msfld,scanOrObsInt).xyPlane(iMSElem));
+	Matrix<Float> tR(timeResult_(msspw,msfld,scanOrObsInt).xyPlane(iMSElem));
+	Matrix<Bool> tRflg(timeResFlag_(msspw,msfld,scanOrObsInt).xyPlane(iMSElem));
 	resampleInFreq(fR,fRflg,freq,tR,tRflg,freqIn_(spwMap_(msspw)));
 	
 	// Calibration is new
@@ -1021,8 +1064,8 @@ Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, D
   }
 
   // Whole result referred to freq result:
-  result_(msspw,msfld,thisTimeSeg(msobs,msscan)).reference(freqResult_(msspw,msfld,thisTimeSeg(msobs,msscan)));
-  resFlag_(msspw,msfld,thisTimeSeg(msobs,msscan)).reference(freqResFlag_(msspw,msfld,thisTimeSeg(msobs,msscan)));
+  result_(msspw,msfld,scanOrObsInt).reference(freqResult_(msspw,msfld,scanOrObsInt));
+  resFlag_(msspw,msfld,scanOrObsInt).reference(freqResFlag_(msspw,msfld,scanOrObsInt));
 
   // Detect if obs or fld changed, and cal is obs- or fld-dep
   Bool diffobsfld(false);
@@ -1036,15 +1079,15 @@ Bool CTPatchedInterp::interpolate(Int msobs, Int msscan, Int msfld, Int msspw, D
     Double t0(86400.0*floor(time/86400.0));
     cout << boolalpha
 	 << "fld="<<msfld
-	 << " obs="<<thisTimeSeg(msobs,msscan)
+	 << " obs="<<scanOrObsInt
 	 << " spw="<<msspw
 	 << " time="<< time-t0
 	 << " diffobsfld=" << diffobsfld
 	 << " new=" << newcal
 	 << " tI_(ip)=" << tI_(ip)
 	 << " chan="<< nMSChan/2
-	 << " result=" << result_(msspw,msfld,thisTimeSeg(msobs,msscan))(0,nMSChan/2,0)
-	 << " addr=" << &result_(msspw,msfld,thisTimeSeg(msobs,msscan))(0,nMSChan/2,0)
+	 << " result=" << result_(msspw,msfld,scanOrObsInt)(0,nMSChan/2,0)
+	 << " addr=" << &result_(msspw,msfld,scanOrObsInt)(0,nMSChan/2,0)
 	 << endl;
   }
   */
@@ -1206,7 +1249,7 @@ void CTPatchedInterp::sliceTable() {
     break;
   }
   }
-
+  
 }
 
 // Initialize by iterating over the supplied table
@@ -1214,23 +1257,17 @@ void CTPatchedInterp::makeInterpolators() {
 
   if (CTPATCHEDINTERPVERB) cout << "  CTPatchedInterp::initialize()" << endl;
 
-  // cal table name for messages
-  Path pathname(ct_.tableName());
-  String tabname=pathname.baseName().before(".tempMem");
-
+  // Save caltable name for log messages
+  ctname_=Path(ct_.antenna().tableName().before(".tempMem")).baseName();
+  
   // Size/initialize interpolation engines
   IPosition tIsize(4,nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_);
   tI_.resize(tIsize);
   tI_.set(NULL);
   tIdel_.resize(tIsize);
   tIdel_.set(false);
-
-  Record summary;
-  std::set<Int> scans;
-  if (msmc_) {
-    summary = msmc_->msmd().getSummary();
-    scans = msmc_->msmd().getScanNumbers(0, 0);
-  }
+  tIMissingLogged_.resize(tIsize);
+  tIMissingLogged_.set(false);
 
   Bool reportBadSpw(false);
   for (Int iMSTimeSeg=0;iMSTimeSeg<nMSTimeSeg_;++iMSTimeSeg) {
@@ -1280,43 +1317,6 @@ void CTPatchedInterp::makeInterpolators() {
 	      tI_(tIip)=NULL; 
 	      tR.set(0.0);
 	      tRf.set(true);
-            
-	      // Get Obs Id from summary, from third set of keys get scan(s)
-	      // Get antenna from scan and fields for scan
-	      // Logic check -->
-	      // Do you have obs/scan -> is your field in scans? Spw in field? antenna in scan?
-	      // If all true print below, else don't print anything
-
-	      LogIO log;
-	      ostringstream msg;
-
-	      if (spws.find(iMSSpw) != spws.end()) {
-		if (byScan_) {
-		  if (scans.find(iMSTimeSeg) != scans.end()) {
-
-		    // casa log post
-		    msg  << "IF SELECTED, MS scan=" << iMSTimeSeg
-		     << " in fld=" << iMSFld
-		     << ",spw=" << iMSSpw
-		     << ",ant=" << iMSElem
-		     << " cannot be calibrated by " << tabname
-		     << " as mapped, and will be flagged in this process.";
-		    log << msg.str() << LogIO::WARN;
-		  }
-		} else {
-		  if (summary.isDefined("observationID=" + String::toString(iMSTimeSeg))) {
-
-		    // casa log post
-		    msg  << "MS obs=" << iMSTimeSeg
-		     << ",fld=" << iMSFld
-		     << ",spw=" << iMSSpw
-		     << ",ant=" << iMSElem
-		     << " cannot be calibrated by " << tabname
-		     << " as mapped, and will be flagged in this process.";
-		    log << msg.str() << LogIO::WARN;
-		  }
-		}
-	      }
 	    }
 	  } // iMSElem
 	} // spwOK
@@ -1325,7 +1325,7 @@ void CTPatchedInterp::makeInterpolators() {
       } // iMSSpw
 
     } // not re-using
-    else {
+    else {  // re-using
       // Point to an existing interpolator group
       Int thisAltFld=altFld_(iMSFld);
 
@@ -1337,6 +1337,7 @@ void CTPatchedInterp::makeInterpolators() {
 	for (Int iMSElem=0;iMSElem<nMSElem_;++iMSElem) {
 	  IPosition tIip0(4,iMSElem,iMSSpw,iMSFld,iMSTimeSeg),tIip1(4,iMSElem,iMSSpw,thisAltFld,iMSTimeSeg);
 	  tI_(tIip0)=tI_(tIip1);
+	  //	  if (!tI_(tIip0) && iMSElem==0)  cout << "ouch---------------------" << "iMSTimeSeg="<<iMSTimeSeg<<" iMSFld="<<iMSFld<<" spw="<< iMSSpw << " ant="<<iMSElem<< endl;
 	}
       }
     }
@@ -1345,7 +1346,7 @@ void CTPatchedInterp::makeInterpolators() {
 
 
   if (reportBadSpw) {
-    cout << "The following MS spws have no corresponding cal spws in " << tabname << ": ";
+    cout << "The following MS spws have no corresponding cal spws in " << ctname_ << ": ";
     for (Int iMSSpw=0;iMSSpw<nMSSpw_;++iMSSpw)
       //  (spwmap applied in spwOK method)
       if (!this->spwOK(iMSSpw)) cout << iMSSpw << " ";

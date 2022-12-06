@@ -197,6 +197,9 @@ private:
   // The Caltable
   NewCalTable ct_;
 
+  // The caltable's name (for forming log messages)
+  casacore::String ctname_;
+  
   // The MSMetaInfoForCal pointer
   const MSMetaInfoForCal* msmc_;
 
@@ -267,6 +270,7 @@ private:
   //   These are populated by the available caltables slices
   casacore::Array<CTTimeInterp1*> tI_;  // [nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_]
   casacore::Array<casacore::Bool> tIdel_;         // [nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_]
+  casacore::Array<casacore::Bool> tIMissingLogged_;         // [nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_]
 
   casacore::Vector<casacore::Int> lastFld_,lastObs_,lastScan_;
 
