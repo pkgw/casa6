@@ -347,7 +347,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                                Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Int stopCode, bool fullsummary)
   {
     LogIO os( LogOrigin("SIMinorCycleController", __FUNCTION__ ,WHERE) );
-
+    os<<"cycleStartIter="<<cycleStartIter<<" startIterDone="<<startIterDone<<endl;
     IPosition shp = itsSummaryMinor.shape();
     //bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
     //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
@@ -358,7 +358,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       throw(AipsError("Internal error in shape of minor-cycle summary record"));
      itsSummaryMinor.resize( IPosition( 2, nSummaryFields, shp[1]+1 ) , true );
      // iterations done
-     itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+     if(!fullsummary) {
+         itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     }
+     else {
+         itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+      }
      // peak residual
      itsSummaryMinor( IPosition(2, 1, shp[1] ) ) = (Double) peakresidual;
      // model flux

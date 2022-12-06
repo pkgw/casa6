@@ -1127,6 +1127,8 @@ class test_iterbot(testref_base):
           if report2[0]==True:
                 report = report + (self.th.check_val(iterDone_vec[0], 15,valname='iterdone test1:', exact=True))[1]
                 ## running with fullsummary default (currently = True) 
+                ## Follling issue should have been fixed (as of 2022.12.01)
+                
                 ## See the documentation note for 'iterDone' in the table being cumulative across cycles for 
                 ## MPI runs with use_small_summaryminor=True (i.e. the default for MPI runs). 
                 ## https://casadocs.readthedocs.io/en/latest/notebooks/synthesis_imaging.html#Returned-Dictionary
@@ -1149,6 +1151,7 @@ class test_iterbot(testref_base):
           """ [iterbot] Test_Iterbot_Mfs_Fullsummary_True : test fullsummary parameter = T (use hogbom deconvolver)"""
           self.prepData('refim_twochan.ms')
           ret = tclean(vis=self.msfile, imagename=self.img, imsize=100, cell='8.0arcsec', deconvolver='hogbom', niter=20, threshold='0.01Jy', cycleniter=10, fullsummary=True, parallel=self.parallel)
+          #print('ret=',ret)
 
           report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
 
@@ -1161,10 +1164,11 @@ class test_iterbot(testref_base):
           """ [iterbot] Test_Iterbot_Mfs_Fullsummary_False : test fullsummary parameter = F (use hogbom deconvolver)"""
           self.prepData('refim_twochan.ms')
           ret = tclean(vis=self.msfile, imagename=self.img, imsize=100, cell='8.0arcsec', deconvolver='hogbom', niter=20, threshold='0.01Jy', cycleniter=10, fullsummary=False, parallel=self.parallel)
-
+          #print('ret=',ret)
           report=self.th.checkall(ret=ret, peakres=0.141896, modflux=1.0229007, iterdone=20, nmajordone=3,imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
 
-          _, report2 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['iterDone'],[10.0, 20.0] , test='iterDone per cycle')
+          #_, report2 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['iterDone'],[10.0, 20.0] , test='iterDone per cycle')
+          _, report2 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['iterDone'],[10.0, 10.0] , test='iterDone per cycle')
           _, report3 = self.th.check_list_vals(ret['summaryminor'][0][0][0]['peakRes'], [0.35304, 0.14190], test='peakRes per cycle', epsilon=0.05)
           self.assertTrue(self.check_final(report+report2+report3))
 
@@ -1195,19 +1199,21 @@ class test_iterbot(testref_base):
               ret=self.th.mergeParaCubeResults(retpar, ['iterdone', 'nmajordone'])
           else:
               ret=retpar 
+          #print('ret=',ret)
           report=self.th.checkall(ret=ret, iterdone=90,nmajordone=2,imgexist=[self.img+'.psf', self.img+'.residual'])
           ## Only chans 6 and 7 reach cycleniter, others reach threshold in fewer than 10 iters per chan.
 
+          # FIXED: non-cumulative iterDone will be reported for all cases as of 2022.12.01
           # Currently the shorten summaryminor dict's iterDone gives cummulative value across chan/stoke for fullsummary=F
           # for BOTH serial and MPI. For MPI it is cummulative within each node so the iterDone value changes with 
           # the number of nodes 
           # if it is not cummulative the following should pass
-          #_, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0],3, valname='chan10 iterDone', exact=True)
-          # this only passes with serial. For mpicasa run iterDone value can be different for different number of nodes used
+          _, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0],3, valname='chan10 iterDone', exact=True)
+          # FIXED: this only passes with serial. For mpicasa run iterDone value can be different for different number of nodes used
           #_, report2 = self.th.check_val(ret['summaryminor'][0][10][0]['iterDone'][0], 73, valname='chan10 iterDone', exact=True)
           _, report3 = self.th.check_val(ret['summaryminor'][0][10][0]['peakRes'][0], 0.72901, valname='chan10 peakRes', exact=False)
-          #self.assertTrue(self.check_final(report + str(report2) + str(report3)))
-          self.assertTrue(self.check_final(report + str(report3)))
+          self.assertTrue(self.check_final(report + str(report2) + str(report3)))
+          #self.assertTrue(self.check_final(report + str(report3)))
 
 ##############################################
 ##############################################

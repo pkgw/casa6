@@ -843,7 +843,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 		for (unsigned int row = 0; row < nShp[1]; row++) {
 			// iterations done
-		   state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = state.IterDone + summary(IPosition(2,0,row));
+                       if (state.FullSummary){
+		           state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = state.IterDone + summary(IPosition(2,0,row));
+                       }
+                       else{
+		           state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = summary(IPosition(2,0,row));
+                       }
 		   //state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = summary(IPosition(2,0,row));
 			// peak residual
 			state.SummaryMinor( IPosition(2,1,cShp[1]+row) ) = summary(IPosition(2,1,row));
