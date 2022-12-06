@@ -416,13 +416,17 @@ class calibrater_test(unittest.TestCase):
 
         self.assertFalse(np.array_equal(datacol, beforedata))
 
-    @unittest.skip("SKIPPING test_selectVisObs UNTIL TEST IS REPAIRED")
+
     def test_selectVisObs(self):
         # Edit table to have multiple obs IDs
         tb.open(self._vis, nomodify=False)
         obsids = tb.getcol('OBSERVATION_ID')
         obsids[10:10000] = 1
         tb.putcol('OBSERVATION_ID', obsids)
+        tb.close()
+        # Add a new row to the observation subtable
+        tb.open(self._vis+'/OBSERVATION', nomodify=False)
+        tb.copyrows(self._vis+'/OBSERVATION')
         tb.close()
 
         tb.open(self._cal, nomodify=False)
@@ -431,17 +435,7 @@ class calibrater_test(unittest.TestCase):
         tb.putcol('OBSERVATION_ID', obsids)
         tb.close()
 
-        rowswithobs = []
-        rowswithoutobs = []
         tb.open(self._vis)
-        datacol = tb.getcol('OBSERVATION_ID')
-
-        for i in range(len(datacol)):
-            if datacol[i] == 0:
-                rowswithobs.append(i)
-            else:
-                rowswithoutobs.append(i)
-
         # Now save the DATA column to compare later
         beforedata = tb.getcol('DATA')[0][0]
         tb.close()
