@@ -2,8 +2,9 @@
 TestCases for casaxmlutil.py.
 
 Unit test methods in this class are based on the tests of sdcal/sdfit.
-If a method decorated by xml_constraints_injector of casaxmlutil.py are going to be added,
-then you should consider adding some tests in this module for new constraints.
+If you add a new task decorated by xml_constraints_injector or decorate an existing task
+with xml_constraints_injector of casaxmlutil.py, then you should consider adding some tests
+in this module for new constraints.
 """
 import inspect
 import os
