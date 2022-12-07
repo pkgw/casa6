@@ -18,6 +18,8 @@ from casatools import ctsys
 
 casalogpath = casalog.logfile()
 testdir = 'cxutest'
+SUCCESS = True
+FAIL = False
 
 
 class Testdata(NamedTuple):
@@ -41,10 +43,6 @@ sdfit_testdata = Testdata(ctsys.resolve('unittest/sdfit'),
                           {})
 
 testdata_tuples = (sdcal_testdata, sdfit_testdata)
-
-
-SUCCESS = True
-FAIL = False
 
 
 class CasaxmlutilTest(unittest.TestCase):
@@ -79,7 +77,7 @@ class CasaxmlutilTest(unittest.TestCase):
                 if os.path.exists(tempfile):
                     shutil.rmtree(tempfile)
 
-    def __check_log(self, logfile: str, msg: str):
+    def check_log(self, logfile: str, msg: str):
         """Check whether the casalog file contains the msg string or not."""
         with open(logfile, 'r') as fp:
             for line in map(lambda x: x, fp):
@@ -95,16 +93,20 @@ class CasaxmlutilTest(unittest.TestCase):
         self.assertTrue(os.access(logfile, os.R_OK))
         return logfile
 
-    def __positive(self, method: Callable, args: dict, desired: dict):
+    def positive_test(self, method: Callable, args: dict, desired: dict):
         """Execute a task with args, and check whether desired parameters have been overridden or not."""
         logfile = self.__test(method, args)
         for k, v in desired.items():
-            self.assertTrue(self.__check_log(logfile, f"overrode argument: {k} -> '{v}'"))
+            self.assertTrue(self.check_log(logfile, f"overrode argument: {k} -> '{v}'"))
 
-    def __negative(self, method: Callable, args: dict):
+    def negative_test(self, method: Callable, args: dict):
         """Execute a task with args, and check desired parameters have been not overridden."""
         logfile = self.__test(method, args)
-        self.assertFalse(self.__check_log(logfile, "overrode argument:"))
+        self.assertFalse(self.check_log(logfile, "overrode argument:"))
+
+
+class FundamentalTest(unittest.TestCase):
+    """Test fundamental use of xml_constraints_injector."""
 
     @xml_constraints_injector
     def dummy(self, *args: list, **kwargs: dict):
@@ -116,7 +118,9 @@ class CasaxmlutilTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.dummy()
 
-    ### sdcal testing
+
+class SDCalTest(CasaxmlutilTest):
+    """Test the constraints of sdcal."""
 
     def __test_sdcal(self, whether: bool, args: dict, desired: dict=None, prepare_data: bool=False):
         """Test sdcal with parameters, prepare input data if needed."""
@@ -127,9 +131,9 @@ class CasaxmlutilTest(unittest.TestCase):
             args['outfile'] = sdcal_testdata.tempfiles['outfile']
         if whether is SUCCESS:
             self.assertIsNotNone(desired)
-            self.__positive(sdcal, args, desired)
+            self.positive_test(sdcal, args, desired)
         else:
-            self.__negative(sdcal, args)
+            self.negative_test(sdcal, args)
 
     def test_sdcal_ps(self):
         """Test sdcal(calmode=ps)."""
@@ -287,14 +291,16 @@ class CasaxmlutilTest(unittest.TestCase):
                                 'interp': 'nearest'},
                           prepare_data=True)
 
-    ### sdfit testing
+
+class SDFitTest(CasaxmlutilTest):
+    """Test the constraints of sdfit."""
 
     def __test_sdfit(self, whether: bool, args: dict, desired: dict=None):
         """Test sdfit with arguments and desired output."""
         if whether is SUCCESS:
-            self.__positive(sdfit, args, desired)
+            self.positive_test(sdfit, args, desired)
         else:
-            self.__negative(sdfit, args)
+            self.negative_test(sdfit, args)
 
     def test_sdfit_timebin(self):
         """Test sdfit(timebin='1s'). If timebin is specified a value, then timespan is overridden by ''."""
