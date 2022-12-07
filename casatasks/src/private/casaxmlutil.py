@@ -216,10 +216,11 @@ __NONE = 'None'
 
 def __handle_when(when, stmt):
     # <when>
-    for equals in when.getElementsByTagName('equals'):
-        __handle_equals_or_not_equals(when, equals, stmt, __OP_EQUALS)
-    for notequals in when.getElementsByTagName('notequals'):
-        __handle_equals_or_not_equals(when, notequals, stmt, __OP_NOT_EQUAL)
+    for node in when.childNodes:
+        if node.nodeName == 'equals':
+            __handle_equals_or_not_equals(when, node, stmt, __OP_EQUALS)
+        elif node.nodeName == 'notequals':
+            __handle_equals_or_not_equals(when, node, stmt, __OP_NOT_EQUAL)
 
 
 def __handle_equals_or_not_equals(when, elem, stmt, operator):
