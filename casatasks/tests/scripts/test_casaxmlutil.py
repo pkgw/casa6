@@ -8,7 +8,7 @@ then you should consider adding some tests in this module for new constraints.
 import inspect
 import os
 import shutil
-from typing import NamedTuple
+from typing import NamedTuple, Callable
 import unittest
 
 from casatasks import casalog, sdcal, sdfit
@@ -74,7 +74,7 @@ class CasaxmlutilTest(unittest.TestCase):
                 if os.path.exists(tempfile):
                     shutil.rmtree(tempfile)
 
-    def __check_log(self, logfile, msg):
+    def __check_log(self, logfile: str, msg: str):
         """Check whether the casalog file contains the msg string or not."""
         with open(logfile, 'r') as fp:
             for line in map(lambda x: x, fp):
@@ -82,7 +82,7 @@ class CasaxmlutilTest(unittest.TestCase):
                     return True
         return False
 
-    def __test(self, method, args: dict):
+    def __test(self, method: Callable, args: dict):
         """Execute a task with args and return logfile name."""
         logfile = inspect.stack()[2].function + '.log'
         casalog.setlogfile(logfile)
@@ -90,19 +90,19 @@ class CasaxmlutilTest(unittest.TestCase):
         self.assertTrue(os.access(logfile, os.R_OK))
         return logfile
 
-    def __test_positive(self, method, args: dict, desired: dict):
+    def __test_positive(self, method: Callable, args: dict, desired: dict):
         """Execute a task with args, and check whether desired parameters have been overridden or not."""
         logfile = self.__test(method, args)
         for k, v in desired.items():
             self.assertTrue(self.__check_log(logfile, f"overrode argument: {k} -> '{v}'"))
 
-    def __test_negative(self, method, args: dict):
+    def __test_negative(self, method: Callable, args: dict):
         """Execute a task with args, and check desired parameters have been not overridden."""
         logfile = self.__test(method, args)
         self.assertFalse(self.__check_log(logfile, "overrode argument:"))
 
     @xml_constraints_injector
-    def dummy(self, *args, **kwargs):
+    def dummy(self, *args: list, **kwargs: dict):
         """Raise ValueError when XML file loads."""
         return args, kwargs
 
