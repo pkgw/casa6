@@ -74,17 +74,12 @@ class CasaxmlutilTest(unittest.TestCase):
                 if os.path.exists(tempfile):
                     shutil.rmtree(tempfile)
 
-    def __load_logfile(self, logfile):
-        """Load the casalog file."""
-        with open(logfile, 'r') as fp:
-            for line in fp:
-                yield line.rstrip()
-
     def __check_log(self, logfile, msg):
         """Check whether the casalog file contains the msg string or not."""
-        for line in self.__load_logfile(logfile):
-            if msg in line:
-                return True
+        with open(logfile, 'r') as fp:
+            for line in map(lambda x: x, fp):
+                if msg in line:
+                    return True
         return False
 
     def __test(self, method, args: dict):
@@ -92,6 +87,7 @@ class CasaxmlutilTest(unittest.TestCase):
         logfile = inspect.stack()[2].function + '.log'
         casalog.setlogfile(logfile)
         method(**args)
+        self.assertTrue(os.access(logfile, os.R_OK))
         return logfile
 
     def __test_positive(self, method, args: dict, desired: dict):
