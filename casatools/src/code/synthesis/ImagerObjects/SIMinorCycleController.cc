@@ -358,12 +358,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       throw(AipsError("Internal error in shape of minor-cycle summary record"));
      itsSummaryMinor.resize( IPosition( 2, nSummaryFields, shp[1]+1 ) , true );
      // iterations done
-     if(!fullsummary) {
-         itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
-     }
-     else {
-         itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
-      }
+     // make it non-cummulative for all cases
+     itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     //if(!fullsummary) {
+     //    itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     //}
+     //else {
+     //    itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+     // }
      // peak residual
      itsSummaryMinor( IPosition(2, 1, shp[1] ) ) = (Double) peakresidual;
      // model flux

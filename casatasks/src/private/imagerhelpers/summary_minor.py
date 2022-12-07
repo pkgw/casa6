@@ -260,11 +260,12 @@ class SummaryMinor:
         #availRows = SummaryMinor.getRowDescriptionsOldOrder()
         availRows = SummaryMinor.getRowDescriptionsOldOrder(fullsummary)
 
-        if (calc_iterdone_deltas) and ("startIterDone" in availRows):
-            for chan in ret:
-                for stoke in ret[chan]:
-                    for cyc in range(len(ret[chan][stoke]["startIterDone"])):
-                        ret[chan][stoke]["iterDone"][cyc] -= ret[chan][stoke]["startIterDone"][cyc]
+        # This block is not needed as summary_minor iterDone is stored as non-cumulative
+        #if (calc_iterdone_deltas) and ("startIterDone" in availRows):
+        #    for chan in ret:
+        #        for stoke in ret[chan]:
+        #            for cyc in range(len(ret[chan][stoke]["startIterDone"])):
+        #                ret[chan][stoke]["iterDone"][cyc] -= ret[chan][stoke]["startIterDone"][cyc]
         if not keep_startvals:
             for chan in ret:
                 for stoke in ret[chan]:
