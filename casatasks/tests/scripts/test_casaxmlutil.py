@@ -12,6 +12,7 @@ from typing import NamedTuple, Callable
 import unittest
 
 from casatasks import casalog, sdcal, sdfit
+from casatasks.private import task_sdfit
 from casatasks.private.casaxmlutil import xml_constraints_injector
 from casatools import ctsys
 
@@ -47,7 +48,7 @@ class CasaxmlutilTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Create temoprary directory and copy files for tests."""
+        """Create temporary directory and copy files for tests."""
         cls.curdir = os.getcwd()
         if os.path.exists(testdir):
             shutil.rmtree(testdir)
@@ -310,6 +311,15 @@ class CasaxmlutilTest(unittest.TestCase):
                                    'datacolumn': 'float_data',
                                    'nfit': [1], 'pol': 'XX',
                                    'timebin': ''})
+
+    def test_sdfit_timebin_direct(self):
+        """Test sdfit(timebin='1s'). If timebin is specified a value, then timespan is overridden by ''."""
+        self.__test_positive(task_sdfit.sdfit,
+                             args={'infile': sdfit_testdata.infiles['timebin'],
+                                   'datacolumn': 'float_data',
+                                   'nfit': [1], 'pol': 'XX',
+                                   'timebin': '1s'},
+                             desired={'timespan': ''})
 
 
 if __name__ == '__main__':
