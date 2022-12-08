@@ -72,9 +72,8 @@ class CasaxmlutilTest(unittest.TestCase):
     def check_log(self, logfile: str, msg: str):
         """Check whether the casalog file contains the msg string or not."""
         with open(logfile, 'r') as fp:
-            for line in map(lambda x: x, fp):
-                if msg in line:
-                    return True
+            for _ in filter(lambda x: msg in x, fp):
+                return True
         return False
 
     def __test(self, method: Callable, args: dict):
