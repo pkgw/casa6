@@ -2517,7 +2517,17 @@ class test_cube(testref_base):
           report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',86.254,[128,128,0,18])])
           ## line is smoother
           self.assertTrue(self.check_final(report))
-
+     #############################################
+     def test_cubedata_briggs(self):
+          """ [cube] test_cubedata_briggs : specmode cubedata with perchanweightdensity- No runtime doppler corrections """
+          self.prepData('refim_Cband.G37line.ms')
+          ret = tclean(vis=self.msfile,field='1',spw='0:105~135',specmode='cubedata',nchan=30,start=105,width=1,veltype='radio', weighting='briggs', perchanweightdensity=True,
+                       imagename=self.img,imsize=256,cell='0.01arcmin',phasecenter=1,deconvolver='hogbom',niter=10,parallel=self.parallel)
+          self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image', 92.63, [128,128,0,18])])
+          #print(report)
+          self.assertTrue(self.check_final(report))
+     #############################################
      def test_cube_D2(self):
           """ [cube] Test_Cube_D2 : specmode cube - WITH doppler corrections """
           self.prepData('refim_Cband.G37line.ms')
