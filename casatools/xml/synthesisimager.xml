@@ -872,7 +872,16 @@ CORRECTED\_DATA and MODEL\_DATA columns
 </method>
 
 
+   <method type="function" name="inithpg">
+   <shortdescription>init gpu code</shortdescription>
 
+<description>
+</description>
+<input>
+
+</input>
+<returns type="bool"/>
+</method>
 
 
    <method name="done" type="function">

@@ -101,9 +101,11 @@ public:
 		   const casacore::Bool& aTermOn,
 		   const casacore::Bool& conjBeams);
   void reloadCFCache();
-  ///load the weightimage in the MosaicFT machine if it has already been done
+  ///load the weightimage in the A projection FT machines if it has already been done
   //this can be called only after defineimage
-  void loadMosaicSensitivity();
+  bool loadMosaicSensitivity();
+  ///
+  bool makeMosaicSensitivity();
   //Some access methods
   casacore::CountedPtr<vi::VisibilityIterator2> getVi();
   casacore::CountedPtr<refim::FTMachine> getFTM(const casacore::Int whichfield=0,
@@ -252,7 +254,8 @@ public:
   std::tuple<TcleanProcessingInfo, casacore::Vector<casacore::Int>, casacore::Vector<casacore::Int> > nSubCubeFitInMemory(const casacore::Int fudge_factor, const casacore::IPosition& imshape, const casacore::Float padding=1.0);
 
   void updateImageBeamSet(casacore::Record& returnRec);
-
+  //HPG FTMachine is not re-entrant so needs to recreate it every time it is needed
+  void resetAWPHPG();
    // Other Options
   //casacore::Block<const casacore::MeasurementSet *> mss_p;
   casacore::CountedPtr<vi::VisibilityIterator2>  vi_p;

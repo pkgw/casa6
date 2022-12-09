@@ -104,37 +104,37 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
   //
   //----------------------------------------------------------------------
   //
-  void AWConvFunc::makePBSq(ImageInterface<Complex>& PB)
-  {
-    IPosition pbShape=PB.shape();
-    IPosition cursorShape(4, pbShape(0), pbShape(1), 1, 1), axisPath(4,0,1,2,3);
-    Array<Complex> buf; PB.get(buf,false);
-    ArrayLattice<Complex> lat(buf, true);
-    LatticeStepper latStepper(lat.shape(), cursorShape,axisPath);
-    LatticeIterator<Complex> latIter(lat, latStepper);
+  // void AWConvFunc::makePBSq(ImageInterface<Complex>& PB)
+  // {
+  //   IPosition pbShape=PB.shape();
+  //   IPosition cursorShape(4, pbShape(0), pbShape(1), 1, 1), axisPath(4,0,1,2,3);
+  //   Array<Complex> buf; PB.get(buf,false);
+  //   ArrayLattice<Complex> lat(buf, true);
+  //   LatticeStepper latStepper(lat.shape(), cursorShape,axisPath);
+  //   LatticeIterator<Complex> latIter(lat, latStepper);
     
-    IPosition start0(4,0,0,0,0), start1(4,0,0,1,0), length(4, pbShape(0), pbShape(1),1,1);
-    Slicer slicePol0(start0, length), slicePol1(start1, length);
-    if (pbShape(2) > 1)
-      {
-	Array<Complex> pol0, pol1,tmp;
+  //   IPosition start0(4,0,0,0,0), start1(4,0,0,1,0), length(4, pbShape(0), pbShape(1),1,1);
+  //   Slicer slicePol0(start0, length), slicePol1(start1, length);
+  //   if (pbShape(2) > 1)
+  //     {
+  // 	Array<Complex> pol0, pol1,tmp;
 
-	lat.getSlice(pol0, slicePol0);
-	lat.getSlice(pol1, slicePol1);
-	tmp = pol0;
-	pol0 = pol0*conj(pol1);
-	pol1 = tmp*conj(pol1);
-	lat.putSlice(pol0,start0);
-	lat.putSlice(pol1,start1);
-      }
-    else
-      {
-	// Array<Complex> pol0;
-	// lat.getSlice(pol0,slicePol0);
-	// pol0 = pol0*conj(pol0);
-	buf = buf * conj(buf);
-      }
-  }
+  // 	lat.getSlice(pol0, slicePol0);
+  // 	lat.getSlice(pol1, slicePol1);
+  // 	tmp = pol0;
+  // 	pol0 = pol0*conj(pol1);
+  // 	pol1 = tmp*conj(pol1);
+  // 	lat.putSlice(pol0,start0);
+  // 	lat.putSlice(pol1,start1);
+  //     }
+  //   else
+  //     {
+  // 	// Array<Complex> pol0;
+  // 	// lat.getSlice(pol0,slicePol0);
+  // 	// pol0 = pol0*conj(pol0);
+  // 	buf = buf * conj(buf);
+  //     }
+  // }
   //
   //----------------------------------------------------------------------
   //
@@ -421,6 +421,19 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    cfWtBuf *= ftATerm_l.get()*conj(ftATermSq_l.get());
 		    //tim.mark();
 		    //UUU cfWtBuf *= ftATerm_l.get();
+                    //////TESTOO/////////////
+                    {
+                      String tmpname=File::newUniqueName("./", "ATerm").baseName();
+                      PagedImage<Complex> tempA(pbShape, cs_l, tmpname);
+                      tempA.copyData(ftATerm_l); 
+                      tmpname[0]='W';
+                      cerr << "WTERM image " << tmpname << endl;
+                      PagedImage<Complex> tempB(pbShape, cs_l, tmpname);
+                      tempB.putSlice(cfBufMat, PolnPlane);
+                      
+                      
+                    }
+                    //////////////////////
 		    cfBuf *= ftATerm_l.get();
 		    //tim.show("W*A*2: ");
 		    // WBAWP CODE END
@@ -442,8 +455,8 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 
 		    // To accumulate avgPB2, call this function. 
 		    // PBSQWeight
-		    Bool PBSQ = false;
-		    if(PBSQ) makePBSq(twoDPBSq_l); 
+		    // Bool PBSQ = false;
+		    // if(PBSQ) makePBSq(twoDPBSq_l); 
 		    
 
 		    //
@@ -508,11 +521,11 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    //
 		    //tim.mark();
 		    Int supportBuffer = (Int)(getOversampling(psTerm, wTerm, aTerm)*2.0);
-		    if (!isDryRun)
-		      {
-			if (iw==0) wtcpeak = max(cfWtBuf);
-			cfWtBuf /= wtcpeak;
-		      }
+		    // if (!isDryRun)
+		    //   {
+		    // 	if (iw==0) wtcpeak = max(cfWtBuf);
+		    // 	cfWtBuf /= wtcpeak;
+		    //   }
 		    //tim.show("Norm");
 
 		    //tim.mark();
@@ -823,11 +836,16 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       {
 	log_l << "Using " << wConvSize << " planes for W-projection" << LogIO::POST;
 	Double maxUVW;
+	//
+	// The default WFUDGE value is set to recrate the value in
+	// WProjectFT production code (25% of the FoV), but also allow
+	// controlling it via CASARC variable (it's a fudge factor!).
+	//
 	float WFUDGE=4.0;
 	WFUDGE=refim::SynthesisUtils::getenv("WTerm.WFUDGE",WFUDGE);
+	maxUVW=1.0/abs(image.coordinates().increment()(0)*WFUDGE);
 
 	//maxUVW=0.25/abs(image.coordinates().increment()(0));
-	maxUVW=1.0/abs(image.coordinates().increment()(0)*WFUDGE);
 	log_l << "Estimating maximum possible W = " << maxUVW
 	      << " (wavelengths)" << LogIO::POST;
 	
@@ -1474,84 +1492,6 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 	}
   }
   //
-  //-------------------------------------------------------------------------
-  // Legacy code.  Should ultimately be deleteted after re-facatoring
-  // is finished.
-  //
-  Bool AWConvFunc::makeAverageResponse_org(const VisBuffer2& vb, 
-					   const ImageInterface<Complex>& image,
-					   ImageInterface<Float>& theavgPB,
-					   Bool reset)
-  {
-    LogIO log_l(LogOrigin("AWConvFunc2", "makeAverageResponse_org[R&D]"));
-    TempImage<Float> localPB;
-    
-    log_l << "Making the average response for " 
-	  << aTerm_p->name() 
-	  << LogIO::NORMAL << LogIO::POST;
-    
-    localPB.resize(image.shape()); localPB.setCoordinateInfo(image.coordinates());
-    if (reset)
-      {
-	log_l << "Initializing the average PBs" << LogIO::NORMAL << LogIO::POST;
-	theavgPB.resize(localPB.shape()); 
-	theavgPB.setCoordinateInfo(localPB.coordinates());
-	theavgPB.set(0.0);
-      }
-    //
-    // Make the Stokes PB
-    //
-    localPB.set(1.0);
-    
-    // Block<CountedPtr<ImageInterface<Float > > > tmpBlock(1);
-    // tmpBlock[0]=CountedPtr<ImageInterface<Float> >(&localPB, false);
-    // aTerm_p->applySky(tmpBlock, vb, 0, false);
-    aTerm_p->applySky(localPB, vb, false, 0);
-    
-    IPosition twoDPBShape(localPB.shape());
-    TempImage<Complex> localTwoDPB(twoDPBShape,localPB.coordinates());
-    //    localTwoDPB.setMaximumCacheSize(cachesize);
-    Int NAnt;
-    NAnt=1;
-    
-    for(Int ant=0;ant<NAnt;ant++)
-      { //Ant loop
-	{
-	  IPosition ndx(4,0,0,0,0);
-	  for(ndx(0)=0; ndx(0)<twoDPBShape(0); ndx(0)++)
-	    for(ndx(1)=0; ndx(1)<twoDPBShape(1); ndx(1)++)
-	      for(ndx(2)=0; ndx(2)<twoDPBShape(2); ndx(2)++)
-		for(ndx(3)=0; ndx(3)<twoDPBShape(3); ndx(3)++)
-		  localTwoDPB.putAt(Complex((localPB(ndx)),0.0),ndx);
-	}
-	//
-	// Accumulate the shifted PBs
-	//
-	{
-	  Bool isRefF;
-	  Array<Float> fbuf;
-	  Array<Complex> cbuf;
-	  isRefF=theavgPB.get(fbuf);
-	  //isRefC=localTwoDPB.get(cbuf);
-	  
-	  IPosition fs(fbuf.shape());
-	  IPosition ndx(4,0,0,0,0),avgNDX(4,0,0,0,0);
-	  for(ndx(3)=0,avgNDX(3)=0;ndx(3)<fs(3);ndx(3)++,avgNDX(3)++)
-	    for(ndx(2)=0,avgNDX(2)=0;ndx(2)<twoDPBShape(2);ndx(2)++,avgNDX(2)++)
-	      for(ndx(0)=0,avgNDX(0)=0;ndx(0)<fs(0);ndx(0)++,avgNDX(0)++)
-		for(ndx(1)=0,avgNDX(1)=0;ndx(1)<fs(1);ndx(1)++,avgNDX(1)++)
-		  {
-		    Float val;
-		    val = real(cbuf(ndx));
-		    fbuf(avgNDX) += val;
-		  }
-	  if (!isRefF) theavgPB.put(fbuf);
-	}
-      }
-    theavgPB.setCoordinateInfo(localPB.coordinates());
-    return true; // i.e., an average PB was made
-  }
-  //
   //----------------------------------------------------------------------
   //
 //  void AWConvFunc::prepareConvFunction(const VisBuffer2& vb, VBRow2CFBMapType& theMap)
@@ -1766,6 +1706,20 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 	//-------------------------------------------------------------		    
 	// WBAWP CODE BEGIN -- ftATermSq_l has conj. PolCS
 
+
+         //////TESTOO/////////////
+        {
+          String tmpname=File::newUniqueName(".", "ATerm2It ").absoluteName();
+          PagedImage<Complex> tempA(pbShape, cs_l, tmpname);
+          tempA.copyData(ftATerm_l);
+          tmpname[0]='W';
+          PagedImage<Complex> tempB(pbShape, cs_l, tmpname);
+          tempB.putSlice(cfBufMat, PolnPlane);
+          
+          
+        }
+
+        
 	  cfWtBuf *= ftATerm_l.get()*conj(ftATermSq_l.get());
 
 	//tim.mark();

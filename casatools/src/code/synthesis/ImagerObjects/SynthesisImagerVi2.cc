@@ -1,5 +1,5 @@
 //# SynthesisImagerVi2.cc: Implementation of SynthesisImager.h
-//# Copyright (C) 1997-2019
+//# Copyright (C) 1997-2021
 //# Associated Universities, Inc. Washington DC, USA.
 //# This library is free software; you can redistribute it and/or modify it
 //# under the terms of the GNU General Public License as published by
@@ -82,10 +82,10 @@
 #include <synthesis/TransformMachines2/HetArrayConvFunc.h>
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
 #include <synthesis/TransformMachines2/MultiTermFTNew.h>
-#include <synthesis/TransformMachines2/AWProjectWBFTNew.h>
+#include <synthesis/TransformMachines2/AWProjectFT.h>
+#include <synthesis/TransformMachines2/AWProjectWBFTHPG.h>
+#include <synthesis/TransformMachines2/AWVisResamplerHPG.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
-//#include <synthesis/TransformMachines2/AWConvFuncEPJones.h>
-#include <synthesis/TransformMachines2/NoOpATerm.h>
 #include <synthesis/TransformMachines2/SDGrid.h>
 #include <synthesis/TransformMachines/WProjectFT.h>
 #include <synthesis/TransformMachines2/BriggsCubeWeightor.h>
@@ -98,6 +98,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iomanip>
+#include <chrono>
+#include <thread>
 #include <synthesis/Parallel/Applicator.h>
 
 using namespace std;
@@ -123,6 +125,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       if(mss_p[k])
 	delete mss_p[k];
     }
+     
+    //if(gridparsVec_p[0].ftmachine=="awphpg")
+    //  hpg::finalize();
       SynthesisUtilMethods::getResource("End Run");
 }
 
@@ -152,7 +157,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      
 	      String mes=x.getMesg();
 	      if(mes.contains("FilebufIO::readBlock") || mes.contains("SOURCE")){
-		sleep(0.05);
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
 	      }
 	      else
@@ -653,8 +658,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 
 	itsVpTable=gridpars.vpTable;
 	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-		             gridpars.ftmachine.contains("awprojectft") )?False:True;
-
+                     (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
+       
 	//cerr << "DEFINEimage " << impars_p.toRecord() << endl; 				 
 					 
 	createFTMachine(ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType, 
@@ -698,9 +703,11 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
 	gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
 	//For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
-	if(gridparsVec_p[0].ftmachine.contains("awproject"))
-	   setCubeGridding(False);
-	
+	//if(gridparsVec_p[0].ftmachine.contains("awproject"))
+	 //  setCubeGridding(False);
+	itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
+                     (gridparsVec_p[0].ftmachine.at(0,3)=="awp") )?False:True;
+
     return true;
   }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
@@ -709,12 +716,17 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
 	Int id=itsMappers.nMappers();
     CoordinateSystem csys =imstor->getCSys();
     IPosition imshape=imstor->getShape();
+
+    cerr << "XXXXXXXXXXXXXXXINDEFINEIM shape " << imshape << endl;
+
+
     Int nx=imshape[0], ny=imshape[1];
     if( (id==0) || (nx*ny > itsMaxShape[0]*itsMaxShape[1]))
       {
 	itsMaxShape=imshape;
 	itsMaxCoordSys=csys;
       }
+  
     mLocation_p=impars.obslocation;
     // phasecenter
     if (impars.phaseCenterFieldId == -1) {
@@ -733,8 +745,10 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
         }
 	itsVpTable=gridpars.vpTable;
 	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-		             gridpars.ftmachine.contains("awprojectft") )?False:True;
+                     (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
 	CountedPtr<refim::FTMachine> ftm, iftm;
+         
+
 	createFTMachine(ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType, 
 			gridpars.facets, gridpars.wprojplanes,
 			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
@@ -748,7 +762,8 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
 			impars.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
 			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
 			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);  
-	
+       
+        
 	if(gridpars.facets >1)
 	{
 	      // Make and connect the list.
@@ -767,6 +782,10 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
         impars_p=impars;
         gridpars_p=gridpars;
 	imageDefined_p=true;
+        imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
+        gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+	gridparsVec_p[gridparsVec_p.nelements()-1]=gridpars_p;
 	return true;
 }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, 
@@ -838,6 +857,7 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor,
 			       const Quantity& filterbmin, const Quantity& filterbpa, Double fracBW)
   {
       LogIO os(LogOrigin("SynthesisImagerVi2", "weight()", WHERE));
+      
       if(rmode=="bwtaper") //See CAS-13021 for bwtaper algorithm details
       {
           if(fracBW == 0.0)
@@ -872,6 +892,9 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor,
        try {
     	//Int nx=itsMaxShape[0];
     	//Int ny=itsMaxShape[1];
+        
+
+         ///////////////////////
 	 Quantity cellx=Quantity(itsMaxCoordSys.increment()[0], itsMaxCoordSys.worldAxisUnits()[0]);
 	 Quantity celly=Quantity(itsMaxCoordSys.increment()[1], itsMaxCoordSys.worldAxisUnits()[1]);
 	 os << LogIO::NORMAL // Loglevel INFO
@@ -1101,7 +1124,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
       if(chanchunks > 1) itsDataLoopPerMapper=true;
       
       AlwaysAssert( ( ( ! (ftm->name()=="MosaicFTNew" && mappertype=="imagemosaic") )  && 
-      		      ( ! (ftm->name()=="AWProjectWBFTNew" && mappertype=="imagemosaic") )) ,
+		      ( ! (ftm->name()=="AWProjectWBFT" && mappertype=="imagemosaic") )) ,
 		    AipsError );
       //---------------------------------------------
 
@@ -1212,6 +1235,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
               // TODO make chanchunks a divisor of nchannels?
 	}
 	nsubcube = nsubcube < 1 ? 1 : nsubcube;
+
+        
         if( (imshape[3] >= nworkers) && (nsubcube < nworkers)){
           nsubcube=nworkers;
           ///TESTOO
@@ -1219,9 +1244,14 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
           //  nsubcube=2*nworkers;
 
         }
-	 else if(imshape[3] < (applicator.numProcs()-1)){
+        else if(imshape[3] < (applicator.numProcs()-1)){
 		nsubcube=imshape[3]; 
-	 }
+        }
+        cerr << "FTM name " << gridpars_p.ftmachine << endl;
+        if(gridpars_p.ftmachine.at(0,3)=="awp")
+          nsubcube=imshape[3];
+        cerr << "SUBCUBE " << nsubcube << " shp  " << imshape[3] << endl;
+        
 	Int chunksize=imshape[3]/nsubcube;
 	Int rem=imshape[3] % nsubcube;
 	//case of nchan < numprocs
@@ -1319,6 +1349,13 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
       vi::VisBuffer2* vb=vi_p->getVisBuffer();
       vi_p->originChunks();
       vi_p->origin();
+      /////////////////////////////////////
+      /////////////////
+      if(gridparsVec_p[0].ftmachine=="awphpg"){
+        //reset the ftmachine as it keeps dying on second run
+        resetAWPHPG();
+      }
+      //////////////////////////////////
       Double numcoh=0;
       for (uInt k=0; k< mss_p.nelements(); ++k)
 	numcoh+=Double(mss_p[k]->nrow());
@@ -1338,8 +1375,11 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
           Int spwnow=vb->spectralWindows()[0];
           Int nchaninms=MSColumns(vb->ms()).spectralWindow().numChan()(spwnow);
           //cerr << "chans " << nchaninms << "   " << nchannow << endl;
-          if (nchaninms < nchannow)
+         
+          if (nchaninms < nchannow){
+            cerr << "NCHANS ms" << nchaninms << " now " << nchannow << " spw " << spwnow << "   " << vb->spectralWindows() << endl;
             throw(AipsError("A nasty Visbuffer2 error occured...wait for CNGI"));
+          }
         }
           //////
     	for (vi_p->originChunks(); vi_p->moreChunks();vi_p->nextChunk())
@@ -1355,12 +1395,13 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 			  { Cube<Complex> mod(vb->nCorrelations(), vb->nChannels(), vb->nRows(), Complex(0.0));
 			    vb->setVisCubeModel(mod); 
 			  }
-			  itsMappers.degrid(*vb, savevirtualmodel );
-			  if(savemodelcolumn && writeAccess_p ){	
-				const_cast<MeasurementSet& >((vi_p->ms())).lock(true);
-			    vi_p->writeVisModel(vb->visCubeModel());
-				const_cast<MeasurementSet& >((vi_p->ms())).unlock();
-				
+                          if(gridparsVec_p[0].ftmachine !="awphpg"){
+                            itsMappers.degrid(*vb, savevirtualmodel );
+                            if(savemodelcolumn && writeAccess_p ){	
+                              const_cast<MeasurementSet& >((vi_p->ms())).lock(true);
+                              vi_p->writeVisModel(vb->visCubeModel());
+                              const_cast<MeasurementSet& >((vi_p->ms())).unlock();
+                            }
 			    //static_cast<VisibilityIteratorImpl2 *> (vi_p->getImpl())->writeVisModel(vb->visCubeModel());
 
 			    // Cube<Complex> tt=vb->visCubeModel();
@@ -1395,7 +1436,25 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 
   }// end runMajorCycle
 
- 
+
+
+  void SynthesisImagerVi2::resetAWPHPG(){
+    CountedPtr<refim::FTMachine> theFT=nullptr;
+    CountedPtr<refim::FTMachine> theIFT=nullptr;
+    SynthesisParamsGrid *gp= &(gridparsVec_p[0]);
+    createAWPFTMachine(theFT, theIFT, gp->ftmachine, gp->facets,
+                       gp->wprojplanes, 
+                       gp->padding, gp->useAutoCorr, gp->useDoublePrec,
+                       gp->convFunc, //gridFunction,
+                       gp->aTermOn, gp->psTermOn, gp->mTermOn, gp->wbAWP,
+                       gp->cfCache, gp->usePointing, (gp->pointingOffsetSigDev).tovector(),
+                       gp->doPBCorr, gp->conjBeams, gp->computePAStep,
+                       gp->rotatePAStep, 1000000000,16,imparsVec_p[0].imageName);
+    itsMappers.setFTM2(0, theIFT, true);
+    itsMappers.setFTM2(0, theFT, false);
+    loadMosaicSensitivity();
+
+  }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1652,8 +1711,16 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
                                 
                                 
 			}
-			if(itsMakeVP)
+			if(itsMakeVP){
 			  pbnames(k)=itsMappers.imageStore(imageStoreId)->pb(k)->name();
+                          /* (itsMappers.imageStore(imageStoreId)->pb(k))->lock(FileLocker::Write, 20);
+                          if( !( (itsMappers.imageStore(imageStoreId)->pb(k))->isMasked() ) ){
+                             (itsMappers.imageStore(imageStoreId)->pb(k))->makeMask ("mask0", true, true, true, true);
+                             (itsMappers.imageStore(imageStoreId)->pb(k))->pixelMask().unlock();
+                          }
+                          */
+                          (itsMappers.imageStore(imageStoreId)->pb(k))->unlock();
+                        }
 		}
 		controlRecord.define("weightnames", weightnames);
                 controlRecord.define("pbnames", pbnames);
@@ -1704,7 +1771,9 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
                                   //(itsMappers.imageStore(k))->psf(j)->set(0.0);
                                   /////////
 					(itsMappers.imageStore(k))->psf(j)->unlock();
+                                        (itsMappers.imageStore(k))->pb()->unlock();
 				}
+                                
 			}
 			else{
 				for(uInt j =0; j <(itsMappers.imageStore(k)->getNTaylorTerms(false)); ++j){
@@ -1724,8 +1793,13 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
                                 //(itsMappers.imageStore(k))->sumwt(j)->set(0.0);
                                 ////
 				(itsMappers.imageStore(k))->sumwt(j)->unlock();
-				(itsMappers.imageStore(k))->releaseLocks();
+				//(itsMappers.imageStore(k))->releaseLocks();
 			}
+
+                        
+                        
+                        //cerr << "@@@@@@@@@@@BEFMaster pid : " << getpid() << " lock " << (itsMappers.imageStore(0))->pb()->hasLock(FileLocker::Write) << "    "  <<  (itsMappers.imageStore(0))->pb()->hasLock(FileLocker::Read)  <<  " MASK " <<(itsMappers.imageStore(0))->pb()->pixelMask().hasLock(FileLocker::Write) << "    " <<  (itsMappers.imageStore(0))->pb()->pixelMask().hasLock(FileLocker::Read)  <<endl;        
+             	(itsMappers.imageStore(k))->releaseLocks();           
 	}		
 		//Send the working directory as the child and master may be at different places
 		
@@ -1767,7 +1841,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
                 assigned = casa::applicator.nextAvailProcess ( cmc, rank );
 
             }
-
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             ///send process info
             // put data sel params #1
             applicator.put ( vecSelParsRec );
@@ -1824,6 +1898,9 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
         if(!dopsf && normpars_p.isDefined("pblimit") && (normpars_p.asFloat("pblimit") > 0.0) ){
           try{
 	    SIImageStore::copyMask(itsMappers.imageStore(0)->pb(), itsMappers.imageStore(0)->residual());
+            (itsMappers.imageStore(0))->residual()->unlock();
+            //(itsMappers.imageStore(0)->pb())->pixelMask().unlock();
+            (itsMappers.imageStore(0))->pb()->unlock();
           }
           catch(AipsError &x) {
             if(!String(x.getMesg()).contains("T/F"))
@@ -1839,6 +1916,9 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 	  LatticeLocker lock1 (*(itsMappers.imageStore(0)->psf()), FileLocker::Write);
 	  itsMappers.imageStore(0)->psf()->setImageInfo(cubePsfImageInfo_p);
 	  itsMappers.imageStore(0)->psf()->unlock();
+          //(itsMappers.imageStore(0)->pb())->pixelMask().unlock();
+          (itsMappers.imageStore(0))->pb()->unlock();
+         
 	}
 
         }  
@@ -2395,7 +2475,7 @@ void SynthesisImagerVi2::unlockMSs()
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
     static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
-    else if ((ftname == "awprojectft") || (ftname== "mawprojectft") || (ftname == "protoft")) {
+    else if ((ftname.contains("awprojectft")) || (ftname== "mawprojectft") || (ftname == "protoft") || (ftname == "awphpg")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
 			 padding, useAutocorr, useDoublePrec, gridFunction,
 			 aTermOn, psTermOn, mTermOn, wbAWP, cfCache, 
@@ -2487,7 +2567,7 @@ void SynthesisImagerVi2::unlockMSs()
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   void SynthesisImagerVi2::createAWPFTMachine(CountedPtr<refim::FTMachine>& theFT, CountedPtr<refim::FTMachine>& theIFT, 
-					      const String&,// ftmName,
+					      const String& ftmName,
 					      const Int,// facets,            //=1
 					      //------------------------------
 					      const Int wprojPlane,        //=1,
@@ -2565,7 +2645,18 @@ void SynthesisImagerVi2::unlockMSs()
     CountedPtr<refim::VisibilityResamplerBase> visResampler;
     //    if (ftmName=="protoft") visResampler = new ProtoVR();
     //elsef
-    visResampler = new refim::AWVisResampler();
+    //cerr << "############ Starting " << ftmName << endl;
+    if (ftmName=="awphpg")
+      {  //hpg::initialize();
+#ifndef USE_HPG
+        throw(AipsError("Code has not been built with gpu libraries"));
+#else
+        visResampler = new refim::AWVisResamplerHPG(false);
+        visResampler->setModelImage("");
+#endif
+      }
+    else
+      visResampler = new refim::AWVisResampler();
     //    CountedPtr<VisibilityResamplerBase> visResampler = new VisibilityResampler();
 
     //
@@ -2587,13 +2678,23 @@ void SynthesisImagerVi2::unlockMSs()
     // Re-sampler objects.  
     //
     Float pbLimit_l=1e-3;
-
-    theFT = new refim::AWProjectWBFTNew(wprojPlane, cache/2, 
-			      cfCacheObj, awConvFunc, 
-			      visResampler,
-					/*true */usePointing, pointingOffsetSigDev ,doPBCorr, 
-			      tile, computePAStep, pbLimit_l, true,conjBeams,
-			      useDoublePrec);
+    if(ftmName=="awphpg"){
+      theFT=new refim::AWProjectWBFTHPG(wprojPlane, cache/2, 
+					   cfCacheObj, awConvFunc,
+					   visResampler,
+					   /*true */usePointing, pointingOffsetSigDev, doPBCorr,
+					   tile, computePAStep, pbLimit_l, true,conjBeams,
+					   useDoublePrec);
+      theFT->setPBReady(true);
+    }
+    else{
+      theFT = new refim::AWProjectWBFT(wprojPlane, cache/2,
+				       cfCacheObj, awConvFunc,
+				       visResampler,
+				       /*true */usePointing, pointingOffsetSigDev ,doPBCorr,
+				       tile, computePAStep, pbLimit_l, true,conjBeams,
+				       useDoublePrec);
+    }
 
     cfCacheObj = new refim::CFCache();
     cfCacheObj->setCacheDir(cfCache.data());
@@ -2612,8 +2713,8 @@ void SynthesisImagerVi2::unlockMSs()
     
 
     Quantity rotateOTF(rotatePAStep,"deg");
-    static_cast<refim::AWProjectWBFTNew &>(*theFT).setObservatoryLocation(mLocation_p);
-    static_cast<refim::AWProjectWBFTNew &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
+    static_cast<refim::AWProjectWBFT &>(*theFT).setObservatoryLocation(mLocation_p);
+    static_cast<refim::AWProjectWBFT &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
 
     // theIFT = new AWProjectWBFT(wprojPlane, cache/2, 
     // 			       cfCacheObj, awConvFunc, 
@@ -2624,13 +2725,18 @@ void SynthesisImagerVi2::unlockMSs()
 
     // static_cast<AWProjectWBFT &>(*theIFT).setObservatoryLocation(mLocation_p);
     // static_cast<AWProjectWBFT &>(*theIFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
-
-    theIFT = new refim::AWProjectWBFTNew(static_cast<refim::AWProjectWBFTNew &>(*theFT));
+    if(ftmName=="awphpg"){
+      /// the gridder and degridder (for hpg) are the same except it needs to load the modelimage
+      static_cast<refim::AWProjectWBFTHPG &>(*theFT).setObservatoryLocation(mLocation_p);
+      static_cast<refim::AWProjectWBFTHPG &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
+      theIFT = theFT;
+    }
+    else
+      theIFT = new refim::AWProjectWBFT(static_cast<refim::AWProjectWBFT &>(*theFT));
 
     os << "Sending frequency selection information " <<  mssFreqSel_p  <<  " to AWP FTM." << LogIO::POST;
     theFT->setSpwFreqSelection( mssFreqSel_p );
     theIFT->setSpwFreqSelection( mssFreqSel_p );
-    
 
   }
 
@@ -3133,27 +3239,83 @@ void SynthesisImagerVi2::unlockMSs()
       // 	  fftm->setCFCache(cfCacheObj,true);
       // 	}
   }
+  //////////////////
+   bool  SynthesisImagerVi2::makeMosaicSensitivity(){
+     ///We will bother with the first image. As A projection style gridding
+     ///usually is done on that first image.
+     /// if necessary in the future we will need to migrate this to SIMapper to
+     /// do it for all fields if multiple fields are A-projected. 
+     if(!itsMappers.getFTM2(0))
+       return False;
+     /////////////////
+       /////////////////
+     if(gridparsVec_p[0].ftmachine=="awphpg"){
+       //reset the ftmachine as it keeps dying on second run
+       resetAWPHPG();
+     }
+
+          
+    vi::VisBuffer2* vb=vi_p->getVisBuffer();
+     vi_p->originChunks();
+     vi_p->origin();
+     Double numcoh=0;
+      for (uInt k=0; k< mss_p.nelements(); ++k)
+	numcoh+=Double(mss_p[k]->nrow());
+      ProgressMeter pm(1.0, numcoh, 
+                          "Gridding Weights for PB", "","","",true);
+      rownr_t cohDone=0;
+      
+
+      ///This will initialize weight grid too.
+      itsMappers.initializeGrid(*vi_p,True);
+      //These 2 lines are for AWProj ftmachines
+      itsMappers.getFTM2(0)->setPBReady(false);
+      itsMappers.getFTM2(0)->setFTMType(casa::refim::FTMachine::WEIGHT);
+
+      for (vi_p->originChunks(); vi_p->moreChunks();vi_p->nextChunk())
+    	{
+          
+	  for (vi_p->origin(); vi_p->more(); vi_p->next())
+            {
+              if (SynthesisUtilMethods::validate(*vb)!=SynthesisUtilMethods::NOVALIDROWS)
+		    {
+                      itsMappers.getFTM2(0)->gridImgWeights(*vb);//This just calls AWP::put();
+                      cohDone += vb->nRows();
+                      pm.update(Double(cohDone));
+		    }
+    		}
+    	}
+      //now load the images in weight and sumwt
+      itsMappers.getFTM2(0)-> finalizeToWeightImage(*vb, imageStore(0));  
+      itsMappers.getFTM2(0)->setPBReady(false);
+      //cerr << "@@@@@@@MAKING PB " << endl;
+      return True;
+     
+
+   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  void SynthesisImagerVi2::loadMosaicSensitivity(){
+  bool  SynthesisImagerVi2::loadMosaicSensitivity(){
+    if(!itsMappers.getFTM2(0))
+      return False;
     String ftmname=itsMappers.getFTM2(0)->name();
-    
-    if(ftmname.contains("Mosaic")){
+    if(ftmname.contains("Mosaic") || ftmname.contains("AWProjectWB")){
       //sumwt has been calcuated
       Bool donesumwt=(max(itsMappers.imageStore(0)->sumwt()->get()) > 0.0);
-      //cerr << "Done sumwght " << donesumwt << max(itsMappers.imageStore(0)->sumwt()->get()) << endl;
       if(donesumwt){
         IPosition shp=itsMappers.imageStore(0)->weight()->shape();
         CoordinateSystem cs=itsMappers.imageStore(0)->weight()->coordinates();
-        CountedPtr<TempImage<Float> > wgtim=new TempImage<Float>(shp, cs);
+        CountedPtr<ImageInterface<Float> > wgtim=new TempImage<Float>(shp, cs);
         wgtim->copyData(*(itsMappers.imageStore(0)->weight()));
-        (static_cast<refim::MosaicFTNew &>( *(itsMappers.getFTM2(0,False)))).setWeightImage(wgtim);
-        static_cast<refim::MosaicFTNew &>( *(itsMappers.getFTM2(0,True))).setWeightImage(wgtim);
+        (const_cast<CountedPtr<refim::FTMachine>& >(itsMappers.getFTM2(0,False)))->setWeightImage(*wgtim);
+        (const_cast<CountedPtr<refim::FTMachine>& >(itsMappers.getFTM2(0,True)))->setWeightImage(*wgtim);
+        //cerr <<"@@@@@@@@LOADING PB" << endl;
+        return true;
 
       }
 
 
     }
-
+    return false;
   }
   /////////////////////////////////////////////////
   Record SynthesisImagerVi2::apparentSensitivity() 
@@ -3269,10 +3431,11 @@ void SynthesisImagerVi2::unlockMSs()
 
       if( itsMakeVP==False )
 	{
-	  os << LogIO::NORMAL1 << "Not making .pb by direct evaluation. The gridder will make a .weight and a .pb will be computed from it." << LogIO::POST;
-	  // Check that the .weight exists.. ?
-
-	  return False;
+          if( ((itsMappers.getFTM2(0))->name())!="MultiTermFTNew")
+            if(!loadMosaicSensitivity()){
+              if(!makeMosaicSensitivity())
+                throw(AipsError("Problem with making/loading sensitivity image for A -projection gridder"));
+            }
 	}
       else
 	{

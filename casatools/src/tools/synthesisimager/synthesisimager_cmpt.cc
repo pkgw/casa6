@@ -26,8 +26,9 @@
 #include <synthesis/ImagerObjects/SynthesisUtilMethods.h>
 
 #include <synthesisimager_cmpt.h>
-
-
+#ifdef USE_HPG
+#include <hpg/hpg.hpp>
+#endif
 using namespace std;
 using namespace casacore;
 using namespace casa;
@@ -864,6 +865,31 @@ bool synthesisimager::releasempi(){
   
       return true;
 }
+
+bool synthesisimager::inithpg()
+{
+  Bool rstat(false);
+
+  try 
+    {
+    
+
+#ifdef USE_HPG     
+      if (!hpg::is_initialized()) hpg::initialize();
+      rstat=true;
+#endif       
+      
+      
+    } 
+  catch  (AipsError x) 
+    {
+      RETHROW(x);
+    }
+  
+  return rstat;
+}
+
+
 
 bool
 synthesisimager::done()
