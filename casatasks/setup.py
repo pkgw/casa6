@@ -152,7 +152,6 @@ casatasks_version = '%d.%d.%d.%d%s' % (casatasks_major,casatasks_minor,casatasks
 if devbranchversion !="":
     casatasks_version = '%d.%d.%d.%da%s.dev%s%s' % (casatasks_major,casatasks_minor,casatasks_patch,casatasks_feature,devbranchversion,devbranchrevision,dirty)
 
-
 private_modules = [ 'src/modules/parallel', 'src/modules/imagerhelpers' ]
 
 xml_files = [ 'xml/imhead.xml',
@@ -180,6 +179,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/mstransform.xml',
               'xml/msuvbin.xml',
               'xml/tclean.xml',
+              'xml/deconvolve.xml',
               'xml/immath.xml',
               'xml/vishead.xml',
               'xml/uvsub.xml',
