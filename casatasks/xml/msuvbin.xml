@@ -42,7 +42,7 @@
       <value></value>
     </param>
 
-    <param type="string" name="outvis">
+    <param type="string" name="outputvis">
       <shortdescription>name of output uvgrid</shortdescription>
       <description>name of output uvgrid; if it existant the data will be binned additively into that uvgrid (as long as the parameters match for the grid description
       </description>
@@ -55,14 +55,28 @@
       </description>
       <value></value>
     </param>
-    <param type="int" name="nx">
-      <shortdescription>Number of pixels of grid along the x-axis</shortdescription>
-      <value>1000</value>
+    
+    <param type="any" name="imsize"> 
+      <shortdescription>Number of pixels</shortdescription>
+      <description>Number of pixels
+      example:
+      
+      imsize = [350,250]
+      imsize = 500 is equivalent to [500,500]
+      
+      To take proper advantage of internal optimized FFT routines, the
+      number of pixels must be even and factorizable by 2,3,5 only.
+      To find the nearest optimal imsize to that desired by the user, please use the following tool method:
+      
+      from casatools import synthesisutils
+      su = synthesisutils()
+      su.getOptimumSize(345) 
+      Output :  360
+      </description>
+      <type>int</type><type>intVec</type>
+      <value type="intVec"><value>100</value></value>
     </param>
-    <param type="int" name="ny">
-      <shortdescription>Number of pixels of grid along the y-axis</shortdescription>
-      <value>1000</value>
-    </param>
+    
     <param type="string" name="cell">
       <shortdescription>pixel cell size defined in sky dimension</shortdescription>
       <description>pixel cell size defined in sky dimension
@@ -72,6 +86,7 @@
       </description>
       <value>1arcsec</value>
     </param>
+
     <param type="int" name="ncorr">
       <shortdescription>number of correlations to store in grid</shortdescription>
       <description>number of correlations to store in grid
@@ -85,17 +100,18 @@
         <value>4</value>
       </allowed>
     </param>
+
     <param type="int" name="nchan">
       <shortdescription>Number of spectral channels in grid</shortdescription>
       <value>1</value>
     </param>
-    <param type="string" name="fstart">
+    <param type="string" name="start">
       <shortdescription>Frequency of first spectral channel</shortdescription>
-      <value>1GHz</value>
+      <value></value>
     </param>
-    <param type="string" name="fstep">
+    <param type="string" name="width">
       <shortdescription>spectral channel width</shortdescription>
-      <value>1kHz</value>
+      <value></value>
     </param>
     <param type="bool" name="wproject">
       <shortdescription>Do wprojection correction while gridding</shortdescription>
@@ -141,17 +157,14 @@
                default taql=''
                Example select all data where U &gt; 1 m in the ms
                taql='UVW[0] &gt; 1'
-       outvis -- name of output grid
+       outputvis -- name of output grid
                default: ''  The user has to give something here
        phasecenter -- phasecenter of the grid
                default= ''
                 phasecenter='J2000 18h03m04 -20d00m45.1'
-      nx  -- number of pixels along the x axis of the grid
-               default: 1000
-               nx=1200
-      ny  -- number of pixels along the y axis of the grid
-               default: 1000
-               ny=1200
+      imsize  -- number of pixels along the x and y axes of the grid
+               default=100
+               imsize=[1000, 1000]
        cell -- cellsize of the grid (given in sky units)
                default: '1arcsec'
                cell='0.1arcsec'
@@ -161,10 +174,10 @@
         nchan -- number of spectral channel
                default: 1
                nchan=2000
-        fstart -- frequency of the first channel
-               default: '1GHz';  User has to give something useful here
-        fstep -- spectral channel width
-               default: '1kHz'
+        start -- frequency of the first channel
+               default: '';  User has to give something useful here
+        width -- spectral channel width
+               default: ''
         wproject -- do wprojection correction while gridding
                 default: False
                 wproject=True

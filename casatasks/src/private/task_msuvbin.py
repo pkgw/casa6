@@ -1,4 +1,4 @@
-# msuvbin task 
+# msuvbin task
 # Copyright (C) 2022
 # Associated Universities, Inc. Washington DC, USA.
 #
@@ -17,19 +17,22 @@
 # Queries concerning CASA should be submitted at
 #        https://help.nrao.edu
 #
-#        Postal address: CASA Project Manager 
+#        Postal address: CASA Project Manager
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
 #                        Charlottesville, VA 22903-2475 USA
 #
 # $Id$
-#*  Created on: Mar 07, 2022
-#*      Author: kgolap
-#*
+# *  Created on: Mar 07, 2022
+# *      Author: kgolap
+# *
 from __future__ import absolute_import
 
 import os
 import shutil
+import typing
+from typing import Tuple, List, Union, Optional
+
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
 
@@ -37,25 +40,93 @@ from casatasks import casalog
 from casatools import msuvbinner as msbin
 from casatools import msmetadata
 from casatools import ms
-ms=ms()
-msmd=msmetadata()
-from  casatasks.private.imagerhelpers.input_parameters import saveparams2last
 
-@saveparams2last(multibackup=True) 
-def msuvbin(vis=None, field=None, spw=None, taql=None, outvis=None, phasecenter=None, nx=None, ny=None, cell=None,
-            ncorr=None, nchan=None, fstart=None, fstep=None, wproject=None, memfrac=None, doflag=None):
-    
-    casalog.origin('msuvbin ')
-    if(field==''):
-        field='*'
-    fieldid=0
-    fieldid=ms.msseltoindex(vis=vis, field=field)['field'][0]
-    if(phasecenter==''):
+ms = ms()
+msmd = msmetadata()
+from casatasks.private.imagerhelpers.input_parameters import (
+    saveparams2last,
+    determineFreqRange,
+)
+
+
+@saveparams2last(multibackup=True)
+def msuvbin(
+    vis: Optional[str] = None,
+    field: Optional[str] = None,
+    spw: Optional[str] = None,
+    taql: Optional[str] = None,
+    outputvis: Optional[str] = None,
+    phasecenter: Optional[str] = None,
+    imsize: Optional[Union[List[int], List[float], int, float]] = None,
+    cell: Optional[str] = None,
+    ncorr: Optional[int] = None,
+    nchan: Optional[int] = None,
+    start: Optional[str] = None,
+    width: Optional[str] = None,
+    wproject: Optional[bool] = None,
+    memfrac: Optional[float] = None,
+    doflag: Optional[bool] = None,
+) -> None:
+    fstart = start
+    fstep = width
+    casalog.origin("msuvbin ")
+    if wproject:
+        casalog.post(
+            "The wprojection option is extremely slow; you may consider running without it",
+            "WARN",
+            "task_msuvbin"
+        )
+    if field == "":
+        field = "*"
+    fieldid = 0
+    fieldid = ms.msseltoindex(vis=vis, field=field)["field"][0]
+    if isinstance(imsize, (int, float)):
+        nx = imsize
+        ny = imsize
+    else:
+        nx = imsize[0]
+        ny = imsize[0] if (len(imsize)==1) else imsize[1]
+    if phasecenter == "":
         msmd.open(vis)
-        phcen=msmd.phasecenter(fieldid)
+        phcen = msmd.phasecenter(fieldid)
         msmd.done()
-        phasecenter=phcen['refer']+' '+str(phcen['m0']['value'])+str(phcen['m0']['unit'])+' '+str(phcen['m1']['value'])+str(phcen['m1']['unit'])
-    msbinner=msbin(phasecenter=phasecenter, nx=nx, ny=ny, ncorr=ncorr, nchan=nchan, cellx=cell, celly=cell, fstart=fstart, fstep=fstep, memfrac=memfrac, wproject=wproject, doflag=doflag)
+        phasecenter = (
+            phcen["refer"]
+            + " "
+            + str(phcen["m0"]["value"])
+            + str(phcen["m0"]["unit"])
+            + " "
+            + str(phcen["m1"]["value"])
+            + str(phcen["m1"]["unit"])
+        )
+    if spw == "":
+        spw = "*"
+    if(nchan < 1):
+        casalog.post(
+            "nchan has to be larger than 0", "ERROR",
+            "task_msuvbin"
+        )
+        
+    if (not start) or (start == ""):
+        (fbeg, fwidth) = determineFreqRange(vis=vis, fieldid=fieldid, spw=spw)
+        fstart = f"{fbeg}Hz"
+        if (not width) or (width == ""):
+            fstep = f"{fwidth/nchan}Hz"
+    #print(f"fstart={fstart}, fstep={fstep}")
+    msbinner = msbin(
+        phasecenter=phasecenter,
+        nx=nx,
+        ny=ny,
+        ncorr=ncorr,
+        nchan=nchan,
+        cellx=cell,
+        celly=cell,
+        fstart=fstart,
+        fstep=fstep,
+        memfrac=memfrac,
+        wproject=wproject,
+        doflag=doflag,
+    )
     msbinner.selectdata(msname=vis, spw=spw, field=field, taql=taql)
-    msbinner.setoutputms(outvis)
+    msbinner.setoutputms(outputvis)
     msbinner.filloutputms()
