@@ -373,7 +373,7 @@ if casashell is not None:
             self.success = FAIL
 
 else:
-    raise AssertionError('could not load tasks in casashell.private')
+    casalog.post('could not load tasks in casashell.private')
 
 
 if __name__ == '__main__':
