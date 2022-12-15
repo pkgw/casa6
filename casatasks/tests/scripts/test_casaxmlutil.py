@@ -338,7 +338,7 @@ if casashell is not None:
     from casashell.private.sdfit import sdfit as s_sdfit
 
     class CasashellSDCalTest(SDCalTest):
-        """Test the constraints of sdcal."""
+        """Test that all constraint applying processes of casatasks.private.sdcal are not executed."""
 
         def __init__(self, methodName: str):
             super().__init__(methodName)
@@ -346,7 +346,7 @@ if casashell is not None:
             self.success = FAIL
 
     class CasashellSDFitTest(SDFitTest):
-        """Test the constraints of sdcal."""
+        """Test that all constraint applying processes of casatasks.private.sdfit are not executed."""
 
         def __init__(self, methodName: str):
             super().__init__(methodName)
@@ -354,7 +354,7 @@ if casashell is not None:
             self.success = FAIL
 
 else:
-    raise AssertionError('could not call tasks in casashell.private')
+    raise AssertionError('could not load tasks in casashell.private')
 
 
 if __name__ == '__main__':
