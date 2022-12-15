@@ -115,19 +115,19 @@ def xml_constraints_injector(func):
         func_ = func.__dict__.get('__wrapped__', func)
 
         is_recursive_load = False
-        called_from_python_code = False
+        called_from_casatasks = False
         for frame_info in inspect.stack():
             if frame_info.function == func_.__name__:
                 # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
                 is_recursive_load = True
             if frame_info.function == '__call__' and frame_info.frame.f_locals.get('_logging_state_'):
-                # if __call__() has the property '_logging_state_', the method is the interface for pythonic code.
-                called_from_python_code = True
+                # if __call__() has the local variable '_logging_state_', the method is the interface of casatasks.
+                called_from_casatasks = True
 
         if is_recursive_load:
             casatasks.casalog.post('recursive task call', 'INFO')
             retval = func(*args, **kwargs)
-        elif not called_from_python_code:
+        elif not called_from_casatasks:
             retval = func(*args, **kwargs)
         else:
             # generate the argument specification and the injector method from a task xml
