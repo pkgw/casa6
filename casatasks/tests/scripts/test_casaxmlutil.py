@@ -99,6 +99,10 @@ class CasaxmlutilTest(unittest.TestCase):
 class FundamentalTest(unittest.TestCase):
     """Test fundamental use of xml_constraints_injector."""
 
+    def __call__(self, *args, **kwargs):
+        _logging_state_ = None
+        self.dummy()
+
     @xml_constraints_injector
     def dummy(self, *args: list, **kwargs: dict):
         """Raise ValueError when XML file loads."""
@@ -107,7 +111,7 @@ class FundamentalTest(unittest.TestCase):
     def test_dummy(self):
         """The method should raise error."""
         with self.assertRaises(ValueError):
-            self.dummy()
+            FundamentalTest()
 
 
 class SDCalTest(CasaxmlutilTest):
@@ -119,56 +123,62 @@ class SDCalTest(CasaxmlutilTest):
                         {'outfile': 'sdcal.out',
                          'applyfile': 'apply.cal'})
 
+    def __init__(self, methodName: str):
+        super().__init__(methodName)
+        self.sdcal = sdcal
+        self.success = SUCCESS
+        self.fail = FAIL
+
     def __test_sdcal(self, whether: bool, args: dict, desired: dict=None, prepare_data: bool=False):
         """Test sdcal with parameters, prepare input data if needed."""
         if prepare_data:
-            sdcal(infile=self.testdata.infiles['ps'], calmode='tsys',
-                  outfile=self.testdata.tempfiles['applyfile'])
+            self.sdcal(infile=self.testdata.infiles['ps'], calmode='tsys',
+                       outfile=self.testdata.tempfiles['applyfile'])
         if not args.get('outfile'):
             args['outfile'] = self.testdata.tempfiles['outfile']
         if whether is SUCCESS:
             self.assertIsNotNone(desired)
-            self.positive_test(sdcal, args, desired)
+            self.positive_test(self.sdcal, args, desired)
         else:
-            self.negative_test(sdcal, args)
+            self.negative_test(self.sdcal, args)
 
     def test_sdcal_ps(self):
         """Test sdcal(calmode=ps)."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'ps'})
 
     def test_sdcal_otfraster(self):
         """Test sdcal(calmode=otfraster)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otfraster'},
                           desired={'intent': 'OBSERVE_TARGET#ON_SOURCE'})
 
     def test_sdcal_otfraster_not_override(self):
         """Test sdcal(calmode=otfraster, intent='..')."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otfraster',
                                 'intent': 'OBSERVE_TARGET#ON_SOURCE'})
 
     def test_sdcal_otf(self):
         """Test sdcal(calmode=otf)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otf'},
                           desired={'intent': 'OBSERVE_TARGET#ON_SOURCE'})
 
     def test_sdcal_otf_not_override(self):
         """Test sdcal(calmode=otf, intent='..')."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otf',
                                 'intent': 'OBSERVE_TARGET#ON_SOURCE'})
 
     def test_sdcal_apply(self):
         """Test sdcal(calmode=apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'apply',
                                 'applytable': self.testdata.tempfiles['applyfile']},
@@ -177,7 +187,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_apply_not_override(self):
         """Test sdcal(calmode=apply, interp='..')."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -186,7 +196,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_ps_apply(self):
         """Test sdcal(calmode=ps,apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'ps,apply'},
                           desired={'applytable': '',
@@ -194,7 +204,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_ps_apply_not_override(self):
         """Test sdcal(calmode=ps,apply) with applytabe and interp are not null."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'ps,apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -203,7 +213,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_tsys_apply(self):
         """Test sdcal(calmode=tsys,apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'tsys,apply'},
                           desired={'applytable': '',
@@ -211,7 +221,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_tsys_apply_not_override(self):
         """Test sdcal(calmode=tsys,apply) with applytabe and interp are not null."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'tsys,apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -220,7 +230,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_ps_tsys_apply(self):
         """Test sdcal(calmode=ps,tsys,apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'ps,tsys,apply'},
                           desired={'applytable': '',
@@ -228,7 +238,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_ps_tsys_apply_not_override(self):
         """Test sdcal(calmode=ps,tsys,apply) with applytabe and interp are not null."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['ps'],
                                 'calmode': 'ps,tsys,apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -237,7 +247,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_otfraster_apply(self):
         """Test sdcal(calmode=otfraster,apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otfraster,apply'},
                           desired={'applytable': '',
@@ -246,7 +256,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_otfraster_apply_not_override(self):
         """Test sdcal(calmode=otfraster,apply) with applytabe/interp/intent are not null."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otfraster,apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -256,7 +266,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_otfraster_tsys_apply(self):
         """Test sdcal(calmode=otfraster,tsys,apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otfraster,tsys,apply'},
                           desired={'applytable': '',
@@ -264,7 +274,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_otfraster_tsys_apply_not_override(self):
         """Test sdcal(calmode=otfraster,tsys,apply) with applytabe and interp are not null."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otfraster,tsys,apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -273,7 +283,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_otf_tsys_apply(self):
         """Test sdcal(calmode=otf,tsys,apply)."""
-        self.__test_sdcal(SUCCESS,
+        self.__test_sdcal(self.success,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otf,tsys,apply'},
                           desired={'applytable': '',
@@ -281,7 +291,7 @@ class SDCalTest(CasaxmlutilTest):
 
     def test_sdcal_otf_tsys_apply_not_override(self):
         """Test sdcal(calmode=otf,tsys,apply) with applytabe and interp are not null."""
-        self.__test_sdcal(FAIL,
+        self.__test_sdcal(self.fail,
                           args={'infile': self.testdata.infiles['otf'],
                                 'calmode': 'otf,tsys,apply',
                                 'applytable': self.testdata.tempfiles['applyfile'],
@@ -319,6 +329,32 @@ class SDFitTest(CasaxmlutilTest):
                                 'datacolumn': 'float_data',
                                 'nfit': [1], 'pol': 'XX',
                                 'timebin': ''})
+
+
+import importlib
+casashell = importlib.find_loader('casashell')
+if casashell is not None:
+    from casashell.private.sdcal import sdcal as s_sdcal
+    from casashell.private.sdfit import sdfit as s_sdfit
+
+    class CasashellSDCalTest(SDCalTest):
+        """Test the constraints of sdcal."""
+
+        def __init__(self, methodName: str):
+            super().__init__(methodName)
+            self.sdcal = s_sdcal
+            self.success = FAIL
+
+    class CasashellSDFitTest(SDFitTest):
+        """Test the constraints of sdcal."""
+
+        def __init__(self, methodName: str):
+            super().__init__(methodName)
+            self.sdfit = s_sdfit
+            self.success = FAIL
+
+else:
+    raise AssertionError('could not call tasks in casashell.private')
 
 
 if __name__ == '__main__':
