@@ -96,22 +96,41 @@ class CasaxmlutilTest(unittest.TestCase):
         self.assertFalse(self.check_log(logfile, "overrode argument:"))
 
 
-class FundamentalTest(unittest.TestCase):
-    """Test fundamental use of xml_constraints_injector."""
+class DummyTaskClass:
+    """DummyClass of casatask for FundamentalTest."""
 
     def __call__(self, *args, **kwargs):
-        _logging_state_ = None
-        self.dummy()
+        """Execute as an instance itself."""
+        _logging_state_ = True
+        return self.dummy()
 
     @xml_constraints_injector
     def dummy(self, *args: list, **kwargs: dict):
         """Raise ValueError when XML file loads."""
-        return args, kwargs
+        return True
+
+
+class DummyGoImpClass(DummyTaskClass):
+    """DummyClass of go/imp tasks for FundamentalTest."""
+    
+    def __call__(self, *args, **kwargs):
+        """Execute as an instance itself."""
+        return self.dummy()
+
+
+class FundamentalTest(unittest.TestCase):
+    """Test fundamental use of xml_constraints_injector."""
 
     def test_dummy(self):
         """The method should raise error."""
+        _tmp = DummyTaskClass()
         with self.assertRaises(ValueError):
-            FundamentalTest()
+            _tmp()
+    
+    def test_dummy_pass(self):
+        """The method should pass."""
+        _tmp = DummyGoImpClass()
+        self.assertTrue(_tmp())
 
 
 class SDCalTest(CasaxmlutilTest):
