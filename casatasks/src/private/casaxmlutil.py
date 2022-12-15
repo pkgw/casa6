@@ -115,14 +115,19 @@ def xml_constraints_injector(func):
         func_ = func.__dict__.get('__wrapped__', func)
 
         is_recursive_load = False
-        for frame in inspect.stack():
-            if frame.function == func_.__name__:
+        called_from_python_code = False
+        for frame_info in inspect.stack():
+            if frame_info.function == func_.__name__:
                 # when the task is called from the same task (ex: sdcal with two calmodes calls itself)
                 is_recursive_load = True
-                break
+            if frame_info.function == '__call__' and frame_info.frame.f_locals.get('_logging_state_'):
+                # if __call__() has the property '_logging_state_', the method is the interface for pythonic code.
+                called_from_python_code = True
 
         if is_recursive_load:
             casatasks.casalog.post('recursive task call', 'INFO')
+            retval = func(*args, **kwargs)
+        elif not called_from_python_code:
             retval = func(*args, **kwargs)
         else:
             # generate the argument specification and the injector method from a task xml
@@ -360,29 +365,32 @@ def __indent(level):
 if __name__ == '__main__':
 
     @xml_constraints_injector
-    def sdcal(infile=None, calmode='tsys', fraction='10%', noff=-1,
-            width=0.5, elongated=False, applytable='', interp='', spwmap={},
-            outfile='', overwrite=False, field='', spw='', scan='', intent=''):
+    def sdcal(infile, calmode, fraction, noff, width, elongated, applytable, interp, spwmap,
+              outfile, overwrite, field, spw, scan, intent):
         print(calmode)
         print(fraction)
         print(intent)
-    @xml_constraints_injector
-    def sdfit(infile=None, datacolumn=None, antenna=None, field=None, spw=None,
-            timerange=None, scan=None, pol=None, intent=None,
-            timebin=None, timespan=None,
-            polaverage=None,
-            fitfunc=None, fitmode=None, nfit=None, thresh=None, avg_limit=None,
-            minwidth=None, edge=None, outfile=None, overwrite=None):
-        print(nfit)
-        print(thresh)
-    sdcal('test', calmode='otfraster,apply')
-    sdfit('test', fitmode='auto')
 
-    from casatasks import sdcal, sdfit
+    class _sdcal_py:
 
-    sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otfraster,tsys,apply')
-    sdfit(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, fitmode='auto')
+        def __call__(self, infile=None, calmode='tsys', fraction='10%', noff=-1,
+                     width=0.5, elongated=False, applytable='', interp='', spwmap={},
+                     outfile='', overwrite=False, field='', spw='', scan='', **kwargs):
+            _logging_state_ = True
+            sdcal(infile, calmode, fraction, noff, width, elongated, applytable, interp, spwmap,
+                  outfile, overwrite, field, spw, scan, **kwargs)
 
-    def test():
-        sdcal(infile='tmp.ms', outfile='tmp2.ms', overwrite=True, calmode='otfraster,apply')
-    test()
+    class _sdcal_casashell:
+
+        def __call__(self, infile=None, calmode=None, fraction=None, noff=None,
+                     width=None, elongated=None, applytable=None, interp=None, spwmap=None,
+                     outfile=None, overwrite=None, field=None, spw=None, scan=None, intent=None):
+            sdcal(infile, calmode, fraction, noff, width, elongated, applytable, interp, spwmap,
+                  outfile, overwrite, field, spw, scan, intent)
+
+    x_sdcal = _sdcal_py()
+    x_sdcal('test', calmode='otfraster,apply')
+
+    x_sdcal = _sdcal_casashell()
+    x_sdcal('test', calmode='otfraster,apply')  # args overriding is not executed
+
