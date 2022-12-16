@@ -96,41 +96,49 @@ class CasaxmlutilTest(unittest.TestCase):
         self.assertFalse(self.check_log(logfile, "overrode argument:"))
 
 
-class DummyTaskClass:
-    """DummyClass of casatask for FundamentalTest."""
+class DummyGoImpClass:
+    """DummyClass for FundamentalTest."""
 
     def __call__(self, *args, **kwargs):
         """Execute as an instance itself."""
-        _logging_state_ = True
         return self.dummy()
 
     @xml_constraints_injector
     def dummy(self, *args: list, **kwargs: dict):
-        """Raise ValueError when XML file loads."""
+        """Return True only."""
         return True
 
 
-class DummyGoImpClass(DummyTaskClass):
-    """DummyClass of go/imp tasks for FundamentalTest."""
-    
+class RaiseExceptionClass:
+    """TestClass for Exception."""
+
     def __call__(self, *args, **kwargs):
         """Execute as an instance itself."""
         return self.dummy()
+
+    @xml_constraints_injector
+    def dummy(self, *args: list, **kwargs: dict):
+        """Return True only."""
+        raise CasaXMLException
+
+
+class CasaXMLException(BaseException):
+    """Dummy Exception class."""
 
 
 class FundamentalTest(unittest.TestCase):
     """Test fundamental use of xml_constraints_injector."""
 
-    def test_dummy(self):
-        """The method should raise error."""
-        _tmp = DummyTaskClass()
-        with self.assertRaises(ValueError):
-            _tmp()
-    
     def test_dummy_pass(self):
         """The method should pass."""
         _tmp = DummyGoImpClass()
         self.assertTrue(_tmp())
+
+    def test_raise_exception(self):
+        """Check propagation of Exception"""
+        _tmp = RaiseExceptionClass()
+        with self.assertRaises(CasaXMLException):
+            _tmp()
 
 
 class SDCalTest(CasaxmlutilTest):
