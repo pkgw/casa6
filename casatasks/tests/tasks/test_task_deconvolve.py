@@ -1122,10 +1122,9 @@ class test_iterbot(testref_base):
         self.prepData('refim_point.ms', tclean_args={'imsize':100, 'cell':'8.0arcsec', 'specmode':'cube', 'deconvolver':'hogbom'})
         results = deconvolve(imagename=self.img, deconvolver='hogbom', niter=10, threshold='0.5Jy', gain=0.5, fullsummary=True)
         report = th.checkall(ret=results, stopcode=2, iterdone=31, imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'])
-        _, report2 = th.check_val(results['summaryminor'][0][10][0]['startIterDone'][0], 20, valname='chan10 startIterDone', exact=True)  
-        _, report3 = th.check_val(results['summaryminor'][0][10][0]['iterDone'][0], 2, valname='chan10 iterDone', exact=True)  
-        _, report4 = th.check_val(results['summaryminor'][0][10][0]['peakRes'][0], 0.25000, valname='chan10 peakRes', exact=False)  
-        self.checkfinal(report+report2+report3+report4)
+        _, report2 = th.check_val(results['summaryminor'][0][10][0]['iterDone'][0], 2, valname='chan10 iterDone', exact=True)  
+        _, report3 = th.check_val(results['summaryminor'][0][10][0]['peakRes'][0], 0.25000, valname='chan10 peakRes', exact=False)  
+        self.checkfinal(report+report2+report3)
 
     def test_iterbot_cube_fullsummary_false(self):
         """ [iterbot] test_iterbot_cube_fullsummary_false """
