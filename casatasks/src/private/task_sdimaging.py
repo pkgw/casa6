@@ -19,7 +19,7 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               gridfunction, convsupport, truncate, gwidth, jwidth,
               imsize, cell, phasecenter, projection, ephemsrcname,
               pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax,
-              # Performances optimiztion options
+              # Performances optimization options
               enablecache, convertfirst):
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
