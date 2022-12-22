@@ -237,7 +237,8 @@ public:
     virtual unsigned int binAt(unsigned int i) const = 0;
     virtual unsigned int connectBinAt(unsigned int i) const {
         return binAt(i); };
-    
+
+    virtual std::map<std::string, std::string> getColorizeMap() const = 0;	
     
     // IMPLEMENTED METHODS //
     
