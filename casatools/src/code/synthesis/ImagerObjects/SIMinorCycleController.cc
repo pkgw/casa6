@@ -347,7 +347,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                                Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Int stopCode, bool fullsummary)
   {
     LogIO os( LogOrigin("SIMinorCycleController", __FUNCTION__ ,WHERE) );
-    os<<"cycleStartIter="<<cycleStartIter<<" startIterDone="<<startIterDone<<endl;
     IPosition shp = itsSummaryMinor.shape();
     //bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
     //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
