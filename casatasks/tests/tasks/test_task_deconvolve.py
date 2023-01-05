@@ -2887,7 +2887,7 @@ class test_residual_update(testref_base):
         ttnrange = 1
         ttnext = ""
         ttnstr = ""
-        if deconvolver is 'mtmfs':
+        if deconvolver == 'mtmfs':
             ismtmfs = True
             ttnrange = 2
             ttnext = ".tt{0}"
