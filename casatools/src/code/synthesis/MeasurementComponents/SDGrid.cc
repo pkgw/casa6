@@ -1697,31 +1697,6 @@ Int SDGrid::getIndex(const MSPointingColumns& mspc, const Double& time,
   return -1;
 }
 
-void SDGrid::createInterpolator(
-        const VisBuffer &vb,
-        const Bool useConvertedColumn
-    ) {
-    const auto nAntennas = static_cast<size_t>(
-            vb.msColumns().antenna().nrow()
-    );
-    if (not useConvertedColumn) {
-        // Interpolate original user-specified pointing column
-        interpolator = new SDPosInterpolator(
-            vb.msColumns().pointing(),
-            pointingDirCol_p,
-            nAntennas
-        );
-    } else {
-        // Interpolate user-specified pointing column,
-        // pre-converted to image's direction reference frame
-        interpolator = new SDPosInterpolator(
-            ramPointingTable,
-            pointingDirCol_p,
-            nAntennas
-        );
-    }
-}
-
 Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
 
     // Cache control
