@@ -39,11 +39,11 @@ if is_CASA6:
     casampi_imported = False
     import importlib
     _casampi_spec = importlib.util.find_spec('casampi')
-    if _casampi_spec:
+    try _casampi_spec:
         # don't catch import error from casampi if it is found in the system modules
         from casampi.MPIEnvironment import MPIEnvironment
         casampi_imported = True
-    else:
+    except:
         casalog.post('casampi not available - not testing MPIEnvironment stuff', 'WARN')
 
     def tclean_param_names():
