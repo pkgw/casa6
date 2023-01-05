@@ -1117,7 +1117,7 @@ class test_iterbot(testref_base):
      def test_iterbot_nmajor_2(self):
           """ [iterbot] Test_Iterbot_nmajor_2 : Performs two major cycle iterations """
           self.prepData('refim_point_onespw0.ms') # smaller dataset for a faster test
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',nmajor=2,niter=500,calcres=True, parallel=self.parallel)
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',nmajor=2,niter=500,calcres=True, fullsummary=True, parallel=self.parallel)
           report=self.th.checkall(ret=ret, stopcode=9, imgexist=[self.img+'.psf', self.img+'.residual', self.img+'.image'],
                                   nmajordone=3) # 1 for calcres + 2 major cycle during cleaning
  
@@ -1143,8 +1143,8 @@ class test_iterbot(testref_base):
           report3 = self.th.check_val(len(stopCode_vec), 2,valname='stopcode len:', exact=True)
           report = report + report3[1]
           if report3[0]==True:
-               report = report + (self.th.check_val(stopCode_vec[0], 2,valname='stopcode test1:', exact=True))[1]
-               report = report + (self.th.check_val(stopCode_vec[1], 2,valname='stopcode test2:', exact=True))[1]
+                report = report + (self.th.check_val(stopCode_vec[0], 2,valname='stopcode test1:', exact=True))[1]
+                report = report + (self.th.check_val(stopCode_vec[1], 2,valname='stopcode test2:', exact=True))[1]
           self.assertTrue(self.check_final(report))
 
      def test_iterbot_mfs_fullsummary_true(self):
