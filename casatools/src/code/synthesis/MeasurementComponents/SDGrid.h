@@ -198,19 +198,19 @@ public:
   // this is to allow for proper non natural weighting scheme while imaging
   // <group>
   SDGrid(SkyJones& sj, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
+     casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, SkyJones& sj, casacore::Int cachesize,
-	 casacore::Int tilesize, casacore::String convType="BOX", casacore::Int userSupport=-1,
-	 casacore::Float minweight=0., casacore::Bool clipminmax=false, casacore::Bool useImagingWeight=false);
+     casacore::Int tilesize, casacore::String convType="BOX", casacore::Int userSupport=-1,
+     casacore::Float minweight=0., casacore::Bool clipminmax=false, casacore::Bool useImagingWeight=false);
   SDGrid(casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
+     casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Float minweight=0., casacore::Bool clipminmax=false,
-	 casacore::Bool useImagingWeight=false);
+     casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Float minweight=0., casacore::Bool clipminmax=false,
+     casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="TGAUSS", casacore::Float truncate=-1.0, 
-	 casacore::Float gwidth=0.0, casacore::Float jwidth=0.0, casacore::Float minweight=0., casacore::Bool clipminmax=false,
-	 casacore::Bool useImagingWeight=false);
+     casacore::String convType="TGAUSS", casacore::Float truncate=-1.0, 
+     casacore::Float gwidth=0.0, casacore::Float jwidth=0.0, casacore::Float minweight=0., casacore::Bool clipminmax=false,
+     casacore::Bool useImagingWeight=false);
   // </group>
 
   // Copy constructor
