@@ -667,7 +667,6 @@
 #
 ##########################################################################
 
-from __future__ import absolute_import
 import os
 import sys
 import shutil
@@ -678,41 +677,20 @@ import re
 import glob
 from casatestutils.imagerhelpers import TestHelpers
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ctsys, quanta, measures, image, vpmanager, calibrater
-    from casatasks import casalog, deconvolve, tclean, imtrans, imrebin, imregrid, imval
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
+from casatools import ctsys, quanta, measures, image, vpmanager, calibrater
+from casatasks import casalog, deconvolve, tclean, imtrans, imrebin, imregrid, imval
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 
-    _ia = image( )
-    _vp = vpmanager( )
-    _cb = calibrater( )
-    _qa = quanta( )
-    _me = measures( )
+_ia = image( )
+_vp = vpmanager( )
+_cb = calibrater( )
+_qa = quanta( )
+_me = measures( )
 
-    refdatapath = ctsys.resolve('unittest/deconvolve/')
-else:
-    from __main__ import default
-    from tasks import *
-    from taskinit import *
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    _ia = iatool( )
-    _vp = vptool( )
-    _cb = cbtool( )
-    # not local tools
-    _qa = qa
-    _me = me
-
-    refdatapath = os.environ.get('CASAPATH').split()[0] + '/casatestdata/unittest/deconvolve/'
+refdatapath = ctsys.resolve('unittest/deconvolve/')
 
 th = TestHelpers()
-
-## List to be run
-def suite():
-    return [test_onefield, test_iterbot, test_multifield, test_stokes, test_cube, test_mask, test_multirun, test_imgval, test_mtmfsimgval, test_residual_update, test_restoration, test_niterparms]
 
 ## Base Test class with Utility functions
 class testref_base(unittest.TestCase):
@@ -909,9 +887,6 @@ class testref_base(unittest.TestCase):
         if ( re.search('\( ?Fail', pstr) != None ):
             self.fail("\n"+pstr)
 
-## Python27 backports
-if not hasattr(testref_base, 'assertRaisesRegex'):
-    testref_base.assertRaisesRegex = testref_base.assertRaisesRegexp
 
 ##############################################
 ##############################################
