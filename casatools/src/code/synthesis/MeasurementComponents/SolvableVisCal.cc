@@ -1,4 +1,4 @@
-//# SolvableVisCal.cc: Implementation of SolvableVisCal classes
+//# SolvableVisCal.cc: Implementation of SolvableVisCal classes/Users/nschweig/CASA6/CASR-539/SolvableVisCal.cc
 //# Copyright (C) 1996,1997,1998,1999,2000,2001,2002,2003
 //# Associated Universities, Inc. Washington DC, USA.
 //#
@@ -31,50 +31,44 @@
 
 #include <msvis/MSVis/VisBuffer.h>
 
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/MaskArrMath.h>
-#include <casa/Arrays/ArrayIter.h>
-#include <scimath/Mathematics/MatrixMathLA.h>
-#include <scimath/Fitting/LinearFit.h>
-#include <scimath/Functionals/Polynomial.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Quanta/MVTime.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/OS/Memory.h>
-#include <casa/OS/File.h>
-#include <casa/Utilities/GenSort.h>
-#include <casa/Quanta/Quantum.h>
-#include <casa/Quanta/QuantumHolder.h>
-#include <tables/Tables/TableCopy.h>
-#include <tables/Tables/TableUtil.h>
-#include <ms/MeasurementSets/MSAntennaColumns.h>
-#include <ms/MeasurementSets/MSSpWindowColumns.h>
-#include <ms/MeasurementSets/MSFieldColumns.h>
-#include <ms/MSOper/MSMetaData.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/MaskArrMath.h>
+#include <casacore/casa/Arrays/ArrayIter.h>
+#include <casacore/scimath/Mathematics/MatrixMathLA.h>
+#include <casacore/scimath/Fitting/LinearFit.h>
+#include <casacore/scimath/Functionals/Polynomial.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Quanta/MVTime.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/OS/Memory.h>
+#include <casacore/casa/OS/File.h>
+#include <casacore/casa/Utilities/GenSort.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/casa/Quanta/QuantumHolder.h>
+#include <casacore/tables/Tables/TableCopy.h>
+#include <casacore/tables/Tables/TableUtil.h>
+#include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
+#include <casacore/ms/MeasurementSets/MSSpWindowColumns.h>
+#include <casacore/ms/MeasurementSets/MSFieldColumns.h>
+#include <casacore/ms/MSOper/MSMetaData.h>
 #include <synthesis/CalTables/CTMainColumns.h>
 #include <synthesis/CalTables/CTColumns.h>
 #include <synthesis/CalTables/CTGlobals.h>
 #include <synthesis/CalTables/CTIter.h>
 #include <synthesis/CalTables/CTInterface.h>
 #include <synthesis/MeasurementComponents/SolveDataBuffer.h>
-#include <ms/MSSel/MSSelection.h>
-#include <ms/MSSel/MSSelectionTools.h>
-#include <casa/sstream.h>
-#include <casa/iostream.h>
-#include <casa/iomanip.h>
-#include <casa/Containers/RecordField.h>
+#include <casacore/ms/MSSel/MSSelection.h>
+#include <casacore/ms/MSSel/MSSelectionTools.h>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+#include <casacore/casa/Containers/RecordField.h>
 
-#if ! defined(CASATOOLS)
-#include <casadbus/plotserver/PlotServerProxy.h>
-#include <casadbus/utilities/BusAccess.h>
-#include <casadbus/session/DBusSession.h>
-#endif
-
-#include <casa/Logging/LogMessage.h>
-#include <casa/Logging/LogSink.h>
-#include <casa/System/Aipsrc.h>
-#include <casa/System/ProgressMeter.h>
+#include <casacore/casa/Logging/LogMessage.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/System/Aipsrc.h>
+#include <casacore/casa/System/ProgressMeter.h>
 
 #include <fstream>
 
@@ -489,6 +483,8 @@ SolvableVisCal::SolvableVisCal(VisSet& vs) :
   dataInterval_(0.0),
   fitWt_(0.0),
   fit_(0.0),
+  antennaMap_(),
+  refantMap_(),
   solveCPar_(vs.numberSpw(),NULL),  // TBD: move inflation into ctor body
   solveRPar_(vs.numberSpw(),NULL),
   solveParOK_(vs.numberSpw(),NULL),
@@ -3663,6 +3659,85 @@ Bool SolvableVisCal::verifyConstraints(VisBuffGroupAcc& vbag) {
 
 }
 
+void SolvableVisCal::clearMap() {
+    // Clear or initalize values for the antennaMap_
+    Vector<Int> initVector(nPar(), 0);
+    Vector<Int> singleVector(1, 0);
+    
+    for (Int iant=0; iant<nAnt(); ++iant) {
+        antennaMap_[iant]["expected"] = initVector;
+        antennaMap_[iant]["data_unflagged"] = initVector;
+        antennaMap_[iant]["above_minblperant"] = initVector;
+        antennaMap_[iant]["above_minsnr"] = initVector;
+        antennaMap_[iant]["used_as_refant"] = singleVector;
+    }
+    
+}
+
+void SolvableVisCal::clearRefantMap() {
+    // Clear or initialize values for refantMap_
+    for (Int ispw=0; ispw<nSpw(); ++ispw) {
+        for (Int iant=0; iant<nAnt(); ++iant) {
+            refantMap_[ispw][iant] = 0;
+        }
+    }
+}
+
+void SolvableVisCal::expectedUnflagged(SDBList& sdbs) {
+    // Iterate over sdbs and add values to expected and data unflagged
+    for (Int isdb=0;isdb<sdbs.nSDB();++isdb) {
+        SolveDataBuffer& sdb(sdbs(isdb));
+        
+        Int nRow(sdb.nRows());
+        Int nCorr(sdb.nCorrelations());
+        for (Int irow=0;irow<nRow;++irow) {
+            const Int& a1(sdb.antenna1()(irow));
+            const Int& a2(sdb.antenna2()(irow));
+            
+            if (a1!=a2) {
+                for (int par=0;par<nPar();par++) {
+                  antennaMap_[a1]["expected"][par] = 1;
+                  antennaMap_[a2]["expected"][par] = 1;
+                }
+            }
+            // Do cal type-dependent setting of "data_unflagged" counts
+            
+            switch (this->type()) {
+            case VisCal::G:
+            case VisCal::K:
+            case VisCal::B: {  // nPar=2 (gain-like)
+                // Set each pol by flags from appropriate parallel-hand corr
+                if (nfalse(sdb.flagCube()(0,Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"][0] =
+                  antennaMap_[a2]["data_unflagged"][0] = 1;
+                }
+                if (nfalse(sdb.flagCube()(nCorr-1,Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"][1] =
+                  antennaMap_[a2]["data_unflagged"][1] = 1;
+                }
+                break;
+            }
+            case VisCal::T: {  // nPar=1 (gain-like)
+                // Set single pol by flags from all parallel-hand correlations
+                Int nsl(nCorr>1?2:1), isl(nCorr>2?3:1);
+                if (nfalse(sdb.flagCube()(Slice(0,nsl,isl),Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"][0] =
+                  antennaMap_[a2]["data_unflagged"][0] = 1;
+                }
+                break;
+            }
+            default: {
+                // Set all pols by flags from all correlations (any unflagged is ok)
+                if (nfalse(sdb.flagCube()(Slice(),Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"].set(1);
+                  antennaMap_[a2]["data_unflagged"].set(1);
+                }
+            }
+            }
+        }
+    }
+}
+
 Bool SolvableVisCal::verifyConstraints(SDBList& sdbs) {  // VI2
 
   // TBD: handle multi-channel infocusFlag properly
@@ -3697,6 +3772,8 @@ Bool SolvableVisCal::verifyConstraints(SDBList& sdbs) {  // VI2
   // Recursively apply threshold on baselines per antenna
   Vector<Bool> antOK(nAnt(),True);  // nominally OK
   Vector<Int> blperant(nAnt(),0);
+  Vector<Int> initVector(nPar(), 0);
+    
   Int iant=0;
   while (iant<nAnt()) {
     if (antOK(iant)) {   // avoid reconsidering already bad ones
@@ -3726,6 +3803,9 @@ Bool SolvableVisCal::verifyConstraints(SDBList& sdbs) {  // VI2
     if (antOK(iant)) {
       // set solution good
       solveParOK().xyPlane(iant) = True;
+      for (Int ipar=0; ipar<nPar();++ipar) {
+        antennaMap_[iant]["above_minblperant"][ipar] = 1;
+      }
     }
     else {
       // This ant not ok, set soln to zero
@@ -3973,14 +4053,29 @@ void SolvableVisCal::formSolveSNR() {
 void SolvableVisCal::applySNRThreshold() {
 
   Int nOk1(ntrue(solveParOK()));
+    
+  std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>> resultMap;
+  Vector<Int> initVector(nPar(), 0);
+  Vector<Int> initVectorSingle(1, 0);
   
-  for (Int iant=0;iant<nAnt();++iant)
-    for (Int ipar=0;ipar<nPar();++ipar)
-      if (solveParOK()(ipar,0,iant))
-	solveParOK()(ipar,0,iant)=(solveParSNR()(ipar,0,iant)>minSNR());
+  for (Int iant=0;iant<nAnt();++iant) {
+    //if (refant() == iant) {
+    //  antennaMap_[iant]["used_as_refant"][0] += 1;
+    //}
+    for (Int ipar=0;ipar<nPar();++ipar) {
+      //antennaMap_[iant]["expected"][ipar] += 1;
+      if (solveParOK()(ipar,0,iant)){
+	    solveParOK()(ipar,0,iant)=(solveParSNR()(ipar,0,iant)>minSNR());
+        //antennaMap_[iant]["data_unflagged"][ipar] += 1;
+        if (solveParOK()(ipar,0,iant)) {antennaMap_[iant]["above_minsnr"][ipar] = 1;};
+      }
+    }
+  }
   
+  //cout << pexp << endl;
+    
   Int nOk2(ntrue(solveParOK()));
-  Int nFail=nOk1-nOk2;    
+  Int nFail=nOk1-nOk2;
   
   if (false) {
     // Report some stuff re SNR
@@ -5355,9 +5450,6 @@ SolvableVisJones::SolvableVisJones(VisSet& vs) :
   dJ2_(NULL),
   diffJElem_(),
   DJValid_(false)
-#if ! defined(CASATOOLS)
-  ,plotter_(NULL)
-#endif
 {
   if (prtlev()>2) cout << "SVJ::SVJ(vs)" << endl;
 }
@@ -5371,9 +5463,6 @@ SolvableVisJones::SolvableVisJones(String msname,Int MSnAnt,Int MSnSpw) :
   dJ2_(NULL),
   diffJElem_(),
   DJValid_(false)
-#if ! defined(CASATOOLS)
-  ,plotter_(NULL)
-#endif
 {
   if (prtlev()>2) cout << "SVJ::SVJ(msname,MSnAnt,MSnSpw)" << endl;
 }
@@ -5387,9 +5476,6 @@ SolvableVisJones::SolvableVisJones(const MSMetaInfoForCal& msmc) :
   dJ2_(NULL),
   diffJElem_(),
   DJValid_(False)
-#if ! defined(CASATOOLS)
-  ,plotter_(NULL)
-#endif
 {
   if (prtlev()>2) cout << "SVJ::SVJ(msmc)" << endl;
 }
@@ -5404,9 +5490,6 @@ SolvableVisJones::SolvableVisJones(const Int& nAnt) :
   dJ2_(NULL),
   diffJElem_(),
   DJValid_(false)
-#if ! defined(CASATOOLS)
-  ,plotter_(NULL)
-#endif
 {
   if (prtlev()>2) cout << "SVJ::SVJ(i,j,k)" << endl;
 }
@@ -6709,6 +6792,9 @@ void SolvableVisJones::applyRefAnt() {
       usedaltrefant|=(ichoice>0);
       currrefant=refantchoices(ichoice);
       refantchoices(1)=currrefant;  // 2nd priorty next time
+        
+      // Mark refant in activity rec
+      refantMap_[ctiter.thisSpw()][currrefant] += 1;
 
       //      cout << " currrefant = " << currrefant << " (" << ichoice << ")" << endl;
 
@@ -8110,11 +8196,6 @@ void SolvableVisJones::fluxscale(const String& outfile,
 }
 
 void SolvableVisJones::setupPlotter() {
-// setjup plotserver
-#if ! defined(CASATOOLS)
-  plotter_ = dbus::launch<PlotServerProxy>( );
-  panels_id_.resize(nSpw());
-#endif
 }
 
 void SolvableVisJones::plotHistogram(const String& title,
@@ -8125,19 +8206,11 @@ void SolvableVisJones::plotHistogram(const String& title,
   std::string legendloc = "bottom";
   std::string zoomloc = "";
   if (index==0) {
-#if ! defined(CASATOOLS)
-    panels_id_[0] = plotter_->panel( title, "ratio", "N", "Fluxscale",
-                                   std::vector<int>( ), legendloc,zoomloc,0,false,false);
-#endif
     std::vector<std::string> loc;
     loc.push_back("top");
     //plotter_->loaddock( dock_xml_p, "bottom", loc, panels_id_[0].getInt());
   }
   else {
-#if ! defined(CASATOOLS)
-    panels_id_[index] = plotter_->panel( title, "ratio", "N", "",
-    std::vector<int>( ), legendloc,zoomloc,panels_id_[index-1].getInt(),false,false);
-#endif
      
     // multirow panels
     /***
@@ -8159,10 +8232,6 @@ void SolvableVisJones::plotHistogram(const String& title,
     ***/
   }
   // plot histogram
-#if ! defined(CASATOOLS)
-  plotter_->erase( panels_id_[index].getInt() );
-  plotter_->histogram(dbus::af(data),nbins,"blue",title,panels_id_[index].getInt( ));
-#endif
 
 }
 

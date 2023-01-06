@@ -30,6 +30,10 @@ from matplotlib.ticker import (FormatStrFormatter, MultipleLocator,
                                ScalarFormatter)
 from six.moves import input, range
 
+# CAS-13722, CAS-13385
+import warnings
+import matplotlib.cbook
+warnings.filterwarnings("ignore",category=matplotlib.cbook.MatplotlibDeprecationWarning)
 
 PLOTBANDPASS_REVISION_STRING = "$Id: task_plotbandpass.py,v 1.102 2018/01/21 14:45:41 thunter Exp $" 
 TOP_MARGIN  = 0.25   # Used if showatm=T or showtksy=T
@@ -496,20 +500,23 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
     Draws the legend at the top of the page, if it is the correct time to do so,
     including the overlayTimes, the 'UT' label, and the caltable name.
     """
-#    debugSloppyMatch=True
+    # debugSloppyMatch=True
     if (xframe == firstFrame):
         # draw title including caltable name
-        pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize,
-                color='k', transform=pb.gcf().transFigure)
+        pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize, color='k', transform=pb.gcf().transFigure)
         # support multi-fields with overlay='time'
         uTPFPS = []
         uTPFPStimerange = []
+        
         # Find all timerange integers for all fields, not just the ones that were plotted
         allTimeranges = []
         for f in range(len(uniqueTimesPerFieldPerSpw[ispwInCalTable])):
             for t in uniqueTimesPerFieldPerSpw[ispwInCalTable][f]:
                 if (t in timerangeListTimes):
                     allTimeranges.append(list(timerangeListTimes).index(t))
+        
+        allTimeranges = list(np.sort(np.unique(allTimeranges)))
+        
         for f in fieldIndicesToPlot:
             for t in uniqueTimesPerFieldPerSpw[ispwInCalTable][f]:
                 matched, mymatch = sloppyMatch(t, timerangeListTimes, solutionTimeThresholdSeconds,
@@ -517,7 +524,7 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
                 if (matched):
                     uTPFPS.append(t)
                     uTPFPStimerange.append(mymatch)
-        allTimeranges = list(np.sort(np.unique(allTimeranges)))
+        
         idx = np.argsort(uTPFPS)
         uTPFPStimerange = np.array(uTPFPStimerange)[idx]
         uTPFPS = np.sort(uTPFPS)
@@ -549,6 +556,7 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
                     myUniqueTime = uTPFPS[a]
                     if (debug):
                         print("3)setting myUniqueTime to %d" % (myUniqueTime))
+
             if (debug): print("----> Drawing legendString: %s" % (legendString))
             if ((len(fieldsToPlot) > 1 or len(timerangeList) > 1) and overlayAntennas==False):
                 # having overlayAntennas==False here will force all time labels to be black (as desired)
@@ -558,12 +566,23 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
 #                        transform=pb.gcf().transFigure)
                 if (debug):
                     print("len(uTPFPStimerange)=%d, a=%d, len(myUniqueColor)=%d" % (len(uTPFPStimerange),a,len(myUniqueColor)))
-                pb.text(x0, y0, legendString,color=overlayColors[timerangeList[allTimeranges.index(uTPFPStimerange[a])]],
-                        fontsize=mysize, transform=pb.gcf().transFigure)
+
+                uTPFPStimerangeValue = uTPFPStimerange[a]
+                try:
+                    timerangeListIndex = allTimeranges.index(uTPFPStimerangeValue)
+                except ValueError:
+                    casalogPost(debug, "uTPFPStimerangeValue = {} is not in the list allTimeranges".format(uTPFPStimerangeValue))
+                    casalogPost(debug, "Setting timerangeListIndex = 0. This will change the overlay colors index to a default value. The time labels might not look as expected.")
+                    casalogPost(debug, "It is possible that certain antennas had a slightly different timestamp.")
+                    timerangeListIndex = 0
+                
+                overlayColorsIndex = timerangeList[timerangeListIndex]
+                pb.text(x0, y0, legendString, color=overlayColors[overlayColorsIndex], fontsize=mysize, transform=pb.gcf().transFigure)
+                
                 if (debug):
                     print("done text")
             else:
-                pb.text(x0, y0, legendString,fontsize=mysize, transform=pb.gcf().transFigure)
+                pb.text(x0, y0, legendString, fontsize=mysize, transform=pb.gcf().transFigure)
 
 def lineNumber():
     """Returns the current line number in our program."""
@@ -664,7 +683,7 @@ def plural(u):
     else:
         return('')
 
-def casalogPost(debug,mystring):
+def casalogPost(debug, mystring):
     casalog.post(mystring)
     if (debug): print(mystring)
     
@@ -722,25 +741,16 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
     http://casaguides.nrao.edu/index.php?title=Plotbandpass
     -- Todd Hunter
     """
-    axes = dict() # keep track of already created axes
     def safe_pb_subplot(xframe):
         """
         CAS-12786: old pyplots (up to CASA 5.6.1 used to accept "220" in the pos parameter
         Newer pyplots won't. Assume the index effectively used was 1 ("221")
-        
-        CAS-13276: pb.subplot will return a different instance in future matplotlib versions rather than
-        the same instance. We need to keep track of the axes that have been already created; otherwise, we will lose plots.
         """
-        if (axes.get(xframe) != None):
-            return axes.get(xframe)
-
-        if str(xframe).endswith('0'):
-            adesc = pb.subplot(xframe + 1)
-        else:
-            adesc = pb.subplot(xframe)
-        
-        axes[xframe] = adesc
-        return adesc
+        xf = (xframe + 1) if str(xframe).endswith('0') else xframe
+        return pb.subplot(xf)
+    
+    def safe_pb_clf():
+        pb.clf()
 
     casalog.origin('plotbandpass')
     casalogPost(debug,"%s" % (PLOTBANDPASS_REVISION_STRING))
@@ -2165,7 +2175,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
   
     newylimits = [LARGE_POSITIVE, LARGE_NEGATIVE]
     
-    pb.clf()
+    safe_pb_clf() # pb.clf()
     if (bpoly):
       # The number of polarizations cannot be reliably inferred from the shape of
       # the GAIN column in the caltable.  Must use the shape of the DATA column 
@@ -2236,7 +2246,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                     myUniqueColor = []
                     if (debug):
                         print("v) incrementing xframe to %d" % xframe)
-                    adesc = pb.subplot(xframe)
+                    adesc = pb.safe_pb_subplot(xframe)
                     previousSubplot = xframe
                     if (ispw==originalSpw[ispw]):
                         # all this was added mistakenly here.  If it causes a bug, remove it.
@@ -2351,13 +2361,13 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                  pages.append([xctr,spwctr,mytime,1])
 #                                 print("appending [%d,%d,%d,%d]" % (xctr,spwctr,mytime,1))
                                  newpage = 0
-                       pb.clf()
+                       safe_pb_clf()
   
                   if (yaxis.find('phase')>=0 or amplitudeWithPhase):
                     xframe += 1
                     myUniqueColor = []
 # #                  print("w) incrementing xframe to %d" % xframe)
-                    adesc = pb.subplot(xframe)
+                    adesc = pb.safe_pb_subplot(xframe)
                     previousSubplot = xframe
                     if (ispw==originalSpw[ispw]):
                           pb.title("%sspw%2d,  field %d: %s%s" % (antennaString,ispw,
@@ -2443,10 +2453,10 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
               xframe = xframeStart
               if (xctr+1 < len(antennasToPlot)):
                   # don't clear the final plot when finished
-                  pb.clf()
+                  safe_pb_clf()
               if (spwctr+1<len(spwsToPlot) or mytime+1<nUniqueTimes):
                   # don't clear the final plot when finished
-                  pb.clf()
+                  safe_pb_clf()
               pb.subplots_adjust(hspace=myhspace, wspace=mywspace)
            if (redisplay == False):
                mytime += 1
@@ -3236,7 +3246,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                   
 # #     # #        print("Overlay antenna %d, myUniqueTime=%d" % (xctr, myUniqueTime))
                   if (xframe == xframeStart):
-                        pb.clf()
+                        safe_pb_clf()
                   xflag = [item for sublist in xflag for item in sublist]
                   yflag = [item for sublist in yflag for item in sublist]
 #       #          pflag = [xflag, yflag]
@@ -3259,7 +3269,8 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                   titleString = "%sspw%s,  field %d: %s%s" % (antennaString,spwString,uniqueFields[fieldIndex],fieldString,timeString)
                   if (sum(xflag)==nChannels and sum(yflag)==nChannels and showflagged==False):
                       if (overlayTimes):
-                          print("Skip %s (%s) for time%d=%s all data flagged" % (antstring, titleString,mytime,utstring(uniqueTimes[mytime],3)))
+                          msg = "Skip %s (%s) for time%d=%s all data flagged" % (antstring, titleString,mytime,utstring(uniqueTimes[mytime],3))
+                          casalogPost(True, msg)
                           # need to set doneOverlayTime = True if this is the final time,
                           # otherwise, we get "subplot number exceeds total subplots" at line 2427
                           # but we need to draw the labels at the top of the page, else they will not get done
@@ -3321,7 +3332,8 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                                                        channeldiff,ystartMadLabel,subplotRows,gamp_mad,mysize,
                                                                        ampmarkstyle,markersize,ampmarkstyle2,gamp_std)
                       else:  # not overlaying times
-                          print("Skip %s spw%d (%s) all data flagged" % (antstring, ispw, titleString))
+                          msg = "Skip %s spw%d (%s) all data flagged" % (antstring, ispw, titleString)
+                          casalogPost(True, msg)
                           if ((overlaySpws or overlayBasebands) and spwctr==spwctrFirstToPlot):
                               spwctrFirstToPlot += 1
                           if ((overlaySpws or overlayBasebands) and ispw==spwsToPlotInBaseband[bbctr][-1]):
@@ -4263,7 +4275,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                    ispw = spwsToPlot[spwctr]
 # #     # #                         print("Returning to [%d,%d,%d,%d]" % (xctr,spwctr,mytime,myap))
                                    if (xctr==pages[0][PAGE_ANT] and spwctr==pages[0][PAGE_SPW] and mytime==pages[0][PAGE_TIME] and pages[0][PAGE_AP]==myap):
-                                     pb.clf()
+                                     safe_pb_clf()
                                      if (debug):
                                          print("2)Setting xframe to %d" % xframeStart)
                                      xframe = xframeStart
@@ -4282,7 +4294,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                        if (debug):
                                            print("amp: appending [%d,%d,%d,%d]" % (xctr,myspwctr,mytime,1))
                                        newpage = 0
-                               pb.clf()
+                               safe_pb_clf()
                                if (debug):
                                    print("3)Setting xframe to %d" % xframeStart)
                                xframe = xframeStart
@@ -6786,7 +6798,7 @@ def findClosestTime(mytimes, mytime):
 def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
     """
     Queries the WEATHER and ANTENNA tables of an .ms by scan number or
-    list of scan numbers in order to return mean values of: angleToSun,
+    list of scan numbers in order to return median values of: angleToSun,
       pressure, temperature, humidity, dew point, wind speed, wind direction,
       azimuth, elevation, solarangle, solarelev, solarazim.
     If the sun is below the horizon, the solarangle returned is negated.
@@ -6881,8 +6893,8 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
         listfield = mymsmd.fieldsforscan(scan)
     [az,el] = ComputeSolarAzElForObservatory(myTimes[0], mymsmd)
     [az2,el2] = ComputeSolarAzElForObservatory(myTimes[-1], mymsmd)
-    azsun = np.mean([az,az2])
-    elsun = np.mean([el,el2])
+    azsun = np.median([az,az2])
+    elsun = np.median([el,el2])
     direction = subtable.getcol("DIRECTION")
     azeltime = subtable.getcol("TIME")
     subtable.close()
@@ -6899,21 +6911,21 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
       else:
           matchingIndices = []
       if (len(matchingIndices) > 0):  # CAS-8440
-          conditions['azimuth'] = np.mean(azimuth[matches[0]:matches2[-1]+1])
-          conditions['elevation'] = np.mean(elevation[matches[0]:matches2[-1]+1])
+          conditions['azimuth'] = np.median(azimuth[matches[0]:matches2[-1]+1])
+          conditions['elevation'] = np.median(elevation[matches[0]:matches2[-1]+1])
       elif (len(matches) > 0):        # CAS-8440
-          if verbose: print("using mean of all az/el values after time 0")
-          conditions['azimuth'] = np.mean(azimuth[matches[0]])
-          conditions['elevation'] = np.mean(elevation[matches[0]])
+          if verbose: print("using median of all az/el values after time 0")
+          conditions['azimuth'] = np.median(azimuth[matches[0]])
+          conditions['elevation'] = np.median(elevation[matches[0]])
       else:                           # CAS-8440
-          if verbose: print("using mean of all az/el values")
-          conditions['azimuth'] = np.mean(azimuth)
-          conditions['elevation'] = np.mean(elevation)
+          if verbose: print("using median of all az/el values")
+          conditions['azimuth'] = np.median(azimuth)
+          conditions['elevation'] = np.median(elevation)
       conditions['solarangle'] = angularSeparation(azsun,elsun,conditions['azimuth'],conditions['elevation'])
       conditions['solarelev'] = elsun
       conditions['solarazim'] = azsun
       if (verbose):
-          print("Using antenna = %s to retrieve mean azimuth and elevation" % (antennaName))
+          print("Using antenna = %s to retrieve median azimuth and elevation" % (antennaName))
           print("Separation from sun = %f deg" % (abs(conditions['solarangle'])))
       if (elsun<0):
         conditions['solarangle'] = -conditions['solarangle']
@@ -6936,7 +6948,7 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
             fieldName = fieldName[0]
 #        print("A) fieldname = ", fieldName)
 #        print("myfieldId = ", myfieldId)
-        myscantime = np.mean(mymsmd.timesforscan(scan))
+        myscantime = np.median(mymsmd.timesforscan(scan))
 #        print("Calling getRADecForField")
         mydirection = getRADecForField(vis, myfieldId, verbose)
         if (verbose): print("mydirection= %s" % (str(mydirection)))
@@ -6973,7 +6985,7 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
               if (type(myfieldId) == list or type(myfieldId)==type(np.ndarray(0))):
                   # If the same field name has two IDs (this happens in EVLA data)
                   myfieldId = myfieldId[0]
-              myscantime = np.mean(mymsmd.timesforscan(s))
+              myscantime = np.median(mymsmd.timesforscan(s))
               mydirection = getRADecForField(vis, myfieldId, verbose)
               telescopeName = mymsmd.observatorynames()[0]
               if (len(telescopeName) < 1):
@@ -6981,13 +6993,13 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
               myazel = computeAzElFromRADecMJD(mydirection, myscantime/86400., telescopeName)
               myaz.append(myazel[0]*180/math.pi)
               myel.append(myazel[1]*180/math.pi)
-          conditions['azimuth'] = np.mean(myaz)
-          conditions['elevation'] = np.mean(myel)
+          conditions['azimuth'] = np.median(myaz)
+          conditions['elevation'] = np.median(myel)
           conditions['solarangle'] = angularSeparation(azsun,elsun,conditions['azimuth'],conditions['elevation'])
           conditions['solarelev'] = elsun
           conditions['solarazim'] = azsun
           if (verbose):
-              print("Using antenna = %s to retrieve mean azimuth and elevation" % (antennaName))
+              print("Using antenna = %s to retrieve median azimuth and elevation" % (antennaName))
               print("Separation from sun = %f deg" % (abs(conditions['solarangle'])))
           if (elsun<0):
               conditions['solarangle'] = -conditions['solarangle']
@@ -7018,15 +7030,15 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
         pressure = mytb.getcol('PRESSURE')
         relativeHumidity = mytb.getcol('REL_HUMIDITY')
         temperature = mytb.getcol('TEMPERATURE')
-        if (np.mean(temperature) > 100):
+        if (np.median(temperature) > 100):
             # must be in units of Kelvin, so convert to C
             temperature -= 273.15        
         if 'DEW_POINT' in mytb.colnames():
             dewPoint = mytb.getcol('DEW_POINT')
-            if (np.mean(dewPoint) > 100):
+            if (np.median(dewPoint) > 100):
                 # must be in units of Kelvin, so convert to C
                 dewPoint -= 273.15        
-            if (np.mean(dewPoint) == 0):
+            if (np.median(dewPoint) == 0):
                 # assume it is not measured and use NOAA formula to compute from humidity:
                 dewPoint = ComputeDewPointCFromRHAndTempC(relativeHumidity, temperature)
         else:
@@ -7090,23 +7102,23 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
                       print("matches2[0]=%f, matches2[-1]=%d" % (matches2[0], matches2[-1]))
           else:
               conditions['readings'] = len(selectedValues)
-          conditions['pressure'] = np.mean(pressure[selectedValues])
+          conditions['pressure'] = np.median(pressure[selectedValues])
           if (conditions['pressure'] != conditions['pressure']):
               # A nan value got through, due to no selected values (should be impossible)"
               if (verbose):
                   print(">>>>>>>>>>>>>>>>>>>>>>>>  selectedValues = %s" % (str(selectedValues)))
                   print("len(matches)=%d, len(matches2)=%d" % (len(matches), len(matches2)))
                   print("matches[0]=%f, matches[-1]=%f, matches2[0]=%f, matches2[-1]=%d" % (matches[0], matches[-1], matches2[0], matches2[-1]))
-          conditions['temperature'] = np.mean(temperature[selectedValues])
-          conditions['humidity'] = np.mean(relativeHumidity[selectedValues])
+          conditions['temperature'] = np.median(temperature[selectedValues])
+          conditions['humidity'] = np.median(relativeHumidity[selectedValues])
           if dewPoint is not None:
-              conditions['dewpoint'] = np.nanmean(dewPoint[selectedValues])
-          conditions['windspeed'] = np.mean(windSpeed[selectedValues])
-          conditions['winddirection'] = (180./math.pi)*np.arctan2(np.mean(sinWindDirection[selectedValues]),np.mean(cosWindDirection[selectedValues]))
+              conditions['dewpoint'] = np.nanmedian(dewPoint[selectedValues])
+          conditions['windspeed'] = np.median(windSpeed[selectedValues])
+          conditions['winddirection'] = (180./math.pi)*np.arctan2(np.median(sinWindDirection[selectedValues]),np.median(cosWindDirection[selectedValues]))
           if (conditions['winddirection'] < 0):
               conditions['winddirection'] += 360
           if (verbose):
-              print("Mean weather values for scan %s (field %s)" % (listscan,listfield))
+              print("Median weather values for scan %s (field %s)" % (listscan,listfield))
               print("  Pressure = %.2f mb" % (conditions['pressure']))
               print("  Temperature = %.2f C" % (conditions['temperature']))
               if dewPoint is not None:

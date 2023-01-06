@@ -26,36 +26,37 @@
 //#
 //# $Id$
 
-#include <casa/aips.h>
-#include <casa/BasicSL/Complex.h>
+#include <casacore/casa/aips.h>
+#include <casacore/casa/BasicSL/Complex.h>
 
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <ms/MeasurementSets/MSObsColumns.h>
-#include <ms/MeasurementSets/MSSpWindowColumns.h>
-#include <tables/Tables.h>
-#include <measures/Measures/Stokes.h>
-#include <measures/Measures/MeasConvert.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/ms/MeasurementSets/MSObsColumns.h>
+#include <casacore/ms/MeasurementSets/MSSpWindowColumns.h>
+#include <casacore/tables/Tables.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/measures/Measures/MeasConvert.h>
 
-#include <casa/BasicSL/Constants.h>
-#include <measures/Measures/MeasTable.h>
+#include <casacore/casa/BasicSL/Constants.h>
+#include <casacore/measures/Measures/MeasTable.h>
 #include <components/ComponentModels/Flux.h>
 #include <components/ComponentModels/ComponentShape.h>
 #include <components/ComponentModels/TabularSpectrum.h>
 #include <components/ComponentModels/ConstantSpectrum.h>
+#include <components/ComponentModels/PointShape.h>
 #include <synthesis/TransformMachines/BeamSkyJones.h>
 #include <synthesis/TransformMachines/PBMath.h>
 
 #include <msvis/MSVis/VisBuffer.h>
 
-#include <images/Images/ImageInterface.h>
-#include <images/Regions/ImageRegion.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Regions/ImageRegion.h>
 
-#include <casa/Utilities/Assert.h>
+#include <casacore/casa/Utilities/Assert.h>
 
 /*
 // temporary, for debugging
-#include <casa/Quanta/MVAngle.h>
+#include <casacore/casa/Quanta/MVAngle.h>
 void printDirection(std::ostream &os,const casa::MDirection &dir) throw (casa::AipsError) {
   double lngbuf=dir.getValue().getLong("deg").getValue();
   if (lngbuf<0) lngbuf+=360.;
@@ -484,16 +485,36 @@ BeamSkyJones::apply(SkyComponent& in,
 	   Vector<Double> freqs(nchan);
 	   Bool conv;
 	   SkyComponent tmp;
+           Vector<DComplex> normFactor;
+           normFactor.assign(in.flux().value());
+           auto poltype=in.flux().pol();
+           for(size_t k=0; k < normFactor.size(); ++k) {
+             normFactor[k]= abs(normFactor[k]) >0.0 ? 1.0/abs(normFactor[k]) : 1.0;
+           }
 	   vb.lsrFrequency(vb.spectralWindow(), freqs,  conv);
-	   for (uInt k=0; k < nchan; ++k){
-	     tmp=in.copy();
-	     myPBMath.applyPB(in, tmp, convertDir(vb, lastDirections_p[lastUpdateIndex1_p], dirType), 
-			      Quantity(vb.frequency()(k), "Hz"), 
-			      lastParallacticAngles_p[lastUpdateIndex1_p],
-			      doSquint_p, False, threshold(), forward);
-	     vals[k]=tmp.flux();
-	     //	     cerr << "freq " << freqs(k) << " flux " << vals[k].value() << endl;
-	     fs[k]=MVFrequency(Quantity(freqs(k), "Hz"));
+	   for (uInt k=0; k < nchan; ++k)
+             {
+               tmp=in.copy();
+               PointShape ptshape(in.shape().refDirection());
+               //Assuming 2 sided shape are small compared to beam otherwise
+               // we need to know the pixel size
+               tmp.setShape(ptshape);
+               MVAngle res(Quantity(1, "mas"));
+               auto multFactor=normFactor*(tmp.sample(in.shape().refDirection(), res, res,
+                                                     MFrequency(Quantity(vb.frequency()(k), "Hz"))).value()
+                                           );
+              
+               myPBMath.applyPB(in, tmp,
+                                convertDir(vb,lastDirections_p[lastUpdateIndex1_p], dirType),
+                                Quantity(vb.frequency()(k), "Hz"), 
+                                lastParallacticAngles_p[lastUpdateIndex1_p],
+                                doSquint_p, False, threshold(), forward
+                                );
+               Flux<Double> tmpFlux=tmp.flux();
+               tmpFlux.convertPol(poltype);            
+               tmpFlux.setValue(tmpFlux.value()*multFactor);
+               vals[k]=tmpFlux;             
+               fs[k]=MVFrequency(Quantity(freqs(k), "Hz"));
 	     
 	   }
 	   CountedPtr<SpectralModel> spModel;
