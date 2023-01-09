@@ -1,53 +1,31 @@
 import abc
 import contextlib
 import functools
+import inspect
 import os
 import re
+import sys
 import traceback
 from types import CodeType
 
 import numpy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import calibrater, imager, measures
-    from casatools import ms as mstool
-    from casatools import mstransformer, table
-    from casatools.platform import bytes2str
+from casatasks import casalog
+from casatools import calibrater, imager, measures
+from casatools import ms as mstool
+from casatools import mstransformer, table
 
-    from . import flaghelper as fh
-    from .mstools import write_history
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .update_spw import update_spwchan
-else:
-    import flaghelper as fh
-    from mstools import write_history
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from taskinit import casalog
-    from taskinit import cbtool as calibrater
-    from taskinit import gentools
-    from taskinit import imtool as imager
-    from taskinit import mstool
-    # make CASA5 tools constructors look like CASA6 tools
-    from taskinit import tbtool as table
-    from update_spw import update_spwchan
+from . import flaghelper as fh
+from casatasks.private.mstools import write_history
+from casatasks.private.parallel.parallel_data_helper import ParallelDataHelper
+from casatasks.private.update_spw import update_spwchan
+
 
 @contextlib.contextmanager
 def tool_manager(vis, ctor, *args, **kwargs):
-    if is_CASA6:
-        # this is the only syntax allowed in CASA6, code in CASA6 should be converted to
-        # call this method with a tool constructor directly
-        tool = ctor()
-    else:
-        # CASA5 code can invoke this with a tool name, shared CASA5 and CASA6 source
-        # uses the CASA6 syntax - use callable to tell the difference
-        if callable(ctor):
-            tool = ctor()
-        else:
-            # assume the argument is string and use it to get the appropriate tool constructor
-            # the original argument name here was 'tooltype'
-            tool = gentools([ctor])[0]
+    # this is the only syntax allowed in CASA6, code in CASA6 should be converted to
+    # call this method with a tool constructor directly
+    tool = ctor()
     if vis and "open" in dir(tool):
         tool.open(vis, *args, **kwargs)
     try:
@@ -80,14 +58,13 @@ def mstool_manager(vis, *args, **kwargs):
 
 
 def is_ms(filename):
-    if (os.path.isdir(filename) and os.path.exists(filename+'/table.info') and os.path.exists(filename+'/table.dat')):
-        f = open(filename + '/table.info')
-        if is_CASA6:
-            l = bytes2str(f.readline())
-        else:
-            l = f.readline()
+    if (os.path.isdir(filename)
+        and os.path.exists(filename + '/table.info')
+            and os.path.exists(filename + '/table.dat')):
+        f = open(filename + '/table.info',encoding=sys.getdefaultencoding( ))
+        lines = f.readline()
         f.close()
-        if (l.find('Measurement Set') != -1):
+        if (lines.find('Measurement Set') != -1):
             return True
         else:
             return False
@@ -106,8 +83,8 @@ def table_selector(table, taql, *args, **kwargs):
 
 
 def sdtask_decorator(func):
-    """
-    This is a decorator function for sd tasks.
+    """This is a decorator function for sd tasks.
+
     Currently the decorator does:
 
        1) set origin to the logger
@@ -116,9 +93,8 @@ def sdtask_decorator(func):
     So, you don't need to set origin in the task any more.
     Also, you don't need to write anything about error
     handling in the task. If you have something to do
-    at the end of the task execution, those should be
-    written in the destructor of worker class, not in
-    the 'finally' block.
+    at the end of the task execution, those should be written
+    in finally block in the task class.
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -141,16 +117,71 @@ def sdtask_decorator(func):
     return wrapper
 
 
+def callable_sdtask_decorator(func):
+    """This is a decorator function for sd tasks.
+
+    Currently the decorator does:
+
+       1) set the origin of messages logged by the "sub" tasks called by the "super" task to "super"
+            For example:
+            super_casatask::casa "Msg from super task"
+            super_casatask::casa "Msg from sub-task1 called by super task"
+            super_casatask::casa "Msg from sub-task1 called by super task"
+       2) handle exception
+
+    So, you don't need to set origin in the task any more.
+    Also, you don't need to write anything about error handling
+    in the task. If you have something to do at the end of
+    the task execution, those should be written in finally block
+    in the task class.
+
+    Usage:
+
+    @callable_sdtask_decorator
+    def sometask(..)
+        pass
+
+    def othertask(..)
+        sometask(*args, **kwargs)  # logged "othertask::..."
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        __set_origin(inspect.stack(), casalog.getOrigin(), func.__name__)
+
+        retval = None
+        # Any errors are handled outside the task.
+        # however, the implementation below is effectively
+        # equivalent to handling it inside the task.
+        try:
+            # execute task
+            retval = func(*args, **kwargs)
+        except Exception as e:
+            traceback_info = __format_trace(traceback.format_exc())
+            casalog.post(traceback_info, 'SEVERE')
+            casalog.post(str(e), 'ERROR')
+            raise
+        return retval
+    return wrapper
+
+
+def __set_origin(callstack, origin, funcname):
+    for frame_info in callstack:
+        if frame_info.function == origin:
+            casalog.origin(origin)
+            return
+    casalog.origin(funcname)
+
+
 def __format_trace(s):
     wexists = True
-    regex = '.*sdutil\.py.*in wrapper.*'
+    regex = r'.*sdutil\.py.*in wrapper.*'
     retval = s
     while wexists:
         ss = retval.split('\n')
         wexists = False
         for i in range(len(ss)):
             if re.match(regex, ss[i]):
-                ss = ss[:i] + ss[i+2:]
+                ss = ss[:i] + ss[i + 2:]
                 wexists = True
                 break
         retval = '\n'.join(ss)
@@ -177,9 +208,9 @@ class sdtask_manager(object):
 
 
 class sdtask_interface(object):
-    """
-    The sdtask_interface defines a common interface for sdtask_worker
-    class. All worker classes can be used as follows:
+    """The sdtask_interface defines a common interface for sdtask_worker class.
+
+    All worker classes can be used as follows:
 
        worker = sdtask_worker(**locals())
        worker.initialize()
@@ -190,6 +221,7 @@ class sdtask_interface(object):
     Derived classes must implement the above three methods: initialize(),
     execute(), and finalize().
     """
+
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, **kwargs):
@@ -199,8 +231,9 @@ class sdtask_interface(object):
         select_params = ['scan', 'pol', 'beam']
         for param in select_params:
             if hasattr(self, param):
-                setattr(self, param+'no', getattr(self, param))
-                # casalog.post("renaming self.%s -> self.%sno='%s'" % (param, param, getattr(self, param)))
+                setattr(self, param + 'no', getattr(self, param))
+                # casalog.post(
+                #     "renaming self.%s -> self.%sno='%s'" % (param, param, getattr(self, param)))
                 delattr(self, param)
 
     def __del__(self):
@@ -231,7 +264,8 @@ class sdtask_interface(object):
 
 
 class sdtask_template_imaging(sdtask_interface):
-    """
+    """Template class for imaging tasks.
+
     The sdtask_template_imaging is a template class for worker
     class of imaging related sdtasks. It partially implement initialize()
     and finalize() using internal methods that must be implemented
@@ -241,6 +275,7 @@ class sdtask_template_imaging(sdtask_interface):
     check in initialize().
     For finalize(), derived classes can implement cleanup().
     """
+
     def __init__(self, **kwargs):
         super(sdtask_template_imaging, self).__init__(**kwargs)
         self.is_table_opened = False
@@ -290,7 +325,7 @@ class sdtask_template_imaging(sdtask_interface):
         # infiles must be MS
         for idx in range(len(self.infiles)):
             if not is_ms(self.infiles[idx]):
-                msg='input data sets must be in MS format'
+                msg = 'input data sets must be in MS format'
                 raise Exception(msg)
 
         self.parameter_check()
@@ -425,7 +460,7 @@ def get_nx_ny(n):
     return (nx, ny)
 
 
-def get_cellx_celly(c,unit='arcsec'):
+def get_cellx_celly(c, unit='arcsec'):
     if isinstance(c, str):
         cellx = celly = c
     elif type(c) in (list, tuple, numpy.ndarray):
@@ -463,15 +498,15 @@ def get_spwids(selection, infile=None):
         with table_manager(os.path.join(infile, 'DATA_DESCRIPTION')) as tb:
             spw_list = tb.getcol('SPECTRAL_WINDOW_ID')
 
-    l = []
+    items = []
     for item in spw_list:
-        l.append(str(item))
-    return ','.join(l)
+        items.append(str(item))
+    return ','.join(items)
 
 
 def __is_sequence_or_number(param, ptype=int):
-    """
-    Returns true if input is an array type or a number with a give data type.
+    """Return true if input is an array type or a number with a give data type.
+
     Arguments
         param : an array or number to test
         ptype : the data type that param should be.
@@ -486,8 +521,8 @@ def __is_sequence_or_number(param, ptype=int):
 
 
 def to_list(param, ptype=int, convert=False):
-    """
-    Convert a number, an array type or a string to a list.
+    """Convert a number, an array type or a string to a list.
+
     The function returns None if input values are not ptype and convert=False.
     When convert is True, force converting input values to a list of ptype.
     """
@@ -518,11 +553,11 @@ def do_mst(
         outfile,
         intent,
         caller: CodeType,
-        ext_config ):
-    """
-      call mstransform by the provided procedure.
-        Followings are parameters of mstransform, but not used by sdtimeaverage,
-        just only putting default values.
+        ext_config):
+    """Call mstransform by the provided procedure.
+
+    Followings are parameters of mstransform, but not used by sdtimeaverage,
+    just only putting default values.
     """
     vis = infile             # needed for ParallelDataHelper
     outputvis = outfile      # needed for ParallelDataHelper
@@ -673,9 +708,7 @@ def add_history(
         caller,
         casalog,
         outfile):
-    """
-    Write history to output MS, not the input ms.
-    """
+    """Write history to output MS, not the input ms."""
     mslocal = mstool()
     try:
         param_names = caller.co_varnames[:caller.co_argcount]
@@ -854,11 +887,14 @@ def __check_tileshape(tileshape):
 
 
 def __process_input_multi_ms(pdh, separationaxis):
-    '''
-        retval{'status': True,  'axis':''}         --> can run in parallel
-        retval{'status': False, 'axis':'value'}    --> treat MMS as monolithic MS, set new axis for output MMS
-        retval{'status': False, 'axis':''}         --> treat MMS as monolithic MS, create an output MS
-        '''
+    """Process MS.
+
+    retval{'status': True,  'axis':''}         --> can run in parallel
+    retval{'status': False, 'axis':'value'}    --> treat MMS as monolithic MS,
+                                                   set new axis for output MMS
+    retval{'status': False, 'axis':''}         --> treat MMS as monolithic MS,
+                                                   create an output MS
+    """
     retval = pdh.validateInputParams()
 
     # Cannot create an output MMS.
@@ -877,7 +913,9 @@ def __process_input_multi_ms(pdh, separationaxis):
         separationaxis = retval['axis']
         pdh.override__args('separationaxis', retval['axis'])
         casalog.post("Will process the input MMS as a monolithic MS", 'WARN')
-        casalog.post("Will create an output MMS with separation axis \'%s\'" % retval['axis'], 'WARN')
+        casalog.post(
+            f"Will create an output MMS with separation axis \'{retval['axis']}\'",
+            priority='WARN')
         return createmms, separationaxis, False
 
     # MMS is processed in parallel

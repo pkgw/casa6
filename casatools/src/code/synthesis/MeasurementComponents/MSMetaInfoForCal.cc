@@ -32,8 +32,8 @@
 #include <casacore/casa/OS/Path.h>
 #include <synthesis/MeasurementComponents/MSMetaInfoForCal.h>
 #include <msvis/MSVis/SimpleSimVi2.h>
-#include <casa/aips.h>
-#include <casa/iostream.h>
+#include <casacore/casa/aips.h>
+#include <iostream>
 
 using namespace casacore;
 

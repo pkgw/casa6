@@ -38,13 +38,14 @@ ctsys_resolve = ctsys.resolve
 Unit tests for task setjy.
 
 Features tested:
-  1. Does setjy(modimage=modelimu, fluxdensity=0) NOT scale the model image's
+  1. Does setjy(model=modelimu, fluxdensity=0) NOT scale the model image's
      flux density?
-  2. Does setjy(modimage=modelimu) scale the model image's flux density?
+  2. Does setjy(model=modelimu) scale the model image's flux density?
   3. Solar system (Uranus) flux density calibration.
 """
 
 datapath = ctsys_resolve('unittest/setjy/')
+#datapath = '/export/home/murasame2/casadev/vlanewmodels/'
 
 # Pick up alternative data directory to run tests on MMSs
 testmms = False
@@ -234,7 +235,7 @@ class test_SingleObservation(SetjyUnitTestBase):
             #print("\nRunning setjy(field='Uranus').")
             print("\nRunning setjy(field='Titan').")
             #sjran = setjy(vis=self.inpms, field='Uranus', spw='', modimage='',
-            sjran = setjy(vis=self.inpms, field='Titan', spw='', modimage='',
+            sjran = setjy(vis=self.inpms, field='Titan', spw='', model='',
                           scalebychan=False, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2010', usescratch=True)
             #print("sjran=",sjran)
@@ -355,7 +356,7 @@ class test_SingleObservation(SetjyUnitTestBase):
             #print("\nRunning setjy(field='Uranus').")
             print("\nRunning setjy(field='Titan').")
             #sjran = setjy(vis=self.inpms, field='Uranus', spw='', modimage='',
-            sjran = setjy(vis=self.inpms, field='Titan', spw='', modimage='',
+            sjran = setjy(vis=self.inpms, field='Titan', spw='', model='',
                           scalebychan=True, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2010', usescratch=True)
         except Exception:
@@ -492,7 +493,7 @@ class test_SingleObservation(SetjyUnitTestBase):
             #print("\nRunning setjy(field='Uranus').")
             print("\nRunning setjy(field='Titan').")
             #sjran = setjy(vis=self.inpms, field='Uranus', spw='', modimage='',
-            sjran = setjy(vis=self.inpms, field='Titan', spw='', modimage='',
+            sjran = setjy(vis=self.inpms, field='Titan', spw='', model='',
                           scalebychan=False, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2012', usescratch=True)
         except Exception:
@@ -614,7 +615,7 @@ class test_SingleObservation(SetjyUnitTestBase):
         try:
             #print("\nRunning setjy(field='Uranus').")
             print("\nRunning setjy(field='Titan').")
-            sjran = setjy(vis=self.inpms, field='', spw='', modimage='',
+            sjran = setjy(vis=self.inpms, field='', spw='', model='',
                           selectdata=True, intent="*AMPLI*",
                           scalebychan=True, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2010', usescratch=True)
@@ -737,7 +738,7 @@ class test_SingleObservation(SetjyUnitTestBase):
         try:
             #print("\nRunning setjy(field='Uranus').")
             print("\nRunning setjy(field='Titan').")
-            sjran = setjy(vis=self.inpms, field='', spw='', modimage='',
+            sjran = setjy(vis=self.inpms, field='', spw='', model='',
                           selectdata=True, intent="*AMPLI*",
                           scalebychan=False, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2012', usescratch=True)
@@ -869,7 +870,7 @@ class test_MultipleObservations(SetjyUnitTestBase):
             print("\nRunning setjy(field='Titan').")
             sjran = setjy(self.inpms, field='Titan', spw='',
                           selectdata=True, observation=1, 
-                          modimage='',
+                          model='',
                           scalebychan=False, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2010', usescratch=True)
         except Exception:
@@ -939,7 +940,7 @@ class test_MultipleObservations(SetjyUnitTestBase):
             print("\nRunning setjy(field='Titan').")
             sjran = setjy(self.inpms, field='Titan', spw='',
                           selectdata=True, observation=1, 
-                          modimage='',
+                          model='',
                           scalebychan=False, fluxdensity=-1,
                           standard='Butler-JPL-Horizons 2012', usescratch=True)
         except Exception:
@@ -1079,7 +1080,7 @@ class test_ModImage(SetjyUnitTestBase):
         self.check_eq(self.result['spix']['setjyran']['12']['1']['fluxd'][0],1234.0328507,0.0001)
         #
         # -for standard='Perley-Butler 2010, with model image
-        """modimage != '' and fluxdensity == 0 -> no scaling?"""
+        """model != '' and fluxdensity == 0 -> no scaling?"""
         #self.check_eq(self.result[False]['short'], 2.712631, 0.05)
         # Updated value for the updated run_setjy 2014-05-01 TT
         self.check_eq(self.result[False]['short'], 1.0508747, 0.05)
@@ -1093,11 +1094,9 @@ class test_ModImage(SetjyUnitTestBase):
         #self.check_eq(self.result[True]['long'],  0.808885, 0.025)
         # Updated value for the updated run_setjy 2014-05-01 TT
         self.check_eq(self.result[True]['long'],  0.9114067, 0.025)
-        #"""modimage != '' and fluxdensity > 0""" this is no longer supported in the task
         """fluxdensity > 0"""  # should be = input fluxdensity for model vis
         self.check_eq(self.result['fluxdens']['short'], 1234.0, 0.05)
         self.check_eq(self.result['fluxdens']['long'],  1234.0, 0.05)
-        #"""modimage != '', fluxdensity > 0, and spix = -0.7""" with modimage no longer supproted
         """fluxdensity > 0, and spix = -0.7"""
         #self.check_eq(self.result['spix']['short'], 1233.7, 0.5)
         #self.check_eq(self.result['spix']['long'],  1095.2, 0.5)
@@ -1111,7 +1110,6 @@ class test_ModImage(SetjyUnitTestBase):
         try:
             if use_oldstandard:
                 record['setjyran'] = setjy(vis=self.inpms, field=self.field,
-                                           #modimage=self.modelim,
                                            scalebychan=False,
                                            standard='Perley-Taylor 99',
                                            usescratch=True
@@ -1190,7 +1188,7 @@ class test_newStandards(SetjyUnitTestBase):
         self.modelim = ""
         sjran = setjy(vis=self.inpms, 
                       field=self.field,
-                      modimage=self.modelim,
+                      model=self.modelim,
                       standard='Perley-Butler 2013',
                       usescratch=True
                       )
@@ -1215,7 +1213,7 @@ class test_newStandards(SetjyUnitTestBase):
         self.modelim = ""
         sjran = setjy(vis=self.inpms, 
                       field=self.field,
-                      modimage=self.modelim,
+                      model=self.modelim,
                       standard='Perley-Butler 2017',
                       usescratch=True
                       )
@@ -1237,7 +1235,207 @@ class test_newStandards(SetjyUnitTestBase):
         self.check_eq(sjran['12']['1']['fluxd'][0],0.99132,0.0001)
         self.assertTrue(ret)
         #print("ret=%s" % sjran)
-    
+   
+class test_newVLAmodelimages(SetjyUnitTestBase):
+    """Test new VLA model images"""
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        self.resetMS()
+
+    def prepData(self,msname="", fieldname=""):
+        if msname != "":
+            self.setUpMS(msname)
+        if fieldname !="":
+            self.field=fieldname
+          
+ 
+    def test_3C48_KaBandModel(self):
+        self.prepData(msname='3C48Ka.ms', fieldname='3C48')
+
+        # temporary location for test
+        # current
+        # updated
+        #self.modelim = "/export/home/murasame/casa-data2/nrao/VLA/CalModels/3C48_A.im"
+        self.modelim = "3C48_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+             standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0],0.71951878,0.0001)
+        self.assertTrue(ret)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C48',
+                                     baseline='8&26',
+                                     time='2019/10/04/08:17:00.33665',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn,  0.613553935289383,0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 0.6241399765014649,0.0001) 
+
+    def test_3C138_KaBandModel(self):
+        self.prepData(msname='3C138Ka.ms', fieldname='3C138')
+
+        # temporary location for test
+        # current
+        #self.modelim = "/export/home/murasame/casa-data/nrao/VLA/CalModels/3C138_A.im"
+        # updated models
+        self.modelim = "3C138_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+                      standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0],0.96944,0.0001)
+        self.assertTrue(ret)
+        #print("ret=%s" % sjran)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C138',
+                                     baseline='8&26',
+                                     time='2019/10/04/08:17:00.33665',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn, 0.842083877325058, 0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 0.8425455033779145, 0.0001) 
+
+    def test_3C147_KaBandModel(self):
+        self.prepData(msname='3C147Ka.ms', fieldname='3C147')
+
+        # temporary location for test
+        # current
+        #self.modelim = "/export/home/murasame/casa-data/nrao/VLA/CalModels/3C147_A.im"
+        # updated models
+        self.modelim = "3C147_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+                      standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0], 1.418634,0.0001)
+        self.assertTrue(ret)
+        #print("ret=%s" % sjran)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C147',
+                                     baseline='8&17',
+                                     time='2019/10/03/10:42:17.8322',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn, 1.3835243344306944, 0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 1.3845574140548706, 0.0001) 
+
+    def test_3C286_KaBandModel(self):
+        self.prepData(msname='3C286Ka.ms', fieldname='3C286')
+
+        # temporary location for test
+        # current
+        #self.modelim = "/export/home/murasame/casa-data/nrao/VLA/CalModels/3C286_A.im"
+        # updated models
+        self.modelim = "3C286_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+                      standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0], 1.920785,0.0001)
+        self.assertTrue(ret)
+        #print("ret=%s" % sjran)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C286',
+                                     baseline='8&15',
+                                     time='2019/10/03/18:30:11.3840',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn, 1.8970248341560365, 0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 1.9001002073287965, 0.0001) 
+
+
+ 
 class test_newStandards_MMS(SetjyUnitTestBase):
     """Test simple Stnadard Scaling with MMS data"""
     # can be just mpicasa specific tests but for now it will be tested for serial
@@ -1257,7 +1455,7 @@ class test_newStandards_MMS(SetjyUnitTestBase):
         self.modelim = ""
         sjran = setjy(vis=self.inpmms,
                       field=self.field,
-                      modimage=self.modelim,
+                      model=self.modelim,
                       standard='Perley-Butler 2013',
                       usescratch=True
                       )
@@ -1282,7 +1480,7 @@ class test_newStandards_MMS(SetjyUnitTestBase):
         self.modelim = ""
         sjran = setjy(vis=self.inpmms,
                       field=self.field,
-                      modimage=self.modelim,
+                      model=self.modelim,
                       standard='Perley-Butler 2017',
                       usescratch=True
                       )
@@ -1361,7 +1559,7 @@ class test_conesearch(SetjyUnitTestBase):
     def test_searchByPosition(self): 
         sjran = setjy(vis=self.inpms, 
                       field=self.field,
-                      modimage=self.modelim,
+                      model=self.modelim,
                       scalebychan=False,
                       #standard='Perley-Taylor 99',
                       standard='Perley-Butler 2013',
@@ -1565,7 +1763,7 @@ class test_conesearch(SetjyUnitTestBase):
     def test_searchByPosition(self): 
         sjran = setjy(vis=self.inpms, 
                       field=self.field,
-                      modimage=self.modelim,
+                      model=self.modelim,
                       scalebychan=False,
                       #standard='Perley-Taylor 99',
                       standard='Perley-Butler 2013',
