@@ -810,11 +810,11 @@ def dict_to_table(indict, tablepath, kwkeys=[], colkeys=[], info=None, keepcolor
             
         data = get_bare_col(data)
         datatype = type(data[0])
-        if datatype == float or datatype == numpy.float:
+        if datatype == float or datatype == numpy.float_:
             valtype = "float"
         elif datatype == numpy.float64:
             valtype = "double"
-        elif datatype == int or datatype == numpy.int32 or datatype == numpy.int16 or datatype == numpy.int:
+        elif datatype == int or datatype == numpy.int_:
             valtype = integer
         elif datatype == str:
             valtype = 'string'

@@ -2130,7 +2130,7 @@ class splitTests(test_base):
     def test_numpy_width(self):
         '''split: Automatically convert numpy type to Python type'''
         self.outputms = "split_numpytype.ms"
-        bin1 = numpy.int32(64)
+        bin1 = numpy.int_(64)
         split(vis=self.vis, outputvis=self.outputms, spw='10', datacolumn='data',
                     width=bin1)
         
@@ -2147,7 +2147,7 @@ class splitTests(test_base):
         # spws are renumbered to 0,1 in the above command
         
         self.outputms = "split_numpytype.mms"
-        bin1 = numpy.int32(64)
+        bin1 = numpy.int_(64)
         ParallelTaskHelper.bypassParallelProcessing(1)
         # This will cause MS NULL selections in some subMSs that have only spw=0
         split(vis=self.testmms, outputvis=self.outputms, spw='1', datacolumn='data',

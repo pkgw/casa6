@@ -682,8 +682,8 @@ class test_rflag(test_base):
     def test_rflag_numpy_types(self):
         '''flagdata:: mode = rflag : partially-specified thresholds using numpy types'''
         # Results should be the same as in test_rflag_partial_thresholds above
-        t1 = [np.int32(1), 10, np.float32(0.1)]
-        t2 = [1, np.int16(11), np.float64(0.07)]
+        t1 = [np.int_(1), 10, np.float_(0.1)]
+        t2 = [1, np.int_(11), np.float_(0.07)]
 
         flagdata(vis=self.vis, mode='rflag', spw='9,10',
                  timedev=[t1, t2], freqdev=0.5,
