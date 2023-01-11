@@ -1230,7 +1230,7 @@ class test_FreqAvg(test_base):
     def test_freqavg11(self):
         '''mstransform: Automatically convert numpy type to Python type'''
         self.outputms = "freqavg_numpytype.ms"
-        bin1 = numpy.int_(128)
+        bin1 = numpy.int32(128)
         mstransform(vis=self.vis, outputvis=self.outputms, spw='10', chanaverage=True,
                     chanbin=bin1)
         

@@ -2031,11 +2031,15 @@ def evaluateNumpyType(elem):
     import numpy as np
     
     val = None
-    
-    if(isinstance(elem,np.int_)):
+
+    if (isinstance(elem, np.int_) or isinstance(elem, np.int8) or
+            isinstance(elem, np.int16) or isinstance(elem, np.int32) or
+            isinstance(elem, np.int64)):
         val = int(elem)
-        
-    elif(isinstance(elem,np.float_) or isinstance(elem,np.float64) or isinstance(elem,np.double)):
+
+    elif (isinstance(elem, np.float_) or isinstance(elem, np.float16) or
+          isinstance(elem, np.float32) or isinstance(elem, np.float64) or
+          isinstance(elem, np.float128)):
         val = float(elem)
         
     else:

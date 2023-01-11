@@ -814,7 +814,7 @@ def dict_to_table(indict, tablepath, kwkeys=[], colkeys=[], info=None, keepcolor
             valtype = "float"
         elif datatype == numpy.float64:
             valtype = "double"
-        elif datatype == int or datatype == numpy.int_:
+        elif datatype == int or datatype == numpy.int32 or datatype == numpy.int16 or datatype == numpy.int_:
             valtype = integer
         elif datatype == str:
             valtype = 'string'

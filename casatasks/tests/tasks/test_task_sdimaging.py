@@ -130,21 +130,21 @@ class sdimaging_unittest_base(unittest.TestCase):
     cell = ['3.0arcmin', '3.0arcmin']
     gridfunction = 'PB'
     minweight0 = 0.
-    statsinteg = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+    statsinteg = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                   'blcf': '17:32:18.690, +57.37.28.536, I, 1.42064e+09Hz',
                   'max': numpy.array([0.6109162]),
-                  'maxpos': numpy.array([4, 62, 0, 0], dtype=numpy.int_),
+                  'maxpos': numpy.array([4, 62, 0, 0], dtype=numpy.int32),
                   'maxposf': '17:31:59.439, +60.43.52.421, I, 1.42064e+09Hz',
                   'mean': numpy.array([0.39524983]),
                   'min': numpy.array([0.]),
-                  'minpos': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+                  'minpos': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                   'minposf': '17:32:18.690, +57.37.28.536, I, 1.42064e+09Hz',
                   'npts': numpy.array([5625.]),
                   'rms': numpy.array([0.43127564]),
                   'sigma': numpy.array([0.17257331]),
                   'sum': numpy.array([2223.28028646]),
                   'sumsq': numpy.array([1046.2425779]),
-                  'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int_),
+                  'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int32),
                   'trcf': '17:03:03.151, +61.19.10.757, I, 1.42064e+09Hz'}
     keys = ['max', 'mean', 'min', 'npts', 'rms', 'blc',
             'blcf', 'trc', 'trcf', 'sigma', 'sum', 'sumsq']
@@ -635,21 +635,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 101: Full channel image (nchan = -1)."""
         self.task_param.update(dict(nchan=-1, start="", width=""))
         outshape = (self.imsize[0], self.imsize[1], 1, self.ms_nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.419395e+09Hz',
                     'max': numpy.array([24.77152824]),
-                    'maxpos': numpy.array([59, 21, 0, 605], dtype=numpy.int_),
+                    'maxpos': numpy.array([59, 21, 0, 605], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.420872e+09Hz',
                     'mean': numpy.array([0.39542111]),
                     'min': numpy.array([-1.84636593]),
-                    'minpos': numpy.array([73, 6, 0, 1023], dtype=numpy.int_),
+                    'minpos': numpy.array([73, 6, 0, 1023], dtype=numpy.int32),
                     'minposf': '17:04:54.966, +57.55.36.907, I, 1.421893e+09Hz',
                     'npts': numpy.array([5760000.]),
                     'rms': numpy.array([1.01357317]),
                     'sigma': numpy.array([0.93325921]),
                     'sum': numpy.array([2277625.60731485]),
                     'sumsq': numpy.array([5917423.42281288]),
-                    'trc': numpy.array([74, 74, 0, 1023], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 1023], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.421893e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape, compstats=self.keys,
                              ignoremask=True)
@@ -664,21 +664,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         tb.close()
         self.task_param.update(dict(nchan=nchan, start=0, width=1))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.419395e+09Hz',
                     'max': numpy.array([24.77152824]),
-                    'maxpos': numpy.array([59, 21, 0, 605], dtype=numpy.int_),
+                    'maxpos': numpy.array([59, 21, 0, 605], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.420872e+09Hz',
                     'mean': numpy.array([0.39542111]),
                     'min': numpy.array([-1.84636593]),
-                    'minpos': numpy.array([73, 6, 0, 1023], dtype=numpy.int_),
+                    'minpos': numpy.array([73, 6, 0, 1023], dtype=numpy.int32),
                     'minposf': '17:04:54.966, +57.55.36.907, I, 1.421893e+09Hz',
                     'npts': numpy.array([5760000.]),
                     'rms': numpy.array([1.01357317]),
                     'sigma': numpy.array([0.93325921]),
                     'sum': numpy.array([2277625.60731485]),
                     'sumsq': numpy.array([5917423.42281288]),
-                    'trc': numpy.array([74, 74, 0, 1023], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 1023], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.421893e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape, compstats=self.keys,
                              ignoremask=True)
@@ -686,21 +686,21 @@ class sdimaging_test1(sdimaging_unittest_base):
     def test103(self):
         """Test 103: Selected channel image."""
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.42038e+09Hz',
                     'max': numpy.array([14.79568005]),
-                    'maxpos': numpy.array([57, 20, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([57, 20, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:47.496, +58.39.30.813, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.82293006]),
                     'min': numpy.array([-0.08763941]),
-                    'minpos': numpy.array([61, 71, 0, 35], dtype=numpy.int_),
+                    'minpos': numpy.array([61, 71, 0, 35], dtype=numpy.int32),
                     'minposf': '17:08:30.980, +61.12.02.893, I, 1.42124e+09Hz',
                     'npts': numpy.array([225000.]),
                     'rms': numpy.array([1.54734671]),
                     'sigma': numpy.array([1.31037237]),
                     'sum': numpy.array([185159.263672]),
                     'sumsq': numpy.array([538713.45272028]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42133e+09Hz'}
         # beam size from r32523
         ref_beam = dict(major='661.858412arcsec', minor='661.858412arcsec')
@@ -711,21 +711,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 104: Box-car gridding."""
         self.task_param.update(dict(gridfunction='BOX'))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.42038e+09Hz',
                     'max': numpy.array([15.64525127]),
-                    'maxpos': numpy.array([58, 20, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([58, 20, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:24.433, +58.39.25.476, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.66097592]),
                     'min': numpy.array([-0.42533547]),
-                    'minpos': numpy.array([69, 62, 0, 38], dtype=numpy.int_),
+                    'minpos': numpy.array([69, 62, 0, 38], dtype=numpy.int32),
                     'minposf': '17:05:23.086, +60.44.01.427, I, 1.42131e+09Hz',
                     'npts': numpy.array([225000.]),
                     'rms': numpy.array([1.38591599]),
                     'sigma': numpy.array([1.2181464]),
                     'sum': numpy.array([148719.58227018]),
                     'sumsq': numpy.array([432171.72687429]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42133e+09Hz'}
         # beam size from r32523
         ref_beam = dict(major='503.181345arcsec', minor='503.181345arcsec')
@@ -736,21 +736,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 105: Prolate Spheroidal gridding."""
         self.task_param.update(dict(gridfunction='SF'))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.42038e+09Hz',
                     'max': numpy.array([15.13189793]),
-                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:23.737, +58.42.25.413, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.773227]),
                     'min': numpy.array([-0.07284018]),
-                    'minpos': numpy.array([5, 67, 0, 30], dtype=numpy.int_),
+                    'minpos': numpy.array([5, 67, 0, 30], dtype=numpy.int32),
                     'minposf': '17:31:41.090, +60.59.00.556, I, 1.42112e+09Hz',
                     'npts': numpy.array([225000.]),
                     'rms': numpy.array([1.49926317]),
                     'sigma': numpy.array([1.28449107]),
                     'sum': numpy.array([173976.07570213]),
                     'sumsq': numpy.array([505752.74505987]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42133e+09Hz'}
         # beam size from analysisUtils.
         # aU.sfBeam(1.42038,diameter=104.9,pixelsize=180.,
@@ -765,21 +765,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 106: Imaging two polarization separately (XX and YY, not Stokes I)."""
         self.task_param.update(dict(stokes='XXYY', gridfunction='PB'))
         outshape = (self.imsize[0], self.imsize[1], 2, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, XX, 1.42038e+09Hz',
                     'max': numpy.array([15.057868]),
-                    'maxpos': numpy.array([57, 20, 1, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([57, 20, 1, 20], dtype=numpy.int32),
                     'maxposf': '17:10:47.496, +58.39.30.813, YY, 1.42087e+09Hz',
                     'mean': numpy.array([0.82292841]),
                     'min': numpy.array([-0.41953856]),
-                    'minpos': numpy.array([10, 3, 1, 31], dtype=numpy.int_),
+                    'minpos': numpy.array([10, 3, 1, 31], dtype=numpy.int32),
                     'minposf': '17:28:37.170, +57.47.49.422, YY, 1.42114e+09Hz',
                     'npts': numpy.array([450000.]),
                     'rms': numpy.array([1.55436146]),
                     'sigma': numpy.array([1.31864787]),
                     'sum': numpy.array([370317.78554221]),
                     'sumsq': numpy.array([1087217.77687839]),
-                    'trc': numpy.array([74, 74, 1, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 1, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, YY, 1.42133e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape, compstats=self.keys,
                              ignoremask=True)
@@ -788,21 +788,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 107: Gaussian gridding."""
         self.task_param.update(dict(gridfunction='GAUSS'))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.42038e+09Hz',
                     'max': numpy.array([15.28046036]),
-                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:23.737, +58.42.25.413, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.75082603]),
                     'min': numpy.array([-0.14009152]),
-                    'minpos': numpy.array([34, 69, 0, 33], dtype=numpy.int_),
+                    'minpos': numpy.array([34, 69, 0, 33], dtype=numpy.int32),
                     'minposf': '17:19:43.545, +61.07.22.487, I, 1.42119e+09Hz',
                     'npts': numpy.array([225000.]),
                     'rms': numpy.array([1.47686982]),
                     'sigma': numpy.array([1.2717751]),
                     'sum': numpy.array([168935.85698331]),
                     'sumsq': numpy.array([490757.49952306]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42133e+09Hz'}
         # beam size from r32523
         ref_beam = dict(major='510.142597arcsec', minor='510.142597arcsec')
@@ -813,21 +813,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 108: Gaussian*Jinc gridding."""
         self.task_param.update(dict(gridfunction='GJINC'))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.42038e+09Hz',
                     'max': numpy.array([15.31498909]),
-                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:23.737, +58.42.25.413, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.72415226]),
                     'min': numpy.array([-0.16245638]),
-                    'minpos': numpy.array([68, 69, 0, 36], dtype=numpy.int_),
+                    'minpos': numpy.array([68, 69, 0, 36], dtype=numpy.int32),
                     'minposf': '17:05:39.206, +61.05.09.055, I, 1.42126e+09Hz',
                     'npts': numpy.array([225000.]),
                     'rms': numpy.array([1.44985926]),
                     'sigma': numpy.array([1.25606618]),
                     'sum': numpy.array([162934.25891985]),
                     'sumsq': numpy.array([472970.63791706]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42133e+09Hz'}
         # beam size from analysisUtils.
         # aU.gjincBeam(1.42038,diameter=104.9,pixelsize=180.,geometricMean=True,
@@ -842,21 +842,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 109: Empty phasecenter (auto-calculation)."""
         self.task_param.update(dict(phasecenter="", gridfunction="BOX"))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:31:48.220, +57.36.09.784, I, 1.42038e+09Hz',
                     'max': numpy.array([15.64525127]),
-                    'maxpos': numpy.array([57, 20, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([57, 20, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:17.816, +58.38.11.961, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.66039867]),
                     'min': numpy.array([-0.42533547]),
-                    'minpos': numpy.array([68, 63, 0, 38], dtype=numpy.int_),
+                    'minpos': numpy.array([68, 63, 0, 38], dtype=numpy.int32),
                     'minposf': '17:05:16.976, +60.45.51.215, I, 1.42131e+09Hz',
                     'npts': numpy.array([225000.]),
                     'rms': numpy.array([1.38517249]),
                     'sigma': numpy.array([1.21761365]),
                     'sum': numpy.array([148589.70138012]),
                     'sumsq': numpy.array([431708.13145918]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:02:33.828, +61.17.52.040, I, 1.42133e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
@@ -865,21 +865,21 @@ class sdimaging_test1(sdimaging_unittest_base):
         """Test 110: setting minweight=70."""
         self.task_param.update(dict(gridfunction='GJINC', minweight=70.))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.42038e+09Hz',
                     'max': numpy.array([15.31498909]),
-                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int_),
+                    'maxpos': numpy.array([58, 21, 0, 20], dtype=numpy.int32),
                     'maxposf': '17:10:23.737, +58.42.25.413, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.96643395]),
                     'min': numpy.array([-0.01385191]),
-                    'minpos': numpy.array([19, 63, 0, 33], dtype=numpy.int_),
+                    'minpos': numpy.array([19, 63, 0, 33], dtype=numpy.int32),
                     'minposf': '17:25:51.974, +60.48.38.410, I, 1.42119e+09Hz',
                     'npts': numpy.array([143920.]),
                     'rms': numpy.array([1.66819704]),
                     'sigma': numpy.array([1.35974246]),
                     'sum': numpy.array([139089.17359187]),
                     'sumsq': numpy.array([400512.27532199]),
-                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 39], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42133e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=False)
@@ -960,21 +960,21 @@ class sdimaging_test2(sdimaging_unittest_base):
         """Test 201: Full channel image (mode='frequency', nchan = -1)."""
         self.task_param.update(dict(nchan=-1, start='', width=''))
         outshape = (self.imsize[0], self.imsize[1], 1, self.ms_nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.419395e+09Hz',
                     'max': numpy.array([24.77152824]),
-                    'maxpos': numpy.array([59, 21, 0, 605], dtype=numpy.int_),
+                    'maxpos': numpy.array([59, 21, 0, 605], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.420872e+09Hz',
                     'mean': numpy.array([0.39542111]),
                     'min': numpy.array([-1.84636593]),
-                    'minpos': numpy.array([73, 6, 0, 1023], dtype=numpy.int_),
+                    'minpos': numpy.array([73, 6, 0, 1023], dtype=numpy.int32),
                     'minposf': '17:04:54.966, +57.55.36.907, I, 1.421893e+09Hz',
                     'npts': numpy.array([5760000.]),
                     'rms': numpy.array([1.01357317]),
                     'sigma': numpy.array([0.93325921]),
                     'sum': numpy.array([2277625.60731485]),
                     'sumsq': numpy.array([5917423.42281288]),
-                    'trc': numpy.array([74, 74, 0, 1023], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 1023], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.421893e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
@@ -986,21 +986,21 @@ class sdimaging_test2(sdimaging_unittest_base):
         width = "%f%s" % (1.0e-5, self.unit)
         self.task_param.update(dict(nchan=nchan, start=start, width=width))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
                     'max': numpy.array([21.55560875]),
-                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int_),
+                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.80467233]),
                     'min': numpy.array([-0.27736959]),
-                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int_),
+                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
                     'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
                     'npts': numpy.array([562500.]),
                     'rms': numpy.array([1.56429076]),
                     'sigma': numpy.array([1.3414586]),
                     'sum': numpy.array([452628.18628213]),
                     'sumsq': numpy.array([1376440.6075593]),
-                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
@@ -1013,21 +1013,21 @@ class sdimaging_test2(sdimaging_unittest_base):
         width = "%f%s" % (0.01, loc_unit)
         self.task_param.update(dict(nchan=nchan, start=start, width=width))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
                     'max': numpy.array([21.55560875]),
-                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int_),
+                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
                     'mean': numpy.array([0.80467233]),
                     'min': numpy.array([-0.27736959]),
-                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int_),
+                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
                     'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
                     'npts': numpy.array([562500.]),
                     'rms': numpy.array([1.56429076]),
                     'sigma': numpy.array([1.3414586]),
                     'sum': numpy.array([452628.18628213]),
                     'sumsq': numpy.array([1376440.6075593]),
-                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
@@ -1110,21 +1110,21 @@ class sdimaging_test3(sdimaging_unittest_base):
         width = "%f%s" % (2.0, self.unit)
         self.task_param.update(dict(nchan=nchan, start=start, width=width))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
                     'max': numpy.array([21.97223091]),
-                    'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int_),
+                    'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
                     'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
                     'mean': numpy.array([0.84673187]),
                     'min': numpy.array([-0.27300295]),
-                    'minpos': numpy.array([61, 71, 0, 16], dtype=numpy.int_),
+                    'minpos': numpy.array([61, 71, 0, 16], dtype=numpy.int32),
                     'minposf': '17:08:30.980, +61.12.02.893, I, 1.421202e+09Hz',
                     'npts': numpy.array([562500.]),
                     'rms': numpy.array([1.6305207]),
                     'sigma': numpy.array([1.3934297]),
                     'sum': numpy.array([476286.67594505]),
                     'sumsq': numpy.array([1495461.22406453]),
-                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.420415e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
@@ -1136,21 +1136,21 @@ class sdimaging_test3(sdimaging_unittest_base):
         width = "%f%s" % (2.0, self.unit)
         self.task_param.update(dict(restfreq='1.420GHz', nchan=nchan, start=start, width=width))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
-        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.420474e+09Hz',
                     'max': numpy.array([1.61916351]),
-                    'maxpos': numpy.array([4, 52, 0, 33], dtype=numpy.int_),
+                    'maxpos': numpy.array([4, 52, 0, 33], dtype=numpy.int32),
                     'maxposf': '17:31:47.043, +60.13.54.473, I, 1.420161e+09Hz',
                     'mean': numpy.array([0.12395606]),
                     'min': numpy.array([-0.41655564]),
-                    'minpos': numpy.array([60, 71, 0, 93], dtype=numpy.int_),
+                    'minpos': numpy.array([60, 71, 0, 93], dtype=numpy.int32),
                     'minposf': '17:08:55.879, +61.12.09.501, I, 1.419593e+09Hz',
                     'npts': numpy.array([562500.]),
                     'rms': numpy.array([0.19268371]),
                     'sigma': numpy.array([0.14751931]),
                     'sum': numpy.array([69725.28195545]),
                     'sumsq': numpy.array([20883.94443161]),
-                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int_),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.419536e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
@@ -3383,21 +3383,21 @@ class sdimaging_test_projection(sdimaging_unittest_base):
         self.task_param.update(dict(projection=projection))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
         refstats = {
-            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
             'blcf': '17:32:18.690, +57.37.28.536, I, 1.42087e+09Hz',
             'max': numpy.array([21.92034912]),
-            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int_),
+            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int32),
             'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
             'mean': numpy.array([7.84297146]),
             'min': numpy.array([3.36271787]),
-            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int_),
+            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int32),
             'minposf': '17:04:49.308, +60.07.45.791, I, 1.42087e+09Hz',
             'npts': numpy.array([4217.]),
             'rms': numpy.array([8.70721651]),
             'sigma': numpy.array([3.7824345]),
             'sum': numpy.array([33073.81065345]),
             'sumsq': numpy.array([319714.46711966]),
-            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int_),
+            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int32),
             'trcf': '17:03:03.151, +61.19.10.757, I, 1.42087e+09Hz'
         }
         self.run_test_common(self.task_param, refstats, outshape,
@@ -3410,21 +3410,21 @@ class sdimaging_test_projection(sdimaging_unittest_base):
         self.task_param.update(dict(projection=projection))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
         refstats = {
-            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
             'blcf': '17:32:17.872, +57.37.35.824, I, 1.42087e+09Hz',
             'max': numpy.array([21.91863632]),
-            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int_),
+            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int32),
             'maxposf': '17:10:00.782, +58.42.20.655, I, 1.42087e+09Hz',
             'mean': numpy.array([7.84080757]),
             'min': numpy.array([3.36540604]),
-            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int_),
+            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int32),
             'minposf': '17:04:49.729, +60.07.44.771, I, 1.42087e+09Hz',
             'npts': numpy.array([4222.]),
             'rms': numpy.array([8.7050746]),
             'sigma': numpy.array([3.78198999]),
             'sum': numpy.array([33103.88957095]),
             'sumsq': numpy.array([319936.08330953]),
-            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int_),
+            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int32),
             'trcf': '17:03:04.170, +61.19.04.235, I, 1.42087e+09Hz'
         }
         self.run_test_common(self.task_param, refstats, outshape,
@@ -3437,21 +3437,21 @@ class sdimaging_test_projection(sdimaging_unittest_base):
         self.task_param.update(dict(projection=projection))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
         refstats = {
-            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
             'blcf': '17:32:18.122, +57.37.29.933, I, 1.42087e+09Hz',
             'max': numpy.array([21.91925812]),
-            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int_),
+            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int32),
             'maxposf': '17:10:00.722, +58.42.19.922, I, 1.42087e+09Hz',
             'mean': numpy.array([7.84154849]),
             'min': numpy.array([3.36489725]),
-            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int_),
+            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int32),
             'minposf': '17:04:49.481, +60.07.45.807, I, 1.42087e+09Hz',
             'npts': numpy.array([4219.]),
             'rms': numpy.array([8.70603491]),
             'sigma': numpy.array([3.78266474]),
             'sum': numpy.array([33083.49308872]),
             'sumsq': numpy.array([319779.29008623]),
-            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int_),
+            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int32),
             'trcf': '17:03:03.803, +61.19.09.870, I, 1.42087e+09Hz'
         }
         self.run_test_common(self.task_param, refstats, outshape,
@@ -3464,21 +3464,21 @@ class sdimaging_test_projection(sdimaging_unittest_base):
         self.task_param.update(dict(projection=projection))
         outshape = (self.imsize[0], self.imsize[1], 1, self.nchan)
         refstats = {
-            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int_),
+            'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
             'blcf': '17:32:18.553, +57.37.29.753, I, 1.42087e+09Hz',
             'max': numpy.array([21.91932678]),
-            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int_),
+            'maxpos': numpy.array([59, 21, 0, 0], dtype=numpy.int32),
             'maxposf': '17:10:00.673, +58.42.19.909, I, 1.42087e+09Hz',
             'mean': numpy.array([7.84234172]),
             'min': numpy.array([3.36329484]),
-            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int_),
+            'minpos': numpy.array([71, 50, 0, 0], dtype=numpy.int32),
             'minposf': '17:04:49.429, +60.07.45.787, I, 1.42087e+09Hz',
             'npts': numpy.array([4218.]),
             'rms': numpy.array([8.70668658]),
             'sigma': numpy.array([3.78252027]),
             'sum': numpy.array([33078.99737787]),
             'sumsq': numpy.array([319751.35842591]),
-            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int_),
+            'trc': numpy.array([74, 74, 0, 0], dtype=numpy.int32),
             'trcf': '17:03:03.322, +61.19.09.669, I, 1.42087e+09Hz'
         }
         self.run_test_common(self.task_param, refstats, outshape,
