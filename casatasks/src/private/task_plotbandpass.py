@@ -7091,7 +7091,7 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
             print("WARNING: No weather data found in the WEATHER table!")
         else:
           if (type(selectedValues) == np.int64 or type(selectedValues) == np.int32 or
-              type(selectedValues) == np.int_):
+              type(selectedValues) == int):
               conditions['readings'] = 1
               if (verbose):
                   print("selectedValues=%d, myTimes[0]=%.0f, len(matches)=%d, len(matches2)=%d" % (selectedValues,
