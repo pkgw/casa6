@@ -295,7 +295,7 @@ void SDMSManager::setIterationApproach() {
   }
   // User column is set.
   uInt nSortColumns = userSortCols_.nelements();
-  Block<Int> removeCols(3), addCols(2);
+  Block<Int> removeCols(4), addCols(3);
   uInt nRemoveCols = 0 ;
   uInt nAddCols = 0 ;
   logger_p.origin(_ORIGIN);
