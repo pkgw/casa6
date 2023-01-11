@@ -81,6 +81,11 @@ void Applicator::initThreads(Int argc, Char *argv[]){
 #ifdef HAVE_MPI
   //if (debug_p) {
   if(initialized_p) return;
+  ///If detecting only  1 proc is offered to OpenMPI but compiling with MPI
+  if (!getenv("OMPI_COMM_WORLD_LOCAL_SIZE") ||  (String::toInt(getenv("OMPI_COMM_WORLD_LOCAL_SIZE")) <2) ) {
+    //go serial
+    initThreads();
+  }
   //  cerr << "In initThreads. argc: " << argc << ", argv: " << argv << '\n';
       //}
   // Initialize the MPI transport layer
