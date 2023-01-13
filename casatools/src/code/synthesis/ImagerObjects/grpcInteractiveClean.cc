@@ -179,6 +179,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         PauseFlag = false;
         InteractiveMode = false;
         UpdatedModelFlag = false;
+        InteractiveIterDone = 0; 
         IterDone = 0;
         StopCode = 0;
         Nsigma = 0.0;
