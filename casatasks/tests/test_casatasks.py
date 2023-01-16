@@ -14,8 +14,7 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Library General Public
 # License for more details.
 #
-#
-# Based on the requirements listed in casadocs found here:
+# Based on the requirements listed in casadocs found in:
 # https://casadocs.readthedocs.io/en/stable/api/tt/casatasks.html
 #
 ##########################################################################
@@ -24,11 +23,11 @@ import unittest
 import numpy as np
 from casatools import table
 from casatasks import importasdm, importfits, listobs, flagdata, gencal, setjy, fluxscale
-from casatasks import gaincal, bandpass, mstransform, tclean
+from casatasks import gaincal, bandpass, mstransform, tclean, immoments, sdcal
 from casatestutils import sparse_check
 
 class BaseClass(unittest.TestCase):
-    def getdata(testfiles=None):
+    def _getdata(testfiles=None):
         # Download data for the tests
         sparse_check.download_data(testfiles)
 
@@ -50,11 +49,13 @@ class CasaTasksTests(BaseClass):
         cls.gaincal_ms = 'gaincaltest2.ms'
         cls.split_ms = 'Four_ants_3C286.ms'
         cls.tclean_ms = 'refim_oneshiftpoint.mosaic.ms'
+        cls.immoments_img = 'n1333_both.image'
+        cls.sdcal_ms = "otf_ephem.ms"
         cls.input_files = [cls.asdm, cls.fitsimage, cls.listobs_ms, cls.flagdata_ms,
                            cls.gencal_ms, cls.fluxscale_ms, cls.fluxscale_gtable,
-                           cls.gaincal_ms, cls.split_ms, cls.tclean_ms]
+                           cls.gaincal_ms, cls.split_ms, cls.tclean_ms, cls.immoments_img, cls.sdcal_ms]
         # Fetch input data
-        cls.getdata(testfiles=cls.input_files)
+        cls._getdata(testfiles=cls.input_files)
 
         # Output data
         cls.asdm_ms = cls.asdm + '.ms'
@@ -66,9 +67,11 @@ class CasaTasksTests(BaseClass):
         cls.bandpass_out = 'bandpass.bcal'
         cls.split_out = 'split_model.ms'
         cls.tclean_img = 'tclean_test_'
+        cls.immoments_out = 'immoment.mom0'
+        cls.sdcal_out = 'otf_ephem.ms.otfcal'
         cls.output_files = [cls.asdm_ms, cls.onlineflags, cls.casaimage, cls.gentable,
                             cls.fluxscale_out, cls.gaincal_out, cls.bandpass_out,
-                            cls.split_out]
+                            cls.split_out, cls.immoments_out, cls.sdcal_out]
     @classmethod
     def tearDownClass(cls) -> None:
         # Remove input files
@@ -188,7 +191,7 @@ class CasaTasksTests(BaseClass):
                     datacolumn='model')
         self.assertTrue(os.path.exists(self.split_out))
 
-    def test_mtmfs_mosaic_cbFalse_onefield(self):
+    def test_tclean_mtmfs_mosaic_cbFalse_onefield(self):
         """Test tclean with mosaic gridder and specmode mfs"""
         tclean(vis=self.tclean_ms, imagename=self.tclean_img, niter=0, specmode='mfs', spw='*', imsize=1024,
                phasecenter='', cell='10.0arcsec', gridder='mosaic', field='0', conjbeams=False,
@@ -200,7 +203,16 @@ class CasaTasksTests(BaseClass):
         self.assertTrue(os.path.exists(self.tclean_img + '.residual.tt0'))
         self.assertTrue(os.path.exists(self.tclean_img + '.weight.tt0'))
 
+    def test_immoments_box_parameter(self):
+        """Test immoments calculation of each type of moment"""
+        immoments('n1333_both.image', moments=[0], axis='spec', chans='2~15', includepix=[0.003, 100.0],
+                  excludepix=[-1], outfile=self.immoments_out)
+        self.assertTrue(os.path.exists(self.immoments_out))
 
+    def test_sdcal_otf_ephemeris(self):
+        """Test sdcal on-the-fly sky calibration with ephemeris object"""
+        sdcal(infile=self.sdcal_ms, outfile=self.sdcal_out, calmode='otf')
+        self.assertTrue(os.path.exists(self.sdcal_out))
 
 if __name__ == '__main__':
     unittest.main()
