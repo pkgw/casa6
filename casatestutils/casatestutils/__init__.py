@@ -29,8 +29,15 @@ except NameError:
     ModuleNotFoundError = ImportError
 
 def import_casamods():
-    # CASA 6
+    logging.debug("Importing CASAtools")
     import casatools
+    logging.debug("Importing CASAtasks")
+    #try:
+    #    import casatasks
+    #    from casatasks import casalog
+    #except (ImportError, ModuleNotFoundError):
+    #    pass
+
     try:
         from casampi.MPIEnvironment import MPIEnvironment
         _importmpi = True
@@ -39,6 +46,7 @@ def import_casamods():
     except ImportError:
         print("MPIEnvironment not Enabled")
 
+    _casa6 = True
 
 _casa6tools = set([
     "agentflagger", "atcafiller", "atmosphere", "calanalysis", "calibrater", "coercetype", "componentlist", "config", "constants", "coordsys", "ctuser", "functional", "image",
