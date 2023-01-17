@@ -22,19 +22,8 @@ from scipy.interpolate import interp1d
 import numpy
 import string
 
-try:
-    # CASA 6
-    import casatools
-    _tb = casatools.table()
-    casa6 = True
-
-except ImportError:
-    # CASA 5
-    from taskinit import gentools
-    _tb = gentools(['tb'])[0]
-    casa5 = True
-
-
+import casatools
+_tb = casatools.table()
 
 scaling={'GHz':1.0e-9,
          'MHz':1.0e-6,
@@ -157,10 +146,7 @@ class TsysFillerBase( object ):
         self.filename = filename.rstrip('/')
         self.polno = None
         self.beamno = None
-        if CASA6:
-            self.table = casatools.table()
-        else:
-            self.table = gentools(['tb'])[0]
+        self.table = casatools.table()
         self.table.open( self.filename, nomodify=False )
 
     def __del__( self ):

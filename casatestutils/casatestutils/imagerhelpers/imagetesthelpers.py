@@ -17,80 +17,37 @@ import subprocess
 import numpy
 import six
 
-casa5 = False
-casa6 = False
+logging.debug("Importing CASAtools")
+import casatools
+logging.debug("Importing CASAtasks")
+import casatasks
+_cb = casatools.calibrater()
+_tb = casatools.table()
+_tbt = casatools.table()
+_ia  = casatools.image()
+_cb = casatools.calibrater()
+from casatasks import casalog
+from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-
-    # CASA 6
-    logging.debug("Importing CASAtools")
-    import casatools
-    logging.debug("Importing CASAtasks")
-    import casatasks
-    _cb = casatools.calibrater()
-    _tb = casatools.table()
-    _tbt = casatools.table()
-    _ia  = casatools.image()
-    _cb = casatools.calibrater()
-    from casatasks import casalog
-    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-
-    casampi_imported = False
-    import importlib
-    _casampi_spec = importlib.util.find_spec('casampi')
-    if _casampi_spec:
-        # don't catch import error from casampi if it is found in the system modules
-        from casampi.MPIEnvironment import MPIEnvironment
-        casampi_imported = True
-    else:
-        casalog.post('casampi not available - not testing MPIEnvironment stuff', 'WARN')
-
-    def tclean_param_names():
-        from casatasks.tclean import _tclean_t
-        return _tclean_t.__code__.co_varnames[:_tclean_t.__code__.co_argcount]
-    def decon_param_names():
-        from casatasks.deconvolve import _deconvolve_t
-        return _deconvolve_t.__code__.co_varnames[:_deconvolve_t.__code__.co_argcount]
-    def sdint_param_names():
-        from casatasks.sdintimaging import _sdintimaging_t
-        return _sdintimaging_t.__code__.co_varnames[:_sdintimaging_t.__code__.co_argcount]
-
-    casa6 = True
-
-else:
-
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying CASA5...")
-    from __main__ import default
-    from taskinit import tbtool, mstool, iatool, cbtool
-    from taskinit import *
-    from casa_stack_manip import stack_find, find_casa
-    from mpi4casa.MPIEnvironment import MPIEnvironment
+casampi_imported = False
+import importlib
+_casampi_spec = importlib.util.find_spec('casampi')
+if _casampi_spec:
+    # don't catch import error from casampi if it is found in the system modules
+    from casampi.MPIEnvironment import MPIEnvironment
     casampi_imported = True
+else:
+    casalog.post('casampi not available - not testing MPIEnvironment stuff', 'WARN')
 
-    _tb = tbtool()
-    _tbt = tbtool()
-    _ia = iatool()
-    _cb = cbtool()
-    casa = find_casa()
-    if casa.has_key('state') and casa['state'].has_key('init_version') and casa['state']['init_version'] > 0:
-        casaglobals=True
-        casac = stack_find("casac")
-        casalog = stack_find("casalog")
-
-    def tclean_param_names():
-        # alternatively could use from tasks import tclean; tclean.parameters
-        from task_tclean import tclean
-        return tclean.__code__.co_varnames[:tclean.__code__.co_argcount]
-    def decon_param_names():
-        from tasks import deconvolve
-        return deconvolve.parameters.keys()
-    def sdint_param_names():
-        from tasks import sdintimaging
-        return sdintimaging.parameters.keys()
-
-    casa5 = True
+def tclean_param_names():
+    from casatasks.tclean import _tclean_t
+    return _tclean_t.__code__.co_varnames[:_tclean_t.__code__.co_argcount]
+def decon_param_names():
+    from casatasks.deconvolve import _deconvolve_t
+    return _deconvolve_t.__code__.co_varnames[:_deconvolve_t.__code__.co_argcount]
+def sdint_param_names():
+    from casatasks.sdintimaging import _sdintimaging_t
+    return _sdintimaging_t.__code__.co_varnames[:_sdintimaging_t.__code__.co_argcount]
 
 ############################################################################################
 ##################################       imagerhelpers       ###############################
@@ -427,12 +384,8 @@ class TestHelpers:
         """Get Iterdone"""
         # AW:  This can be reduced down for readability but putting in a fix for CAS-13182
         iters = None
-        if is_CASA6:
-            if 'iterdone' in summ:
-                iters = summ['iterdone']
-        else:
-            if summ.has_key('iterdone'):
-                iters = summ['iterdone']
+        if 'iterdone' in summ:
+            iters = summ['iterdone']
         return iters
 
     def delmodkeywords(self,msname=""):
