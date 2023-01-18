@@ -26,7 +26,10 @@
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 //# $Id$
+#include <algorithm>
+#include <array>
 #include <iostream>
+#include <tuple>
 
 //#include <libsakura/sakura.h>
 //#include <libsakura/config.h>
