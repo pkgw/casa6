@@ -63,16 +63,14 @@
 # The following tests are currently skipped as the supports of the particular
 # modes are not available in parallel mode yet
 # =>   
-#     test_multifield_both_cube_diffshape:
+#     test_multifield_both_cube_diffshape
 #     test_multifield_cube_mfs
 #     test_multifield_cube_mtmfs
-#     test_cube_21
 #
 # The following tests in pricipal should be working but curently broken 
-# until fixes to test or code are properly made.
+# for parallel  until fixes to test or code are properly made.
 # =>  test_multifield_facets_mfs
 #     test_multifield_facets_mtmfs
-#     test_cube_D1
 # 
 # Added to skip at least for 5.5
 #     test_cube_chanchunks
