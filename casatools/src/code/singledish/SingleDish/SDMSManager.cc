@@ -295,57 +295,64 @@ void SDMSManager::setIterationApproach() {
   }
   // User column is set.
   uInt nSortColumns = userSortCols_.nelements();
-  Block<Int> removeCols(4), addCols(3);
-  uInt nRemoveCols = 0 ;
-  uInt nAddCols = 0 ;
+
   logger_p.origin(_ORIGIN);
-  if (timespan_p.contains("scan") && (getBlockId(userSortCols_, MS::SCAN_NUMBER) > -1)) {
-    logger_p << LogIO::NORMAL << "Combining data through scans for time average. "
-             << "Removing SCAN_NUMBER from user sort list." << LogIO::POST;    
-    removeCols[nRemoveCols] = MS::SCAN_NUMBER;
-    nRemoveCols += 1;
+
+  using ConfigTestFunc = std::function<Bool()>;
+  using ColumnId = MSMainEnums::PredefinedColumns;
+  using CheckItem = std::tuple<ColumnId, String, String, ConfigTestFunc>;
+  auto const userSortColExists = [&](ColumnId const &i) {
+    return getBlockId(userSortCols_, MS::SCAN_NUMBER) > -1;
+  };
+
+  std::array<CheckItem, 4> removeCheckList = {
+    std::make_tuple(MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", [&]() {return timespan_p.contains("scan");}),
+    std::make_tuple(MS::STATE_ID, "STATE_ID", "state", [&]() {return timespan_p.contains("state");}),
+    std::make_tuple(MS::FIELD_ID, "FIELD_ID", "field", [&]() {return timespan_p.contains("field");}),
+    std::make_tuple(MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", [&]() {return combinespws_p;})
+  };
+  Block<Int> removeCols(removeCheckList.size());
+  uInt nRemoveCols = 0;
+  for (auto const &item: removeCheckList) {
+    auto const &_columnId = std::get<0>(item);
+    auto const &_columnName = std::get<1>(item);
+    auto const &_paramName = std::get<2>(item);
+    auto const &_testFunc = std::get<3>(item);
+    if (_testFunc() && userSortColExists(_columnId)) {
+      logger_p << LogIO::NORMAL;
+      if (_paramName.matches("spw")) {
+        logger_p << "Combining data from selected spectral windows. ";
+      } else {
+        logger_p << "Combining data through " << _paramName << "s for time average. ";
+      }
+      logger_p << "Removing " << _columnName << " from user sort list." << LogIO::POST;
+      removeCols[nRemoveCols] = _columnId;
+      nRemoveCols += 1;
+    }
   }
-  if (timespan_p.contains("state") && (getBlockId(userSortCols_, MS::STATE_ID) > -1)) {
-    logger_p << LogIO::NORMAL << "Combining data through state for time average. "
-             <<  "Removing STATE_ID form user sort list." << LogIO::POST;
-    removeCols[nRemoveCols] = MS::STATE_ID;
-    nRemoveCols += 1;
-  }
-  if (timespan_p.contains("field") && (getBlockId(userSortCols_, MS::FIELD_ID) > -1)) {
-    logger_p << LogIO::NORMAL << "Combining data through state for time average. "
-             <<  "Removing FIELD_ID form user sort list." << LogIO::POST;
-    removeCols[nRemoveCols] = MS::FIELD_ID;
-    nRemoveCols += 1;
-  }
-  if (combinespws_p && (getBlockId(userSortCols_, MS::DATA_DESC_ID) > -1) ) {
-    logger_p << LogIO::NORMAL << "Combining data from selected spectral windows. "
-             << "Removing DATA_DESC_ID from user sort list" << LogIO::POST;
-    removeCols[nRemoveCols] = MS::DATA_DESC_ID;
-    nRemoveCols += 1;
-  }
+
+  std::array<CheckItem, 3> addCheckList;
+  // reuse ChckItem's from removeCheckList for the time being
+  // because currently addCheckList is a subset of removeCheckList
+  std::copy(removeCheckList.begin(), removeCheckList.begin() + addCheckList.size(), addCheckList.begin());
+  Block<Int> addCols(addCheckList.size());
+  uInt nAddCols = 0 ;
   if (timeAverage_p) {
-    if (!timespan_p.contains("scan")
-        && (getBlockId(userSortCols_, MS::SCAN_NUMBER) < 0)) {
-      logger_p << LogIO::NORMAL << "Splitting data by scans for time average. "
-               <<  "Adding SCAN_NUMBER to user sort list." << LogIO::POST;
-      addCols[nAddCols] = MS::SCAN_NUMBER;
-      nAddCols += 1;
-    }
-    if (!timespan_p.contains("state")
-        && (getBlockId(userSortCols_, MS::STATE_ID) < 0)) {
-      logger_p << LogIO::NORMAL << "Splitting data by state for time average. "
-               <<  "Adding STATE_ID to user sort list." << LogIO::POST;
-      addCols[nAddCols] = MS::STATE_ID;
-      nAddCols += 1;
-    }
-    if (!timespan_p.contains("field")
-        && (getBlockId(userSortCols_, MS::FIELD_ID) < 0)) {
-      logger_p << LogIO::NORMAL << "Splitting data by field for time average. "
-               <<  "Adding FIELD_ID to user sort list." << LogIO::POST;
-      addCols[nAddCols] = MS::FIELD_ID;
-      nAddCols += 1;
+    for (auto const &item: addCheckList) {
+      auto const &_columnId = std::get<0>(item);
+      auto const &_columnName = std::get<1>(item);
+      auto const &_paramName = std::get<2>(item);
+      auto const &_testFunc = std::get<3>(item);
+      if (!_testFunc() && !userSortColExists(_columnId)) {
+        logger_p << LogIO::NORMAL
+                 << "Splitting data by " << _paramName << "s for time average. "
+                 << "Adding " << _columnName << " to user sort list." << LogIO::POST;
+        addCols[nAddCols] = _columnId;
+        nAddCols += 1;
+      }
     }
   }
+
   nSortColumns += (nAddCols - nRemoveCols);
   sortColumns_p = Block<Int>(nSortColumns);
   uInt sortColumnIndex = 0;
