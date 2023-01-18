@@ -301,8 +301,8 @@ void SDMSManager::setIterationApproach() {
   using ConfigTestFunc = std::function<Bool()>;
   using ColumnId = MSMainEnums::PredefinedColumns;
   using CheckItem = std::tuple<ColumnId, String, String, ConfigTestFunc>;
-  auto const userSortColExists = [&](ColumnId const &i) {
-    return getBlockId(userSortCols_, MS::SCAN_NUMBER) > -1;
+  auto const userSortColExists = [&](ColumnId const &columnId) {
+    return getBlockId(userSortCols_, columnId) > -1;
   };
 
   std::array<CheckItem, 4> removeCheckList = {
