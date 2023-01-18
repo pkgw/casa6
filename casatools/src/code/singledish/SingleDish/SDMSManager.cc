@@ -1,4 +1,4 @@
-//# SDMSManager.cc: this defines single dish MS transform manager 
+//# SDMSManager.cc: this defines single dish MS transform manager
 //#                inheriting MSTransformManager.
 //#
 //# Copyright (C) 2015
@@ -66,7 +66,7 @@ SDMSManager::~SDMSManager() {
 // -----------------------------------------------------------------------
 // Fill output MS with data from an input VisBuffer
 // -----------------------------------------------------------------------
-void SDMSManager::fillCubeToOutputMs(vi::VisBuffer2 *vb,Cube<Float> const &data_cube, 
+void SDMSManager::fillCubeToOutputMs(vi::VisBuffer2 *vb,Cube<Float> const &data_cube,
                                      Cube<Bool> const *flag_cube, Matrix<Float> const *weight_matrix) {
   setupBufferTransformations(vb);
 
@@ -100,7 +100,7 @@ void SDMSManager::fillCubeToOutputMs(vi::VisBuffer2 *vb,Cube<Float> const &data_
 // ----------------------------------------------------------------------------------------
 // Fill main (data) columns which have to be combined together to produce bigger SPWs
 // ----------------------------------------------------------------------------------------
-void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef, 
+void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
                                      Cube<Float> const &data_cube, Cube<Bool> const *flag_cube) {
   ArrayColumn<Bool> *outputFlagCol = NULL;
   for (dataColMap::iterator iter = dataColMap_p.begin(); iter != dataColMap_p.end(); iter++) {
@@ -121,7 +121,7 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
         setTileShape(rowRef, outputMsCols_p->data());
         Cube<Complex> cdata_cube(data_cube.shape());
         convertArray(cdata_cube, data_cube);
-        transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(), 
+        transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(),
                             outputFlagCol, applicableSpectrum);
         break;
       }
@@ -137,11 +137,11 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
         convertArray(cdata_cube, data_cube);
         if (iter->second == MS::DATA) {
           setTileShape(rowRef, outputMsCols_p->data());
-          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(), 
+          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(),
                               outputFlagCol, applicableSpectrum);
         } else {
           setTileShape(rowRef, outputMsCols_p->correctedData());
-          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->correctedData(), 
+          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->correctedData(),
                               outputFlagCol, applicableSpectrum);
         }
         break;
@@ -157,11 +157,11 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
 
         if (iter->second == MS::DATA) {
           setTileShape(rowRef, outputMsCols_p->data());
-          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->data(), 
+          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->data(),
                               outputFlagCol, applicableSpectrum);
         } else {
           setTileShape(rowRef, outputMsCols_p->modelData());
-          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->modelData(), 
+          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->modelData(),
                               outputFlagCol, applicableSpectrum);
         }
         break;
@@ -175,7 +175,7 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
           outputFlagCol = NULL;
         }
         setTileShape(rowRef, outputMsCols_p->floatData());
-        transformCubeOfData(vb, rowRef, data_cube, outputMsCols_p->floatData(), 
+        transformCubeOfData(vb, rowRef, data_cube, outputMsCols_p->floatData(),
                             outputFlagCol, applicableSpectrum);
         break;
       }
