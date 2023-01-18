@@ -29,15 +29,7 @@ except NameError:
     ModuleNotFoundError = ImportError
 
 def import_casamods():
-    logging.debug("Importing CASAtools")
     import casatools
-    logging.debug("Importing CASAtasks")
-    #try:
-    #    import casatasks
-    #    from casatasks import casalog
-    #except (ImportError, ModuleNotFoundError):
-    #    pass
-
     try:
         from casampi.MPIEnvironment import MPIEnvironment
         _importmpi = True
