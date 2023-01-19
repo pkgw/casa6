@@ -26,10 +26,8 @@
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 //# $Id$
-#include <algorithm>
 #include <array>
 #include <iostream>
-#include <tuple>
 
 //#include <libsakura/sakura.h>
 //#include <libsakura/config.h>
@@ -302,54 +300,50 @@ void SDMSManager::setIterationApproach() {
   logger_p.origin(_ORIGIN);
 
   using ColumnId = MSMainEnums::PredefinedColumns;
-  using CheckItem = std::tuple<ColumnId, String, String, Bool>;
+  struct CheckItem {
+    ColumnId columnId;
+    String columnName;
+    String paramType;
+    Bool removeIt;
+    Bool addIt;
+  };
   auto const userSortColExists = [&](ColumnId const &columnId) {
     return getBlockId(userSortCols_, columnId) > -1;
   };
 
-  std::array<CheckItem, 4> removeCheckList = {
-    std::make_tuple(MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan")),
-    std::make_tuple(MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state")),
-    std::make_tuple(MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field")),
-    std::make_tuple(MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", combinespws_p)
-  };
-  Block<Int> removeCols(removeCheckList.size());
+  // addIt for DATA_DESC_ID is always false because no add operation is intended
+  std::array<CheckItem, 4> checkList {{
+    {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan"), !timespan_p.contains("scan")},
+    {MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state"), !timespan_p.contains("state")},
+    {MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field"), !timespan_p.contains("field")},
+    {MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", combinespws_p, false}
+  }};
+
+  Block<Int> removeCols(checkList.size());
   uInt nRemoveCols = 0;
-  for (auto const &item: removeCheckList) {
-    auto const &_columnId = std::get<0>(item);
-    auto const &_columnName = std::get<1>(item);
-    auto const &_paramName = std::get<2>(item);
-    auto const &_removeParam = std::get<3>(item);
-    if (_removeParam && userSortColExists(_columnId)) {
+  for (auto const &item: checkList) {
+    if (item.removeIt && userSortColExists(item.columnId)) {
       logger_p << LogIO::NORMAL;
-      if (_paramName.matches("spw")) {
+      if (item.paramType.matches("spw")) {
         logger_p << "Combining data from selected spectral windows. ";
       } else {
-        logger_p << "Combining data through " << _paramName << "s for time average. ";
+        logger_p << "Combining data through " << item.paramType << "s for time average. ";
       }
-      logger_p << "Removing " << _columnName << " from user sort list." << LogIO::POST;
-      removeCols[nRemoveCols] = _columnId;
+      logger_p << "Removing " << item.columnName << " from user sort list." << LogIO::POST;
+      removeCols[nRemoveCols] = item.columnId;
       nRemoveCols += 1;
     }
   }
 
-  std::array<CheckItem, 3> addCheckList;
-  // reuse ChckItem's from removeCheckList for the time being
-  // because currently addCheckList is a subset of removeCheckList
-  std::copy(removeCheckList.begin(), removeCheckList.begin() + addCheckList.size(), addCheckList.begin());
-  Block<Int> addCols(addCheckList.size());
+  Block<Int> addCols(checkList.size());
   uInt nAddCols = 0 ;
   if (timeAverage_p) {
-    for (auto const &item: addCheckList) {
-      auto const &_columnId = std::get<0>(item);
-      auto const &_columnName = std::get<1>(item);
-      auto const &_paramName = std::get<2>(item);
-      auto const &_addParam = !(std::get<3>(item));
-      if (_addParam && !userSortColExists(_columnId)) {
+    for (auto const &item: checkList) {
+      if (item.addIt && !userSortColExists(item.columnId)) {
         logger_p << LogIO::NORMAL
-                 << "Splitting data by " << _paramName << "s for time average. "
-                 << "Adding " << _columnName << " to user sort list." << LogIO::POST;
-        addCols[nAddCols] = _columnId;
+                 << "Splitting data by " << item.paramType << "s for time average. "
+                 << "Adding " << item.columnName << " to user sort list." << LogIO::POST;
+        addCols[nAddCols] = item.columnId;
         nAddCols += 1;
       }
     }
