@@ -301,18 +301,17 @@ void SDMSManager::setIterationApproach() {
 
   logger_p.origin(_ORIGIN);
 
-  using ConfigTestFunc = std::function<Bool()>;
   using ColumnId = MSMainEnums::PredefinedColumns;
-  using CheckItem = std::tuple<ColumnId, String, String, ConfigTestFunc>;
+  using CheckItem = std::tuple<ColumnId, String, String, Bool>;
   auto const userSortColExists = [&](ColumnId const &columnId) {
     return getBlockId(userSortCols_, columnId) > -1;
   };
 
   std::array<CheckItem, 4> removeCheckList = {
-    std::make_tuple(MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", [&]() {return timespan_p.contains("scan");}),
-    std::make_tuple(MS::STATE_ID, "STATE_ID", "state", [&]() {return timespan_p.contains("state");}),
-    std::make_tuple(MS::FIELD_ID, "FIELD_ID", "field", [&]() {return timespan_p.contains("field");}),
-    std::make_tuple(MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", [&]() {return combinespws_p;})
+    std::make_tuple(MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan")),
+    std::make_tuple(MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state")),
+    std::make_tuple(MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field")),
+    std::make_tuple(MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", combinespws_p)
   };
   Block<Int> removeCols(removeCheckList.size());
   uInt nRemoveCols = 0;
@@ -320,8 +319,8 @@ void SDMSManager::setIterationApproach() {
     auto const &_columnId = std::get<0>(item);
     auto const &_columnName = std::get<1>(item);
     auto const &_paramName = std::get<2>(item);
-    auto const &_testFunc = std::get<3>(item);
-    if (_testFunc() && userSortColExists(_columnId)) {
+    auto const &_removeParam = std::get<3>(item);
+    if (_removeParam && userSortColExists(_columnId)) {
       logger_p << LogIO::NORMAL;
       if (_paramName.matches("spw")) {
         logger_p << "Combining data from selected spectral windows. ";
@@ -345,8 +344,8 @@ void SDMSManager::setIterationApproach() {
       auto const &_columnId = std::get<0>(item);
       auto const &_columnName = std::get<1>(item);
       auto const &_paramName = std::get<2>(item);
-      auto const &_testFunc = std::get<3>(item);
-      if (!_testFunc() && !userSortColExists(_columnId)) {
+      auto const &_addParam = !(std::get<3>(item));
+      if (_addParam && !userSortColExists(_columnId)) {
         logger_p << LogIO::NORMAL
                  << "Splitting data by " << _paramName << "s for time average. "
                  << "Adding " << _columnName << " to user sort list." << LogIO::POST;
