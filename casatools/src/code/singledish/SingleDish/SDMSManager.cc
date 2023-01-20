@@ -26,8 +26,11 @@
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 //# $Id$
+#include <algorithm>
 #include <array>
 #include <iostream>
+#include <iterator>
+#include <list>
 
 //#include <libsakura/sakura.h>
 //#include <libsakura/config.h>
@@ -294,9 +297,8 @@ void SDMSManager::setIterationApproach() {
 
     return;
   }
-  // User column is set.
-  uInt nSortColumns = userSortCols_.nelements();
 
+  // User column is set.
   logger_p.origin(_ORIGIN);
 
   using ColumnId = MSMainEnums::PredefinedColumns;
@@ -311,6 +313,14 @@ void SDMSManager::setIterationApproach() {
     return getBlockId(userSortCols_, columnId) > -1;
   };
 
+  // copy userSortCols_ to std::list
+  std::list<ColumnId> userSortColsList;
+  std::transform(
+    userSortCols_.begin(), userSortCols_.end(),
+    std::back_inserter(userSortColsList),
+    [](Int const &i) {return static_cast<ColumnId>(i);}
+  );
+
   // addIt for DATA_DESC_ID is always false because no add operation is intended
   std::array<CheckItem, 4> checkList {{
     {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan"), !timespan_p.contains("scan")},
@@ -319,8 +329,7 @@ void SDMSManager::setIterationApproach() {
     {MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", combinespws_p, false}
   }};
 
-  Block<Int> removeCols(checkList.size());
-  uInt nRemoveCols = 0;
+  // remove columns from userSortColsList if necessary
   for (auto const &item: checkList) {
     if (item.removeIt && userSortColExists(item.columnId)) {
       logger_p << LogIO::NORMAL;
@@ -330,45 +339,28 @@ void SDMSManager::setIterationApproach() {
         logger_p << "Combining data through " << item.paramType << "s for time average. ";
       }
       logger_p << "Removing " << item.columnName << " from user sort list." << LogIO::POST;
-      removeCols[nRemoveCols] = item.columnId;
-      nRemoveCols += 1;
+      userSortColsList.remove(item.columnId);
     }
   }
 
-  Block<Int> addCols(checkList.size());
-  uInt nAddCols = 0 ;
+  // add columns to userSortColsList if necessary
   if (timeAverage_p) {
     for (auto const &item: checkList) {
       if (item.addIt && !userSortColExists(item.columnId)) {
         logger_p << LogIO::NORMAL
                  << "Splitting data by " << item.paramType << "s for time average. "
                  << "Adding " << item.columnName << " to user sort list." << LogIO::POST;
-        addCols[nAddCols] = item.columnId;
-        nAddCols += 1;
+        userSortColsList.push_back(item.columnId);
       }
     }
   }
 
-  nSortColumns += (nAddCols - nRemoveCols);
-  sortColumns_p = Block<Int>(nSortColumns);
-  uInt sortColumnIndex = 0;
-
-  for (size_t i = 0; i < userSortCols_.nelements(); ++i) {
-    bool addcol = true;
-    for (size_t j = 0 ; j < nRemoveCols; ++j) {
-      if (getBlockId(userSortCols_, removeCols[i]) > -1) {
-          addcol = false; // the columns is in removeColumns
-      }
-    }
-    if (addcol) {
-      sortColumns_p[sortColumnIndex] = userSortCols_[i];
-      ++sortColumnIndex;
-    }
-  }
-  for (size_t i = 0; i < nAddCols; ++i) {
-    sortColumns_p[sortColumnIndex] = addCols[i];
-    ++sortColumnIndex;
-  }
+  // copy back userSortColsList to sortColumns_p
+  sortColumns_p.resize(userSortColsList.size(), true, false);
+  std::transform(
+    userSortColsList.begin(), userSortColsList.end(), sortColumns_p.begin(),
+    [](ColumnId const &i) {return static_cast<Int>(i);}
+  );
 
   ostringstream oss;
   for (size_t i = 0; i < sortColumns_p.nelements(); ++i) {
