@@ -39,6 +39,7 @@ Summary...
 ######################################################
 
 
+
 class ImagerParameters:
     def __init__(
         self,
@@ -280,6 +281,7 @@ class ImagerParameters:
         }
 
         ######### Deconvolution
+
         self.alldecpars = {
             self.defaultKey: {
                 "id": 0,
