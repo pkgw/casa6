@@ -322,7 +322,7 @@ void SDMSManager::setIterationApproach() {
   );
 
   // addIt for DATA_DESC_ID is always false because no add operation is intended
-  std::array<CheckItem, 4> checkList {{
+  std::array<CheckItem, 4> const checkList {{
     {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan"), !timespan_p.contains("scan")},
     {MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state"), !timespan_p.contains("state")},
     {MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field"), !timespan_p.contains("field")},
