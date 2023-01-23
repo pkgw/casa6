@@ -77,10 +77,26 @@ Applicator::~Applicator()
 
 void Applicator::initThreads(Int argc, Char *argv[]){
 
+  Int numprocs=0;
+ 
    // A no-op if not using MPI
 #ifdef HAVE_MPI
   //if (debug_p) {
+
   if(initialized_p) return;
+  int flag=0;
+   MPI_Initialized(&flag);
+   //cerr << "FLAG " << flag << endl;
+   if(flag || MPI_Init(&argc, &argv)==MPI_SUCCESS){
+     Int numproc=0;
+     MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+     if(numprocs < 2){
+       initThreads();
+       MPI_Finalize();
+       return;
+     }
+   }
+  
   //  cerr << "In initThreads. argc: " << argc << ", argv: " << argv << '\n';
       //}
   // Initialize the MPI transport layer
