@@ -112,6 +112,7 @@ class ImagerParameters:
         minpsffraction=0.1,
         maxpsffraction=0.8,
         interactive=False,
+        fullsummary=False,
         nmajor=-1,
         deconvolver="hogbom",
         scales=[],
@@ -316,6 +317,7 @@ class ImagerParameters:
                 "startmodel": startmodel,
                 "nsigma": nsigma,
                 "imagename": imagename,
+                "fullsummary": fullsummary,
             }
         }
 
@@ -332,6 +334,7 @@ class ImagerParameters:
             "savemodel": savemodel,
             "nsigma": nsigma,
             "nmajor": nmajor,
+            "fullsummary": fullsummary,
         }
 
         ######### CFCache params.
