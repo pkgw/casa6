@@ -4127,6 +4127,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
               err+= "noRequireSumwt must be a bool";
             }
           }
+        if( inrec.isDefined("fullsummary") )
+          {
+            if (inrec.dataType("fullsummary")==TpBool) {
+              err+= readVal(inrec, String("fullsummary"), fullsummary);
+            }
+            else {
+              err+= "fullsummary must be a bool";
+            }
+          }
         if( inrec.isDefined("restoringbeam") )     
 	  {
 	    String errinfo("");
@@ -4312,6 +4321,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     decpar.define("interactive",interactive);
     decpar.define("nsigma",nsigma);
     decpar.define("noRequireSumwt",noRequireSumwt);
+    decpar.define("fullsummary",fullsummary);
 
     return decpar;
   }
