@@ -181,7 +181,6 @@ class TestDescriptionPlugin:
     file_obj.write(string)
     file_obj.close()
 
-
 def write_pytestini(filepath, testname):
     string = """
 [pytest]
@@ -193,7 +192,6 @@ junit_suite_name = '{}'
     file_obj.close()
 
 def clean_working_directory(workdir):
-
     print("Cleaning: {}".format(workdir))
     if os.path.exists(workdir):
         shutil.rmtree(workdir)
@@ -300,10 +298,11 @@ def run_shell_command(cmd, run_directory):
         os.chdir(run_directory)
         subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
         os.chdir(cwd)
+
 def is_in_remote(branch,repo_path, repo):
     if branch != 'master':
         cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, branch )
-        print("\tRunning: ", cmd)
+        #print("\tRunning: ", cmd)
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell = True)
         out = proc.stdout.read()
         if int(out)== 0: # If Feature Branch Exists Does Not exist, revert to master
@@ -312,7 +311,11 @@ def is_in_remote(branch,repo_path, repo):
             return True
     else:
         return True
+
 def fetch_tests(work_dir, branch, merge_target=None):
+
+    if merge_target is not None:
+        print("Merge Target Enabled: \n\tTarget Branch: {} \n\tFeature Branch: {}".format(merge_target, branch))
 
     repo_path = "https://open-bitbucket.nrao.edu/scm/casa/"
     source_dir = work_dir + "/casasources"
@@ -343,18 +346,24 @@ def fetch_tests(work_dir, branch, merge_target=None):
     print("\tRunning: ", " ".join(str(x) for x in cmd))
     run_shell_command(cmd, source_dir)
 
-    cmd = ("git checkout " + branch).split()
-    print("\tRunning: ", " ".join(str(x) for x in cmd))
-    run_shell_command(cmd, source_dir + "/" + repo)
-
     if merge_target is not None:
-        if is_in_remote(merge_target,repo_path, repo): # Test if the branch is in the remote repository
-            print("\tMerging {} into {}".format(merge_target, branch))
-            cmd = ("git merge " + merge_target).split()
+
+        cmd = ("git checkout " + merge_target).split()
+        print("\tRunning: ", " ".join(str(x) for x in cmd))
+        run_shell_command(cmd, source_dir + "/" + repo)
+
+        if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
+            print("\tMerging {} into {}".format(branch, merge_target))
+            cmd = ("git merge " + branch).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
         else:
             print("\t{} not in Remote Repository {}".format(merge_target,repo))
+    else:
+
+        cmd = ("git checkout " + branch).split()
+        print("\tRunning: ", " ".join(str(x) for x in cmd))
+        run_shell_command(cmd, source_dir + "/" + repo)
 
     for x in get_repo_test_paths(repo):
         test_paths.append(source_dir + "/" + x)
@@ -368,29 +377,47 @@ def fetch_tests(work_dir, branch, merge_target=None):
         print("\tRunning: ", " ".join(str(x) for x in cmd))
         run_shell_command(cmd, source_dir)
 
-        # Use Local build.conf to get build tags to git checkout
-        if os.path.isfile(source_dir+"/casa6/build.conf"):
-            branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
-            print("\tTag: " + branchtag)
-            cmd = ("git checkout " + branchtag).split()
-        else:
-            # Check If Feature Branch Exists
-            if is_in_remote(branch,repo_path, repo): 
-                cmd = ("git checkout " + branch).split()
-            else: 
-                cmd = ("git checkout origin/master").split()
-
-        print("\tRunning: ", " ".join(str(x) for x in cmd))
-        run_shell_command(cmd, source_dir + "/" + repo)
-
         if merge_target is not None:
-            if is_in_remote(merge_target,repo_path, repo): # Test if the branch is in the remote repository
-                print("\tMerging {} into {}".format(merge_target, branch))
-                cmd = ("git merge " + merge_target).split()
+
+            cmd = ("git checkout " + merge_target).split()
+            print("\tRunning: ", " ".join(str(x) for x in cmd))
+            run_shell_command(cmd, source_dir + "/" + repo)
+
+            if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
+                print("\tMerging {} into {}".format(branch, merge_target))
+                cmd = ("git merge " + branch).split()
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
                 run_shell_command(cmd, source_dir + "/" + repo)
             else:
-                print("\t{} not in Remote Repository {}".format(merge_target,repo))
+                print("\t{} not in Remote Repository {}".format(branch,repo))
+                if os.path.isfile(source_dir+"/casa6/build.conf"):
+                    print("\tCheckout from build.conf")
+                    branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
+                    print("\tTag: " + branchtag)
+                    cmd = ("git checkout " + branchtag).split()
+                else:
+                    print("No casa6/build.conf found. Defaulting to master")
+                    cmd = ("git checkout origin/{}".format(merge_target)).split()
+                print("\tRunning: ", " ".join(str(x) for x in cmd))
+                run_shell_command(cmd, source_dir + "/" + repo)
+
+        else:
+
+            # Use Local build.conf to get build tags to git checkout
+            if os.path.isfile(source_dir+"/casa6/build.conf"):
+                branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
+                print("\tTag: " + branchtag)
+                cmd = ("git checkout " + branchtag).split()
+            else:
+                # Check If Feature Branch Exists
+                if is_in_remote(branch,repo_path, repo): 
+                    cmd = ("git checkout " + branch).split()
+                else: 
+                    print("\t{} not in Remote Repository {} Defaulting to master.".format(branch,repo))
+                    cmd = ("git checkout origin/master").split()
+
+            print("\tRunning: ", " ".join(str(x) for x in cmd))
+            run_shell_command(cmd, source_dir + "/" + repo)
 
         for x in get_repo_test_paths(repo):
             test_paths.append(source_dir + "/" + x)
