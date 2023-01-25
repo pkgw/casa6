@@ -145,6 +145,7 @@ def tclean(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
+    fullsummary,#=False,
     nmajor,#=-1,
 
     ##### (new) Mask parameters
@@ -198,7 +199,7 @@ def tclean(
     inpparams['state']= inpparams.pop('intent')
     inpparams['loopgain']=inpparams.pop('gain')
     inpparams['scalebias']=inpparams.pop('smallscalebias')
-
+    #
     # Force chanchunks=1 always now (CAS-13400)
     inpparams['chanchunks']=1
 
@@ -470,8 +471,8 @@ def tclean(
                     isit = imager.hasConverged() or (not doneMinor)
                     
                 ## Get summary from iterbot
-                if type(interactive) != bool:
-                    retrec=imager.getSummary();
+                #if type(interactive) != bool:
+                retrec=imager.getSummary(fullsummary);
                 
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()
