@@ -984,7 +984,8 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_ql] start       @
         ##################################################
 
-        self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0.001, 0.32], imgname="j1302_ql")
+        #self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0.001, 0.32], imgname="j1302_ql")
+        self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[-0.1, 0.32], imgname="j1302_ql")
 
         ##########################################
         # %% Generate Images [test_j1302_ql] end @
@@ -1201,7 +1202,7 @@ class test_j1927(StkUnitTest):
         # report  = "".join([report0, report1, report2, report3, report4, report5, report6, report7, reportr])
         # success = success0 and success1 and success2 and success3 and success4 and success5 and success6 and success7 and successr and self.th.check_final(report)
 
-        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        add_to_dict(self, output = test_dict, dataset = "J1927-12fields.ms")
         test_dict[test_name]['report'] = report
         test_dict[test_name]['images'] = self.mom8_images
         test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
@@ -1479,7 +1480,7 @@ class test_j1927(StkUnitTest):
         report  = "".join([report0, report1, report2, report3, *report4])
         success = success0 and success1 and success2 and success3 and all(success4) and self.th.check_final(report)
 
-        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        add_to_dict(self, output = test_dict, dataset = "J1927-12fields.ms")
         test_dict[test_name]['report'] = report
         test_dict[test_name]['images'] = self.mom8_images
         test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
@@ -1638,7 +1639,7 @@ class test_j1927(StkUnitTest):
         report  = "".join([report0, report1, report2, report4])
         success = success1 and success2 and success4 and self.th.check_final(report)
 
-        add_to_dict(self, output = test_dict, dataset = "J1302-12fields.ms")
+        add_to_dict(self, output = test_dict, dataset = "J1927-12fields.ms")
         test_dict[test_name]['report'] = report
         test_dict[test_name]['images'] = self.mom8_images
         test_dict[test_name]['taskcall'] = self.clean_taskcall(test_dict[test_name]['taskcall'], locals())
