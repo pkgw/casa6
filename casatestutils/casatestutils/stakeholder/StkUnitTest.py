@@ -37,9 +37,12 @@ class StkUnitTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        png_files = glob.glob('*.png')
+        # The stakeholder test script conatins multiple test classes. 
+        # So the following will delete png files of all runs except those from  last test class 
+        #png_files = glob.glob('*.png')
         html_files = glob.glob('*.html')
-        for f in list(png_files)+list(html_files):
+        #for f in list(png_files)+list(html_files):
+        for f in list(html_files):
             _del_file_or_dir(f)
 
     def setUp(self):
@@ -545,7 +548,7 @@ class StkUnitTest(unittest.TestCase):
         self.ia.close()
         self.ia.done()
 
-    def mom8_creator(self, image, range_list, imgname=None):
+    def mom8_creator(self, image, range_list, scaling=0.0, imgname=None):
         """ Takes and image and turns it into a .png for weblog.
         The output image will be named "{image}.moment8.png"
         Note that for casa 6.2-, this function will cause casa to hang.
@@ -563,7 +566,7 @@ class StkUnitTest(unittest.TestCase):
 
         imgname = image+'.moment8.png' if (imgname is None) else imgname+'.png'
         immoments(imagename = image, moments = 8, outfile = image+'.moment8')
-        imview(raster={'file': image+'.moment8', 'range': range_list}, out = {'file': imgname})
+        imview(raster={'file': image+'.moment8', 'range': range_list, 'scaling': scaling}, out = {'file': imgname})
         subprocess.call('mogrify -trim '+imgname, shell=True)
         self.mom8_images.append(imgname)
 
