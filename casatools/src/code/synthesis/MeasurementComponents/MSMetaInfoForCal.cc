@@ -29,7 +29,6 @@
 #include <casacore/ms/MSOper/MSMetaData.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/TableUtil.h>
-#include <casacore/casa/OS/Path.h>
 #include <synthesis/MeasurementComponents/MSMetaInfoForCal.h>
 #include <msvis/MSVis/SimpleSimVi2.h>
 #include <casacore/casa/aips.h>
@@ -96,8 +95,8 @@ MSMetaInfoForCal::MSMetaInfoForCal(const MeasurementSet& ms) :
 {
   // Set msname_ to absolute disk filename (via ANTENNA subtable).
   //   (this avoids getting useless ref table names)
-  msname_ = Path(ms.antenna().tableName().before("/ANTENNA")).baseName();
-  
+  msname_ = ms.antenna().tableName().before("/ANTENNA");
+
   // Fill counters from msmd
   nAnt_=msmd_->nAntennas();
   nSpw_=msmd_->nSpw(True);
