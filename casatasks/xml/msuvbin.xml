@@ -116,6 +116,9 @@
     <param type="bool" name="wproject">
       <shortdescription>Do wprojection correction while gridding</shortdescription>
       <value>False</value>
+      <allowed>
+         <value>False</value>
+      </allowed>
     </param>
     <param type="double" name="memfrac">
       <shortdescription>Limit how much of memory to use</shortdescription>
