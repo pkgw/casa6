@@ -208,6 +208,8 @@ protected:
   
   casacore::Bool itsIsMaskLoaded; // Try to get rid of this state variable ! 
   casacore::Bool itsIsInteractive;
+  
+  casacore::Bool itsFullSummary;
 
   casacore::Float itsMaskSum;
 
