@@ -26,51 +26,51 @@
 //#
 //# $Id$
 
-#include <casa/aips.h>
+#include <casacore/casa/aips.h>
 
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/BasicMath/Math.h>
-#include <casa/BasicSL/Complex.h>
-#include <scimath/Mathematics/FFTServer.h>
-#include <casa/BasicSL/Constants.h>
-#include <casa/Utilities/Assert.h>
-#include <lattices/Lattices/Lattice.h>
-#include <lattices/LEL/LatticeExpr.h>
-#include <lattices/Lattices/LatticeIterator.h>
-#include <lattices/Lattices/LatticeStepper.h>
-#include <lattices/LatticeMath/LatticeConvolver.h>
-#include <scimath/Fitting/NonLinearFitLM.h>
-#include <scimath/Functionals/Gaussian2D.h>
-#include <scimath/Mathematics/Interpolate2D.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/BasicMath/Math.h>
+#include <casacore/casa/BasicSL/Complex.h>
+#include <casacore/scimath/Mathematics/FFTServer.h>
+#include <casacore/casa/BasicSL/Constants.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/lattices/Lattices/Lattice.h>
+#include <casacore/lattices/LEL/LatticeExpr.h>
+#include <casacore/lattices/Lattices/LatticeIterator.h>
+#include <casacore/lattices/Lattices/LatticeStepper.h>
+#include <casacore/lattices/LatticeMath/LatticeConvolver.h>
+#include <casacore/scimath/Fitting/NonLinearFitLM.h>
+#include <casacore/scimath/Functionals/Gaussian2D.h>
+#include <casacore/scimath/Mathematics/Interpolate2D.h>
 #include <casacore/casa/IO/ArrayIO.h>
 
-#include <ms/MeasurementSets/MSColumns.h>
-#include <ms/MeasurementSets/MSDopplerUtil.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/ms/MeasurementSets/MSDopplerUtil.h>
 
 #include <msvis/MSVis/StokesVector.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/SubImage.h>
-#include <images/Images/ImageBeamSet.h>
-#include <casa/OS/File.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/SubImage.h>
+#include <casacore/images/Images/ImageBeamSet.h>
+#include <casacore/casa/OS/File.h>
 
-#include <casa/Quanta/UnitMap.h>
-#include <casa/Quanta/UnitVal.h>
-#include <measures/Measures/Stokes.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <coordinates/Coordinates/Projection.h>
-#include <casa/Logging/LogSink.h>
-#include <casa/Logging/LogMessage.h>
+#include <casacore/casa/Quanta/UnitMap.h>
+#include <casacore/casa/Quanta/UnitVal.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/coordinates/Coordinates/Projection.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogMessage.h>
 
 #include <synthesis/TransformMachines2/Utils.h>
 
-#include <casa/iostream.h>
+#include <iostream>
 #include <ctime>
 
 using namespace casacore;
@@ -1142,7 +1142,7 @@ void StokesImageUtil::To(ImageInterface<Float>& out, ImageInterface<Complex>& in
   AlwaysAssert(StokesMap(map, in.coordinates()), AipsError);
   Vector<Int> outmap;
   AlwaysAssert(StokesMap(outmap, out.coordinates()), AipsError);
-  
+
   Int nx = in.shape()(map(0));
   Int innpol = in.shape()(map(2));
   Int outnpol = out.shape()(outmap(2));
@@ -1159,6 +1159,7 @@ void StokesImageUtil::To(ImageInterface<Float>& out, ImageInterface<Complex>& in
   StokesImageUtil::PolRep polFrame=StokesImageUtil::CIRCULAR;
   Int nStokesIn=CStokesPolMap(inMap, polFrame, in.coordinates());
   Int nStokesOut=StokesPolMap(outMap, out.coordinates());
+  
   if(nStokesOut <=0){
     directCToR(out, in);
     return;
@@ -1419,6 +1420,67 @@ void StokesImageUtil::ToStokesPSF(ImageInterface<Float>& out, ImageInterface<Com
     }
   }
 };
+
+void StokesImageUtil::ToStokesSumWt(Matrix<Float> sumwtStokes, Matrix<Float> sumwtCorr, const CoordinateSystem& outcoord, const CoordinateSystem& incoord)
+{
+
+  AlwaysAssert( sumwtStokes.shape()[1] == sumwtCorr.shape()(1) , AipsError );
+  Vector<Int> inmap;
+  AlwaysAssert(StokesMap(inmap, incoord), AipsError);
+  Vector<Int> outmap;
+  AlwaysAssert(StokesMap(outmap, outcoord), AipsError);
+
+  
+  Int innpol = sumwtCorr.shape()[0];
+  Int outnpol = sumwtStokes.shape()[0];
+  
+  
+  Vector<Int> inMap(innpol), outMap(outnpol);
+  StokesImageUtil::PolRep polFrame=StokesImageUtil::CIRCULAR;
+  Int nStokesIn=CStokesPolMap(inMap, polFrame, incoord);
+  Int nStokesOut=StokesPolMap(outMap, outcoord);
+  if(nStokesOut <=0  || nStokesIn==0)  {
+    if(innpol != outnpol)
+      throw(AipsError("Cannot copy sumwt as input and output have different pol axis length"));
+    convertArray(sumwtStokes, sumwtCorr);
+    return;
+  }
+  if( nStokesOut==1 && nStokesIn==2){
+    
+    for(uInt chan=0;chan<sumwtStokes.shape()[1];chan++)
+      {
+        sumwtStokes(0,chan) = min(sumwtCorr(0,chan),sumwtCorr(1, chan));
+      }     
+  }
+ if( nStokesOut==2 && nStokesIn==2){
+    
+    for(uInt chan=0;chan<sumwtStokes.shape()[1];chan++)
+      {
+        sumwtStokes(0,chan) = min(sumwtCorr(0,chan),sumwtCorr(1, chan));
+        sumwtStokes(1,chan) = min(sumwtCorr(1,chan),sumwtCorr(1, chan));
+      }     
+  } 
+ if( nStokesOut==4 && nStokesIn==4){
+    
+   for(uInt chan=0;chan<sumwtStokes.shape()[1];chan++)
+     {
+       if(polFrame==StokesImageUtil::LINEAR){
+         sumwtStokes(0,chan) = min(sumwtCorr(0,chan),sumwtCorr(3, chan));
+         sumwtStokes(1,chan) = min(sumwtCorr(0,chan),sumwtCorr(3, chan));
+         sumwtStokes(2,chan) = min(sumwtCorr(1,chan),sumwtCorr(2, chan));
+         sumwtStokes(3,chan) = min(sumwtCorr(1,chan),sumwtCorr(2, chan));
+       }
+       else{
+         sumwtStokes(0,chan) = min(sumwtCorr(0,chan),sumwtCorr(3, chan));
+         sumwtStokes(1,chan) = min(sumwtCorr(1,chan),sumwtCorr(2, chan));
+         sumwtStokes(2,chan) = min(sumwtCorr(1,chan),sumwtCorr(2, chan));
+         sumwtStokes(3,chan) = min(sumwtCorr(0,chan),sumwtCorr(3, chan));
+       }
+     } 
+ }
+  
+
+}
 
 void StokesImageUtil::ToStokesSumWt(Matrix<Float> sumwtStokes, Matrix<Float> sumwtCorr)
 {

@@ -51,8 +51,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                 itsMinResidual(0),itsMinResidualNoMask(0),
                                 itsPeakResidualNoMask(0), itsNsigma(0),
                                 itsMadRMS(0), itsMaskSum(0),
-                                itsSummaryMinor(IPosition(2,6,0)),
-				itsNSummaryFields(6),
+                                //itsSummaryMinor(IPosition(2,
+                                //                            SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                itsSummaryMinor(IPosition(2, SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                                            0)),
 				itsDeconvolverID(0) 
   {}
 
@@ -196,6 +198,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsMaskSum = maskSum;
   }
 
+  void SIMinorCycleController::setFullSummary(bool fullSummary)
+  {
+    itsFullSummary = fullSummary;
+  }
+
   void SIMinorCycleController::resetMinResidual()
   {
     itsMinResidual = itsPeakResidual;
@@ -277,17 +284,21 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     returnRecord.define( RecordFieldId("masksum"), itsMaskSum);
     returnRecord.define( RecordFieldId("nsigmathreshold"), itsNsigmaThreshold);
     returnRecord.define( RecordFieldId("nsigma"), itsNsigma);
+    returnRecord.define( RecordFieldId("fullsummary"), itsFullSummary);
 
     /* Reset Counters and summary for the current set of minorcycle iterations */
     itsIterDone = 0;
     itsIterDiff = -1;
-    itsSummaryMinor.resize( IPosition( 2, itsNSummaryFields, 0) , true );
+    //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    int nSummaryFields = !itsFullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    itsSummaryMinor.resize( IPosition( 2, nSummaryFields, 0) , true );
 
     return returnRecord;
   }
 
   void SIMinorCycleController::setCycleControls(Record &recordIn) {
     LogIO os( LogOrigin("SIMinorCycleController",__FUNCTION__,WHERE) );
+
     if (recordIn.isDefined("cycleniter"))
       {recordIn.get(RecordFieldId("cycleniter"), itsCycleNiter);}
     else
@@ -312,6 +323,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       {recordIn.get(RecordFieldId("nsigma"), itsNsigma);}
     else 
       { throw(AipsError(" nsigma is not defined in input minor-cycle controller ") );}
+    os<<"    itsNsigma="<<itsNsigma<<LogIO::POST;
+
+    //if (recordIn.isDefined("fullsummary"))
+   //  {recordIn.get(RecordFieldId("fullsummary"), itsFullSummary);}
+    //else 
+    //  { throw(AipsError(" fullsummary is not defined in input minor-cycle controller ") );}
+    //os<<" in setCycleControls done... "<<LogIO::POST;
 
     /* Reset the counters for the new cycle */
     itsMaxCycleIterDone = 0;
@@ -324,72 +342,81 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsCycleIterDone = 0;
   }
 
-  void SIMinorCycleController::addSummaryMinor(uInt deconvolverid, uInt subimageid, Float model, Float peakresidual)
+  void SIMinorCycleController::addSummaryMinor(uInt deconvolverid, uInt chan, uInt pol,
+                                               Int cycleStartIter, Int startIterDone, Float startmodelflux, Float startpeakresidual, Float startpeakresidualnomask,
+                                               Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Int stopCode, bool fullsummary)
   {
     LogIO os( LogOrigin("SIMinorCycleController", __FUNCTION__ ,WHERE) );
-
     IPosition shp = itsSummaryMinor.shape();
-    if( shp.nelements() != 2 && shp[0] != itsNSummaryFields ) 
-      throw(AipsError("Internal error in shape of minor-cycle summary record"));
+    //bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
+    //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+    //int nSummaryFields = fullsummary ? 6 : SIMinorCycleController::nSummaryFields;
 
-     // Note : itsNSummaryFields is hard-coded to 6 in the SIMinorCycleController constructors.
-     itsSummaryMinor.resize( IPosition( 2, itsNSummaryFields, shp[1]+1 ) , true );
+    int nSummaryFields = !fullsummary ? 6 : SIMinorCycleController::nSummaryFields;
+    if( shp.nelements() != 2 && shp[0] != nSummaryFields ) 
+      throw(AipsError("Internal error in shape of minor-cycle summary record"));
+     itsSummaryMinor.resize( IPosition( 2, nSummaryFields, shp[1]+1 ) , true );
      // iterations done
-     itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+     // make it non-cummulative for all cases
+     itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     //if(!fullsummary) {
+     //    itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     //}
+     //else {
+     //    itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+     // }
      // peak residual
      itsSummaryMinor( IPosition(2, 1, shp[1] ) ) = (Double) peakresidual;
      // model flux
-     itsSummaryMinor( IPosition(2, 2, shp[1] ) ) = (Double) model;
+     itsSummaryMinor( IPosition(2, 2, shp[1] ) ) = (Double) modelflux;
      // cycle threshold
      itsSummaryMinor( IPosition(2, 3, shp[1] ) ) = itsCycleThreshold;
-     // mapper id
+     // mapper id (or multifield id temporary CAS-13683 workaround)
      itsSummaryMinor( IPosition(2, 4, shp[1] ) ) = deconvolverid;
-     // chunk id (channel/stokes)
-     itsSummaryMinor( IPosition(2, 5, shp[1] ) ) = subimageid;
+     // channel id
+     itsSummaryMinor( IPosition(2, 5, shp[1] ) ) = chan;
+     //if (!uss) {
+     if (fullsummary) {
+         // polarity id
+         itsSummaryMinor( IPosition(2, 6, shp[1] ) ) = pol;
+         // cycle start iterations done (ie earliest iterDone for the entire minor cycle)
+         itsSummaryMinor( IPosition(2, 7, shp[1] ) ) = cycleStartIter;
+         // starting iterations done
+         itsSummaryMinor( IPosition(2, 8, shp[1] ) ) = startIterDone;
+         // starting peak residual
+         itsSummaryMinor( IPosition(2, 9, shp[1] ) ) = (Double) startpeakresidual;
+         // starting model flux
+         itsSummaryMinor( IPosition(2, 10, shp[1] ) ) = (Double) startmodelflux;
+         // starting peak residual, not limited to the user's mask
+         itsSummaryMinor( IPosition(2, 11, shp[1] ) ) = (Double) startpeakresidualnomask;
+         // peak residual, not limited to the user's mask
+         itsSummaryMinor( IPosition(2, 12, shp[1] ) ) = (Double) peakresidualnomask;
+         // number of pixels in the mask
+         itsSummaryMinor( IPosition(2, 13, shp[1] ) ) = (Double) masksum;
+         // mpi server
+         itsSummaryMinor( IPosition(2, 14, shp[1] ) ) = mpiRank;
+         // outlier field id, to be provided in grpcInteractiveCleanManager::mergeMinorCycleSummary
+         itsSummaryMinor( IPosition(2, 15, shp[1] ) ) = 0;
+         // stopcode
+         itsSummaryMinor( IPosition(2, 16, shp[1] ) ) = stopCode;
+     }
 
   }// end of addSummaryMinor
 
-  void SIMinorCycleController::compressSummaryMinor(Record& rec){
-    if(!rec.isDefined("summaryminor"))
-      return;
-    Matrix<Double> inSummary=rec.asArrayDouble("summaryminor");
-    if(inSummary.nelements()==0)return;
-    Vector<Double> chanid;
-    chanid=inSummary.row(5);
-    Vector<uInt>  uniqIndx;
-    uInt nChans=GenSortIndirect<Double>::sort (uniqIndx, chanid, Sort::Ascending, Sort::QuickSort|Sort::NoDuplicates);
-   
-    Vector<Double> cUniq(nChans);
-    for (uInt k=0; k <nChans; ++k){
-      cUniq[k]= chanid[uniqIndx[k]];
+  // temporary CAS-13683 workaround
+  /***
+  Bool SIMinorCycleController::useSmallSummaryminor()
+  {
+    if (const char* use_small_summaryminor_p = std::getenv("USE_SMALL_SUMMARYMINOR"))
+    {
+        string use_small_summaryminor(use_small_summaryminor_p);
+        if (use_small_summaryminor.compare("TRUE") == 0 || use_small_summaryminor.compare("true") == 0) {
+            return true;
+        }
     }
-    //cerr << "chanid " << chanid << endl;
-    //cerr << "nChans " << nChans << " " << cUniq << endl;
-    Matrix<Double> outSummary(6, nChans);
-    outSummary.set(0.0);
-    outSummary.row(1).set(C::dbl_max);
-    outSummary.row(5)=cUniq;
-    for (uInt k=0; k < chanid.nelements(); ++k){
-      uInt j=0;
-      while ((cUniq[j] != chanid[k]) && j < nChans){
-        ++j;
-      }
-      if(j < nChans){
-        //cerr << cUniq[j] << "   " << chanid[k] << endl;
-        Vector<Double> col=inSummary.column(k);
-        outSummary(0,j) += col(0);  //niterdone
-        outSummary(1,j) = min(col(1), outSummary(1,j)); //peak residual
-        outSummary(2,j) += col(2); //model
-        outSummary(3,j)= col(3); //cyclethreshold
-        outSummary(4,j) =col(4); //deconvolver id
-      }
-    }
-    rec.removeField("summaryminor");
-    rec.define("summaryminor", outSummary);
-
-    
+    return false;
   }
-  
+  ***/
   
 } //# NAMESPACE CASA - END
 

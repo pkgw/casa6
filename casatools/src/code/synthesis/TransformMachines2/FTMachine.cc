@@ -25,59 +25,59 @@
 //#
 //# $Id$
 #include <cmath>
-#include <casa/Quanta/Quantum.h>
-#include <casa/Quanta/UnitMap.h>
-#include <casa/Quanta/UnitVal.h>
-#include <measures/Measures/Stokes.h>
-#include <casa/Quanta/Euler.h>
-#include <casa/Quanta/RotMatrix.h>
-#include <measures/Measures/MFrequency.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <coordinates/Coordinates/Projection.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/casa/Quanta/UnitMap.h>
+#include <casacore/casa/Quanta/UnitVal.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/casa/Quanta/Euler.h>
+#include <casacore/casa/Quanta/RotMatrix.h>
+#include <casacore/measures/Measures/MFrequency.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/coordinates/Coordinates/Projection.h>
 #include <casacore/lattices/Lattices/LatticeLocker.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/casa/BasicSL/Constants.h>
 #include <synthesis/TransformMachines2/FTMachine.h>
 #include <synthesis/TransformMachines2/SkyJones.h>
 #include <synthesis/TransformMachines2/VisModelData.h>
 #include <synthesis/TransformMachines2/BriggsCubeWeightor.h>
-#include <scimath/Mathematics/RigidVector.h>
+#include <casacore/scimath/Mathematics/RigidVector.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/StokesVector.h>
 #include <msvis/MSVis/MSUtil.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/ImageUtilities.h>
-#include <casa/Containers/Block.h>
-#include <casa/Containers/Record.h>
-#include <casa/Arrays/ArrayIter.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <casa/Arrays/MaskedArray.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/MatrixIter.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Utilities/BinarySearch.h>
-#include <casa/Exceptions/Error.h>
-#include <scimath/Mathematics/NNGridder.h>
-#include <scimath/Mathematics/ConvolveGridder.h>
-#include <measures/Measures/UVWMachine.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/ImageUtilities.h>
+#include <casacore/casa/Containers/Block.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Arrays/ArrayIter.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/casa/Arrays/MaskedArray.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/MatrixIter.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Utilities/BinarySearch.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/scimath/Mathematics/NNGridder.h>
+#include <casacore/scimath/Mathematics/ConvolveGridder.h>
+#include <casacore/measures/Measures/UVWMachine.h>
 
-#include <casa/System/ProgressMeter.h>
+#include <casacore/casa/System/ProgressMeter.h>
 
-#include <casa/OS/Timer.h>
-#include <casa/sstream.h>
-#include <casa/iostream.h>
+#include <casacore/casa/OS/Timer.h>
+#include <sstream>
+#include <iostream>
 #include <iomanip>
 using namespace casacore;
 namespace casa{//# CASA namespace
@@ -185,6 +185,8 @@ using namespace casa::vi;
       nVisChan_p.resize();
       nVisChan_p=other.nVisChan_p;
       spectralCoord_p=other.spectralCoord_p;
+      visPolMap_p.resize();
+      visPolMap_p=other.visPolMap_p;
       //doConversion_p.resize();
       //doConversion_p=other.doConversion_p;
       pointingDirCol_p=other.pointingDirCol_p;
@@ -475,15 +477,13 @@ using namespace casa::vi;
       nvischan  = vb.getFrequencies(0).nelements();
       interpVisFreq_p.resize();
       interpVisFreq_p=vb.getFrequencies(0);
-      /*if(selectedSpw_p.nelements() < 1){
-        Vector<Int> myspw(1);
-        myspw[0]=vb.spectralWindows()(0);
-        setSpw(myspw, freqFrameValid_p);
-      }
-      */
-
-      //matchAllSpwChans(vb);
       
+      // Polarization map
+      visPolMap_p.resize();
+      polMap.resize();
+      
+      //As matchChannel calls matchPol ...it has to be called after making sure
+      //polMap and visPolMap are zero size to force a polMap matching
       chanMap.resize();
       matchChannel(vb);
       //chanMap=multiChanMap_p[vb.spectralWindows()(0)];
@@ -498,69 +498,12 @@ using namespace casa::vi;
         logIO() << "Illegal Channel Map: " << chanMap << LogIO::EXCEPTION;
       }
 
-      // Polarization map
-      Int stokesIndex=coords.findCoordinate(Coordinate::STOKES);
-      AlwaysAssert(stokesIndex>-1, AipsError);
-      StokesCoordinate stokesCoord=coords.stokesCoordinate(stokesIndex);
-      Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
-      nvispol=visPolMap.nelements();
-      AlwaysAssert(nvispol>0, AipsError);
-      polMap.resize(nvispol);
-      polMap=-1;
-      Int pol=0;
-      Bool found=false;
-      // First we try matching Stokes in the visibilities to
-      // Stokes in the image that we are gridding into.
-      for (pol=0;pol<nvispol;pol++) {
-        Int p=0;
-        if(stokesCoord.toPixel(p, Stokes::type(visPolMap(pol)))) {
-        	AlwaysAssert(p<npol, AipsError);
-        	polMap(pol)=p;
-        	found=true;
-        }
-      }
-      // If this fails then perhaps we were looking to grid I
-      // directly. If so then we need to check that the parallel
-      // hands are present in the visibilities.
-      if(!found) {
-    	  Int p=0;
-    	  if(stokesCoord.toPixel(p, Stokes::I)) {
-    		  polMap=-1;
-    		  if(vb.polarizationFrame()==MSIter::Linear) {
-    			  p=0;
-    			  for (pol=0;pol<nvispol;pol++) {
-    				  if(Stokes::type(visPolMap(pol))==Stokes::XX)
-    				  {polMap(pol)=0;p++;found=true;};
-    				  if(Stokes::type(visPolMap(pol))==Stokes::YY)
-    				  {polMap(pol)=0;p++;found=true;};
-    			  }
-        	}
-        	else {
-        		p=0;
-        		for (pol=0;pol<nvispol;pol++) {
-        			if(Stokes::type(visPolMap(pol))==Stokes::LL)
-        			{polMap(pol)=0;p++;found=true;};
-        			if(Stokes::type(visPolMap(pol))==Stokes::RR)
-        			{polMap(pol)=0;p++;found=true;};
-        		}
-        	}
-    		if(!found) {
-    			logIO() <<  "Cannot find polarization map: visibility polarizations = "
-    					<< visPolMap << LogIO::EXCEPTION;
-    		}
-    	else {
-    		
-    		//logIO() << LogIO::DEBUGGING << "Transforming I only" << LogIO::POST;
-    	}
-    	  };
-      }
-      //logIO() << LogIO::DEBUGGING << "Polarization map = "<< polMap
-      //	    << LogIO::POST;
 
+      
       initPolInfo(vb);
-      Vector<Int> intpolmap(visPolMap.nelements());
+      Vector<Int> intpolmap(visPolMap_p.nelements());
       for (uInt kk=0; kk < intpolmap.nelements(); ++kk){
-	intpolmap[kk]=Int(visPolMap[kk]);
+	intpolmap[kk]=Int(visPolMap_p[kk]);
       }
       pop_p->initCFMaps(intpolmap, polMap);
 
@@ -1534,7 +1477,6 @@ using namespace casa::vi;
     outRecord.define("chanmap", chanMap);
     outRecord.define("polmap", polMap);
     outRecord.define("nvischanmulti", nVisChan_p);
-
     //save moving source related variables
     storeMovingSourceState(error, outRecord);
     //outRecord.define("doconversion", doConversion_p);
@@ -1733,6 +1675,7 @@ using namespace casa::vi;
       spectralCoord_p=*tmpSpec;
       delete tmpSpec;
     }
+    visPolMap_p.resize();
     if(inRecord.isDefined("ephemeristable")){
       String ephemtab;
       inRecord.get("ephemeristable", ephemtab);
@@ -1978,13 +1921,76 @@ using namespace casa::vi;
         return false;
       }
 
+      return matchPol(vb);
+      
 
-
-
-      return true;
 
     }
 
+  Bool FTMachine::matchPol(const vi::VisBuffer2& vb){
+    Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
+    if((polMap.nelements() > 0) &&(visPolMap.nelements() == visPolMap_p.nelements()) &&allEQ(visPolMap, visPolMap_p))
+      return True;
+    Int stokesIndex=image->coordinates().findCoordinate(Coordinate::STOKES);
+    AlwaysAssert(stokesIndex>-1, AipsError);
+    StokesCoordinate stokesCoord=image->coordinates().stokesCoordinate(stokesIndex);
+
+
+    visPolMap_p.resize();
+    visPolMap_p=visPolMap;
+    nvispol=visPolMap.nelements();
+    AlwaysAssert(nvispol>0, AipsError);
+    polMap.resize(nvispol);
+    polMap=-1;
+    Int pol=0;
+    Bool found=false;
+    // First we try matching Stokes in the visibilities to
+    // Stokes in the image that we are gridding into.
+    for (pol=0;pol<nvispol;pol++) {
+      Int p=0;
+      if(stokesCoord.toPixel(p, Stokes::type(visPolMap(pol)))) {
+        AlwaysAssert(p<npol, AipsError);
+        polMap(pol)=p;
+        found=true;
+      }
+    }
+      // If this fails then perhaps we were looking to grid I
+      // directly. If so then we need to check that the parallel
+      // hands are present in the visibilities.
+    if(!found) {
+      Int p=0;
+      if(stokesCoord.toPixel(p, Stokes::I)) {
+        polMap=-1;
+        if(vb.polarizationFrame()==MSIter::Linear) {
+          p=0;
+          for (pol=0;pol<nvispol;pol++) {
+            if(Stokes::type(visPolMap(pol))==Stokes::XX)
+              {polMap(pol)=0;p++;found=true;};
+            if(Stokes::type(visPolMap(pol))==Stokes::YY)
+              {polMap(pol)=0;p++;found=true;};
+          }
+        }
+        else {
+          p=0;
+          for (pol=0;pol<nvispol;pol++) {
+            if(Stokes::type(visPolMap(pol))==Stokes::LL)
+              {polMap(pol)=0;p++;found=true;};
+            if(Stokes::type(visPolMap(pol))==Stokes::RR)
+              {polMap(pol)=0;p++;found=true;};
+          }
+        }
+        if(!found) {
+          logIO() <<  "Cannot find polarization map: visibility polarizations = "
+    					<< visPolMap << LogIO::EXCEPTION;
+        }
+    	else {
+    		
+    		//logIO() << LogIO::DEBUGGING << "Transforming I only" << LogIO::POST;
+    	}
+      };
+    }
+    return True;
+  } 
 
   Vector<String> FTMachine::cleanupTempFiles(const String& mess){
     briggsWeightor_p=nullptr;
@@ -2534,9 +2540,21 @@ using namespace casa::vi;
 	
 	// Take sumWeights from corrToStokes here....
         LatticeLocker lock1 (*(imstore->sumwt()), FileLocker::Write);
-	Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
-	StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
-
+        Matrix<Float> sumWeightStokes((imstore->sumwt())->shape()(2), (imstore->sumwt())->shape()(3));
+        
+        //  convertArray(sumWtComp, sumWeights);
+        CoordinateSystem incoord=image->coordinates();
+        CoordinateSystem outcoord=imstore->sumwt()->coordinates();
+        StokesImageUtil::ToStokesSumWt(sumWeightStokes, sumWeights, outcoord, incoord);
+        
+        
+        Array<Float> sumWtArr(IPosition(4,1,1,sumWeights.shape()[0], sumWeights.shape()[1]));
+        
+        IPosition blc(4, 0, 0, 0, 0);
+         IPosition trc(4, 0, 0, sumWeightStokes.shape()[0]-1, sumWeightStokes.shape()[1]-1);
+        sumWtArr(blc, trc).reform(sumWeightStokes.shape())=sumWeightStokes;
+        
+	//StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
 	AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
 		      ((imstore->sumwt())->shape()[3] == sumWeightStokes.shape()[1] ) , AipsError );
 

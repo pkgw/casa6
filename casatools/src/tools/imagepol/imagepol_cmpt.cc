@@ -12,11 +12,11 @@
 
 #include <iostream>
 #include <imagepol_cmpt.h>
-#include <casa/Containers/Record.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/Logging/LogIO.h>
-#include <images/Images/ImageUtilities.h>
-#include <images/Images/ImageExpr.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/images/Images/ImageUtilities.h>
+#include <casacore/images/Images/ImageExpr.h>
 
 #include <imageanalysis/ImageAnalysis/ImageFactory.h>
 #include <imageanalysis/ImageAnalysis/ImagePolProxy.h>
@@ -24,7 +24,7 @@
 #include <imageanalysis/ImageAnalysis/LinearPolarizationAngleCalculator.h>
 #include <imageanalysis/ImageAnalysis/LinearPolarizationCalculator.h>
 
-#include <casa/namespace.h>
+#include <casacore/casa/namespace.h>
 
 using namespace std;
 
@@ -100,7 +100,8 @@ imagepol::imagepoltestimage(const std::string& outfile,
     if (rm.size() == 1 and rm[0]==0.0) {
       rmdefault = true;
     }
-    rstat = itsImPol->imagepoltestimage(outfile, rm, rmdefault, pa0, sigma,
+    Vector<Double> const rmV(rm);
+    rstat = itsImPol->imagepoltestimage(outfile, rmV, rmdefault, pa0, sigma,
     					nx, ny, nf, f0, bw);
   } catch (AipsError x) {
     *itsLog << LogIO::SEVERE << "Exception Reported: "
@@ -129,23 +130,21 @@ imagepol::close() {
   return rstat;
 }
 
-bool
-imagepol::complexlinpol(const std::string& outfile)
-{
-  bool rstat(false);
-  try{
-    *itsLog << LogOrigin("imagepol", __func__);
-    if(itsImPol==0){
-      *itsLog << LogIO::SEVERE <<"No attached image, please use open " 
-	      << LogIO::POST;
-      return rstat;
+bool imagepol::complexlinpol(const std::string& outfile) {
+    try {
+        *itsLog << LogOrigin("imagepol", __FUNCTION__);
+        if (! itsImPol) {
+            *itsLog << LogIO::SEVERE <<"No attached image, please use open " 
+	            << LogIO::POST;
+            return false;
+        }
+        return itsImPol->complexlinpol(outfile);
     }
-    rstat = itsImPol->complexlinpol(String(outfile));
-  } catch (AipsError x) {
-    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
-    RETHROW(x);
-  }
-  return rstat;
+    catch (const AipsError& x) {
+        *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg()
+            << LogIO::POST;
+        RETHROW(x);
+    }
 }
 
 bool

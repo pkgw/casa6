@@ -30,27 +30,27 @@
 
 #include <imageanalysis/ImageAnalysis/ImageFFT.h>
 
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/IO/ArrayIO.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/Quanta/Unit.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/iostream.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/LinearCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/CoordinateUtil.h>
-#include <lattices/LRegions/LCBox.h>
-#include <lattices/LatticeMath/LatticeFFT.h>
-#include <lattices/LEL/LatticeExpr.h>
-#include <lattices/Lattices/SubLattice.h>
-#include <lattices/Lattices/LatticeStepper.h>
-#include <lattices/Lattices/MaskedLatticeIterator.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/TempImage.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Quanta/Unit.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <iostream>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/LinearCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+#include <casacore/lattices/LRegions/LCBox.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/lattices/LEL/LatticeExpr.h>
+#include <casacore/lattices/Lattices/SubLattice.h>
+#include <casacore/lattices/Lattices/LatticeStepper.h>
+#include <casacore/lattices/Lattices/MaskedLatticeIterator.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/TempImage.h>
 
 using namespace casacore;
 namespace casa {
@@ -128,6 +128,7 @@ void ImageFFT<T>::getComplex(casacore::ImageInterface<ComplexType>& out) const {
     );
     _copyMost(out);
     out.copyData(*_tempImagePtr);
+    _fixBUnit(out);
 }
 
 template <class T>
@@ -138,6 +139,7 @@ void ImageFFT<T>::getReal(ImageInterface<RealType>& out) const {
     );
     _copyMost(out);
 	out.copyData(LatticeExpr<RealType>(real(*_tempImagePtr)));
+    _fixBUnit(out);
 }
 
 template <class T>
@@ -148,6 +150,7 @@ void ImageFFT<T>::getImaginary(ImageInterface<RealType>& out) const {
     );
     _copyMost(out);
     out.copyData(LatticeExpr<RealType>(imag(*_tempImagePtr)));
+    _fixBUnit(out);
 }
 
 template <class T>
@@ -158,6 +161,7 @@ void ImageFFT<T>::getAmplitude(ImageInterface<RealType>& out) const {
     );
     _copyMost(out);
     out.copyData(LatticeExpr<RealType>(abs(*_tempImagePtr)));
+    _fixBUnit(out);
 }
 
 template <class T>
@@ -168,7 +172,7 @@ void ImageFFT<T>::getPhase(ImageInterface<RealType>& out) const {
     );
 	_copyMost(out);
   	out.copyData(LatticeExpr<RealType>(arg(*_tempImagePtr)));
-  	out.setUnits(Unit("deg"));
+  	out.setUnits(Unit("rad"));
 }
 
 template <class T> template <class U>
@@ -184,6 +188,23 @@ void ImageFFT<T>::_copyMost(casacore::ImageInterface<U>& out) const {
         "Could not replace CoordinateSystem in output phase image"
     );
     _copyMiscellaneous(out);
+}
+
+template <class T> template <class U>
+void ImageFFT<T>::_fixBUnit(casacore::ImageInterface<U>& out) const {
+    String bu = out.units().getName();
+    if (bu == "Jy/beam" || bu == "Jy/pixel" ) {
+        out.setUnits("Jy");
+    }
+    if (bu == "Jy") {
+        if (out.imageInfo().hasBeam()) {
+            // uv-plane -> image-plane with beam
+            out.setUnits("Jy/beam");
+        }
+        else {
+            out.setUnits("Jy/pixel");
+        }
+    }
 }
 
 template <class T> void ImageFFT<T>::checkAxes(

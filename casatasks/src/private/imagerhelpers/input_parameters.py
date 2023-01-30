@@ -7,6 +7,11 @@ import time
 import re
 import copy
 import pprint
+import functools
+import inspect
+from collections import OrderedDict
+import filecmp
+
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -25,7 +30,6 @@ Summary...
 '''
 
 
-######################################################
 ######################################################
 ######################################################
 ######################################################
@@ -112,6 +116,8 @@ class ImagerParameters():
                  minpsffraction=0.1,
                  maxpsffraction=0.8,
                  interactive=False,
+                 fullsummary=False,
+                 nmajor=-1,
 
                  deconvolver='hogbom',
                  scales=[],
@@ -139,7 +145,9 @@ class ImagerParameters():
                  dogrowprune=True,
                  minpercentchange=0.0,
                  verbose=False,
-                 fastnoise=False,
+                 fastnoise=True,
+                 fusedthreshold=0.0,
+                 largestscale=-1,
 
 #                 usescratch=True,
 #                 readonly=True,
@@ -232,17 +240,18 @@ class ImagerParameters():
                                     #'maskresolution':maskresolution, 'nmask':nmask,'autoadjust':autoadjust,
                                     'sidelobethreshold':sidelobethreshold, 'noisethreshold':noisethreshold,
                                     'lownoisethreshold':lownoisethreshold, 'negativethreshold':negativethreshold,'smoothfactor':smoothfactor,
+                                    'fusedthreshold':fusedthreshold, 'specmode':specmode,'largestscale':largestscale,
 
                                     'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations, 
                                      'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
-                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename} }
+                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename, 'fullsummary':fullsummary} }
 
         ######### Iteration control. 
         self.iterpars = { 'niter':niter, 'cycleniter':cycleniter, 'threshold':threshold, 
                           'loopgain':loopgain, 'interactive':interactive,
                           'cyclefactor':cyclefactor, 'minpsffraction':minpsffraction, 
                           'maxpsffraction':maxpsffraction,
-                          'savemodel':savemodel,'nsigma':nsigma}
+                          'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor, 'fullsummary':fullsummary}
 
         ######### CFCache params. 
         self.cfcachepars = {'cflist': cflist}
@@ -335,33 +344,44 @@ class ImagerParameters():
         casalog.post('Verifying Input Parameters')
         # Init the error-string
         errs = "" 
-        errs += self.checkAndFixSelectionPars()
-        errs += self.makeImagingParamLists(parallel)
-        errs += self.checkAndFixIterationPars()
-        errs += self.checkAndFixNormPars()
+        try:
+            errs += self.checkAndFixSelectionPars()
+            errs += self.makeImagingParamLists(parallel)
+            errs += self.checkAndFixIterationPars()
+            errs += self.checkAndFixNormPars()
 
-        for mss in sorted( self.allselpars.keys() ):
-            if(self.allimpars['0']['specmode']=='cubedata'):
-                self.allselpars[mss]['outframe']='Undefined'
-            if(self.allimpars['0']['specmode']=='cubesource'):
-                 self.allselpars[mss]['outframe']='REST'
-        ### MOVE this segment of code to the constructor so that it's clear which parameters go where ! 
-        ### Copy them from 'impars' to 'normpars' and 'decpars'
-        self.iterpars['allimages']={}
-        for immod in self.allimpars.keys() :
-            self.allnormpars[immod]['imagename'] = self.allimpars[immod]['imagename']
-            self.alldecpars[immod]['imagename'] = self.allimpars[immod]['imagename']
-            self.allgridpars[immod]['imagename'] = self.allimpars[immod]['imagename']
-            self.iterpars['allimages'][immod] = { 'imagename':self.allimpars[immod]['imagename'] , 'multiterm': (self.alldecpars[immod]['deconvolver']=='mtmfs') }
+            for mss in sorted( self.allselpars.keys() ):
+                if(self.allimpars['0']['specmode']=='cubedata'):
+                    self.allselpars[mss]['outframe']='Undefined'
+                if(self.allimpars['0']['specmode']=='cubesource'):
+                     self.allselpars[mss]['outframe']='REST'
+            ### MOVE this segment of code to the constructor so that it's clear which parameters go where ! 
+            ### Copy them from 'impars' to 'normpars' and 'decpars'
+            self.iterpars['allimages']={}
+            for immod in self.allimpars.keys() :
+                self.allnormpars[immod]['imagename'] = self.allimpars[immod]['imagename']
+                self.alldecpars[immod]['imagename'] = self.allimpars[immod]['imagename']
+                self.allgridpars[immod]['imagename'] = self.allimpars[immod]['imagename']
+                self.iterpars['allimages'][immod] = { 'imagename':self.allimpars[immod]['imagename'] , 'multiterm': (self.alldecpars[immod]['deconvolver']=='mtmfs') }
 
-        ## Integers need to be NOT numpy versions.
-        self.fixIntParam(self.allimpars, 'imsize')
-        self.fixIntParam(self.allimpars, 'nchan')
-        self.fixIntParam(self.allimpars,'nterms')
-        self.fixIntParam(self.allnormpars,'nterms')
-        self.fixIntParam(self.alldecpars,'nterms')
-        self.fixIntParam(self.allgridpars,'facets')
-        self.fixIntParam(self.allgridpars,'chanchunks')
+            ## Integers need to be NOT numpy versions.
+            self.fixIntParam(self.allimpars, 'imsize')
+            self.fixIntParam(self.allimpars, 'nchan')
+            self.fixIntParam(self.allimpars,'nterms')
+            self.fixIntParam(self.allnormpars,'nterms')
+            self.fixIntParam(self.alldecpars,'nterms')
+            self.fixIntParam(self.allgridpars,'facets')
+            self.fixIntParam(self.allgridpars,'chanchunks')
+        except Exception as exc:
+            if len(errs) > 0:
+                # errs string indicates that maybe this exception was our fault, indicate as such and provide the errs string to the user
+                if is_CASA6:
+                    raise Exception("Parameter Errors : \n{}\nThese errors may have caused the '{}'".format(errs, type(exc)))
+                else:
+                    raise Exception("Parameter Errors : \n{}".format(errs))
+            else:
+                # something unforseen happened, just re-throw the exception
+                raise
  
         ## If there are errors, print a message and exit.
         if len(errs) > 0:
@@ -805,3 +825,67 @@ class ImagerParameters():
         errs = errmsg
         return errs
       ############################
+#################################################################################################
+def backupoldfile(thefile=''):
+    import copy
+    import shutil
+    if(thefile=='' or (not os.path.exists(thefile))):
+        return 
+    outpathdir = os.path.realpath(os.path.dirname(thefile))
+    outpathfile = outpathdir + os.path.sep + os.path.basename(thefile)
+    k=0
+    backupfile=outpathfile+'.'+str(k)
+    prevfile='--------'
+    while (os.path.exists(backupfile)):
+        k=k+1
+        prevfile=copy.copy(backupfile)
+        if(os.path.exists(prevfile)  and filecmp.cmp(outpathfile, prevfile)):
+        ##avoid making multiple copies of the same file
+            return
+        backupfile=outpathfile+'.'+str(k)
+    shutil.copy2(outpathfile, backupfile)
+
+def saveparams2last(func=None, multibackup=True):
+    '''This function is a decorator function that allows for 
+      task.last to be saved even if calling without casashell. Also
+      saves unique revisions ...just like the vax/vms style of revision saving
+      by default. set multibackup=False to no not have old revisions kept
+    '''
+    if not func:
+        return functools.partial(saveparams2last, multibackup=multibackup)
+    @functools.wraps(func)
+    def wrapper_saveparams(*args, **kwargs):
+#        multibackup=True
+        outfile=func.__name__+'.last'
+        #print('args {} and kwargs {}'.format(args, kwargs))
+        #print('length of args {}, and kwargs {}'.format(len(args), len(kwargs)))
+        params={}
+        byIndex=list()
+        if(len(kwargs)==0):
+            paramsname = list(inspect.signature(func).parameters)
+            #params={paramsname[i]: args[i] for i in range(len(args))}
+            params=OrderedDict(zip(paramsname, args))
+            byIndex=list(params)
+        else:
+            params=kwargs
+            byIndex=list(params)
+            ###for some reason the dictionary is in reverse
+            byIndex.reverse()
+        #print('@@@@MULTIBACKUP {},  params {}'.format(multibackup, params))
+        if(multibackup):
+            backupoldfile(outfile)
+        with open(outfile,'w') as _f:
+            for _i in range(len(byIndex)):
+                _f.write("%-20s = %s\n" % (byIndex[_i],repr(params[byIndex[_i]])))
+            _f.write("#tclean( ")
+            for _i in range(len(byIndex)):
+                _f.write("%s=%s" % (byIndex[_i],repr(params[byIndex[_i]])))
+                if _i < len(params)-1: _f.write(",")
+            _f.write(" )\n")
+        ###End of stuff before task is called
+        retval=func(*args, **kwargs)
+        ###we could do something here post task
+        return retval
+    return wrapper_saveparams
+
+######################################################

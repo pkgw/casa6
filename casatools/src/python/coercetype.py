@@ -2,7 +2,6 @@
 ## CASAtools source file (src/python/coercetype.py)
 ##
 from __future__ import absolute_import
-from .platform import str_encode
 import sys
 import os
 import numpy
@@ -79,7 +78,7 @@ class CasaCoerce:
 
     def to_floatarray(self,value):
         if isinstance(value,numpy.ndarray) and (value.size == 0 or issubclass(value.dtype.type,numpy.integer)):
-            return value.astype(numpy.float)
+            return value.astype(numpy.float64)
         if type(value) in [float,int,numpy.int32,numpy.int64]:
             return numpy.array([float(value)])
         if isinstance(value,list):
@@ -89,10 +88,10 @@ class CasaCoerce:
             if value.dtype.type in [ numpy.float32, numpy.float64, numpy.int32, numpy.int64, int ]:
                 return value.astype(numpy.float64)
         result = numpy.array(value)
-        if issubclass(result.dtype.type,numpy.float):
+        if issubclass(result.dtype.type,numpy.floating):
             return result
         if issubclass(result.dtype.type,numpy.integer):
-            return result.astype(numpy.float)
+            return result.astype(numpy.float64)
         return value
 
     def to_strarray(self,value):
@@ -129,7 +128,7 @@ class CasaCoerce:
         ###
         ### cerberus validation is not reentrant...
         ###
-        return self.ctsys._swigobj.resolve(str_encode(value))
+        return self.ctsys._swigobj.resolve(value)
 
     def expand_pathvec(self,value):
         if not isinstance(value,list):
@@ -151,7 +150,7 @@ class CasaCoerce:
         ###
         ### cerberus validation is not reentrant...
         ###
-        return [ self.ctsys._swigobj.resolve(str_encode(v)) for v in value ]
+        return [ self.ctsys._swigobj.resolve(v) for v in value ]
 
 coerce = CasaCoerce( )
 
