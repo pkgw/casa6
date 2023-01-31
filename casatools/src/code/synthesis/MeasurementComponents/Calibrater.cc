@@ -558,6 +558,11 @@ void Calibrater::selectvis(const String& time,
       logSink() << "By selection " << ms_p->nrow() 
 		<< " rows are reduced to " << mssel_p->nrow() 
 		<< LogIO::POST;
+
+      // Revise the msmc_p so it contains only the _selected_ MS
+      if (msmc_p) delete msmc_p;
+      msmc_p = new MSMetaInfoForCal(*mssel_p);
+
     }
     else {
       // Selection did nothing:
