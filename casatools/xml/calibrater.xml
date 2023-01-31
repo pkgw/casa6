@@ -748,6 +748,12 @@ Default is True. </description>
        <value/>
      </param>
 
+     <param type="bool" direction="in" name="concatspws">
+       <description>A flag to control multiband FFT behaviour in
+       fringefit task.</description>
+       <value>true</value>
+     </param>
+     
      <param name="solmode" direction="in" type="string">
      <description>Solving mode: '', 'L1'; add 'R' for iterative outlier excision.</description>
      <value/>

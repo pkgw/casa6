@@ -25,7 +25,6 @@
 //#
 
 #include <synthesis/MeasurementComponents/FringeJones.h>
-
 #include <msvis/MSVis/VisBuffer.h>
 #include <msvis/MSVis/VisBuffAccumulator.h>
 #include <casacore/ms/MeasurementSets/MSColumns.h>
@@ -64,6 +63,7 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_spblas.h>
 #include <gsl/gsl_multilarge_nlinear.h>
+#include <gsl/gsl_multimin.h>
 #include <gsl/gsl_linalg.h>
 #include <iomanip>                // needed for setprecision
 
@@ -76,609 +76,6 @@ using namespace casa::vi;
 using namespace casacore;
 
 namespace casa { //# NAMESPACE CASA - BEGIN
-    
-static void unitize(Array<Complex>& vC) 
-{
-    Array<Float> vCa(amplitude(vC));
-    // Divide by non-zero amps
-    vCa(vCa<FLT_EPSILON)=1.0;
-    vC /= vCa;
-}
-
-SDBListGridManager::SDBListGridManager(SDBList& sdbs_) :
-    sdbs(sdbs_)
-{
-    std::set<Double> fmaxes;
-    std::set<Double> fmins;
-    Float dfn(0.0);
-    Int totalChans0(0) ;
-    Int nchan(0);
-
-    if (sdbs.nSDB()==0) {
-        // The for loop is fine with an empty list, but code below it
-        // isn't and there's nothing to lose by bailing early!
-        return;
-    }
-        
-    
-    for (Int i=0; i != sdbs.nSDB(); i++) {
-        SolveDataBuffer& sdb = sdbs(i);
-        Int spw = sdb.spectralWindow()(0);
-        Double t = sdbs(i).time()(0);
-        times.insert(t); 
-        if (spwins.find(spw) == spwins.end()) {
-            spwins.insert(spw);
-            const Vector<Double>& fs = sdb.freqs();
-            spwIdToFreqMap[spw] = &(sdb.freqs());
-            nchan = sdb.nChannels();
-            fmaxes.insert(fs(nchan-1));
-            fmins.insert(fs(0));
-            // We assume they're all at the same time.
-
-            totalChans0 += nchan;
-            Float df0 = fs(1) - fs(0);
-            dfn = (fs(nchan-1) - fs(0))/(nchan-1);
-            if (DEVDEBUG) {
-                cerr << "Spectral window " << spw << " has " << nchan << " channels" << endl;
-                cerr << "df0 "<< df0 << "; " << "dfn " << dfn << endl;
-            }
-        } else {
-            continue;
-        }
-    }
-    if (nchan == 1) {
-      nt = sdbs.nSDB()/spwins.size();
-      tmin = *(times.begin());
-      tmax = *(times.rbegin());
-      dt = (tmax - tmin)/(nt - 1);
-      nSPWChan = nchan;
-      fmin = *(fmins.begin());
-      fmax = fmin;
-      totalChans = 1;
-      df = 1;
-      return;
-    }
-      
-    nt = sdbs.nSDB()/spwins.size();
-    tmin = *(times.begin());
-    tmax = *(times.rbegin());
-    dt = (tmax - tmin)/(nt - 1);
-    nSPWChan = nchan;
-    fmin = *(fmins.begin());
-    fmax = *(fmaxes.rbegin());
-    totalChans = round((fmax - fmin)/dfn + 1);
-    df = (fmax - fmin)/(totalChans-1);
-    if (DEVDEBUG) {
-        cerr << "Global fmin " << fmin << " global max " << fmax << endl;
-        cerr << "nt " << nt << " dt " << dt << endl;
-        cerr << "tmin " << tmin << " tmax " << tmax << endl;
-        cerr << "Global dt " << tmax - tmin << endl;
-        cerr << "Global df " << df << endl;
-        cerr << "I guess we'll need " << totalChans << " freq points in total." << endl;
-        cerr << "Compared to " << totalChans0 << " with simple-minded concatenation." << endl;
-    }
-}
-
-// checkAllGridPoints is a diagnostic funtion that should not be called
-// in production releases, but it doesn't do any harm to have it
-// latent.
-void
-SDBListGridManager::checkAllGridpoints() {
-    map<Int, Vector<Double> const *>::iterator it;
-    for (it = spwIdToFreqMap.begin(); it != spwIdToFreqMap.end(); it++) {
-        Int spwid = it->first;
-        Vector<Double> const* fs = it->second;
-        Int length;
-        fs->shape(length);
-        for (Int i=0; i!=length; i++) {
-            Double f = (*fs)(i);
-            Int j = bigFreqGridIndex(f);
-            cerr << "spwid, i = (" << spwid << ", " << i << ") => " << j << " (" << f << ")" << endl;
-        }
-    }
-    cerr << "[1] spwins.size() " << nSPW() << endl;
-    cerr << "[2] spwins.size() " << spwins.size() << endl;
-}
-
-Int
-SDBListGridManager::swStartIndex(Int spw) {
-    Vector<Double> const* fs = spwIdToFreqMap[spw];
-    Double f0 = (*fs)(0);
-    return bigFreqGridIndex(f0);
-}
-   
-// DelayRateFFT is modeled on DelayFFT in KJones.{cc|h}
-DelayRateFFT::DelayRateFFT(SDBList& sdbs, Int refant, Double reffreq, Array<Double>& delayWindow, Array<Double>& rateWindow) :
-    refant_(refant),
-    gm_(sdbs),
-    nPadFactor_(max(2, 8  / gm_.nSPW())), 
-    nt_(gm_.nt),
-    nPadT_(nPadFactor_ * nt_),
-    nChan_(gm_.nChannels()),
-    nPadChan_(nPadFactor_*nChan_),
-    dt_(gm_.dt),
-    //f0_(gm_.fmin / 1.e9),      // GHz
-    f0_(reffreq / 1.e9),      // GHz, for delayrate calc
-    df_(gm_.df / 1.e9),
-    df_all_(gm_.fmax - gm_.fmin),
-    Vpad_(),
-    xcount_(),
-    sumw_(),
-    sumww_(),
-    activeAntennas_(),
-    allActiveAntennas_(),
-    delayWindow_(delayWindow),
-    rateWindow_(rateWindow) {
-    // This check should be commented out in production:
-    // gm_.checkAllGridpoints();
-
-    if (nt_ < 2) {
-        throw(AipsError("Can't do a 2-dimensional FFT on a single timestep! Please consider changing solint to avoid orphan timesteps."));
-    }
-    IPosition ds = delayWindow_.shape();
-    if (ds.size()!=1 || ds.nelements() != 1) {
-        throw AipsError("delaywindow must be a list of length 2.");
-    }
-    IPosition rs = rateWindow_.shape();
-    if (rs.size()!=1 || rs.nelements() != 1) {
-        throw AipsError("ratewindow must be a list of length 2.");
-    }
-    Int nCorrOrig(sdbs(0).nCorrelations());
-    nCorr_ = (nCorrOrig> 1 ? 2 : 1); // number of p-hands
-
-    for (Int i=0; i<nCorr_; i++) {
-        activeAntennas_[i].insert(refant_);
-    }
-    
-    // when we get the visCubecorrected it is already
-    // reduced to parallel hands, but there isn't a
-    // corresponding method for flags.
-    Int corrStep = (nCorrOrig > 2 ? 3 : 1); // step for p-hands
-
-    for (Int ibuf=0; ibuf != sdbs.nSDB(); ibuf++) {
-        SolveDataBuffer& s(sdbs(ibuf));
-        for (Int irow=0; irow!=s.nRows(); irow++) {
-            Int a1(s.antenna1()(irow)), a2(s.antenna2()(irow));
-            allActiveAntennas_.insert(a1);
-            allActiveAntennas_.insert(a2);
-        }
-    }
-
-    nElem_ =  1 + *(allActiveAntennas_.rbegin()) ;
-    IPosition aggregateDim(2, nCorr_, nElem_);
-    xcount_.resize(aggregateDim);
-    sumw_.resize(aggregateDim);
-    sumww_.resize(aggregateDim);
-
-    xcount_ = 0;
-    sumw_ = 0.0;
-    sumww_ = 0.0;
-    
-    if (DEVDEBUG) {
-        cerr << "Filling FFT grid with " << sdbs.nSDB() << " data buffers." << endl;
-    }
-
-    // Don't try to check there are multiple times here; let DelayRateFFT check that.
-    IPosition paddedDataSize(4, nCorr_, nElem_, nPadT_, nPadChan_);
-    Vpad_.resize(paddedDataSize);
-    Int totalRows = 0;
-    Int goodRows = 0;
-
-    
-    for (Int ibuf=0; ibuf != sdbs.nSDB(); ibuf++) {
-        SolveDataBuffer& s(sdbs(ibuf));
-        totalRows += s.nRows();
-        if (!s.Ok())
-            continue;
-
-        Int nr = 0;
-        for (Int irow=0; irow!=s.nRows(); irow++) {
-            if (s.flagRow()(irow))
-                continue;
-            Int iant;
-            Int a1(s.antenna1()(irow)), a2(s.antenna2()(irow));
-            if (a1 == a2) {
-                continue;
-            }
-            else if (a1 == refant_) {
-                iant = a2;
-            }
-            else if (a2 == refant_) {
-                iant = a1;
-            }
-            else {
-                continue;
-            }
-            // OK, we're not skipping this one so we have to do something.
-
-            // v has shape (nelems, ?, nrows, nchannels)
-            Cube<Complex> v = s.visCubeCorrected();
-            Cube<Float> w = s.weightSpectrum();
-            Cube<Bool> fl = s.flagCube();
-            Int spw = s.spectralWindow()(0);
-            Int f_index = gm_.swStartIndex(spw);    // ditto!
-            Int t_index = gm_.getTimeIndex(s.time()(0));
-            Int spwchans = gm_.nSPWChan;
-            IPosition start(4,      0,      iant, t_index, f_index);
-            IPosition stop(4,      nCorr_,    1,       1, spwchans);
-            IPosition stride(4,      1,         1,       1, 1);
-            Slicer sl1(start,     stop, stride, Slicer::endIsLength);
-            Slicer sl2(IPosition(3, 0,         0, irow),
-                       IPosition(3, nCorr_, spwchans, 1),
-                       IPosition(3, corrStep,        1,  1), Slicer::endIsLength);
-                
-            Slicer flagSlice(IPosition(3, 0,         0, irow),
-                             IPosition(3, nCorr_, spwchans, 1),
-                             IPosition(3, corrStep,        1, 1), Slicer::endIsLength);
-            nr++;
-            if (DEVDEBUG && 0) {
-                cerr << "nr " << nr
-                     << " irow " << endl
-                     << "Vpad shape " << Vpad_.shape() << endl
-                     << "v shape " << v.shape() << endl
-                     << "sl2 " << sl2 << endl
-                     << "sl1 " << sl1 << endl
-                     << "flagSlice " << flagSlice << endl;
-            }
-            Array<Complex> rhs = v(sl2).nonDegenerate(1);
-            Array<Float> weights = w(sl2).nonDegenerate(1);
-                
-            unitize(rhs);
-            Vpad_(sl1).nonDegenerate(1) = rhs * weights;
-
-            Array<Bool> flagged(fl(flagSlice).nonDegenerate(1));
-            // Zero flagged entries.
-            Vpad_(sl1).nonDegenerate(1)(flagged) = Complex(0.0);
-
-            if (!allTrue(flagged)) {
-                for (Int icorr=0; icorr<nCorr_; ++icorr) {
-                    IPosition p(2, icorr, iant);
-                    Bool actually = false;
-                    activeAntennas_[icorr].insert(iant);
-                    for (Int ichan=0; ichan != (Int) spwchans; ichan++) {
-                        IPosition pchan(2, icorr, ichan);
-                        if (!flagged(pchan)) {
-                            Float wv = weights(pchan);
-                            if (wv < 0) {
-                                cerr << "spwchans " << spwchans << endl;
-                                cerr << "Negative weight << (" << wv << ") on row "
-                                     << irow << " baseline (" << a1 << ", " << a2 << ") "
-                                     << " channel " << ichan << endl;
-                                cerr << "pchan " << pchan << endl;
-                                cerr << "Weights " << weights << endl;
-                            }
-                            xcount_(p)++;
-                            sumw_(p) += wv;
-                            sumww_(p) += wv*wv;
-                            actually = true;
-                        }
-                    }
-                    if (actually) {
-                        activeAntennas_[icorr].insert(iant);
-                        goodRows++;
-                    }
-                }
-            }                
-            if (DEVDEBUG && 0) {
-                cerr << "flagged " << flagged << endl;
-                cerr << "flagSlice " << flagSlice << endl
-                     << "fl.shape() " << fl.shape() << endl
-                     << "Vpad_.shape() " << Vpad_.shape() << endl
-                     << "flagged.shape() " << flagged.shape() << endl
-                     << "sl1 " << sl1 << endl;
-            }
-        }
-    }
-    if (DEVDEBUG) {
-        cerr << "In DelayRateFFT::DelayRateFFT " << endl;
-        printActive();
-        cerr << "sumw_ " << sumw_ << endl;
-        cerr << "Constructed a DelayRateFFT object." << endl;
-        cerr << "totalRows " << totalRows << endl;
-        cerr << "goodRows " << goodRows << endl;
-    }
-    
-}
-
-DelayRateFFT::DelayRateFFT(Array<Complex>& data, Int nPadFactor, Float f0, Float df, Float dt, SDBList& s,
-                           Array<Double>& delayWindow, Array<Double>& rateWindow) :
-    refant_(0),
-    gm_(s),
-    nPadFactor_(nPadFactor),
-    dt_(dt),
-    f0_(f0),
-    df_(df),
-    Vpad_(),
-    sumw_(),
-    sumww_(),
-    param_(),
-    flag_(),
-    delayWindow_(delayWindow),
-    rateWindow_(rateWindow) 
-{
-    IPosition shape = data.shape();
-    nCorr_ = shape(0);
-    nElem_ = shape(1);
-    nt_ = shape(2);
-    nChan_ = shape(3);
-    nPadT_ = nPadFactor_*nt_;
-    nPadChan_ = nPadFactor_*nChan_;
-    IPosition paddedDataSize(4, nCorr_, nElem_, nPadT_, nPadChan_);
-    Vpad_.resize(paddedDataSize);
-    
-    IPosition start(4, 0, 0, 0, 0);
-    IPosition stop(4, nCorr_,  nElem_, nt_, nChan_);
-    IPosition stride(4, 1, 1, 1, 1);
-    Slicer sl1(start, stop, stride, Slicer::endIsLength);
-    Vpad_(sl1) = data;
-
-    unitize(Vpad_);
-
-}
-
-Matrix<Float>
-DelayRateFFT::delay() const {
-    IPosition start(2, 1, 0);
-    IPosition stop(2, 3*nCorr_-1, nElem_-1);
-    IPosition stride(2, 3, 1);
-    Slicer sl1(start,  stop, stride, Slicer::endIsLast);
-    return param_(sl1);
-}
-
-Matrix<Float>
-DelayRateFFT::rate() const {
-    IPosition start(2, 2, 0);
-    IPosition stop(2, 3*nCorr_-1, nElem_-1);
-    IPosition stride(2, 3, 1);
-    Slicer sl1(start,  stop, stride, Slicer::endIsLast);
-    return param_(sl1);
-}
-
-void
-DelayRateFFT::printActive() {
-    for (Int icorr=0; icorr != nCorr_; icorr++) {
-        cerr << "Antennas found for correlation " << icorr << ": ";
-        for (std::set<Int>::iterator it = activeAntennas_[icorr].begin(); it != activeAntennas_[icorr].end(); it++) {
-            cerr << *it << ", ";
-        }
-        cerr << endl;
-    }
-    cerr << endl;
-}    
-
-void
-DelayRateFFT::FFT() {
-    // Axes are 0: correlation (i.e., hand of polarization), 1: antenna, 2: time, 3: channel
-    Vector<Bool> ax(4, false);
-    ax(2) = true;
-    ax(3) = true;
-    // Also copied from DelayFFT in KJones.
-    // we make a copy to FFT in place.
-    if (DEVDEBUG) {
-        cerr << "Vpad_.shape() " << Vpad_.shape() << endl;
-    }
-    ArrayLattice<Complex> c(Vpad_);
-    LatticeFFT::cfft0(c, ax, true);
-    if (DEVDEBUG) {
-        cerr << "FFT transformed" << endl;
-    }
-}
-
-std::pair<Bool, Float>
-DelayRateFFT::xinterp(Float alo, Float amax, Float ahi) {
-    if (amax > 0.0 && alo == amax && amax == ahi)
-        return std::make_pair(true, 0.5);
-
-    Float denom(alo-2.0*amax+ahi);
-    Bool cond = amax>0.0 && abs(denom)>0.0 ;
-    Float fpk = cond ? 0.5-(ahi-amax)/denom : 0.0;
-    return std::make_pair(cond, fpk);
-}
-    
-void
-DelayRateFFT::searchPeak() {
-    // Recall param_ -> [phase, delay, rate] for each correlation
-    param_.resize(3*nCorr_, nElem_); // This might be better done elsewhere.
-    param_.set(0.0);
-    flag_.resize(3*nCorr_, nElem_);
-    flag_.set(true);  // all flagged initially
-    if (DEVDEBUG) {
-        cerr << "nt_ " << nt_ << " nPadChan_ " << nPadChan_ << endl;
-        cerr << "Vpad_.shape() " << Vpad_.shape() << endl;
-        cerr << "delayWindow_ " << delayWindow_ << endl;
-
-    }
-    
-    for (Int icorr=0; icorr<nCorr_; ++icorr) {
-        flag_(icorr*3 + 0, refant()) = false; 
-        flag_(icorr*3 + 1, refant()) = false;
-        flag_(icorr*3 + 2, refant()) = false;
-        for (Int ielem=0; ielem<nElem_; ++ielem) {
-            if (ielem==refant()) {
-                continue;
-            }
-            // NB: Time, Channel
-            // And once again we fail at slicing
-            IPosition start(4, icorr, ielem,      0,         0);
-            IPosition stop(4,     1,     1, nPadT_, nPadChan_);
-            IPosition step(4,     1,     1,       1,        1);
-            Slicer sl(start, stop, step, Slicer::endIsLength);
-            Matrix<Complex> aS = Vpad_(sl).nonDegenerate();
-            Int sgn = (ielem < refant()) ? 1 : -1;
-
-            // Below is the gory details for turning delay window into index range
-            Double bw = Float(nPadChan_)*df_;
-            Double d0 = sgn*delayWindow_(IPosition(1, 0));
-            Double d1 = sgn*delayWindow_(IPosition(1, 1));
-            if (d0 > d1) std::swap(d0, d1);
-            d0 = max(d0, -0.5/df_);
-            d1 = min(d1, (0.5-1/nPadChan_)/df_);
-
-            // It's simpler to keep the ranges as signed integers and
-            // handle the wrapping of the FFT in the loop over
-            // indices. Recall that the FFT result returned has indices
-            // that run from 0 to nPadChan_/2 -1 and then from
-            // -nPadChan/2 to -1, so far as our delay is concerned.
-            Int i0 = bw*d0;
-            Int i1 = bw*d1;
-            if (i1==i0) i1++;
-            // Now for the gory details for turning rate window into index range
-            Double width = nPadT_*dt_*1e9*f0_;
-            Double r0 = sgn*rateWindow_(IPosition(1,0));
-            Double r1 = sgn*rateWindow_(IPosition(1,1));
-            if (r0 > r1) std::swap(r0, r1);
-            r0 = max(r0, -0.5/(dt_*1e9*f0_));
-            r1 = min(r1, (0.5 - 1/nPadT_)/(dt_*1e9*f0_));
-            
-            Int j0 = width*r0;
-            Int j1 = width*r1;
-            if (j1==j0) j1++;
-            if (DEVDEBUG) {
-                cerr << "Checking the windows for delay and rate search." << endl;
-                cerr << "bw " << bw << endl;
-                cerr << "d0 " << d0 << " d1 " << d1 << endl;
-                cerr << "i0 " << i0 << " i1 " << i1 << endl; 
-                cerr << "r0 " << r0 << " r1 " << r1 << endl;
-                cerr << "j0 " << j0 << " j1 " << j1 << endl; 
-            }
-            Matrix<Float> amp(amplitude(aS));
-            Int ipkch(0);
-            Int ipkt(0);
-            Float amax(-1.0);
-            // Unlike KJones we have to iterate in time too
-            for (Int itime0=j0; itime0 != j1; itime0++) {
-                Int itime = (itime0 < 0) ? itime0 + nPadT_ : itime0;
-                for (Int ich0=i0; ich0 != i1; ich0++) {
-                    Int ich = (ich0 < 0) ? ich0 + nPadChan_ : ich0;
-                    // cerr << "Gridpoint " << itime << ", " << ich << "->" << amp(itime, ich) << endl;
-                    if (amp(itime, ich) > amax) {
-                        ipkch = ich;
-                        ipkt  = itime;
-                        amax=amp(itime, ich);
-                    }
-                }
-            }
-            // Finished grovelling. Now we have the location of the
-            // maximum amplitude.
-            Float alo_ch = amp(ipkt, (ipkch > 0) ? ipkch-1 : nPadChan_-1);
-            Float ahi_ch = amp(ipkt, ipkch<(nPadChan_-1) ? ipkch+1 : 0);
-            std::pair<Bool, Float> maybeFpkch = xinterp(alo_ch, amax, ahi_ch);
-            // We handle wrapping while looking for neighbours
-            Float alo_t = amp(ipkt > 0 ? ipkt-1 : nPadT_ -1,     ipkch);
-            Float ahi_t = amp(ipkt < (nPadT_ -1) ? ipkt+1 : 0,   ipkch);
-            if (DEVDEBUG) {
-                cerr << "For element " << ielem << endl;
-                cerr << "In channel dimension ipkch " << ipkch << " alo " << alo_ch
-                     << " amax " << amax << " ahi " << ahi_ch << endl;
-                cerr << "In time dimension ipkt " << ipkt << " alo " << alo_t
-                     << " amax " << amax << " ahi " << ahi_t << endl;
-            }
-            std::pair<Bool, Float> maybeFpkt = xinterp(alo_t, amax, ahi_t);
-
-            if (maybeFpkch.first and maybeFpkt.first) {
-                // Phase
-                Complex c = aS(ipkt, ipkch);
-                Float phase = arg(c);
-                param_(icorr*3 + 0, ielem) = sgn*phase;
-                Float delay = (ipkch)/Float(nPadChan_);
-                if (delay > 0.5) delay -= 1.0;           // fold
-                delay /= df_;                           // nsec
-                param_(icorr*3 + 1, ielem) = sgn*delay; //
-                Double rate = (ipkt)/Float(nPadT_);
-                if (rate > 0.5) rate -= 1.0;
-                Double rate0 = rate/dt_;
-                Double rate1 = rate0/(1e9 * f0_); 
-
-                param_(icorr*3 + 2, ielem) = Float(sgn*rate1); 
-                if (DEVDEBUG) {
-                    cerr << "maybeFpkch.second=" << maybeFpkch.second
-                         << ", df_= " << df_ 
-                         << " fpkch=" << (ipkch + maybeFpkch.second) << endl;
-                    cerr << " maybeFpkt.second=" << maybeFpkt.second
-                         << " rate0=" << rate
-                         << " 1e9 * f0_=" << 1e9 * f0_ 
-                         << ", dt_=" << dt_
-                         << " fpkt=" << (ipkt + maybeFpkt.second) << endl;
-                        
-                }
-                if (DEVDEBUG) {
-                    cerr << "Found peak for element " << ielem << " correlation " << icorr
-                         << " ipkt=" << ipkt << "/" << nPadT_ << ", ipkch=" << ipkch << "/" << nPadChan_
-                         << " peak=" << amax 
-                         << "; delay " << delay << ", rate " << rate
-                         << ", phase " << arg(c) << " sign= " << sgn << endl;
-                }
-                // Set 3 flags.
-                flag_(icorr*3 + 0, ielem)=false; 
-                flag_(icorr*3 + 1, ielem)=false;
-                flag_(icorr*3 + 2, ielem)=false;
-            }
-            else {
-                if (DEVDEBUG) {
-                    cerr << "No peak in 2D FFT for element " << ielem << " correlation " << icorr << endl;
-                }
-            }
-        }
-    }
-}
-
-
-Float
-DelayRateFFT::snr(Int icorr, Int ielem, Float delay, Float rate) {
-    // We calculate a signal-to-noise ration for the 2D FFT fringefit
-    // using a formula transcribed from AIPS FRING.
-    //
-    // Have to convert delay and rate back into indices on the padded 2D grid.
-    Int sgn = (ielem < refant()) ? 1 : -1;
-    delay *= sgn*df_;
-    if (delay < 0.0) delay += 1;
-    Int ichan = Int(delay*nPadChan_ + 0.5); 
-    if (ichan == nPadChan_) ichan = 0;
-        
-    rate *= sgn*1e9 * f0_;
-    rate *= dt_;
-    if (rate < 0.0) rate += 1;
-    Int itime = Int(rate*nPadT_ + 0.5);
-    if (itime == nPadT_) itime = 0;
-    // What about flags? If the datapoint closest to the computed
-    // delay and rate values is flagged we probably shouldn't use
-    // it, but what *should* we use?
-    IPosition ipos(4, icorr, ielem, itime, ichan);
-    IPosition p(2, icorr, ielem);
-    Complex v = Vpad_(ipos);
-    Float peak = abs(v);
-    if (peak > 0.999*sumw_(p)) peak=0.999*sumw_(p);
-    // xcount is number of data points for baseline to ielem
-    // sumw is sum of weights,
-    // sumww is sum of squares of weights
-
-    Float cwt;
-    if (fabs(sumw_(p))<FLT_EPSILON) {
-        cwt = 0;
-        if (DEVDEBUG) {
-            cerr << "Correlation " << icorr << " antenna " << ielem << ": sum of weights is zero." << endl;
-        }
-    } else {
-        Float x = C::pi/2*peak/sumw_(p);
-        // The magic numbers in the following formula are from AIPS FRING
-        cwt = (pow(tan(x), 1.163) * sqrt(sumw_(p)/sqrt(sumww_(p)/xcount_(p))));
-        if (DEVDEBUG) {
-            cerr << "Correlation " << icorr << " antenna " << ielem << " ipos " << ipos
-                 << " peak=" << peak << "; xang=" << x << "; xcount=" << xcount_(p) << "; sumw=" << sumw_(p) << "; sumww=" << sumww_(p)
-                 << " snr " << cwt << endl;
-        }
-    }
-    return cwt;
-}
-    
-
-void DelayRateFFT::removeAntennasCorrelation(Int icor, std::set< Int > s) {
-    std::set< Int > & as = activeAntennas_.find(icor)->second;
-    for (std::set< Int >::iterator it=s.begin(); it!=s.end(); it++) {
-        as.erase(*it);
-    }
-}
-
 
 // Start of GSL compliant solver
 
@@ -874,12 +271,12 @@ expb_f(const gsl_vector *param, void *d, gsl_vector *f)
         if (!s.Ok()) continue;
 
 	const Vector<Double> freqs(s.freqs()); // This ibuf's freqs
-        Float fmin = min(freqs);
+        Float fmin_ = min(freqs);
         Float fmax = max(freqs);
 
-        Cube<Complex> v = s.visCubeCorrected();
-        Cube<Bool> fl = s.flagCube();
-        Cube<Float> weights = s.weightSpectrum();
+        const Cube<Complex>& v(s.visCubeCorrected());
+        const Cube<Bool>& fl(s.flagCube());
+        const Cube<Float>& weights(s.weightSpectrum());
            
         for (Int irow=0; irow!=s.nRows(); irow++) {
             if (s.flagRow()(irow)) continue;
@@ -924,7 +321,7 @@ expb_f(const gsl_vector *param, void *d, gsl_vector *f)
                 if (fl(dcorr, ichan, irow)) continue;
 
                 Float freq = freqs(ichan);
-                Float k_disp = KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin-fmax)/(fmin*fmax));
+                Float k_disp = KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin_-fmax)/(fmin_*fmax));
 
                 Complex vis = v(dcorr, ichan, irow);
                 Double w0 = weights(dcorr, ichan, irow);
@@ -982,8 +379,6 @@ expb_df(CBLAS_TRANSPOSE_t TransJ, const gsl_vector* param, const gsl_vector *u, 
     AuxParamBundle *bundle = (AuxParamBundle *)bundle_;
 
     SDBList& sdbs = bundle->sdbs;
-    //Vector<Double> freqs = sdbs.freqs();
-
     const Double reffreq0=sdbs(0).freqs()(0);  // First freq in first SDB
 
     size_t count = 0; // This is the master index.
@@ -997,16 +392,14 @@ expb_df(CBLAS_TRANSPOSE_t TransJ, const gsl_vector* param, const gsl_vector *u, 
         SolveDataBuffer& s (sdbs(ibuf));
         if (!s.Ok()) continue;
 
-	const Vector<Double> freqs(s.freqs()); // This ibuf's freq
-        Float fmin = min(freqs);
+	const Vector<Double>& freqs(s.freqs()); // This ibuf's freqs
+        Float fmin_ = min(freqs);
         Float fmax = max(freqs);
-        
-        Cube<Complex> vis = s.visCubeCorrected();
-        Cube<Bool> fl = s.flagCube();
-        Cube<Float> weights = s.weightSpectrum();
+        const Cube<Complex>& vis(s.visCubeCorrected());
+        const Cube<Bool>& fl(s.flagCube());
+        const Cube<Float>& weights(s.weightSpectrum());
 
         Double t1 = s.time()(0);
-        // cerr << "ibuf " << ibuf << " t1 - t0 = " << t1 - t0 << endl;
         for (Int irow=0; irow!=s.nRows(); irow++) {
             if (s.flagRow()(irow)) continue;
 
@@ -1015,7 +408,6 @@ expb_df(CBLAS_TRANSPOSE_t TransJ, const gsl_vector* param, const gsl_vector *u, 
             
             if (ant1==ant2) continue;
             if (!bundle->isActive(ant1) || !bundle->isActive(ant2)) {
-                // cerr << "Skipping " << ant1 << ", " << ant2 << endl;                   
                 continue;
             }
 
@@ -1064,7 +456,7 @@ expb_df(CBLAS_TRANSPOSE_t TransJ, const gsl_vector* param, const gsl_vector *u, 
                 found_data = true;
 
                 Float freq = freqs(ichan);
-                Float k_disp = KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin-fmax)/(fmin*fmax));
+                Float k_disp = KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin_-fmax)/(fmin_*fmax));
                     
                 // Add a 1e-9 factor because tau parameter is in nanoseconds.
                 //Double wDf = C::_2pi*(freqs(ichan) - freqs(0))*1e-9;
@@ -1260,12 +652,12 @@ expb_hess(gsl_vector *param, AuxParamBundle *bundle, gsl_matrix *hess, Double xi
         if (!s.Ok()) continue;
 
 	const Vector<Double> freqs(s.freqs()); // This ibuf's freqs
-        Float fmin = min(freqs);
+        Float fmin_ = min(freqs);
         Float fmax = max(freqs);
             
-        Cube<Complex> v = s.visCubeCorrected();
-        Cube<Bool> fl = s.flagCube();
-        Cube<Float> weights = s.weightSpectrum();
+        const Cube<Complex>& v(s.visCubeCorrected());
+        const Cube<Bool>& fl(s.flagCube());
+        const Cube<Float>& weights(s.weightSpectrum());
            
             
         for (Int irow=0; irow!=s.nRows(); irow++) {
@@ -1330,7 +722,7 @@ expb_hess(gsl_vector *param, AuxParamBundle *bundle, gsl_matrix *hess, Double xi
                 Double wDt = C::_2pi*(t1 - refTime) * reffreq0; 
 
                 Float freq = freqs(ichan);
-                Float k_disp = KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin-fmax)/(fmin*fmax));
+                Float k_disp = KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin_-fmax)/(fmin_*fmax));
 
                 Double mtheta = -(phi0 + tau*wDf + r*wDt + disp*k_disp); 
                 Double vtheta = arg(vis);
@@ -1691,7 +1083,8 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
 
         const gsl_multilarge_nlinear_type *T = gsl_multilarge_nlinear_trust;
         gsl_multilarge_nlinear_parameters params = gsl_multilarge_nlinear_default_parameters();
-        // the Moré scaling is the best equipped to handle very different scales; it should be the best choice to accommodate dispersive terms of O(f)
+        // the Moré scaling is the best equipped to handle very different scales;
+        //it should be the best choice to accommodate dispersive terms of O(f)
         params.scale = gsl_multilarge_nlinear_scale_more;
         params.trs = gsl_multilarge_nlinear_trs_lm;
         params.solver = gsl_multilarge_nlinear_solver_cholesky;
@@ -1715,7 +1108,6 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         // We transcribe Casa parameters into gsl vector format, as required by the solver.
         for (size_t iant=0; iant != bundle.get_max_antenna_index()+1; iant++) {
             if (!bundle.isActive(iant)) {
-                // logSink << "Skipping antenna " << iant << " for correlation " << icor << "." << LogIO::POST;
                 continue;
             }
             for (int di=0; di<4; di++) {
@@ -1738,11 +1130,6 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         double chi1 = gsl_blas_dnrm2(res_f);
         
         gsl_vector_sub(gp_orig, w->x);
-        // diff is not used
-        //gsl_vector *diff = gp_orig;
-        // diffsize is not used
-        //double diffsize = gsl_blas_dnrm2(diff);
-    
         gsl_vector *res = gsl_multilarge_nlinear_position(w);
         
         // We transcribe values back from gsl_vector to the param matrix
@@ -1757,39 +1144,28 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
         for (size_t iant=0; iant != bundle.get_max_antenna_index()+1; iant++) {
             if (!bundle.isActive(iant)) continue;
             Int iparam = bundle.get_param_corr_param_index(iant, 0);
-            if (iparam<0) continue;
-            if (1) {
-                // flag unused
-                // bool flag = false;
-                // if (fabs(gsl_vector_get(diff, iparam + 0) > FLT_EPSILON)) {
-                //     flag = true;
-                // }
-                // if (fabs(gsl_vector_get(diff, iparam + 1) > FLT_EPSILON)) {
-                //     flag = true;
-                // }
-                // if (fabs(gsl_vector_get(diff, iparam + 2) > 1e-30)) {
-                //     flag = true;
-                // }
-                
-                if (DEVDEBUG) {
-                    int i;
-                    logSink << "Old values for ant " << iant << " correlation " << icor 
-                            << ": Angle " << casa_param(4*icor + 0, iant)
-                            << " delay " << casa_param(4*icor + 1, iant) << " ns "
-                            << " rate " << casa_param(4*icor + 2, iant) << "."
-                            << endl;
-                    logSink << "New values for ant " << iant << " correlation " << icor << ":";
-                    if ((i=bundle.get_param_corr_param_index(iant, 0))>=0) {
-                        logSink << " Angle " << gsl_vector_get(res, i);
-                    }
-                    if ((i=bundle.get_param_corr_param_index(iant, 1))>=0) {
-                        logSink << " delay " << gsl_vector_get(res, i) << " ns ";
-                    }
-                    if ((i=bundle.get_param_corr_param_index(iant, 2))>=0) {
-                        logSink << " rate " << gsl_vector_get(res, i);
-                    }
-                    logSink << "." << LogIO::POST;
+            if (iparam<0) {
+                continue;
+            }
+            if (DEVDEBUG) {
+                logSink << "iparam " << iparam << endl;
+                logSink << "Old values for ant " << iant << " correlation " << icor 
+                        << " delay " << casa_param(4*icor + 1, iant) << " ns "
+                        << " rate " << casa_param(4*icor + 2, iant)
+                        << " angle " << casa_param(4*icor + 0, iant)
+                        << endl;
+                logSink << "New values for ant " << iant << " correlation " << icor << ":";
+                int i;
+                if ((i=bundle.get_param_corr_param_index(iant, 0))>=0) {
+                    logSink << " Angle " << gsl_vector_get(res, i);
                 }
+                if ((i=bundle.get_param_corr_param_index(iant, 1))>=0) {
+                    logSink << " delay " << gsl_vector_get(res, i) << " ns ";
+                }
+                if ((i=bundle.get_param_corr_param_index(iant, 2))>=0) {
+                    logSink << " rate " << gsl_vector_get(res, i);
+                }
+                logSink << "." << LogIO::POST;
             }
             if (status==GSL_SUCCESS || status==GSL_EMAXITER) {
                 // Current policy is to assume that exceeding max
@@ -2131,7 +1507,9 @@ void FringeJones::setSolve(const Record& solve) {
     if (solve.isDefined("paramactive")) {
         paramActive() = solve.asArrayBool("paramactive");
     }
-    
+    if (solve.isDefined("concatspws")) {
+        concatSPWs() = solve.asBool("concatspws");
+    }
 }
 
 // Note: this was previously omitted
@@ -2164,7 +1542,7 @@ void FringeJones::calcAllJones() {
     onePar.reference(Piter.array());
     onePOK.reference(POKiter.array());
 
-    Float fmin = min(currFreq());
+    Float fmin_ = min(currFreq());
     Float fmax = max(currFreq());
     for (Int ich=0; ich<nChanMat(); ich++) {
       
@@ -2174,7 +1552,7 @@ void FringeJones::calcAllJones() {
       for (Int ipar=0;ipar<nPar();ipar+=4) {
 	if (onePOK(ipar)) {
           Float freq = currFreq()(ich);
-          Float k_disp = 1e-9*KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin-fmax)/(fmin*fmax));
+          Float k_disp = 1e-9*KDISPSCALE*C::_2pi*(1.0/freq + (freq-fmin_-fmax)/(fmin_*fmax));
                           
 	  phase=onePar(ipar);
 	  phase+=2.0*C::pi*onePar(ipar+1)*
@@ -2183,7 +1561,7 @@ void FringeJones::calcAllJones() {
 	    (currTime() - refTime());
           Float dph_d = onePar(ipar+3) * k_disp;
           if (DEVDEBUG && 0) {
-              cerr << "fmin " << fmin << " fmax " << fmax << " k_disp " << k_disp
+              cerr << "fmin_ " << fmin_ << " fmax " << fmax << " k_disp " << k_disp
                    << " param " << onePar(ipar+3) << " dph_d " << dph_d << endl;
           }
           phase+=dph_d;
@@ -2205,7 +1583,7 @@ void FringeJones::calcAllJones() {
 
 
 void
-FringeJones::calculateSNR(Int nCorr, DelayRateFFT drf) {
+FringeJones::calculateSNR(Int nCorr, DelayRateFFT& drf) {
     Matrix<Float> sRP(solveRPar().nonDegenerate(1));
     Matrix<Bool> sPok(solveParOK().nonDegenerate(1));
     Matrix<Float> sSNR(solveParSNR().nonDegenerate(1));
@@ -2241,7 +1619,6 @@ FringeJones::calculateSNR(Int nCorr, DelayRateFFT drf) {
 
 
 
-// void FringeJones::solveLotsOfSDBs(SDBList& sdbs)
 
 void
 FringeJones::selfSolveOne(SDBList& sdbs) {
@@ -2274,11 +1651,16 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     std::map<Int, Double> aggregateTime;
     // Set the refant to the first choice that has data!
     refant() = findRefAntWithData(sdbs, refantlist(), prtlev());
-    if (refant()<0)
+    if (refant()<0) {
+        logSink() << "Antennas " << refantlist() << LogIO::POST;
+        logSink() << "dt0 " << dt0 
+                  << " nSDB() " << sdbs.nSDB()
+                  << LogIO::POST; 
         throw(AipsError("No valid reference antenna supplied."));
-    else
+    }
+    else {
         logSink() << "Using reference antenna " << refant() << LogIO::POST;
-    
+    }
     aggregateTimeCentroid(sdbs, refant(), aggregateTime);
 
     if (DEVDEBUG) {
@@ -2287,9 +1669,19 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
             std::cerr << it->first << " => " << it->second - t0 << std::endl;
     }
 
-    DelayRateFFT drf(sdbs, refant(), reffreq, delayWindow(), rateWindow());
-    drf.FFT();
-    drf.searchPeak();
+    // We arrange that we can use either the DelayRateFFT based on concatenation
+    // or the new one that combines spectral windows after the FFT
+    if (DEVDEBUG) {
+        std::cerr << "Making a DelayRateFFT" << endl;
+    }
+    DelayRateFFT *drfp = DelayRateFFT::makeAChild(concatSPWs(), sdbs, refant(), delayWindow(), rateWindow());
+    // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
+    // DelayRateFFT *drfp = new DelayRateFFTConcat(sdbs, refant(), delayWindow(), rateWindow());
+    if (DEVDEBUG) {
+        cerr << "Made a DelayRateFFT of some kind!" << endl;
+    }
+    drfp->FFT();
+    drfp->searchPeak();
     Matrix<Float> sRP(solveRPar().nonDegenerate(1));
     Matrix<Bool> sPok(solveParOK().nonDegenerate(1));
     Matrix<Float> sSNR(solveParSNR().nonDegenerate(1));
@@ -2297,18 +1689,18 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     
     // Map from MS antenna number to index
     // transcribe fft results to sRP
-    Int ncol = drf.param().ncolumn();
-    Int nrow = drf.param().nrow();
+    Int ncol = drfp->param().ncolumn();
+    Int nrow = drfp->param().nrow();
     if (DEVDEBUG) {
         std::cerr << "nrow " << nrow << ", ncol " << ncol << endl; 
-        std::cerr << "drf.flag() " << drf.flag() << endl; 
+        std::cerr << "drfp->flag() " << drfp->flag() << endl; 
     }
 
     for (Int i=0; i!=ncol; i++) { // i==iant
         for (Int j=0; j!=nrow; j++) { // j is parameter number
             Int oj = (j>=3) ? j+1 : j;
-            sRP(IPosition(2, oj, i)) = drf.param()(IPosition(2, j, i));
-            sPok(IPosition(2, oj, i)) = !(drf.flag()(IPosition(2, j, i)));
+            sRP(IPosition(2, oj, i)) = drfp->param()(IPosition(2, j, i));
+            sPok(IPosition(2, oj, i)) = !(drfp->flag()(IPosition(2, j, i)));
         }
         // Our estimate for dispersion is zero, unconditionally, and we stand by it.
         sPok(IPosition(2, 3, i)) = true;
@@ -2317,15 +1709,12 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     }
     size_t nCorrOrig(sdbs(0).nCorrelations());
     size_t nCorr = (nCorrOrig> 1 ? 2 : 1); // number of p-hands
-
-    calculateSNR(nCorr, drf);
-
+    calculateSNR(nCorr, *drfp);
     set<Int> belowThreshold;
-
     Float threshold = minSNR();
     
     for (size_t icor=0; icor != nCorr; icor++) {
-        const set<Int>& activeAntennas = drf.getActiveAntennasCorrelation(icor);
+        const set<Int>& activeAntennas = drfp->getActiveAntennasCorrelation(icor);
         for (Int iant=0; iant != nAnt(); iant++) {
             if (iant != refant() && (activeAntennas.find(iant) != activeAntennas.end())) {
                 Float s = sSNR(4*icor + 0, iant);
@@ -2347,9 +1736,9 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
         }
         // We currently remove the antennas below SNR threshold from
         // the object used to handle the FFT fringe search.
-        drf.removeAntennasCorrelation(icor, belowThreshold);
+        drfp->removeAntennasCorrelation(icor, belowThreshold);
         if (DEVDEBUG) {
-            drf.printActive();
+            drfp->printActive();
         }
     }
     if (globalSolve()) {
@@ -2358,7 +1747,7 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
         // FringeJones so we pass everything in, including the logSink
         // reference.  Note also that sRP is passed by reference and
         // altered in place.
-        least_squares_driver(sdbs, sRP, sPok, sSNR, refant(), drf.getActiveAntennas(), maxits(),
+        least_squares_driver(sdbs, sRP, sPok, sSNR, refant(), drfp->getActiveAntennas(), maxits(),
                              paramActive(), logSink());
     }
     else {
@@ -2375,6 +1764,10 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
 
     for (Int iant=0; iant != nAnt(); iant++) {
         for (size_t icor=0; icor != nCorr; icor++) {
+            const set<Int>& activeAntennas = drfp->getActiveAntennasCorrelation(icor);
+            if (activeAntennas.find(iant) == activeAntennas.end()) {
+                continue;
+            }
             Double phi0 = sRP(4*icor + 0, iant);
             Double delay = sRP(4*icor + 1, iant);
             Double rate = sRP(4*icor + 2, iant);
@@ -2416,6 +1809,7 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
     if (DEVDEBUG) {
         std::cerr << "sPok " << sPok << endl;
     }
+    delete drfp;
 }
 
 void

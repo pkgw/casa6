@@ -52,6 +52,7 @@ class Fringefit_tests(unittest.TestCase):
         shutil.rmtree(self.prefix + '.sbdcal', True)
         shutil.rmtree(self.prefix + '-zerorates.sbdcal', True)
         shutil.rmtree(self.prefix + '.mbdcal', True)
+        # shutil.rmtree(self.prefix + '.mbdcal2', True)
         shutil.rmtree(self.uvfile, True)
         shutil.rmtree('uvrange_with.cal', True)
 
@@ -70,6 +71,16 @@ class Fringefit_tests(unittest.TestCase):
                    combine='spw', gaintable=[sbdcal], refant='EF')
         reference = os.path.join(datapath, mbdcal)
         self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
+    # def test_mbd_combo(self):
+    #     sbdcal = self.prefix + '-zerorates.sbdcal'
+    #     mbdcal = self.prefix + '.mbdcal2'
+    #     fringefit(vis=self.msfile, caltable=sbdcal, field='4C39.25',
+    #               refant='EF', zerorates=True)
+    #     fringefit(vis=self.msfile, caltable=mbdcal, field='J0916+3854',
+    #                combine='spw', concatspws=False, gaintable=[sbdcal], refant='EF')
+    #     reference = os.path.join(datapath, self.prefix + '.mbdcal')
+    #     self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
+
 
     def test_uvrange(self):
         ''' Check that the uvrnage parameter excludes antennas '''

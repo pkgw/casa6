@@ -315,6 +315,14 @@ Previous calibrations should be applied on the fly.
     <value/>
   </param>
 
+  <param type="bool" name="concatspws">
+    <shortdescription>Choose between multi-band FFT strategies</shortdescription>
+    <description>Multi-band FFTs can be done by joining spectral
+    windows onto a wider frequency grid (the default) or by a new
+    method that combines them after the FFT.</description>
+    <value>True</value>
+  </param>
+    
     <param type="bool" name="parang">
       <shortdescription>Apply parallactic angle correction on the fly</shortdescription>
         <description>Apply parallactic angle correction on the fly.
