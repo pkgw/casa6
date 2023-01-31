@@ -29,10 +29,11 @@ import numpy as np
 # VERBOSE to true.  Currently there are none, so this is for developers
 # only
 VERBOSE = False
-
 from casatools import ms, ctsys, table
 from casatasks import fringefit, flagmanager, flagdata
+
 from casatestutils import testhelper as th
+ctsys_resolve = ctsys.resolve
 
 tblocal = table()
 
@@ -271,6 +272,35 @@ class FreqMetaTests(unittest.TestCase):
         except RuntimeError as e: 
             print(e)
             self.assertTrue(True)
+
+
+class Fringefit_corrcomb(unittest.TestCase):
+    polcombtestms = 'gaincalcopy.ms'
+    testout = 'polcombout.cal'
+
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, 'gaincaltest2.ms'), self.polcombtestms)
+
+    def tearDown(self):
+        shutil.rmtree(self.polcombtestms)
+        if os.path.exists(self.testout):
+            shutil.rmtree(self.testout)
+
+    def test_comb(self):
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='none')
+
+        tblocal.open(self.testout)
+        none_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='all')
+
+        tblocal.open(self.testout)
+        combine_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        self.assertTrue(combine_result > none_result)
+        
 
 if __name__ == '__main__':
     unittest.main()

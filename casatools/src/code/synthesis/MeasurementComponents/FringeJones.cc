@@ -1509,6 +1509,11 @@ void FringeJones::setSolve(const Record& solve) {
     }
     if (solve.isDefined("concatspws")) {
         concatSPWs() = solve.asBool("concatspws");
+    if (solve.isDefined("corrcomb")) {
+        cerr << "FringeJones::setsolve() Corrcomb is set! To:"
+             << solve.asString("corrcomb")
+             << endl;
+        corrcomb() = solve.asString("corrcomb");
     }
 }
 
@@ -1806,6 +1811,17 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
             }
         }
     }
+    // Copy the results to the second polarisation for combined pols
+    if (corrcomb()=="all") { 
+        logSink() << "Correlations combined: Copying results to other correlation" << LogIO::POST;
+        for (Int iant=0; iant != nAnt(); iant++) {
+            for (Int i=0; i !=4; i++) {
+                sRP(4+i, iant) = sRP(i, iant);
+                sPok(4+i, iant) = sPok(i, iant);            
+                sSNR(4+i, iant) = sSNR(i, iant);
+            }
+        }
+    } 
     if (DEVDEBUG) {
         std::cerr << "sPok " << sPok << endl;
     }

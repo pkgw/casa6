@@ -22,6 +22,7 @@ def fringefit(vis=None,caltable=None,
               minsnr=None,zerorates=None,globalsolve=None,niter=None,
               delaywindow=None,ratewindow=None,append=None,
               corrdepflags=None,
+              corrcomb=None,
               docallib=None,callib=None,gaintable=None,gainfield=None,interp=None,spwmap=None,
               paramactive=None,
               concatspws=None,
@@ -30,6 +31,8 @@ def fringefit(vis=None,caltable=None,
     #Python script
     casalog.origin('fringefit')
 
+    # 
+    print("task_fringfit.py: corrcomb={}".format(corrcomb))
     try: 
         mycb = calibrater()
 
@@ -40,6 +43,7 @@ def fringefit(vis=None,caltable=None,
 
         # Do data selection according to selectdata
         if (selectdata):
+            casalog.post("Selecting data")
             # pass all data selection parameters in as specified
             mycb.selectvis(time=timerange,spw=spw, scan=scan, field=field,
                            intent=intent, observation=str(observation),
@@ -55,8 +59,6 @@ def fringefit(vis=None,caltable=None,
         # signal use of correlation-dependent flags, if requested
         if corrdepflags:
             mycb.setcorrdepflags(True)
-
-                        
         # Arrange applies....
             
         if docallib:
@@ -125,7 +127,7 @@ def fringefit(vis=None,caltable=None,
 
         # ...and now the specialized terms
         # (BTW, interp irrelevant for these, since they are evaluated)
-                
+
         # Apply parallactic angle, if requested
         if parang: mycb.setapply(type='P')
 
@@ -135,6 +137,7 @@ def fringefit(vis=None,caltable=None,
                       zerorates=zerorates,
                       globalsolve=globalsolve,
                       niter=niter,
+                      corrcomb=corrcomb,
                       delaywindow=delaywindow,
                       ratewindow=ratewindow,
                       paramactive=paramactive,

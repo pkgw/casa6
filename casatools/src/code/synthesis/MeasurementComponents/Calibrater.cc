@@ -922,6 +922,7 @@ Bool Calibrater::setsolve (const String& type,
                            const Bool zerorates,
                            const Bool globalsolve,
                            const Int niter,
+                           const String& corrcomb,
                            const Vector<Double>& delaywindow, 
                            const Vector<Double>& ratewindow,
                            const Vector<Bool>& paramactive,
@@ -961,6 +962,7 @@ Bool Calibrater::setsolve (const String& type,
   solveparDesc.addField ("delaywindow", TpArrayDouble);
   solveparDesc.addField ("ratewindow", TpArrayDouble);
   solveparDesc.addField ("niter", TpInt);
+  solveparDesc.addField ("corrcomb", TpString);
   solveparDesc.addField ("paramactive", TpArrayBool);
   solveparDesc.addField ("concatspws", TpBool);
 
@@ -990,6 +992,7 @@ Bool Calibrater::setsolve (const String& type,
   solvepar.define ("zerorates", zerorates);
   solvepar.define ("globalsolve", globalsolve);
   solvepar.define ("niter", niter);
+  solvepar.define ("corrcomb", corrcomb);
   solvepar.define ("delaywindow", delaywindow);
   solvepar.define ("ratewindow", ratewindow);
   solvepar.define ("solmode", solmode);
@@ -1440,6 +1443,20 @@ Calibrater::setCorrDepFlags(const Bool& corrDepFlags)
   corrDepFlags_=corrDepFlags;
 
   logSink() << "Setting correlation dependent flags = " << (corrDepFlags_ ? "True" : "False") << LogIO::POST;
+
+  return true;
+
+}
+
+Bool
+Calibrater::setCorrcomb(const String& corrcomb) 
+{
+
+  logSink() << LogOrigin("Calibrater", "setCorrcomb") << LogIO::NORMAL;
+
+  corrcomb_= corrcomb;
+
+  logSink() << "Setting correlation combination = " << corrcomb << LogIO::POST;
 
   return true;
 
@@ -3511,6 +3528,16 @@ casacore::Bool Calibrater::genericGatherAndSolve()
 	svc_p->preavg()<svc_p->solTimeInterval())  // ...and less than solint
       avetime=svc_p->preavg();
     vi2org.addTimeAve(avetime);  // use min of solint and preavg here!
+  }
+  // small@jive.eu (2021-12-17): Currently we only handle the corrcomb
+  // cases of "all" and "none"; there will be a need to extend this, but the
+  // PolAverageTVILayerFactory that underlies this feature will also need to be extended
+  // to make that possible
+  if (svc_p->corrcomb().contains("all")) {
+      cerr << "Calibrater::genericGatherAndSolve(): Combining correlations!" << endl;
+      vi2org.addCorrCombine();
+  } else {
+      cerr << "Calibrater::genericGatherAndSolve(): Not combining correlations!" << endl;
   }
 
   //  vi2org should be fully configured at this point

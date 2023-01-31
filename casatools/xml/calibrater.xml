@@ -729,7 +729,14 @@ Default is True. </description>
      <value>100</value>
      </param>
 
-     
+ 
+     <param name="corrcomb" direction="in" type="string">
+     <description>[FRINGE-FIT SPECIFIC] Combine correlations (currently
+supported values are "none" and "all")
+     </description>
+     <value>none</value>
+     </param>
+    
      <param name="delaywindow" direction="in" type="doubleVec">
      <description>[FRINGE-FIT SPECIFIC] Constrain FFT delay search to a
      window; a two-element list, units of nanoseconds</description>
@@ -2886,7 +2893,6 @@ TBD
 
 </example>
 </method>
-
 
 
 <method name="setvi" type="function">
