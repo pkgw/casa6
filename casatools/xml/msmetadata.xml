@@ -1605,20 +1605,21 @@ windows in the dataset and close the tool.
             </input>
             <returns type="intVec"/>
             <description>
-                ALMA-only. Get the values for the receiver band of the specified
-                spw(s). A return value of -1 means no receiver band number could
-                be determined. The name of the spw is first checked to see if
-                the receiver band value is encoded there. If not, the
-                corresponding spectral window ID is sought in the ASDM_RECEIVER
-                table, if it exists, and if it has fewer or equal number of rows
-                than the SPECTRAL_WINDOW table. If the corresponding spectral
-                window can be found in the ASDM_RECEIVER table, then the
-                corresponding frequencyBand column value is checked to determine
-                if the receiver band information is encoded there. In the case
-                where the spectral window ID is present in multiple cells of
-                the spectralWindowId column, the first row in which the ID is
-                found is used to determine the receiver band. If all these tests
-                fail, -1 is returned for the specified spectral window.
+                ALMA-only. Returns an integer array containing the receiver band
+                of the specified spw(s). A return value of -1 means no receiver
+                band number could be determined. The name of the spw is first
+                checked to determine if the receiver band value is encoded
+                there. If not, the corresponding spectral window ID is sought in
+                the ASDM_RECEIVER table, if it exists, and if it has less than
+                or equal number of rows compared to the SPECTRAL_WINDOW table.
+                If the corresponding spectral window can be found in the
+                ASDM_RECEIVER table, then the corresponding frequencyBand column
+                value is checked to determine if the receiver band information
+                is encoded there. In the case where the spectral window ID is
+                present in multiple cells of the spectralWindowId column, the
+                first row in which the ID is found is used to determine the
+                receiver band. If all these tests fail, -1 is returned for the
+                specified spectral window.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -2193,10 +2194,10 @@ windows in the dataset and close the tool.
             </input>
             <returns type="intVec"/>
             <description>
-                ALMA-only. Get the values for the subwindow of the specified spw(s).
-                A return value of -1 means no subwindow number could be determined.
-                The spw name is checked to see if the subwindow value is encoded within it.
-                table is checked, if that table exists.
+                ALMA-only. Returns an integer array containing the subwindow of
+                the specified spw(s). The spw name is checked to determine if
+                the subwindow value is encoded within it. A return value of -1
+                indicates that a subwindow number could be determined. 
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
