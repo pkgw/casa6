@@ -50,6 +50,7 @@
 #include <casacore/casa/Utilities/Regex.h>
 // jagonzal: Needed for ISM error detection tool
 #include <casacore/tables/DataMan/DataManError.h>
+#include <utility>
 
 
 using namespace std;
