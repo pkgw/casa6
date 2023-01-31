@@ -27,9 +27,9 @@
 
 #ifdef HAVE_MPI
 
-#include <casa/Containers/Record.h>
-#include <casa/IO/AipsIO.h>
-#include <casa/IO/MemoryIO.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/IO/AipsIO.h>
+#include <casacore/casa/IO/MemoryIO.h>
 
 #include <synthesis/Parallel/MPITransport.h>
 #include <synthesis/Parallel/MPIError.h>
@@ -239,6 +239,7 @@ Int MPITransport::put(const Record &r){
    rBuf << r;
    rBuf.putend();
     uInt bytes2send=rBuf.getpos();
+    //cerr << "Bytes 2 send " << bytes2send << endl;
    // warning: sstat set but not used!
    Int sstat = MPI_Send((void *)&bytes2send, 1, MPI_UNSIGNED, sendTo, myOp, MPI_COMM_WORLD);
    sstat = MPI_Send((void *)buffer.getBuffer(), bytes2send, MPI_UNSIGNED_CHAR, sendTo, myOp,
@@ -462,9 +463,9 @@ Int MPITransport::get(Record &r){
    uInt bytesSent;
    MPI_Recv(&bytesSent, 1, MPI_UNSIGNED, getFrom, myOp, MPI_COMM_WORLD, &status);
    // Now fill the buffer full of bytes from the record
-   uChar buffer[bytesSent];
-   MPI_Recv(buffer, bytesSent, MPI_UNSIGNED_CHAR, getFrom, myOp, MPI_COMM_WORLD, &status);
-   MemoryIO nBuf(&buffer, bytesSent);
+   std::vector<uChar> buffer(bytesSent);
+   MPI_Recv(buffer.data(), bytesSent, MPI_UNSIGNED_CHAR, getFrom, myOp, MPI_COMM_WORLD, &status);
+   MemoryIO nBuf(buffer.data(), bytesSent);
    AipsIO rBuf(&nBuf);
    uInt version = rBuf.getstart("MPIRecord");
    (void)version; // warning: unused version

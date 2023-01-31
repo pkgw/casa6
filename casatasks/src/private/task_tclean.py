@@ -115,8 +115,8 @@ def tclean(
     scales,#=[],
     nterms,#=1,
     smallscalebias,#=0.0
-    fusedthreshold,
-    largestscale,
+    fusedthreshold,#=0.0
+    largestscale,#=-1
 
     ### restoration options
     restoration,
@@ -145,6 +145,8 @@ def tclean(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
+    fullsummary,#=False,
+    nmajor,#=-1,
 
     ##### (new) Mask parameters
     usemask,#='user',
@@ -197,7 +199,7 @@ def tclean(
     inpparams['state']= inpparams.pop('intent')
     inpparams['loopgain']=inpparams.pop('gain')
     inpparams['scalebias']=inpparams.pop('smallscalebias')
-
+    #
     # Force chanchunks=1 always now (CAS-13400)
     inpparams['chanchunks']=1
 
@@ -237,6 +239,10 @@ def tclean(
 
     if(facets>1 and parallel==True):
         casalog.post("Facetted imaging currently works only in serial. Please choose pure W-projection instead.","WARN","task_tclean")
+
+    if (nmajor < -1):
+        casalog.post("Negative values less than -1 for nmajor are reserved for possible future implementation", "WARN", "task_tclean")
+        return
 
     #####################################################
     #### Construct ImagerParameters object
@@ -417,14 +423,15 @@ def tclean(
             if(specmode=='mfs' and ('stand' in gridder)):
                 casalog.post("***Time for making PB: "+"%.2f"%(t2-t1)+" sec", "INFO3", "task_tclean");
 
-        imager.checkPB()
+        if gridder in ['mosaic','awproject']:
+            imager.checkPB()
 
         if niter >=0 : 
 
             ## Make dirty image
             if calcres==True:
                 t0=time.time();
-                imager.runMajorCycle()
+                imager.runMajorCycle(isCleanCycle=False)
                 t1=time.time();
                 casalog.post("***Time for major cycle (calcres=T): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean"); 
 
@@ -464,8 +471,8 @@ def tclean(
                     isit = imager.hasConverged() or (not doneMinor)
                     
                 ## Get summary from iterbot
-                if type(interactive) != bool:
-                    retrec=imager.getSummary();
+                #if type(interactive) != bool:
+                retrec=imager.getSummary(fullsummary);
                 
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()

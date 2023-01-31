@@ -68,6 +68,8 @@ class PySynthesisImager:
         self.NN = 1 
         ## for debug mode automask incrementation only
         self.ncycle = 0
+        # For the nmajor parameter
+        self.majorCnt = 0
 #        isvalid = self.checkParameters()
 #        if isvalid==False:
 #            casalog.post('Invalid parameters')
@@ -190,12 +192,13 @@ class PySynthesisImager:
 
 #############################################
 
-    def getSummary(self,fignum=1):
+    def getSummary(self,fullsummary,fignum=1):
         summ = self.IBtool.getiterationsummary()
+        casalog.post('getSummary call: fullsummary='+str(fullsummary))
         if ('stopcode' in summ):
             summ['stopDescription'] = self.getStopDescription(summ['stopcode'])
         if ('summaryminor' in summ):
-            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'])
+            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'],fullsummary)
         #self.plotReport( summ, fignum )
         return summ
 
@@ -249,7 +252,17 @@ class PySynthesisImager:
 #############################################
 
     def getStopDescription(self, stopflag):
-        stopreasons = ['iteration limit', 'threshold', 'force stop','no change in peak residual across two major cycles', 'peak residual increased by more than 3 times from the previous major cycle','peak residual increased by more than 3 times from the minimum reached','zero mask', 'any combination of n-sigma and other valid exit criterion']
+        stopreasons = [
+            'iteration limit', # 1
+            'threshold', # 2
+            'force stop', # 3
+            'no change in peak residual across two major cycles', # 4
+            'peak residual increased by more than 3 times from the previous major cycle', # 5
+            'peak residual increased by more than 3 times from the minimum reached', # 6
+            'zero mask', # 7
+            'any combination of n-sigma and other valid exit criterion', # 8
+            'reached nmajor' # 9
+        ]
         if (stopflag > 0):
             return stopreasons[stopflag-1]
         return None
@@ -267,7 +280,8 @@ class PySynthesisImager:
 #         self.runInteractiveGUI2()
 
          # Check with the iteration controller about convergence.
-         stopflag = self.IBtool.cleanComplete()
+         reachedNmajor = (self.iterpars['nmajor'] >= 0 and self.majorCnt >= self.iterpars['nmajor'])
+         stopflag = self.IBtool.cleanComplete(reachedMajorLimit=reachedNmajor)
          if( stopflag>0 ):
              casalog.post("Reached global stopping criterion : " + self.getStopDescription(stopflag), "INFO")
 
@@ -370,8 +384,8 @@ class PySynthesisImager:
 
 #############################################
 
-    def runMajorCycle(self):
-        
+    def runMajorCycle(self, isCleanCycle=True):
+        # @param isCleanCycle: true if this is part of the major/minor cleaning loop, false if this is being used for some other purpose (such as generating the residual image)
         if self.IBtool != None:
             lastcycle = (self.IBtool.cleanComplete(lastcyclecheck=True) > 0)
         else:
@@ -380,6 +394,8 @@ class PySynthesisImager:
         ##norm is done in C++ for cubes
         if not divideInPython :
             self.runMajorCycleCore(lastcycle)
+            if isCleanCycle:
+                self.majorCnt += 1
             if self.IBtool != None:
                 self.IBtool.endmajorcycle()
             return
@@ -388,6 +404,8 @@ class PySynthesisImager:
             self.PStools[immod].dividemodelbyweight()
             self.PStools[immod].scattermodel() 
         self.runMajorCycleCore(lastcycle)
+        if isCleanCycle:
+            self.majorCnt += 1
 
         if self.IBtool != None:
             self.IBtool.endmajorcycle()
@@ -552,7 +570,9 @@ class PySynthesisImager:
 
         # Get iteration control parameters
         iterbotrec = self.IBtool.getminorcyclecontrols()
-        ## casalog.post("Minor Cycle controls : ", iterbotrec)
+        
+        # TT debug - comment out after debugging....
+        casalog.post("Minor Cycle controls : " + str(iterbotrec))
 
         self.IBtool.resetminorcycleinfo() 
 
@@ -601,7 +621,7 @@ class PySynthesisImager:
 
 #############################################
     def runMajorMinorLoops(self):
-         self.runMajorCycle()
+         self.runMajorCycle(isCleanCycle=False)
          while ( not self.hasConverged() ):
               self.runMinorCycle()
               self.runMajorCycle()
@@ -707,4 +727,3 @@ class PySynthesisImager:
         return retval
 #######################################################
 #######################################################
-
