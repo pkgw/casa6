@@ -97,6 +97,7 @@ import ssl
 
 lib_ext = "dylib" if sys.platform == 'darwin' else 'so'
 build_config_file = "build.json"
+machine_arch = platform.machine( )
 
 parser=argparse.ArgumentParser()
 
@@ -133,7 +134,7 @@ if "--stripsyms" in sys.argv:
 module_name = 'casatools'
 
 pyversion = float(sys.version_info[0]) + float(sys.version_info[1]) / 10.0
-xml_jar_file = 'xml-casa-assembly-1.71.jar'
+xml_jar_file = 'xml-casa-assembly-1.76.jar'
 xml_jar_path = os.path.join( 'scripts', 'java', xml_jar_file)
 xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
 
@@ -327,6 +328,10 @@ def isexe(f):
     return os.path.isfile(f) and os.access(f, os.X_OK)
 
 def clean_args(l):
+    if 'option.arch.single' in props and props['option.arch.single'] == '1':
+        return [ a for a in l if len(a) > 0 and \
+                                 (not a.startswith('-Xarch_') or a == f'-Xarch_{machine_arch}') and \
+                                 (not a.startswith('-march=') or a == f'-march={machine_arch}') ]
     return [a for a in l if len(a) > 0]
 
 ## https://stackoverflow.com/questions/14320220/testing-python-c-libraries-get-build-path
@@ -1653,6 +1658,11 @@ def get_tp_libs():
         ] + get_grpc_libs() + ['readline', 'gfortran', 'dl'] + mpi_libs
 
 def get_gfortran_lib_path( ):
+
+    if 'path.libgfortran' in props:
+        if os.path.exists(props['path.libgfortran']):
+            return os.path.dirname(props['path.libgfortran'])
+
     proc = Popen([ props['build.compiler.fortran'], "-print-search-dirs"], stdout=PIPE, stderr=PIPE )
     out,err = pipe_decode(proc.communicate( ))
     exit_code = proc.wait( )
