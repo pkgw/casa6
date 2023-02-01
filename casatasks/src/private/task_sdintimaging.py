@@ -387,6 +387,7 @@ def sdintimaging(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
+    fullsummary,#=False,
     nmajor,#=-1,
 
     ##### (new) Mask parameters
@@ -776,12 +777,12 @@ def sdintimaging(
                 deconvolvertool.updateMask()
 
                 ## Get summary from iterbot
-                if type(interactive) != bool:
+                #if type(interactive) != bool:
                     #retrec=imager.getSummary();
-                    retrec=deconvolvertool.getSummary();
-                    retrec['nmajordone'] = imager.majorCnt
-                    if calcres==True: 
-                        retrec['nmajordone'] = retrec['nmajordone'] + 1  ## To be consistent with tclean. Remove, when we can change the meaning of nmajordone to exclude the initial major cycles. 
+                retrec=deconvolvertool.getSummary(fullsummary);
+                retrec['nmajordone'] = imager.majorCnt
+                if calcres==True: 
+                    retrec['nmajordone'] = retrec['nmajordone'] + 1  ## To be consistent with tclean. Remove, when we can change the meaning of nmajordone to exclude the initial major cycles. 
 
             ## Restore images.
             if restoration==True:  

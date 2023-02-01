@@ -156,6 +156,7 @@ def deconvolve(
     threshold,#=0.0, 
     nsigma,#=0.0
     interactive,#=False,
+    fullsummary,#=False
     fastnoise,#=True,
 
     ##### (new) Mask parameters
@@ -294,8 +295,10 @@ def deconvolve(
             isit = decon.hasConverged() # get the convergence state, to report back to the calling code
 
         ## Get summary from iterbot
-        if type(interactive) != bool and niter>0:
-            retrec=decon.getSummary();
+        #if type(interactive) != bool and niter>0:
+        # this requrirment should go...
+        if niter>0:
+            retrec=decon.getSummary(fullsummary);
 
         #################################################
         #### Teardown
