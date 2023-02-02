@@ -287,6 +287,7 @@ public:
 
 
   // Access to CalTable's freq info
+  casacore::Int nCTSpw() {return nCTSpw_;};
   const casacore::Vector<casacore::Double>& freqIn(casacore::Int spw)  {return freqIn_[spw]; }; // per spw
   const casacore::Vector<casacore::Double>& refFreqIn() { return refFreqIn_; };  // indexed by spw
 

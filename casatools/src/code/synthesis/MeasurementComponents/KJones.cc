@@ -652,6 +652,7 @@ void KJones::setApply(const Record& apply) {
   //  from the CalTable
   MSSpectralWindow msSpw(ct_->spectralWindow());
   MSSpWindowColumns msCol(msSpw);
+  Int nCalSpws(msSpw.nrow());
 
   String ctvers=ct_->CASAvers();
   if (ctvers==String("Unknown") ||    // pre-5.3.0-80 (no version recorded in table)
@@ -674,15 +675,19 @@ void KJones::setApply(const Record& apply) {
   // Use the "physical" (centroid) frequency, per spw 
     Vector<Double> chanfreq;
     KrefFreqs_.resize(nSpw()); KrefFreqs_.set(0.0);
-    for (Int ispw=0;ispw<nSpw();++ispw) {
+    for (Int ispw=0;ispw<nCalSpws;++ispw) {
       msCol.chanFreq().get(ispw,chanfreq,true);  // reshape, if nec.
       Int nch=chanfreq.nelements();
       KrefFreqs_(ispw)=chanfreq(nch/2);
     }
   }
-
+  
   KrefFreqs_/=1.0e9;  // in GHz
 
+  // Catch spwmap indices not available in the caltable
+  if (spwMap().nelements()>0 && max(spwMap())>=nCalSpws)
+    throw(AipsError("Specified spwmap includes calibration spws not available in the caltable ("+ct_->tableName()+")"));
+    
   /// Re-assign KrefFreq_ according spwmap (if any)
   if (spwMap().nelements()>0) {
     Vector<Double> tmpfreqs;
@@ -693,6 +698,7 @@ void KJones::setApply(const Record& apply) {
 	KrefFreqs_(ispw)=tmpfreqs(spwMap()(ispw));
   }
 
+  
     
 }
 void KJones::setApply() {
@@ -723,6 +729,7 @@ void KJones::setCallib(const Record& callib,
 
   // Extract per-spw ref Freq for phase(delay) calculation
   //  from the CalTable
+  Int nCTSpw(cpp_->nCTSpw());   // number of spws in _caltable_
   String ctvers=cpp_->CTCASAvers();
   if (ctvers==String("Unknown") ||    // pre-5.3.0-80 (no version recorded in table)
       ctvers==String("5.3.0-100") ||  // a few pre-release versions with reverted behavior
@@ -742,7 +749,10 @@ void KJones::setCallib(const Record& callib,
   else {
     // Extract physical freq
     KrefFreqs_.resize(nSpw());
-    for (Int ispw=0;ispw<nSpw();++ispw) {
+    KrefFreqs_.set(0.0f);
+    // Only fill what is available from caltable,
+    //   assuming identity with MS spw ids, for now (spwmap applied below)
+    for (Int ispw=0;ispw<nCTSpw;++ispw) {
       const Vector<Double>& f(cpp_->freqIn(ispw));
       Int nf=f.nelements();
       KrefFreqs_[ispw]=f[nf/2];  // center (usually this will be same as [0])
@@ -764,6 +774,10 @@ void KJones::setCallib(const Record& callib,
   if (spwMap().nelements()>uInt(nSpw()))
     throw(AipsError("Specified spwmap has more elements ("+String::toString(spwMap().nelements())+") than the number of spectral windows in the MS ("+String::toString(nSpw())+")."));
 
+  // Catch spwmap indices not available in the caltable
+  if (spwMap().nelements()>0 && max(spwMap())>=nCTSpw)
+    throw(AipsError("Specified spwmap includes calibration spws not available in the caltable ("+Path(ct_->tableName()).baseName()+"); cal spws are all <"+String::toString(nCTSpw)+". "));
+  
   // Re-assign KrefFreq_ according spwmap (if any)
   if (spwMap().nelements()>0) {
     Vector<Double> tmpfreqs;
