@@ -1,5 +1,4 @@
 ##########################################################################
-##########################################################################
 # test_stk_vla_users_continuum_from_SDM.py
 #
 # Copyright (C) 2018
@@ -27,14 +26,12 @@ VLA Users Stakeholder Continuum Test
 Based on 3C 391 CASAguide Continuum Tutorial for CASA Version 6.2.0
 https://casaguides.nrao.edu/index.php?title=VLA_Continuum_Tutorial_3C391-CASA6.2.0
 
-
 Test list
 - flag fraction and MS nrows after import, split and editing steps
 - antenna position corrections retrieved by gencal
 - fluxscale input table and bootstrapping results
 - imstat values from the final pbcor image
 - imstat values from the final residual image
-
 '''
 
 ##########################################################################
@@ -47,18 +44,18 @@ import numpy as np
 import shutil
 from glob import glob
 
+from casatestutils import stats_dict
 from casatestutils import generate_weblog
 from casatestutils import add_to_dict
 
 from casatools import ctsys
 from casatools import table as tbtool
-from casatasks import casalog, importasdm, listobs, flagdata, gencal, setjy, gaincal, bandpass, fluxscale, applycal, split, statwt, tclean, impbcor, imstat
+from casatasks import casalog, importasdm, listobs, flagdata, gencal, setjy, gaincal, bandpass
+from casatasks import fluxscale, applycal, split, statwt, tclean, impbcor, imstat
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 
-ctsys_resolve = ctsys.resolve
-
 # location of data
-data_path = ctsys_resolve('stakeholder/vla/')
+data_path = ctsys.resolve('stakeholder/vla/')
 
 clean_mask = "#CRTFv0 CASA Region Text Format version 0\npoly [[18:49:21.55474, -000.52.32.9190], [18:49:29.15960, -000.53.10.9387], [18:49:31.21928, -000.53.48.9583], [18:49:31.53618, -000.54.38.8592], [18:49:35.33866, -000.55.02.6210], [18:49:40.09177, -000.55.21.6298], [18:49:40.72560, -000.56.25.7880], [18:49:41.04265, -000.58.36.4810], [18:49:38.82455, -000.59.14.5014], [18:49:31.37791, -000.59.40.6415], [18:49:23.29749, -000.59.21.6320], [18:49:24.08969, -000.58.17.4736], [18:49:23.29750, -000.57.56.0874], [18:49:15.37558, -000.57.53.7105], [18:49:11.73154, -000.57.13.3138], [18:49:11.41470, -000.56.37.6701], [18:49:16.16792, -000.54.07.9680], [18:49:19.65353, -000.52.42.4239]] coord=J2000, corr=[I]"
 
@@ -80,7 +77,7 @@ class Test_vla_users_continuum(unittest.TestCase):
             self.parallel = True
 
     def tearDown(self):
-        generate_weblog("test_stk_vla_users_continuum_from_SDM",test_dict)
+        generate_weblog("vla_users_continuum_from_SDM",test_dict)
         self._mytb.done()
         self.delData()
 
@@ -91,13 +88,14 @@ class Test_vla_users_continuum(unittest.TestCase):
     def delData(self):
         os.unlink( self.sdmfile )
         os.unlink( self.maskfile )
-        os.system('rm -rf '+self.sdmfile+'.ms*')
+        os.system('rm -rf '+self.sdmfile+'*')
         del_files = glob('3c391_ctm*')
         for f in del_files:
             shutil.rmtree(f)
 
-    def test_vla_users_continuum_fromSDM(self):
-        """VLA Stakeholders tsts: Based on 3C 391 CASAguide Continuum Tutorial"""
+    @stats_dict(test_dict)
+    def test_continuum_from_SDM(self):
+        """VLA Stakeholders tests: Based on 3C 391 CASAguide Continuum Tutorial"""
         sdmname = self.sdmfile
         msname = '3c391_ctm_mosaic_10s_spw0.ms'
         msname_split = '3c391_ctm_mosaic_spw0.ms'
@@ -108,7 +106,7 @@ class Test_vla_users_continuum(unittest.TestCase):
         ## Data Import
         importasdm(asdm=sdmname,
                 vis=sdmname+'.ms', createmms=False,
-                ocorr_mode='co', lazy=False, asis='Receiver CalAtmosphere',
+                ocorr_mode='co', asis='Receiver CalAtmosphere',
                 process_caldevice=True, process_pointing=True, savecmds=True,
                 outfile=sdmname+'.flagonline.txt',
                 overwrite=False, bdfflags=False, with_pointing_correction=True)
@@ -327,7 +325,6 @@ class Test_vla_users_continuum(unittest.TestCase):
         msg = f"Expected rms residual of {expected}, got {result}, tolerance {100*epsilon}%"
         print(msg); report.append(msg)
         self.assertAlmostEqual(result, expected, delta=expected*epsilon, msg=msg )
-
 
         test_dict[test_name]['report'] = '\n'.join(report)
         test_dict[test_name]['images'] = []
