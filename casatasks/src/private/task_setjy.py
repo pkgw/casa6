@@ -337,6 +337,12 @@ def setjy_core(vis=None, field=None, spw=None,
                         for selfld in fieldidused:
                             #selspix=fluxdict[selfld]["spidx"][1]  # setjy only support alpha for now
                             selspix=fluxdict[selfld]["spidx"][1:]  # omit c0 (=log(So))
+                            if abs(selspix[0]) > 10.0:
+                                if selspix[0] < 0:
+                                    msg = 'less than -10!'
+                                else:
+                                    msg = 'greater than 10!'
+                                raise RuntimeError(f'Field {selfld}: the spectral index is '+msg)
                             # set all (even if fluxdensity = -1
                             if spw=='':
                                 selspw = [] 
@@ -392,6 +398,13 @@ def setjy_core(vis=None, field=None, spw=None,
 
                     if spix==[]: # handle the default 
                         spix=0.0
+                    elif abs(spix[0]) > 10.0:
+                        if spix[0] < -10.0:
+                            msg = 'less than -10'
+                        else:
+                            msg = 'greater than 10'
+                        raise RuntimeError(f'The spectral index is {msg}! Please check the spix parameter.')
+                        
                     # need to modify imager to accept double array for spix
                     retval=myim.setjy(field=field, spw=spw, modimage=model, fluxdensity=influxdensity, 
                                       spix=spix, reffreq=reffreq, standard=instandard, scalebychan=scalebychan, 
