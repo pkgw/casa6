@@ -73,6 +73,7 @@ class Test_vla_users_continuum(unittest.TestCase):
         self.maskfile = '3c391_clean_mask.crtf'
         # os.symlink(data_path+self.maskfile, self.maskfile)
         self.writeMask()
+        self.parallel = False
         if ParallelTaskHelper.isMPIEnabled():
             self.parallel = True
 
