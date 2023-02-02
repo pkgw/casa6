@@ -342,7 +342,7 @@ def setjy_core(vis=None, field=None, spw=None,
                                     msg = 'less than -10!'
                                 else:
                                     msg = 'greater than 10!'
-                                raise RuntimeError(f'Field {selfld}: the spectral index is '+msg)
+                                raise Exception(f'Field {selfld}: the spectral index is '+msg)
                             # set all (even if fluxdensity = -1
                             if spw=='':
                                 selspw = [] 
@@ -403,7 +403,7 @@ def setjy_core(vis=None, field=None, spw=None,
                             msg = 'less than -10'
                         else:
                             msg = 'greater than 10'
-                        raise RuntimeError(f'The spectral index is {msg}! Please check the spix parameter.')
+                        raise Exception(f'The spectral index is {msg}! Please check the spix parameter.')
                         
                     # need to modify imager to accept double array for spix
                     retval=myim.setjy(field=field, spw=spw, modimage=model, fluxdensity=influxdensity, 
