@@ -303,6 +303,9 @@ void SDMSManager::setIterationApproach() {
 
   using ColumnId = MSMainEnums::PredefinedColumns;
   struct CheckItem {
+    CheckItem(ColumnId const &id, String const &name, String const &type, Bool const &remove)
+        : columnId{id}, columnName{name}, paramType{type}, removeIt{remove}, addIt{!remove}
+    {}
     ColumnId columnId;
     String columnName;
     String paramType;
@@ -322,22 +325,17 @@ void SDMSManager::setIterationApproach() {
   );
 
   // addIt for DATA_DESC_ID is always false because no add operation is intended
-  std::array<CheckItem, 4> const checkList {{
-    {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan"), !timespan_p.contains("scan")},
-    {MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state"), !timespan_p.contains("state")},
-    {MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field"), !timespan_p.contains("field")},
-    {MS::DATA_DESC_ID, "DATA_DESC_ID", "spw", combinespws_p, false}
+  std::array<CheckItem, 3> const checkList {{
+    {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan")},
+    {MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state")},
+    {MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field")},
   }};
 
   // remove columns from userSortColsList if necessary
   for (auto const &item: checkList) {
     if (item.removeIt && userSortColExists(item.columnId)) {
       logger_p << LogIO::NORMAL;
-      if (item.paramType.matches("spw")) {
-        logger_p << "Combining data from selected spectral windows. ";
-      } else {
-        logger_p << "Combining data through " << item.paramType << "s for time average. ";
-      }
+      logger_p << "Combining data through " << item.paramType << "s for time average. ";
       logger_p << "Removing " << item.columnName << " from user sort list." << LogIO::POST;
       userSortColsList.remove(item.columnId);
     }
@@ -356,7 +354,9 @@ void SDMSManager::setIterationApproach() {
   }
 
   // copy back userSortColsList to sortColumns_p
-  sortColumns_p.resize(userSortColsList.size(), true, false);
+  constexpr bool forceSmaller = true;
+  constexpr bool copyElements = false;
+  sortColumns_p.resize(userSortColsList.size(), forceSmaller, copyElements);
   std::transform(
     userSortColsList.begin(), userSortColsList.end(), sortColumns_p.begin(),
     [](ColumnId const &i) {return static_cast<Int>(i);}
