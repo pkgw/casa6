@@ -1,4 +1,3 @@
-#include <utility>
 friend class tablerow;
 
 //Privates for table_cmpt

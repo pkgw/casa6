@@ -181,8 +181,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                  casacore::Quantity& filterbmaj,
                                  casacore::Quantity& filterbmin,
                                  casacore::Quantity& filterbpa, casacore::Double& fracBW, const casacore::Record& inrec);
-
-    static casacore::uLong getAllocatedMemoryInBytes();
     
 
   protected:
@@ -461,6 +459,8 @@ public:
   // task deconvolve needs to tell siimagestore that we don't need to check for the sumwt image
   casacore::Bool noRequireSumwt = casacore::False;
 
+  // return dictionary size control
+  casacore::Bool fullsummary;
  
   casacore::Bool interactive;
 
