@@ -165,6 +165,7 @@ class ImagerParameters():
                  gwidth="-1",
                  jwidth="-1",
                  pointingcolumntouse='direction',
+                 convertfirst='never',
                  minweight=0.0,
                  clipminmax=False
                  ):

@@ -749,7 +749,8 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
                nchan, start, width, veltype,
                specmode, outframe,
                gridfunction, convsupport, truncate, gwidth, jwidth, imsize, cell, phasecenter,
-               projection, pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax):
+               projection, pointingcolumn, convertfirst,
+               restfreq, stokes, minweight, brightnessunit, clipminmax):
 
     origin = 'tsdimaging'
     imager = None
@@ -871,6 +872,7 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
             gwidth=ggwidth,
             jwidth=gjwidth,
             pointingcolumntouse=pointingcolumn,
+            convertfirst=convertfirst,
             minweight=minweight,
             clipminmax=clipminmax,
             # normalizer
