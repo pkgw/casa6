@@ -62,7 +62,7 @@ coordsys::coordsys() : _log(new LogIO()), _csys(),
 coordsys::~coordsys() {}
 
 void coordsys::_setup(const String& method) {
-	if (! _csys.ptr()) {
+	if (! _csys.get()) {
 		_csys.set(new CoordinateSystem());
 		Vector<String> empty(0);
 	    addCoordinate(*_csys, false, false, empty, 0, false);
@@ -83,7 +83,7 @@ void coordsys::_setup(const String& method) {
 	    //
 	    _csys->setObsInfo(obsInfo);
 	}
-	if (! _log.ptr()) {
+	if (! _log.get()) {
 		_log.set(new LogIO());
 	}
 	*_log << LogOrigin("coordsys", method);

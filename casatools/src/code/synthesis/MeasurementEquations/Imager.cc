@@ -2209,14 +2209,14 @@ Bool Imager::feather(const String& image, const String& highRes,
 	  os << LogIO::NORMAL // Loglevel PROGRESS
              << "Making some temporary images as the inputs have no Stokes axis.\n" 
              << LogIO::POST;
-	  PtrHolder<ImageInterface<Float> > outImage1;
+	  std::unique_ptr<ImageInterface<Float> > outImage1;
 	  outHighRes= highRes+"_stokes";
 	  ImageUtilities::addDegenerateAxes (os, outImage1, hightemp, outHighRes,
 					     false, false,
 					     "I", false, false,
 					     false);
 
-	  PtrHolder<ImageInterface<Float> > outImage2;
+	  std::unique_ptr<ImageInterface<Float> > outImage2;
 	  outLowRes= lowRes+"_stokes";
 	  ImageUtilities::addDegenerateAxes (os, outImage2, lowtemp, outLowRes,
 					     false, false,

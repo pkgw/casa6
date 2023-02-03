@@ -220,12 +220,12 @@ template<class T> image* image::_adddegaxes(
         bool tabular, bool overwrite, bool silent
 ) {
     _log << _ORIGIN;
-    PtrHolder<ImageInterface<T> > outimage;
+    std::unique_ptr<ImageInterface<T> > outimage;
     ImageUtilities::addDegenerateAxes(
         _log, outimage, *inImage, outfile,
         direction, spectral, stokes, linear, tabular, overwrite, silent
     );
-    auto *outPtr = outimage.ptr();
+    auto *outPtr = outimage.get();
     outimage.clear(false);
     SPIIT z(outPtr);
     vector<String> names {
@@ -5829,13 +5829,13 @@ bool image::setrestoringbeam(
                 "Neither channel nor polarization can be non-negative if "
                 "imagename is specified"
             );
-            PtrHolder<ImageInterface<Float> > k;
+            std::unique_ptr<ImageInterface<Float> > k;
             ImageUtilities::openImage(k, imagename);
-            if (k.ptr() == 0) {
-                PtrHolder<ImageInterface<Float> > c;
+            if (k.get() == 0) {
+                std::unique_ptr<ImageInterface<Float> > c;
                 ImageUtilities::openImage(c, imagename);
                 ThrowIf(
-                    c.ptr() == 0,
+                    c.get() == 0,
                     "Unable to open " + imagename
                 );
                 bs = c->imageInfo().getBeamSet();
@@ -6956,17 +6956,17 @@ std::shared_ptr<Record> image::_getRegion(
             }
         }
         else {
-            PtrHolder<ImageInterface<Float> > image;
+            std::unique_ptr<ImageInterface<Float> > image;
             ImageUtilities::openImage(image, otherImageName);
-            if (image.ptr()) {
+            if (image.get()) {
                 shape = image->shape();
                 csys = image->coordinates();
             }
             else {
-                PtrHolder<ImageInterface<Complex> > imagec;
+                std::unique_ptr<ImageInterface<Complex> > imagec;
                 ImageUtilities::openImage(imagec, otherImageName);
                 ThrowIf(
-                    ! imagec.ptr(),
+                    ! imagec.get(),
                     "Unable to open image " + otherImageName
                 );
                 shape = imagec->shape();

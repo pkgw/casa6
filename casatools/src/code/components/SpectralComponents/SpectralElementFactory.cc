@@ -28,7 +28,7 @@
 //# Includes
 
 #include <casacore/casa/Containers/Record.h>
-#include <casacore/casa/Utilities/PtrHolder.h>
+#include <casacore/casa/Utilities/std::unique_ptr.h>
 #include <components/SpectralComponents/CompiledSpectralElement.h>
 #include <components/SpectralComponents/GaussianSpectralElement.h>
 #include <components/SpectralComponents/GaussianMultipletSpectralElement.h>
@@ -44,7 +44,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 SpectralElement* SpectralElementFactory::fromRecord(
 	const RecordInterface &in
 ) {
-	PtrHolder<SpectralElement> specEl;
+	std::unique_ptr<SpectralElement> specEl;
 	String origin = "SpectralElementFactory::fromRecord: ";
 	if (
 		! in.isDefined("type")
@@ -201,10 +201,10 @@ SpectralElement* SpectralElementFactory::fromRecord(
 		while(true) {
 			String id = "*" + String::toString(i);
 			if (gaussians.isDefined(id)) {
-				PtrHolder<SpectralElement> gauss(fromRecord(gaussians.asRecord(id)));
+				std::unique_ptr<SpectralElement> gauss(fromRecord(gaussians.asRecord(id)));
 				comps.push_back(
 					*dynamic_cast<GaussianSpectralElement*>(
-						gauss.ptr()
+						gauss.get()
 					)
 				);
 				i++;
@@ -244,7 +244,7 @@ SpectralElement* SpectralElementFactory::fromRecord(
 		specEl->fix(in.asArrayBool("fixed"));
 	}
     // ready to return, fish out the pointer and return it without deleting it
-    SpectralElement *sp = specEl.ptr();
+    SpectralElement *sp = specEl.get();
     specEl.clear(false);
 	return sp;
 }

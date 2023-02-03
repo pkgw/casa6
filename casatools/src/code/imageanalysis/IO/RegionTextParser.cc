@@ -88,7 +88,7 @@ RegionTextParser::RegionTextParser(
     _setOverridingCorrelations(globalOverrrideStokes);
     RegularFileIO fileIO(file);
     Int bufSize = 4096;
-    PtrHolder<char> buffer(new char[bufSize], true);
+    std::unique_ptr<char> buffer(new char[bufSize]);
     int nRead;
     String contents;
     if (! prependRegion.empty()) {
@@ -1344,7 +1344,7 @@ RegionTextParser::_stokesFromString(
     const String& stokes, const String& preamble
 ) {
     const auto maxn = Stokes::NumberOfTypes;
-    PtrHolder<string> res(new string[maxn], true);
+    std::unique_ptr<string> res(new string[maxn]);
     Int nStokes = split(stokes, res, maxn, ",");
     Vector<Stokes::StokesTypes> myTypes(nStokes);
     for (Int i=0; i<nStokes; ++i) {
