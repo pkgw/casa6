@@ -398,8 +398,9 @@ def setjy_core(vis=None, field=None, spw=None,
 
                     if spix==[]: # handle the default 
                         spix=0.0
-                    elif abs(spix[0]) > 10.0:
-                        if spix[0] < -10.0:
+                    alpha = spix[0] if type(spix)==list else spix
+                    if abs(alpha) > 10.0:
+                        if alpha < -10.0:
                             msg = 'less than -10'
                         else:
                             msg = 'greater than 10'
