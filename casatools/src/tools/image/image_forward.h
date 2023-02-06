@@ -19,7 +19,6 @@ namespace casacore{
 	class LatticeBase;
 	class LogIO;
 	template<class T> class ImageStatistics;
-	template<class T> class std::unique_ptr;
 	template<class T> class SubImage;
 	class LatticeExprNode;
     class String;

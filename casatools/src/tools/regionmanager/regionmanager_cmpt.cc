@@ -52,10 +52,10 @@ regionmanager::~regionmanager() {}
 
 void regionmanager::setup() {
     if (! _regMan.get()) {
-    	_regMan.set(new CasacRegionManager());
+        _regMan = std::unique_ptr<casa::CasacRegionManager>(new CasacRegionManager());
     }
     if (! _log.get()) {
-    	_log.set(new LogIO());
+        _log = std::unique_ptr<casacore::LogIO>(new LogIO());
     }
 }
 
@@ -110,7 +110,7 @@ regionmanager::box(const std::vector<double>& blc, const std::vector<double>& tr
 		dinc.set(1.0);
 	    }
 
-	    lebox.set(
+	    lebox = std::unique_ptr<Record>(
 	    	_regMan->box(dblc, dtrc, dinc,
 	    	String(absrel), frac, String(comment))
 	    );
@@ -127,7 +127,7 @@ regionmanager::box(const std::vector<double>& blc, const std::vector<double>& tr
 		dinc.set(1.0);
 	    }
 
-	    lebox.set(
+	    lebox = std::unique_ptr<Record>(
 	    	_regMan->box(dblc, dtrc, dinc, String(absrel),
 	    	frac, String(comment))
 	    );
@@ -174,23 +174,23 @@ regionmanager::complement(
 	// If the "isRegion" field exists then we assume the record
 	// is a region, otherwise we have a set of regions.
 	if(lesRegions->fieldNumber("isRegion")==-1 && lesRegions->nfields() > 1 ) {
-	    unionReg.set(dounion(lesRegions));
+	    unionReg = std::unique_ptr<casacore::ImageRegion>(dounion(lesRegions));
 	}
 	else {
 	    if ( lesRegions->fieldNumber("isRegion")==-1 ) {
 		TableRecord theRec;
 		theRec.assign( lesRegions->asRecord(casacore::RecordFieldId(0) ) );
-		unionReg.set(ImageRegion::fromRecord( theRec, "" ));
+		unionReg = std::unique_ptr<casacore::ImageRegion>(ImageRegion::fromRecord( theRec, "" ));
 	   }
 	    else {
-	    	unionReg.set(ImageRegion::fromRecord( *lesRegions, "" ));
+            unionReg = std::unique_ptr<casacore::ImageRegion>(ImageRegion::fromRecord( *lesRegions, "" ));
 	    }
 	}
 	
 	// And find the complement
 	std::unique_ptr<casacore::ImageRegion> leComplementReg;
 	if( unionReg.get() ){
-	    leComplementReg.set(_regMan->doComplement(*unionReg));
+	    leComplementReg = std::unique_ptr<casacore::ImageRegion>(_regMan->doComplement(*unionReg));
 	}
 	
 	casacore::Record returnRec;
@@ -345,8 +345,8 @@ regionmanager::difference(const ::casac::record& region1, const ::casac::record&
 bool
 regionmanager::done()
 {
-	_regMan.set(0);
-	_log.set(0);
+	_regMan.reset( );
+	_log.reset( );
     return true;
 }
 
@@ -372,7 +372,7 @@ regionmanager::fromtextfile(
     	    	csysRec->nfields() < 2,
     	    	"Given coordsys parameter is not a valid coordsystem record"
     	    );
-    	    ncsys.set((CoordinateSystem::restore(*csysRec, "")));
+            ncsys = std::unique_ptr<CoordinateSystem>((CoordinateSystem::restore(*csysRec, "")));
     	}
     	RegionTextList annList(
     		filename, ncsys.get() ? *ncsys : _regMan->getcoordsys(),
@@ -490,7 +490,7 @@ regionmanager::fromtabletorecord(
     
     std::unique_ptr<casacore::Record> leRec(_regMan->tableToRecord(String(tablename), elname));
     if(! leRec.get()) {
-    	leRec.set(new Record());
+        leRec = std::unique_ptr<casacore::Record>(new Record());
     }
     return fromRecord(*leRec);
   }
@@ -533,14 +533,14 @@ regionmanager::intersection(const ::casac::variant& regions, const std::string& 
 	    std::unique_ptr<ImageRegion> reg1(ImageRegion::fromRecord(rec2,""));
 
 	    if(reg0.get() && reg1.get()) {
-	    	intersectReg.set(_regMan->doIntersection(*reg0, *reg1));
+	        intersectReg = std::unique_ptr<ImageRegion>(_regMan->doIntersection(*reg0, *reg1));
 	    }
 	    for (uInt k=2; k < (lesRegions->nfields()); ++k){
 		rec1.assign(lesRegions->asRecord(casacore::RecordFieldId(k)));
 
-		reg0.set(ImageRegion::fromRecord(rec1, ""));
+		reg0 = std::unique_ptr<ImageRegion>(ImageRegion::fromRecord(rec1, ""));
 		ImageRegion reg3(*intersectReg);
-		intersectReg.set(_regMan->doIntersection(*reg0, reg3));
+		intersectReg = std::unique_ptr<ImageRegion>(_regMan->doIntersection(*reg0, reg3));
 	    }
 
 	    casacore::Record intersectrec;
@@ -733,12 +733,12 @@ casacore::ImageRegion* regionmanager::dounion(const std::unique_ptr<casacore::Re
         unionRegions[i] = ImageRegion::fromRecord(trec, "");
     }
     WCUnion leUnion(unionRegions);
-    Sstd::unique_ptr<ImageRegion> retval(new ImageRegion(leUnion));
+    std::unique_ptr<ImageRegion> retval(new ImageRegion(leUnion));
     for (uInt i = 0; i < nreg; i++) {
     	delete unionRegions[i];
     }
 
-    return retval.transfer();
+    return retval.release( );
 }
 
 ::casac::record*
@@ -780,10 +780,10 @@ regionmanager::wbox(const ::casac::variant& blc, const ::casac::variant& trc, co
 	    	"Given coordsys parameter does not appear to be a valid coordsystem record"
 	    );
 	    std::unique_ptr<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
-	    leRegion.set(_regMan->wbox(losBlc, losTrc,  pixaxes, *coordsys, String(absrel), String(comment)));
+	    leRegion = std::unique_ptr<casacore::Record>(_regMan->wbox(losBlc, losTrc,  pixaxes, *coordsys, String(absrel), String(comment)));
 	} else {
 	    //user has set csys already
-	    leRegion.set(
+	    leRegion = std::unique_ptr<casacore::Record>(
 	    	_regMan->wbox(
 	    		losBlc, losTrc, pixaxes, String(absrel), String(comment)
 	    	)
@@ -837,12 +837,12 @@ regionmanager::wpolygon(const ::casac::variant& x, const ::casac::variant& y,
 	    	"Given coorsys parameter does not appear to be a valid coordsystem record"
 	    );
 	    std::unique_ptr<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
-	    leRegion.set(_regMan->wpolygon(losX, losY,  pixaxes, *coordsys,
+	    leRegion = std::unique_ptr<ImageRegion>(_regMan->wpolygon(losX, losY,  pixaxes, *coordsys,
 				   String(absrel)));
 	}
 	else{
 	    //user has set csys already
-	    leRegion.set(_regMan->wpolygon(losX, losY, pixaxes, String(absrel)));
+	    leRegion = std::unique_ptr<ImageRegion>(_regMan->wpolygon(losX, losY, pixaxes, String(absrel)));
 	}
 
 	if(leRegion.get()){
@@ -878,7 +878,7 @@ record* regionmanager::frombcs(
     	}
     	else if (region.type() == variant::RECORD) {
     		std::unique_ptr<variant> clone(region.clone());
-    		regionPtr.set(toRecord(clone->asRecord()));
+            regionPtr = std::unique_ptr<Record>(toRecord(clone->asRecord()));
     	}
     	else if (region.type() == variant::BOOLVEC) {
     		// default type for variants apparently, nothing to do

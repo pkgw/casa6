@@ -32,7 +32,7 @@
 #include <casacore/casa/Containers/RecordInterface.h>
 #include <casacore/casa/Containers/Record.h>
 #include <components/SpectralComponents/GaussianSpectralElement.h>
-#include <casacore/casa/Utilities/std::unique_ptr.h>
+#include <memory>
 #include <components/SpectralComponents/SpectralElementFactory.h>
 
 #include <iostream>

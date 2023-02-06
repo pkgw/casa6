@@ -226,7 +226,7 @@ template<class T> image* image::_adddegaxes(
         direction, spectral, stokes, linear, tabular, overwrite, silent
     );
     auto *outPtr = outimage.get();
-    outimage.clear(false);
+    outimage.release( );
     SPIIT z(outPtr);
     vector<String> names {
         "outfile", "direction", "spectral", "stokes",
