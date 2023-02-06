@@ -10,6 +10,7 @@ import copy
 import json
 import os
 import sys
+import shutil
 
 
 def extract_expdict(testlist=None, testsrcpath=None):
@@ -215,11 +216,56 @@ def extract_expdict(testlist=None, testsrcpath=None):
         print("Extracted the fudicial value dictionaries is saved in a file, ", outfile)
 
 
+def extract_subexpdict(jsonfile, keylist, outjsonfile=''):
+    """
+    Extract subset of metric values from a json file contains current metric values 
+    from a single testcase by specifying metric names and output a new json file contains
+    only the specfied subset of the metrics.
+
+    jsonfile: json file for a single testcase (saved by savematricdict=True in 
+             test_stk_alma_pipeline_imaging,py)
+    keylist: a dictionary contains main_metric_key('eg. im_stats_dict..') with a list of 
+    metric names to be extracted
+    returns a dictionary only contains the main stats category key
+    and metric (key+its value(s))
+    outjsonfile: output json file containing the extracted dictionary (with top level key
+                 word = testcase name)
+    """
+    outdict = {}
+  
+    if outjsonfile == '':
+         outjsonfile = jsonfile.rstrip('.json') + '_subDict.json' 
+    with open(jsonfile, 'r') as f:
+        indict = json.load(f)
+    topkeyfound = False
+    # the top key should be test case name
+    topkey = list(indict.keys())[0]
+    if 'test' in topkey:
+        topkeyfound=True
+        outdict[topkey]={}
+        for k in keylist:
+            if k in indict[topkey]:
+               outdict[topkey][k]={}
+               for metrickey in keylist:
+                   if metrickey in indict[topkey][k]:
+                       outdict[topkey][k].update({metrickey:indict[topkey][k][metrickey]})
+            else:
+               print("{} not found in the input json".format(k)) 
+    else:
+        print('No testcase name in the top key. Cannot process the json file')
+        return False
+       
+    if outdict != {}:
+        with open(outjsonfile, 'w') as outf:
+            json.dump(outdict, outf) 
+            print("Saving the sub-dictionary to {}".format(outjsonfile))
+    return outdict        
+
 def create_expdict_jsonfile(inmetricsfile, templatemetrics, outmetricsfile):
     """
     create the fiducial metric dictionaries
     from the corresponding metric dictionaries of the current
-    run saved as a json file
+    run saved as a json file and also returned as a dictionary
     """
     infiles = [inmetricsfile, templatemetrics]
     for f in infiles:
@@ -237,38 +283,38 @@ def create_expdict_jsonfile(inmetricsfile, templatemetrics, outmetricsfile):
                 subOutDict = outDict[testname]
                 for expkey in tmplFidDict[testname]:
                     print("Processing expkey=", expkey)
-                    curkey = expkey[4:]  # name of the dict in the current metrics
-                    print("curkey before mode=", curkey)
-                    if not curkey.endswith("_dict"):
-                        curkey += "_dict"
-                    else:
-                        isbeaminfo = True
-                    print("Processing curkey=", curkey)
-                    print("isbeaminfo=", isbeaminfo)
-                    if curkey in curDict[testname]:
-                        subOutDict[expkey] = {}
-                        if isbeaminfo:
-                            subOutDict[expkey] = curDict[testname][curkey]
+                    if expkey != 'comment' and expkey != 'comments':
+                        curkey = expkey[4:]  # name of the dict in the current metrics
+                        if not curkey.endswith("_dict"):
+                            curkey += "_dict"
                         else:
-                            # loop through each metric inside the particular exp_ dict
-                            for metrickey in tmplFidDict[testname][expkey]:
-                                # check to see if the metric exist in the input (current) metric dict
-                                if metrickey in curDict[testname][curkey]:
-                                    print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
-                                                                                          tmplFidDict[testname][expkey][
-                                                                                              metrickey][0]))
-                                    subOutDict[expkey][metrickey] = [tmplFidDict[testname][expkey][metrickey][0],
+                            isbeaminfo = True
+                        print("Processing curkey=", curkey)
+                        #print("isbeaminfo=", isbeaminfo)
+                        if curkey in curDict[testname]:
+                            subOutDict[expkey] = {}
+                            if isbeaminfo:
+                                subOutDict[expkey] = curDict[testname][curkey]
+                            else:
+                                # loop through each metric inside the particular exp_ dict
+                                for metrickey in tmplFidDict[testname][expkey]:
+                                    # check to see if the metric exist in the input (current) metric dict
+                                    if metrickey in curDict[testname][curkey]:
+                                        #print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
+                                        #                                                  tmplFidDict[testname][expkey][
+                                        #                                                      metrickey][0]))
+                                        subOutDict[expkey][metrickey] = [tmplFidDict[testname][expkey][metrickey][0],
                                                                      curDict[testname][curkey][metrickey]]
-                                else:  # metric does not exist in input cur metric dicts
-                                    raise Exception(
-                                        "Missing the metric key={} in {}. Check the input file".format(metrickey,
+                                    else:  # metric does not exist in input cur metric dicts
+                                        raise Exception(
+                                            "Missing the metric key={} in {}. Check the input file".format(metrickey,
                                                                                                        inmetricsfile))
-                    else:
-                        if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
-                            print("Missing key={} in {}. The input json is probably made from serial run"
-                                  .format(curkey, inmetricsfile))
                         else:
-                            raise Exception("Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
+                            if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
+                                print("Missing key={} in {}. The input json is probably made from serial run"
+                                  .format(curkey, inmetricsfile))
+                            else:
+                                raise Exception("Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
 
                 json.dump(outDict, outf)
             else:
@@ -347,7 +393,7 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
        consist of only the testcases that need to be updated and the exp_dicts for other
        testcases not in the list won't be modified and copy to the new json as is.
 
-       jsonfilename: current json file conta:w!ins all the fiducial metrics values
+       jsonfilename: current json file contains all the fiducial metrics values
 
     """
     import copy
@@ -366,41 +412,40 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
                         subOutDict = outDict[testname]
                         for expkey in tmplFidDict[testname]:
                             print("Processing expkey=", expkey)
-                            curkey = expkey[4:]  # name of the dict in the current metrics
-                            print("curkey before mode=", curkey)
-                            if not curkey.endswith("_dict"):
-                                curkey += "_dict"
-                            else:
-                                isbeaminfo = True
-                            print("Processing curkey=", curkey)
-                            print("isbeaminfo=", isbeaminfo)
-                            if curkey in curDict[testname]:
-                                subOutDict[expkey] = {}
-                                if isbeaminfo:
-                                    subOutDict[expkey] = curDict[testname][curkey]
+                            if expkey != 'comment' and expkey != 'comments':
+                                curkey = expkey[4:]  # name of the dict in the current metrics
+                                if not curkey.endswith("_dict"):
+                                    curkey += "_dict"
                                 else:
-                                    # loop through each metric inside the particular exp_ dict
-                                    for metrickey in tmplFidDict[testname][expkey]:
-                                        # check to see if the metric exist in the input (current) metric dict
-                                        if metrickey in curDict[testname][curkey]:
-                                            print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
-                                                                                                  tmplFidDict[testname][
-                                                                                                      expkey][
-                                                                                                      metrickey][0]))
-                                            subOutDict[expkey][metrickey] = [
-                                                tmplFidDict[testname][expkey][metrickey][0],
-                                                curDict[testname][curkey][metrickey]]
-                                        else:  # metric does not exist in input cur metric dicts
-                                            raise Exception("Missing the metric key={} in {}. Check the input file".
-                                                            format(metrickey, inmetricsfile))
-                            else:
-                                if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
-                                    print("Missing key={} in {}. The input json is probably made from serial run"
-                                          .format(curkey, inmetricsfile))
+                                    isbeaminfo = True
+                                print("Processing curkey=", curkey)
+                                if curkey in curDict[testname]:
+                                    subOutDict[expkey] = {}
+                                    if isbeaminfo:
+                                        subOutDict[expkey] = curDict[testname][curkey]
+                                    else:
+                                        # loop through each metric inside the particular exp_ dict
+                                        for metrickey in tmplFidDict[testname][expkey]:
+                                            # check to see if the metric exist in the input (current) metric dict
+                                            if metrickey in curDict[testname][curkey]:
+                                              #  print("expkey={}, metrickey={}, metricbool={}".format(expkey, metrickey,
+                                              #                                                    tmplFidDict[testname][
+                                              #                                                        expkey][
+                                              #                                                        metrickey][0]))
+                                                subOutDict[expkey][metrickey] = [
+                                                    tmplFidDict[testname][expkey][metrickey][0],
+                                                    curDict[testname][curkey][metrickey]]
+                                            else:  # metric does not exist in input cur metric dicts
+                                                raise Exception("Missing the metric key={} in {}. Check the input file".
+                                                                format(metrickey, inmetricsfile))
                                 else:
-                                    raise Exception(
-                                        "Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
-
+                                    if curkey == 'bmin_dict' or curkey == 'bmaj_dict' or curkey == 'pa_dict':
+                                        print("Missing key={} in {}. The input json is probably made from serial run"
+                                              .format(curkey, inmetricsfile))
+                                    else:
+                                        raise Exception(
+                                            "Missing key={} in {}. Check the input file".format(curkey, inmetricsfile))
+                        # end for-loop
                         json.dump(outDict, outf)
                     else:
                         raise Exception("{} does not contain test name {} as a top level key." +
@@ -410,6 +455,75 @@ def update_expdict_jsonfile(newexpdictlist, jsonfilename):
                                     "Please modify the input file".format(tmplFidDict))
 
 
+def update_expdict_subset(expjsonfile, newvaldictjson, jiranoforcomment=''):
+    """
+    Replace selected metric values in combined (for all ALMA stk testcases) expdicts json
+    with new values. The updated json file will be named input base file name with "_update.json"
+    and is saved in the current working directory.
+    expjsonfile: current combined exp json file (i.e. test_stk_alma_pipeline_imaging_exp_dicts.json)
+                 Note: a copy of the file will be made in the current working directory 
+    newvaldictjson: metric values to be updated (need to put in the same nested dictionary 
+                structure as the expjsonfile with only relevant keys
+    jiranoforcomment (optional): releant JIRA ticket number to be inserted as 'comment' 
+    under the sub-dictionary section of the relevant testcase. The updated matrics names
+    are also added to the comment section.
+    """
+    allreplaced = False
+    basename = os.path.basename(expjsonfile) 
+    expjsonname = basename.split('.json')[0]
+    outjsonfile = expjsonname+'_update.json'
+    shutil.copy(expjsonfile, outjsonfile)
+
+    with open(outjsonfile, 'r') as f:
+        outdict = json.load(f)
+    with open(newvaldictjson, 'r') as newvf:
+        valdict = json.load(newvf)
+ 
+    testcases =  list(valdict.keys())
+    for tc in testcases: 
+        comment = 'Updated'
+        if jiranoforcomment != '':
+            comment += ' for '+jiranoforcomment
+        comment +=': ' 
+        if tc in outdict: # testcase name
+            for k in valdict[tc]:
+                expk = 'exp_'+k.rstrip('_dict')
+                if expk in outdict[tc]:
+                    comment += ' '+expk + ' ['
+                    for mtk in valdict[tc][k]:
+                        if mtk in outdict[tc][expk]:
+                            # exp metrics should in a list (e.g. [T/F/tol, val]
+                            if type(outdict[tc][expk][mtk])==list:
+                                # Only change val part not comparison type (True/False/tol)
+                                outdict[tc][expk][mtk][1]=valdict[tc][k][mtk]
+                                comment += mtk+','
+                                allreplaced = True
+                            else:
+                                print("Expecting a list for the matric value ([T/F/tal, val]",format(mtk))
+                                allreplaced = False
+                        else:
+                            print("{} is not found in the combined json. Skip this".format(mtk))
+                            allreplaced = False 
+                    comment = comment.rstrip(',') + ']'
+                
+                else:
+                    print("{} is not found in the combined json. Skip this".format(expk))
+                    #print("outdict[tc].keys()=", outdict[tc].keys())
+                    allreplaced = False 
+                    return False
+            outdict[tc]['comment']=comment 
+        else:
+            print("The testcase {} not found in the combined json. Check the input".format(tc))
+            return False 
+   
+    if allreplaced:
+        print("Writing to the updated values in {}".format(outjsonfile))
+        with open(outjsonfile, 'w+') as outf:
+            json.dump(outdict,outf)
+        return True
+    else:
+        return False
+                
 def compare_expdictjson(newjson, oldjson):
     """
     compare the two exp dicts - used to check updating of exp_dicts json file
@@ -420,7 +534,7 @@ def compare_expdictjson(newjson, oldjson):
         olddict = json.load(fold)
 
         if newdict == olddict:
-            return "The two json files are indentical"
+            return "The two json files are identical"
         else:
             # level 0 (testcase level)
             newkey0list = list(newdict.keys())
@@ -428,61 +542,60 @@ def compare_expdictjson(newjson, oldjson):
             newonlykey0 = set(newkey0list).difference(oldkey0list)
             oldonlykey0 = set(oldkey0list).difference(newkey0list)
             commonkey0 = set(newkey0list).intersection(oldkey0list)
-
             finaldiffdict = {}
             for key0 in commonkey0:
                 # do for each testcase, extract set of metrics  for each image type
-                if type(newdict[key0]) == dict and type(olddict[key0]) == dict:
+                if isinstance(newdict[key0], dict) and isinstance(olddict[key0], dict):
                     newkey1list = list(newdict[key0].keys())
                     oldkey1list = list(olddict[key0].keys())
                     newonlykey1 = set(newkey1list).difference(oldkey1list)
                     oldonlykey1 = set(oldkey1list).difference(newkey1list)
                     commonkey1 = set(newkey1list).intersection(oldkey1list)
-
                     for key1 in commonkey1:
-                        newkey2list = list(newdict[key0][key1].keys())
-                        oldkey2list = list(olddict[key0][key1].keys())
-                        newonlykey2 = set(newkey2list).difference(oldkey2list)
-                        oldonlykey2 = set(oldkey2list).difference(newkey2list)
-                        commonkey2 = set(newkey2list).intersection(oldkey2list)
-                        # Comparison of the values and test threshold type
-                        diffkey2dict = {}
-                        for key2 in commonkey2:  # a list containing [thres. type, []]
-                            if type(olddict[key0][key1][key2]) == list:
-                                if olddict[key0][key1][key2][1] != newdict[key0][key1][key2][1]:
-                                    if key2 not in diffkey2dict:
-                                        diffkey2dict[key2] = {}
-                                    diffkey2dict[key2]['msg'] = 'diff in value(s)'
-                                    diffkey2dict[key2]['json1'] = newdict[key0][key1][key2]
-                                    diffkey2dict[key2]['json2'] = olddict[key0][key1][key2]
-                                if olddict[key0][key1][key2][0] != newdict[key0][key1][key2][0]:
-                                    if 'msg' in diffkey2dict[key2]:
-                                        diffkey2dict[key2]['msg'] += ' and threshold type'
-                                    else:
-                                        diffkey2dict[key2]['msg'] = 'diff in threshold type'
-                                        diffkey2dict[key2]['json1'] = newdict[key0][key1][key2][0]
-                                        diffkey2dict[key2]['json2'] = olddict[key0][key1][key2][0]
-                            else:
-                                # non metric values (possibly comments or version info)
-                                if olddict[key0][key1][key2] != newdict[key0][key1][key2]:
-                                    diffkey2dict[key2] = \
-                                        'json1: {}, json2: {}'.format(newdict[key0][key1][key2],
-                                                                      olddict[key0][key1][key2])
+                        if key1!='comment':
+                            newkey2list = list(newdict[key0][key1].keys())
+                            oldkey2list = list(olddict[key0][key1].keys())
+                            newonlykey2 = set(newkey2list).difference(oldkey2list)
+                            oldonlykey2 = set(oldkey2list).difference(newkey2list)
+                            commonkey2 = set(newkey2list).intersection(oldkey2list)
+                            # Comparison of the values and test threshold type
+                            diffkey2dict = {}
+                            for key2 in commonkey2:  # a list containing [thres. type, []]
+                                if isinstance(olddict[key0][key1][key2], list):
+                                    if olddict[key0][key1][key2][1] != newdict[key0][key1][key2][1]:
+                                        if key2 not in diffkey2dict:
+                                            diffkey2dict[key2] = {}
+                                        diffkey2dict[key2]['msg'] = 'diff in value(s)'
+                                        diffkey2dict[key2]['json1'] = newdict[key0][key1][key2]
+                                        diffkey2dict[key2]['json2'] = olddict[key0][key1][key2]
+                                    if olddict[key0][key1][key2][0] != newdict[key0][key1][key2][0]:
+                                        if 'msg' in diffkey2dict[key2]:
+                                            diffkey2dict[key2]['msg'] += ' and threshold type'
+                                        else:
+                                            diffkey2dict[key2]['msg'] = 'diff in threshold type'
+                                            diffkey2dict[key2]['json1'] = newdict[key0][key1][key2][0]
+                                            diffkey2dict[key2]['json2'] = olddict[key0][key1][key2][0]
+                                else:
+                                    # non metric values (possibly comments or version info)
+                                    if olddict[key0][key1][key2] != newdict[key0][key1][key2]:
+                                        diffkey2dict[key2] = \
+                                            'json1: {}, json2: {}'.format(newdict[key0][key1][key2],
+                                                                          olddict[key0][key1][key2])
 
-                        if diffkey2dict != dict():
-                            if key0 not in finaldiffdict:
-                                finaldiffdict[key0] = {}
-                            if key1 not in finaldiffdict:
-                                finaldiffdict[key0][key1] = {}
-                            finaldiffdict[key0][key1] = copy.deepcopy(diffkey2dict)
-                        if newonlykey2 != set():
-                            finaldiffdict[key0][key1]['metric keys only in json1'] = newonlykey2
-                        if oldonlykey2 != set():
-                            finaldiffdict[key0][key1]['metric keys only in json2'] = oldonlykey2
-                    if newonlykey1 != set():
-                        finaldiffdict[key0]['matric dict only in json1'] = newonlykey1
-                    if oldonlykey1 != set():
-                        finaldiffdict[key0]['matric dict only in json2'] = oldonlykey1
+                            if diffkey2dict != dict():
+                                if key0 not in finaldiffdict:
+                                    finaldiffdict[key0] = {}
+                                if key1 not in finaldiffdict:
+                                    finaldiffdict[key0][key1] = {}
+                                finaldiffdict[key0][key1] = copy.deepcopy(diffkey2dict)
+                            if newonlykey2 != set():
+                                finaldiffdict[key0][key1]['metric keys only in json1'] = newonlykey2
+                            if oldonlykey2 != set():
+                                finaldiffdict[key0][key1]['metric keys only in json2'] = oldonlykey2
+                        if newonlykey1 != set():
+                            finaldiffdict[key0]['metric dict only in json1'] = newonlykey1
+                        if oldonlykey1 != set():
+                            finaldiffdict[key0]['metric dict only in json2'] = oldonlykey1
                 else:
                     if newdict[key0] != olddict[key0]:
                         finaldiffdict[key0] = 'diff info json1: {}, json2: {}'.format(newdict[key0], olddict[key0])
