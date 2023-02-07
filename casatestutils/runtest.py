@@ -363,11 +363,13 @@ def fetch_tests(work_dir, branch, merge_target=None):
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
         else:
-            print("\t{} not in Remote Repository {}".format(merge_target,repo))
+            print("\t{} not in Remote Repository {}".format(branch,repo))
     else:
-
         cmd = ("git checkout " + branch).split()
-        print("\tRunning: ", " ".join(str(x) for x in cmd))
+        if is_in_remote(branch,repo_path, repo):
+            print("\tRunning: ", " ".join(str(x) for x in cmd))
+        else:
+            print("\t{} not in Remote Repository {}. Defaulting to master".format(branch,repo))
         run_shell_command(cmd, source_dir + "/" + repo)
 
     for x in get_repo_test_paths(repo):
