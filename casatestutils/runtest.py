@@ -6,18 +6,23 @@ import os, sys, re, json, unittest, shlex
 import argparse, subprocess, traceback
 import shutil, datetime, platform
 
+default_timeout = 1800
+sys.path.insert(0,'')
+
+#### PYTEST IMPORT
 HAVE_PYTEST = True
 try:
     import pytest
 except ImportError:
     HAVE_PYTEST = False
 
-########################################################################################################################
-######################################            Imports / Constants            #######################################
-########################################################################################################################
+verbose = False
 
-default_timeout = 1800
-sys.path.insert(0,'')
+# JIRA BRANCH TO CHECKOUT
+JIRA_BRANCH = None
+
+# Dry run of Tests
+DRY_RUN = False
 
 ########################################################################################################################
 ###########################################            Functions            ############################################
