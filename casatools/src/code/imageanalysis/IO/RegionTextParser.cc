@@ -95,14 +95,14 @@ RegionTextParser::RegionTextParser(
         contents = prependRegion + "\n";
     }
     while ((nRead = fileIO.read(bufSize, buffer.get( ), false)) == bufSize) {
-        String chunk(*buffer, bufSize);
+        String chunk(buffer.get( ), bufSize);
         if (_fileVersion < 0) {
             _determineVersion(chunk, filename, requireAtLeastThisVersion);
         }
         contents += chunk;
     }
     // get the last chunk
-    String chunk(*buffer, nRead);
+    String chunk(buffer.get( ), nRead);
     if (_fileVersion < 0) {
         _determineVersion(chunk, filename, requireAtLeastThisVersion);
     }
@@ -1344,7 +1344,7 @@ RegionTextParser::_stokesFromString(
     const String& stokes, const String& preamble
 ) {
     const auto maxn = Stokes::NumberOfTypes;
-    std::unique_ptr<string> res(new string[maxn]);
+    std::unique_ptr<string[]> res(new string[maxn]);
     Int nStokes = split(stokes, res.get( ), maxn, ",");
     Vector<Stokes::StokesTypes> myTypes(nStokes);
     for (Int i=0; i<nStokes; ++i) {
