@@ -76,7 +76,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void SDAlgorithmBase::deconvolve( SIMinorCycleController &loopcontrols, 
 				    std::shared_ptr<SIImageStore> &imagestore,
 				    Int deconvolverid,
-                                    Bool isautomasking, Bool fastnoise, Record robuststats)
+                                    Bool isautomasking, Bool fastnoise, Record robuststats, bool fullsummary)
   {
     LogIO os( LogOrigin("SDAlgorithmBase","deconvolve",WHERE) );
 
@@ -342,12 +342,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    }
 
 	    int chunkId = chanid; // temporary CAS-13683 workaround
-	    if (SIMinorCycleController::useSmallSummaryminor()) { // temporary CAS-13683 workaround
+	    //if (SIMinorCycleController::useSmallSummaryminor()) { // temporary CAS-13683 workaround
+	    if (!fullsummary) { // temporary CAS-13683 workaround
 	        chunkId = chanid + nSubChans*polid;
 	    }
 	    loopcontrols.addSummaryMinor( deconvolverid, chunkId, polid, cycleStartIteration,
 	                                  startiteration, startmodelflux, startpeakresidual, startpeakresidualnomask,
-	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, stopCode);
+	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, stopCode, fullsummary);
 
 	    loopcontrols.resetCycleIter(); 
 
