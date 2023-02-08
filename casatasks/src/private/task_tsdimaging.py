@@ -882,7 +882,7 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
 
         # handle brightnessunit (CAS-11503)
         image_unit = brightnessunit.lower().capitalize()
-        if not brightnessunit in ['', 'K', 'Jy/beam']:
+        if not image_unit in ['', 'K', 'Jy/beam']:
             raise ValueError(f"Invalid brightness unit: {brightnessunit}")
 
         # TODO: handle overwrite
