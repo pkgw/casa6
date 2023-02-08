@@ -3933,41 +3933,54 @@ class test_tbuff(test_base):
             "antenna='DA42&&*' timerange='10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
             "antenna='DA43&&*' timerange='10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'"
             ]
+        # A) apply an inpfile with time-only formatted timestamps in timerange
         flagdata(self.vis, mode='list', inpfile=inpfile, tbuff=1.1, flagbackup=False)
 
-        flags_tbuff1 = flagdata(self.vis, mode='summary', basecnt=True)
+        flags_tbuff1 = flagdata(self.vis, mode='summary')
         # Without date in timestamp these flags should still be applied
         self.assertEqual(flags_tbuff1['antenna']['DA42']['flagged'], 1682)
         self.assertEqual(flags_tbuff1['antenna']['DA43']['flagged'], 1682)
         self.assertEqual(flags_tbuff1['antenna']['DA44']['flagged'], 116)
         self.assertEqual(flags_tbuff1['antenna']['PM04']['flagged'], 116)
+
+        def asserts_with_tbuff_4_5(obj, summary):
+            '''Asserts the same results for the next variations of the same commands'''
+            cnt_da42_43 = 1914
+            cnt_others = 132
+            self.assertEqual(summary['antenna']['DA42']['flagged'], cnt_da42_43)
+            self.assertEqual(summary['antenna']['DA43']['flagged'], cnt_da42_43)
+            self.assertEqual(summary['antenna']['DA44']['flagged'], cnt_others)
+            self.assertEqual(summary['antenna']['PM04']['flagged'], cnt_others)
         
-        # Unflag and apply larger tbuff => increase flag counts
+        # B) Unflag and apply larger tbuff => increase flag counts
         flagdata(self.vis, flagbackup=False,mode='unflag')
         flagdata(self.vis, mode='list', inpfile=inpfile, tbuff=4.5, flagbackup=False)
 
-        flags_tbuff4 = flagdata(self.vis, mode='summary', basecnt=True)
-        cnt_da42_43 = 1914
-        cnt_others = 132
-        self.assertEqual(flags_tbuff4['antenna']['DA42']['flagged'], cnt_da42_43)
-        self.assertEqual(flags_tbuff4['antenna']['DA43']['flagged'], cnt_da42_43)
-        self.assertEqual(flags_tbuff4['antenna']['DA44']['flagged'], cnt_others)
-        self.assertEqual(flags_tbuff4['antenna']['PM04']['flagged'], cnt_others)
+        flags_tbuff4 = flagdata(self.vis, mode='summary')
+        asserts_with_tbuff_4_5(self, flags_tbuff4)
 
-        # Unflag and apply the same inpfile but now including the full date/time timestamps
+        # C) Unflag, apply the same inpfile but now including the full date/time timestamps
         # => should flag the same as above
         inpfile_date = [
-            "antenna='DA42&&* timerange='2013/11/15/10:35:05.011~2013/11/15/10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
+            "antenna='DA42&&*' timerange='2013/11/15/10:35:05.011~2013/11/15/10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
             "antenna='DA43&&*' timerange='2013/11/15/10:35:05.011~2013/11/15/10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'"
             ]
         flagdata(self.vis, flagbackup=False,mode='unflag')
-        flagdata(self.vis, mode='list', inpfile=inpfile, tbuff=4.5, flagbackup=False)
+        flagdata(self.vis, mode='list', inpfile=inpfile_date, tbuff=4.5, flagbackup=False)
 
-        flags_date = flagdata(self.vis, mode='summary', basecnt=True)
-        self.assertEqual(flags_date['antenna']['DA42']['flagged'], cnt_da42_43)
-        self.assertEqual(flags_date['antenna']['DA43']['flagged'], cnt_da42_43)
-        self.assertEqual(flags_date['antenna']['DA44']['flagged'], cnt_others)
-        self.assertEqual(flags_date['antenna']['PM04']['flagged'], cnt_others)
+        flags_date = flagdata(self.vis, mode='summary')
+        asserts_with_tbuff_4_5(self, flags_date)
+
+        # D) Unflag and apply the same inpfile but now with a mix of timestamp formats in t0
+        # and t1 ==> should flag the same as above
+        inpfile_mix = [
+            "antenna='DA42&&*' timerange='2013/11/15/10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
+            "antenna='DA43&&*' timerange='2013/11/15/10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'"
+            ]
+        flagdata(self.vis, flagbackup=False,mode='unflag')
+        flagdata(self.vis, mode='list', inpfile=inpfile_mix, tbuff=4.5, flagbackup=False)
+        flags_mix = flagdata(self.vis, mode='summary')
+        asserts_with_tbuff_4_5(self, flags_mix)
 
 
 class TestMergeManualTimerange(unittest.TestCase):
