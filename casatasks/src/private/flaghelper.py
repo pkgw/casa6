@@ -432,27 +432,34 @@ def applyTimeBufferList(alist, tbuff=None):
          casalog.post('Time buffer (tbuff) is not of type float or list', 'WARN')
          return
 
+    def get_date_format(timestamp):
+        '''Guess date-time string format to use in quanta tool time conversion,
+        depending on whether the date seems to be present (as in
+        2013/11/15/10:35:05)
+        '''
+        if timestamp.count('/') >= 3:
+            return 'ymd'
+        else:
+            return ''
+
     for cmddict in alist:
         if 'timerange' in cmddict:
             timerange = cmddict['timerange']
             if timerange.find('~') != -1:
-                t0,t1 = timerange.split('~',1)
-                date_included = timerange.count('/') >= 3
-                if date_included:
-                    date_format = 'ymd'
-                else:
-                    date_format = ''
+                t0, t1 = timerange.split('~',1)
+                date_time_format_t0 = get_date_format(t0)
+                date_time_format_t1 = get_date_format(t1)
 
                 # start time
                 startTime = qalocal.totime(t0)['value']
                 startTimeSec = (startTime * 24 * 3600) - tbuff0
                 startTimeSec = qalocal.quantity(startTimeSec, 's')
-                paddedT0 = qalocal.time(startTimeSec, form=date_format, prec=9)[0]
+                paddedT0 = qalocal.time(startTimeSec, form=date_time_format_t0, prec=9)[0]
                 # end time
                 endTime = qalocal.totime(t1)['value']
                 endTimeSec = (endTime * 24 * 3600) + tbuff1
                 endTimeSec = qalocal.quantity(endTimeSec, 's')
-                paddedT1 = qalocal.time(endTimeSec, form=date_format, prec=9)[0]
+                paddedT1 = qalocal.time(endTimeSec, form=date_time_format_t1, prec=9)[0]
                 
                 # update the original dictionary
                 cmddict['timerange'] = paddedT0+'~'+paddedT1
