@@ -3925,7 +3925,7 @@ class test_tbuff(test_base):
 
     def test_list_tbuff_timestamp(self):
         '''flagdata: test a cmd list with tbuff when the timestamps are in HH:MM:SS format'''
-        # Before CAS-13926, timestamps without date were not handled correctly with tbuf,
+        # Before CAS-13664, timestamps without date were not handled correctly with tbuf,
         # and no flagging was applied. All the flag counts after the commands used below
         # were 0.
         # The timestamps in this inpfile omit the date: '2013/11/15/'
