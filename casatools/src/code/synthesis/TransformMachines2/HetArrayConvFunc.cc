@@ -1377,52 +1377,18 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
         return 2;
     }
     String pointingid=String::toString(pixdepoint(0))+"_"+String::toString(pixdepoint(1));
-    //Int fieldid=vb.fieldId();
     String msid=vb.msName(true);
-    //If channel or pol length has changed underneath...then its time to
-    //restart the map
-    /*
-    if(convFunctionMap_p.ndefined() > 0){
-      if ((fluxScale_p.shape()[3] != nchan_p) || (fluxScale_p.shape()[2] != npol_p)){
-    convFunctionMap_p.clear();
-      }
-    }
 
-    */
-    if(convFunctionMap_p.nelements() > 0) {
-        if (calcFluxScale_p && ((fluxScale_p.shape()[3] != nchan_p) || (fluxScale_p.shape()[2] != npol_p))) {
-            convFunctionMap_p.resize();
-            nDefined_p=0;
-        }
-    }
-    //String mapid=msid+String("_")+pointingid;
-    /*
-    if(convFunctionMap_p.ndefined() == 0){
-      convFunctionMap_p.define(mapid, 0);
-      actualConvIndex_p=0;
-      fluxScale_p=TempImage<Float>(IPosition(4,nx_p,ny_p,npol_p,nchan_p), csys_p);
-      filledFluxScale_p=false;
-      fluxScale_p.set(0.0);
-      return -1;
-    }
-    */
+   
     if(convFunctionMap_p.nelements() == 0) {
         convFunctionMap_p.resize(nx_p*ny_p);
         convFunctionMap_p.set(-1);
         convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]]=0;
         nDefined_p=1;
         actualConvIndex_p=0;
-        if(calcFluxScale_p) {
-            fluxScale_p=TempImage<Float>(IPosition(4,nx_p,ny_p,npol_p,nchan_p), csys_p);
-            filledFluxScale_p=false;
-            fluxScale_p.set(0.0);
-        }
         return -1;
     }
 
-    // if(!convFunctionMap_p.isDefined(mapid)){
-    //  actualConvIndex_p=convFunctionMap_p.ndefined();
-    //  convFunctionMap_p.define(mapid, actualConvIndex_p);
     if(convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]] <0) {
         actualConvIndex_p=nDefined_p;
         convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]]=nDefined_p;
@@ -1431,22 +1397,6 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
         return -1;
     }
     else {
-        /*
-        actualConvIndex_p=convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]];
-        convFunc_p.resize(); // break any reference
-        weightConvFunc_p.resize();
-        convSupport_p.resize();
-        //Here we will need to use the right xyPlane for different PA range
-        //and frequency may be
-        convFunc_p.reference(*convFunctions_p[actualConvIndex_p]);
-        weightConvFunc_p.reference(*convWeights_p[actualConvIndex_p]);
-        //Again this for one time of antenna only later should be fixed for all
-        // antennas independently
-        //these are not really needed right now
-        convSupport_p=(*convSupportBlock_p[actualConvIndex_p]);
-        convSize_p=(*convSizes_p[actualConvIndex_p])[0];
-        makerowmap(vb, rowMap);
-        */
         actualConvIndex_p=0;
         return -1;
     }
@@ -1625,41 +1575,42 @@ Float HetArrayConvFunc::interpLanczos( const Double& x , const Double& y, const 
 }
 
 ImageInterface<Float>&  HetArrayConvFunc::getFluxScaleImage() {
-    if(!calcFluxScale_p)
-        throw(AipsError("Programmer Error: flux image cannot be retrieved"));
-    if(!filledFluxScale_p) {
-        //The best flux image for a heterogenous array is the weighted coverage
-        fluxScale_p.copyData(*(convWeightImage_p));
-        IPosition blc(4,nx_p, ny_p, npol_p, nchan_p);
-        IPosition trc(4, ny_p, ny_p, npol_p, nchan_p);
-        blc(0)=0;
-        blc(1)=0;
-        trc(0)=nx_p-1;
-        trc(1)=ny_p-1;
+  if(!calcFluxScale_p)
+    throw(AipsError("Programmer Error: flux image cannot be retrieved"));
+  if(!filledFluxScale_p) {
+    //The best flux image for a heterogenous array is the weighted coverage
+    fluxScale_p=TempImage<Float>(IPosition(4, nx_p, ny_p, npol_p, nchan_p), csys_p);
+    fluxScale_p.copyData(*(convWeightImage_p));
+    IPosition blc(4,nx_p, ny_p, npol_p, nchan_p);
+    IPosition trc(4, ny_p, ny_p, npol_p, nchan_p);
+    blc(0)=0;
+    blc(1)=0;
+    trc(0)=nx_p-1;
+    trc(1)=ny_p-1;
 
-        for (Int j=0; j < npol_p; ++j) {
-            for (Int k=0; k < nchan_p ; ++k) {
+    for (Int j=0; j < npol_p; ++j) {
+      for (Int k=0; k < nchan_p ; ++k) {
 
-                blc(2)=j;
-                trc(2)=j;
-                blc(3)=k;
-                trc(3)=k;
-                Slicer sl(blc, trc, Slicer::endIsLast);
-                SubImage<Float> fscalesub(fluxScale_p, sl, true);
-                Float planeMax;
-                LatticeExprNode LEN = max( fscalesub );
-                planeMax =  LEN.getFloat();
-                if(planeMax !=0) {
-                    fscalesub.copyData( (LatticeExpr<Float>) (fscalesub/planeMax));
+        blc(2)=j;
+        trc(2)=j;
+        blc(3)=k;
+        trc(3)=k;
+        Slicer sl(blc, trc, Slicer::endIsLast);
+        SubImage<Float> fscalesub(fluxScale_p, sl, true);
+        Float planeMax;
+        LatticeExprNode LEN = max( fscalesub );
+        planeMax =  LEN.getFloat();
+        if(planeMax !=0) {
+          fscalesub.copyData( (LatticeExpr<Float>) (fscalesub/planeMax));
 
-                }
-            }
         }
-        filledFluxScale_p=true;
+      }
     }
+    filledFluxScale_p=true;
+  }
 
 
-    return fluxScale_p;
+  return fluxScale_p;
 
 }
 
