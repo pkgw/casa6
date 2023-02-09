@@ -17,80 +17,37 @@ import subprocess
 import numpy
 import six
 
-casa5 = False
-casa6 = False
+logging.debug("Importing CASAtools")
+import casatools
+logging.debug("Importing CASAtasks")
+import casatasks
+_cb = casatools.calibrater()
+_tb = casatools.table()
+_tbt = casatools.table()
+_ia  = casatools.image()
+_cb = casatools.calibrater()
+from casatasks import casalog
+from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-
-    # CASA 6
-    logging.debug("Importing CASAtools")
-    import casatools
-    logging.debug("Importing CASAtasks")
-    import casatasks
-    _cb = casatools.calibrater()
-    _tb = casatools.table()
-    _tbt = casatools.table()
-    _ia  = casatools.image()
-    _cb = casatools.calibrater()
-    from casatasks import casalog
-    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-
-    casampi_imported = False
-    import importlib
-    _casampi_spec = importlib.util.find_spec('casampi')
-    if _casampi_spec:
-        # don't catch import error from casampi if it is found in the system modules
-        from casampi.MPIEnvironment import MPIEnvironment
-        casampi_imported = True
-    else:
-        casalog.post('casampi not available - not testing MPIEnvironment stuff', 'WARN')
-
-    def tclean_param_names():
-        from casatasks.tclean import _tclean_t
-        return _tclean_t.__code__.co_varnames[:_tclean_t.__code__.co_argcount]
-    def decon_param_names():
-        from casatasks.deconvolve import _deconvolve_t
-        return _deconvolve_t.__code__.co_varnames[:_deconvolve_t.__code__.co_argcount]
-    def sdint_param_names():
-        from casatasks.sdintimaging import _sdintimaging_t
-        return _sdintimaging_t.__code__.co_varnames[:_sdintimaging_t.__code__.co_argcount]
-
-    casa6 = True
-
-else:
-
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying CASA5...")
-    from __main__ import default
-    from taskinit import tbtool, mstool, iatool, cbtool
-    from taskinit import *
-    from casa_stack_manip import stack_find, find_casa
-    from mpi4casa.MPIEnvironment import MPIEnvironment
+casampi_imported = False
+import importlib
+_casampi_spec = importlib.util.find_spec('casampi')
+if _casampi_spec:
+    # don't catch import error from casampi if it is found in the system modules
+    from casampi.MPIEnvironment import MPIEnvironment
     casampi_imported = True
+else:
+    casalog.post('casampi not available - not testing MPIEnvironment stuff', 'WARN')
 
-    _tb = tbtool()
-    _tbt = tbtool()
-    _ia = iatool()
-    _cb = cbtool()
-    casa = find_casa()
-    if casa.has_key('state') and casa['state'].has_key('init_version') and casa['state']['init_version'] > 0:
-        casaglobals=True
-        casac = stack_find("casac")
-        casalog = stack_find("casalog")
-
-    def tclean_param_names():
-        # alternatively could use from tasks import tclean; tclean.parameters
-        from task_tclean import tclean
-        return tclean.__code__.co_varnames[:tclean.__code__.co_argcount]
-    def decon_param_names():
-        from tasks import deconvolve
-        return deconvolve.parameters.keys()
-    def sdint_param_names():
-        from tasks import sdintimaging
-        return sdintimaging.parameters.keys()
-
-    casa5 = True
+def tclean_param_names():
+    from casatasks.tclean import _tclean_t
+    return _tclean_t.__code__.co_varnames[:_tclean_t.__code__.co_argcount]
+def decon_param_names():
+    from casatasks.deconvolve import _deconvolve_t
+    return _deconvolve_t.__code__.co_varnames[:_deconvolve_t.__code__.co_argcount]
+def sdint_param_names():
+    from casatasks.sdintimaging import _sdintimaging_t
+    return _sdintimaging_t.__code__.co_varnames[:_sdintimaging_t.__code__.co_argcount]
 
 ############################################################################################
 ##################################       imagerhelpers       ###############################
@@ -290,7 +247,8 @@ class TestHelpers:
         if 'summaryminor' in summ:
             sm = summ['summaryminor'][0] # 0: just look at the first field of the multifield images
             chans, stokes, ncycles = self._get_summary_minor_keys(sm)
-            uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
+            uss = True if self.checkKeyInNestedDict('startIterDone', sm) == None else False
+            #uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
             ret = (chans[0], stokes[0])
             prev_chan = None
             for chan in chans:
@@ -316,7 +274,8 @@ class TestHelpers:
         if 'summaryminor' in summ:
             sm = summ['summaryminor'][0] # 0: just look at the first field of the multifield images
             chans, stokes, ncycles = self._get_summary_minor_keys(sm)
-            uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
+            uss = True if self.checkKeyInNestedDict('startIterDone', sm) == None else False
+            #uss = SummaryMinor.useSmallSummaryminor() # Temporary CAS-13683 workaround
             ret = (chans[0], stokes[0], 0) # 0: cycle 0
             prev_chan = None
             for chan in chans:
@@ -427,12 +386,8 @@ class TestHelpers:
         """Get Iterdone"""
         # AW:  This can be reduced down for readability but putting in a fix for CAS-13182
         iters = None
-        if is_CASA6:
-            if 'iterdone' in summ:
-                iters = summ['iterdone']
-        else:
-            if summ.has_key('iterdone'):
-                iters = summ['iterdone']
+        if 'iterdone' in summ:
+            iters = summ['iterdone']
         return iters
 
     def delmodkeywords(self,msname=""):
@@ -491,6 +446,105 @@ class TestHelpers:
         else:
             return True, pstr
 
+    def check_ret_structure(self, summ, testname = "check_ret_structure"):
+        """Check the return dictionary structure - no value checks 
+           
+           Check against predifined keys and determine if it is a full summary or reduced version.
+          
+           Returns: a tuple (summary_type, isconformant, message)
+                    1st element: summary_type: string -  'full', 'reduced', 'undefined'
+                    2nd element: isconformant: boolean - True/False
+                    3ed element: message: string - '' or info about missing keys
+
+        """
+        refkeys = ['cleanstate',
+                   'cyclefactor',
+                   'cycleiterdone',
+                   'cycleniter',
+                   'cyclethreshold',
+                   'interactiveiterdone',
+                   'interactivemode',
+                   'interactiveniter',
+                   'interactivethreshold',
+                   'iterdone',
+                   'loopgain',
+                   'maxpsffraction',
+                   'maxpsfsidelobe',
+                   'minpsffraction',
+                   'niter',
+                   'nmajordone',
+                   'nsigma',
+                   'stopcode',
+                   'summarymajor',
+                   'summaryminor',
+                   'threshold',
+                   'stopDescription']
+        # sub-keys for summaryminor
+        refsubkeys =  ['startIterDone',
+                       'iterDone',
+                       'startPeakRes',
+                       'peakRes',
+                       'startModelFlux',
+                       'modelFlux',
+                       'startPeakResNM',
+                       'peakResNM',
+                       'cycleThresh',
+                       'cycleStartIters',
+                       'masksum',
+                       'mpiServer',
+                       'stopCode']
+        # reduced version of sub-keys for summaryminor
+        refshortsubkeys=['iterDone', 'peakRes', 'modelFlux', 'cycleThresh']
+
+        summtype = 'not dictionary'
+ 
+        if isinstance(summ,dict):       
+           # case for deconvolve 
+           if 'summarymajor' in summ and isinstance(summ['summarymajor'], numpy.ndarray):
+               if len(summ['summarymajor'])==0:
+                   refkeys.remove('stopDescription')
+           message='' 
+           missingkeys = [elm for elm in refkeys if elm not in summ]
+           extrakeys = [elm for elm in summ if elm not in refkeys]
+ 
+           if 'summaryminor' in summ:
+               try:
+                   chk = summ['summaryminor'][0][0][0]             
+                   if 'startIterDone' in chk:
+                       summtype = 'full'
+                       missingsubkeys = [elm for elm in refsubkeys if elm not in chk]
+                       extrasubkeys = [elm for elm in chk if elm not in refsubkeys]
+                   else:
+                       summtype = 'reduced'
+                       missingsubkeys = [elm for elm in refshortsubkeys if elm not in chk]
+                       extrasubkeys = [elm for elm in chk if elm not in refshortsubkeys]
+                   if len(missingsubkeys) != 0 or len(missingkeys) != 0:
+                       isconform = False
+                   else:
+                       isconform = True
+
+                   if len(missingkeys) > 0:
+                       message += 'Misssing key(s):'+str(missingkeys)
+                   if len(extrakeys) > 0:
+                       message += 'Extra key(s):'+str(extrakeys)
+                   if len(missingsubkeys) > 0:
+                       message += 'Missing summaryminor key(s):'+str(missingsubkeys)
+                   if len(extrasubkeys) > 0:
+                       message += 'Extra summaryminor key(s):'+str(extrasubkeys)
+                   return (summtype, isconform, message)
+               except:
+                   print('len(summ_minor)=',len(summ['summaryminor']))
+                   if len(summ['summaryminor'][0])==0:
+                      # probably exited before deconvolution
+                      return('undefined', True, 'no minor cylcle information')
+                   else:
+                      chk = 'Return dictionary deos not have expected summaryminor structure'
+                      return ('undefined',False,chk)
+        else:
+            #not dictionary
+            return ('not dictionary', F, '')
+ 
+        
     def check_val(self, val, correctval, valname='Value', exact=False, epsilon=0.05, testname = "check_val"):
         pstr = ''
         out = True
@@ -1089,8 +1143,19 @@ class TestHelpers:
             tfmask=None # list of tuples of (imagename, maskname). 
         """
         pstr = "[ checkall ] \n"
-        if ret != None and type(ret) == dict:
+        if ret != None and type(ret) == dict and len(ret) != 0:
             try:
+                pstr = "[ check_ret_structure ] "
+                summtype, isconform, emsg = TestHelpers().check_ret_structure(ret)
+                if isconform:
+                    msg = ' ( Pass : found all expected keys '
+                    if len(emsg):
+                        msg += ' : ' + emsg
+                    msg += ' ) '
+                else:
+                    msg = ' ( Failed : some keys are missing ' + emsg + ' ) '
+                message = 'Return dictionary struture check: type='+summtype+msg
+                pstr = pstr + message + "\n"
                 if peakres != None:
                     out, message = TestHelpers().check_val(val=TestHelpers().get_peak_res(ret), correctval=peakres, valname="peak res", epsilon=epsilon)
                     pstr = pstr + message
@@ -1206,3 +1271,16 @@ class TestHelpers:
 
         return mergedret
 
+    def checkKeyInNestedDict(self,k,d):
+        """
+        Check if a specific key is in a nested dictionary recursively and
+        if the key exists it returns the value of the first encounter of the key.
+        It returns None if the key does not exist in the dictionary.
+
+        """
+        if k in d:
+            return d[k]
+        for v in d.values():
+            if isinstance(v, dict):
+                return self.checkKeyInNestedDict(k,v)
+        return None
