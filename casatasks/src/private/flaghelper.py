@@ -437,7 +437,7 @@ def applyTimeBufferList(alist, tbuff=None):
         depending on whether the date seems to be present (as in
         2013/11/15/10:35:05)
         '''
-        if timestamp.count('/') >= 3:
+        if timestamp.count('/') == 3:
             return 'ymd'
         else:
             return ''
