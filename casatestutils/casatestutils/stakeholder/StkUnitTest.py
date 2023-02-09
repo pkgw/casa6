@@ -108,6 +108,9 @@ class StkUnitTest(unittest.TestCase):
             data_path_dir = ctsys.resolve(data_path_dir)
             mssrc = os.path.join(data_path_dir, self.vis)
             casalog.post(f"{mssrc} => {self.vis}", "INFO")
+            # need this for a full suite test run with CACHE_PATIAL_RESULTS=True
+            if self.vis !='' and os.path.exists(self.vis):
+                shutil.rmtree(self.vis)
             shutil.copytree(mssrc, self.vis)
 
             for copydir in copyargs:

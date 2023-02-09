@@ -296,8 +296,10 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_mtmfs] start       @
         #####################################################
 
-        self.mom8_creator(image=img0+'.image.tt0', range_list=[0.003, 0.32], imgname="j1302_mtmfs_tt0")
-        self.mom8_creator(image=img0+'.image.tt1', range_list=[0.001, 0.04], imgname="j1302_mtmfs_tt1")
+        #self.mom8_creator(image=img0+'.image.tt0', range_list=[0.003, 0.32], imgname="j1302_mtmfs_tt0")
+        #self.mom8_creator(image=img0+'.image.tt1', range_list=[0.001, 0.04], imgname="j1302_mtmfs_tt1")
+        self.mom8_creator(image=img0+'.image.tt0', range_list=[-0.3, 0.32], imgname="j1302_mtmfs_tt0")
+        self.mom8_creator(image=img0+'.image.tt1', range_list=[-0.1, 0.04], imgname="j1302_mtmfs_tt1")
 
         #############################################
         # %% Generate Images [test_j1302_mtmfs] end @
@@ -505,8 +507,10 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_awproject] start       @
         #########################################################
 
-        self.mom8_creator(image=img1+'.image.tt0', range_list=[0.002, 0.32], imgname="j1302_awproject_iter2_tt0")
-        self.mom8_creator(image=img1+'.image.tt1', range_list=[0.007, 0.16], imgname="j1302_awproject_iter2_tt1")
+        #self.mom8_creator(image=img1+'.image.tt0', scaling=-2, range_list=[0.002, 0.32], imgname="j1302_awproject_iter2_tt0")
+        #self.mom8_creator(image=img1+'.image.tt1', scaling=-2, range_list=[0.007, 0.16], imgname="j1302_awproject_iter2_tt1")
+        self.mom8_creator(image=img1+'.image.tt0', range_list=[-0.02, 0.32], imgname="j1302_awproject_iter2_tt0")
+        self.mom8_creator(image=img1+'.image.tt1', range_list=[-0.07, 0.16], imgname="j1302_awproject_iter2_tt1")
 
         #################################################
         # %% Generate Images [test_j1302_awproject] end @
@@ -818,9 +822,12 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_mosaic_cube] start       @
         ###########################################################
 
-        self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0.002, 0.32], imgname="j1302_mosaic_cube_spw2")
-        self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0.001, 0.32], imgname="j1302_mosaic_cube_spw8")
-        self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0.001, 0.30], imgname="j1302_mosaic_cube_spw14")
+        #self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0.002, 0.32], imgname="j1302_mosaic_cube_spw2")
+        #self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0.001, 0.32], imgname="j1302_mosaic_cube_spw8")
+        #self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0.001, 0.30], imgname="j1302_mosaic_cube_spw14")
+        self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[-0.02, 0.32], imgname="j1302_mosaic_cube_spw2")
+        self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[-0.01, 0.32], imgname="j1302_mosaic_cube_spw8")
+        self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[-0.01, 0.30], imgname="j1302_mosaic_cube_spw14")
 
         ###################################################
         # %% Generate Images [test_j1302_mosaic_cube] end @
@@ -1177,8 +1184,10 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_mtmfs] start       @
         #####################################################
 
-        self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
-        self.mom8_creator(image=img0+'.image.tt1', range_list=[0, 0.33], imgname="j1927_mtmfs_tt1")
+        #self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
+        #self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
+        self.mom8_creator(image=img0+'.image.tt1', range_list=[-0.05, 0.88], imgname="j1927_mtmfs_tt0")
+        self.mom8_creator(image=img0+'.image.tt1', range_list=[-0.05, 0.41], imgname="j1927_mtmfs_tt1")
 
         #############################################
         # %% Generate Images [test_j1927_mtmfs] end @
@@ -1460,9 +1469,12 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_mosaic_cube] start       @
         ###########################################################
 
-        self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78], imgname="j1927_mosaic_cube_spw2")
-        self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mosaic_cube_spw8")
-        self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92], imgname="j1927_mosaic_cube_spw14")
+        #self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78], imgname="j1927_mosaic_cube_spw2")
+        #self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mosaic_cube_spw8")
+        #self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92], imgname="j1927_mosaic_cube_spw14")
+        self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[-0.05, 0.78], imgname="j1927_mosaic_cube_spw2")
+        self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[-0.05, 0.88], imgname="j1927_mosaic_cube_spw8")
+        self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[-0.05, 0.92], imgname="j1927_mosaic_cube_spw14")
 
         ###################################################
         # %% Generate Images [test_j1927_mosaic_cube] end @
@@ -1624,7 +1636,8 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_ql] start       @
         ##################################################
 
-        self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90], imgname="j1927_ql")
+        #self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90], imgname="j1927_ql")
+        self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[-0.1, 0.90], imgname="j1927_ql")
 
         ##########################################
         # %% Generate Images [test_j1927_ql] end @
