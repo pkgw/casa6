@@ -116,6 +116,7 @@ class ImagerParameters():
                  minpsffraction=0.1,
                  maxpsffraction=0.8,
                  interactive=False,
+                 fullsummary=False,
                  nmajor=-1,
 
                  deconvolver='hogbom',
@@ -244,14 +245,14 @@ class ImagerParameters():
 
                                     'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations, 
                                      'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
-                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename} }
+                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename, 'fullsummary':fullsummary} }
 
         ######### Iteration control. 
         self.iterpars = { 'niter':niter, 'cycleniter':cycleniter, 'threshold':threshold, 
                           'loopgain':loopgain, 'interactive':interactive,
                           'cyclefactor':cyclefactor, 'minpsffraction':minpsffraction, 
                           'maxpsffraction':maxpsffraction,
-                          'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor}
+                          'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor, 'fullsummary':fullsummary}
 
         ######### CFCache params. 
         self.cfcachepars = {'cflist': cflist}
