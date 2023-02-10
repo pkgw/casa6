@@ -12,6 +12,7 @@ if is_CASA6:
     from casatools import synthesisimager, synthesisdeconvolver, synthesisnormalizer, iterbotsink, ctsys, table, image
     from casatasks import casalog
     from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 
     ctsys_hostinfo = ctsys.hostinfo
     _tb = table()
@@ -19,6 +20,7 @@ if is_CASA6:
 else:
     from taskinit import *
     from imagerhelpers.summary_minor import SummaryMinor
+    from imagerhelpers.input_parameters import ImagerParameters
 
     synthesisimager = casac.synthesisimager
     synthesisdeconvolver = casac.synthesisdeconvolver
@@ -39,7 +41,7 @@ Summary...
 #############################################
 class PySynthesisImager:
 
-    def __init__(self,params):
+    def __init__(self,params: ImagerParameters):
         ################ Tools
         self.initDefaults()
 
