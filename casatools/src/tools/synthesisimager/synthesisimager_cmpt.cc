@@ -44,22 +44,20 @@ namespace casac {
   // be constructed.  The second argument determines if
   // SynthesisImager (vi2=false) or SynthesisImagerVi2 (vi2=true)
   // should be constructed.
-  SynthesisImager* synthesisimager::makeSI(bool forceNew, //default value = false
-					   bool oldvi // default value = false
-					   )
-  {
-    Bool vi1_l=oldvi;
-    vi1_l =  (getenv("VI1")!=NULL);
-    if ((!itsImager) || forceNew)
-      {
-	if (!vi1_l){
-	  //cerr << "Doing vi2 " << endl;
-	  itsImager = new SynthesisImagerVi2();
-	}
-	else itsImager = new SynthesisImager();
-      }
-    return itsImager;
+  SynthesisImager* synthesisimager::makeSI(
+      bool forceNew, //default value = false
+      bool oldvi // default value = false
+  )
+{
+  Bool vi1_l = oldvi;
+  vi1_l = (getenv("VI1") != NULL);
+  if ((not itsImager) or forceNew) {
+    itsImager = (not vi1_l) ?
+        new SynthesisImagerVi2()
+      : new SynthesisImager();
   }
+  return itsImager;
+}
 
 
   synthesisimager::synthesisimager() 
