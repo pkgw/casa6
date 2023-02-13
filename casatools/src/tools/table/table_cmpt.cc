@@ -654,7 +654,7 @@ table::taql(const std::string& taqlcommand)
  ::casac::table *rstat(0);
  try {
    if(itsTable){
-     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlcommand));
+     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlcommand).table());
      rstat = new ::casac::table(theQTab);
    } else {
      *itsLog << LogIO::WARN
@@ -692,7 +692,7 @@ table::query(const std::string& query, const std::string& name,
        taqlString << " orderby " << sortlist;
      if(!name.empty())
        taqlString << " giving \"" << name << "\"";
-     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlString.str()));
+     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlString.str()).table());
      rstat = new ::casac::table(theQTab);
    } else {
      *itsLog << LogIO::WARN
