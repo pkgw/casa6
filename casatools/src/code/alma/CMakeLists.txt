@@ -26,7 +26,7 @@ declare_casacpp_component("alma")
 target_compile_definitions(casacpp_alma PRIVATE -DWITHOUT_ACS -DWITHOUT_BOOST)
 
 # External dependencies
-target_link_libraries(casacpp_alma PUBLIC PkgConfig::LibXML++)
+target_link_libraries(casacpp_alma PUBLIC PkgConfig::LibXML)
 target_link_libraries(casacpp_alma PUBLIC PkgConfig::CASACORE)
 target_link_libraries(casacpp_alma PUBLIC PkgConfig::XSLT)
 
