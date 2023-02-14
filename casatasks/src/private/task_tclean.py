@@ -215,6 +215,21 @@ def tclean(
             "WARN",
             "task_tclean",
         )
+
+    ## Part of CAS-13814, checking for the only options compatible with mtmfs_via_cube. After CAS-13191, remove the 'awproject' check. 
+    if specmode=="mtmfs_via_cube": 
+        if deconvolver != 'mtmfs' or nterms<=1 or gridder not in ['standard','mosaic']:           
+            casalog.post("The specmode='mtmfs_via_cube' option requires the deconvolver to be 'mtmfs' and 'nterms>1. It is also currently offered only with gridder='standard' or 'mosaic. If you need to use gridder='awproject', please use specmode='mfs' instead.",
+                         "WARN",
+                         "task_tclean")
+            return
+
+    ## Part of CAS-13814, moving warnings about pbcor and widebandpbcor from the C++ code to here, for better access to user-settings.
+    if specmode=='mfs' and deconvolver=='mtmfs' and gridder in ['standard','mosaic'] and pbcor==True:
+        casalog.post("For specmode='mfs' and deconvolver='mtmfs', the option of pbcor=True divides each restored Taylor coefficient image by the pb.tt0 image. This correction ignores the frequency-dependence of the primary beam and does not correct for PB spectral index. It is scientifically valid only for small fractional bandwidths. For more accurate wideband primary beam correction (if needed), please use one of the following options : (1) specmode='mtmfs_via_cube' with gridder='standard' or 'mosaic' with pbcor=True,  (2) conjbeams=True and wbawp=True with gridder='awproject' and pbcor=True, or (3) for single pointings only, use task widebandpbcor after running tclean with specmode='mfs', deconvolver='mtmfs', and gridder='standard' (with either pbcor=True or False)",
+                     "WARN",
+                     "task_tclean")
+
         if mpi_available and MPIEnvironment.is_mpi_enabled:
             casalog.post(
                 "Cube imaging with awproject does not use the same MPI mechanism as the other gridders. When started with mpicasa, this imaging mode will produce an error at the end of the task that says 'parallel transport layer not initialized'. Please ignore this for now as it occurs after all computations are complete and outputs are on disk. The ability to do parallelized cube imaging with 'awproject' will be properly enabled in a subsequent release",

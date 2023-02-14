@@ -194,7 +194,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         pbcube = self.get_image_name(0, "pb")
         pblimit = normpars["pblimit"]
         self.modify_cubemodel_with_pb(
-            modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=pblimit
+            modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
         )
         del self.alldecpars
         del self.allimpars
@@ -238,10 +238,10 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pbcube = self.get_image_name(immod, "pb")
             cubewt = self.get_image_name(immod, "sumwt")
             pblimit = self.allnormpars[str(immod)]["pblimit"]
-            self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, pblimit)
+            self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=True)
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=False)
-            self.removePBSpectralIndex(inpcube, pbcube, pbcube + ".tt0", pblimit)
+            self.removePBSpectralIndex(inpcube, pbcube, pbcube + ".tt0", np.fabs(pblimit))
             self.cube2tt(immod, suffixes=suffixes)
         #time2 = time.time()
         #print(f"MAKE RESidual time, core={time1-time0} s, cube2tt={time2-time1}")
@@ -259,7 +259,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         pbcube = self.get_image_name(immod, "pb")
         pblimit = self.allnormpars[str(immod)]["pblimit"]
         cubewt = self.get_image_name(immod, "sumwt")
-        self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, pblimit)
+        self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
         for immod in range(0, self.NF):
             self.mfsImager.PStools[immod].gatherpsfweight()
             self.mfsImager.PStools[immod].dividepsfbyweight()
@@ -301,7 +301,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=False)
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=True)
             self.modify_cubemodel_with_pb(
-                modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=pblimit
+                modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
             )
         time2 = time.time()
         print(f"Minorcycle time, minor={time1-time0} s, tt2cube={time2-time1}")
@@ -380,9 +380,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 self.copy_image(template_img=basename, output_img=ttname)
                 self.copy_nonexistant_keywords(template_img=basename, output_img=ttname)
                 dopsf = suffix == "psf" or suffix == "sumwt"
-                if not dopsf:
+                if not dopsf and pblimit>0.0:
                     self.add_mask(
-                        ttname, self.get_image_name(immod, "pb", ttN=0), pblimit
+                        ttname, self.get_image_name(immod, "pb", ttN=0), np.fabs(pblimit)
                     )
                 self.fresh_images.append(ttname)
 
@@ -411,12 +411,12 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 nterms=nterms,
                 dopsf=dopsf,
             )
-            if not dopsf:
+            if not dopsf and pblimit>0.0:
                 for theTerm in range(num_terms):
                     ttname = self.get_image_name(immod, suffix, ttN=theTerm)
                     # print(f'Adding masks to {ttname}')
                     self.add_mask(
-                        ttname, self.get_image_name(immod, "pb", ttN=0), pblimit
+                        ttname, self.get_image_name(immod, "pb", ttN=0), np.fabs(pblimit)
                     )
         time1 = time.time()
         #print(f"Time taken in cube2tt={time1-time0}")
