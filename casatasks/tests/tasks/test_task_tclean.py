@@ -140,6 +140,8 @@ _me = measures( )
 
 refdatapath = ctsys.resolve('unittest/tclean/')
 
+defaultlogpath = casalog.logfile()
+
 ## Base Test class with Utility functions
 class testref_base(unittest.TestCase):
 
@@ -163,6 +165,8 @@ class testref_base(unittest.TestCase):
      def tearDown(self):
           """ don't delete it all """
           #self.delData()
+          if casalog.logfile() != defaultlogpath:
+              casalog.setlogfile(defaultlogpath)
 
      # Separate functions here, for special-case tests that need their own MS.
      def prepData(self,msname=""):
