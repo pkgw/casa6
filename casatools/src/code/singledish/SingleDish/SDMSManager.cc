@@ -324,7 +324,7 @@ void SDMSManager::setIterationApproach() {
     [](Int const &i) {return static_cast<ColumnId>(i);}
   );
 
-  // addIt for DATA_DESC_ID is always false because no add operation is intended
+  // list of columns that may be added/removed depending on the value of timespan_p
   std::array<CheckItem, 3> const checkList {{
     {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan")},
     {MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state")},
