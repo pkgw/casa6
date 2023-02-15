@@ -1186,7 +1186,7 @@ class test_j1927(StkUnitTest):
 
         #self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
         #self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
-        self.mom8_creator(image=img0+'.image.tt1', range_list=[-0.05, 0.88], imgname="j1927_mtmfs_tt0")
+        self.mom8_creator(image=img0+'.image.tt0', range_list=[-0.05, 0.88], imgname="j1927_mtmfs_tt0")
         self.mom8_creator(image=img0+'.image.tt1', range_list=[-0.05, 0.41], imgname="j1927_mtmfs_tt1")
 
         #############################################
