@@ -342,7 +342,7 @@ def setjy_core(vis=None, field=None, spw=None,
                                     msg = 'less than -10!'
                                 else:
                                     msg = 'greater than 10!'
-                                raise Exception(f'Field {selfld}: the spectral index is '+msg)
+                                raise Exception(f'Field {selfld}: the spectral index is {msg}')
                             # set all (even if fluxdensity = -1
                             if spw=='':
                                 selspw = [] 
@@ -398,7 +398,7 @@ def setjy_core(vis=None, field=None, spw=None,
 
                     if spix==[]: # handle the default 
                         spix=0.0
-                    alpha = spix[0] if type(spix)==list else spix
+                    alpha = spix[0] if isinstance(spix,list) else spix
                     if abs(alpha) > 10.0:
                         if alpha < -10.0:
                             msg = 'less than -10'
