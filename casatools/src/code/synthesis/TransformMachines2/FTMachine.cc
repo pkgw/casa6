@@ -1735,6 +1735,7 @@ using namespace casa::vi;
     }
     
     initializeToSky(theImage,weight,*vb);
+    initBriggsWeightor(vi);
     Bool useCorrected= !(MSColumns(vi.ms()).correctedData().isNull());
     if((type==FTMachine::CORRECTED) && (!useCorrected))
       type=FTMachine::OBSERVED;

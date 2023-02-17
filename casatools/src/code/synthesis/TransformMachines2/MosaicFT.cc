@@ -2053,7 +2053,7 @@ void MosaicFT::makeImage(FTMachine::Type type,
   }
   
   initializeToSky(theImage,weight,*vb);
-  
+  initBriggsWeightor(vi);
   // Loop over the visibilities, putting VisBuffers
   for (vi.originChunks();vi.moreChunks();vi.nextChunk()) {
     for (vi.origin(); vi.more(); vi.next()) {
