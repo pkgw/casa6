@@ -4245,11 +4245,11 @@ class test_modelvis(testref_base):
           """ [modelpredict] Test_modelvis_28: (CAS-13925) mfs with two MSes, savemodel=modelcolumn, nsigma > 0.0 """
           # This test checks model write only happens at the end. It checks the casalog to see 'Saving model' message
           # appears only once (presumably happens at predict model stage only and not during major-minor cycles)
+          logstart = self.th.get_log_length()
           ms1 = 'refim_point_onespw0.ms'
           ms2 = 'refim_point_onespw1.ms'
           self.prepData(ms1)
           self.prepData(ms2)
-          casalog.setlogfile('test_modelvis_28.log')
           delmod(ms1);self.th.delmodels(msname=ms1,modcol='delete')
           delmod(ms2);self.th.delmodels(msname=ms2,modcol='delete')
 
@@ -4261,20 +4261,30 @@ class test_modelvis(testref_base):
           self.assertTrue( hasmodcol2==True and hasvirmod2==False )
           self.delData(ms1)
           self.delData(ms2)
-          with open ('test_modelvis_28.log') as logf:
-              logcontent = logf.read()
-          if os.path.exists('test_modelvis_28.log'):
-              os.remove('test_modelvis_28.log')
-          self.assertTrue( logcontent.count('Saving model column') == 1 ) 
+          lnumpredict=[]
+          lnumsavemod=[]
+          with open (casalog.logfile()) as logf:
+             logf.seek(logstart)
+             for lnum, line in enumerate(logf):
+                 if 'Predict Model' in line:
+                     lnumpredict.append(lnum)
+                 elif 'Saving model column' in line:
+                     lnumsavemod.append(lnum)
+          #print('lnumpredict=',lnumpredict)
+          #print('lnumsavemod=',lnumsavemod)
+          # Test 'Saving model column' message appear after 'predict model' 
+          # if the 'saving model' message appears in lower line number it indicates saving model
+          # happens in mojar cycles prior to the final predict model stage.
+          self.assertTrue( min(lnumpredict) <  min(lnumsavemod) )
 
      def test_modelvis_29(self):
           """ [modelpredict] Test_modelvis_29: (CAS-13925) cube with two MSes, savemodel=modelcolumn, nsigma > 0.0 """
           # The same as test 28 but in cube imaging mode
+          logstart = self.th.get_log_length()
           ms1 = 'refim_point_onespw0.ms'
           ms2 = 'refim_point_onespw1.ms'
           self.prepData(ms1)
           self.prepData(ms2)
-          casalog.setlogfile('test_modelvis_29.log')
           delmod(ms1);self.th.delmodels(msname=ms1,modcol='delete')
           delmod(ms2);self.th.delmodels(msname=ms2,modcol='delete')
 
@@ -4286,11 +4296,19 @@ class test_modelvis(testref_base):
           self.assertTrue( hasmodcol2==True and hasvirmod2==False )
           self.delData(ms1)
           self.delData(ms2)
-          with open ('test_modelvis_29.log') as logf:
-              logcontent = logf.read()
-          if os.path.exists('test_modelvis_29.log'):
-              os.remove('test_modelvis_29.log')
-          self.assertTrue( logcontent.count('Saving model column') == 1 ) 
+          lnumpredict=[]
+          lnumsavemod=[]
+          with open (casalog.logfile()) as logf:
+             logf.seek(logstart)
+             for lnum, line in enumerate(logf):
+                 if 'Predict Model' in line:
+                     lnumpredict.append(lnum)
+                 elif 'Saving model column' in line:
+                     lnumsavemod.append(lnum)
+          # Test 'Saving model column' message appear after 'predict model' 
+          # if the 'saving model' message appears in lower line number it indicates saving model
+          # happens in mojar cycles prior to the final predict model stage.
+          self.assertTrue( min(lnumpredict) <  min(lnumsavemod) )
 
 class test_startmodel(testref_base):
      def test_startmodel_regrid_mfs(self):
