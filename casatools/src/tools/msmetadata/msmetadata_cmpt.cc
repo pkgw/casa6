@@ -1350,7 +1350,7 @@ record* msmetadata::observatoryposition(const long which) {
 ::casac::record* msmetadata::phasecenter(const long fieldid, const ::casac::record& epoch){
     ::casac::record *rval=0;
     _FUNC(   
-        PtrHolder<Record> ep(toRecord(epoch));
+        std::unique_ptr<Record> ep(toRecord(epoch));
           Record outRec;
           MeasureHolder mh;
           String err;

@@ -1872,7 +1872,7 @@ class ia_fromarray_test(ImageBase):
         ar1 = np.zeros([2, 3], np.float64)
         fval = 2.2
         ar1[:] = fval
-        ar2 = np.zeros([4, 4], np.complex)
+        ar2 = np.zeros([4, 4], complex)
         cval = 2 - 6j
         ar2[:] = cval
         i = 0
@@ -4071,7 +4071,7 @@ class ia_restoringbeam_test(ImageBase):
         """
         ia = self._myia
         ia.fromshape("", [20, 20, 4, 5])
-        self.assertEquals(
+        self.assertEqual(
             ia.restoringbeam(), {},
             'Empty dictionary was not returned but should have been'
         )
@@ -4092,13 +4092,13 @@ class ia_restoringbeam_test(ImageBase):
         for c in range(-2, 10):
             for p in range(-2, 10):
                 beam = ia.restoringbeam(channel=c, polarization=p)
-                self.assertEquals(
+                self.assertEqual(
                     beam['major'], bmaj, 'returned beam major axis incorrect'
                 )
-                self.assertEquals(
+                self.assertEqual(
                     beam['minor'], bmin, 'returned beam minor axis incorrect'
                 )
-                self.assertEquals(
+                self.assertEqual(
                     beam['positionangle'], bpa,
                     'returned beam position angle incorrect'
                 )
@@ -4138,9 +4138,9 @@ class ia_restoringbeam_test(ImageBase):
                 emsg = (
                     f'Incorrect beam returned for channel={c}, polarization={p}'
                 )
-                self.assertEquals(ret['major'], bmaje, emsg)
-                self.assertEquals(ret['minor'], bmine, emsg)
-                self.assertEquals(ret['positionangle'], bpae, emsg)
+                self.assertEqual(ret['major'], bmaje, emsg)
+                self.assertEqual(ret['minor'], bmine, emsg)
+                self.assertEqual(ret['positionangle'], bpae, emsg)
         ia.done()
         # Test polarization can be anything if channel is non-negative if stokes
         # axis doesn't exist or is degenerate
@@ -4167,9 +4167,9 @@ class ia_restoringbeam_test(ImageBase):
                         f'Incorrect beam returned for channel={c}, '
                         f'polarization={p}'
                     )
-                    self.assertEquals(ret['major'], bmaje, emsg)
-                    self.assertEquals(ret['minor'], bmine, emsg)
-                    self.assertEquals(ret['positionangle'], bpae, emsg)
+                    self.assertEqual(ret['major'], bmaje, emsg)
+                    self.assertEqual(ret['minor'], bmine, emsg)
+                    self.assertEqual(ret['positionangle'], bpae, emsg)
             ia.done()
         # Test channel can be anything if polarization is non-negative and
         # if spectral axis doesn't exist or is degenerate
@@ -4196,9 +4196,9 @@ class ia_restoringbeam_test(ImageBase):
                         f'Incorrect beam returned for channel={c}, '
                         f'polarization={p}'
                     )
-                    self.assertEquals(ret['major'], bmaje, emsg)
-                    self.assertEquals(ret['minor'], bmine, emsg)
-                    self.assertEquals(ret['positionangle'], bpae, emsg)
+                    self.assertEqual(ret['major'], bmaje, emsg)
+                    self.assertEqual(ret['minor'], bmine, emsg)
+                    self.assertEqual(ret['positionangle'], bpae, emsg)
             ia.done()
         # test both channel and polarization negative return the expected
         # dictionary 
@@ -4228,9 +4228,9 @@ class ia_restoringbeam_test(ImageBase):
                     bmine = bmin0
                     bpae = bpa0
                 subrec = ret['beams'][f'*{c}']['*0']
-                self.assertEquals(subrec['major'], bmaje, emsg)
-                self.assertEquals(subrec['minor'], bmine, emsg)
-                self.assertEquals(subrec['positionangle'], bpae, emsg)
+                self.assertEqual(subrec['major'], bmaje, emsg)
+                self.assertEqual(subrec['minor'], bmine, emsg)
+                self.assertEqual(subrec['positionangle'], bpae, emsg)
             ia.done()
 
         # spectral axis non-extant or degenerate
@@ -4255,9 +4255,9 @@ class ia_restoringbeam_test(ImageBase):
                     bmine = bmin0
                     bpae = bpa0
                 subrec = ret['beams']['*0'][f'*{p}']
-                self.assertEquals(subrec['major'], bmaje, emsg)
-                self.assertEquals(subrec['minor'], bmine, emsg)
-                self.assertEquals(subrec['positionangle'], bpae, emsg)
+                self.assertEqual(subrec['major'], bmaje, emsg)
+                self.assertEqual(subrec['minor'], bmine, emsg)
+                self.assertEqual(subrec['positionangle'], bpae, emsg)
             ia.done()
 
         # nStokes and nChannels both > 1
@@ -4282,9 +4282,9 @@ class ia_restoringbeam_test(ImageBase):
                     bmine = bmin0
                     bpae = bpa0
                 subrec = ret['beams'][f'*{c}'][f'*{p}']
-                self.assertEquals(subrec['major'], bmaje, emsg)
-                self.assertEquals(subrec['minor'], bmine, emsg)
-                self.assertEquals(subrec['positionangle'], bpae, emsg)
+                self.assertEqual(subrec['major'], bmaje, emsg)
+                self.assertEqual(subrec['minor'], bmine, emsg)
+                self.assertEqual(subrec['positionangle'], bpae, emsg)
         ia.done()
 
 
@@ -4312,8 +4312,8 @@ class ia_restoringbeam_test(ImageBase):
                 major=bmaj1, minor=bmin1, pa=bpa1, channel=3, polarization=2
             )
             ret = ia.restoringbeam(mbret='matrix')
-            self.assertEquals(ret['nChannels'], nc, 'Wrong number of channels')
-            self.assertEquals(
+            self.assertEqual(ret['nChannels'], nc, 'Wrong number of channels')
+            self.assertEqual(
                 ret['nStokes'], ns, 'Wrong number of polarizations'
             )
             bmaje = np.full(shape[2:], bmaj0['value'])
@@ -4334,7 +4334,7 @@ class ia_restoringbeam_test(ImageBase):
                 (ret['major']['value'] == bmaje['value']).all(),
                 f'Incorrect major axis, got {ret["major"]}, expected {bmaje}'
             )
-            self.assertEquals(
+            self.assertEqual(
                 ret['major']['unit'], bmaje['unit'],
                 f'Incorrect major axis, got {ret["major"]}, expected {bmaje}'
             )
@@ -4342,7 +4342,7 @@ class ia_restoringbeam_test(ImageBase):
                 (ret['minor']['value'] == bmine['value']).all(),
                 f'Incorrect minor axis, got {ret["minor"]}, expected {bmine}'
             )
-            self.assertEquals(
+            self.assertEqual(
                 ret['minor']['unit'], bmine['unit'],
                 f'Incorrect mainor axis, got {ret["major"]}, expected {bmine}'
             )
@@ -4350,7 +4350,7 @@ class ia_restoringbeam_test(ImageBase):
                 (ret['pa']['value'] == bpae['value']).all(),
                 f'Incorrect pa, got {ret["pa"]}, expected {bpae}'
             )
-            self.assertEquals(
+            self.assertEqual(
                 ret['pa']['unit'], bpae['unit'],
                 f'Incorrect pa, got {ret["pa"]}, expected {bpae}'
             )
