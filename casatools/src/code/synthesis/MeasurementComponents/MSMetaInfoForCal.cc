@@ -95,7 +95,10 @@ MSMetaInfoForCal::MSMetaInfoForCal(const MeasurementSet& ms) :
 {
   // Set msname_ to absolute disk filename (via ANTENNA subtable).
   //   (this avoids getting useless ref table names)
-  msname_ = ms.antenna().tableName().before("/ANTENNA");
+  if (ms.antenna().tableName().index("/SUBMSS") != string::npos)
+    msname_ = ms.antenna().tableName().before("/SUBMSS");
+  else
+    msname_ = ms.antenna().tableName().before("/ANTENNA");
 
   // Fill counters from msmd
   nAnt_=msmd_->nAntennas();
