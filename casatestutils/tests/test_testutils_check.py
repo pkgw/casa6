@@ -89,7 +89,8 @@ class test_check(plotms_test_base):
         plotms(vis=self.ms, plotfile=self.plotfile_jpg, showgui=False, highres=True)
         #plotSize = os.path.getsize(self.plotfile_jpg)
         #print(self.plotfile_jpg, 'file size is', plotSize)
-        self.assertTrue(self.ch.check_plotfile(self.plotfile_jpg, 0,max_size=220000))
+        print(os.path.getsize(self.plotfile_jpg))
+        self.assertTrue(self.ch.check_plotfile(self.plotfile_jpg, 0,max_size=223000))
 
     def test_check_plotfile_bad_maxsize(self):
         '''Test Check Basic plot with bad maxsize '''

@@ -40,9 +40,6 @@ try:
 except ImportError:
     HAVE_PYTEST = False
 
-
-IS_CASA6 = False
-CASA6 = False
 verbose = False
 
 # JIRA BRANCH TO CHECKOUT
