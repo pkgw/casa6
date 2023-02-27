@@ -24,6 +24,7 @@ declare_casacpp_component("atnf")
 
 # Fortran compiler option
 target_compile_options(casacpp_atnf PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-std=legacy>)
+target_compile_options(casacpp_atnf PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-fdec-static>)
 
 # External dependencies
 target_link_libraries(casacpp_atnf PUBLIC PkgConfig::CASACORE)
