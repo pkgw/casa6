@@ -561,7 +561,7 @@ void Calibrater::selectvis(const String& time,
 
       // Revise the msmc_p so it contains only the _selected_ MS
       if (msmc_p) delete msmc_p;
-      msmc_p = new MSMetaInfoForCal(*mssel_p);
+      msmc_p = new MSMetaInfoForCal(*mssel_p, ms_p->tableName());
 
     }
     else {
