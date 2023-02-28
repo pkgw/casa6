@@ -82,7 +82,7 @@ MSMetaInfoForCal::MSMetaInfoForCal(String msname) :
 
 // Construct from a supplied MS object
 MSMetaInfoForCal::MSMetaInfoForCal(const MeasurementSet& ms) :
-  msname_(), 
+  msname_(ms.tableName()), 
   msOk_(True),      // A good MS was supplied, presumably...
   nAnt_(0),
   nSpw_(0),
@@ -93,18 +93,28 @@ MSMetaInfoForCal::MSMetaInfoForCal(const MeasurementSet& ms) :
 		       min(50.0,0.95f*4.0f*Float(ms.nrow())/1e6))),
   ssp_(NULL)
 {
-  // Set msname_ to absolute disk filename (via ANTENNA subtable).
-  //   (this avoids getting useless ref table names)
-  if (ms.antenna().tableName().index("/SUBMSS") != string::npos)
-    msname_ = ms.antenna().tableName().before("/SUBMSS");
-  else
-    msname_ = ms.antenna().tableName().before("/ANTENNA");
-
   // Fill counters from msmd
   nAnt_=msmd_->nAntennas();
   nSpw_=msmd_->nSpw(True);
   nFld_=msmd_->nFields();
+}
 
+MSMetaInfoForCal::MSMetaInfoForCal(const MeasurementSet& ms, String msname) :
+  msname_(msname), 
+  msOk_(True),      // A good MS was supplied, presumably...
+  nAnt_(0),
+  nSpw_(0),
+  nFld_(0),
+  centerFreqs_(0),
+  ms_(NULL),        // ... but we won't have our own MS pointer
+  msmd_(new MSMetaData(&ms,  // Form MSMetaData directly (not more than 50MB)
+		       min(50.0,0.95f*4.0f*Float(ms.nrow())/1e6))),
+  ssp_(NULL)
+{
+  // Fill counters from msmd
+  nAnt_=msmd_->nAntennas();
+  nSpw_=msmd_->nSpw(True);
+  nFld_=msmd_->nFields();
 }
 
 MSMetaInfoForCal::MSMetaInfoForCal(uInt nAnt,uInt nSpw,uInt nFld) : 

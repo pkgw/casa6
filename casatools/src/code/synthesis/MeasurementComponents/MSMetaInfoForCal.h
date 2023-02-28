@@ -52,6 +52,8 @@ public:
 
   // Construct from a supplied MS object
   MSMetaInfoForCal(const casacore::MeasurementSet& ms);
+  MSMetaInfoForCal(const casacore::MeasurementSet& ms,
+		   casacore::String msname);
 
   // Construct from nAnt,nSpw
   MSMetaInfoForCal(casacore::uInt nAnt,casacore::uInt nSpw,casacore::uInt nFld);
