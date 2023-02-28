@@ -2053,6 +2053,7 @@ void MosaicFT::makeImage(FTMachine::Type type,
   }
   
   initializeToSky(theImage,weight,*vb);
+  //This call is a NOP for all weighting schemes except for cube-briggs-perchanweightdensity
   initBriggsWeightor(vi);
   // Loop over the visibilities, putting VisBuffers
   for (vi.originChunks();vi.moreChunks();vi.nextChunk()) {
