@@ -755,214 +755,224 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
     origin = 'tsdimaging'
     imager = None
 
-    try:
-        # tweak input parameters
-        # ---- if spw starts with ':', add '*' at the beginning
-        if isinstance(spw, str):
-            _spw = '*' + spw if spw.startswith(':') else spw
-        else:
-            _spw = ['*' + v if v.startswith(':') else v for v in spw]
+    try: # Create the Single-Dish Image
+        if True: # Tweak input parameters
+            if True: # if spw starts with ':', add '*' at the beginning
+                if isinstance(spw, str):
+                    _spw = '*' + spw if spw.startswith(':') else spw
+                else:
+                    _spw = ['*' + v if v.startswith(':') else v for v in spw]
 
-        # ---- if antenna doesn't contain '&&&', append it
-        def antenna_to_baseline(s):
-            if len(s) == 0:
-                return s
-            elif len(s) > 3 and s.endswith('&&&'):
-                return s
-            else:
-                return '{0}&&&'.format(s)
-        if isinstance(antenna, str):
-            baseline = antenna_to_baseline(antenna)
-        else:
-            baseline = [antenna_to_baseline(a) for a in antenna]
+            if True: # if antenna doesn't contain '&&&', append it
+                def antenna_to_baseline(s):
+                    if len(s) == 0:
+                        return s
+                    elif len(s) > 3 and s.endswith('&&&'):
+                        return s
+                    else:
+                        return '{0}&&&'.format(s)
+                if isinstance(antenna, str):
+                    baseline = antenna_to_baseline(antenna)
+                else:
+                    baseline = [antenna_to_baseline(a) for a in antenna]
 
-        # handle overwrite parameter
-        _outfile = outfile.rstrip('/')
-        presumed_imagename = _outfile + image_suffix
-        if os.path.exists(presumed_imagename):
-            if overwrite == False:
-                raise RuntimeError('Output file \'{0}\' exists.'.format(presumed_imagename))
-            else:
-                # delete existing images
-                casalog.post('Removing \'{0}\''.format(presumed_imagename))
-                _remove_image(presumed_imagename)
-                assert not os.path.exists(presumed_imagename)
-                for _suffix in associate_suffixes:
-                    casalog.post('Removing \'{0}\''.format(_outfile + _suffix))
-                    _remove_image(_outfile + _suffix)
-                    assert not os.path.exists(_outfile + _suffix)
+            if True: # handle outfile and overwrite parameter
+                output_path_prefix = outfile.rstrip('/')
+                singledish_image_path = output_path_prefix + image_suffix
+                if os.path.exists(singledish_image_path):
+                    if overwrite == False:
+                        raise RuntimeError(
+                                f'Output file exists: \'{singledish_image_path}\''
+                              )
+                    else:
+                        # delete existing images
+                        casalog.post(f'Removing \'{singledish_image_path}\'')
+                        _remove_image(singledish_image_path)
+                        assert not os.path.exists(singledish_image_path)
+                        for _suffix in associate_suffixes:
+                            path_to_remove = output_path_prefix + _suffix
+                            casalog.post(f'Removing \'{path_to_remove}\'')
+                            _remove_image(path_to_remove)
+                            assert not os.path.exists(path_to_remove)
 
-        # handle image spectral axis parameters
-        imnchan, imstart, imwidth = _configure_spectral_axis(mode, nchan, start, width, restfreq)
+            if True: # handle image spectral axis parameters
+                imnchan, imstart, imwidth = _configure_spectral_axis(
+                    mode, nchan, start, width, restfreq
+                )
 
-        # handle image restfreq parameter's default value
-        _restfreq = _get_restfreq_if_empty(infiles, _spw, field, restfreq)
+            if True: # handle image restfreq parameter's default value
+                _restfreq = _get_restfreq_if_empty(
+                    infiles, _spw, field, restfreq
+                )
 
-        # handle gridder parameters
-        # ---- translate some default values into the ones
-        #      that are consistent with the current framework
-        gtruncate = _handle_grid_defaults(truncate)
-        ggwidth = _handle_grid_defaults(gwidth)
-        gjwidth = _handle_grid_defaults(jwidth)
+            if True: # handle gridder parameters
+                # convert type of task's default values
+                # to ones supported by the Synthesis Imager framework
+                gtruncate = _handle_grid_defaults(truncate)
+                ggwidth = _handle_grid_defaults(gwidth)
+                gjwidth = _handle_grid_defaults(jwidth)
 
-        # handle infiles parameter
-        # ---- sort input data using cleanhelper function to get results
-        #      consistent with older sdimaging task
-        old_way = OldImagerBasedTools()
-        _sorted = old_way.sort_vis(infiles, _spw, mode, imwidth, field,
-                                   antenna, scan, intent, timerange)
-        sorted_vis = _sorted[0]
-        sorted_field = _sorted[1]
-        sorted_spw = _sorted[2]
-        sorted_antenna = _sorted[3]
-        sorted_scan = _sorted[4]
-        sorted_intent = _sorted[5]
-        sorted_timerange = _sorted[6]
+            if True: # handle infiles parameter
+                # sort input data using cleanhelper function to get results
+                # consistent with older sdimaging task
+                old_way = OldImagerBasedTools()
+                _sorted = old_way.sort_vis(
+                    infiles, _spw, mode, imwidth, field,
+                    antenna, scan, intent, timerange
+                )
+                sorted_vis = _sorted[0]
+                sorted_field = _sorted[1]
+                sorted_spw = _sorted[2]
+                sorted_antenna = _sorted[3]
+                sorted_scan = _sorted[4]
+                sorted_intent = _sorted[5]
+                sorted_timerange = _sorted[6]
 
-        # handle image geometric parameters
-        _ephemsrcname = ''
-        ephem_sources = ['MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN',
-                         'URANUS', 'NEPTUNE', 'PLUTO', 'SUN', 'MOON', 'TRACKFIELD']
-        if isinstance(phasecenter, str) and phasecenter.strip().upper() in ephem_sources:
-            _ephemsrcname = phasecenter
-        _imsize, _cell, _phasecenter = _handle_image_params(
-            imsize, cell, phasecenter, sorted_vis,
-            sorted_field, sorted_spw, sorted_antenna,
-            sorted_scan, sorted_intent, sorted_timerange,
-            _restfreq, pointingcolumn, _ephemsrcname)
+            if True: # handle image geometric parameters
+                _ephemsrcname = ''
+                ephem_sources = ['MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN',
+                                 'URANUS', 'NEPTUNE', 'PLUTO', 'SUN', 'MOON', 'TRACKFIELD']
+                if isinstance(phasecenter, str) and phasecenter.strip().upper() in ephem_sources:
+                    _ephemsrcname = phasecenter
 
-        # calculate pblimit from minweight
-        pblimit = _calc_pblimit(minweight)
+                _imsize, _cell, _phasecenter = _handle_image_params(
+                    imsize, cell, phasecenter, sorted_vis,
+                    sorted_field, sorted_spw, sorted_antenna,
+                    sorted_scan, sorted_intent, sorted_timerange,
+                    _restfreq, pointingcolumn, _ephemsrcname
+                )
 
-        # (2) Set up Input Parameters
-        # - List all parameters that you need here
-        # - Defaults will be assumed for unspecified parameters
-        # - Nearly all parameters are identical to that in the task. Please look at the
-        # list of parameters under __init__ using  " help ImagerParameters " )
-        casalog.post('*** Creating paramList ***', origin=origin)
-        paramList = ImagerParameters(
-            # input file name
-            msname=infiles,  # 'sdimaging.ms',
-            # data selection
-            field=field,  # '',
-            spw=_spw,  # '0',
-            timestr=timerange,
-            antenna=baseline,
-            scan=scan,
-            state=intent,
-            # image parameters
-            imagename=_outfile,  # 'try2',
-            nchan=imnchan,  # 1024,
-            start=imstart,  # '0',
-            width=imwidth,  # '1',
-            outframe=outframe,
-            veltype=veltype,
-            restfreq=_restfreq,
-            phasecenter=_phasecenter,  # 'J2000 17:18:29 +59.31.23',
-            imsize=_imsize,  # [75,75],
-            cell=_cell,  # ['3arcmin', '3arcmin'],
-            projection=projection,
-            stokes=stokes,
-            specmode=specmode,
-            gridder='singledish',
-            # single dish specific parameters
-            gridfunction=gridfunction,
-            convsupport=convsupport,
-            truncate=gtruncate,
-            gwidth=ggwidth,
-            jwidth=gjwidth,
-            pointingcolumntouse=pointingcolumn,
-            convertfirst=convertfirst,
-            minweight=minweight,
-            clipminmax=clipminmax,
-            # normalizer
-            normtype='flatsky',
-            pblimit=pblimit
-        )
+        if True: # Calculate pblimit from minweight
+            pblimit = _calc_pblimit(minweight)
 
-        # handle brightnessunit (CAS-11503)
-        image_unit = brightnessunit.lower().capitalize()
-        if not image_unit in ['', 'K', 'Jy/beam']:
-            raise ValueError(f"Invalid brightness unit: {brightnessunit}")
+        if True: # Set up PySynthesisImager Input Parameters
+            # - List all parameters that you need here
+            # - Defaults will be assumed for unspecified parameters
+            # - Nearly all parameters are identical to that in the task. Please look at the
+            # list of parameters under __init__ using  " help ImagerParameters " )
+            casalog.post('*** Creating paramList ***', origin=origin)
+            paramList = ImagerParameters(
+                # input file name
+                msname=infiles,  # 'sdimaging.ms',
+                # data selection
+                field=field,  # '',
+                spw=_spw,  # '0',
+                timestr=timerange,
+                antenna=baseline,
+                scan=scan,
+                state=intent,
+                # image parameters
+                imagename=output_path_prefix,  # 'try2',
+                nchan=imnchan,  # 1024,
+                start=imstart,  # '0',
+                width=imwidth,  # '1',
+                outframe=outframe,
+                veltype=veltype,
+                restfreq=_restfreq,
+                phasecenter=_phasecenter,  # 'J2000 17:18:29 +59.31.23',
+                imsize=_imsize,  # [75,75],
+                cell=_cell,  # ['3arcmin', '3arcmin'],
+                projection=projection,
+                stokes=stokes,
+                specmode=specmode,
+                gridder='singledish',
+                # single dish specific parameters
+                gridfunction=gridfunction,
+                convsupport=convsupport,
+                truncate=gtruncate,
+                gwidth=ggwidth,
+                jwidth=gjwidth,
+                pointingcolumntouse=pointingcolumn,
+                convertfirst=convertfirst,
+                minweight=minweight,
+                clipminmax=clipminmax,
+                # normalizer
+                normtype='flatsky',
+                pblimit=pblimit
+            )
 
-        # TODO: handle overwrite
-        # TODO: output image name
+        if True: # Handle brightnessunit (CAS-11503)
+            image_unit = brightnessunit.lower().capitalize()
+            if not image_unit in ['', 'K', 'Jy/beam']:
+                raise ValueError(f"Invalid brightness unit: {brightnessunit}")
 
-        # (3) Construct the PySynthesisImager object, with all input parameters
+        if True: # Construct the PySynthesisImager object, with all input parameters
+            casalog.post('*** Creating imager object ***', origin=origin)
+            imager = PySynthesisImager(params=paramList)
 
-        casalog.post('*** Creating imager object ***', origin=origin)
-        imager = PySynthesisImager(params=paramList)
+        if True: # Initialize PySynthesisImager "modules" required for single-dish imaging
+            # - Pick only the modules you will need later on. For example, to only make
+            # the PSF, there is no need for the deconvolver or iteration control modules.
+            casalog.post('*** Initializing imagers ***', origin=origin)
+            # This is where the underlying C++ synthesis imager is created
+            imager.initializeImagers()
+            casalog.post('*** Initializing normalizers ***', origin=origin)
+            imager.initializeNormalizers()
 
-        # (4) Initialize various modules.
-        # - Pick only the modules you will need later on. For example, to only make
-        # the PSF, there is no need for the deconvolver or iteration control modules.
+        if True: # Compute the Single-Dish image
+            casalog.post('*** makeSdImage... ***', origin=origin)
+            imager.makeSdImage()
 
-        # Initialize modules major cycle modules
-
-        casalog.post('*** Initializing imagers ***', origin=origin)
-        imager.initializeImagers()
-        casalog.post('*** Initializing normalizers ***', origin=origin)
-        imager.initializeNormalizers()
-
-        # (5) Make the initial images
-
-        casalog.post('*** makeSdImage... ***', origin=origin)
-        imager.makeSdImage()
-
-    finally:
-        # (8) Close tools.
-
+    finally: # Close tools and rename Synthesis Imager's residual image
         casalog.post('*** Cleaning up tools ***', origin=origin)
         if imager is not None:
             imager.deleteTools()
+        # Change image suffix from .residual to .image
+        residual_image_path = output_path_prefix + residual_suffix
+        if os.path.exists(residual_image_path):
+            os.rename(residual_image_path, singledish_image_path)
 
-        # change image suffix from .residual to .image
-        if os.path.exists(outfile + residual_suffix):
-            os.rename(outfile + residual_suffix, outfile + image_suffix)
+    if True: # Set single-dish image's beam size
+        # TODO: re-define related functions in the new tool framework (sdms?)
+        # ms_index = 0
+        rep_ms = _get_param(0, infiles)
+        rep_field = _get_param(0, field)
+        rep_spw = _get_param(0, _spw)
+        rep_antenna = _get_param(0, antenna)
+        rep_scan = _get_param(0, scan)
+        rep_intent = _get_param(0, intent)
+        rep_timerange = _get_param(0, timerange)
 
-    # set beam size
-    # TODO: re-define related functions in the new tool framework (sdms?)
-    imagename = outfile + image_suffix
-    # ms_index = 0
-    rep_ms = _get_param(0, infiles)
-    rep_field = _get_param(0, field)
-    rep_spw = _get_param(0, _spw)
-    rep_antenna = _get_param(0, antenna)
-    rep_scan = _get_param(0, scan)
-    rep_intent = _get_param(0, intent)
-    rep_timerange = _get_param(0, timerange)
-    if len(rep_antenna) > 0:
-        baseline = '{0}&&&'.format(rep_antenna)
-    else:
-        baseline = '*&&&'
-    with open_ms(rep_ms) as ms:
-        ms.msselect({'baseline': baseline})
-        ndx = ms.msselectedindices()
-        antenna_index = ndx['antenna1'][0]
-    with sdutil.table_manager(os.path.join(rep_ms, 'ANTENNA')) as tb:
-        antenna_name = tb.getcell('NAME', antenna_index)
-        antenna_diameter = tb.getcell('DISH_DIAMETER', antenna_index)
-    set_beam_size(rep_ms, imagename,
-                  rep_field, rep_spw, baseline, rep_scan, rep_intent, rep_timerange,
-                  _ephemsrcname, pointingcolumn, antenna_name, antenna_diameter,
-                  _restfreq, gridfunction, convsupport, truncate, gwidth, jwidth)
+        if len(rep_antenna) > 0:
+            baseline = '{0}&&&'.format(rep_antenna)
+        else:
+            baseline = '*&&&'
 
-    # set brightness unit (CAS-11503)
-    if len(image_unit) == 0:
-        image_unit = get_brightness_unit_from_ms(rep_ms)
-    if len(image_unit) > 0:
-        with open_ia(imagename) as ia:
-            casalog.post("Setting brightness unit '%s' to image." % image_unit)
-            ia.setbrightnessunit(image_unit)
+        with open_ms(rep_ms) as ms:
+            ms.msselect({'baseline': baseline})
+            ndx = ms.msselectedindices()
+            antenna_index = ndx['antenna1'][0]
 
-    # mask low weight pixels
-    weightimage = outfile + weight_suffix
-    do_weight_mask(imagename, weightimage, minweight)
+        with sdutil.table_manager(os.path.join(rep_ms, 'ANTENNA')) as tb:
+            antenna_name = tb.getcell('NAME', antenna_index)
+            antenna_diameter = tb.getcell('DISH_DIAMETER', antenna_index)
 
-    # CAS-10891
-    _remove_image(outfile + '.sumwt')
+        set_beam_size(
+            rep_ms, singledish_image_path,
+            rep_field, rep_spw, baseline, rep_scan, rep_intent, rep_timerange,
+            _ephemsrcname, pointingcolumn, antenna_name, antenna_diameter,
+            _restfreq, gridfunction, convsupport, truncate, gwidth, jwidth
+        )
 
-    # CAS-10893
-    # TODO: remove the following line once the 'correct' SD
-    # PSF image based on primary beam can be generated
-    _remove_image(outfile + '.psf')
+    if True: # Set single-dish image's brightness unit (CAS-11503)
+        if len(image_unit) == 0:
+            image_unit = get_brightness_unit_from_ms(rep_ms)
+        if len(image_unit) > 0:
+            with open_ia(singledish_image_path) as ia:
+                casalog.post(f"Setting image's brightness unit to '{image_unit}'")
+                ia.setbrightnessunit(image_unit)
+
+    if True: # Update single-dish image's mask
+        # Mask low weight pixels
+        weight_image_path = output_path_prefix + weight_suffix
+        do_weight_mask(singledish_image_path, weight_image_path, minweight)
+
+    if True: # Delete images systematically generated by the Synthesis Imager
+        # which are either not required or currently useless
+        # in the context of single-dish imaging
+        # CAS-10891
+        _remove_image(output_path_prefix + '.sumwt')
+        # CAS-10893
+        # TODO: remove the following line once the 'correct' SD
+        # PSF image based on primary beam can be generated
+        _remove_image(output_path_prefix + '.psf')
