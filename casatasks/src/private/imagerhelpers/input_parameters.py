@@ -35,247 +35,328 @@ Summary...
 ######################################################
 
 class ImagerParameters():
-    def __init__(self, 
+    def __init__(self,
+            # Input Data: what gets in
+            msname='',
 
-                 ## Data Selection
-                 msname='',
-                 field='',
-                 spw='',
-                 timestr='',
-                 uvdist='',
-                 antenna='',
-                 scan='',
-                 obs='',
-                 state='',
-                 datacolumn='corrected',
+            # Output Data: what goes out
+            imagename='',
 
-                 ## Image Definition
-                 imagename='', 
-                 imsize=[1,1], 
-                 cell=[10.0,10.0],
-                 phasecenter='',
-                 stokes='I',
-                 projection='SIN',
-                 startmodel='', 
+            # The remaining parameters are Control Parameters:
+            # they control How what gets in goes out
 
-                 ## Spectral Parameters
-                 specmode='mfs', 
-                 reffreq='',
-                 nchan=1, 
-                 start='', 
-                 width='',
-                 outframe='LSRK', 
-                 veltype='radio', 
-                 restfreq=[''],
-                 sysvel='', 
-                 sysvelframe='',
-                 interpolation='nearest',
-                 perchanweightdensity=False,
+            ## Data Selection
+            field='',
+            spw='',
+            timestr='',
+            uvdist='',
+            antenna='',
+            scan='',
+            obs='',
+            state='',
+            datacolumn='corrected',
+            ## Image Definition
+            imsize=[1,1],
+            cell=[10.0,10.0],
+            phasecenter='',
+            stokes='I',
+            projection='SIN',
+            startmodel='',
+            ## Spectral Parameters
+            specmode='mfs',
+            reffreq='',
+            nchan=1,
+            start='',
+            width='',
+            outframe='LSRK',
+            veltype='radio',
+            restfreq=[''],
+            sysvel='',
+            sysvelframe='',
+            interpolation='nearest',
+            perchanweightdensity=False,
+            gridder="standard",
+            # ftmachine='gridft',
+            facets=1,
+            chanchunks=1,
 
-                 gridder="standard",
-#                 ftmachine='gridft', 
-                 facets=1, 
-                 chanchunks=1,
+            wprojplanes=1,
 
-                 wprojplanes=1,
-
-                 vptable="",
-                 usepointing=False,
-                 mosweight=False,
-                 aterm=True,
-                 psterm=True,
-                 mterm=True,
-                 wbawp = True,
-                 cfcache = "",
-                 dopbcorr = True,
-                 conjbeams = True,
-                 computepastep =360.0,
-                 rotatepastep =360.0,
-                 pointingoffsetsigdev = [30.0,30.0],
+            vptable="",
+            usepointing=False,
+            mosweight=False,
+            aterm=True,
+            psterm=True,
+            mterm=True,
+            wbawp = True,
+            cfcache = "",
+            dopbcorr = True,
+            conjbeams = True,
+            computepastep =360.0,
+            rotatepastep =360.0,
+            pointingoffsetsigdev = [30.0,30.0],
                  
-                 pblimit=0.01,
-                 normtype='flatnoise',
+            pblimit=0.01,
+            normtype='flatnoise',
                  
-                 psfcutoff=0.35,
+            psfcutoff=0.35,
 
-                 outlierfile='',
-                 restart=True,
+            outlierfile='',
+            restart=True,
 
-                 weighting='natural', 
-                 robust=0.5,
-                 noise='0.0Jy',
-                 npixels=0,
-                 uvtaper=[],
+            weighting='natural',
+            robust=0.5,
+            noise='0.0Jy',
+            npixels=0,
+            uvtaper=[],
 
-                 niter=0, 
-                 cycleniter=0, 
-                 loopgain=0.1,
-                 threshold='0.0Jy',
-                 nsigma=0.0,
-                 cyclefactor=1.0,
-                 minpsffraction=0.1,
-                 maxpsffraction=0.8,
-                 interactive=False,
-                 fullsummary=False,
-                 nmajor=-1,
+            niter=0,
+            cycleniter=0,
+            loopgain=0.1,
+            threshold='0.0Jy',
+            nsigma=0.0,
+            cyclefactor=1.0,
+            minpsffraction=0.1,
+            maxpsffraction=0.8,
+            interactive=False,
+            fullsummary=False,
+            nmajor=-1,
 
-                 deconvolver='hogbom',
-                 scales=[],
-                 nterms=1,
-                 scalebias=0.0,
-                 restoringbeam=[],
-#                 mtype='default',
+            deconvolver='hogbom',
+            scales=[],
+            nterms=1,
+            scalebias=0.0,
+            restoringbeam=[],
+            # mtype='default',
 
-                 usemask='user',
-                 mask='',
-                 pbmask=0.0,
-                 maskthreshold='',
-                 maskresolution='',
-                 nmask=0,
-#                 autoadjust=False,
+            usemask='user',
+            mask='',
+            pbmask=0.0,
+            maskthreshold='',
+            maskresolution='',
+            nmask=0,
+            # autoadjust=False,
 
-                 sidelobethreshold=5.0,
-                 noisethreshold=3.0,
-                 lownoisethreshold=3.0,
-                 negativethreshold=0.0,
-                 smoothfactor=1.0,
-                 minbeamfrac=0.3,
-                 cutthreshold=0.01,
-                 growiterations=100,
-                 dogrowprune=True,
-                 minpercentchange=0.0,
-                 verbose=False,
-                 fastnoise=True,
-                 fusedthreshold=0.0,
-                 largestscale=-1,
+            sidelobethreshold=5.0,
+            noisethreshold=3.0,
+            lownoisethreshold=3.0,
+            negativethreshold=0.0,
+            smoothfactor=1.0,
+            minbeamfrac=0.3,
+            cutthreshold=0.01,
+            growiterations=100,
+            dogrowprune=True,
+            minpercentchange=0.0,
+            verbose=False,
+            fastnoise=True,
+            fusedthreshold=0.0,
+            largestscale=-1,
 
-#                 usescratch=True,
-#                 readonly=True,
-                 savemodel="none",
-                 parallel=False,
+            # usescratch=True,
+            # readonly=True,
+            savemodel="none",
+            parallel=False,
 
-                 workdir='',
+            workdir='',
 
-                 ## CFCache params
-                 cflist=[],
+            ## CFCache params
+            cflist=[],
                  
-                 ## single-dish imaging params
-                 gridfunction='SF',
-                 convsupport=-1,
-                 truncate="-1",
-                 gwidth="-1",
-                 jwidth="-1",
-                 pointingcolumntouse='direction',
-                 convertfirst='never',
-                 minweight=0.0,
-                 clipminmax=False
-                 ):
-        self.allparameters=dict(locals())
-        ############TESTOO for debugging Felipe's crash
-        #params_str=pprint.pformat(self.allparameters)
-        #casalog.post('ALLPARAMS : ' + params_str, 'WARN', 'CAS-9386-DEBUG')
-        ################################################
+            ## single-dish imaging params
+            gridfunction='SF',
+            convsupport=-1,
+            truncate="-1",
+            gwidth="-1",
+            jwidth="-1",
+            pointingcolumntouse='direction',
+            convertfirst='never',
+            minweight=0.0,
+            clipminmax=False
+        ):
+        self.allparameters = dict(locals())
         del self.allparameters['self']
-        self.defaultKey="0";
-        ## Selection params. For multiple MSs, all are lists.
-        ## For multiple nodes, the selection parameters are modified inside PySynthesisImager
-        self.allselpars = {'msname':msname, 'field':field, 'spw':spw, 'scan':scan,
-                           'timestr':timestr, 'uvdist':uvdist, 'antenna':antenna, 'obs':obs,'state':state,
-                           'datacolumn':datacolumn,
-                           'savemodel':savemodel }
-#                           'usescratch':usescratch, 'readonly':readonly}
 
-        ## Imaging/deconvolution parameters
-        ## The outermost dictionary index is image field. 
-        ## The '0' or main field's parameters come from the task parameters
-        ## The outlier '1', '2', ....  parameters come from the outlier file
+        self.defaultKey = "0"
+        # ---- Selection params. For multiple MSs, all are lists.
+        # For multiple nodes, the selection parameters are modified inside PySynthesisImager
+        self.allselpars = {
+            'msname':msname, 'field':field, 'spw':spw, 'scan':scan,
+            'timestr':timestr, 'uvdist':uvdist, 'antenna':antenna, 'obs':obs,'state':state,
+            'datacolumn':datacolumn,
+            'savemodel':savemodel
+        }
+        # ---- Imaging/deconvolution parameters
+        # The outermost dictionary index is image field.
+        # The '0' or main field's parameters come from the task parameters
+        # The outlier '1', '2', ....  parameters come from the outlier file
         self.outlierfile = outlierfile
-        ## Initialize the parameter lists with the 'main' or '0' field's parameters
-        ######### Image definition
-        self.allimpars = { self.defaultKey :{'imagename':imagename, 'nchan':nchan, 'imsize':imsize, 
-                                 'cell':cell, 'phasecenter':phasecenter, 'stokes': stokes,
-                                 'specmode':specmode, 'start':start, 'width':width, 'veltype':veltype,
-                                 'nterms':nterms,'restfreq':restfreq, 
-                                 'outframe':outframe, 'reffreq':reffreq, 'sysvel':sysvel, 'sysvelframe':sysvelframe,
-                                 'projection':projection,
-                                 'restart':restart, 'startmodel':startmodel,'deconvolver':deconvolver}    }
-        ######### Gridding
-        self.allgridpars = { self.defaultKey :{'gridder':gridder,
-                                   'aterm': aterm, 'psterm':psterm, 'mterm': mterm, 'wbawp': wbawp, 
-                                   'cfcache': cfcache,'usepointing':usepointing, 'dopbcorr':dopbcorr, 
-                                   'conjbeams':conjbeams, 'computepastep':computepastep,
-                                   'rotatepastep':rotatepastep, #'mtype':mtype, # 'weightlimit':weightlimit,
-                                   'pointingoffsetsigdev':pointingoffsetsigdev,
-                                   'facets':facets,'chanchunks':chanchunks,
-                                   'interpolation':interpolation, 'wprojplanes':wprojplanes,
-                                               'deconvolver':deconvolver, 'vptable':vptable,
-                                   ## single-dish specific
-                                   'convfunc': gridfunction, 'convsupport': convsupport,
-                                   'truncate': truncate, 'gwidth': gwidth, 'jwidth': jwidth,
-                                   'minweight': minweight, 'clipminmax': clipminmax, 'imagename':imagename}     }
-        ######### weighting
-        rmode='none'
-        if(weighting=='briggsabs'):
-            rmode='abs'
-            weighting='briggs'
-        elif(weighting=='briggs'):
-            rmode='norm'
-        elif(weighting=='briggsbwtaper'):
-            rmode='bwtaper'
-            weighting='briggs'
-        self.weightpars = {'type':weighting,'rmode':rmode,'robust':robust, 'noise': noise, 'npixels':npixels,'uvtaper':uvtaper, 'multifield':mosweight, 'usecubebriggs': perchanweightdensity}
+        # Initialize the parameter lists with the 'main' or '0' field's parameters
+        # ---- Image definition
+        self.allimpars = {
+            self.defaultKey: {
+                # Image
+                'imagename': imagename,
+                'nchan': nchan,
+                'imsize': imsize,
+                'cell': cell,
+                'phasecenter': phasecenter,
+                'stokes': stokes,
+                # Frequency axis
+                'specmode': specmode,
+                'start': start,
+                'width': width,
+                'veltype': veltype,
+                'nterms': nterms,
+                'restfreq': restfreq,
+                # Output frame
+                'outframe': outframe,
+                'reffreq': reffreq,
+                'sysvel': sysvel,
+                'sysvelframe': sysvelframe,
+                # Projection
+                'projection': projection,
+                # Deconvolution
+                'restart': restart,
+                'startmodel': startmodel,
+                'deconvolver': deconvolver
+            }
+        }
+        # ---- Gridding
+        self.allgridpars = {
+            self.defaultKey: {
+                'gridder': gridder,
+                # aterm group
+                'aterm': aterm,
+                'psterm': psterm,
+                'mterm': mterm,
+                'wbawp': wbawp,
+                # cfcache group
+                'cfcache': cfcache,
+                'usepointing': usepointing,
+                'dopbcorr': dopbcorr,
+                # conjbeams group
+                'conjbeams': conjbeams,
+                'computepastep': computepastep,
+                #
+                'rotatepastep': rotatepastep, #'mtype':mtype, # 'weightlimit':weightlimit,
+                'pointingoffsetsigdev': pointingoffsetsigdev,
+                # facets group
+                'facets': facets,
+                'chanchunks': chanchunks,
+                # interpolation group
+                'interpolation': interpolation,
+                'wprojplanes': wprojplanes,
+                # deconvolver group
+                'deconvolver': deconvolver,
+                'vptable': vptable,
+                # single-dish specific
+                'imagename': imagename,
+                # ---- convolution function
+                'convfunc': gridfunction,
+                'convsupport': convsupport,
+                # ---- truncate group
+                'truncate': truncate,
+                'gwidth': gwidth,
+                'jwidth': jwidth,
+                # ---- minweight group
+                'minweight': minweight,
+                'clipminmax': clipminmax
+            }
+        }
+        # ---- Weighting
+        if True: # Compute rmode and self.weightpars
+            rmode = 'none'
+            if (weighting == 'briggsabs'):
+                rmode = 'abs'
+                weighting = 'briggs'
+            elif (weighting == 'briggs'):
+                rmode = 'norm'
+            elif (weighting == 'briggsbwtaper'):
+                rmode = 'bwtaper'
+                weighting = 'briggs'
 
+            self.weightpars = {
+                'type': weighting,
+                'rmode': rmode,
+                'robust': robust,
+                'noise': noise,
+                'npixels': npixels,
+                'uvtaper': uvtaper,
+                'multifield': mosweight,
+                'usecubebriggs': perchanweightdensity
+            }
+        # ---- Normalizers ( this is where flat noise, flat sky rules will go... )
+        self.allnormpars = {
+            self.defaultKey : {
+                # pblimit group
+                'pblimit': pblimit,
+                'nterms': nterms,
+                'facets': facets,
+                # normtype group
+                'normtype': normtype,
+                'workdir': workdir,
+                # deconvolver group
+                'deconvolver': deconvolver,
+                'imagename': imagename,
+                'restoringbeam': restoringbeam,
+                'psfcutoff': psfcutoff
+            }
+        }
+        # ---- Deconvolution
+        self.alldecpars = {
+            self.defaultKey: {
+                'id':0, 'deconvolver':deconvolver, 'nterms':nterms,
+                'scales':scales, 'scalebias':scalebias, 'restoringbeam':restoringbeam, 'usemask':usemask,
+                'mask':mask, 'pbmask':pbmask, 'maskthreshold':maskthreshold,
+                'maskresolution':maskresolution, 'nmask':nmask,
+                #'maskresolution':maskresolution, 'nmask':nmask,'autoadjust':autoadjust,
+                'sidelobethreshold':sidelobethreshold, 'noisethreshold':noisethreshold,
+                'lownoisethreshold':lownoisethreshold, 'negativethreshold':negativethreshold,'smoothfactor':smoothfactor,
+                'fusedthreshold':fusedthreshold, 'specmode':specmode,'largestscale':largestscale,
 
-        ######### Normalizers ( this is where flat noise, flat sky rules will go... )
-        self.allnormpars = { self.defaultKey : {#'mtype': mtype,
-                                 'pblimit': pblimit,'nterms':nterms,'facets':facets,
-                                 'normtype':normtype, 'workdir':workdir,
-                                 'deconvolver':deconvolver, 'imagename': imagename, 'restoringbeam':restoringbeam, 'psfcutoff':psfcutoff}   }
-
-
-        ######### Deconvolution
-        self.alldecpars = { self.defaultKey:{ 'id':0, 'deconvolver':deconvolver, 'nterms':nterms, 
-                                    'scales':scales, 'scalebias':scalebias, 'restoringbeam':restoringbeam, 'usemask':usemask, 
-                                    'mask':mask, 'pbmask':pbmask, 'maskthreshold':maskthreshold,
-                                    'maskresolution':maskresolution, 'nmask':nmask,
-                                    #'maskresolution':maskresolution, 'nmask':nmask,'autoadjust':autoadjust,
-                                    'sidelobethreshold':sidelobethreshold, 'noisethreshold':noisethreshold,
-                                    'lownoisethreshold':lownoisethreshold, 'negativethreshold':negativethreshold,'smoothfactor':smoothfactor,
-                                    'fusedthreshold':fusedthreshold, 'specmode':specmode,'largestscale':largestscale,
-
-                                    'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations, 
-                                     'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
-                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename, 'fullsummary':fullsummary} }
-
-        ######### Iteration control. 
-        self.iterpars = { 'niter':niter, 'cycleniter':cycleniter, 'threshold':threshold, 
-                          'loopgain':loopgain, 'interactive':interactive,
-                          'cyclefactor':cyclefactor, 'minpsffraction':minpsffraction, 
-                          'maxpsffraction':maxpsffraction,
-                          'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor, 'fullsummary':fullsummary}
-
-        ######### CFCache params. 
-        self.cfcachepars = {'cflist': cflist}
-
-        ######### parameters that may be internally modified for savemodel behavior
-        self.inpars = {'savemodel':savemodel, 'interactive':interactive, 'nsigma':nsigma, 'usemask':usemask}
-
-        #self.reusename=reuse
-
-        ## List of supported parameters in outlier files.
-        ## All other parameters will default to the global values.
-        self.outimparlist = ['imagename','nchan','imsize','cell','phasecenter','startmodel',
-                             'start','width',
-                             'nterms','reffreq','specmode']
+                'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations,
+                 'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
+                'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename, 'fullsummary':fullsummary
+            }
+        }
+        # ---- Iteration control
+        self.iterpars = {
+            'niter':niter, 'cycleniter':cycleniter, 'threshold':threshold,
+            'loopgain':loopgain, 'interactive':interactive,
+            'cyclefactor':cyclefactor, 'minpsffraction':minpsffraction,
+            'maxpsffraction':maxpsffraction,
+            'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor, 'fullsummary':fullsummary
+        }
+        # ---- CFCache params
+        self.cfcachepars = {
+            'cflist': cflist
+        }
+        # ---- Parameters that may be internally modified for savemodel behavior
+        self.inpars = {
+            'savemodel': savemodel,
+            'interactive': interactive,
+            'nsigma': nsigma,
+            'usemask': usemask
+        }
+        # ---- List of supported parameters in outlier files.
+        # All other parameters will default to the global values.
+        self.outimparlist = [
+            'imagename','nchan','imsize','cell','phasecenter','startmodel',
+            'start','width',
+            'nterms','reffreq','specmode'
+        ]
         self.outgridparlist = ['gridder','deconvolver','wprojplanes']
-        self.outweightparlist=[]
-        self.outdecparlist=['deconvolver','startmodel','nterms','usemask','mask']
-        self.outnormparlist=['deconvolver','weightlimit','nterms']
-#        self.outnormparlist=['imagename','mtype','weightlimit','nterms']
+        self.outweightparlist = []
+        self.outdecparlist = [
+            'deconvolver','startmodel','nterms','usemask','mask'
+        ]
+        self.outnormparlist = ['deconvolver','weightlimit','nterms']
 
         ret = self.checkParameters(parallel)
-        if ret==False:
-            casalog.post('Found errors in input parameters. Please check.', 'WARN')
+        if ret == False:
+            casalog.post(
+                'Found errors in input parameters. Please check.', 'WARN'
+            )
 
         self.printParameters()
 
@@ -314,7 +395,7 @@ class ImagerParameters():
     def getNormPars(self):
         return self.allnormpars
     def getCFCachePars(self):
-        return self.cfcachepars;
+        return self.cfcachepars
 
     def setSelPars(self,selpars):
         for key in selpars.keys():
