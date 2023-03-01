@@ -50,31 +50,27 @@ ms = casatools.ms()
 tb = casatools.table()
 qa = casatools.quanta()
 
-mergedDataRoot = ctsys.resolve('unittest/importuvfits')
-vlapath = ctsys.resolve('unittest/importuvfits/3C219D_CAL.UVFITS')
-path = ctsys.resolve('unittest/importuvfits/refim_Cband.G37line.ms')
+# root path to input data
+datapath = ctsys.resolve('unittest/importuvfits/')
 
-exportuvfits(vis=path, fitsfile='EVLAUV.UVFITS')
-evlapath = ctsys.resolve('EVLAUV.UVFITS')
-carmapath = ctsys.resolve('unittest/importuvfits/mirsplit.UVFITS')
+# VLA data
+vlapath = os.path.join(datapath, '3C219D_CAL.UVFITS')
+
+# EVLA data
+mspath = os.path.join(datapath, 'refim_Cband.G37line.ms')
+evlapath = 'EVLAUV.UVFITS'
+exportuvfits(vis=mspath, fitsfile=evlapath)
+
+# CARMA data
+carmapath = os.path.join(datapath, 'mirsplit.UVFITS')
+
+# VLA old data
+planets = os.path.join(datapath, 'planets_6cm.uvfits')
 
 logpath = casalog.logfile()
 
+
 class importuvfits_test(unittest.TestCase):
-    # 06/13/2010: This seemed to be the only MS in the regression repo
-    # that is a good test of padwithflag.
-    inpms = 'cvel/input/ANTEN_sort_hann_for_cvel_reg.ms'
-
-    origms = 'start.ms'  # Just a copy of inpms
-    fitsfile = 'hanningsmoothed.UVF'
-    msfromfits = 'end.ms'
-
-    records = {}
-    need_to_initialize = True  # Do once, at start.
-    do_teardown = False  # Do once, after initializing and filling records.
-
-    # Its value here should not really matter.
-
     def setUp(self):
         pass
 
@@ -89,13 +85,8 @@ class importuvfits_test(unittest.TestCase):
             shutil.rmtree('kf.ms')
         if os.path.exists('xyz.uvfits'):
             os.remove('xyz.uvfits')
-
-        if self.do_teardown:
-            self.qa.done( )
-            shutil.rmtree(self.origms)
-            shutil.rmtree(self.msfromfits)
-            os.remove(self.fitsfile)
-            self.do_teardown = False
+        if os.path.exists('planets.ms'):
+            shutil.rmtree('planets.ms')
 
     @classmethod
     def tearDownClass(cls):
@@ -237,7 +228,7 @@ class importuvfits_test(unittest.TestCase):
     # Merged test cases from test_importuvfits
     def test_receptor_angle(self):
         """CAS-7081: Test receptor angle is preserved"""
-        msname = os.path.join(mergedDataRoot, "uvfits_test.ms")
+        msname = os.path.join(datapath, "uvfits_test.ms")
         self.assertTrue(ms.open(msname), "Input dataset not found")
         uvfits = "xyz.uvfits"
         self.assertTrue(ms.tofits(uvfits), "Failed to write uvfits")
@@ -253,6 +244,21 @@ class importuvfits_test(unittest.TestCase):
         got = tb.getcol(rec_ang)
         tb.done()
         self.assertTrue(np.max(np.abs(got-expec)) < 1e-7, "Receptor angles not preserved")
+
+
+    def test_rotation_of_vla_ant_positions(self):
+        """
+        CAS-11726 verify vla location tolerance is large enough to accomodate older
+        uvfits files
+        """
+        msname = 'planets.ms'
+        importuvfits(fitsfile=planets, vis=msname)
+        tb.open(f'{msname}/ANTENNA')
+        got = tb.getcol('POSITION')[:, 0]
+        tb.done()
+        expec = [-1601709.98866227, -5042006.97876218,  3554602.33317189]
+        self.assertTrue(np.allclose(got, expec), 'incorrect antenna posiitons')
+
 
 if __name__ == '__main__':
     unittest.main()
