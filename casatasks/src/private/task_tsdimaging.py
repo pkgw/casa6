@@ -746,15 +746,31 @@ def get_brightness_unit_from_ms(msname):
 
 @sdutil.sdtask_decorator
 def tsdimaging(
-        infiles, # Input data: list of MeasurementSets
-        outfile, overwrite, # Output data: images path prefix, overwrite control
-        field, spw, antenna, scan, intent, timerange, # Input data selection
-        mode, nchan, start, width, veltype,
-        specmode, outframe,
-        gridfunction, convsupport, truncate, gwidth, jwidth,
+        # Input data: list of MeasurementSets
+        infiles,
+        # Output data: CASA images: their path prefix, overwrite control
+        outfile, overwrite,
+        # Select data from input MeasurementSets, by
+        field, spw, antenna, scan, intent, timerange,
+        # Output images definition: frequency axis
+        outframe, # velocity frame
+        mode, nchan, start, width, veltype, # gridding type
+        specmode, # Doppler handling
+        # Output images definition: spatial axes
+        pointingcolumn, convertfirst,
+        projection,
         imsize, cell, phasecenter,
-        projection, pointingcolumn, convertfirst,
-        restfreq, stokes, minweight, brightnessunit, clipminmax):
+        # Output images definition: stokes axis
+        stokes,
+        # Gridder parameters
+        gridfunction, convsupport, truncate, gwidth, jwidth,
+        clipminmax,
+        # Single-dish image: mask control
+        minweight,
+        # Single-dish image: metadata
+        brightnessunit,
+        restfreq # rest frequency to assign to image
+    ):
 
     origin = 'tsdimaging'
 
