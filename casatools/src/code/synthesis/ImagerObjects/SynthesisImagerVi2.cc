@@ -2651,6 +2651,7 @@ void SynthesisImagerVi2::unlockMSs()
 #ifndef USE_HPG
         throw(AipsError("Code has not been built with gpu libraries"));
 #else
+        cerr << "DOING HPG" << endl;
         visResampler = new refim::AWVisResamplerHPG(false);
         visResampler->setModelImage("");
 #endif
