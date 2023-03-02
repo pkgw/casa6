@@ -650,9 +650,9 @@ void KJones::setApply(const Record& apply) {
 
   // Extract per-spw ref Freq for phase(delay) calculation
   //  from the CalTable
-  MSSpectralWindow msSpw(ct_->spectralWindow());
-  MSSpWindowColumns msCol(msSpw);
-  Int nCalSpws(msSpw.nrow());
+  MSSpectralWindow ctSpw(ct_->spectralWindow());
+  MSSpWindowColumns ctSpwCol(ctSpw);
+  Int nCalSpws(ctSpw.nrow());
 
   String ctvers=ct_->CASAvers();
   if (ctvers==String("Unknown") ||    // pre-5.3.0-80 (no version recorded in table)
@@ -664,7 +664,7 @@ void KJones::setApply(const Record& apply) {
       ctvers==String("5.3.0-105") ||
       ctvers==String("5.3.0-106") ) {
     // Old-fashioned; use spw edge freq
-    msCol.refFrequency().getColumn(KrefFreqs_,true);
+    ctSpwCol.refFrequency().getColumn(KrefFreqs_,true);
     if (typeName()!=String("KMBD Jones") &&
 	typeName()!=String("KAntPos Jones") )
       logSink() << LogIO::WARN 
@@ -676,7 +676,7 @@ void KJones::setApply(const Record& apply) {
     Vector<Double> chanfreq;
     KrefFreqs_.resize(nSpw()); KrefFreqs_.set(0.0);
     for (Int ispw=0;ispw<nCalSpws;++ispw) {
-      msCol.chanFreq().get(ispw,chanfreq,true);  // reshape, if nec.
+      ctSpwCol.chanFreq().get(ispw,chanfreq,true);  // reshape, if nec.
       Int nch=chanfreq.nelements();
       KrefFreqs_(ispw)=chanfreq(nch/2);
     }
