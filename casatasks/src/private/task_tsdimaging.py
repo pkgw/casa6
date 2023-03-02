@@ -745,18 +745,46 @@ def get_brightness_unit_from_ms(msname):
 
 
 @sdutil.sdtask_decorator
-def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, timerange, mode,
-               nchan, start, width, veltype,
-               specmode, outframe,
-               gridfunction, convsupport, truncate, gwidth, jwidth, imsize, cell, phasecenter,
-               projection, pointingcolumn, convertfirst,
-               restfreq, stokes, minweight, brightnessunit, clipminmax):
+def tsdimaging(
+        infiles, # Input data: list of MeasurementSets
+        outfile, overwrite, # Output data: images path prefix, overwrite control
+        field, spw, antenna, scan, intent, timerange, # Input data selection
+        mode, nchan, start, width, veltype,
+        specmode, outframe,
+        gridfunction, convsupport, truncate, gwidth, jwidth,
+        imsize, cell, phasecenter,
+        projection, pointingcolumn, convertfirst,
+        restfreq, stokes, minweight, brightnessunit, clipminmax):
 
     origin = 'tsdimaging'
-    imager = None
 
     try: # Create the Single-Dish Image
-        if True: # Tweak input parameters
+        if True: # Check and tweak input parameters
+            if True: # Handle brightnessunit parameter
+                # CAS-11503
+                image_unit = brightnessunit.lower().capitalize()
+                if not image_unit in ['', 'K', 'Jy/beam']:
+                    raise ValueError(f"Invalid brightness unit: {brightnessunit}")
+
+            if True: # handle outfile and overwrite parameters
+                output_path_prefix = outfile.rstrip('/')
+                singledish_image_path = output_path_prefix + image_suffix
+                if os.path.exists(singledish_image_path):
+                    if overwrite == False:
+                        raise RuntimeError(
+                                f'Output file exists: \'{singledish_image_path}\''
+                              )
+                    else:
+                        # delete existing images
+                        casalog.post(f'Removing \'{singledish_image_path}\'')
+                        _remove_image(singledish_image_path)
+                        assert not os.path.exists(singledish_image_path)
+                        for _suffix in associate_suffixes:
+                            path_to_remove = output_path_prefix + _suffix
+                            casalog.post(f'Removing \'{path_to_remove}\'')
+                            _remove_image(path_to_remove)
+                            assert not os.path.exists(path_to_remove)
+
             if True: # if spw starts with ':', add '*' at the beginning
                 if isinstance(spw, str):
                     _spw = '*' + spw if spw.startswith(':') else spw
@@ -775,25 +803,6 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
                     baseline = antenna_to_baseline(antenna)
                 else:
                     baseline = [antenna_to_baseline(a) for a in antenna]
-
-            if True: # handle outfile and overwrite parameter
-                output_path_prefix = outfile.rstrip('/')
-                singledish_image_path = output_path_prefix + image_suffix
-                if os.path.exists(singledish_image_path):
-                    if overwrite == False:
-                        raise RuntimeError(
-                                f'Output file exists: \'{singledish_image_path}\''
-                              )
-                    else:
-                        # delete existing images
-                        casalog.post(f'Removing \'{singledish_image_path}\'')
-                        _remove_image(singledish_image_path)
-                        assert not os.path.exists(singledish_image_path)
-                        for _suffix in associate_suffixes:
-                            path_to_remove = output_path_prefix + _suffix
-                            casalog.post(f'Removing \'{path_to_remove}\'')
-                            _remove_image(path_to_remove)
-                            assert not os.path.exists(path_to_remove)
 
             if True: # handle image spectral axis parameters
                 imnchan, imstart, imwidth = _configure_spectral_axis(
@@ -890,11 +899,6 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
                 normtype='flatsky',
                 pblimit=pblimit
             )
-
-        if True: # Handle brightnessunit (CAS-11503)
-            image_unit = brightnessunit.lower().capitalize()
-            if not image_unit in ['', 'K', 'Jy/beam']:
-                raise ValueError(f"Invalid brightness unit: {brightnessunit}")
 
         if True: # Construct the PySynthesisImager object, with all input parameters
             casalog.post('*** Creating imager object ***', origin=origin)
