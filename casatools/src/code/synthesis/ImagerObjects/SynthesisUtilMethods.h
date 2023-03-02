@@ -135,6 +135,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     static casacore::Bool fitPsfBeam(const casacore::String& imagename="", const casacore::Int nterms=1, const casacore::Float psfcutoff=0.35);
 
+    static casacore::Bool taylorCoeffsToCube(const casacore::String& cubename="",const casacore::String& mtname="",  const casacore::Int nterms=1, const casacore::String& reffreq="");
+    static casacore::Bool cubeToTaylorSum(const casacore::String& cubename="",const casacore::String& mtname="",  const casacore::Int nterms=1, const casacore::String& reffreq="", const casacore::Int imtype=0);
+    static casacore::Bool removeFreqDepPB(const casacore::String& cubename="", const casacore::String& mtname="", const casacore::Float pblimit=0.2);
+    static casacore::Bool applyFreqDepPB(const casacore::String& cubename="", const casacore::String& mtname="", const casacore::Float pblimit=0.2);
+
     static void getResource(casacore::String label="", casacore::String fname="");
     
     // return comprehensible direction string from given MDirection object

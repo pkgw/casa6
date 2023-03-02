@@ -475,6 +475,114 @@ siu.cubedatapartition(selprs=pars, npart=20, fstart=&quot;1.412787GHz&quot;, fen
 </method>
 
 
+  <method name="taylor_coeffs_to_cube" type="function">
+   <shortdescription>Convert Taylor-coefficient images to a Cube</shortdescription>
+
+<description>
+</description>
+<input>
+     <param name="cubename" type="string">
+     <description>Cube Image Name prefix</description>
+     <value/>
+     </param>
+     <param name="mtname" type="string">
+     <description>Multi-Term Image Name Prefix</description>
+     <value/>
+     </param>
+     <param name="nterms" type="int">
+     <description>Single or Multi-Term (to pick naming conventions)</description>
+     <value>2</value>
+     </param>
+     <param name="reffreq" type="string">
+     <description>Reference Frequency to use for the Taylor expansion</description>
+     <value/>
+     </param>
+
+</input>
+<returns type="bool"/>
+</method>
+
+  <method name="cube_to_taylor_sum" type="function">
+   <shortdescription>Convert Cube images to Taylor Weighted averages across frequency</shortdescription>
+
+<description>
+</description>
+<input>
+     <param name="cubename" type="string">
+     <description>Cube Image Name prefix</description>
+     <value/>
+     </param>
+     <param name="mtname" type="string">
+     <description>Multi-Term Image Name Prefix</description>
+     <value/>
+     </param>
+     <param name="nterms" type="int">
+     <description>Single or Multi-Term (to pick naming conventions)</description>
+     <value>2</value>
+     </param>
+     <param name="reffreq" type="string">
+     <description>Reference Frequency to use for the Taylor expansion</description>
+     <value/>
+     </param>
+     <param name="imtype" type="int">
+     <description>0 : Collapse the PSF cube to 2nterms-1 images. 1 : Collapse the residual cube to nterms images. 2 : Collapse the pb cube to a single .tt0 image</description>
+     <value>0</value>
+     </param>
+
+</input>
+<returns type="bool"/>
+</method>
+
+
+  <method name="remove_freq_dep_pb" type="function">
+   <shortdescription>Divide by the frequency dependent PB and multiply by an avg PB</shortdescription>
+
+<description>
+</description>
+<input>
+     <param name="cubename" type="string">
+     <description>Cube Image Name prefix</description>
+     <value/>
+     </param>
+     <param name="mtname" type="string">
+     <description>mt-prefix for average PB to apply after removing the frequency dependent PB</description>
+     <value/>
+     </param>
+     <param name="pblimit" type="float">
+     <description>pblimit</description>
+     <value>0.2</value>
+     </param>
+
+</input>
+<returns type="bool"/>
+</method>
+
+  <method name="apply_freq_dep_pb" type="function">
+   <shortdescription>Divide by the avgPB and multiply by the frequency dependent PB</shortdescription>
+
+<description>
+</description>
+<input>
+     <param name="cubename" type="string">
+     <description>Cube Image Name prefix</description>
+     <value/>
+     </param>
+     <param name="mtname" type="string">
+     <description>mt-prefix for average PB to remove before applying the frequency dependent PB</description>
+     <value/>
+     </param>
+     <param name="pblimit" type="float">
+     <description>pblimit</description>
+     <value>0.2</value>
+     </param>
+
+</input>
+<returns type="bool"/>
+</method>
+
+
+
+
 
    <method name="done" type="function">
    <shortdescription>Close the tool</shortdescription>

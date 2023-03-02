@@ -240,12 +240,14 @@ class SIImageStore
   casacore::Bool intersectComplexImage(const casacore::String& inputImage);
   static casacore::Bool copyMask(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >inimage, casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >outimage);
   static void removeMask(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >im);
-protected:
+
+
   std::shared_ptr<casacore::ImageInterface<casacore::Float> > makeSubImage(const casacore::Int facet, const casacore::Int nfacets,
 						  const casacore::Int chan, const casacore::Int nchanchunks,
 						  const casacore::Int pol, const casacore::Int npolchunks,
 						  casacore::ImageInterface<casacore::Float>& image);
 
+protected:
   casacore::Double memoryBeforeLattice();
   casacore::IPosition tileShape();
 
