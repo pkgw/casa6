@@ -395,19 +395,19 @@ void ImageProfileFitter::setPolyOrder(Int p) {
 }
 
 void ImageProfileFitter::setGoodAmpRange(const Double minv, const Double maxv) {
-    _goodAmpRange.set(
+    _goodAmpRange.reset(
         new std::pair<Double, Double>(min(minv, maxv), max(minv, maxv))
     );
 }
 
 void ImageProfileFitter::setGoodCenterRange(const Double minv, const Double maxv) {
-    _goodCenterRange.set(
+    _goodCenterRange.reset(
         new std::pair<Double, Double>(min(minv, maxv), max(minv, maxv))
     );
 }
 
 void ImageProfileFitter::setGoodFWHMRange(const Double minv, const Double maxv) {
-    _goodFWHMRange.set(
+    _goodFWHMRange.reset(
         new std::pair<Double, Double>(min(minv, maxv), max(minv, maxv))
     );
 }
@@ -813,9 +813,9 @@ void ImageProfileFitter::_loopOverFits(
             }
         }
     }
-    PtrHolder<const PolynomialSpectralElement> polyEl;
+    std::unique_ptr<const PolynomialSpectralElement> polyEl;
     if (_polyOrder >= 0) {
-        polyEl.set(new PolynomialSpectralElement(Vector<Double>(_polyOrder + 1, 0)));
+        polyEl.reset(new PolynomialSpectralElement(Vector<Double>(_polyOrder + 1, 0)));
         if (newEstimates.nelements() > 0) {
             newEstimates.add(*polyEl);
         }
@@ -939,7 +939,7 @@ void ImageProfileFitter::_updateModelAndResidual(
 
 Bool ImageProfileFitter::_setFitterElements(
     ImageFit1D<Float>& fitter, SpectralList& newEstimates,
-    const PtrHolder<const PolynomialSpectralElement>& polyEl,
+    const std::unique_ptr<const PolynomialSpectralElement>& polyEl,
     const std::vector<IPosition>& goodPos,
     const IPosition& fitterShape, const IPosition& curPos,
     uInt nOrigComps
@@ -969,7 +969,7 @@ Bool ImageProfileFitter::_setFitterElements(
                 _haveWarnedAboutGuessingGaussians = True;
             }
         }
-        if (polyEl.ptr()) {
+        if (polyEl.get()) {
             fitter.addElement(*polyEl);
         }
         else {

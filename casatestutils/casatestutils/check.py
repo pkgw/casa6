@@ -11,7 +11,7 @@ class Check(object):
 
     def check_plotfile(self, plotfileName, min_size, max_size=None):
         '''
-        Check if plotfile generated is cprrect size
+        Check if plotfile generated is correct size
             plotfileName --> Name of plotted Image
             min_size -- > Min Size of image
             max_size --> Max Size of image

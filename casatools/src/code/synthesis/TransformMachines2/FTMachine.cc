@@ -990,6 +990,7 @@ using namespace casa::vi;
        (vb.nChannels()==1) || 
        (freqInterpMethod_p== InterpolateArray1D<Double, Complex>::nearestNeighbour) ){
         origdata->reference(data);
+        interpVisFreq_p=visFreq;
         return false;
       }
   

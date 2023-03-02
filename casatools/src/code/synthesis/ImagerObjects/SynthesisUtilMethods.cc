@@ -2025,6 +2025,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     if( imsize.nelements() != 2 ){ err += "imsize must be a vector of 2 Ints\n"; }
     if( cellsize.nelements() != 2 ) { err += "cellsize must be a vector of 2 Quantities\n"; }
+    if( cellsize[0].getValue() == 0.0 || cellsize[1].getValue() == 0.0 ) {
+        err += "cellsize must be nonzero\n";
+    }
 
     //// default is nt=2 but deconvolver != mtmfs by default.
     //    if( nchan>1 and nTaylorTerms>1 )
@@ -4127,6 +4130,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
               err+= "noRequireSumwt must be a bool";
             }
           }
+        if( inrec.isDefined("fullsummary") )
+          {
+            if (inrec.dataType("fullsummary")==TpBool) {
+              err+= readVal(inrec, String("fullsummary"), fullsummary);
+            }
+            else {
+              err+= "fullsummary must be a bool";
+            }
+          }
         if( inrec.isDefined("restoringbeam") )     
 	  {
 	    String errinfo("");
@@ -4312,6 +4324,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     decpar.define("interactive",interactive);
     decpar.define("nsigma",nsigma);
     decpar.define("noRequireSumwt",noRequireSumwt);
+    decpar.define("fullsummary",fullsummary);
 
     return decpar;
   }
