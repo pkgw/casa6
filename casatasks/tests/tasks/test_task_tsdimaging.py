@@ -754,8 +754,7 @@ class sdimaging_test0(sdimaging_unittest_base):
     def test013(self):
         """Test013: Bad cell size."""
         self.task_param['cell'] = [0., 0.]
-        msg = 'Error in building Coordinate System and Image Shape : ' + \
-              'wcs wcsset_error: Linear transformation matrix is singular'
+        msg = 'Invalid Image Parameter set : cellsize must be nonzero'
         self.run_exception_case(self.task_param, msg)
 
     def test014(self):
@@ -2767,7 +2766,7 @@ class sdimaging_test_flag(sdimaging_unittest_base):
         with table_manager(file) as tb:
             val = tb.getcell(colname, 0)
 
-        boolean_types = (bool, numpy.bool, numpy.bool_)
+        boolean_types = (bool, numpy.bool_)
         for i in range(x_range[0], x_range[1]):
             for j in range(y_range[0], y_range[1]):
                 for k in range(f_range[0], f_range[1]):

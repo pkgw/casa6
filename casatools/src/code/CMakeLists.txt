@@ -89,7 +89,7 @@ add_definitions(-DUSE_GRPC)
 find_package(GSL REQUIRED)
 
 # LIBXML dependecy
-pkg_check_modules(LibXML++ REQUIRED IMPORTED_TARGET libxml++-2.6)
+pkg_check_modules(LibXML REQUIRED IMPORTED_TARGET libxml-2.0)
 
 # LIBXSLT dependecy
 pkg_check_modules(XSLT REQUIRED IMPORTED_TARGET libxslt)

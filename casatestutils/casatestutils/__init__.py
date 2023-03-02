@@ -10,7 +10,6 @@ import sys
 import time
 from functools import wraps
 import fnmatch
-import logging
 import filecmp
 import unittest
 import pickle
@@ -19,9 +18,7 @@ import operator
 import subprocess
 import numpy
 
-
-_casa5 = False
-_casa6 = False
+_casa6 = True
 _importmpi = False
 __bypass_parallel_processing = 0
 
@@ -32,48 +29,16 @@ except NameError:
     ModuleNotFoundError = ImportError
 
 def import_casamods():
+    import casatools
     try:
-        # CASA 6
-        logging.debug("Importing CASAtools")
-        import casatools
-        logging.debug("Importing CASAtasks")
-        #try:
-        #    import casatasks
-        #    from casatasks import casalog
-        #except (ImportError, ModuleNotFoundError):
-        #    pass
+        from casampi.MPIEnvironment import MPIEnvironment
+        _importmpi = True
+        if not MPIEnvironment.is_mpi_enabled:
+            __bypass_parallel_processing = 1
+    except ImportError:
+        print("MPIEnvironment not Enabled")
 
-        try:
-            from casampi.MPIEnvironment import MPIEnvironment
-            _importmpi = True
-            if not MPIEnvironment.is_mpi_enabled:
-                __bypass_parallel_processing = 1
-        except ImportError:
-            print("MPIEnvironment not Enabled")
-
-        _casa6 = True
-
-    except (ImportError, ModuleNotFoundError):
-        # CASA 5
-        logging.debug("Import casa6 errors. Trying casa5...")
-        from __main__ import default
-        from taskinit import tbtool, mstool, iatool
-        from casa_stack_manip import stack_find, find_casa
-
-        try:
-            from mpi4casa.MPIEnvironment import MPIEnvironment
-            _importmpi = True
-            if not MPIEnvironment.is_mpi_enabled:
-                __bypass_parallel_processing = 1
-        except ImportError:
-            print("MPIEnvironment not Enabled")
-
-        casa = find_casa()
-        if casa.has_key('state') and casa['state'].has_key('init_version') and casa['state']['init_version'] > 0:
-            casaglobals=True
-            casac = stack_find("casac")
-            #casalog = stack_find("casalog")
-        _casa5 = True
+    _casa6 = True
 
 _casa6tools = set([
     "agentflagger", "atcafiller", "atmosphere", "calanalysis", "calibrater", "coercetype", "componentlist", "config", "constants", "coordsys", "ctuser", "functional", "image",
@@ -88,7 +53,7 @@ _casa6tasks = set([
     "gencal", "hanningsmooth", "imcollapse", "imcontsub", "imdev", "imfit", "imhead", "imhistory", "immath", "immoments", "impbcor", "importasap", "importasdm",
     "importatca", "importfits", "importfitsidi", "importgmrt", "importmiriad", "importnro", "importuvfits", "importvla", "impv", "imrebin", "imreframe",
     "imregrid", "imsmooth", "imstat", "imsubimage", "imtrans", "imval", "initweights", "listcal", "listfits", "listhistory", "listobs", "listpartition",
-    "listsdm", "listvis", "makemask", "mstransform", "partition", "polcal", 'polfromgain', "predictcomp", "rerefant", "rmfit", "rmtables", "sdbaseline", "sdcal",
+    "listsdm", "listvis", "makemask", "mstransform", "partition", "polcal", "polfromgain", "predictcomp", "rerefant", "rmfit", "rmtables", "sdbaseline", "sdcal",
     "sdfit", "sdfixscan", "sdgaincal", "sdimaging", "sdsmooth", "setjy", "simalma", "simanalyze", "simobserve", "slsearch", "smoothcal", "specfit",
     "specflux", "specsmooth", "splattotable", "split", "spxfit", "statwt", "tclean", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat", "vishead", "visstat", "widebandpbcor","deconvolve"])
 
@@ -218,7 +183,7 @@ def to_pickle(input_dict, picklefile):
     pickle_dict = pickle.load(pickle_read)
     # Make sure that the pickle file contains a dictionary
     if type(pickle_dict) != type({}):
-        logging.warning('The pickle file is not a dictionary')
+        print('The pickle file is not a dictionary')
     # Add to the dictionary in the pickle file
     for item in list(input_dict.keys()):
         pickle_dict[item] = input_dict[item]

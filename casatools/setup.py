@@ -40,6 +40,7 @@ from setuptools.command.build_ext import build_ext
 
 from urllib import request
 from shutil import copyfileobj
+from distutils.dir_util import copy_tree
 
 
 casacpp_user_options = [
@@ -115,7 +116,7 @@ class XmlCMakeBuildExt(build_ext):
 
         # XML parsing and binding generation
         # The code is in a jar file with a given version in a well-known URL
-        xml_jar_file = 'xml-casa-assembly-1.72.jar'
+        xml_jar_file = 'xml-casa-assembly-1.76.jar'
         xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
         xml_jar_path = os.path.abspath(os.path.join( 'scripts', 'java', xml_jar_file))
 
@@ -195,6 +196,13 @@ class XmlCMakeBuildExt(build_ext):
         sourcedir="src/tools"
         subprocess.check_call(['cmake', sourcedir] + cmake_args)
         subprocess.check_call(['cmake', '--build', '.'])
+
+        # Copy GCC libs on Macos. 
+        # TODO: Make this work with non-"standard" gcc location
+        if (sys.platform == 'darwin'):
+            gcc_dir = "/opt/local/lib/libgcc/"
+            casac_lib_dir = extdir + "/casatools/__casac__/lib"
+            copy_tree(gcc_dir, casac_lib_dir)
 
         # Collect all the libraries in a private directory and set relative rpaths
         if mod_closure:
