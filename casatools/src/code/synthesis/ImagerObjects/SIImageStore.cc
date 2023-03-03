@@ -1388,47 +1388,17 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
     
   }
 
-
   Double SIImageStore::getPbMax(Int pol,Int chan)
   {
 
     //// Normalize PB to 1 at the location of the maximum (per pol,chan)
     
-    /*
-    CountedPtr<ImageInterface<Float> > subim=makeSubImage(0,1, 
+    CountedPtr<ImageInterface<Float> > subim=makeSubImage(0, 1,
 							  chan, itsImageShape[3],
-							  pol, itsImageShape[2], 
-							  *weight(0) );
+							  pol, itsImageShape[2],
+							  *weight(0));
 
-    //LatticeExprNode le( sqrt(max( *subim )) );
-    //return le.getFloat();
-    LatticeExprNode le(max(*subim));
-    return sqrt(le.getFloat());
-    */
-
-    IPosition wshape = (*weight(0)).shape();
-    Int polsize = wshape[2] / itsImageShape[2];
-    Int polstart = pol * polsize;
-    Int polend = polstart + polsize;
-    Int chansize = wshape[3] / itsImageShape[3];
-    Int chanstart = chan * chansize;
-    Int chanend = chanstart + chansize;
-    Float maxval = (*weight(0)).getAt(IPosition(4, 0, 0, polstart, chanstart));
-
-    for (Int i = 0; i < wshape[0]; ++i) {
-      for (Int j = 0; j < wshape[1]; ++j) {
-        for (Int k = polstart; k < polend; ++k) {
-          for (Int l = chanstart; l < chanend; ++l) {
-            Float val = (*weight(0)).getAt(IPosition(4, i, j, k, l));
-            if (maxval < val) {
-              maxval = val;
-            }
-          }
-        }
-      }
-    }
-
-    return sqrt(maxval);
+    return sqrt(max(subim->get()));
   }
 
   void  SIImageStore::makePBFromWeight(const Float pblimit)
@@ -1697,7 +1667,7 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
    }
 
   // Make another for the PSF too.
-  void SIImageStore::divideResidualByWeight(Float pblimit,String normtype) {
+  void SIImageStore::divideResidualByWeight(Float pblimit, String normtype) {
 
     LogIO os(LogOrigin("SIImageStore", "divideResidualByWeight", WHERE));
     LatticeLocker lock1(*(residual()), FileLocker::Write);
@@ -1706,12 +1676,6 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
     Bool didNorm = divideImageByWeightVal(*residual());
 
     if (itsUseWeight) {
-      // new code start --------------------------------------
-      IPosition shape = (*weight()).shape();
-      Int polsize = shape[2] / itsImageShape[2];
-      Int chansize = shape[3] / itsImageShape[3];
-      // new code end ----------------------------------------
-
       for (Int pol = 0; pol < itsImageShape[2]; pol++) {
         for (Int chan = 0; chan < itsImageShape[3]; chan++) {
 	  itsPBScaleFactor = getPbMax(pol, chan);
@@ -1722,68 +1686,6 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
                << " because pb max is zero " << LogIO::POST;
 
           } else {
-            // new code start --------------------------------------
-            Float ratio;
-            Float scalepb = 1.0;
-
-            Int polstart = pol * polsize;
-            Int polend = polstart + polsize;
-            Int chanstart = chan * chansize;
-            Int chanend = chanstart + chansize;
-
-            if (normtype == "flatnoise") {
-              scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
-              for (Int i = 0; i < shape[0]; ++i) {
-                for (Int j = 0; j < shape[1]; ++j) {
-                  for (Int k = polstart; k < polend; ++k) {
-                    for (Int l = chanstart; l < chanend; ++l) {
-                      IPosition pos = IPosition(4, i, j, k, l);
-                      Float wval = (*weight()).getAt(pos);
-                      Float deno = itsPBScaleFactor * sqrt(fabs(wval));
-                      Float rval = (*residual()).getAt(pos);
-                      ratio = (deno > scalepb) ? (rval / deno) : 0.0;
-                      (*residual()).putAt(ratio, pos);
-                    }
-                  }
-                }
-              }
-	    } else if (normtype == "pbsquare") {
-              Float invdeno = 1.0 / (itsPBScaleFactor * itsPBScaleFactor);
-              for (Int i = 0; i < shape[0]; ++i) {
-                for (Int j = 0; j < shape[1]; ++j) {
-                  for (Int k = polstart; k < polend; ++k) {
-                    for (Int l = chanstart; l < chanend; ++l) {
-                      IPosition pos = IPosition(4, i, j, k, l);
-                      Float rval = (*residual()).getAt(pos);
-                      (*residual()).putAt((rval * invdeno), pos);
-		    }
-		  }
-		}
-	      }
-
-	    } else if (normtype == "flatsky") {
-              scalepb = pblimit * pblimit * itsPBScaleFactor * itsPBScaleFactor;
-              for (Int i = 0; i < shape[0]; ++i) {
-                for (Int j = 0; j < shape[1]; ++j) {
-                  for (Int k = polstart; k < polend; ++k) {
-                    for (Int l = chanstart; l < chanend; ++l) {
-                      IPosition pos = IPosition(4, i, j, k, l);
-                      Float deno = (*weight()).getAt(pos);
-                      Float rval = (*residual()).getAt(pos);
-                      ratio = (deno > scalepb) ? (rval / deno) : 0.0;
-                      (*residual()).putAt(ratio, pos);
-		    }
-		  }
-		}
-	      }
-
-
-
-	    }
-            // new code end ----------------------------------------
-
-            // original code start ----------------------------------------
-            /*
             CountedPtr<ImageInterface<Float> > wtsubim = makeSubImage(0, 1,
                                                                       chan, itsImageShape[3],
 								      pol, itsImageShape[2], 
@@ -1795,49 +1697,31 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
             LatticeExpr<Float> ratio;
             Float scalepb = 1.0;
 
+            os << LogIO::NORMAL1
+               << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] "
+               << "Dividing " << itsImageName + String(".residual") << " by ";
+
             if (normtype == "flatnoise") {
-              //LatticeExpr<Float> deno = LatticeExpr<Float>(sqrt(abs(*(wtsubim))) * itsPBScaleFactor);
+              os << "[ sqrt(weightimage) * " << itsPBScaleFactor << " ] ";
+              os << "to get flat noise with unit pb peak." << LogIO::POST;
+
               LatticeExpr<Float> deno =  itsPBScaleFactor * sqrt(abs(LatticeExpr<Float>(*(wtsubim))));
-
-              os << LogIO::NORMAL1;
-              os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
-              os << "Dividing " << itsImageName + String(".residual");
-              os << " by [ sqrt(weightimage) * " << itsPBScaleFactor;
-              os << " ] to get flat noise with unit pb peak." << LogIO::POST;
-
               scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
-              //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
-              //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
-              //ratio = (((*(ressubim)) * mask) / (deno + maskinv));
-              ratio = iif((deno) > scalepb, ((*(ressubim)) / (deno)), 0.0);
+              ratio = iif(deno > scalepb, (*(ressubim) / deno), 0.0);
 
             } else if (normtype == "pbsquare") {
+              os << "[ " << itsPBScaleFactor << " ] ";
+              os << "to get optimal noise with unit pb peak." << LogIO::POST;
+
               Float deno = itsPBScaleFactor * itsPBScaleFactor;
-
-              os << LogIO::NORMAL1;
-              os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
-              os << "Dividing " << itsImageName + String(".residual");
-              os << itsPBScaleFactor;
-              os << " ] to get optimal noise with unit pb peak." << LogIO::POST;
-
-              scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
-              //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
-              //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
-              ratio = ((*(ressubim)) / (deno));
+              ratio = (*(ressubim) / deno);
 
             } else if (normtype == "flatsky") {
+              os << "[ weight ] to get flat sky" << LogIO::POST;
+
               LatticeExpr<Float> deno = LatticeExpr<Float>(*(wtsubim));
-
-              os << LogIO::NORMAL1;
-              os << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] ";
-              os << "Dividing " << itsImageName + String(".residual");
-              os << " by [ weight ] to get flat sky" << LogIO::POST;
-
               scalepb = fabs(pblimit * pblimit) * itsPBScaleFactor * itsPBScaleFactor;
-              //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
-              //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
-              //ratio = (((*(ressubim)) * mask) / (deno + maskinv));
-              ratio = iif((deno) > scalepb, ((*(ressubim)) / (deno)), 0.0);
+              ratio = iif(deno > scalepb, (*(ressubim) / deno), 0.0);
 
             }
 
@@ -1854,8 +1738,6 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
             ressubim->copyData(ratio);
 
             //cout << "Val of residual before|after normalizing at center for pol " << pol << " chan " << chan << " : " << resval << "|" << ressubim->getAt(ip) << " weight : " << wtsubim->getAt(ip) << endl;
-            */
-            // original code end ----------------------------------------
           } // if not zero
         } //chan
       } //pol
