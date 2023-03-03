@@ -45,14 +45,15 @@ const ByteSource& VLAArchiveInput::logicalRecord() const {
 }
 
 Bool VLAArchiveInput::hasData() const {
-  return itsMemIO->length() != 0 ? true: false;
+  MemoryIO& nonconstmemio = const_cast<MemoryIO&>(itsMemIO);
+  return nonconstmemio.length() != 0 ? true: false;
 }
 
 VLAArchiveInput::VLAArchiveInput()
-  :itsMemIO(new casacore::MemoryIO(VLAArchiveInput::BlockSize, VLAArchiveInput::BlockSize)),
-   itsModComp(new casacore::ModcompDataConversion),
-   itsCtrIO(new casacore::ConversionIO(itsModComp, itsMemIO, VLAArchiveInput::BlockSize)),
-   itsRecord(itsCtrIO)
+  :itsMemIO(VLAArchiveInput::BlockSize, VLAArchiveInput::BlockSize),
+   itsModComp(),
+   itsCtrIO(&itsModComp, &itsMemIO, VLAArchiveInput::BlockSize, false),
+   itsRecord(&itsCtrIO)
 {
 }
 // Local Variables: 
