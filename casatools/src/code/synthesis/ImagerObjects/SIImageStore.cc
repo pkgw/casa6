@@ -2770,7 +2770,6 @@ Float SIImageStore :: calcStd(Vector<Float> &vect, Vector<Bool> &flag, Float mea
       {
 	for(Int chan=0; chan<lsumwt.shape()[3]; chan++)
 	  {
-            /*
 	    IPosition pos(4,0,0,pol,chan);
 	    if( lsumwt(pos) != 1.0 )
 	      { 
@@ -2788,40 +2787,6 @@ Float SIImageStore :: calcStd(Vector<Float> &vect, Vector<Bool> &flag, Float mea
 		  }
 		div=True;
 	      }
-	    */
-            // ---new impplementation begin----------------------------------
-            // (1) Float wt = lsumwt(pos);
-            // (2) quadruple loop for target.getAt()
-            // (3)                and for target.putAt()
-            // axis0: 0 to target.shape[0] - 1
-            // axis1: 0 to target.shape[1] - 1
-            // axis2: (pol*(target.shape[2])) to (pol*(target.shape[2])) + lsumwt.shape[2] -1
-            // axis3: (chan*(target.shape[3])) to (chan*(target.shape[3])) + lsumwt.shape[3] -1
-            Float wt = lsumwt(IPosition(4, 0, 0, pol, chan));
-            if (wt != 1.0) {
-              Int polsize = imshape[2] / lsumwt.shape()[2];
-              Int polstart = pol * polsize;
-              Int polend = polstart + polsize;
-              Int chansize = imshape[3] / lsumwt.shape()[3];
-              Int chanstart = chan * chansize;
-              Int chanend = chanstart + chansize;
-              for (Int i = 0; i < imshape[0]; ++i) {
-                for (Int j = 0; j < imshape[1]; ++j) {
-                  for (Int k = polstart; k < polend; ++k) {
-                    for (Int l = chanstart; l < chanend; ++l) {
-                      IPosition pos = IPosition(4, i, j, k, l);
-                      Float val = 0.0;
-                      if (wt > 1e-07) {
-                        val = target.getAt(IPosition(4, i, j, k, l)) / wt;
-		      }
-                      target.putAt(val, pos);
-                    }
-                  }
-                }
-              }
-              div = True;
-	    }
-            // ---new impplementation end------------------------------------
 	  }
       }
 
