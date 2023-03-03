@@ -7,7 +7,7 @@ friend class tablerow;
 casacore::LogIO      *itsLog;
 
 // shared with casac::tablerow
-std::shared_ptr<TableHandle> itsTable;
+std::shared_ptr<casacore::TableProxy> itsTable;
 
 // rows created by this table
 std::list<tablerow*> created_rows;
@@ -21,7 +21,7 @@ void remove_all_tablerows( ) {
 //
 // Private constructor so we can make components on the fly
 //
-table(TableHandle *myTable);
+table(casacore::TableProxy *myTable);
 //
 casacore::TableLock *getLockOptions(casac::record &lockoptions);
 
