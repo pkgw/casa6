@@ -2201,6 +2201,52 @@ blc and trc of the arrays in the column.
 </method>
 
  
+   <method name="getcoliter" type="function">
+   <shortdescription>get an iterator for a specific column</shortdescription>
+
+<description>
+  This function returns an iterator that will allow for retrieval of the elements
+  of one or more table columns (or a subset of the columns).
+</description>
+<input>
+
+     <param name="columnname" type="stringVec">
+     <description>Name of column</description>
+     </param>
+
+     <param name="startrow" type="int">
+     <description>First row to read (default 0)</description>
+     <value>0</value>
+     </param>
+
+     <param name="nrow" type="int">
+     <description>Total number of rows to return (default -1 means till the end)</description>
+     <value>-1</value>
+     </param>
+
+     <param name="rowincr" type="int">
+     <description>Increment in rows to read (default 1)</description>
+     <value>1</value>
+     </param>
+
+     <param name="torecord" type="bool">
+     <description>when more than one column is retrieved use a dictionary to return the value (default False)</description>
+     <value>false</value>
+     </param>
+</input>
+<returns type="pyobj"/>
+<example>
+
+  tb.open(&quot;2018.1.00879.S_tclean.ms&quot;)
+  for i in tb.getcoliter( &quot;DATA&quot;, startrow=0, nrow=30, rowincr=10 ):
+      print(repr(i))
+
+  for i in tb.getcoliter( [ &quot;TIME&quot;, &quot;DATA&quot; ], startrow=0, nrow=30, rowincr=10 ):
+      print(repr(i))
+
+</example>
+</method>
+
    <method name="putcell" type="function">
    <shortdescription>put a specific cell</shortdescription>
    
