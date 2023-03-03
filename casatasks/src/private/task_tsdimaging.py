@@ -448,6 +448,11 @@ def _handle_image_params(imsize, cell, phasecenter,
 
 
 def _calc_pblimit(minweight):
+    """FIXME: what's going on here ?
+
+    If _calc_pblimit is no longer needed,
+    what about getting rid of it ?
+    """
     if minweight == 0.0:
         # set tiny value
         pblimit = 1e-16
