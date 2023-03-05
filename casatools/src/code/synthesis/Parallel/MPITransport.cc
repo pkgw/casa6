@@ -27,6 +27,7 @@
 
 #ifdef HAVE_MPI
 
+#include <memory>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/IO/AipsIO.h>
 #include <casacore/casa/IO/MemoryIO.h>
@@ -37,6 +38,7 @@
 
 #include <mpi.h>
 
+using std::shared_ptr;
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
 
@@ -233,16 +235,16 @@ Int MPITransport::put(const Bool &b){
 
 Int MPITransport::put(const Record &r){
    setDestAndTag(sendTo, myOp);
-   MemoryIO buffer;
-   AipsIO rBuf(&buffer);
+   shared_ptr<MemoryIO> buffer(new MemoryIO);
+   AipsIO rBuf(buffer);
    rBuf.putstart("MPIRecord",1);
    rBuf << r;
    rBuf.putend();
-    uInt bytes2send=rBuf.getpos();
-    //cerr << "Bytes 2 send " << bytes2send << endl;
+   uInt bytes2send=rBuf.getpos();
+   //cerr << "Bytes 2 send " << bytes2send << endl;
    // warning: sstat set but not used!
    Int sstat = MPI_Send((void *)&bytes2send, 1, MPI_UNSIGNED, sendTo, myOp, MPI_COMM_WORLD);
-   sstat = MPI_Send((void *)buffer.getBuffer(), bytes2send, MPI_UNSIGNED_CHAR, sendTo, myOp,
+   sstat = MPI_Send((void *)buffer->getBuffer(), bytes2send, MPI_UNSIGNED_CHAR, sendTo, myOp,
                     MPI_COMM_WORLD);
    (void) sstat; // warning: unused sstat
    return(0);
@@ -465,8 +467,8 @@ Int MPITransport::get(Record &r){
    // Now fill the buffer full of bytes from the record
    std::vector<uChar> buffer(bytesSent);
    MPI_Recv(buffer.data(), bytesSent, MPI_UNSIGNED_CHAR, getFrom, myOp, MPI_COMM_WORLD, &status);
-   MemoryIO nBuf(buffer.data(), bytesSent);
-   AipsIO rBuf(&nBuf);
+   shared_ptr<MemoryIO> nBuf(new MemoryIO(buffer.data(), bytesSent));
+   AipsIO rBuf(nBuf);
    uInt version = rBuf.getstart("MPIRecord");
    (void)version; // warning: unused version
    rBuf >> r;
