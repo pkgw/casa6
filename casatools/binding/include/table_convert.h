@@ -137,7 +137,12 @@ namespace casac {
     PY_NUM_ARRAY( uint16_t, NPY_UINT16 )
     PY_NUM_ARRAY( int32_t, NPY_INT32 )
     PY_NUM_ARRAY( uint32_t, NPY_UINT32 )
-    PY_NUM_ARRAY( int64_t, NPY_INT64 )
+    // With g++ 5.3.1 and -std=c++11, this error occurs:
+    // table_convert.h:229:135: error: no matching function for call to ‘toPy(const casa6core::Array<long long int>)’
+    // where the "Array<long long int>" come from Array<Int64>
+    // Despite the fact that: sizeof(int64_t) == sizeof(long long int) == 8
+    //PY_NUM_ARRAY( int64_t, NPY_INT64 )
+    PY_NUM_ARRAY( casacore::Int64, NPY_INT64 )
     PY_NUM_ARRAY( uint64_t, NPY_UINT64 )
     PY_NUM_ARRAY( float, NPY_FLOAT )
     PY_NUM_ARRAY( double, NPY_DOUBLE )
