@@ -4356,6 +4356,25 @@ class ia_restoringbeam_test(ImageBase):
             )
 
 
+    def set_pa_only(self):
+        """
+        CAS-12599 test setting only the pa for image with existing beam
+        works, leaving major and minor unaltered
+        """
+        ia = self.myia
+        ia.fromshape("", [20, 20])
+        major = qa.quantity('4arcmin')
+        minor = qa.quantity('3arcmin')
+        pa = qa.quantity('0deg')
+        ia.setrestoringbeam(major=major, minor=minor, pa=pa)
+        pa = qa.quantity('20deg')
+        ia.setrestoringbeam(pa=pa)
+        beam = ia.restoringbeam()
+        self.assertEqual(beam['major'], major, 'Incorrect major axis')
+        self.assertEqual(beam['minor'], minor, 'Incorrect minor axis')
+        self.assertEqual(beam['pa'], pa, 'Incorrect position angle')
+
+
 # Tests for image.rotate
 class ia_rotate_test(ImageBase):
 

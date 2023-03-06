@@ -154,7 +154,6 @@ template <class T> void BeamManipulator<T>::set(
 			}
 		}
 		else {
-			casacore::String error;
 			// instantiating this object will do implicit consistency checks
 			// on the passed-in record
 			casacore::GaussianBeam beam = casacore::GaussianBeam::fromRecord(rec);
@@ -172,8 +171,28 @@ template <class T> void BeamManipulator<T>::set(
 	if (bmajor.getValue() == 0 || bminor.getValue() == 0) {
 		casacore::GaussianBeam currentBeam = ii.restoringBeam(channel, polarization);
 		if (! currentBeam.isNull()) {
-			bmajor = major.getValue() == 0 ? currentBeam.getMajor() : major;
-			bminor = minor.getValue() == 0 ? currentBeam.getMinor() : minor;
+            if (major.getValue() == 0) {
+                casacore::LogIO log;
+                log << casacore::LogOrigin("BeamManipulator", __func__)
+                    << casacore::LogIO::WARN << "Specified major axis length "
+                    << "is 0, existing beam major axis will not be modified"
+                    << LogIO::POST;
+                bmajor = currentBeam.getMajor();
+            }
+            else {
+                bmajor = major;
+            }
+            if (minor.getValue() == 0) {
+                casacore::LogIO log;
+                log << casacore::LogOrigin("BeamManipulator", __func__)
+                    << casacore::LogIO::WARN << "Specified minor axis length "
+                    << "is 0, existing beam minor axis will not be modified"
+                    << LogIO::POST;
+                bminor = currentBeam.getMinor();
+            }
+            else {
+                bminor = minor;
+            }
 			bpa = pa.isConform("rad") ? pa : casacore::Quantity(0, "deg");
 		}
 		else {
