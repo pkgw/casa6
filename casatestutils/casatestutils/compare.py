@@ -5,21 +5,11 @@ import os
 import numpy
 import numbers
 import shutil
-try:
-    # CASA 6
-    logging.debug("Importing CASAtools")
-    import casatools
-    _tb = casatools.table()
-    _tb2 = casatools.table()
-    # _casa6 = True
 
-except ImportError:
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying CASA5...")
-    from taskinit import tbtool
-    _tb = tbtool()
-    _tb2 = tbtool()
-    # _casa5 = True
+logging.debug("Importing CASAtools")
+import casatools
+_tb = casatools.table()
+_tb2 = casatools.table()
 
 #ignore_subversion = shutil.ignore_patterns('.svn')
 ################        ##################

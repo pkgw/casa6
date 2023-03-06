@@ -666,9 +666,6 @@ def do_mst(
         __if_do_polaverage(config, ext_config)
 
         # porting from sdpolaverage, but not used
-        __if_do_combinespws(config, ext_config, spw)
-
-        # porting from sdpolaverage, but not used
         if ext_config.get('parse_chanaverage'):
             chanbin = __if_parse_chanaverage(chanbin, config, pdh)
 
@@ -765,12 +762,6 @@ def __if_do_hanning(config, ext_config):
     if ext_config.get('hanning'):
         casalog.post('Apply Hanning smoothing')
         config['hanning'] = True
-
-
-def __if_do_combinespws(config, ext_config, spw):
-    if ext_config.get('do_combinespws'):
-        casalog.post('Combine spws %s into new output spw' % spw)
-        config['combinespws'] = True
 
 
 def __if_do_polaverage(config, ext_config):

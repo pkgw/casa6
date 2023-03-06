@@ -152,6 +152,7 @@ spectrum is
     <param type="string" name="intent" subparam="true"><shortdescription>select data by observation intent, e.g. &quot;OBSERVE_TARGET#ON_SOURCE&quot; (&quot;&quot;=all)</shortdescription><description>select data by observation intent, e.g. &quot;OBSERVE_TARGET#ON_SOURCE&quot; (&quot;&quot;=all)</description>
       
       <value/>
+      <kwarg/>
     </param>
 
     <constraints>
