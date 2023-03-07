@@ -56,14 +56,14 @@ coordsys::coordsys() : _log(new LogIO()), _csys(),
 
 // private constructor for on fly components
   coordsys::coordsys(const CoordinateSystem *inCS) : _log(new LogIO()),
-		_csys(new CoordinateSystem(*inCS)), _imageName("unknown")
+		_csys(std::unique_ptr<casacore::CoordinateSystem>(new CoordinateSystem(*inCS))), _imageName("unknown")
 {}
 
 coordsys::~coordsys() {}
 
 void coordsys::_setup(const String& method) {
-	if (! _csys.ptr()) {
-		_csys.set(new CoordinateSystem());
+	if (! _csys.get()) {
+		_csys = std::unique_ptr<casacore::CoordinateSystem>(new CoordinateSystem());
 		Vector<String> empty(0);
 	    addCoordinate(*_csys, false, false, empty, 0, false);
 
@@ -83,8 +83,8 @@ void coordsys::_setup(const String& method) {
 	    //
 	    _csys->setObsInfo(obsInfo);
 	}
-	if (! _log.ptr()) {
-		_log.set(new LogIO());
+	if (! _log.get()) {
+		_log = std::unique_ptr<casacore::LogIO>(new LogIO());
 	}
 	*_log << LogOrigin("coordsys", method);
 	if (_imageName.empty()) {
@@ -140,7 +140,7 @@ coordsys::newcoordsys(const bool direction, const bool spectral,
   ::casac::coordsys *newCS = 0;
 
   try {
-    _csys.set(new CoordinateSystem());
+    _csys = std::unique_ptr<casacore::CoordinateSystem>(new CoordinateSystem());
     _setup(__func__);
     Vector<String> Stokes;
     if (stokes.size()==1) { // just a string
@@ -174,7 +174,7 @@ coordsys::newcoordsys(const bool direction, const bool spectral,
     //
     _csys->setObsInfo(obsInfo);
 
-    newCS = new ::casac::coordsys(_csys);
+    newCS = new ::casac::coordsys(_csys.get( ));
   } catch (const AipsError& x) {
     *_log << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
   }
@@ -537,8 +537,8 @@ coordsys::copy()
 bool
 coordsys::done()
 {
-	_csys.set(0);
-	_log.set(0);
+	_csys.reset( );
+	_log.reset( );
 	_imageName = "";
 	return true;
 }
@@ -733,7 +733,7 @@ coordsys::fromrecord(const ::casac::record& csys_record)
     	! pCS,
     	"Failed to create a CoordinateSystem from this record"
     );
-    _csys.set(pCS);
+    _csys = std::unique_ptr<casacore::CoordinateSystem>(pCS);
     if (csysRecord->isDefined("parentName")) {
       _imageName = csysRecord->asString("parentName");
     }

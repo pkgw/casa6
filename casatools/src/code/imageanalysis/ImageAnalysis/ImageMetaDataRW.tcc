@@ -1247,7 +1247,7 @@ template <class T> void ImageMetaDataRW<T>::_toHistory(
 
 template <class T> template <class U> String ImageMetaDataRW<T>::_quotify(const U& val) {
     ostringstream oss;
-    DataType x = whatType(&val);
+    DataType x = whatType<U>();
     if (x == TpOther && typeid(ValueHolder) == typeid(val)) {
         x = ((ValueHolder)val).dataType();
     }
