@@ -235,7 +235,7 @@ Int MPITransport::put(const Bool &b){
 
 Int MPITransport::put(const Record &r){
    setDestAndTag(sendTo, myOp);
-   std::shared_ptr<MemoryIO> buffer = std::make_shared<MemoryIO>();
+   auto buffer = std::make_shared<MemoryIO>();
    AipsIO rBuf(buffer);
    rBuf.putstart("MPIRecord",1);
    rBuf << r;
@@ -467,7 +467,7 @@ Int MPITransport::get(Record &r){
    // Now fill the buffer full of bytes from the record
    std::vector<uChar> buffer(bytesSent);
    MPI_Recv(buffer.data(), bytesSent, MPI_UNSIGNED_CHAR, getFrom, myOp, MPI_COMM_WORLD, &status);
-   std::shared_ptr<MemoryIO> nBuf = std::make_shared<MemoryIO>(buffer.data(), bytesSent);
+   auto nBuf = std::make_shared<MemoryIO>(buffer.data(), bytesSent);
    AipsIO rBuf(nBuf);
    uInt version = rBuf.getstart("MPIRecord");
    (void)version; // warning: unused version
