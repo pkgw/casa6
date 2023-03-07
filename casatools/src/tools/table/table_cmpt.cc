@@ -66,9 +66,23 @@ using namespace casac;
 using namespace casacore;
 namespace casac {
 
-table::table()
+table::table(const string &tablename, const record &lockoptions, bool nomodify)
 {
    itsLog = new casacore::LogIO;
+   if ( tablename.size() > 0 ) {
+      Record *tlock = NULL;
+      try {
+         tlock = toRecord(lockoptions);
+         if(nomodify){
+            if(itsTable)close();
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Old) );
+         } else {
+            if(itsTable)close();
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Update) );
+         }
+      } catch (...) { }
+      delete tlock;
+   }
 }
 
 table::table(TableHandle *theTable) : itsTable(theTable)

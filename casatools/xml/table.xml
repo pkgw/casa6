@@ -91,7 +91,17 @@ to use virtual columns as well.
 
 </description>
 <input>
-
+    <param name="tablename" type="string">
+        <value/>
+        <type mustexist="false">path</type>
+    </param>
+    <param name="lockoptions" type="record">
+        <description>locking dictionary to be used : dict keys are 'option', 'interval', 'maxwait'</description>
+        <value/>
+    </param>
+    <param name="nomodify" type="bool">
+        <value>true</value>
+    </param>
 </input>
 <returns type="table"/>
 
