@@ -186,7 +186,6 @@ namespace casac {
         if ( p->total_sent >= p->total_to_return ) {
             /* Raising of standard StopIteration exception with empty value. */
             PyErr_SetNone(PyExc_StopIteration);
-            p->total_sent = 0;
             for ( auto ptr=p->cache->begin( ); ptr != p->cache->end( ); ++ptr )
                 ptr->clear( );
             return NULL;
@@ -217,7 +216,7 @@ namespace casac {
                                         cache_size,
                                         p->incr );
         }
-        
+
         // verify that we were able to fill all column cache values
         if ( ! all_of( p->cache->begin( ), p->cache->end( ),
                        [=](const std::list<casacore::ValueHolder> &l) { return l.size( ) == cache_size; } ) ) {
@@ -230,6 +229,11 @@ namespace casac {
         (p->total_sent)++;
         return result;
     }
+
+    // forward declare rich comparison function because it uses the address of
+    // getcoliter_IterType and getcoliter_IterType includes a pointer to
+    // getcoliter_richcmp
+    static PyObject *getcoliter_richcmp(PyObject *obj1, PyObject *obj2, int op);
 
     // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
     // clean up the memory and references when the iteration object is deleted
@@ -247,35 +251,63 @@ namespace casac {
     // python type spectification for table column iteration
     // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
     static PyTypeObject getcoliter_IterType = {
-        PyObject_HEAD_INIT(NULL)
-        "table._getcoliter_iter",                   /*tp_name*/
-        sizeof(getcoliter_Iter),                    /*tp_basicsize*/
-        0,                                          /*tp_itemsize*/
-        getcoliter_IterDealloc,                     /*tp_dealloc*/
-        0,                                          /*tp_print*/
-        0,                                          /*tp_getattr*/
-        0,                                          /*tp_setattr*/
-        0,                                          /*tp_compare*/
-        0,                                          /*tp_repr*/
-        0,                                          /*tp_as_number*/
-        0,                                          /*tp_as_sequence*/
-        0,                                          /*tp_as_mapping*/
-        0,                                          /*tp_hash */
-        0,                                          /*tp_call*/
-        0,                                          /*tp_str*/
-        PyObject_GenericGetAttr,                    /*tp_getattro*/
-        0,                                          /*tp_setattro*/
-        0,                                          /*tp_as_buffer*/
+        PyObject_HEAD_INIT(&PyType_Type)
+        "table._getcoliter_iter",                   /* tp_name */
+        sizeof(getcoliter_Iter),                    /* tp_basicsize */
+        0,                                          /* tp_itemsize */
+        getcoliter_IterDealloc,                     /* tp_dealloc */
+        0,                                          /* tp_print */
+        0,                                          /* tp_getattr */
+        0,                                          /* tp_setattr */
+        0,                                          /* tp_compare (python2) or tp_reserved (python3) */
+        0,                                          /* tp_repr */
+        0,                                          /* tp_as_number */
+        0,                                          /* tp_as_sequence */
+        0,                                          /* tp_as_mapping */
+        0,                                          /* tp_hash  */
+        0,                                          /* tp_call */
+        0,                                          /* tp_str */
+        PyObject_GenericGetAttr,                    /* tp_getattro */
+        0,                                          /* tp_setattro */
+        0,                                          /* tp_as_buffer */
         Py_TPFLAGS_DEFAULT,                         /* tp_flags: Py_TPFLAGS_HAVE_ITER tells python to
                                                        use tp_iter and tp_iternext fields. */
         "Internal myiter iterator object.",         /* tp_doc */
         0,                                          /* tp_traverse */
         0,                                          /* tp_clear */
-        0,                                          /* tp_richcompare */
+        getcoliter_richcmp,                         /* tp_richcompare */
         0,                                          /* tp_weaklistoffset */
         getcoliter_Iter_iter,                       /* tp_iter: __iter__() method */
         getcoliter_Iter_iternext                    /* tp_iternext: next() method */
     };
+
+    // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
+    // this is called for things like:
+    //
+    //     tb.getcol( 'TIME', 0, 7, 100 ) == tb.getcoliter( 'TIME', 0, 7, 100 )
+    //
+    // where something like a numpy array is compared to this iterator.
+    // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
+    static PyObject *getcoliter_richcmp(PyObject *obj1, PyObject *obj2, int op) {
+        // expect obj1 to be a table column iterator
+        if ( Py_TYPE(obj1) != &getcoliter_IterType )
+            Py_RETURN_NOTIMPLEMENTED;
+
+        // get the next iteration value
+        PyObject *next_object = getcoliter_Iter_iternext(obj1);
+
+        // if we're at the end of the iterator, return NULL
+        // (and assume StopIteration has been set)...
+        if ( next_object == NULL ) { return NULL; }
+
+        // compare the next value against obj2
+        PyObject *result = PyObject_RichCompare( next_object, obj2, op );
+
+        // free the retrieved object
+        Py_DECREF(next_object);
+
+        return result;
+    }
 
     // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
     // table object member function which returns the iterator
