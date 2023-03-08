@@ -9023,38 +9023,38 @@ ia.close()
 <method name="setrestoringbeam" type="function">
     <shortdescription>Set the restoringbeam</shortdescription>
     <input>
-        <param name="major" direction="in" type="any">
+        <param name="major" type="any">
             <any type="variant"/>
             <description>Major axis FWHM, Quantity or float (e.g., 1arcsec).  Default is unset.</description>
             <value>1arcsec</value>
         </param>
-        <param name="minor" direction="in" type="any">
+        <param name="minor" type="any">
             <any type="variant"/>
             <description>Minor axis FWHM, Quantity or float (e.g., 1arcsec). Default is unset.</description>
             <value>1arcsec</value>
         </param>
-        <param name="pa" direction="in" type="any">
+        <param name="pa" type="any">
             <any type="variant"/>
             <description>Position angle, Quantity or float (e.g., '5deg'). Default is unset.</description>
             <value>0deg</value>
         </param>
-        <param name="beam" direction="in" type="record">
+        <param name="beam" type="record">
             <description>The complete restoring beam (output of restoringbeam()).  Default is unset.</description>
             <value/>
         </param>
-        <param name="remove" direction="in" type="bool">
+        <param name="remove" type="bool">
             <description>Delete the restoring beam?</description>
             <value>false</value>
         </param>
-        <param name="log" direction="in" type="bool">
+        <param name="log" type="bool">
             <description>Write new beam values to the logger?</description>
             <value>true</value>
         </param>
-        <param name="channel" direction="in" type="int">
+        <param name="channel" type="int">
             <description>Zero-based channel number for which to set a per plane beam. If the image has a traditional beam, set to less than zero. Default -1.</description>
             <value>-1</value>
         </param>
-        <param name="polarization" direction="in" type="int">
+        <param name="polarization" type="int">
             <description>Zero-based polarization number for which to set a per plane beam. If the image has a traditional beam, set to less than zero. Default -1.</description>
             <value>-1</value>
         </param>
@@ -9125,6 +9125,13 @@ value. Similarly, in the case where an image has multiple polarizations, the
 beams associated with all polarizations for a given spectral channel can be
 modified to the same beam by setting channel equal to the desired spectral
 channel number and by setting polarization to a negative value.
+
+In the case where a single beam (either global or a single beam in a set of
+per-plane beams) is specified and the corresponding beam already exists,
+providing a value of zero for the major and/or minor axis will result in that
+axis not being modified. This functionality provides a means to easily change
+only the position angle of the given beam while leaving the major and minor
+axes unchanged.
 
 A beam or set of beams can be copied from another image using the imagename
 parameter to specify that image's name. If both the current image and specified
