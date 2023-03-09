@@ -250,6 +250,14 @@ void SDGrid::init() {
         // Set up image cache needed for gridding.
         if (imageCache) delete imageCache;
         imageCache = 0;
+
+        // Initialize weight image
+        if (wImage) delete wImage;
+        wImage = 0;
+        wImage = new TempImage<Float>(
+            image->shape(),
+            image->coordinates()
+        );
     }
 
     if (true) { // Compute Convolution Function
@@ -394,13 +402,6 @@ void SDGrid::init() {
             logIO_p << "Unknown convolution function: " << convType
                     << LogIO::EXCEPTION;
         }
-    }
-
-    if (true) { // Initialize weight image
-        if (wImage) delete wImage;
-
-        wImage = 0;
-        wImage = new TempImage<Float>(image->shape(), image->coordinates());
     }
 
 }
