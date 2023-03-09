@@ -129,7 +129,8 @@ namespace casac {
                 } catch (...) {
                     Py_DECREF(result);
                     PyGILState_Release(state);
-                    throw casacore::AipsError( "failed to set tuple values" );
+                    PyErr_SetString(PyExc_RuntimeError, "failed to set tuple values" );
+                    return NULL;
                 }
                 PyTuple_SetItem( result, index++, pyval );
             }
@@ -166,7 +167,8 @@ namespace casac {
                 } catch (...) {
                     Py_DECREF(result);
                     PyGILState_Release(state);
-                    throw casacore::AipsError( "failed to set record values" );
+                    PyErr_SetString(PyExc_RuntimeError, "failed to set record values" );
+                    return NULL;
                 }
                 PyDict_SetItemString( result, kptr->c_str( ), value );
                 Py_DECREF( value );
@@ -221,12 +223,13 @@ namespace casac {
         if ( ! all_of( p->cache->begin( ), p->cache->end( ),
                        [=](const std::list<casacore::ValueHolder> &l) { return l.size( ) == cache_size; } ) ) {
             p->total_to_return = p->total_sent;
-            throw casacore::AipsError( "loading values from table failed" );
+            PyErr_SetString(PyExc_RuntimeError, "loading values from table failed" );
+            return NULL;
         }
 
         // return the result as a tuple or a record as indicated
         auto result = p->to_record ? generate_record( *p->column_names, *p->cache ) : generate_tuple( *p->cache );
-        (p->total_sent)++;
+        if ( result ) (p->total_sent)++;
         return result;
     }
 
@@ -316,8 +319,10 @@ namespace casac {
 
         // if the user has not opened the table, this function can still be called
         // but the itsTable TableProxy member will be NULL
-        if ( itsTable == nullptr )
-            throw casacore::AipsError("no opened table available" );
+        if ( itsTable == nullptr ) {
+            PyErr_SetString(PyExc_RuntimeError, "no opened table available" );
+            return NULL;
+        }
 
         // the GIL must be locked to allocate the new object
         getcoliter_Iter *p = 0;
@@ -330,12 +335,16 @@ namespace casac {
                 PyGILState_Release(state);
             }
         }
-        if ( ! p ) throw casacore::AipsError( "could not create iterator" );
+        if ( ! p ) {
+            PyErr_SetString(PyExc_RuntimeError, "could not create iterator");
+            return NULL;
+        }
 
         // initialize the iterator object using the type specification
         if ( ! PyObject_Init((PyObject *)p, &getcoliter_IterType)) {
             Py_DECREF(p);
-            throw casacore::AipsError( "could not create iterator" );
+            PyErr_SetString(PyExc_RuntimeError, "could not create iterator");
+            return NULL;
         }
 
         // because the struct is malloc'ed the objects it contains
