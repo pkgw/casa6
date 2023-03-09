@@ -59,6 +59,7 @@ namespace casac {
         rownr_t start_row;                   // row where iteration should start
         rownr_t total_to_return;             // the number of rows which shold be returned
         rownr_t total_sent;                  // how many rows have already been sent
+        bool iteration_overrun;              // repeated calls to get iteration elements adds error message
         std::shared_ptr<TableHandle>  table; // TableHandle for access to the casacore Table
 
         //--- lists resize themselves (apparently) so lists cannot be store directly ---
@@ -187,7 +188,9 @@ namespace casac {
         getcoliter_Iter *p = (getcoliter_Iter *)self;
         if ( p->total_sent >= p->total_to_return ) {
             /* Raising of standard StopIteration exception with empty value. */
-            PyErr_SetNone(PyExc_StopIteration);
+            if ( p->iteration_overrun )  PyErr_SetString( PyExc_StopIteration, "attempted iteration beyond the end of iterator" );
+            else PyErr_SetNone( PyExc_StopIteration );
+            p->iteration_overrun = true;
             for ( auto ptr=p->cache->begin( ); ptr != p->cache->end( ); ++ptr )
                 ptr->clear( );
             return NULL;
@@ -371,6 +374,7 @@ namespace casac {
         p->start_row = _startrow < 0 ? 0 : _startrow;
         p->total_to_return = _nrow < 0 ? itsTable->nrows( ) : _nrow;
         p->total_sent = 0;
+        p->iteration_overrun = false;
         p->incr = _rowincr < 0 ? 1 : _rowincr;
         p->to_record = _torecord;
 
