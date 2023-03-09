@@ -262,7 +262,7 @@ void SDGrid::init() {
 
     if (true) { // Compute Convolution Function
         convType = downcase(convType);
-        logIO() << LogIO::DEBUG1
+        logIO() << LogIO::NORMAL2
                 << "Convolution function: " << convType
                 << LogIO::POST;
 
@@ -271,7 +271,7 @@ void SDGrid::init() {
         }
         else if (convType == "box") { // Box Function
             convSupport = (userSetSupport_p >= 0) ? userSetSupport_p : 0;
-            logIO() << LogIO::DEBUG1
+            logIO() << LogIO::NORMAL2
                     << "Support: " << convSupport << " pixels"
                     << LogIO::POST;
 
@@ -284,13 +284,14 @@ void SDGrid::init() {
             }
         }
         else if (convType == "sf") { // Prolate Spheroidal Wave Function
-            convSupport=(userSetSupport_p >= 0) ? userSetSupport_p : 3;
-            logIO() << LogIO::DEBUG1
+            convSupport = (userSetSupport_p >= 0) ? userSetSupport_p : 3;
+            logIO() << LogIO::NORMAL2
                     << "Support: " << convSupport << " pixels"
                     << LogIO::POST;
 
+            // FIXME: why 100 ?
             convSampling = 100;
-            convSize = convSampling*(2*convSupport+2);
+            convSize = convSampling*(2*convSupport + 2);
             convFunc.resize(convSize);
             convFunc = 0.0;
             for (Int i=0; i<convSampling*convSupport; i++) {
@@ -309,11 +310,11 @@ void SDGrid::init() {
             convSampling = 100;
             Int itruncate = (Int)(truncate*Double(convSampling) + 0.5);
 
-            logIO() << LogIO::DEBUG1
+            logIO() << LogIO::NORMAL2
                     << "hwhm=" << hwhm
                     << LogIO::POST;
 
-            logIO() << LogIO::DEBUG1
+            logIO() << LogIO::NORMAL2
                     << "itruncate=" << itruncate
                     << LogIO::POST;
 
@@ -338,22 +339,21 @@ void SDGrid::init() {
             //     }
             //     ofs.close();
 
-      }
+        }
         else if (convType == "gjinc") { // Gauss * Jinc function
             // default is b=2.52, c=1.55 (Mangum et al. 2007)
-            // FIXME: how does b=2.52 relate to current code ?
             Double hwhm = (gwidth_p > 0.0) ? Double(gwidth_p) : sqrt(log(2.0))*2.52;
             Double c = (jwidth_p > 0.0) ? Double(jwidth_p) : 1.55;
             convSampling = 100;
             Int itruncate=(Int)(truncate_p*Double(convSampling) + 0.5);
 
-            logIO() << LogIO::DEBUG1
+            logIO() << LogIO::NORMAL2
                     << "hwhm=" << hwhm
                     << LogIO::POST;
-            logIO() << LogIO::DEBUG1
+            logIO() << LogIO::NORMAL2
                     << "c=" << c
                     << LogIO::POST;
-            logIO() << LogIO::DEBUG1
+            logIO() << LogIO::NORMAL2
                     << "itruncate=" << itruncate
                     << LogIO::POST;
 
@@ -367,37 +367,37 @@ void SDGrid::init() {
             Double x, val1, val2;
             Int normalize = 1;
 
-        if (itruncate >= 0) {
-            for (Int i=0 ; i<itruncate; i++) {
-                x = Double(i) / Double(convSampling);
-                grdgauss(&hwhm, &x, &val1);
-                grdjinc1(&c, &x, &normalize, &val2);
-                convFunc(i) = val1 * val2;
-            }
-        }
-        else { // default is to truncate at first null
-            for (Int i=0; i<convSize; i++) {
-                x = Double(i) / Double(convSampling);
-                grdjinc1(&c, &x, &normalize, &val2);
-                if (val2 <= 0.0) {
-                    logIO() << LogIO::DEBUG1
-                            << "convFunc is automatically truncated at radius " << x
-                            << LogIO::POST;
-                    break;
+            if (itruncate >= 0) {
+                for (Int i=0 ; i<itruncate; i++) {
+                    x = Double(i) / Double(convSampling);
+                    grdgauss(&hwhm, &x, &val1);
+                    grdjinc1(&c, &x, &normalize, &val2);
+                    convFunc(i) = val1 * val2;
                 }
-                grdgauss(&hwhm, &x, &val1);
-                convFunc(i) = val1 * val2;
             }
+            else { // default is to truncate at first null
+                for (Int i=0; i<convSize; i++) {
+                    x = Double(i) / Double(convSampling);
+                    grdjinc1(&c, &x, &normalize, &val2);
+                    if (val2 <= 0.0) {
+                        logIO() << LogIO::NORMAL3
+                                << "convFunc is automatically truncated at radius " << x
+                                << LogIO::POST;
+                        break;
+                    }
+                    grdgauss(&hwhm, &x, &val1);
+                    convFunc(i) = val1 * val2;
+                }
+            }
+
+            //    String outfile = convType + ".dat";
+            //    ofstream ofs(outfile.c_str());
+            //    for (Int i = 0 ; i < convSize ; i++) {
+            //      ofs << i << " " << convFunc[i] << endl;
+            //    }
+            //    ofs.close();
+
         }
-
-        //    String outfile = convType + ".dat";
-        //    ofstream ofs(outfile.c_str());
-        //    for (Int i = 0 ; i < convSize ; i++) {
-        //      ofs << i << " " << convFunc[i] << endl;
-        //    }
-        //    ofs.close();
-
-    }
         else { // Throw exception
             logIO_p << "Unknown convolution function: " << convType
                     << LogIO::EXCEPTION;
