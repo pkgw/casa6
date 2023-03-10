@@ -282,7 +282,8 @@ class StkUnitTest(unittest.TestCase):
         
         return self.check_diff(actual, expected, rel_error_flux, valname, desired_diff, tol_flux)
 
-    def check_metrics_alpha(self, alpha_actual, alpha_expected, valname, rmss_or_stds, desired_diff=0.1, max_diff=0.2, nsigma=2):
+    #def check_metrics_alpha(self, alpha_actual, alpha_expected, valname, rmss_or_stds, desired_diff=0.1, max_diff=0.2, nsigma=2):
+    def check_metrics_alpha(self, alpha_actual, alpha_expected, tt0_expected, tt1_expected, valname, rmss_or_stds, desired_diff=0.1, max_diff=0.2, nsigma=2):
         """ Logs a warning if outside of desired bounds, returns False if outside required bounds
         
         Check that the given value(s) are within a reasonable tolerance of the truth value(s),
@@ -292,6 +293,8 @@ class StkUnitTest(unittest.TestCase):
         Args:
           alpha_actual: measured value(s)
           alpha_expected: truth value(s)
+          tt0_expected: tt0 flux value
+          tt1_expected: tt1 flux value
           valname: name of the value to be printed in the report
           rmss_or_stds: rms or [rms, rms], root mean square of the noise floor for the observed .image or .image.tt0, .image.tt1
           desired_diff: the tolerance for alpha_expected we'd like to stay within, but that is not strictly required
@@ -313,7 +316,9 @@ class StkUnitTest(unittest.TestCase):
         ###  [A] Tolerance on the metric of relative error : Based only on image noise levels
         #################################################
         #       dIa =                 Ia       *    sqrt( (    dI0    /    I0        )**2 + (    dI1    /      I1      )**2 )
-        a_error_std = np.abs(   alpha_expected * np.sqrt( (nsigma*std0/alpha_expected)**2 + (nsigma*std1/alpha_expected)**2 )   )
+        # error propagation should be related I0 (tt0 flux density) and I1 (tt1 flux density)
+        #a_error_std = np.abs(   alpha_expected * np.sqrt( (nsigma*std0/alpha_expected)**2 + (nsigma*std1/alpha_expected)**2 )   )
+        a_error_std = np.abs(   alpha_expected * np.sqrt( (nsigma*std0/tt0_expected)**2 + (nsigma*std1/tt1_expected)**2 )   )
 
         #################################################
         ### [B] Empirical tolerances
