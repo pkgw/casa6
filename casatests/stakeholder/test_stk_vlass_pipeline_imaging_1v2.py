@@ -279,8 +279,8 @@ class test_j1302(StkUnitTest):
         success3, report3 = self.check_metrics_flux(curr_stats[1], casa621_stats[1], valname="Frac Diff tt1 vs. 6.2.1 image", rms_or_std=rms[1])
 
         # (c) alpha images
-        success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
-        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
+        success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  onaxis_stats[0], onaxis_stats[1], valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
+        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], casa621_stats[0], casa621_stats[1], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
 
         # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img0+'.image.tt0')['restoringbeam']
@@ -490,8 +490,8 @@ class test_j1302(StkUnitTest):
         success3, report3 = self.check_metrics_flux(curr_stats[1], casa621_stats[1], valname="Frac Diff tt1 vs. 6.2.1 image", rms_or_std=rms[1])
 
         # (c) alpha images
-        success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
-        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
+        success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  onaxis_stats[0], onaxis_stats[1], valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
+        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], casa621_stats[0], casa621_stats[1], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
 
         # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img1+'.image.tt0')['restoringbeam']
@@ -740,7 +740,7 @@ class test_j1302(StkUnitTest):
         casa621_stats     = np.array([           stats621['F_nu'], stats621['alpha']])
         success0, report0 = self.check_metrics_flux(curr_stats[0], onaxis_stats[0],  valname="Frac Diff F_nu vs. on-axis", rms_or_std=np.mean(list(rms.values())))
         success1, report1 = self.check_metrics_flux(curr_stats[0], casa621_stats[0], valname="Frac Diff F_nu vs. 6.2.1 image", rms_or_std=np.mean(list(rms.values())))
-        success2, report2 = self.check_metrics_alpha_fitted(curr_stats[1], onaxis_stats[1],  valname="Abs Diff alpha vs. on-axis", pcov=pcov)
+        success2, report2 = self.check_metrics_alpha_fitted(curr_stats[1], onaxis_stats[1], valname="Abs Diff alpha vs. on-axis", pcov=pcov)
         success3, report3 = self.check_metrics_alpha_fitted(curr_stats[1], casa621_stats[1], valname="Abs Diff alpha vs. 6.2.1 image", pcov=pcov)
 
         spwstats_621={
@@ -1167,8 +1167,8 @@ class test_j1927(StkUnitTest):
         success3, report3 = self.check_metrics_flux(curr_stats[1], casa621_stats[1], valname="Frac Diff tt1 vs. 6.2.1 image", rms_or_std=rms[1])
 
         # (c) alpha images
-        success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
-        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
+        success4, report4 = self.check_metrics_alpha(curr_stats[2], onaxis_stats[2],  onaxis_stats[0], onaxis_stats[1], valname="Abs Diff alpha vs. on-axis", rmss_or_stds=rms)
+        success5, report5 = self.check_metrics_alpha(curr_stats[2], casa621_stats[2], casa621_stats[0], casa621_stats[1], valname="Abs Diff alpha vs. 6.2.1 image", rmss_or_stds=rms)
 
         # (d) beamsize comparison vs 6.2.1
         restbeam          = imhead(img0+'.image.tt0')['restoringbeam']
