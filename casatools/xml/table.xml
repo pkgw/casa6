@@ -2246,13 +2246,95 @@ blc and trc of the arrays in the column.
 </input>
 <returns type="pyobj"/>
 <example>
+This example creates an iterator which returns tuples made up of the
+values from the TIME column and the EXPOSURE column. It will return
+these tuples one at a time, but it will stop after returning five
+tuples. It starts at row zero and skips 999 rows to get to the row
+used to return the next tuple.
 
-  tb.open(&quot;2018.1.00879.S_tclean.ms&quot;)
-  for i in tb.getcoliter( &quot;DATA&quot;, startrow=0, nrow=30, rowincr=10 ):
-      print(repr(i))
+  for i in tb.getcoliter(['TIME','EXPOSURE'],startrow=0,nrow=5,rowincr=1000):
+    print(i)
 
-  for i in tb.getcoliter( [ &quot;TIME&quot;, &quot;DATA&quot; ], startrow=0, nrow=30, rowincr=10 ):
-      print(repr(i))
+
+This example has the same iteration behavior but instead of returning
+tuples it returns records containing two key/value pairs, TIME and
+EXPOSURE.
+
+  for i in tb.getcoliter(['TIME','EXPOSURE'],startrow=0,nrow=5,rowincr=1000,torecord=True):
+    print(i)
+
+
+This example shows how getcoliter can be used to load table columns
+into a Pandas dataframe.
+
+  pd = pandas.DataFrame.from_records(tb.getcoliter(['TIME','DATA'],torecord=True))
+
+
+This example shows how to use getcoliter to load table columns into
+a Dask dataframe by concatenating Pandas dataframes. This creates
+chunking based upon the number of rows returned by getcoliter.
+
+  import math
+  import pandas as pd
+  from dask import delayed, compute
+  import dask.dataframe as dd
+  from functools import reduce
+  from casatools import table
+
+  tbx = table(expanduser('2018.1.00879.S_tclean.ms'))
+  part_start = range( 0, tbx.nrows( ), math.ceil(tbx.nrows( ) / 500) )
+  part = reduce( lambda acc, x: acc+[(x, math.ceil(tbx.nrows( ) / 500) if x + math.ceil(tbx.nrows( ) / 500) < tbx.nrows() else tbx.nrows()-x)],
+                 part_start, [] )
+  lst = [delayed(lambda x: pd.DataFrame(table('2018.1.00879.S_tclean.ms').getcoliter(['TIME','DATA'],*x,torecord=True)))(l) for l in part]
+  df = dd.concat(compute(lst)[0]
+
+If you looked at the elements part and lst you would find:
+
+  In [5]: part[:5]
+  Out[5]: [(0, 632), (632, 632), (1264, 632), (1896, 632), (2528, 632)]
+
+  In [6]: lst[:5]
+  Out[6]:
+  [Delayed('lambda-af8d8b10-9526-4988-ac7c-8e8e5cd99934'),
+   Delayed('lambda-b9035365-a074-42ce-b04e-2881179f573a'),
+   Delayed('lambda-d44d97d8-b6ce-4d6e-a6e0-4326bdfabf01'),
+   Delayed('lambda-c84f7ed8-af6c-4efc-a225-437353fc1393'),
+   Delayed('lambda-8fa0e6cb-01c3-4433-acf0-e3e9b8d26a35')]
+
+The Dask dataframe is df, but it is not completely evaluated:
+
+  In [7]: df
+  Out[7]:
+  Dask DataFrame Structure:
+                     TIME    DATA
+  npartitions=500
+                   object  object
+                      ...     ...
+  ...                 ...     ...
+                      ...     ...
+                      ...     ...
+  Dask Name: concat, 501 graph layers
+
+Evaluating again resolves the contents of the dataframe:
+
+  In [8]: df = df.compute()
+
+  In [9]: df
+  Out[9]:
+                       TIME                                               DATA
+  0        [5053663310.208]  [[[(19.649103+0j)], [(19.62976+0j)], [(19.6710...
+  1        [5053663310.208]  [[[(16.316814+0j)], [(16.301018+0j)], [(16.321...
+  2        [5053663310.208]  [[[(15.963612+0j)], [(15.9756+0j)], [(15.98898...
+  3        [5053663310.208]  [[[(17.416065+0j)], [(17.409616+0j)], [(17.393...
+  4        [5053663310.208]  [[[(20.466146+0j)], [(20.48779+0j)], [(20.5097...
+  ..                    ...                                                ...
+  467  [5053664322.4800005]  [[[(-0.8585681-0.7359103j)], [(0.8410164+1.934...
+  468  [5053664322.4800005]  [[[(-29.532145-12.631435j)], [(-27.726702-11.6...
+  469  [5053664322.4800005]  [[[(-1.8737663-0.93042445j)], [(-0.79967415-1....
+  470  [5053664322.4800005]  [[[(-1.6989801-1.1293286j)], [(-2.898021-1.001...
+  471  [5053664322.4800005]  [[[(0.22554477+3.4367344j)], [(-2.8623238+1.58...
+
+  [315840 rows x 2 columns]
 
 </example>
 </method>
