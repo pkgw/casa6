@@ -1672,6 +1672,14 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
     LogIO os(LogOrigin("SIImageStore", "divideResidualByWeight", WHERE));
     LatticeLocker lock1(*(residual()), FileLocker::Write);
 
+    auto logTemplate = [&](Int const &chan, Int const &pol, string const &normalizer, string const &result) {
+      os << LogIO::NORMAL1
+         << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] "
+         << "Dividing " << itsImageName + String(".residual") << " by "
+         << "[ " << normalizer << " ] "
+         << "to get " << result << "." << LogIO::POST;
+    };
+
     // Normalize by the sumwt, per plane. 
     Bool didNorm = divideImageByWeightVal(*residual());
 
@@ -1697,27 +1705,25 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
             LatticeExpr<Float> ratio;
             Float scalepb = 1.0;
 
-            os << LogIO::NORMAL1
-               << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] "
-               << "Dividing " << itsImageName + String(".residual") << " by ";
-
             if (normtype == "flatnoise") {
-              os << "[ sqrt(weightimage) * " << itsPBScaleFactor << " ] ";
-              os << "to get flat noise with unit pb peak." << LogIO::POST;
+              logTemplate(chan, pol,
+                          "sqrt(weightimage) * " + String::toString(itsPBScaleFactor),
+                          "flat noise with unit pb peak");
 
               LatticeExpr<Float> deno =  itsPBScaleFactor * sqrt(abs(LatticeExpr<Float>(*(wtsubim))));
               scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
               ratio = iif(deno > scalepb, (*(ressubim) / deno), 0.0);
 
             } else if (normtype == "pbsquare") {
-              os << "[ " << itsPBScaleFactor << " ] ";
-              os << "to get optimal noise with unit pb peak." << LogIO::POST;
+              logTemplate(chan, pol,
+                          String::toString(itsPBScaleFactor),
+                          "optimal noise with unit pb peak");
 
               Float deno = itsPBScaleFactor * itsPBScaleFactor;
               ratio = (*(ressubim) / deno);
 
             } else if (normtype == "flatsky") {
-              os << "[ weight ] to get flat sky" << LogIO::POST;
+              logTemplate(chan, pol, "weight", "flat sky");
 
               LatticeExpr<Float> deno = LatticeExpr<Float>(*(wtsubim));
               scalepb = fabs(pblimit * pblimit) * itsPBScaleFactor * itsPBScaleFactor;
