@@ -367,7 +367,15 @@ class test_j1302(StkUnitTest):
             self.teardown_files += masks
         self.teardown_files += [cache0name, cache1name]
 
-        rms = [0.00025982361923319354, 0.00211483438886223] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [1500,500],[3500,2000]
+        if not quick_test:
+            rms = [0.00025982361923319354, 0.00211483438886223] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [1500,500],[3500,2000]
+        else:
+            rms = [0.00181162, 0.02026735] # tt0, tt1 noise floor as measured in the QUICK_TEST images with an annulus r=15 ~ 120 arcsec centered at the phase center
+            # rms for the entire QUICK_TEST images
+            #rms = [0.00143267, 0.01438686]
+            
+          
+             
         starttime = datetime.now()
 
         ################################################
