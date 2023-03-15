@@ -2283,7 +2283,7 @@ chunking based upon the number of rows returned by getcoliter.
 
   tbx = table(expanduser('2018.1.00879.S_tclean.ms'))
   part_start = range( 0, tbx.nrows( ), math.ceil(tbx.nrows( ) / 500) )
-  part = reduce( lambda acc, x: acc+[(x, math.ceil(tbx.nrows( ) / 500) if x + math.ceil(tbx.nrows( ) / 500) < tbx.nrows() else tbx.nrows()-x)],
+  part = reduce( lambda acc, x: acc+[(x, math.ceil(tbx.nrows( ) / 500) if x + math.ceil(tbx.nrows( ) / 500) &lt; tbx.nrows() else tbx.nrows()-x)],
                  part_start, [] )
   lst = [delayed(lambda x: pd.DataFrame(table('2018.1.00879.S_tclean.ms').getcoliter(['TIME','DATA'],*x,torecord=True)))(l) for l in part]
   df = dd.concat(compute(lst)[0]
