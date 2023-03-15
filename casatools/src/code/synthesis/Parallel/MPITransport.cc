@@ -28,6 +28,7 @@
 #ifdef HAVE_MPI
 
 #include <memory>
+
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/IO/AipsIO.h>
 #include <casacore/casa/IO/MemoryIO.h>
@@ -85,7 +86,7 @@ Bool MPITransport::isFinalized()
     return Bool(flag);
 }
 
-Int MPITransport::anyTag() 
+Int MPITransport::anyTag()
 {
 // Return the value which indicates an unset tag
 //
@@ -235,7 +236,7 @@ Int MPITransport::put(const Bool &b){
 
 Int MPITransport::put(const Record &r){
    setDestAndTag(sendTo, myOp);
-   shared_ptr<MemoryIO> buffer(new MemoryIO);
+   auto buffer = std::make_shared<MemoryIO>();
    AipsIO rBuf(buffer);
    rBuf.putstart("MPIRecord",1);
    rBuf << r;
@@ -467,7 +468,7 @@ Int MPITransport::get(Record &r){
    // Now fill the buffer full of bytes from the record
    std::vector<uChar> buffer(bytesSent);
    MPI_Recv(buffer.data(), bytesSent, MPI_UNSIGNED_CHAR, getFrom, myOp, MPI_COMM_WORLD, &status);
-   shared_ptr<MemoryIO> nBuf(new MemoryIO(buffer.data(), bytesSent));
+   auto nBuf = std::make_shared<MemoryIO>(buffer.data(), bytesSent);
    AipsIO rBuf(nBuf);
    uInt version = rBuf.getstart("MPIRecord");
    (void)version; // warning: unused version
