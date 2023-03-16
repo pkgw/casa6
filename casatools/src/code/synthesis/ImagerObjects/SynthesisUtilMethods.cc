@@ -3503,101 +3503,101 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     try
       {
-	err += readVal( inrec, String("imagename"), imageName);
+  err += readVal( inrec, String("imagename"), imageName);
 
-	// FTMachine parameters
-	err += readVal( inrec, String("gridder"), gridder );
-	err += readVal( inrec, String("padding"), padding );
-	err += readVal( inrec, String("useautocorr"), useAutoCorr );
-	err += readVal( inrec, String("usedoubleprec"), useDoublePrec );
-	err += readVal( inrec, String("wprojplanes"), wprojplanes );
-	err += readVal( inrec, String("convfunc"), convFunc );
+  // FTMachine parameters
+  err += readVal( inrec, String("gridder"), gridder );
+  err += readVal( inrec, String("padding"), padding );
+  err += readVal( inrec, String("useautocorr"), useAutoCorr );
+  err += readVal( inrec, String("usedoubleprec"), useDoublePrec );
+  err += readVal( inrec, String("wprojplanes"), wprojplanes );
+  err += readVal( inrec, String("convfunc"), convFunc );
 
-	err += readVal( inrec, String("vptable"), vpTable );
+  err += readVal( inrec, String("vptable"), vpTable );
 
-	//// convert 'gridder' to 'ftmachine' and 'mtype'
-	ftmachine="gridft";
-	mType="default";
-	if(gridder=="ft" || gridder=="gridft" || gridder=="standard" )
-	  { ftmachine="gridft"; }
-	if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
-	  { ftmachine="wprojectft";}
+  //// convert 'gridder' to 'ftmachine' and 'mtype'
+  ftmachine="gridft";
+  mType="default";
+  if(gridder=="ft" || gridder=="gridft" || gridder=="standard" )
+   { ftmachine="gridft"; }
+ if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
+   { ftmachine="wprojectft";}
 
-	if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
-	  { ftmachine="mosaicft"; }
-	if(gridder=="imagemosaic") {
-	    mType="imagemosaic";
-	    if (wprojplanes>1 || wprojplanes==-1){ ftmachine="wprojectft"; }
-	  }
-	if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
-	  {ftmachine="awprojectft";}
-	if(gridder=="singledish") {
-	  ftmachine="sd";
-	}
+  if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
+    { ftmachine="mosaicft"; }
+  if(gridder=="imagemosaic") {
+      mType="imagemosaic";
+      if (wprojplanes>1 || wprojplanes==-1){ ftmachine="wprojectft"; }
+    }
+  if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
+    {ftmachine="awprojectft";}
+  if(gridder=="singledish") {
+    ftmachine="sd";
+  }
 
-	String deconvolver;
-	err += readVal( inrec, String("deconvolver"), deconvolver );
-	if( deconvolver== "mtmfs" ) 
-	  { mType="multiterm"; }// Takes precedence over imagemosaic
+  String deconvolver;
+  err += readVal( inrec, String("deconvolver"), deconvolver );
+  if( deconvolver== "mtmfs" ) 
+    { mType="multiterm"; }// Takes precedence over imagemosaic
 
-	// facets	
-	err += readVal( inrec, String("facets"), facets);
-	// chanchunks
-	err += readVal( inrec, String("chanchunks"), chanchunks);
+  // facets	
+  err += readVal( inrec, String("facets"), facets);
+  // chanchunks
+  err += readVal( inrec, String("chanchunks"), chanchunks);
 
-	// Spectral interpolation
-	err += readVal( inrec, String("interpolation"), interpolation );// not used in SI yet...
-	// Track moving source ?
-	err += readVal( inrec, String("distance"), distance );
-	err += readVal( inrec, String("tracksource"), trackSource );
-	err += readVal( inrec, String("trackdir"), trackDir );
+  // Spectral interpolation
+  err += readVal( inrec, String("interpolation"), interpolation );// not used in SI yet...
+  // Track moving source ?
+  err += readVal( inrec, String("distance"), distance );
+  err += readVal( inrec, String("tracksource"), trackSource );
+  err += readVal( inrec, String("trackdir"), trackDir );
 
-	// The extra params for WB-AWP
-	err += readVal( inrec, String("aterm"), aTermOn );
-	err += readVal( inrec, String("psterm"), psTermOn );
-	err += readVal( inrec, String("mterm"), mTermOn );
- 	err += readVal( inrec, String("wbawp"), wbAWP );
-	err += readVal( inrec, String("cfcache"), cfCache );
-	err += readVal( inrec, String("usepointing"), usePointing );
-	err += readVal( inrec, String("pointingoffsetsigdev"), pointingOffsetSigDev );
-	err += readVal( inrec, String("dopbcorr"), doPBCorr );
-	err += readVal( inrec, String("conjbeams"), conjBeams );
-	err += readVal( inrec, String("computepastep"), computePAStep );
-	err += readVal( inrec, String("rotatepastep"), rotatePAStep );
+  // The extra params for WB-AWP
+  err += readVal( inrec, String("aterm"), aTermOn );
+  err += readVal( inrec, String("psterm"), psTermOn );
+  err += readVal( inrec, String("mterm"), mTermOn );
+  err += readVal( inrec, String("wbawp"), wbAWP );
+  err += readVal( inrec, String("cfcache"), cfCache );
+  err += readVal( inrec, String("usepointing"), usePointing );
+  err += readVal( inrec, String("pointingoffsetsigdev"), pointingOffsetSigDev );
+  err += readVal( inrec, String("dopbcorr"), doPBCorr );
+  err += readVal( inrec, String("conjbeams"), conjBeams );
+  err += readVal( inrec, String("computepastep"), computePAStep );
+  err += readVal( inrec, String("rotatepastep"), rotatePAStep );
 
-	// The extra params for single-dish
-	err += readVal( inrec, String("pointingcolumntouse"), pointingDirCol );
+  // The extra params for single-dish
+  err += readVal( inrec, String("pointingcolumntouse"), pointingDirCol );
   err += readVal( inrec, String("convertfirst"), convertFirst );
-	err += readVal( inrec, String("skypolthreshold"), skyPosThreshold );
-	err += readVal( inrec, String("convsupport"), convSupport );
-	err += readVal( inrec, String("truncate"), truncateSize );
-	err += readVal( inrec, String("gwidth"), gwidth );
-	err += readVal( inrec, String("jwidth"), jwidth );
-	err += readVal( inrec, String("minweight"), minWeight );
-	err += readVal( inrec, String("clipminmax"), clipMinMax );
+  err += readVal( inrec, String("skypolthreshold"), skyPosThreshold );
+  err += readVal( inrec, String("convsupport"), convSupport );
+  err += readVal( inrec, String("truncate"), truncateSize );
+  err += readVal( inrec, String("gwidth"), gwidth );
+  err += readVal( inrec, String("jwidth"), jwidth );
+  err += readVal( inrec, String("minweight"), minWeight );
+  err += readVal( inrec, String("clipminmax"), clipMinMax );
 
-	// Single or MultiTerm mapper : read in 'deconvolver' and set mType here.
-	//	err += readVal( inrec, String("mtype"), mType );
+  // Single or MultiTerm mapper : read in 'deconvolver' and set mType here.
+  // err += readVal( inrec, String("mtype"), mType );
 
-	if( ftmachine=="awprojectft" && cfCache=="" )
-	  {cfCache=imageName+".cf"; }
+  if( ftmachine=="awprojectft" && cfCache=="" )
+    {cfCache=imageName+".cf"; }
 
-	if( ftmachine=="awprojectft" && 
-	    usePointing==True && 
-	    pointingOffsetSigDev.nelements() != 2 )
-	  {
-	    // Set the default to a large value so that it behaves like CASA 5.6's usepointing=True.
-	    pointingOffsetSigDev.resize(2);
-	    pointingOffsetSigDev[0]=600.0;
-	    pointingOffsetSigDev[1]=600.0;
-	  }
+  if( ftmachine=="awprojectft" && 
+      usePointing==True && 
+      pointingOffsetSigDev.nelements() != 2 )
+    {
+      // Set the default to a large value so that it behaves like CASA 5.6's usepointing=True.
+      pointingOffsetSigDev.resize(2);
+      pointingOffsetSigDev[0]=600.0;
+      pointingOffsetSigDev[1]=600.0;
+    }
 
-	err += verify();
-	
+  err += verify();
+  
       }
     catch(AipsError &x)
       {
-	err = err + x.getMesg() + "\n";
+  err = err + x.getMesg() + "\n";
       }
       
       if( err.length()>0 ) throw(AipsError("Invalid Gridding/FTM Parameter set : " + err));
