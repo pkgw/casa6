@@ -3567,6 +3567,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	// The extra params for single-dish
 	err += readVal( inrec, String("pointingcolumntouse"), pointingDirCol );
+  err += readVal( inrec, String("convertfirst"), convertFirst );
 	err += readVal( inrec, String("skypolthreshold"), skyPosThreshold );
 	err += readVal( inrec, String("convsupport"), convSupport );
 	err += readVal( inrec, String("truncate"), truncateSize );
