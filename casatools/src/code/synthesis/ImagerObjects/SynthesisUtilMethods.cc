@@ -3667,7 +3667,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 
 
-    // todo: any single-dish specific limitation?
+    // Single-dish parameters check
+    if (ftmachine=="sd") {
+      if ( convertFirst != "always" and
+           convertFirst != "never" and
+           convertFirst != "auto" ) {
+        err += "convertfirst parameter: illegal value: '" + convertFirst + "'.";
+        err += " Allowed values: 'always', 'never', 'auto'. ";
+      }
+    }
 
     return err;
   }
