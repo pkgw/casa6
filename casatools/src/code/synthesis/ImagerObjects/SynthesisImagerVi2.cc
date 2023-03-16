@@ -663,7 +663,8 @@ Bool SynthesisImagerVi2::defineImage(
         gridpars.doPBCorr, gridpars.conjBeams,
         gridpars.computePAStep, gridpars.rotatePAStep,
         gridpars.interpolation, impars_p.freqFrameValid, 1000000000, 16, impars_p.stokes,
-        impars_p.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
+        impars_p.imageName,
+        gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
         gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
         gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi
       );
