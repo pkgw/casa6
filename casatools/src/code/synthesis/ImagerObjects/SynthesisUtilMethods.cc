@@ -3718,6 +3718,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     // extra params for single-dish
     pointingDirCol = "";
+    convertFirst = "never";
     skyPosThreshold = 0.0;
     convSupport = -1;
     truncateSize = Quantity(-1.0);
