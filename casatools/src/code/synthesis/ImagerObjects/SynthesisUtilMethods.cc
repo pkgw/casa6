@@ -3767,6 +3767,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     gridpar.define("rotatepastep", rotatePAStep);
 
     gridpar.define("pointingcolumntouse", pointingDirCol );
+    gridpar.define("convertfirst", convertFirst );
     gridpar.define("skyposthreshold", skyPosThreshold );
     gridpar.define("convsupport", convSupport );
     gridpar.define("truncate", QuantityToString(truncateSize) );
