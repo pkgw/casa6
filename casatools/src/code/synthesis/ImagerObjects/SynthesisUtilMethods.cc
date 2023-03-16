@@ -3622,58 +3622,93 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Check for valid FTMachine type.
     // Valid other params per FTM type, etc... ( check about nterms>1 )
 
-    if( imageName=="" ) {err += "Please supply an image name\n";}
+    if ( imageName == "" ) {
+      err += "Please supply an image name\n";
+    }
 
-    if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
-  (ftmachine != "mosaicft") && (ftmachine != "awprojectft") && 
-  (ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
-  (ftmachine != "sd"))
-      { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft', 'protoft', 'sd'";   }
+    if ( ftmachine != "gridft" and ftmachine != "wprojectft" and
+         ftmachine != "mosaicft" and ftmachine != "awprojectft" and
+         ftmachine != "mawprojectft" and ftmachine != "protoft" and
+         ftmachine != "sd" ) {
+      err += "Invalid ftmachine name. Must be one of"
+        " 'gridft', 'wprojectft',"
+        " 'mosaicft', 'awprojectft',"
+        " 'mawpojectft', 'protoft',"
+        " 'sd'\n";
+    }
 
-    if( ((ftmachine=="mosaicft") && (mType=="imagemosaic"))  || 
-  ((ftmachine=="awprojectft") && (mType=="imagemosaic")) )
-      {  err +=  "Cannot use " + ftmachine + " with " + mType + 
-    " because it is a redundant choice for mosaicing. "
-    "In the future, we may support the combination to signal the use of single-pointing sized image grids during gridding and iFT, "
-    "and only accumulating it on the large mosaic image. For now, please set either mappertype='default' to get mosaic gridding "
-    " or ftmachine='ft' or 'wprojectft' to get image domain mosaics. \n"; }
+    if ( ( ftmachine == "mosaicft"    and mType == "imagemosaic" ) or
+         ( ftmachine == "awprojectft" and mType == "imagemosaic" ) ) {
+      err +=  "Cannot use " + ftmachine + " with " + mType +
+        " because it is a redundant choice for mosaicing."
+        " In the future, we may support the combination"
+        " to signal the use of single-pointing sized image grids"
+        " during gridding and iFT,"
+        " and only accumulating it on the large mosaic image."
+        " For now, please set"
+        " either mappertype='default' to get mosaic gridding"
+        " or ftmachine='ft' or 'wprojectft' to get image domain mosaics.\n";
+    }
 
-    if( facets < 1 )
-      {err += "Must have at least 1 facet\n"; }
+    if ( facets < 1 ) {
+      err += "Must have at least 1 facet\n";
+    }
+
     //if( chanchunks < 1 )
     //  {err += "Must have at least 1 chanchunk\n"; }
-    if( (facets>1) && (chanchunks>1) )
-      { err += "The combination of facetted imaging with channel chunking is not yet supported. Please choose only one or the other for now. \n";}
+    if ( facets > 1 and chanchunks > 1 ) {
+      err += "The combination of facetted imaging"
+        " with channel chunking is not yet supported."
+        " Please choose only one or the other for now.\n";
+    }
 
-    if(ftmachine=="wproject" && (wprojplanes==0 || wprojplanes==1))
-      {err += "The wproject gridder must be accompanied with wprojplanes>1 or wprojplanes=-1\n";}
+    if ( ftmachine == "wproject" and ( wprojplanes == 0 or wprojplanes == 1 ) ) {
+      err += "The wproject gridder must be accompanied with"
+        " wprojplanes>1 or wprojplanes=-1\n";
+    }
 
-    if((ftmachine=="awprojectft") && (facets>1) )
-      {err += "The awprojectft gridder supports A- and W-Projection. "
-    "Instead of using facets>1 to deal with the W-term, please set the number of wprojplanes to a value > 1 "
-    "to trigger the combined AW-Projection algorithm. \n";  } // Also, the way the AWP cfcache is managed, even if all facets share a common one so that they reuse convolution functions, the first facet's gridder writes out the avgPB and all others see that it's there and don't compute their own. As a result, the code will run, but the first facet's weight image will be duplicated for all facets.  If needed, this must be fixed in the way the AWP gridder manages its cfcache. But, since the AWP gridder supports joint A and W projection, facet support may never be needed in the first place... 
+    if ( ftmachine == "awprojectft" and facets > 1 ) {
+      err += "The awprojectft gridder supports A- and W-Projection."
+        " Instead of using facets>1 to deal with the W-term,"
+        " please set the number of wprojplanes to a value > 1"
+        " to trigger the combined AW-Projection algorithm. \n";
+      // Also, the way the AWP cfcache is managed,
+      // even if all facets share a common one so that they reuse convolution functions,
+      // the first facet's gridder writes out the avgPB
+      // and all others see that it's there and don't compute their own.
+      // As a result, the code will run,
+      // but the first facet's weight image will be duplicated for all facets.
+      // If needed, this must be fixed in the way the AWP gridder manages its cfcache.
+      // But, since the AWP gridder supports joint A and W projection,
+      // facet support may never be needed in the first place...
+    }
 
-    if((ftmachine=="awprojectft") && (wprojplanes==-1) )
-      {err +="The awprojectft gridder does not support wprojplanes=-1 for automatic calculation. Please pick a value >1" ;}
+    if ( ftmachine == "awprojectft" and wprojplanes == -1 ) {
+      err += "The awprojectft gridder does not support wprojplanes=-1"
+        " for automatic calculation. Please pick a value >1\n";
+    }
 
-    if( (ftmachine=="mosaicft") && (facets>1) )
-      { err += "The combination of mosaicft gridding with multiple facets is not supported. "
-    "Please use the awprojectft gridder instead, and set wprojplanes to a value > 1 to trigger AW-Projection. \n"; }
+    if ( ftmachine == "mosaicft" and facets > 1 ) {
+      err += "The combination of mosaicft gridding"
+        " with multiple facets is not supported."
+        " Please use the awprojectft gridder instead,"
+        " and set wprojplanes to a value > 1 to trigger AW-Projection.\n";
+    }
 
-    if( ftmachine=="awprojectft" && usePointing==True && pointingOffsetSigDev.nelements() != 2 )
-      {
-  err += "The pointingoffsetsigdev parameter must be a two-element vector of doubles in order to be used with usepointing=True and the AWProject gridder. Setting it to the default of \n ";
-      }
-
-
+    if ( ftmachine == "awprojectft" and usePointing == True and
+         pointingOffsetSigDev.nelements() != 2 ) {
+      err += "The pointingoffsetsigdev parameter must be"
+        " a two-element vector of doubles in order to be used with usepointing=True"
+        " and the AWProject gridder. Setting it to the default of \n";
+    }
 
     // Single-dish parameters check
-    if (ftmachine=="sd") {
+    if ( ftmachine == "sd" ) {
       if ( convertFirst != "always" and
            convertFirst != "never" and
            convertFirst != "auto" ) {
-        err += "convertfirst parameter: illegal value: '" + convertFirst + "'.";
-        err += " Allowed values: 'always', 'never', 'auto'. ";
+        err += "convertfirst parameter: illegal value: '" + convertFirst + "'."
+          " Allowed values: 'always', 'never', 'auto'.\n";
       }
     }
 
