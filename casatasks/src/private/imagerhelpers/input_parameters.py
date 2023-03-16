@@ -253,6 +253,7 @@ class ImagerParameters():
                 'imagename': imagename,
                 # ---- spatial coordinates
                 'pointingcolumntouse': pointingcolumntouse,
+                'convertfirst': convertfirst,
                 # ---- convolution function
                 'convfunc': gridfunction,
                 'convsupport': convsupport,
