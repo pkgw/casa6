@@ -422,7 +422,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    //tim.mark();
 		    //UUU cfWtBuf *= ftATerm_l.get();
                     //////TESTOO/////////////
-                    {
+                    /*{
                       String tmpname=File::newUniqueName("./", "ATerm").baseName();
                       PagedImage<Complex> tempA(pbShape, cs_l, tmpname);
                       tempA.copyData(ftATerm_l); 
@@ -432,7 +432,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
                       tempB.putSlice(cfBufMat, PolnPlane);
                       
                       
-                    }
+                      }*/
                     //////////////////////
 		    cfBuf *= ftATerm_l.get();
 		    //tim.show("W*A*2: ");
@@ -1708,8 +1708,8 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 
 
          //////TESTOO/////////////
-        {
-          String tmpname=File::newUniqueName(".", "ATerm2It ").absoluteName();
+        /*{
+          String tmpname=File::newUniqueName("./", "ATerm2It ").baseName();
           PagedImage<Complex> tempA(pbShape, cs_l, tmpname);
           tempA.copyData(ftATerm_l);
           tmpname[0]='W';
@@ -1717,7 +1717,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
           tempB.putSlice(cfBufMat, PolnPlane);
           
           
-        }
+          }*/
 
         
 	  cfWtBuf *= ftATerm_l.get()*conj(ftATermSq_l.get());

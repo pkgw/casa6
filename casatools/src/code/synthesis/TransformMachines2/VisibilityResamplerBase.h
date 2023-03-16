@@ -156,6 +156,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     virtual void releaseBuffers() = 0;
 //    VBRow2CFMapType& getVBRow2CFMap() {return vbRow2CFMap_p;};
     VB2CFBMap& getVBRow2CFBMap() {return *vb2CFBMap_p;};
+    const VB2CFBMap& getVBRow2CFBMap()const {return *vb2CFBMap_p;};
     // virtual casacore::Int makeVBRow2CFBMap(CFStore2& cfs,
     // 				ConvolutionFunction& cf,
     // 				const VisBuffer2& vb, const casacore::Quantity& dPA,

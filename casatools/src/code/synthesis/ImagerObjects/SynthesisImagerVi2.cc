@@ -2705,7 +2705,8 @@ void SynthesisImagerVi2::unlockMSs()
     // With lazy fill ON, CFCache loads the required CFs on-demand
     // from the disk.  And periodically triggers garbage collection to
     // release CFs that aren't required immediately.
-    cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
+    //cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
+    cfCacheObj->setLazyFill(False);
     //    cerr << "Setting wtImagePrefix to " << imageNamePrefix.c_str() << endl;
     cfCacheObj->setWtImagePrefix(imageNamePrefix.c_str());
     cfCacheObj->initCache2(CFC_VERBOSE);
@@ -3113,7 +3114,7 @@ void SynthesisImagerVi2::unlockMSs()
       // useful to extend it to other projection FTMs -- but later.
       // String ftmName = ((*(itsMappers.getFTM(whichFTM)))).name();
 
-      if (!ftmName.contains("awproject") and
+      if ( !(ftmName.at(0,3)=="awp") &&
 	  !ftmName.contains("multitermftnew")) return;
       //if (!ftmName.contains("awproject")) return;
       
@@ -3125,7 +3126,7 @@ void SynthesisImagerVi2::unlockMSs()
       //cerr << "Path = " << path << endl;
 
       // CountedPtr<AWProjectWBFTNew> tmpFT = new AWProjectWBFTNew(static_cast<AWProjectWBFTNew &> (*(itsMappers.getFTM(whichFTM))));
-
+      cerr << "@@@@IN making CFCache" << endl; 
 
       Float dPA=360.0,selectedPA=2*360.0;
       if (cfList.nelements() > 0)

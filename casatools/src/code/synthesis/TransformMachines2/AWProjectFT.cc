@@ -2074,13 +2074,27 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     convFuncCtor_p->prepareConvFunction(vb,*vb2CFBMap_p);
     
     vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf);
-    visResampler_p->setVB2CFMap(vb2CFBMap_p);
+
+
+
+    ///////TESTOOO
+     Vector<Double> wVals, fVals; PolMapType mVals, mNdx, conjMVals, conjMNdx;
+      Double fIncr, wIncr;
+      CountedPtr<CFBuffer> cfb = (*vb2CFBMap_p)[0];
+
+      
+      // This loads the all-importnat conjMNDx and mNdx maps
+      //
+      cfb->getCoordList(fVals,wVals,mNdx, mVals, conjMNdx, conjMVals, fIncr, wIncr);
+      //cerr << "SETVBS mVals" <<  mVals.size() << "   " << mVals[0] << "  conj " << conjMVals.size() << "   " << conjMVals[0] << endl;
+      ///////TESTOO
+      visResampler_p->setVB2CFMap(vb2CFBMap_p);
     
-    //
-    // This was required for the older GPU or multi-threaded gridder.
-    // It is a VR framework call and a NoOp in VisibilityResampler.h
-    //
-    visResampler_p->initializeDataBuffers(vbs);
+      //
+      // This was required for the older GPU or multi-threaded gridder.
+      // It is a VR framework call and a NoOp in VisibilityResampler.h
+      //
+      visResampler_p->initializeDataBuffers(vbs);
   }
   //
   //---------------------------------------------------------------

@@ -3534,6 +3534,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  }
 	if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
 	  {ftmachine="awprojectft";}
+	if (gridder=="awphpg")
+	  {ftmachine="awphpg";}
+	  
 	if(gridder=="singledish") {
 	  ftmachine="sd";
 	}
@@ -3617,7 +3620,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
 	(ftmachine != "mosaicft") && (ftmachine != "awprojectft") && 
-	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
+	(ftmachine != "mawprojectft") && (ftmachine != "awphpg") &&
 	(ftmachine != "sd"))
       { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft'";   }
 

@@ -105,13 +105,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       VisibilityResampler::copy(other);
     }
 
-    virtual void copy(const AWVisResamplerHPG& other)
-    {
-      VisibilityResampler::copy(other);
-      SynthesisUtils::SETVEC(cached_phaseGrad_p, other.cached_phaseGrad_p);
-      SynthesisUtils::SETVEC(cached_PointingOffset_p, other.cached_PointingOffset_p);
-    }
-
+    virtual void copy(const AWVisResamplerHPG& other);
+   
     AWVisResamplerHPG& operator=(const AWVisResamplerHPG& other)
     {
       copy(other);

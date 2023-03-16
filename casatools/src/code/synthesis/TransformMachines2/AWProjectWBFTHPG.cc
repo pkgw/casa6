@@ -285,6 +285,7 @@ void AWProjectWBFTHPG::resampleDataToGrid(Array<DComplex> &griddedData_l,
     // Get a reference to the pixels of griddedWeights (a
     // TempImage!)
     //
+    
     Array<DComplex> gwts;
     Bool removeDegenerateAxis = false;
     griddedWeights_D.get(gwts, removeDegenerateAxis);

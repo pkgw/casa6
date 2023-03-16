@@ -68,7 +68,7 @@ namespace casa{
 			  std::vector<std::array<int, N>>& muellerIndexes)
   {
     PolMapType tt;
-
+    //cerr << "####N " << N << endl;
     // for(unsigned i=0;i<mNdx.size();i++)
     //   {
     // 	cerr << mNdx[i] << endl;
@@ -88,25 +88,27 @@ namespace casa{
 
     muellerIndexes.resize(nGridPol);
     for(unsigned i=0;i<muellerIndexes.size();i++)
-      for(unsigned j=0;j<muellerIndexes.size();j++)
+      for(unsigned j=0;j<muellerIndexes[i].size();j++)
 	muellerIndexes[i][j]=-1;
-
-    for(unsigned i=0;i<mValues.size();i++)
+    ////This is incomprehensible indexing (2023/3/13) but mValues size and tt size may not match ...so for now looping
+    //// over the minimum of the two sizes just to avoid out of bounds indexing !!
+    for(unsigned i=0 ; i<min(mValues.size(), tt.size()) ;i++)
       {
-	//	cerr << mValues[i] << " " << tt[i] << endl;
+        //cerr <<"i= " << i <<  " SIZES mValues " << mValues[i].size() << " mval[i] "<< mValues[i] << " tt[i] " << tt[i] << endl;
 	for(unsigned j=0;j<mValues[i].size();j++)
 	  {
 	    muellerIndexes[j][mValues[i][j]%N]=tt[i][j];
 	    //muellerIndexes[j][mValues[i][j]%N]=1;
 	  }
       }
-
-    // for(unsigned ir=0;ir<muellerIndexes.size();ir++)
-    //   {
-    // 	for(unsigned ic=0;ic<muellerIndexes[ir].size();ic++)
-    // 	    cerr << muellerIndexes[ir][ic] << " ";
-    // 	cerr << endl;
-    //   }
+    /*
+    for(unsigned ir=0;ir<muellerIndexes.size();ir++)
+       {
+     	for(unsigned ic=0;ic<muellerIndexes[ir].size();ic++)
+     	    cerr << muellerIndexes[ir][ic] << " ";
+     	cerr << endl;
+       }
+    */
   }
   //
   //-------------------------------------------------------------------------
@@ -171,7 +173,8 @@ namespace casa{
     return;
   }
   //
-  //-------------------------------------------------------------------------
+ 
+  //--------------------------------------------------------------------------
   //  
   // This is a global method, used in AWVRHPG::DataToGrid_impl().
   template <unsigned N>
@@ -212,7 +215,6 @@ namespace casa{
 	  size_t max_visibilities_batch_size = (nAntenna*(nAntenna-1)/2)*2*nChannel;
 	  hpg::rval_t<Gridder> g;
 
-    	  cerr << "Mueller indexes: initgridder2: " << endl;
 	  cerr << "M: " << endl;
 	  for(unsigned ir=0;ir<mueller_indexes.size();ir++)
 	    {
@@ -260,6 +262,16 @@ namespace casa{
   void AWVisResamplerHPG::DataToGridImpl_p(Array<Complex>& grid, VBStore& vbs, 
 					Matrix<Double>& sumwt,const Bool& dopsf,
 					Bool useConjFreqCF); // __restrict__;
+
+
+
+
+  void AWVisResamplerHPG::copy(const AWVisResamplerHPG& other)
+    {
+      AWVisResampler::copy(other);
+      vb2CFBMap_p=new VB2CFBMap(other.getVBRow2CFBMap());
+    }
+
 
   // Moved the accumulateFromGrid() method to file to play with
   // multi-threading it to not clutter this file.  Both versions
@@ -515,16 +527,16 @@ namespace casa{
       //Bool accumCFs=((vbs.uvw_p.nelements() == 0) && dopsf);
       // Bool Dummy;
       // Double *freq=vbs.freq_p.getStorage(Dummy);
-
+      
       Vector<Double> wVals, fVals; PolMapType mVals, mNdx, conjMVals, conjMNdx;
       Double fIncr, wIncr;
       CountedPtr<CFBuffer> cfb = (*vb2CFBMap_p)[0];
-
+  
+     
       // This loads the all-importnat conjMNDx and mNdx maps
       //
       cfb->getCoordList(fVals,wVals,mNdx, mVals, conjMNdx, conjMVals, fIncr, wIncr);
       //    runTimeG1_p += timer_p.real();
-
       nW = wVals.nelements();
 
       // timer.mark();
@@ -551,7 +563,6 @@ namespace casa{
 			 (vbs.nWPlanes_p > 1)    && (vbs.wbAWP_p==true)) || // if WB A-term and w-term corrections are requested, or
 			(hpgGridder_p==NULL));                              // if the HPG is uninitialized (first-pass)
 
-      //cerr << "RELOAD CF " << reloadCFs << endl;
       
       double spwRefFreq = vbs.vb_p->subtableColumns().spectralWindow().refFrequency()(vbSpw);
       int nVBAntenna = vbs.vb_p->nAntennas();

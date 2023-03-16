@@ -15,41 +15,25 @@ import filecmp
 import time
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
+from casatasks import casalog
 
-    from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import saveparams2last
-    from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    from .cleanhelper import write_tclean_history, get_func_params
-    from casatools import table
-    from casatools import synthesisimager
-else:
-    from taskinit import *
-
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from imagerhelpers.input_parameters import ImagerParameters
-    from imagerhelpers.input_parameters import saveparams2last
-    from cleanhelper import write_tclean_history, get_func_params
-    table=casac.table
-    synthesisimager=casac.synthesisimager
-try:
-    if is_CASA6:
-        from casampi.MPIEnvironment import MPIEnvironment
-        from casampi import MPIInterface
-    else:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        from mpi4casa import MPIInterface
+from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import saveparams2last
+from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from .cleanhelper import write_tclean_history, get_func_params
+from casatools import table
+from casatools import synthesisimager
+try:   
+    from casampi.MPIEnvironment import MPIEnvironment
+    from casampi import MPIInterface
     mpi_available = True
 except ImportError:
     mpi_available = False
 
 #if you want to save tclean.last.* from python call of tclean uncomment the decorator   
-#@saveparams2last(multibackup=True) 
+@saveparams2last(multibackup=True) 
 def tclean(
     ####### Data Selection
     vis,#='', 
@@ -277,6 +261,7 @@ def tclean(
 
     #paramList.printParameters()
     
+
     if len(pointingoffsetsigdev)>0 and pointingoffsetsigdev[0]!=0.0 and usepointing==True and gridder.count('awproj')>1:
         casalog.post("pointingoffsetsigdev will be used for pointing corrections with AWProjection", "WARN") 
 #    elif usepointing==True and pointingoffsetsigdev[0] == 0:
@@ -310,7 +295,9 @@ def tclean(
         cppparallel=True
         ###ignore chanchunk
         bparm['chanchunks']=1
-
+        if(gridder=='awphpg'):
+            localsi=synthesisimager()
+            localsi.inithpg()
     # catch non operational case (parallel cube tclean with interative=T)
     if pcube and interactive:
         casalog.post( "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F", "WARN", "task_tclean" )
@@ -374,7 +361,10 @@ def tclean(
         ## Make PSF
         if calcpsf==True:
             t0=time.time();
-             
+            #####TESTOO
+            if(gridder=="awphpg" and specmode=="mfs"):
+                imager.makePB()
+            #####TESTOO 
             imager.makePSF()
             if((psfphasecenter != '') and ('mosaic' in gridder)):
                 ###for some reason imager keeps the psf open delete it and recreate it afterwards

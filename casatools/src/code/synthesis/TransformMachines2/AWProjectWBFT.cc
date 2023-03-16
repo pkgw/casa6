@@ -653,8 +653,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf_l);
       vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;  
       Int nDataChan = vbs.flagCube_p.shape()[1];
-    
-      vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+
+      
+    visResamplerWt_p->setVB2CFMap(vb2CFBMap_p);
+    vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
       visResamplerWt_p->DataToGrid(gwts, vbs, sumCFWeight, dopsf_l); 
     }
   //
@@ -707,6 +709,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
  void  AWProjectWBFT::gridImgWeights(const VisBuffer2& vb)
  {
+   findConvFunction(*image, vb);
    if(avgPBReady_p)
      return;
    else

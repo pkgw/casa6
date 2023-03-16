@@ -688,7 +688,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
     <param type="string" name="gridder">
            <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject)</shortdescription>
-<description>Gridding options (standard, wproject, widefield, mosaic, awproject)
+<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awphpg)
 
                        The following options choose different gridding convolution
                        functions for the process of convolutional resampling of the measured
@@ -834,6 +834,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
               <value>imagemosaic</value>
               <value>awproject</value>
               <value>awprojectft</value>
+               <value>awphpg</value>
       </allowed>
     </param>
 
@@ -2667,6 +2668,23 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="computepastep"><value>360.0</value></default>
 	 <default param="rotatepastep"><value>360.0</value></default>
          <default param="pointingoffsetsigdev"><value type="doubleVec"/></default>
+	 <default param="wbawp"><value>True</value></default>
+	 <default param="mosweight"><value>False</value></default>
+	 
+	 <default param="pblimit"><value>0.2</value></default>
+	 <default param="conjbeams"><value>False</value></default>
+	 <default param="mosweight"><value>False</value></default>
+	 <default param="usepointing"><value>False</value></default>
+       </equals>
+       <equals value="awphpg" type="string">
+	 <default param="wprojplanes"><value>1</value></default>
+	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
+	 <default param="psterm"><value>False</value></default>
+	 <default param="aterm"><value>True</value></default>
+	 <default param="cfcache"><value>&quot;&quot;</value></default>
+	 <default param="computepastep"><value>360.0</value></default>
+	 <default param="rotatepastep"><value>360.0</value></default>
+         <default param="pointingoffsetsigdev"><value type="doubleArray"/></default>
 	 <default param="wbawp"><value>True</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 

@@ -61,6 +61,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
        
      };
      
+     VB2CFBMap(const VB2CFBMap& other);
      VB2CFBMap& operator=(const VB2CFBMap& other);
      const casacore::CountedPtr<CFBuffer >& operator[](const int& i) {return vb2CFBMap_p[i];};
      

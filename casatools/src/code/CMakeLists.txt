@@ -39,6 +39,7 @@ project(
 
 # Add directory with additional macros
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 
 include(DeclareCasacppComponent)
 include(GNUInstallDirs)

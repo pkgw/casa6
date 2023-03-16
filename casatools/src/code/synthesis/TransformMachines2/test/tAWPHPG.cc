@@ -50,6 +50,7 @@
 #include <synthesis/TransformMachines/FTMachine.h>
 #include <synthesis/TransformMachines2/FTMachine.h>
 #include <synthesis/TransformMachines2/AWProjectWBFTNew.h>
+#include <synthesis/TransformMachines2/AWProjectWBFTHPG.h>
 //#include <synthesis/TransformMachines2/AWConvFuncEPJones.h>
 #include <synthesis/TransformMachines2/EVLAAperture.h>
 #include <synthesis/TransformMachines2/AWVisResampler.h>
@@ -133,8 +134,12 @@ void createAWPFTMachine(const String ftmName,
   // Construct the appropriate re-sampler.
   //
   CountedPtr<refim::VisibilityResamplerBase> visResampler;
-  if (ftmName == "awphpg") visResampler = new refim::AWVisResamplerHPG();
-  else visResampler = new refim::AWVisResampler();
+  /*REMOVE COMMENT when knowledge how to build
+    if (ftmName == "awphpg")
+    visResampler = new refim::AWVisResamplerHPG();
+    else
+    REMOVE*/
+    visResampler = new refim::AWVisResampler();
 
   visResampler->setModelImage(modelImageName);
   //
@@ -148,13 +153,27 @@ void createAWPFTMachine(const String ftmName,
   //
   //  Float pbLimit_l=1e-3;
   //  vector<float> posigdev = {300.0,300.0};
-  theFT = new refim::AWProjectWBFTNew(wprojPlane, cache/2, 
+  // Float pbLimit_l=1e-3;
+  /* REMOVE comment
+   if(ftmName=="awphpg"){
+      theFT=new refim::AWProjectWBFTHPG(wprojPlane, cache/2, 
+					   cfCacheObj, awConvFunc,
+					   visResampler,
+					   doPointing, posigdev, doPBCorr,
+					   tile, computePAStep, pbLimit_l, true,conjBeams,
+					   useDoublePrec);
+      theFT->setPBReady(true);
+    }
+    else
+    REMOVE */
+      {
+      theFT = new refim::AWProjectWBFTNew(wprojPlane, cache/2, 
 				      cfCacheObj, awConvFunc, 
 				      visResampler,
 				      /*true */doPointing, posigdev, doPBCorr, 
 				      tile, computePAStep, pbLimit_l, true,conjBeams,
 				      useDoublePrec);
-  
+    }
   cfCacheObj = new refim::CFCache();
   cfCacheObj->setCacheDir(cfCache.data());
   cfCacheObj->setWtImagePrefix(imageNamePrefix.c_str());
