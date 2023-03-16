@@ -251,6 +251,8 @@ class ImagerParameters():
                 'vptable': vptable,
                 # single-dish specific
                 'imagename': imagename,
+                # ---- spatial coordinates
+                'pointingcolumntouse': pointingcolumntouse,
                 # ---- convolution function
                 'convfunc': gridfunction,
                 'convsupport': convsupport,
