@@ -578,7 +578,6 @@ void SynthesisImagerVi2::andChanSelection(const Int msId, const Int spwId, const
 Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars, 
          const SynthesisParamsGrid& gridpars)
   {
-
     LogIO os( LogOrigin("SynthesisImagerVi2","defineImage",WHERE) );
     if(mss_p.nelements() ==0)
       os << "SelectData has to be run before defineImage" << LogIO::EXCEPTION;
@@ -588,113 +587,104 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
     impars_p = impars;
     gridpars_p = gridpars; 
 
-    try
-      {
+    try {
+      os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
 
+      csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
+      //use the location defined for coordinates frame;
+      mLocation_p=impars_p.obslocation;
+      IPosition imshape = impars_p.shp();
 
-  os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
+      os << "Impars : start " << impars_p.start << LogIO::POST;
+      os << "Shape : " << imshape << "Spectral : " << csys.spectralCoordinate().referenceValue() << " at " << csys.spectralCoordinate().referencePixel() << " with increment " << csys.spectralCoordinate().increment() << LogIO::POST;
 
-  csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
-  //use the location defined for coordinates frame;
-  mLocation_p=impars_p.obslocation;
-  IPosition imshape = impars_p.shp();
-
-  os << "Impars : start " << impars_p.start << LogIO::POST;
-  os << "Shape : " << imshape << "Spectral : " << csys.spectralCoordinate().referenceValue() << " at " << csys.spectralCoordinate().referencePixel() << " with increment " << csys.spectralCoordinate().increment() << LogIO::POST;
-
-  if( (itsMappers.nMappers()==0) || 
-      (impars_p.imsize[0]*impars_p.imsize[1] > itsMaxShape[0]*itsMaxShape[1]))
-    {
-      itsMaxShape=imshape;
-      itsMaxCoordSys=csys;
-    }
-        itsNchan = imshape[3];
-        itsCsysRec = impars_p.getcsys();
-  /*
-  os << "Define image  [" << impars.imageName << "] : nchan : " << impars.nchan 
-     //<< ", freqstart:" << impars.freqStart.getValue() << impars.freqStart.getUnit() 
-     << ", start:" << impars.start
-     <<  ", imsize:" << impars.imsize 
-     << ", cellsize: [" << impars.cellsize[0].getValue() << impars.cellsize[0].getUnit() 
-     << " , " << impars.cellsize[1].getValue() << impars.cellsize[1].getUnit() 
-     << LogIO::POST;
-  */
-        // phasecenter
-        if (impars_p.phaseCenterFieldId == -1) {
-          // user-specified
-          phaseCenter_p = impars_p.phaseCenter;
-        } else if (impars_p.phaseCenterFieldId >= 0) {
-          // FIELD_ID
-          auto const msobj = mss_p[0];
-          MSFieldColumns msfield(msobj->field());
-          phaseCenter_p=msfield.phaseDirMeas(impars_p.phaseCenterFieldId);
-        } else {
-          // use default FIELD_ID (0)
-          auto const msobj = mss_p[0];
-          MSFieldColumns msfield(msobj->field());
-          phaseCenter_p=msfield.phaseDirMeas(0);
+      if( (itsMappers.nMappers()==0) || 
+          (impars_p.imsize[0]*impars_p.imsize[1] > itsMaxShape[0]*itsMaxShape[1]))
+        {
+          itsMaxShape=imshape;
+          itsMaxCoordSys=csys;
         }
-
+      itsNchan = imshape[3];
+      itsCsysRec = impars_p.getcsys();
+      /*
+      os << "Define image  [" << impars.imageName << "] : nchan : " << impars.nchan 
+         //<< ", freqstart:" << impars.freqStart.getValue() << impars.freqStart.getUnit() 
+         << ", start:" << impars.start
+         <<  ", imsize:" << impars.imsize 
+         << ", cellsize: [" << impars.cellsize[0].getValue() << impars.cellsize[0].getUnit() 
+         << " , " << impars.cellsize[1].getValue() << impars.cellsize[1].getUnit() 
+         << LogIO::POST;
+      */
+      // phasecenter
+      if (impars_p.phaseCenterFieldId == -1) {
+        // user-specified
+        phaseCenter_p = impars_p.phaseCenter;
+      } else if (impars_p.phaseCenterFieldId >= 0) {
+        // FIELD_ID
+        auto const msobj = mss_p[0];
+        MSFieldColumns msfield(msobj->field());
+        phaseCenter_p=msfield.phaseDirMeas(impars_p.phaseCenterFieldId);
+      } else {
+        // use default FIELD_ID (0)
+        auto const msobj = mss_p[0];
+        MSFieldColumns msfield(msobj->field());
+        phaseCenter_p=msfield.phaseDirMeas(0);
       }
-    catch(AipsError &x)
-      {
-  os << "Error in building Coordinate System and Image Shape : " << x.getMesg() << LogIO::EXCEPTION;
-      }
+    } catch (AipsError &x) {
+      os << "Error in building Coordinate System and Image Shape : "
+         << x.getMesg()
+         << LogIO::EXCEPTION;
+    }
 
+    try {
+      os << "Set Gridding options for [" << impars_p.imageName << "] with ftmachine : " << gridpars.ftmachine << LogIO::POST;
 
-    try
-      {
-  os << "Set Gridding options for [" << impars_p.imageName << "] with ftmachine : " << gridpars.ftmachine << LogIO::POST;
+      itsVpTable=gridpars.vpTable;
+      itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
+                   gridpars.ftmachine.contains("awprojectft") )?False:True;
 
-  itsVpTable=gridpars.vpTable;
-  itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-                 gridpars.ftmachine.contains("awprojectft") )?False:True;
+      //cerr << "DEFINEimage " << impars_p.toRecord() << endl;
 
-  //cerr << "DEFINEimage " << impars_p.toRecord() << endl;
+      createFTMachine(ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType, 
+          gridpars.facets, gridpars.wprojplanes,
+          gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
+          gridpars.convFunc,
+          gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
+          gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,gridpars.pointingOffsetSigDev.tovector(),
+          gridpars.doPBCorr,gridpars.conjBeams,
+          gridpars.computePAStep,gridpars.rotatePAStep,
+          gridpars.interpolation, impars_p.freqFrameValid, 1000000000,  16, impars_p.stokes,
+          impars_p.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
+          gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
+          gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi);
 
-  createFTMachine(ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType, 
-      gridpars.facets, gridpars.wprojplanes,
-      gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
-      gridpars.convFunc,
-      gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
-      gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,gridpars.pointingOffsetSigDev.tovector(),
-      gridpars.doPBCorr,gridpars.conjBeams,
-      gridpars.computePAStep,gridpars.rotatePAStep,
-      gridpars.interpolation, impars_p.freqFrameValid, 1000000000,  16, impars_p.stokes,
-      impars_p.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
-      gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-      gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi);
+    }
+    catch (AipsError &x) {
+      os << "Error in setting up FTMachine() : " << x.getMesg() << LogIO::EXCEPTION;
+    }
 
-      }
-    catch(AipsError &x)
-      {
-  os << "Error in setting up FTMachine() : " << x.getMesg() << LogIO::EXCEPTION;
-      }
+    try {
+      appendToMapperList(impars_p.imageName,  csys,  impars_p.shp(),
+           ftm, iftm,
+           gridpars.distance, gridpars.facets, gridpars.chanchunks,impars_p.overwrite,
+           gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel);
 
-    try
-      {
+      imageDefined_p=true;
+    }
+    catch(AipsError &x) {
+      os << "Error in adding Mapper : "+x.getMesg() << LogIO::EXCEPTION;
+    }
 
-    appendToMapperList(impars_p.imageName,  csys,  impars_p.shp(),
-         ftm, iftm,
-         gridpars.distance, gridpars.facets, gridpars.chanchunks,impars_p.overwrite,
-         gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel);
-
-  imageDefined_p=true;
-      }
-    catch(AipsError &x)
-      {
-  os << "Error in adding Mapper : "+x.getMesg() << LogIO::EXCEPTION;
-      }
-  imparsVec_p.resize(imparsVec_p.nelements()+1, true);
-  imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
-  ///For now cannot deal with cube and mtmfs in C++ parallel mode
-  if(imparsVec_p[0].deconvolver=="mtmfs") setCubeGridding(False);
-  //cerr <<"DECONV " << imparsVec_p[0].deconvolver << " cube gridding " << doingCubeGridding_p << endl;
-  gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
-  gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
-  //For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
-  if(gridparsVec_p[0].ftmachine.contains("awproject"))
-     setCubeGridding(False);
+    imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+    imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
+    ///For now cannot deal with cube and mtmfs in C++ parallel mode
+    if(imparsVec_p[0].deconvolver=="mtmfs") setCubeGridding(False);
+    //cerr <<"DECONV " << imparsVec_p[0].deconvolver << " cube gridding " << doingCubeGridding_p << endl;
+    gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+    gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
+    //For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
+    if(gridparsVec_p[0].ftmachine.contains("awproject"))
+       setCubeGridding(False);
 
     return true;
   }
