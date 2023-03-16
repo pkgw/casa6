@@ -7,6 +7,8 @@ import shutil
 
 import numpy
 
+from functools import partial
+
 from casatasks import casalog
 from casatools import image, imager
 from casatools import ms as mstool
@@ -376,14 +378,16 @@ def _get_pointing_extent(phasecenter, vislist, field, spw, antenna, scan, intent
 def _handle_image_params(imsize, cell, phasecenter,
                          vislist, field, spw, antenna, scan, intent, timerange,
                          restfreq, pointingcolumntouse, ephemsrcname):
+    logger = sdutil.Casalog(origin="_handle_image_params")
     # round-up imsize
     _imsize = sdutil.to_list(imsize, int) or sdutil.to_list(imsize, numpy.integer)
     if _imsize is None:
         _imsize = imsize if hasattr(imsize, '__iter__') else [imsize]
         _imsize = [int(numpy.ceil(v)) for v in _imsize]
-        casalog.post(
-            "imsize is not integers. force converting to integer pixel numbers.", priority="WARN")
-        casalog.post("rounded-up imsize: %s --> %s" % (str(imsize), str(_imsize)))
+        logger.post(
+            "imsize is not integers. force converting to integer pixel numbers.",
+            priority="WARN")
+        logger.post("rounded-up imsize: %s --> %s" % (str(imsize), str(_imsize)))
 
     # calculate cell based on PB if it is not given
     _cell = cell
@@ -409,10 +413,10 @@ def _handle_image_params(imsize, cell, phasecenter,
                 ndx = ms.msselectedindices()
             antenna_id = ndx['antenna1'][0]
         grid_factor = 3.
-        casalog.post("The cell size will be calculated using PB size of antennas in the first MS")
+        logger.post("The cell size will be calculated using PB size of antennas in the first MS")
         qpb = _calc_PB(vis, antenna_id, restfreq)
         _cell = '%f%s' % (qpb['value'] / grid_factor, qpb['unit'])
-        casalog.post("Using cell size = PB/%4.2F = %s" % (grid_factor, _cell))
+        logger.post("Using cell size = PB/%4.2F = %s" % (grid_factor, _cell))
 
     # Calculate Pointing center and extent (if necessary)
     _phasecenter = phasecenter
@@ -425,7 +429,7 @@ def _handle_image_params(imsize, cell, phasecenter,
         if len(_imsize) == 0 or _imsize[0] < 1:
             _imsize = _get_imsize(map_param['width'], map_param['height'], cellx, celly)
             if _phasecenter != "":
-                casalog.post(
+                logger.post(
                     "You defined phasecenter but not imsize. "
                     "The image will cover as wide area as pointing in MS extends, "
                     "but be centered at phasecenter. "
@@ -433,7 +437,7 @@ def _handle_image_params(imsize, cell, phasecenter,
                     "apart from the center of pointings",
                     priority='WARN')
             if _imsize[0] > 1024 or _imsize[1] > 1024:
-                casalog.post(
+                logger.post(
                     "The calculated image pixel number is larger than 1024. "
                     "It could take time to generate the image depending on your computer resource. "
                     "Please wait...",

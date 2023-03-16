@@ -20,6 +20,25 @@ from casatasks.private.mstools import write_history
 from casatasks.private.parallel.parallel_data_helper import ParallelDataHelper
 from casatasks.private.update_spw import update_spwchan
 
+class Casalog:
+    """Easily and consistently log CASA messages.
+
+    Motivation:
+    The origin of a message posted directly with casalog.post
+    must be specified at each casalog.post call.
+
+    Usage Example:
+    def my_funtion():
+        logger = Casalog(origin="my_function")
+        logger.post("Hello 1") # Logs <TaskName>::my_function::<ProcessorName> Hello 1
+        logger.post("Hello 2") # Logs <TaskName>::my_function::<ProcessorName> Hello 2
+
+    """
+    def __init__(self, origin: str):
+        """Construct an object posting messages having the given origin
+        """
+        self.post = functools.partial(casalog.post, origin=origin)
+
 
 @contextlib.contextmanager
 def tool_manager(vis, ctor, *args, **kwargs):
