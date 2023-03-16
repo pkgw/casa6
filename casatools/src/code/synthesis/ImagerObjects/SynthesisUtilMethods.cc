@@ -3628,7 +3628,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	(ftmachine != "mosaicft") && (ftmachine != "awprojectft") && 
 	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
 	(ftmachine != "sd"))
-      { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft'";   }
+      { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft', 'protoft', 'sd'";   }
 
     if( ((ftmachine=="mosaicft") && (mType=="imagemosaic"))  || 
 	((ftmachine=="awprojectft") && (mType=="imagemosaic")) )
