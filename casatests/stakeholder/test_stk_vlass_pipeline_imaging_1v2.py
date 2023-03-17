@@ -160,7 +160,8 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir = 'J1302/Stakeholder-test-mosaic-data'
-        img0 = 'J1302_iter2'
+        #img0 = 'J1302_iter2'
+        img0 = 'J1302_mtmfs_iter2'
         masks = ['secondmask.mask', 'QLcatmask.mask']
         quick_masks = ['secondmask_1000.mask', 'QLcatmask_1000.mask']
 
@@ -346,8 +347,10 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-awproject-data'
-        img0 = 'J1302_iter0d'
-        img1 = 'J1302_iter2'
+        #img0 = 'J1302_iter0d'
+        #img1 = 'J1302_iter2'
+        img0 = 'J1302_awproject_iter0d'
+        img1 = 'J1302_awproject_iter2'
         cache0name, cache1name = "cache0d.cf", "cache2.cf"
         masks = ['secondmask.mask', 'QLcatmask.mask']
         quick_masks = ['secondmask_1312.mask', 'QLcatmask_1312.mask']
@@ -600,7 +603,8 @@ class test_j1302(StkUnitTest):
         ###################################################
 
         def iname(image_iter, spw, stokes):
-            return 'J1302_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
+            #return 'J1302_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
+            return 'J1302_mosaic_cube_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
 
         tstobj = self
         def run_tclean(vis=tstobj.vis, uvrange='<12km', imsize=imsize, intent='OBSERVE_TARGET#UNSPECIFIED',
@@ -881,8 +885,10 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-data'
-        img0 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter0'
-        img1 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter1'
+        #img0 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter0'
+        #img1 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter1'
+        img0 = 'j1302_ql_iter0'
+        img1 = 'j1302_ql_iter1'
         self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1302_ql")
         imsize = 7290
         rms = 0.00034846254286391285 # noise floor as measured from a full-scale image run, Range: [3000,3000],[6990,3600]
@@ -1056,7 +1062,8 @@ class test_j1927(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
-        img0 = 'J1927_iter2'
+        #img0 = 'J1927_iter2'
+        img0 = 'J1927_mtmfs_iter2'
         masks = ['secondmask.mask', 'QLcatmask.mask']
         quick_masks = ['secondmask_1000.mask', 'QLcatmask_1000.mask']
 
@@ -1286,7 +1293,8 @@ class test_j1927(StkUnitTest):
         #################################################
 
         def iname(image_iter, spw, stokes):
-            return 'J1927_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
+        #    return 'J1927_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
+            return 'J1927_mosaic_cube_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
 
         tstobj = self
         def run_tclean(vis=tstobj.vis, uvrange='<12km', imsize=imsize, intent='OBSERVE_TARGET#UNSPECIFIED',
@@ -1524,8 +1532,10 @@ class test_j1927(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
-        img0 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter0'
-        img1 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter1'
+        #img0 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter0'
+        #img1 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter1'
+        img0 = 'J1927_ql_iter0'
+        img1 = 'J1927_ql_iter1'
         self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1927_ql")
         # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_QL_unittest"
         # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
