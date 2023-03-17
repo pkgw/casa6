@@ -746,9 +746,10 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
 			gridpars.doPBCorr,gridpars.conjBeams,
 			gridpars.computePAStep,gridpars.rotatePAStep,
 			gridpars.interpolation, impars.freqFrameValid, 1000000000,  16, impars.stokes,
-			impars.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
+			impars.imageName,
+      gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
 			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);  
+			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);
 	
 	if(gridpars.facets >1)
 	{
