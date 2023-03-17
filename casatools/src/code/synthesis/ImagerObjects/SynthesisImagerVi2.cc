@@ -2336,61 +2336,61 @@ void SynthesisImagerVi2::unlockMSs()
       }
   }
   void SynthesisImagerVi2::createFTMachine(CountedPtr<refim::FTMachine>& theFT, 
-					   CountedPtr<refim::FTMachine>& theIFT, 
-					   const String& ftname,
-					   const uInt nTaylorTerms,
-					   const String mType,
-					   const Int facets,            //=1
-					   //------------------------------
-					   const Int wprojplane,        //=1,
-					   const Float padding,         //=1.0,
-					   const Bool useAutocorr,      //=false,
-					   const Bool useDoublePrec,    //=true,
-					   const String gridFunction,   //=String("SF"),
-					//------------------------------
-					   const Bool aTermOn,          //= true,
-					   const Bool psTermOn,         //= true,
-					   const Bool mTermOn,          //= false,
-					const Bool wbAWP,            //= true,
-					   const String cfCache,        //= "",
-					   const Bool usePointing,       //= false,
-					   // const Vector<Float> pointingOffsetSigDev, //= 10.0,
-					   const vector<float> pointingOffsetSigDev,// = {10,10}
-					   const Bool doPBCorr,         //= true,
-					   const Bool conjBeams,        //= true,
-					const Float computePAStep,         //=360.0
-					   const Float rotatePAStep,          //=5.0
-					   const String interpolation,  //="linear"
-					   const Bool freqFrameValid, //=true
-					   const Int cache,             //=1000000000,
-					   const Int tile,               //=16
-					   const String stokes, //=I
-					   const String imageNamePrefix,
-					   //---------------------------
-					   const String &pointingDirCol,
-             const String &convertFirst,
-					   const Float skyPosThreshold,
-					   const Int convSupport,
-					   const Quantity &truncateSize,
-					   const Quantity &gwidth,
-					   const Quantity &jwidth,
-					   const Float minWeight,
-					   const Bool clipMinMax,
-					   const Bool pseudoI
-					   )
+           CountedPtr<refim::FTMachine>& theIFT, 
+           const String& ftname,
+           const uInt nTaylorTerms,
+           const String mType,
+           const Int facets,            //=1
+           //------------------------------
+           const Int wprojplane,        //=1,
+           const Float padding,         //=1.0,
+           const Bool useAutocorr,      //=false,
+           const Bool useDoublePrec,    //=true,
+           const String gridFunction,   //=String("SF"),
+        //------------------------------
+           const Bool aTermOn,          //= true,
+           const Bool psTermOn,         //= true,
+           const Bool mTermOn,          //= false,
+        const Bool wbAWP,            //= true,
+           const String cfCache,        //= "",
+           const Bool usePointing,       //= false,
+           // const Vector<Float> pointingOffsetSigDev, //= 10.0,
+           const vector<float> pointingOffsetSigDev,// = {10,10}
+           const Bool doPBCorr,         //= true,
+           const Bool conjBeams,        //= true,
+        const Float computePAStep,         //=360.0
+           const Float rotatePAStep,          //=5.0
+           const String interpolation,  //="linear"
+           const Bool freqFrameValid, //=true
+           const Int cache,             //=1000000000,
+           const Int tile,               //=16
+           const String stokes, //=I
+           const String imageNamePrefix,
+           //---------------------------
+           const String &pointingDirCol,
+           const String &convertFirst,
+           const Float skyPosThreshold,
+           const Int convSupport,
+           const Quantity &truncateSize,
+           const Quantity &gwidth,
+           const Quantity &jwidth,
+           const Float minWeight,
+           const Bool clipMinMax,
+           const Bool pseudoI
+           )
 
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
 
     if(ftname=="gridft"){
       if(facets >1){
-	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
-	theIFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
+  theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
+  theIFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
 
       }
       else{
-	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, padding, useAutocorr, useDoublePrec);
-	theIFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, padding, useAutocorr, useDoublePrec);
+  theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, padding, useAutocorr, useDoublePrec);
+  theIFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, padding, useAutocorr, useDoublePrec);
       }
     }
     else if(ftname== "wprojectft"){
@@ -2401,15 +2401,15 @@ void SynthesisImagerVi2::unlockMSs()
        casa::refim::WProjectFT::wStat(*vi_p, minW, maxW, rmsW);
     if(facets >1){
       theFT=new refim::WProjectFT(wprojplane,  phaseCenter_p, mLocation_p,
-			   cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+         cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
       theIFT=new refim::WProjectFT(wprojplane,  phaseCenter_p, mLocation_p,
-			    cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+          cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
     }
     else{
       theFT=new refim::WProjectFT(wprojplane,  mLocation_p,
-			   cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+         cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
       theIFT=new refim::WProjectFT(wprojplane,  mLocation_p,
-			    cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+          cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
     }
     CountedPtr<refim::WPConvFunc> sharedconvFunc=static_cast<refim::WProjectFT &>(*theFT).getConvFunc();
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
@@ -2417,10 +2417,10 @@ void SynthesisImagerVi2::unlockMSs()
     }
     else if ((ftname == "awprojectft") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
-			 padding, useAutocorr, useDoublePrec, gridFunction,
-			 aTermOn, psTermOn, mTermOn, wbAWP, cfCache, 
-			 usePointing, pointingOffsetSigDev, doPBCorr, conjBeams, computePAStep,
-			 rotatePAStep, cache,tile,imageNamePrefix);
+       padding, useAutocorr, useDoublePrec, gridFunction,
+       aTermOn, psTermOn, mTermOn, wbAWP, cfCache, 
+       usePointing, pointingOffsetSigDev, doPBCorr, conjBeams, computePAStep,
+       rotatePAStep, cache,tile,imageNamePrefix);
     }
     else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT"){
 
@@ -2432,7 +2432,7 @@ void SynthesisImagerVi2::unlockMSs()
     }
     else
       {
-	throw( AipsError( "Invalid FTMachine name : " + ftname ) );
+  throw( AipsError( "Invalid FTMachine name : " + ftname ) );
       }
     /* else if(ftname== "MosaicFT"){
 
@@ -2443,13 +2443,13 @@ void SynthesisImagerVi2::unlockMSs()
     ///////// Now, clone and pack the chosen FT into a MultiTermFT if needed.
     if( mType=="multiterm" )
       {
-	AlwaysAssert( nTaylorTerms>=1 , AipsError );
+  AlwaysAssert( nTaylorTerms>=1 , AipsError );
 
-	CountedPtr<refim::FTMachine> theMTFT = new refim::MultiTermFTNew( theFT , nTaylorTerms, true/*forward*/ );
-	CountedPtr<refim::FTMachine> theMTIFT = new refim::MultiTermFTNew( theIFT , nTaylorTerms, false/*forward*/ );
+  CountedPtr<refim::FTMachine> theMTFT = new refim::MultiTermFTNew( theFT , nTaylorTerms, true/*forward*/ );
+  CountedPtr<refim::FTMachine> theMTIFT = new refim::MultiTermFTNew( theIFT , nTaylorTerms, false/*forward*/ );
 
-	theFT = theMTFT;
-	theIFT = theMTIFT;
+  theFT = theMTFT;
+  theIFT = theMTIFT;
       }
 
 
@@ -2457,18 +2457,18 @@ void SynthesisImagerVi2::unlockMSs()
 
     ////// Now, set the SkyJones if needed, and if not internally generated.
     if( mType=="imagemosaic" && 
-	(ftname != "awprojectft" && ftname != "mawprojectft" && ftname != "proroft") )
+  (ftname != "awprojectft" && ftname != "mawprojectft" && ftname != "proroft") )
       {
-	CountedPtr<refim::SkyJones> vp;
-	MSColumns msc(*(mss_p[0]));
-	Quantity parang(0.0,"deg");
-	Quantity skyposthreshold(0.0,"deg");
-	vp = new refim::VPSkyJones(msc, true,  parang, BeamSquint::NONE,skyposthreshold);
+  CountedPtr<refim::SkyJones> vp;
+  MSColumns msc(*(mss_p[0]));
+  Quantity parang(0.0,"deg");
+  Quantity skyposthreshold(0.0,"deg");
+  vp = new refim::VPSkyJones(msc, true,  parang, BeamSquint::NONE,skyposthreshold);
 
-	Vector<CountedPtr<refim::SkyJones> > skyJonesList(1);
-	skyJonesList(0) = vp;
-	theFT->setSkyJones(  skyJonesList );
-	theIFT->setSkyJones(  skyJonesList );
+  Vector<CountedPtr<refim::SkyJones> > skyJonesList(1);
+  skyJonesList(0) = vp;
+  theFT->setSkyJones(  skyJonesList );
+  theIFT->setSkyJones(  skyJonesList );
 
       }
 
