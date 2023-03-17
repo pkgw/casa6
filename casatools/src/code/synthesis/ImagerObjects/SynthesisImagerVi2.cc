@@ -2368,6 +2368,7 @@ void SynthesisImagerVi2::unlockMSs()
 					   const String imageNamePrefix,
 					   //---------------------------
 					   const String &pointingDirCol,
+             const String &convertFirst,
 					   const Float skyPosThreshold,
 					   const Int convSupport,
 					   const Quantity &truncateSize,
@@ -2425,7 +2426,7 @@ void SynthesisImagerVi2::unlockMSs()
 
       createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
     } else if (ftname == "sd") {
-      createSDFTMachine(theFT, theIFT, pointingDirCol, skyPosThreshold, doPBCorr, rotatePAStep,
+      createSDFTMachine(theFT, theIFT, pointingDirCol, convertFirst, skyPosThreshold, doPBCorr, rotatePAStep,
           gridFunction, convSupport, truncateSize, gwidth, jwidth,
           minWeight, clipMinMax, cache, tile, stokes);
     }
