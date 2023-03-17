@@ -705,16 +705,16 @@ Bool SynthesisImagerVi2::defineImage(
   }
 
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
-			   const SynthesisParamsGrid& gridpars){
-	
-	Int id=itsMappers.nMappers();
+        const SynthesisParamsGrid& gridpars){
+
+  Int id=itsMappers.nMappers();
     CoordinateSystem csys =imstor->getCSys();
     IPosition imshape=imstor->getShape();
     Int nx=imshape[0], ny=imshape[1];
     if( (id==0) || (nx*ny > itsMaxShape[0]*itsMaxShape[1]))
       {
-	itsMaxShape=imshape;
-	itsMaxCoordSys=csys;
+  itsMaxShape=imshape;
+  itsMaxCoordSys=csys;
       }
     mLocation_p=impars.obslocation;
     // phasecenter
@@ -732,45 +732,46 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisP
           MSFieldColumns msfield(msobj->field());
           phaseCenter_p=msfield.phaseDirMeas(0);
         }
-	itsVpTable=gridpars.vpTable;
-	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-		             gridpars.ftmachine.contains("awprojectft") )?False:True;
-	CountedPtr<refim::FTMachine> ftm, iftm;
-	createFTMachine(ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType, 
-			gridpars.facets, gridpars.wprojplanes,
-			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
-			gridpars.convFunc,
-			gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
-			gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,
-			gridpars.pointingOffsetSigDev.tovector(),
-			gridpars.doPBCorr,gridpars.conjBeams,
-			gridpars.computePAStep,gridpars.rotatePAStep,
-			gridpars.interpolation, impars.freqFrameValid, 1000000000,  16, impars.stokes,
-			impars.imageName,
+  itsVpTable=gridpars.vpTable;
+  itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
+                 gridpars.ftmachine.contains("awprojectft") )?False:True;
+  CountedPtr<refim::FTMachine> ftm, iftm;
+  createFTMachine(ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType, 
+      gridpars.facets, gridpars.wprojplanes,
+      gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
+      gridpars.convFunc,
+      gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
+      gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,
+      gridpars.pointingOffsetSigDev.tovector(),
+      gridpars.doPBCorr,gridpars.conjBeams,
+      gridpars.computePAStep,gridpars.rotatePAStep,
+      gridpars.interpolation, impars.freqFrameValid, 1000000000,  16, impars.stokes,
+      impars.imageName,
       gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
-			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);
-	
-	if(gridpars.facets >1)
-	{
-	      // Make and connect the list.
-		Block<CountedPtr<SIImageStore> > imstorList = createFacetImageStoreList( imstor, gridpars.facets );
-		for( uInt facet=0; facet<imstorList.nelements(); facet++)
-		{
-		  CountedPtr<refim::FTMachine> new_ftm, new_iftm;
-		  if(facet==0){ new_ftm = ftm;  new_iftm = iftm; }
-		  else{ new_ftm=ftm->cloneFTM();  new_iftm=iftm->cloneFTM(); }
-		  itsMappers.addMapper(createSIMapper( gridpars.mType, imstorList[facet], new_ftm, new_iftm));
-		}
-	}
-	else{
-		itsMappers.addMapper(  createSIMapper( gridpars.mType, imstor, ftm, iftm ) );	
-	}
+      gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
+      gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);
+
+  if(gridpars.facets >1)
+  {
+        // Make and connect the list.
+    Block<CountedPtr<SIImageStore> > imstorList = createFacetImageStoreList( imstor, gridpars.facets );
+    for( uInt facet=0; facet<imstorList.nelements(); facet++)
+    {
+      CountedPtr<refim::FTMachine> new_ftm, new_iftm;
+      if(facet==0){ new_ftm = ftm;  new_iftm = iftm; }
+      else{ new_ftm=ftm->cloneFTM();  new_iftm=iftm->cloneFTM(); }
+     itsMappers.addMapper(createSIMapper( gridpars.mType, imstorList[facet], new_ftm, new_iftm));
+    }
+  }
+  else{
+    itsMappers.addMapper(  createSIMapper( gridpars.mType, imstor, ftm, iftm ) );	
+  }
         impars_p=impars;
         gridpars_p=gridpars;
-	imageDefined_p=true;
-	return true;
+  imageDefined_p=true;
+  return true;
 }
+
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, 
 				    const String& ftmachine)
   {
