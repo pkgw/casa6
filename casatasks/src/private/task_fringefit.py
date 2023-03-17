@@ -65,15 +65,6 @@ def fringefit(vis=None,caltable=None,
             mycb.setcallib(mycallib.cld)
 
         else:
-            if paramactive is None or paramactive==[]:
-                paramactive=[True, True, False]
-            else:
-                if len(paramactive)!=3:
-                    casalog.post("paramactive: " + paramactive)
-                    raise ValueError( 'Error: paramactive vector must have exactly three entries' )
-            # Have to solve for peculiar phase!
-            paramactive.insert(0, True)
-
             # by traditional parameters
 
             ngaintab = 0;
@@ -115,17 +106,23 @@ def fringefit(vis=None,caltable=None,
                     mycb.setapply(t=0.0,table=gaintable[igt],field=thisgainfield,
                                   calwt=True,spwmap=thisspwmap,interp=thisinterp)
 
-            if len(delaywindow) != 2:
-                delaywindow = [-1e6, 1e6]
-            if len(ratewindow) != 2:
-                ratewindow = [-1e6, 1e6]
-
         # ...and now the specialized terms
-        # (BTW, interp irrelevant for these, since they are evaluated)
-                
+        if paramactive is None or paramactive==[]:
+            paramactive=[True, True, False]
+        else:
+            if len(paramactive)!=3:
+                casalog.post("paramactive: " + paramactive)
+                raise ValueError( 'Error: paramactive vector must have exactly three entries' )
+        # Have to solve for peculiar phase!
+        paramactive.insert(0, True)
+
+        if len(delaywindow) != 2:
+            delaywindow = [-1e6, 1e6]
+        if len(ratewindow) != 2:
+            ratewindow = [-1e6, 1e6]
+
         # Apply parallactic angle, if requested
         if parang: mycb.setapply(type='P')
-
         # Set up for solving; only support one gaintype
         mycb.setsolve(type="FRINGE",t=solint,refant=refant,
                       minsnr=minsnr,combine=combine,
