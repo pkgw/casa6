@@ -161,19 +161,22 @@ class test_j1302(StkUnitTest):
         test_name = self._testMethodName
         data_path_dir = 'J1302/Stakeholder-test-mosaic-data'
         #img0 = 'J1302_iter2'
-        img0 = 'J1302_mtmfs_iter2'
+        basetname = 'J1302_mtmfs'
+        img0 = f"{basetname}_iter2"
         masks = ['secondmask.mask', 'QLcatmask.mask']
         quick_masks = ['secondmask_1000.mask', 'QLcatmask_1000.mask']
 
         if not quick_test:
             imsize=4000
             self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1302_mtmfs")
+            for i in range(len(masks)):
+                os.system(f"mv {masks[i]} {basetname}_{masks[i]}")
         else:
             imsize=1000
             self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1302_mtmfs")
             for i in range(len(masks)):
-                os.system(f"mv {quick_masks[i]} {masks[i]}")
-            self.teardown_files += masks
+                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
+            self.teardown_files += [f'{basetname}_{x}' for x in masks]
 
         spw = ''
         rms = [0.00017975829898762892, 0.0013099727978948515] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [700,800],[3300,1900]
@@ -186,9 +189,9 @@ class test_j1302(StkUnitTest):
 
         # combine first and 2nd order masks
         if not use_partial_results:
-            immath(imagename=['secondmask.mask','QLcatmask.mask'],expr='IM0+IM1',outfile='sum_of_masks.mask')
-            self.im.mask(image='sum_of_masks.mask',mask='combined.mask',threshold=0.5)
-            self.teardown_files += ['sum_of_masks.mask', 'combined.mask']
+            immath(imagename=[f'{basetname}_secondmask.mask',f'{basetname}_QLcatmask.mask'],expr='IM0+IM1',outfile=f'{basetname}_sum_of_masks.mask')
+            self.im.mask(image=f'{basetname}_sum_of_masks.mask',mask=f'{basetname}_combined.mask',threshold=0.5)
+            self.teardown_files += [f'{basetname}_sum_of_masks.mask', f'{basetname}_combined.mask']
 
         ###########################################
         # %% Prepare masks [test_j1302_mtmfs] end @
@@ -223,14 +226,14 @@ class test_j1302(StkUnitTest):
         run_tclean( niter=0,     datacolumn='corrected', calcres=True, calcpsf=True,                         compare_tclean_pars=script_pars_vals_0 )
 
         # resume iter2 with QL mask
-        run_tclean( niter=20000, datacolumn='corrected', mask="QLcatmask.mask", nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_1 )
+        run_tclean( niter=20000, datacolumn='corrected', mask=f"{basetname}_QLcatmask.mask", nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_1 )
 
         # save model column, doesn't happen here in acutal VLASS pipeline, but makes sure functionality works.
         run_tclean( niter=0,     datacolumn='data',      savemodel='modelcolumn',                            compare_tclean_pars=script_pars_vals_2 )
 
         # resume iter2 with combined mask, remove old mask first, pass new mask as parameter
         os.system(f"rm -rf {img0}.mask")
-        run_tclean( niter=20000, datacolumn='corrected', mask="combined.mask",  nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_3 )
+        run_tclean( niter=20000, datacolumn='corrected', mask=f"{basetname}_combined.mask",  nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_3 )
 
         # resume iter2 with pbmask, removed old mask first then specify pbmask in resumption of tclean
         os.system(f"rm -rf {img0}.mask")
@@ -347,26 +350,37 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-awproject-data'
+        cf0 = 'J1302_iter0d'
+        cf1 = 'J1302_iter2'
         #img0 = 'J1302_iter0d'
         #img1 = 'J1302_iter2'
-        img0 = 'J1302_awproject_iter0d'
-        img1 = 'J1302_awproject_iter2'
+        basetname = 'J1302_awproject'
+        img0 = f'{basetname}_iter0d'
+        img1 = f'{basetname}_iter2'
         cache0name, cache1name = "cache0d.cf", "cache2.cf"
         masks = ['secondmask.mask', 'QLcatmask.mask']
         quick_masks = ['secondmask_1312.mask', 'QLcatmask_1312.mask']
 
         if not quick_test:
             imsize=5250
-            self.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", *masks, partial_results_dirname="partial_results_test_j1302_awproject")
-            os.system(f"mv cfcache/{img0}.cf {cache0name}")
-            os.system(f"mv cfcache/{img1}.cf {cache1name}")
+            #self.prepData(self.vis, data_path_dir, f"cfcache/{img0}.cf", f"cfcache/{img1}.cf", *masks, partial_results_dirname="partial_results_test_j1302_awproject")
+            self.prepData(self.vis, data_path_dir, f"cfcache/{cf0}.cf", f"cfcache/{cf1}.cf", *masks, partial_results_dirname="partial_results_test_j1302_awproject")
+            #os.system(f"mv cfcache/{img0}.cf {cache0name}")
+            #os.system(f"mv cfcache/{img1}.cf {cache1name}")
+            os.system(f"mv cfcache/{cf0}.cf {cache0name}")
+            os.system(f"mv cfcache/{cf1}.cf {cache1name}")
+            for i in range(len(masks)):
+                os.system(f"mv {masks[i]} {basetname}_{masks[i]}")
         else:
             imsize=1312
-            self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{img0}.cf", f"cfcache_quick1/{img1}.cf", *quick_masks, partial_results_dirname="partial_results_test_j1302_awproject")
-            os.system(f"mv cfcache_quick1/{img0}.cf {cache0name}")
-            os.system(f"mv cfcache_quick1/{img1}.cf {cache1name}")
+            #self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{img0}.cf", f"cfcache_quick1/{img1}.cf", *quick_masks, partial_results_dirname="partial_results_test_j1302_awproject")
+            #os.system(f"mv cfcache_quick1/{img0}.cf {cache0name}")
+            #os.system(f"mv cfcache_quick1/{img1}.cf {cache1name}")
+            self.prepData(self.vis, data_path_dir, f"cfcache_quick1/{cf0}.cf", f"cfcache_quick1/{cf1}.cf", *quick_masks, partial_results_dirname="partial_results_test_j1302_awproject")
+            os.system(f"mv cfcache_quick1/{cf0}.cf {cache0name}")
+            os.system(f"mv cfcache_quick1/{cf1}.cf {cache1name}")
             for i in range(len(masks)):
-                os.system(f"mv {quick_masks[i]} {masks[i]}")
+                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
             self.teardown_files += masks
         self.teardown_files += [cache0name, cache1name]
 
@@ -388,9 +402,9 @@ class test_j1302(StkUnitTest):
 
         # combine first and 2nd order masks
         if not use_partial_results:
-            immath(imagename=['secondmask.mask','QLcatmask.mask'],expr='IM0+IM1',outfile='sum_of_masks.mask')
-            self.im.mask(image='sum_of_masks.mask',mask='combined.mask',threshold=0.5)
-            self.teardown_files += ['sum_of_masks.mask', 'combined.mask']
+            immath(imagename=[f'{basetname}_secondmask.mask',f'{basetname}_QLcatmask.mask'],expr='IM0+IM1',outfile=f'{basetname}_sum_of_masks.mask')
+            self.im.mask(image=f'{basetname}_sum_of_masks.mask',mask=f'{basetname}_combined.mask',threshold=0.5)
+            self.teardown_files += [f'{basetname}_sum_of_masks.mask', f'{basetname}_combined.mask']
 
         ##############################################
         # %% Prepare masks [test_j1302_mtmfs] end    @
@@ -441,7 +455,7 @@ class test_j1302(StkUnitTest):
 
         #  resume iter2 with QL mask
         run_tclean(imagename=img1, cfcache=cache1name, niter=20000, scales=[0, 5, 12], nsigma=3.0, cycleniter=3000,
-                   mask="QLcatmask.mask", calcres=False, calcpsf=False, compare_tclean_pars=script_pars_vals_2)
+                   mask=f"{basetname}_QLcatmask.mask", calcres=False, calcpsf=False, compare_tclean_pars=script_pars_vals_2)
 
         # save model column, doesn't happen here in acutal VLASS pipeline, but makes sure functionality works.
         run_tclean(imagename=img1, cfcache=cache1name, niter=0, datacolumn='data', calcres=False, calcpsf=False,
@@ -450,7 +464,7 @@ class test_j1302(StkUnitTest):
         # resume iter2 with combined mask
         os.system(f"rm -rf {img1}.mask")
         run_tclean(imagename=img1, cfcache=cache1name, niter=20000, scales=[0, 5, 12], nsigma=3.0, cycleniter=3000,
-                   mask="combined.mask", calcres=False, calcpsf=False, compare_tclean_pars=script_pars_vals_4)
+                   mask=f"{basetname}_combined.mask", calcres=False, calcpsf=False, compare_tclean_pars=script_pars_vals_4)
 
         # resume iter2 with pbmask, removed old mask first then specify pbmask in resumption of tclean
         os.system(f"rm -rf {img1}.mask")
@@ -571,17 +585,20 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-cube-data'
+        basetname = 'J1302_mosaic_cube'
         masks = ['combined.mask', 'QLcatmask.mask']
         quick_masks = ['combined_1000.mask', 'QLcatmask_1000.mask']
 
         if not quick_test:
             imsize=4000
             self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1302_mosaic_cube")
+            for i in range(len(masks)):
+                os.system(f"mv {masks[i]} {basetname}_{masks[i]}")
         else:
             imsize=1000
             self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1302_mosaic_cube")
             for i in range(len(masks)):
-                os.system(f"mv {quick_masks[i]} {masks[i]}")
+                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
             self.teardown_files += masks
 
         spw_chans = ''
@@ -604,7 +621,7 @@ class test_j1302(StkUnitTest):
 
         def iname(image_iter, spw, stokes):
             #return 'J1302_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
-            return 'J1302_mosaic_cube_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
+            return basetname+image_iter+'_'+spw.replace('~','-')+'_'+stokes
 
         tstobj = self
         def run_tclean(vis=tstobj.vis, uvrange='<12km', imsize=imsize, intent='OBSERVE_TARGET#UNSPECIFIED',
@@ -663,14 +680,14 @@ class test_j1302(StkUnitTest):
 
                 # resume iter2 with QL mask
                 r[1] = run_tclean( imagename=imagename, datacolumn='corrected', scales=[0,5,12], nsigma=3.0, niter=20000, cycleniter=500,
-                                   mask="QLcatmask.mask", calcres=False, calcpsf=False, spw=spw_str,
+                                   mask=f"{basetname}_QLcatmask.mask", calcres=False, calcpsf=False, spw=spw_str,
                                    stokes=stokes, reffreq=refFreqDict[spw], compare_tclean_pars=script_pars_vals_1[spw][stokes] )
 
                 # resume iter2 with combined mask
                 os.system('rm -rf *.workdirectory')
                 os.system('rm -rf *iter2*.mask')
                 r[2] = run_tclean( imagename=imagename, datacolumn='corrected', scales=[0,5,12], nsigma=3.0, niter=20000, cycleniter=500,
-                                   mask="combined.mask", calcres=False, calcpsf=False, spw=spw_str,
+                                   mask=f"{basetname}_combined.mask", calcres=False, calcpsf=False, spw=spw_str,
                                    stokes=stokes, reffreq=refFreqDict[spw], compare_tclean_pars=script_pars_vals_2[spw][stokes])
 
                 # os.system('rm -rf iter2*.mask')
@@ -887,8 +904,9 @@ class test_j1302(StkUnitTest):
         data_path_dir  = 'J1302/Stakeholder-test-mosaic-data'
         #img0 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter0'
         #img1 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter1'
-        img0 = 'j1302_ql_iter0'
-        img1 = 'j1302_ql_iter1'
+        basetname = 'J1302_ql'
+        img0 = f'{basetname}_iter0'
+        img1 = f'{basetname}_iter1'
         self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1302_ql")
         imsize = 7290
         rms = 0.00034846254286391285 # noise floor as measured from a full-scale image run, Range: [3000,3000],[6990,3600]
@@ -1063,19 +1081,22 @@ class test_j1927(StkUnitTest):
         test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
         #img0 = 'J1927_iter2'
-        img0 = 'J1927_mtmfs_iter2'
+        basetname = 'J1927_mtmfs'
+        img0 = f'{basetname}_iter2'
         masks = ['secondmask.mask', 'QLcatmask.mask']
         quick_masks = ['secondmask_1000.mask', 'QLcatmask_1000.mask']
 
         if not quick_test:
             imsize=4000
             self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1927_mtmfs")
+            for i in range(len(masks)):
+                os.system(f"mv {masks[i]} {basetname}_{masks[i]}")
         else:
             imsize=1000
             self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1927_mtmfs")
             for i in range(len(masks)):
-                os.system(f"mv {quick_masks[i]} {masks[i]}")
-            self.teardown_files += masks
+                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
+            self.teardown_files += [f"{basetname}_{x}" for x in masks]
 
         spw = ''
         rms = [0.0001483304420688553, 0.0007968044018725578] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [500,500],[3400,1900]
@@ -1088,9 +1109,9 @@ class test_j1927(StkUnitTest):
 
         # combine first and 2nd order masks
         if not use_partial_results:
-            immath(imagename=['secondmask.mask','QLcatmask.mask'],expr='IM0+IM1',outfile='sum_of_masks.mask')
-            self.im.mask(image='sum_of_masks.mask',mask='combined.mask',threshold=0.5)
-            self.teardown_files += ['sum_of_masks.mask', 'combined.mask']
+            immath(imagename=[f'{basetname}_secondmask.mask',f'{basetname}_QLcatmask.mask'],expr='IM0+IM1',outfile=f'{basetname}_sum_of_masks.mask')
+            self.im.mask(image=f'{basetname}_sum_of_masks.mask',mask=f'{basetname}_combined.mask',threshold=0.5)
+            self.teardown_files += [f'{basetname}_sum_of_masks.mask', f'{basetname}_combined.mask']
 
         ###########################################
         # %% Prepare masks [test_j1927_mtmfs] end @
@@ -1125,14 +1146,14 @@ class test_j1927(StkUnitTest):
         run_tclean( niter=0,     datacolumn='corrected', calcres=True, calcpsf=True,                         compare_tclean_pars=script_pars_vals_0 )
 
         # # resume iter2 with QL mask
-        run_tclean( niter=20000, datacolumn='corrected', mask="QLcatmask.mask", nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_1 )
+        run_tclean( niter=20000, datacolumn='corrected', mask=f"{basetname}_QLcatmask.mask", nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_1 )
 
         # save model column, doesn't happen here in acutal VLASS pipeline, but makes sure functionality works.
         run_tclean( niter=0,     datacolumn='data',      savemodel='modelcolumn',                            compare_tclean_pars=script_pars_vals_2 )
 
         # resume iter2 with combined mask, remove old mask first, pass new mask as parameter
         os.system(f"rm -rf {img0}.mask")
-        run_tclean( niter=20000, datacolumn='corrected', mask="combined.mask",  nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_3 )
+        run_tclean( niter=20000, datacolumn='corrected', mask=f"{basetname}_combined.mask",  nsigma=3.0, scales=[0,5,12], compare_tclean_pars=script_pars_vals_3 )
 
         # resume iter2 with pbmask, removed old mask first then specify pbmask in resumption of tclean
         os.system(f"rm -rf {img0}.mask")
@@ -1254,18 +1275,21 @@ class test_j1927(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-cube-data'
+        basetname = 'J1927_mosaic_cube'
         masks = ['combined.mask', 'QLcatmask.mask']
         quick_masks = ['combined_1000.mask', 'QLcatmask_1000.mask']
 
         if not quick_test:
             imsize=4000
             self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1927_mosaic_cube")
+            for i in range(len(masks)):
+                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
         else:
             imsize=1000
             self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1927_mosaic_cube")
             for i in range(len(masks)):
-                os.system(f"mv {quick_masks[i]} {masks[i]}")
-            self.teardown_files += masks
+                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
+            self.teardown_files += [f'{basetname}_{x}' for x in masks]
 
         # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_cube_unittest"
         # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
@@ -1294,7 +1318,7 @@ class test_j1927(StkUnitTest):
 
         def iname(image_iter, spw, stokes):
         #    return 'J1927_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
-            return 'J1927_mosaic_cube_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
+            return basetname+'_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
 
         tstobj = self
         def run_tclean(vis=tstobj.vis, uvrange='<12km', imsize=imsize, intent='OBSERVE_TARGET#UNSPECIFIED',
@@ -1353,14 +1377,14 @@ class test_j1927(StkUnitTest):
 
                 # # resume iter2 with QL mask
                 r[1] = run_tclean( imagename=imagename, datacolumn='corrected', scales=[0,5,12], nsigma=3.0, niter=20000, cycleniter=500,   
-                                   mask="QLcatmask.mask", calcres=False, calcpsf=False, spw=spw_str,
+                                   mask=f"{basetname}_QLcatmask.mask", calcres=False, calcpsf=False, spw=spw_str,
                                    stokes=stokes, reffreq=refFreqDict[spw], compare_tclean_pars=script_pars_vals_1[spw][stokes] )
 
                 # resume iter2 with combined mask
                 os.system('rm -rf *.workdirectory')
                 os.system('rm -rf *iter2*.mask')
                 r[2] = run_tclean( imagename=imagename, datacolumn='corrected', scales=[0,5,12], nsigma=3.0, niter=20000, cycleniter=500,
-                                   mask="combined.mask", calcres=False, calcpsf=False, spw=spw_str,
+                                   mask=f"{basetname}_combined.mask", calcres=False, calcpsf=False, spw=spw_str,
                                    stokes=stokes, reffreq=refFreqDict[spw], compare_tclean_pars=script_pars_vals_2[spw][stokes])
 
                 # os.system('rm -rf iter2*.mask')
@@ -1532,10 +1556,11 @@ class test_j1927(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = 'J1927/J1927-stakeholdertest-mosaic-data'
+        basetname = 'J1927_ql'
         #img0 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter0'
         #img1 = 'VLASS1.2.ql.T26t15.J1927.10.2048.v1.I.iter1'
-        img0 = 'J1927_ql_iter0'
-        img1 = 'J1927_ql_iter1'
+        img0 = f'{basetname}_iter0'
+        img1 = f'{basetname}_iter1'
         self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1927_ql")
         # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_QL_unittest"
         # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
