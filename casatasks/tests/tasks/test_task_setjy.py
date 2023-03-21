@@ -1630,83 +1630,81 @@ class test_fluxscaleStandard(SetjyUnitTestBase):
         self.check_eq(sjran['1']['0']['fluxd'][0],2.48362403,0.0001)
         self.assertTrue(ret)
 
-class test_setpol(SetjyUnitTestBase):
-    """Test multi-term spix and polarization parameter setting"""
+# duplicated with test_setpol2
+#class test_setpol(SetjyUnitTestBase):
+#    """Test multi-term spix and polarization parameter setting"""
+#
+#    def setUp(self):
+#        prefix = '3c391calonly'
+#        msfile = prefix + '.ms'
+#        #self.setUpMS('unittest/setjy/3c391calonly.ms')
+#        self.setUpMS(msfile)
+#        self.result = {}
+#
+#    def tearDown(self):
+#        self.resetMS()
+#
+#    def test_setpol1(self):
+#        """ Test for multi-term spix (alpha and beta) """
+#
+#        sjran = setjy(vis=self.inpms,
+#                      standard='manual',
+#                      field = 'J1331+3030',
+#                      fluxdensity = [7.81694, 0.355789, 0.79909, 0],
+#                      spix = [-0.62,-0.1], 
+#                      reffreq='4536.0MHz',
+#                      usescratch=True)
+#        ret = True
+#        if type(sjran)!=dict:
+#            ret = False
+#        #else:
+#        #    print sjran 
+#        #print "fluxdic=",sjran 
+# 
+#        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
+#        self.assertTrue(ret)
+#
+#        # expected flux
+#        #fref = 4.536e9
+#        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
+#        # fmin at last chan (Freq=4662000000.0Hz)
+#        fexpmin = 7.68502
+#        ms.open(self.inpms)
+#        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
+#        ms.close()
+#        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
+#
+#    def test_setpol2(self):
+#        """ Test for constant polindex and polangle with I flux density  """
+#
+#        sjran = setjy(vis=self.inpms,
+#                      standard='manual',
+#                      field = 'J1331+3030',
+#                      fluxdensity = [7.81694, 0, 0, 0],
+#                      spix = [-0.62],
+#                      reffreq='4536.0MHz',
+#                      usescratch=True)
+#        ret = True
+#        if type(sjran)!=dict:
+#            ret = False
+#        #else:
+#        #    print sjran
+#
+#        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
+#        self.assertTrue(ret)
+#
+#        # expected flux
+#        #fref = 4.536e9
+#        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
+#        # fmin at last chan (Freq=4662000000.0Hz)
+#        fexpmin = 7.68527
+#        ms.open(self.inpms)
+#        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
+#        #retrec2 = ms.statistics(field='0', baseline='1&2', correlation='rl', column='model', complex_value='phase')
+#        ms.close()
+#        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
+#
 
-    def setUp(self):
-        prefix = '3c391calonly'
-        msfile = prefix + '.ms'
-        #self.setUpMS('unittest/setjy/3c391calonly.ms')
-        self.setUpMS(msfile)
-        self.result = {}
-
-    def tearDown(self):
-        self.resetMS()
-
-    def test_setpol1(self):
-        """ Test for multi-term spix (alpha and beta) """
-
-        sjran = setjy(vis=self.inpms,
-                      standard='manual',
-                      field = 'J1331+3030',
-                      fluxdensity = [7.81694, 0.355789, 0.79909, 0],
-                      spix = [-0.62,-0.1], 
-                      reffreq='4536.0MHz',
-                      usescratch=True)
-        ret = True
-        if type(sjran)!=dict:
-            ret = False
-        #else:
-        #    print sjran 
-        #print "fluxdic=",sjran 
- 
-        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
-        self.assertTrue(ret)
-
-        # expected flux
-        #fref = 4.536e9
-        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
-        # fmin at last chan (Freq=4662000000.0Hz)
-        fexpmin = 7.68502
-        ms.open(self.inpms)
-        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
-        ms.close()
-        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
-
-    def test_setpol2(self):
-        """ Test for constant polindex and polangle with I flux density  """
-
-        sjran = setjy(vis=self.inpms,
-                      standard='manual',
-                      field = 'J1331+3030',
-                      fluxdensity = [7.81694, 0, 0, 0],
-                      spix = [-0.62],
-                      reffreq='4536.0MHz',
-                      usescratch=True)
-        ret = True
-        if type(sjran)!=dict:
-            ret = False
-        #else:
-        #    print sjran
-
-        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
-        self.assertTrue(ret)
-
-        # expected flux
-        #fref = 4.536e9
-        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
-        # fmin at last chan (Freq=4662000000.0Hz)
-        fexpmin = 7.68527
-        ms.open(self.inpms)
-        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
-        #retrec2 = ms.statistics(field='0', baseline='1&2', correlation='rl', column='model', complex_value='phase')
-        ms.close()
-        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
-
-    def test_setpol3(self):
-        """ Test for frequency-dependent polindex (2 terms)   """
-        # the constant terms (polindex[0] and polangle[0] is ignored..
-    
 class test_inputs(SetjyUnitTestBase):
     """Test input parameter checking"""
     def setUp(self):
@@ -2094,6 +2092,36 @@ class test_setpol(SetjyUnitTestBase):
         self.check_eq(retrecU['FIELD_ID=0']['min'],ufexpmin,0.0001)
         self.check_eq(retrecAngle['FIELD_ID=0']['min'],anglemin,0.0001)
 
+    def test_setpol_wrongspix(self):
+        """ Test for wrong spix value  """
+
+        sjran=None
+        try:
+            sjran = setjy(vis=self.inpms,
+                      standard='manual',
+                      field = 'J1331+3030',
+                      fluxdensity = [7.81694, 0, 0, 0],
+                      spix = [-62],
+                      reffreq='4536.0MHz')
+        except Exception as setjyUTerr:
+            msg = str(setjyUTerr)
+            self.assertNotEqual(msg.find("less than -10"), -1,
+                                'wrong type of exception is thrown')
+
+        self.assertEqual(sjran,None,"Failed to raise exception.") 
+
+        try:
+            sjran = setjy(vis=self.inpms,
+                      standard='manual',
+                      field = 'J1331+3030',
+                      fluxdensity = [7.81694, 0, 0, 0],
+                      spix = [62],
+                      reffreq='4536.0MHz')
+        except Exception as setjyUTerr:
+            msg = str(setjyUTerr)
+            self.assertNotEqual(msg.find("greater than 10"), -1,
+                                'wrong type of exception is thrown')
+        self.assertEqual(sjran,None,"Failed to raise exception.") 
 
 class test_ephemtbl(SetjyUnitTestBase):
     """Test for data with attached ephem table(s)"""
