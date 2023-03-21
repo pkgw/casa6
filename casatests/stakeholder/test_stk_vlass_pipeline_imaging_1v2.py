@@ -1283,7 +1283,7 @@ class test_j1927(StkUnitTest):
             imsize=4000
             self.prepData(self.vis, data_path_dir, *masks, partial_results_dirname="partial_results_test_j1927_mosaic_cube")
             for i in range(len(masks)):
-                os.system(f"mv {quick_masks[i]} {basetname}_{masks[i]}")
+                os.system(f"mv {masks[i]} {basetname}_{masks[i]}")
         else:
             imsize=1000
             self.prepData(self.vis, data_path_dir, *quick_masks, partial_results_dirname="partial_results_test_j1927_mosaic_cube")
