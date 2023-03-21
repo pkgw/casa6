@@ -1511,9 +1511,9 @@ void FringeJones::setSolve(const Record& solve) {
         concatSPWs() = solve.asBool("concatspws");
     }
     if (solve.isDefined("corrcomb")) {
-        cerr << "FringeJones::setsolve() Corrcomb is set! To:"
-             << solve.asString("corrcomb")
-             << endl;
+      //cerr << "FringeJones::setsolve() Corrcomb is set! To:"
+      //     << solve.asString("corrcomb")
+      //     << endl;
         corrcomb() = solve.asString("corrcomb");
     }
 }

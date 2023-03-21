@@ -3539,11 +3539,12 @@ casacore::Bool Calibrater::genericGatherAndSolve()
   // PolAverageTVILayerFactory that underlies this feature will also need to be extended
   // to make that possible
   if (svc_p->corrcomb().contains("all")) {
-      cerr << "Calibrater::genericGatherAndSolve(): Combining correlations!" << endl;
+    //cerr << "Calibrater::genericGatherAndSolve(): Combining correlations!" << endl;
       vi2org.addCorrCombine();
-  } else {
-      cerr << "Calibrater::genericGatherAndSolve(): Not combining correlations!" << endl;
   }
+  //else {
+  //    cerr << "Calibrater::genericGatherAndSolve(): Not combining correlations!" << endl;
+  //}
 
   //  vi2org should be fully configured at this point
   //-------------------------------------------------

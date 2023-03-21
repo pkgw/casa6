@@ -327,9 +327,11 @@ Previous calibrations should be applied on the fly.
 
   <param type="bool" name="concatspws">
     <shortdescription>Choose between multi-band FFT strategies</shortdescription>
-    <description>Multi-band FFTs can be done by joining spectral
-    windows onto a wider frequency grid (the default) or by a new
-    method that combines them after the FFT.</description>
+    <description>For combine='spw', the multi-band FFT solution can be
+    done in two different ways.  For concatspws=True (the default), spws are
+    combined onto a wider frequency grid.  For concatspws=False, each
+    spw is separated FFT'd, and the results are combined using the
+    shift theorem; this mode is experimental.</description>
     <value>True</value>
   </param>
     

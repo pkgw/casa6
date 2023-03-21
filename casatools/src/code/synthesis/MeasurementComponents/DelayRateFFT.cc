@@ -678,13 +678,13 @@ multibandFFTs(const Array<Complex>& ffts, const Vector<Float>& offsets) {
             }
         }
     }
-    cerr << "Unaveraged stacked DFT peaks at " << itmax << "/" << nt << ", "
-         << ichanmax << "/" << nchan << "; Bin " << ibinmax
-         << " Peak " << abs(X(IPosition(3, ibinmax, itmax, ichanmax))) 
-         << endl;
-    for (Int i=0; i < nspw; i++) {
-        cerr << "Peak for bin " << i << " = " << abs(ffts(IPosition(3, i, itmax, ichanmax))) << endl;
-    }
+    //cerr << "Unaveraged stacked DFT peaks at " << itmax << "/" << nt << ", "
+    //     << ichanmax << "/" << nchan << "; Bin " << ibinmax
+    //     << " Peak " << abs(X(IPosition(3, ibinmax, itmax, ichanmax))) 
+    //     << endl;
+    //for (Int i=0; i < nspw; i++) {
+    //    cerr << "Peak for bin " << i << " = " << abs(ffts(IPosition(3, i, itmax, ichanmax))) << endl;
+    //}
     
     Complex c = X(IPosition(3, ibinmax, itmax, ichanmax));
     Double dpkch = freqs(ibinmax);
@@ -931,7 +931,7 @@ DelayRateFFTCombo::snr(Int icorr, Int ielem, Float delay, Float rate) {
     IPosition p(2, icorr, ielem);
     Float peak = peak_(p);
     if (peak > 0.999*sumw_(p)) {
-        cerr << "Clipping peak for element " << ielem << " from " << peak << " to " << 0.999*sumw_(p) << endl;
+      //cerr << "Clipping peak for element " << ielem << " from " << peak << " to " << 0.999*sumw_(p) << endl;
         peak=0.999*sumw_(p);
     }
     // xcount is number of data points for baseline to ielem

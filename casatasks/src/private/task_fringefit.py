@@ -32,7 +32,7 @@ def fringefit(vis=None,caltable=None,
     casalog.origin('fringefit')
 
     # 
-    print("task_fringfit.py: corrcomb={}".format(corrcomb))
+
     try: 
         mycb = calibrater()
 
