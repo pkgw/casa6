@@ -200,6 +200,7 @@ public:
   void createSDFTMachine(casacore::CountedPtr<refim::FTMachine>& theFT,
       casacore::CountedPtr<refim::FTMachine>& theIFT,
       const casacore::String &pointingDirCol,
+      const casacore::String &convertFirst,
       const casacore::Float skyPosThreshold,
       const casacore::Bool doPBCorr,
       const casacore::Float rotatePAStep,
