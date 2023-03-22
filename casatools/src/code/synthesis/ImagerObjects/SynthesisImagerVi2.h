@@ -161,7 +161,7 @@ public:
           const casacore::String stokes="I",
           const casacore::String imageNamePrefix="",
           const casacore::String &pointingDirCol=casacore::String("direction"),
-          const casacore::String &convertFirst=casacore::String("direction"),
+          const casacore::String &convertFirst=casacore::String("never"),
           const casacore::Float skyPosThreshold=0.0,
           const casacore::Int convSupport=-1,
           const casacore::Quantity &truncateSize=casacore::Quantity(-1),
