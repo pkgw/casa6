@@ -411,7 +411,7 @@ bool SingleDishMS::prepare_for_process(string const &in_column_name,
   // The other available keys
   // - buffermode, realmodelcol, usewtspectrum, tileshape,
   // - chanaverage, chanbin, useweights,
-  // - combinespws, ddistart, hanning
+  // - ddistart, hanning
   // - regridms, phasecenter, restfreq, outframe, interpolation, nspw,
   // - mode, nchan, start, width, veltype,
   // - timeaverage, timebin, timespan, maxuvwdistance
