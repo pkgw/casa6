@@ -224,7 +224,7 @@ SimplePBConvFunc::SimplePBConvFunc(): nchan_p(-1),
 
   void SimplePBConvFunc::setWeightImage(CountedPtr<TempImage<Float> >& wgtimage){
     convWeightImage_p=wgtimage;
-    filledFluxScale_p=False;
+    filledFluxScale_p=false;
     calcFluxScale_p=true;
 
   }

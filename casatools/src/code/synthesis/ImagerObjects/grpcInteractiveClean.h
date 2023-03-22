@@ -78,7 +78,7 @@ namespace casa {
         //--- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         casacore::Array<double> SummaryMinor;
         casacore::Array<int>    SummaryMajor;
-
+        bool FullSummary;
         //--- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         float MinorCyclePeakResidual;
         float PrevPeakResidual;

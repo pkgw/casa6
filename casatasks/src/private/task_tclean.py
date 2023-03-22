@@ -121,16 +121,18 @@ def tclean(
     #    uvtaper,#=False,
     uvtaper,  # =[],
     ##### Iteration control
-    niter,  # =0,
-    gain,  # =0.1,
-    threshold,  # =0.0,
-    nsigma,  # =0.0
-    cycleniter,  # =0,
-    cyclefactor,  # =1.0,
-    minpsffraction,  # =0.1,
-    maxpsffraction,  # =0.8,
-    interactive,  # =False,
-    nmajor,  # =-1,
+    niter,#=0, 
+    gain,#=0.1,
+    threshold,#=0.0, 
+    nsigma,#=0.0
+    cycleniter,#=0, 
+    cyclefactor,#=1.0,
+    minpsffraction,#=0.1,
+    maxpsffraction,#=0.8,
+    interactive,#=False, 
+    fullsummary,#=False,
+    nmajor,#=-1,
+
     ##### (new) Mask parameters
     usemask,  # ='user',
     mask,  # ='',
@@ -165,18 +167,27 @@ def tclean(
     #####################################################
     #### Sanity checks and controls
     #####################################################
+    ### Move these checks elsewhere ? 
+    inpparams=locals().copy()
+#    saveinputs(inpparams)
+    ###now deal with parameters which are not the same name 
+    inpparams['msname']= inpparams.pop('vis')
+    inpparams['timestr']= inpparams.pop('timerange')
+    inpparams['uvdist']= inpparams.pop('uvrange')
+    inpparams['obs']= inpparams.pop('observation')
+    inpparams['state']= inpparams.pop('intent')
+    inpparams['loopgain']=inpparams.pop('gain')
+    inpparams['scalebias']=inpparams.pop('smallscalebias')
+    #
+    # Force chanchunks=1 always now (CAS-13400)
+    inpparams['chanchunks']=1
 
-    ### Move these checks elsewhere ?
-    inpparams = locals().copy()
-    #    saveinputs(inpparams)
-    ###now deal with parameters which are not the same name
-    inpparams["msname"] = inpparams.pop("vis")
-    inpparams["timestr"] = inpparams.pop("timerange")
-    inpparams["uvdist"] = inpparams.pop("uvrange")
-    inpparams["obs"] = inpparams.pop("observation")
-    inpparams["state"] = inpparams.pop("intent")
-    inpparams["loopgain"] = inpparams.pop("gain")
-    inpparams["scalebias"] = inpparams.pop("smallscalebias")
+    if specmode=='cont':
+        specmode='mfs'
+        inpparams['specmode']='mfs'
+#    if specmode=='mfs' and nterms==1 and deconvolver == "mtmfs":
+#        casalog.post( "The MTMFS deconvolution algorithm (deconvolver='mtmfs') needs nterms>1.Please set nterms=2 (or more). ", "WARN", "task_tclean" )
+#        return
 
     # Force chanchunks=1 always now (CAS-13400)
     inpparams["chanchunks"] = 1
@@ -198,7 +209,6 @@ def tclean(
 
     if (
         (specmode == "cube" or specmode == "cubedata" or specmode == "cubesource")
-        and gridder != "awproject"
     ) and (parallel == False and mpi_available and MPIEnvironment.is_mpi_enabled):
         casalog.post(
             "When CASA is launched with mpi, the parallel=False option has no effect for 'cube' imaging for gridder='mosaic','wproject','standard' and major cycles are always executed in parallel.\n",
@@ -207,19 +217,11 @@ def tclean(
         )
         # casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect except for awproject.", "WARN", "task_tclean" )
 
-    if (
-        specmode == "cube" or specmode == "cubedata" or specmode == "cubesource"
-    ) and gridder == "awproject":
-        casalog.post(
-            "The gridder='awproject' has not been fully tested for 'cube' imaging (parallel=True or False). Formal commissioning of this mode is expected in a subsequent release, where 'awproject' will be aligned with recent framework changes. Until then, please report errors/crashes if seen.\n",
-            "WARN",
-            "task_tclean",
-        )
 
     ## Part of CAS-13814, checking for the only options compatible with mtmfs_via_cube. After CAS-13191, remove the 'awproject' check. 
     if specmode=="mtmfs_via_cube": 
-        if deconvolver != 'mtmfs' or nterms<=1 or gridder not in ['standard','mosaic']:           
-            casalog.post("The specmode='mtmfs_via_cube' option requires the deconvolver to be 'mtmfs' and 'nterms>1. It is also currently offered only with gridder='standard' or 'mosaic. If you need to use gridder='awproject', please use specmode='mfs' instead.",
+        if deconvolver != 'mtmfs' or nterms<=1 :           
+            casalog.post("The specmode='mtmfs_via_cube' option requires the deconvolver to be 'mtmfs' and 'nterms>1.",
                          "WARN",
                          "task_tclean")
             return
@@ -229,23 +231,13 @@ def tclean(
         casalog.post("For specmode='mfs' and deconvolver='mtmfs', the option of pbcor=True divides each restored Taylor coefficient image by the pb.tt0 image. This correction ignores the frequency-dependence of the primary beam and does not correct for PB spectral index. It is scientifically valid only for small fractional bandwidths. For more accurate wideband primary beam correction (if needed), please use one of the following options : (1) specmode='mtmfs_via_cube' with gridder='standard' or 'mosaic' with pbcor=True,  (2) conjbeams=True and wbawp=True with gridder='awproject' and pbcor=True, or (3) for single pointings only, use task widebandpbcor after running tclean with specmode='mfs', deconvolver='mtmfs', and gridder='standard' (with either pbcor=True or False)",
                      "WARN",
                      "task_tclean")
-
-        if mpi_available and MPIEnvironment.is_mpi_enabled:
-            casalog.post(
-                "Cube imaging with awproject does not use the same MPI mechanism as the other gridders. When started with mpicasa, this imaging mode will produce an error at the end of the task that says 'parallel transport layer not initialized'. Please ignore this for now as it occurs after all computations are complete and outputs are on disk. The ability to do parallelized cube imaging with 'awproject' will be properly enabled in a subsequent release",
-                "WARN",
-                "task_tclean",
-            )
-        #  return
-
     if perchanweightdensity == False and weighting == "briggsbwtaper":
         casalog.post(
             "The briggsbwtaper weighting scheme is not compatable with perchanweightdensity=False.",
             "WARN",
             "task_tclean",
         )
-        return
-
+        
     if (specmode == "mfs" or specmode == "cont") and weighting == "briggsbwtaper":
         casalog.post(
             "The briggsbwtaper weighting scheme is not compatable with specmode='mfs' or 'cont'.",
@@ -581,12 +573,10 @@ def tclean(
                     isit = imager.hasConverged() or (not doneMinor)
 
                 ## Get summary from iterbot
-                if type(interactive) != bool:
-                    retrec = imager.getSummary()
-
-                if savemodel != "none" and (
-                    interactive == True or usemask == "auto-multithresh" or nsigma > 0.0
-                ):
+                #if type(interactive) != bool:
+                retrec=imager.getSummary(fullsummary);
+                
+                if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()
                     if parallel and specmode == "mfs":
                         # For parallel mfs, also needs to reset the parameters for each node

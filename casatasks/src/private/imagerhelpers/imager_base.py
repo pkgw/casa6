@@ -6,8 +6,6 @@ import string
 import time
 import re
 import copy
-import pdb
-
 from casatasks.private.casa_transition import is_CASA6
 
 from casatools import (
@@ -90,6 +88,7 @@ class PySynthesisImager:
             self.reloadCFCache()
 
     #############################################
+
     def initializeImagers(self):
 
         ## Initialize the tool for the current node
@@ -111,12 +110,20 @@ class PySynthesisImager:
         # If cfcache directory already exists, assume that it is
         # usable and is correct.  makeCFCache call then becomes a
         # NoOp.
-        cfCacheName = self.allgridpars["0"]["cfcache"]
-        exists = False
-        if not (cfCacheName == ""):
-            exists = os.path.exists(cfCacheName) and os.path.isdir(cfCacheName)
 
-        for fld in range(0, self.NF):
+        cfCacheName=''
+        exists=False
+        if(self.allgridpars['0']['gridder'].startswith('awp')):
+            cfCacheName=self.allgridpars['0']['cfcache'];
+            if (cfCacheName == ''):
+                cfCacheName = self.allimpars['0']['imagename'] + '.cf'
+                self.allgridpars['0']['cfcache']= cfCacheName 
+            exists = (os.path.exists(cfCacheName) and os.path.isdir(cfCacheName));
+        else:
+            cfCacheName=''
+            exists=True
+            
+        for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
             # print(f'####allimpars={self.allimpars[str(fld)]} \n    allgridpars={self.allgridpars[str(fld)]}')
             self.SItool.defineimage(
@@ -129,9 +136,13 @@ class PySynthesisImager:
         ###commenting this out so that tuneSelect is done after weighting
         ###CAS-11687
         # For cube imaging:  align the data selections and image setup
-        # if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
+
+        #if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
         #   self.SItool.tuneselectdata()
-        # self.makeCFCache(exists);
+        ###For cubes create cfcache ahead of each partition trying
+        ### to create it as it is not multiprocess safe
+        if("cube" in self.allimpars['0']['specmode']):
+            self.makeCFCache(exists);
 
     #############################################
 
@@ -205,13 +216,15 @@ class PySynthesisImager:
 
     #############################################
 
-    def getSummary(self, fignum=1):
+
+    def getSummary(self,fullsummary,fignum=1):
         summ = self.IBtool.getiterationsummary()
-        if "stopcode" in summ:
-            summ["stopDescription"] = self.getStopDescription(summ["stopcode"])
-        if "summaryminor" in summ:
-            summ["summaryminor"] = SummaryMinor.convertMatrix(summ["summaryminor"])
-        # self.plotReport( summ, fignum )
+        casalog.post('getSummary call: fullsummary='+str(fullsummary))
+        if ('stopcode' in summ):
+            summ['stopDescription'] = self.getStopDescription(summ['stopcode'])
+        if ('summaryminor' in summ):
+            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'],fullsummary)
+        #self.plotReport( summ, fignum )
         return summ
 
     #############################################
@@ -407,8 +420,8 @@ class PySynthesisImager:
         divideInPython = (
             self.allimpars["0"]["specmode"] == "mfs"
             or self.allimpars["0"]["deconvolver"] == "mtmfs"
-            or ("awproj" in self.allgridpars["0"]["gridder"])
         )
+
         ### Gather PSFs (if needed) and normalize by weight
         for immod in range(0, self.NF):
             # for cube normalization is done in C++
@@ -435,10 +448,10 @@ class PySynthesisImager:
             lastcycle = self.IBtool.cleanComplete(lastcyclecheck=True) > 0
         else:
             lastcycle = True
+
         divideInPython = (
             self.allimpars["0"]["specmode"] == "mfs"
             or self.allimpars["0"]["deconvolver"] == "mtmfs"
-            or ("awproj" in self.allgridpars["0"]["gridder"])
         )
         ##norm is done in C++ for cubes
         if not divideInPython:
@@ -641,7 +654,9 @@ class PySynthesisImager:
 
         # Get iteration control parameters
         iterbotrec = self.IBtool.getminorcyclecontrols()
-        ## casalog.post("Minor Cycle controls : ", iterbotrec)
+        
+        # TT debug - comment out after debugging....
+        casalog.post("Minor Cycle controls : " + str(iterbotrec))
 
         self.IBtool.resetminorcycleinfo()
 
