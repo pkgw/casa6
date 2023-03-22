@@ -2755,6 +2755,7 @@ void SynthesisImagerVi2::unlockMSs()
   void SynthesisImagerVi2::createSDFTMachine(CountedPtr<refim::FTMachine>& theFT,
       CountedPtr<refim::FTMachine>& theIFT,
       const String &pointingDirCol,
+      const String &convertFirst,
       const Float skyPosThreshold,
       const Bool /*doPBCorr*/,
       const Float rotatePAStep,
@@ -2844,6 +2845,7 @@ void SynthesisImagerVi2::unlockMSs()
                         convSupport, minWeight, clipMinMax);
     }
     theFT->setPointingDirColumn(pointingDirCol);
+    static_cast<refim::SDGrid*>(theFT.get())->setConvertFirst(convertFirst);
 
     // turn on Pseudo Stokes mode if necessary
     if (pseudoI || stokes == "XX" || stokes == "YY" || stokes == "XXYY"
