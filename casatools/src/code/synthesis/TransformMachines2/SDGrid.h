@@ -207,7 +207,7 @@ public:
 			      casacore::Bool /*fftNorm*/)
     {throw(casacore::AipsError("SDGrid::normalizeImage() called"));}
 
-  // SDGrind needs to fill weightimage
+  // SDGrid needs to fill weightimage
   virtual casacore::Bool useWeightImage(){return true;};
 
   // Get the final weights image
@@ -217,6 +217,9 @@ public:
   virtual casacore::Bool changed(const vi::VisBuffer2& vb);
   virtual void setMiscInfo(const casacore::Int qualifier){(void)qualifier;};
   virtual void ComputeResiduals(vi::VisBuffer2& /*vb*/, casacore::Bool /*useCorrected*/) {};
+
+  // SDGrid performances
+  void setConvertFirst(const casacore::String & convertfirst);
 
   virtual casacore::String name() const;
 

@@ -1916,5 +1916,10 @@ void SDGrid::clipMinMax() {
   }
 }
 
-} //End of namespace refim
-} //#End casa namespace
+void SDGrid::setConvertFirst(const String & convertFirst) {
+  String TODO {"Next step: handle convert convertFirst="};
+  TODO += convertFirst;
+}
+
+} // End of namespace: refim
+} // End of namespace: casa
