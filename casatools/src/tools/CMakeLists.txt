@@ -52,8 +52,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     STRING "Choose the type of build." FORCE)
 endif()
 
-# Set C++ standard to c++11
-set(CMAKE_CXX_STANDARD 11)
+# Set C++ standard to c++ 14 on M1 Macs.
+# Use c++11 on other platforms..
+
+IF(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+  set(CMAKE_CXX_STANDARD 14)
+ELSE()
+  set(CMAKE_CXX_STANDARD 11)
+ENDIF()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Set definitions global to the whole project
