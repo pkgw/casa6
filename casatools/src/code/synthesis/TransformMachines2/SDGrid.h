@@ -320,6 +320,9 @@ private:
   casacore::Array<casacore::Int> npoints_;
   void clipMinMax();
 
+  // Interpolation-Conversion processing scheme
+  ConvertFirst convertFirst;
+
   casacore::Int getIndex(const casacore::MSPointingColumns& mspc, const casacore::Double& time,
 	       const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);
 

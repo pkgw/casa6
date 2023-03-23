@@ -1916,9 +1916,57 @@ void SDGrid::clipMinMax() {
   }
 }
 
-void SDGrid::setConvertFirst(const String & convertFirst) {
-  String TODO {"Next step: handle convert convertFirst="};
-  TODO += convertFirst;
+const String & SDGrid::toString(const ConvertFirst convertFirst) {
+  static const std::array<String,3> name {
+      "never",
+      "always",
+      "auto"
+  };
+
+  switch (convertFirst) {
+    case ConvertFirst::NEVER:
+    case ConvertFirst::ALWAYS:
+    case ConvertFirst::AUTO:
+        return name[static_cast<size_t>(convertFirst)];
+    default:
+        String errMsg {"Illegal ConvertFirst enum: "};
+        errMsg += String::toString(static_cast<Int>(convertFirst));
+        throw AipsError(
+            errMsg,
+            __FILE__,
+            __LINE__,
+            AipsError::Category::INVALID_ARGUMENT
+        );
+        // Avoid potential compiler warning
+        return name[static_cast<size_t>(ConvertFirst::NEVER)];
+  }
+}
+
+SDGrid::ConvertFirst SDGrid::fromString(const String & name) {
+  static const std::array<ConvertFirst,3> schemes {
+      ConvertFirst::NEVER,
+      ConvertFirst::ALWAYS,
+      ConvertFirst::AUTO
+  };
+
+  for (const auto scheme : schemes) {
+      if (name == toString(scheme)) return scheme;
+  }
+
+  String errMsg {"Illegal ConvertFirst name: "};
+  errMsg += name;
+  throw AipsError(
+      errMsg,
+      __FILE__,
+      __LINE__,
+      AipsError::Category::INVALID_ARGUMENT
+  );
+  // Avoid potential compiler warning
+  return ConvertFirst::NEVER;
+}
+
+void SDGrid::setConvertFirst(const String &name) {
+  convertFirst = fromString(name);
 }
 
 } // End of namespace: refim
