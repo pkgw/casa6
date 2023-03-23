@@ -218,8 +218,15 @@ public:
   virtual void setMiscInfo(const casacore::Int qualifier){(void)qualifier;};
   virtual void ComputeResiduals(vi::VisBuffer2& /*vb*/, casacore::Bool /*useCorrected*/) {};
 
-  // SDGrid performances
-  void setConvertFirst(const casacore::String & convertfirst);
+  // Interpolation-Conversion processing scheme
+  enum class ConvertFirst {
+    NEVER = 0,
+    ALWAYS = 1,
+    AUTO = 2
+  };
+  static const casacore::String & toString(const ConvertFirst convertFirst);
+  static ConvertFirst fromString(const casacore::String & name);
+  void setConvertFirst(const casacore::String &convertFirst);
 
   virtual casacore::String name() const;
 
