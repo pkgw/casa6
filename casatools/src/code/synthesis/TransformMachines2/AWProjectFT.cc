@@ -195,7 +195,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     // if (!cfCache_p.null()) delete &cfCache_p;
     // cfCache_p=cfcache;
-    convSampling=OVERSAMPLING;
+    convSampling=-1;
     //convSize=CONVSIZE;
     Long hostRAM = (HostInfo::memoryTotal(true)*1024); // In bytes
     hostRAM = hostRAM/(sizeof(Float)*2); // In complex pixels
@@ -258,7 +258,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     // if (!cfCache_p.null()) delete &cfCache_p;
     // cfCache_p=cfcache;
-    convSampling=OVERSAMPLING;
+    convSampling=convFuncCtor_p->getOversampling();
     //convSize=CONVSIZE;
     Long hostRAM = (HostInfo::memoryTotal(true)*1024); // In bytes
     hostRAM = hostRAM/(sizeof(Float)*2); // In complex pixels
@@ -299,7 +299,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       log_l << "Failed to create " << name() << " object." << LogIO::EXCEPTION;
     };
     maxConvSupport=-1;
-    convSampling=OVERSAMPLING;
+    convSampling=-1;
     visResampler_p->init(useDoubleGrid_p);
     //convSize=CONVSIZE;
     canComputeResiduals_p=DORES;
@@ -1028,6 +1028,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // ATerm_OVERSAMPLING env. variable, (2) ATERM.OVERSAMPLING in
     // ~/.casa and (3) from existing CFCache.  This setting in the AWP
     // constructor will only get the default value from ATerm.h
+    convSampling=convFuncCtor_p->getOversampling();
     po_p->setOverSampling(convFuncCtor_p->getOversampling());
     // PO::fetchPointingOffset() only updates the internal cache in PO
     // class.  PO::pullPointingOffset() is required to extract in the
@@ -2074,20 +2075,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     convFuncCtor_p->prepareConvFunction(vb,*vb2CFBMap_p);
     
     vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf);
-
-
-
-    ///////TESTOOO
-     Vector<Double> wVals, fVals; PolMapType mVals, mNdx, conjMVals, conjMNdx;
-      Double fIncr, wIncr;
-      CountedPtr<CFBuffer> cfb = (*vb2CFBMap_p)[0];
-
-      
-      // This loads the all-importnat conjMNDx and mNdx maps
-      //
-      cfb->getCoordList(fVals,wVals,mNdx, mVals, conjMNdx, conjMVals, fIncr, wIncr);
-      //cerr << "SETVBS mVals" <<  mVals.size() << "   " << mVals[0] << "  conj " << conjMVals.size() << "   " << conjMVals[0] << endl;
-      ///////TESTOO
       visResampler_p->setVB2CFMap(vb2CFBMap_p);
     
       //
