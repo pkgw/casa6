@@ -9244,7 +9244,7 @@ ib.done()
      </param>
   
      <param name="force" type="bool">
-     <description>If T then force the stored statistical accumulations to be regenerated</description>
+     <description>If True then force the stored statistical accumulations to be regenerated</description>
      <value>false</value>
      </param>
   
@@ -9408,11 +9408,29 @@ say {\stfaf includepix=b}, then this is interpreted as {\stfaf
 includepix=[-abs(b),abs(b)]}. 
 
 This function generates a 'storage' lattice, into which the statistics
-are written.  It is only regenerated when necessary.  For example, if
-you run the function twice with identical arguments, the statistics will
-be directly retrieved from the storage lattice the second time. 
-However, you can force regeneration of the storage image if you set
-{\stfaf force=T}.  The storage medium is either in memory or on disk,
+are written as a means to improve performance on successive identical runs.
+After the initial execution of this method, It is only regenerated as
+necessary.  For example, if you run the method twice with
+identical arguments, the statistics will be directly retrieved from the
+storage lattice the second time, and the statistics will not be recomputed. 
+However, you can force regeneration of the statistics if you set force=True.
+VERY IMPORTANT NOTE. If you have an open image tool on which you've run
+statistics(), and
+change the pixel values of the opened image via another tool or a task, the
+opened image tool has no knowledge that pixel values have been changed, and
+so if you run ia.statistics() again with that tool, you will very likely
+get incorrect results since they come from the statistics stored from a previous
+run. First of all, it is highly discouraged that you do anythong like this.
+Tools maintain state that only they know about internally; if you change
+an image that is already opened with another image tool or task, the general
+outcome will be undefined when you run methods on the already opened tool.
+However, if for some reason you must do this,
+first consider changing your algorithm because there should be no reason
+to have to do this. But, if you decide to continue down that path that will
+likely lead you over the edge of a cliff, then you can set force=True to
+ensure statistics are always recomputed.
+
+The storage medium is either in memory or on disk,
 depending upon its size.  You can force it to disk if you set {\stfaf
 disk=T}, otherwise it decides for itself.    
 
