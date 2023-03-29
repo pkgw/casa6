@@ -9409,7 +9409,7 @@ includepix=[-abs(b),abs(b)]}.
 
 This function generates a 'storage' lattice, into which the statistics
 are written as a means to improve performance on successive identical runs.
-After the initial execution of this method, It is only regenerated as
+After the initial execution of this method, it is only regenerated as
 necessary.  For example, if you run the method twice with
 identical arguments, the statistics will be directly retrieved from the
 storage lattice the second time, and the statistics will not be recomputed. 
@@ -9420,7 +9420,7 @@ change the pixel values of the opened image via another tool or a task, the
 opened image tool has no knowledge that pixel values have been changed, and
 so if you run ia.statistics() again with that tool, you will very likely
 get incorrect results since they come from the statistics stored from a previous
-run. First of all, it is highly discouraged that you do anythong like this.
+run. First of all, it is highly discouraged that you do anything like this.
 Tools maintain state that only they know about internally; if you change
 an image that is already opened with another image tool or task, the general
 outcome will be undefined when you run methods on the already opened tool.
