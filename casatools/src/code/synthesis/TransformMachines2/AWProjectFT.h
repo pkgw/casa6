@@ -552,7 +552,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     casacore::CountedPtr<refim::FTMachine> self_p;
     casacore::CountedPtr<refim::VB2CFBMap> vb2CFBMap_p;
     casacore::CountedPtr<refim::PointingOffsets> po_p;
-
+    casacore::Double timemass_p, timegrid_p, timedegrid_p;
     Bool wbAWP_p;
 #include "AWProjectFT.FORTRANSTUFF.INC"
   };

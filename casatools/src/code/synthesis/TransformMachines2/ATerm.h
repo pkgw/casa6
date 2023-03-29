@@ -42,7 +42,7 @@
 #include <synthesis/TransformMachines2/CFStore2.h>
 #define CONVSIZE (1024*2)
 #define CONVWTSIZEFACTOR 1
-#define OVERSAMPLING 20
+#define OVERSAMPLING 4
 #define THRESHOLD 1E-4
 
 namespace casa{

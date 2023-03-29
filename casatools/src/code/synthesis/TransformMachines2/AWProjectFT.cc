@@ -177,7 +177,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       Second("s"),Radian("rad"),Day("d"), pbNormalized_p(false), paNdxProcessed_p(),
       visResampler_p(nullptr), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
     rotatedConvFunc_p(),
-      runTime1_p(0.0), previousSPWID_p(-1), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true)
+      runTime1_p(0.0), previousSPWID_p(-1), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true),
+    timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
   {
     //    convSize=0;
     tangentSpecified_p=false;
@@ -240,7 +241,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       rotateOTFPAIncr_p(0.1),
       Second("s"),Radian("rad"),Day("d"), pbNormalized_p(false),
       visResampler_p(visResampler), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
-      rotatedConvFunc_p(), runTime1_p(0.0),  previousSPWID_p(-1),self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true)
+      rotatedConvFunc_p(), runTime1_p(0.0),  previousSPWID_p(-1),self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true), timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
   {
     //convSize=0;
     tangentSpecified_p=false;
@@ -287,7 +288,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //---------------------------------------------------------------
   //
   AWProjectFT::AWProjectFT(const RecordInterface& stateRec)
-    : FTMachine(),Second("s"),Radian("rad"),Day("d"),visResampler_p(nullptr), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true)
+    : FTMachine(),Second("s"),Radian("rad"),Day("d"),visResampler_p(nullptr), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true), timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
   {
     //
     // Construct from the input state record
@@ -433,6 +434,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	po_p = other.po_p;
 	//	self_p = other.self_p;
 	wbAWP_p=other.wbAWP_p;
+        timemass_p=0.0;
+        timegrid_p = 0.0;
+        timedegrid_p = 0.0;
       };
     return *this;
   };
@@ -1375,7 +1379,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void AWProjectFT::finalizeToVis()
   {
     visResampler_p->runTimeDG_p=0.0;
-
+    logIO() << LogOrigin("AWProjectFT", "finalizeToVis")  << LogIO::NORMAL;
+    logIO()<< LogIO::WARN << "Time degrid " << timedegrid_p << LogIO::POST;
+    timedegrid_p=0.0;
   if(!lattice.null()) lattice=0;
   griddedData.resize();
   
@@ -1477,14 +1483,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     //    LogIO log_l(LogOrigin("AWProjectFT2", "finalizeToSky[R&D]"));
 
-    if(isTiled) 
-      {
-	AlwaysAssert(image, AipsError);
-	AlwaysAssert(imageCache, AipsError);
-	imageCache->flush();
-	ostringstream o;
-	imageCache->showCacheStatistics(o);
-      }
+    logIO() << LogOrigin("AWProjectFT", "finalizeToSky")  << LogIO::NORMAL;
+    logIO() << LogIO::WARN << "time to massage data " << timemass_p << LogIO::POST;
+    logIO() << LogIO::WARN<< "time gridding " << timegrid_p << LogIO::POST;
     if(pointingToImage) delete pointingToImage;
     pointingToImage=0;
 
@@ -1519,6 +1520,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     void AWProjectFT::put(const VisBuffer2& vb, Int /*row*/, Bool dopsf,
 			FTMachine::Type type)
   {
+
+    Timer tim;
+    tim.mark();
+ 
+    
     // Take care of translation of Bools to Integer
     makingPSF=dopsf;
     if(dopsf)
@@ -1571,6 +1577,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     VBStore vbs;
     Vector<Int> gridShape = griddedData2.shape().asVector();
     setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase,dopsf,gridShape);
+    timemass_p +=tim.real();
+    tim.mark();
+ 
 
     if (useDoubleGrid_p)
       {
@@ -1580,6 +1589,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       {
 	resampleDataToGrid(griddedData, vbs, vb, dopsf);//, *imagingweight, *data, uvw,flags,dphase,dopsf);
       }
+    timegrid_p+=tim.real();
   }
 
   std::shared_ptr<std::complex<double>> AWProjectFT::getGridPtr(size_t& size) const
@@ -1639,7 +1649,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     Bool tmpDoPSF=false;
 
     setupVBStore(vbs,vb, vb.imagingWeight(),data,uvw,flags, dphase,tmpDoPSF,griddedData.shape().asVector());
-    resampleGridToData(vbs, griddedData, vb);//, uvw, flags, dphase);
+     Timer tim;
+     tim.mark();
+     resampleGridToData(vbs, griddedData, vb);//, uvw, flags, dphase);
+     timedegrid_p+=tim.real();
     interpolateFrequencyFromgrid(vb, data, FTMachine::MODEL);
   }
   //

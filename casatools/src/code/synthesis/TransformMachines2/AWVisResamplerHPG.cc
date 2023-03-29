@@ -559,10 +559,10 @@ namespace casa{
       //hpg::CFSimpleIndexer cfsi({1,false},{1,false},{1,true},{1,true}, 1);
 
       // Reload CFs if the SPW changed and the setup is for AW-Projection (wbAWP=T & nW > 1).
-      bool reloadCFs = (((cachedVBSpw_p != vbSpw) &&                        // when data for a new SPW arrives,
-			 (vbs.nWPlanes_p > 1)    && (vbs.wbAWP_p==true)) || // if WB A-term and w-term corrections are requested, or
-			(hpgGridder_p==NULL));                              // if the HPG is uninitialized (first-pass)
-
+      //bool reloadCFs = (((cachedVBSpw_p != vbSpw) &&                        // when data for a new SPW arrives,
+      //			 (vbs.nWPlanes_p > 1)    && (vbs.wbAWP_p==true)) || // if WB A-term and w-term corrections are requested, or
+      //			(hpgGridder_p==NULL));                              // if the HPG is uninitialized (first-pass)
+      bool reloadCFs=(hpgGridder_p==NULL);
       
       double spwRefFreq = vbs.vb_p->subtableColumns().spectralWindow().refFrequency()(vbSpw);
       int nVBAntenna = vbs.vb_p->nAntennas();
@@ -603,12 +603,12 @@ namespace casa{
 	      // If wplanes == 1, make a list of all SPW CFs.  If
 	      // wplanes > 1, make a list of all W CFs for the current
 	      // SPW.
-	      int tspw=(vbs.nWPlanes_p == 1)?-1:vbSpw;
+	      //int tspw=(vbs.nWPlanes_p == 1)?-1:vbSpw;
 
 	      makeAWLists(*cfb, vbs.wbAWP_p, vbs.nWPlanes_p,
 			  vbs.imRefFreq_p, spwRefFreq,
 			  wNdxList, spwNdxList,
-			  tspw);
+			  -1);
 
 	      // MakeCFArray::makeCFArray(vbs.wbAWP_p, vbs.nWPLanes_p,
 	      // 		  ...(skyImage),...
