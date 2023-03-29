@@ -215,11 +215,16 @@ namespace casac {
         auto cache_size = std::min( (rownr_t) ceil(ROW_CACHE_SIZE / p->cache->size( )),
                                     p->total_to_return - p->total_sent );
         for ( ; cache != p->cache->end( ) && name != p->column_names->end( ); ++cache, ++name ) {
-            p->table->fillColumnValues( *cache,
-                                        *name,
-                                        p->start_row + p->total_sent,
-                                        cache_size,
-                                        p->incr );
+            try {
+                p->table->fillColumnValues( *cache,
+                                            *name,
+                                            p->start_row + p->total_sent,
+                                            cache_size,
+                                            p->incr );
+            } catch ( const casacore::AipsError &ae ) {
+                PyErr_SetString(PyExc_RuntimeError, ae.what( ));
+                return NULL;
+            }
         }
 
         // verify that we were able to fill all column cache values
@@ -327,11 +332,22 @@ namespace casac {
             return NULL;
         }
 
+        auto column_names = itsTable->columnNames( );
+
         // the GIL must be locked to allocate the new object
         getcoliter_Iter *p = 0;
         {
             PyGILState_STATE state = PyGILState_Ensure( );
             try {
+                // this must be within the GIL lock otherwise a SEGV occurs
+                for ( auto name : _columnnames ) {
+                    if ( std::find( begin(column_names), end(column_names), casacore::String(name) ) == std::end(column_names) ) {
+                        PyErr_Format( PyExc_RuntimeError, "column \"%s\" does not exist", name.c_str( ) );
+                        PyGILState_Release(state);
+                        return NULL;
+                    }
+                }
+                // create an object
                 p = PyObject_New(getcoliter_Iter, &getcoliter_IterType);
                 PyGILState_Release(state);
             } catch (...) {

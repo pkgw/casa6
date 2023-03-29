@@ -111,8 +111,11 @@ class TableGetcoliterTest(TableBase):
     def test_errors(self):
         def test_element_mismatch( table ):
             return table.getcol( 'TIME', 0, 18, 100 ) == table.getcoliter( 'TIME', 0, 7, 100 )
+        def test_bad_column_name( table ):
+            return table.getcoliter( 'data' )
         parms = { 'table': self.tb }
         self.exception_check( test_element_mismatch, parms, 'attempted iteration beyond the end of iterator', exc=StopIteration )
+        self.exception_check( test_bad_column_name, parms, 'column "data" does not exist', exc=RuntimeError )
 
 class TableRowTest(TableBase):
     def test_get(self):
