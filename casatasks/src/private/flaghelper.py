@@ -1898,8 +1898,7 @@ def evaluateNumpyType(elem):
         val = int(elem)
 
     elif (isinstance(elem, np.float_) or isinstance(elem, np.float16) or
-          isinstance(elem, np.float32) or isinstance(elem, np.float64) or
-          isinstance(elem, np.float128)):
+          isinstance(elem, np.float32) or isinstance(elem, np.float64):
         val = float(elem)
         
     else:
