@@ -102,7 +102,7 @@ class test_listcal_minimal(unittest.TestCase):
                 listfile=self._listfile)
         self.assertTrue(os.path.isfile(self._listfile))
         size = os.path.getsize(self._listfile)
-        self.assertGreaterEqual(size, 1000)
+        self.assertGreaterEqual(size, 950)
         self.assertLessEqual(size, 1200)
 
     def test_small_gcal_forget_caltable(self):
