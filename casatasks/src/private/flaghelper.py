@@ -1897,9 +1897,14 @@ def evaluateNumpyType(elem):
             isinstance(elem, np.int64)):
         val = int(elem)
 
-    elif (isinstance(elem, np.float_) or isinstance(elem, np.float16) or
-          isinstance(elem, np.float32) or isinstance(elem, np.float64):
-        val = float(elem)
+    elif(isinstance(elem,np.float) or isinstance(elem,np.float16) or
+         isinstance(elem,np.float32) or isinstance(elem,np.float64)):
+           val = float(elem)
+
+    # float128 is not available on all platforms
+    elif (hasattr(np, "float128")) and isinstance(elem,np.float128):
+           val = float(elem)
+
         
     else:
         # it is none of the above numpy types
