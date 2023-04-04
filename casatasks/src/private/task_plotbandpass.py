@@ -4841,11 +4841,12 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                               pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize, color='k',
                                       transform=pb.gcf().transFigure)
                               DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize)
-                      elif (overlayTimes==True and bOverlay == False 
+                      elif (overlayTimes==True and bOverlay == False
                             and overlayAntennas==False):  # try to support antenna,time
                           doneOverlayTime = True # assumed until proven otherwise in the 'for' loop
                           for f in fieldIndicesToPlot:
                               if (uniqueTimes[mytime] < uniqueTimesPerFieldPerSpw[ispwInCalTable][f][-1]-solutionTimeThresholdSeconds and
+                                  scansForUniqueTimes[mytime] != scansForUniqueTimes[-1]  and            # fix for CAS-14096
                                   uniqueTimes[mytime] < timerangeListTimes[-1]):
                                   doneOverlayTime = False
                           if (doneOverlayTime):
