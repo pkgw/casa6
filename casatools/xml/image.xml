@@ -8437,7 +8437,7 @@ image {\sff zz1}.
         be returned, and the values will be either scalars (if the image has a single traditional
         beam) or arrays if the image has multiple beams. In the latter case, the arrays will have
         shapes indicative of the number of channels and number of polarizations. If the image has
-        a spectral axis but not a polarization axis, the returned arrays will be one dimensional have
+        a spectral axis but not a polarization axis, the returned arrays will be one dimensional and
         have a length equal to the number of channels. Similarly, if the image has a polarization
         axis but not a spectral axis, the arrays will be one dimensional and have a lenghts equal
         to the number of polarizations. If the image has both a spectral and polarization axis,
@@ -8471,9 +8471,9 @@ image {\sff zz1}.
     <returns type="record">record or fail</returns>
 <description>
 
-This function returns the restoring beam(s), if any, of the attahced image.    
+This function returns the restoring beam(s), if any, of the attached image.    
 
-If mbret=&quot;matrix&quot; (or &quot;m&quot;), an exception will be thrown if the attahced image
+If mbret=&quot;matrix&quot; (or &quot;m&quot;), an exception will be thrown if the attached image
 does not have per-plane beams, or if channel or polarization is specified to be
 non-negative. See below for more information on the mbret parameter.
 
