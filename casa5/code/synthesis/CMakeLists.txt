@@ -253,6 +253,7 @@ casa_add_library( synthesis
  MeasurementComponents/EVLASwPow.cc
  MeasurementComponents/FJones.cc
  MeasurementComponents/FringeJones.cc
+ MeasurementComponents/DelayRateFFT.cc
  MeasurementComponents/GlobalFTMachineCallbacks.cc
  MeasurementComponents/GridBoth.cc
  MeasurementComponents/GSpline.cc
