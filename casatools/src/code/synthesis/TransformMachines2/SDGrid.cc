@@ -1291,11 +1291,11 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       Int echan=(k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
 
       if(nloop > 1) {
-   blc[3]=bchan;
-   trc[3]=echan;
-   Slicer sl(blc, trc, Slicer::endIsLast);
-   imCopy=new SubImage<Complex>(theImage, sl, true);
-   wgtcopy.resize(npol, echan-bchan+1);
+        blc[3]=bchan;
+        trc[3]=echan;
+        Slicer sl(blc, trc, Slicer::endIsLast);
+        imCopy=new SubImage<Complex>(theImage, sl, true);
+        wgtcopy.resize(npol, echan-bchan+1);
       }
       vi.originChunks();
       vi.origin();
@@ -1311,49 +1311,49 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       }
 
       // Loop over the visibilities, putting VisBuffers
-    for (vi.originChunks();vi.moreChunks();vi.nextChunk()) {
-      for (vi.origin(); vi.more(); vi.next()) {
+      for (vi.originChunks();vi.moreChunks();vi.nextChunk()) {
+        for (vi.origin(); vi.more(); vi.next()) {
 
-    switch(type) {
-    case FTMachine::RESIDUAL:
-      vb->setVisCube(vb->visCubeCorrected() - vb->visCubeModel());
-      put(*vb, -1, false);
-      break;
-    case FTMachine::MODEL:
-      put(*vb, -1, false, FTMachine::MODEL);
-      break;
-    case FTMachine::CORRECTED:
-      put(*vb, -1, false, FTMachine::CORRECTED);
-      break;
-    case FTMachine::PSF:
-      vb->setVisCube(Complex(1.0,0.0));
-      put(*vb, -1, true, FTMachine::PSF);
-      break;
-    case FTMachine::COVERAGE:
-      vb->setVisCube(Complex(1.0));
-      put(*vb, -1, true, FTMachine::COVERAGE);
-      break;
-    case FTMachine::OBSERVED:
-    default:
-      put(*vb, -1, false, FTMachine::OBSERVED);
-      break;
-    }
-  }
+          switch(type) {
+          case FTMachine::RESIDUAL:
+            vb->setVisCube(vb->visCubeCorrected() - vb->visCubeModel());
+            put(*vb, -1, false);
+            break;
+          case FTMachine::MODEL:
+            put(*vb, -1, false, FTMachine::MODEL);
+            break;
+          case FTMachine::CORRECTED:
+            put(*vb, -1, false, FTMachine::CORRECTED);
+            break;
+          case FTMachine::PSF:
+            vb->setVisCube(Complex(1.0,0.0));
+            put(*vb, -1, true, FTMachine::PSF);
+            break;
+          case FTMachine::COVERAGE:
+            vb->setVisCube(Complex(1.0));
+            put(*vb, -1, true, FTMachine::COVERAGE);
+            break;
+          case FTMachine::OBSERVED:
+          default:
+            put(*vb, -1, false, FTMachine::OBSERVED);
+            break;
+          }
+        }
       }
       finalizeToSky();
       // Normalize by dividing out weights, etc.
       getImage(wgtcopy, normalize);
       if(max(wgtcopy)==0.0){
-  if(nloop > 1)
-    logIO() << LogIO::WARN
-      << "No useful data in SDGrid: weights all zero for image slice  " << k
-      << LogIO::POST;
+        if(nloop > 1)
+          logIO() << LogIO::WARN
+            << "No useful data in SDGrid: weights all zero for image slice  " << k
+            << LogIO::POST;
       }
       else
-  isWgtZero=false;
+        isWgtZero=false;
 
-      weight(Slice(0, Npol), Slice(bchan, echan-bchan+1))=wgtcopy;
-      if(nloop >1) delete imCopy;
+          weight(Slice(0, Npol), Slice(bchan, echan-bchan+1))=wgtcopy;
+        if(nloop >1) delete imCopy;
     }//loop k
     if(isWgtZero)
       logIO() << LogIO::SEVERE
