@@ -1246,74 +1246,80 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
     // Initialize put (i.e. transform to Sky) for this model
     vi.origin();
 
-    if(vb->polarizationFrame()==MSIter::Linear) {
+    if (vb->polarizationFrame()==MSIter::Linear) {
       StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::LINEAR);
     }
     else {
       StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::CIRCULAR);
     }
-    Bool useCorrected= !(MSMainColumns(vi.ms()).correctedData().isNull());
-    if((type==FTMachine::CORRECTED) && (!useCorrected))
-      type=FTMachine::OBSERVED;
-    Bool normalize=true;
-    if(type==FTMachine::COVERAGE)
-      normalize=false;
 
-    Int Nx=theImage.shape()(0);
-    Int Ny=theImage.shape()(1);
-    Int Npol=theImage.shape()(2);
-    Int Nchan=theImage.shape()(3);
-    Double memtot=Double(HostInfo::memoryTotal(true))*1024.0; // return in kB
-    Int nchanInMem=Int(memtot/2.0/8.0/Double(Nx*Ny*Npol));
-    Int nloop=nchanInMem >= Nchan ? 1 : Nchan/nchanInMem+1;
-    ImageInterface<Complex> *imCopy=NULL;
+    Bool useCorrected = !(MSMainColumns(vi.ms()).correctedData().isNull());
+    if ((type==FTMachine::CORRECTED) && (!useCorrected)) {
+      type=FTMachine::OBSERVED;
+    }
+
+    Bool normalize = true;
+    if (type==FTMachine::COVERAGE) {
+      normalize = false;
+    }
+
+    Int Nx = theImage.shape()(0);
+    Int Ny = theImage.shape()(1);
+    Int Npol = theImage.shape()(2);
+    Int Nchan = theImage.shape()(3);
+    Double memtot = Double(HostInfo::memoryTotal(true))*1024.0; // return in kB
+    Int nchanInMem = Int(memtot/2.0/8.0/Double(Nx*Ny*Npol));
+    Int nloop = nchanInMem >= Nchan ? 1 : Nchan/nchanInMem+1;
+    ImageInterface<Complex> *imCopy = NULL;
     IPosition blc(theImage.shape());
     IPosition trc(theImage.shape());
-    blc-=blc; //set all values to 0
-    trc=theImage.shape();
-    trc-=1; // set trc to image size -1
-    if(nloop==1) {
-      imCopy=& theImage;
-      nchanInMem=Nchan;
+    blc -= blc; //set all values to 0
+    trc = theImage.shape();
+    trc -= 1; // set trc to image size -1
+    if (nloop==1) {
+      imCopy =& theImage;
+      nchanInMem = Nchan;
     }
-    else
-      logIO()  << "Not enough memory to image in one go \n will process the image in   "
-         << nloop
-        << " sections  "
+    else {
+      logIO() << "Not enough memory to image in one go \n"
+        << " will process the image in   " << nloop << " sections"
         << LogIO::POST;
+    }
 
     weight.resize(Npol, Nchan);
     Matrix<Float> wgtcopy(Npol, Nchan);
 
-    Bool isWgtZero=true;
-    for (Int k=0; k < nloop; ++k){
-      Int bchan=k*nchanInMem;
-      Int echan=(k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
+    Bool isWgtZero = true;
+    for (Int k=0; k < nloop; ++k) {
+      Int bchan = k*nchanInMem;
+      Int echan = (k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
 
-      if(nloop > 1) {
-        blc[3]=bchan;
-        trc[3]=echan;
+      if (nloop > 1) {
+        blc[3] = bchan;
+        trc[3] = echan;
         Slicer sl(blc, trc, Slicer::endIsLast);
-        imCopy=new SubImage<Complex>(theImage, sl, true);
+        imCopy = new SubImage<Complex>(theImage, sl, true);
         wgtcopy.resize(npol, echan-bchan+1);
       }
+
       vi.originChunks();
       vi.origin();
       initializeToSky(*imCopy,wgtcopy,*vb);
 
-
       // for minmax clipping
       logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
-          << "doclip_ = " << (clipminmax_ ? "TRUE" : "FALSE") << " (" << clipminmax_ << ")" << LogIO::POST;
+        << "doclip_ = " << (clipminmax_ ? "TRUE" : "FALSE") 
+        << " (" << clipminmax_ << ")"
+        << LogIO::POST;
       if (clipminmax_) {
-        logIO() << LogOrigin("SDGRID", "makeImage", WHERE)
-             << LogIO::DEBUGGING << "use ggridsd2 for imaging" << LogIO::POST;
+        logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
+          << "use ggridsd2 for imaging"
+          << LogIO::POST;
       }
 
       // Loop over the visibilities, putting VisBuffers
-      for (vi.originChunks();vi.moreChunks();vi.nextChunk()) {
+      for (vi.originChunks(); vi.moreChunks(); vi.nextChunk()) {
         for (vi.origin(); vi.more(); vi.next()) {
-
           switch(type) {
           case FTMachine::RESIDUAL:
             vb->setVisCube(vb->visCubeCorrected() - vb->visCubeModel());
@@ -1340,25 +1346,33 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
           }
         }
       }
+
       finalizeToSky();
       // Normalize by dividing out weights, etc.
       getImage(wgtcopy, normalize);
-      if(max(wgtcopy)==0.0){
-        if(nloop > 1)
+      if (max(wgtcopy)==0.0) {
+        if (nloop > 1) {
           logIO() << LogIO::WARN
-            << "No useful data in SDGrid: weights all zero for image slice  " << k
+            << "No useful data in SDGrid: weights all zero for image slice  "
+            << k
             << LogIO::POST;
+        }
       }
-      else
+      else {
         isWgtZero=false;
+      }
 
-          weight(Slice(0, Npol), Slice(bchan, echan-bchan+1))=wgtcopy;
-        if(nloop >1) delete imCopy;
-    }//loop k
-    if(isWgtZero)
+      weight(Slice(0, Npol), Slice(bchan, echan-bchan+1))=wgtcopy;
+      if (nloop > 1) {
+        delete imCopy;
+      }
+    } // loop k
+
+    if (isWgtZero) {
       logIO() << LogIO::SEVERE
         << "No useful data in SDGrid: weights all zero"
         << LogIO::POST;
+    }
   }
 
 
