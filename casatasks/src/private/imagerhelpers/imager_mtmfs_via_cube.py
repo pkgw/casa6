@@ -259,6 +259,8 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         pbcube = self.get_image_name(immod, "pb")
         pblimit = self.allnormpars[str(immod)]["pblimit"]
         cubewt = self.get_image_name(immod, "sumwt")
+        #####have to ensure the pb is made
+        super().makePB()
         self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
         for immod in range(0, self.NF):
             self.mfsImager.PStools[immod].gatherpsfweight()
@@ -599,6 +601,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pix = np.zeros(_ia.shape(), dtype=np.float64)
             _ia.done()
             _ia.open(cubePB)
+            #print(f"STATS of cube pb {_ia.statistics()}")
             shp = _ia.shape()
             cwt = np.ones((shp[3]))
             if os.path.exists(sumwt):
