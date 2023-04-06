@@ -1232,7 +1232,8 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
   // a complex image, without conversion to Stokes. The representation
   // is that required for the visibilities.
   //----------------------------------------------------------------------
-  void SDGrid::makeImage(FTMachine::Type type,
+  void SDGrid::makeImage(
+          FTMachine::Type type,
           vi::VisibilityIterator2& vi,
           ImageInterface<Complex>& theImage,
           Matrix<Float>& weight) {
@@ -1287,13 +1288,12 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       }
     }
 
-    IPosition blc(theImage.shape().size(), 0);
-    IPosition trc(theImage.shape() - 1);
-
     weight.resize(Npol, Nchan);
     Matrix<Float> wgtcopy(Npol, Nchan);
 
     Bool isWgtZero = true;
+    IPosition blc(theImage.shape().size(), 0);
+    IPosition trc(theImage.shape() - 1);
     for (Int k=0; k < nloop; ++k) {
       const auto firstSlice = (k==0);
 
