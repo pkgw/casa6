@@ -1277,7 +1277,7 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
     trc = theImage.shape();
     trc -= 1; // set trc to image size -1
     if (nloop==1) {
-      imCopy =& theImage;
+      imCopy = &theImage;
       nchanInMem = Nchan;
     }
     else {
@@ -1304,17 +1304,18 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 
       vi.originChunks();
       vi.origin();
-      initializeToSky(*imCopy,wgtcopy,*vb);
+      initializeToSky(*imCopy, wgtcopy, *vb);
 
-      // for minmax clipping
-      logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
-        << "doclip_ = " << (clipminmax_ ? "TRUE" : "FALSE") 
-        << " (" << clipminmax_ << ")"
-        << LogIO::POST;
-      if (clipminmax_) {
+      { // Debug messages for minmax clipping
         logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
-          << "use ggridsd2 for imaging"
+          << "doclip_ = " << (clipminmax_ ? "TRUE" : "FALSE")
+          << " (" << clipminmax_ << ")"
           << LogIO::POST;
+        if (clipminmax_) {
+          logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
+            << "use ggridsd2 for imaging"
+            << LogIO::POST;
+        }
       }
 
       // Loop over the visibilities, putting VisBuffers
@@ -1359,10 +1360,10 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
         }
       }
       else {
-        isWgtZero=false;
+        isWgtZero = false;
       }
 
-      weight(Slice(0, Npol), Slice(bchan, echan-bchan+1))=wgtcopy;
+      weight(Slice(0, Npol), Slice(bchan, echan-bchan+1)) = wgtcopy;
       if (nloop > 1) {
         delete imCopy;
       }
