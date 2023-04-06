@@ -1287,11 +1287,8 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       }
     }
 
-    IPosition blc(theImage.shape());
-    IPosition trc(theImage.shape());
-    blc -= blc; //set all values to 0
-    trc = theImage.shape();
-    trc -= 1; // set trc to image size -1
+    IPosition blc(theImage.shape().size(), 0);
+    IPosition trc(theImage.shape() - 1);
 
     weight.resize(Npol, Nchan);
     Matrix<Float> wgtcopy(Npol, Nchan);
