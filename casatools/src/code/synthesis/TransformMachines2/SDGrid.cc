@@ -1254,9 +1254,13 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       }
     }
 
-    Bool useCorrected = !(MSMainColumns(vi.ms()).correctedData().isNull());
-    if ((type==FTMachine::CORRECTED) && (!useCorrected)) {
-      type=FTMachine::OBSERVED;
+    if (type==FTMachine::CORRECTED) {
+      const auto haveCorrectedData = not (
+        MSMainColumns(vi.ms()).correctedData().isNull()
+      );
+      if (not haveCorrectedData) {
+        type = FTMachine::OBSERVED;
+      }
     }
 
     Bool normalize = true;
