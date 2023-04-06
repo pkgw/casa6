@@ -1237,7 +1237,6 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
           ImageInterface<Complex>& theImage,
           Matrix<Float>& weight) {
 
-
     logIO() << LogOrigin("FTMachine", "makeImage0") << LogIO::NORMAL;
 
     // Loop over all visibilities and pixels
@@ -1246,11 +1245,13 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
     // Initialize put (i.e. transform to Sky) for this model
     vi.origin();
 
-    if (vb->polarizationFrame()==MSIter::Linear) {
-      StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::LINEAR);
-    }
-    else {
-      StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::CIRCULAR);
+    { // Set Stokes Representation
+      if (vb->polarizationFrame()==MSIter::Linear) {
+        StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::LINEAR);
+      }
+      else {
+        StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::CIRCULAR);
+      }
     }
 
     Bool useCorrected = !(MSMainColumns(vi.ms()).correctedData().isNull());
@@ -1267,24 +1268,29 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
     Int Ny = theImage.shape()(1);
     Int Npol = theImage.shape()(2);
     Int Nchan = theImage.shape()(3);
+
     Double memtot = Double(HostInfo::memoryTotal(true))*1024.0; // return in kB
     Int nchanInMem = Int(memtot/2.0/8.0/Double(Nx*Ny*Npol));
     Int nloop = nchanInMem >= Nchan ? 1 : Nchan/nchanInMem+1;
+
     ImageInterface<Complex> *imCopy = NULL;
+    { // Initialize imCopy if needed
+      if (nloop==1) {
+        imCopy = &theImage;
+        nchanInMem = Nchan;
+      }
+      else {
+        logIO() << "Not enough memory to image in one go \n"
+          << " will process the image in   " << nloop << " sections"
+          << LogIO::POST;
+      }
+    }
+
     IPosition blc(theImage.shape());
     IPosition trc(theImage.shape());
     blc -= blc; //set all values to 0
     trc = theImage.shape();
     trc -= 1; // set trc to image size -1
-    if (nloop==1) {
-      imCopy = &theImage;
-      nchanInMem = Nchan;
-    }
-    else {
-      logIO() << "Not enough memory to image in one go \n"
-        << " will process the image in   " << nloop << " sections"
-        << LogIO::POST;
-    }
 
     weight.resize(Npol, Nchan);
     Matrix<Float> wgtcopy(Npol, Nchan);
