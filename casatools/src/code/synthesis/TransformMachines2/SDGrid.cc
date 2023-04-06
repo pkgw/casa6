@@ -1263,10 +1263,7 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       }
     }
 
-    Bool normalize = true;
-    if (type==FTMachine::COVERAGE) {
-      normalize = false;
-    }
+    Bool normalize = (type==FTMachine::COVERAGE) ? false : true;
 
     Int Nx = theImage.shape()(0);
     Int Ny = theImage.shape()(1);
