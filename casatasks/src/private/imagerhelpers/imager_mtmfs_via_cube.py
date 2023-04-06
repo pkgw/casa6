@@ -85,6 +85,8 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         for k in self.allgridpars:
             self.allgridpars[k]["deconvolver"] = "hogbom"
             self.allgridpars[k]["interpolation"] = "nearest"
+            self.allgridpars[k]["conjbeams"]=False
+            self.allgridpars[k]["wbawp"]=True
         for k in self.allnormpars:
             self.allnormpars[k]["deconvolver"] = "hogbom"
         self.weightpars['usecubebriggs']=False

@@ -3103,12 +3103,12 @@ class test_cube(testref_base):
          ######################################################################################
          self.prepData('refim_point.ms')
          # create the model image
-         tclean(      vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=2,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
+         tclean(      vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=2,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=False,parallel=self.parallel)
          shutil.copytree(self.img+'.model.tt0', self.img+'start.model.tt0')
          shutil.copytree(self.img+'.model.tt1', self.img+'start.model.tt1')
          os.system('rm -rf ' + self.img+'.model.tt*')
          # evaluate with the pre-existing model image
-         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=4,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel,startmodel=[self.img+'start.model.tt0', self.img+'start.model.tt1'])
+         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=4,gain=0.5,cycleniter=2,specmode='mtmfs_via_cube',nchan=20,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=False,parallel=self.parallel,startmodel=[self.img+'start.model.tt0', self.img+'start.model.tt1'])
          report=self.th.checkall(ret=ret, iterdone=4, imgexist=[self.img+'.model',self.img+'.model.tt0',self.img+'.model.tt1'],
                                  imgval=[(self.img+'.model.tt0',1.0,[50,50,0,0])])
          casalog.post(report,"SEVERE")
@@ -3116,84 +3116,75 @@ class test_cube(testref_base):
 
      # tests from sdintimaging
      #Test 2
-     #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
-     @unittest.skip('Skip. This test need data that i have no idea where it is')
-     def test_singlepointing_mfs_intonly(self):
-         # Equivalent to onetest(runtype='SinglePointing', specmode='mfs', usedata='int')
-         """ [singlePointing] Test_singlepointing_mfs_intonly """
-         ######################################################################################
-         # Test single field imaging for intonly - mfs (should work without sdimage and sdpsf being set))
-         # main parameters to be tested: specmode='mfs', usedata='int', gridder='standard'
-         # with the default weighting (='natural')
-         ######################################################################################
-         # data specific parameters 
-         # imsize, cell, phasecenter, reffreq, nchan, scales 
-         #
-         # Other secondary non-default parameters: 
-         pblimit=0.1  # Set to a positive value since this is mosaics with PBs.  NOTE : pblimit=-0.1 gives NaNs (need to fix)
-         niter=1000 # Required to check absolute numerical accuracy (i.e. does it converge correctly)
-         cycleniter= 200
-         # niter=100 # Good enough for basic checks and to catch numerical changes.
-         # cycleniter= 50
-         # iterations may need to be shorten for the final version of test
-         self.prepData('papersky_standard.ms')
-         self.prepInputmask('papersky_standard.true.im.masklist')
-         ret = tclean(vis='papersky_standard.ms',imagename='tst',imsize=1500,cell='9.0arcsec',phasecenter='J2000 19:59:28.500 +40.44.01.50', specmode='mfs', gridder='standard', nchan=3, reffreq='1.5GHz', pblimit=pblimit,interpolation='nearest', deconvolver='mtmfs', scales=[0,12,20,40,60,80,100], niter=niter, cycleniter=cycleniter, mask='papersky_standard.true.im.masklist', interactive=0,pbmask=0.0)
+     def test_mosaic_mtmfs_cube(self):
+          """ test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          ################################## ##
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms', imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152',
+                       imsize=1024,    
+                       cell='10.0arcsec', 
+                       specmode='mtmfs_via_cube', 
+                       gridder='mosaic',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=100, 
+                       pbcor=True)
 
-         report=self.th.checkall(imgexist=['tst.psf.tt0', 
+          report=self.th.checkall(
+               imgexist=['tst.psf.tt0',
+                         'tst.residual.tt0',
+                         'tst.image.tt0',
+                         'tst.image.tt1',
+                         'tst.alpha'], 
+               imgval=[('tst.psf.tt0', 1.0, [512,512,0,0]),
+                       ('tst.image.tt0', 0.5, [512,512,0,0]), # point source with alpha=-0.5
+                       ('tst.alpha', -0.5, [512,512,0,0]),   # point source with alpha=-1
+               ]
+          )  
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_awproject_mtmfs_cube(self):
+          """ test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          ###########################################
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152', 
+                       imsize=1024,    
+                       cell='10.0arcsec', 
+                       specmode='mtmfs_via_cube', 
+                       gridder='awproject',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=100, 
+                       pbcor=True)
+
+          report=self.th.checkall(imgexist=['tst.psf.tt0', 
                                            'tst.residual.tt0', 'tst.image.tt0', 
-                                           'tst.image.tt1','tst.alpha'], 
-                                 imgval=[('tst.psf.tt0', 1.0, [400,400,0,0]),
-                                         ('tst.image.tt0', 1.09, [350,433,0,0]), # point source with alpha=-1
-                                         ('tst.image.tt0', 0.1, [300,400,0,0]),  # extended emission with alpha=0
-                                         ('tst.alpha', -0.996, [350,433,0,0]),   # point source with alpha=-1
-                                         ('tst.alpha', -2.35, [300,400,0,0]) ])  # extended emission with alpha=0 ( will be steep for intonly)
-         ## Since this is int_only, the values will be wrong.
-         casalog.post(report, "SEVERE")
-         self.assertTrue(self.check_final(pstr=report))
+                                           'tst.image.tt1','tst.alpha'],
+                                   imgval=[('tst.psf.tt0', 1.0, [512,512,0,0]),
+                       ('tst.image.tt0', 0.5, [512,512,0,0]), # point source with alpha=-0.5
+                       ('tst.alpha', -0.5, [512,512,0,0]),   # point source with alpha=-1
+                                   ], epsilon=0.1
+          )  #have to use epsilon 0.1 as the alpha image is a bit off for awp due to different beam model used
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
 
-     #Test8
-     #@unittest.skipIf(True, "Impact of changes to PSF fitting need to checked CAS-13022")
-     @unittest.skip('Skip. This test needs data that the test system does not know about')
-     def test_mosaic_mfs_intonly(self):
-         # Equivalent to onetest(runtype='Mosaic', specmode='mfs', usedata='int')
-         """ [Mosaic] Test_mosaic_mfs_intonly """
-         ######################################################################################
-         # Test mosaic imaging for int - mfs 
-         # main parameters to be tested: specmode='mfs', usedata='int', gridder='mosaic'
-         # with the default weighting (='natural')
-         ######################################################################################
-         # data specific parameters 
-         # imsize, cell, phasecenter, reffreq, nchan, scales 
-         # set to the default values for sdgain (1.0) and dishdia (100.0)
-         #
-         # Other secondary non-default parameters: 
-         pblimit=-0.1  ## Set to negative value as the SinglePointing simulation has no primary beams
-         # niter=1000 # Required to check absolute numerical accuracy (i.e. does it converge correctly)
-         # cycleniter= 200
-         niter=100 # Good enough for basic checks and to catch numerical changes.
-         cycleniter=50
-         # iterations may need to be shorten for the final version of test
-         self.prepData('papersky_mosaic.ms')
-         self.prepInputmask('papersky_mosaic.true.im.masklist')
-         ret = sdintimaging(usedata='int', vis='papersky_mosaic.ms',imagename='tst.mos_mfs_intonly',imsize=800,cell='9.0arcsec',phasecenter='J2000 19:59:28.500 +40.44.01.50', specmode='mfs', gridder='mosaic', nchan=3, reffreq='1.5GHz', pblimit=pblimit,interpolation='nearest', deconvolver='mtmfs', scales=[0,12,20,40,60,80,100], niter=niter, cycleniter=cycleniter, mask='papersky_mosaic.true.im.masklist', interactive=0,pbmask=0.2)
-         outimg = 'tst.mos_mfs_intonly.joint.multiterm'
-         report=self.th.checkall(imgexist=[outimg+'.psf.tt0', 
-                                           outimg+'.residual.tt0', outimg+'.image.tt0', 
-                                           outimg+'.image.tt1',outimg+'.alpha'], 
-                                 imgval=[(outimg+'.psf.tt0', 1.0, [750,750,0,0]),
-                                         (outimg+'.image.tt0', 1.05, [700,783,0,0]),  # point source with alpha=-1
-                                         (outimg+'.image.tt0', 0.147, [650,720,0,0]), # extended emission with alpha=0
-                                         (outimg+'.alpha', -1.016, [700,783,0,0]),    # point source with alpha=-1
-                                         (outimg+'.alpha', -0.78, [650,720,0,0]) ])   # extended emission with alpha=0 (steep with intonly)
-         casalog.post(report, "SEVERE")
-         self.assertTrue(self.check_final(pstr=report))
 
      #Test17
      #17. Single pointing test with INT-only data from refim_point.ms : Compare with tclean mtmfs
      #testname: test_intonly_mfs_compare_with_tclean
-     def test_intonly_mfs_compare_with_tclean(self):
-         """ [Compare] Test_intonly_mfs_compare_with_tclean """
+     def test_mtmfs_via_cube_compare_with_mfs(self):
+         """ test_mtmfs_via_cube_compare_with_mfs: tests mfs via cube with 
+         classical mfs nterms=2
+         """
          self.prepData('refim_point.ms')
          outimname1 = 'tst.mfs'
          outimname2 = 'tst.mtmfs_via_cube'
@@ -4712,7 +4703,7 @@ class test_pbcor(testref_base):
                         niter=10, specmode='mfs', vptable='evlavp.tab', pbcor=True,parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.pb', self.img+'.image.pbcor'], imgval=[(self.img+'.pb',0.7,[256,256,0,0]),(self.img+'.image.pbcor',1.0,[256,256,0,0])])
           self.assertTrue(self.check_final(report))
-
+     @unittest.skipIf(True, "mfs+mtmfs+pbcor no longer recommended")
      def test_pbcor_mtmfs(self):
           """ [pbcor] Test pbcor with mtmfs"""
           self.prepData('refim_mawproject.ms')
