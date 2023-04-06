@@ -161,6 +161,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/bandpass.xml',
               'xml/blcal.xml',
               'xml/calstat.xml',
+              'xml/defintent.xml'.
               'xml/concat.xml',
               'xml/split.xml',
               'xml/listobs.xml',
