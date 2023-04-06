@@ -1240,10 +1240,7 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 
     logIO() << LogOrigin("FTMachine", "makeImage0") << LogIO::NORMAL;
 
-    // Loop over all visibilities and pixels
     vi::VisBuffer2 *vb = vi.getVisBuffer();
-
-    // Initialize put (i.e. transform to Sky) for this model
     vi.origin();
 
     { // Set Stokes Representation
@@ -1297,10 +1294,14 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
     for (Int k=0; k < nloop; ++k) {
       const auto firstSlice = (k==0);
 
-      Int bchan = k*nchanInMem;
-      Int echan = (k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
+      Int bchan; // Slice boundaries along the channel axis
+      Int echan;
+      { // Compute them
+        bchan = k*nchanInMem;
+        echan = (k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
+      }
 
-      if (nloop > 1) { // Make a copy of a slice of theImage
+      if (nloop > 1) { // Slide. Copy of a slice of theImage
         blc[3] = bchan;
         trc[3] = echan;
         Slicer sl(blc, trc, Slicer::endIsLast);
@@ -1308,9 +1309,11 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
         wgtcopy.resize(npol, echan-bchan+1);
       }
 
-      vi.originChunks();
-      vi.origin();
-      initializeToSky(*imCopy, wgtcopy, *vb);
+      { // Rewind iterator, initializeToSky
+        vi.originChunks();
+        vi.origin();
+        initializeToSky(*imCopy, wgtcopy, *vb);
+      }
 
       { // Debug messages for minmax clipping
         logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
@@ -1378,7 +1381,7 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 
     } // loop k
 
-    if (isWgtZero) {
+    if (isWgtZero) { // Log severe warning but don't abort
       logIO() << LogIO::SEVERE
         << "No useful data in SDGrid: weights all zero"
         << LogIO::POST;
