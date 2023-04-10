@@ -16,7 +16,7 @@
             "maintainer":"Sandra Castro",
             "maintainerEmail":"scastro@eso.org",
             "testOptions":[],
-            "testGroup":["performance","tclean"],
+            "testGroup":["performance"],
             "timeout":0,
             "comment":""
         },
@@ -41,12 +41,22 @@
             "comment":"Only run in mpi mode"
         },
         {
+            "testScript":"test_regression_alma_sim_componentlist",
+            "testType":"regression",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":[],
+            "testGroup":["regression"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_regression_fits_import_export",
             "testType":"regression",
             "maintainer":"Akeem Wells",
             "maintainerEmail":"awells@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","importfits","exportfits"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -56,7 +66,7 @@
             "maintainer":"Andrew McNichols",
             "maintainerEmail":"amcnicho@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","Simulation","simobserve","simanalyze"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -66,7 +76,7 @@
             "maintainer":"Andrew McNichols",
             "maintainerEmail":"amcnicho@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","Simulation","simobserve","simanalyze"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -76,7 +86,7 @@
             "maintainer":"Andrew McNichols",
             "maintainerEmail":"amcnicho@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","Simulation","simobserve","simanalyze"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -86,7 +96,7 @@
             "maintainer":"Andrew McNichols",
             "maintainerEmail":"amcnicho@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","Simulation","simobserve","simanalyze"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -96,7 +106,7 @@
             "maintainer":"Andrew McNichols",
             "maintainerEmail":"amcnicho@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","Simulation","simobserve","simanalyze"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -106,7 +116,7 @@
             "maintainer":"Andrew McNichols",
             "maintainerEmail":"amcnicho@nrao.edu",
             "testOptions":[],
-            "testGroup":["regression","Simulation","simalma","simobserve","simanalyze","feather"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },
@@ -116,7 +126,7 @@
             "maintainer":"Bob Garwood",
             "maintainerEmail":"bgarwood@nrao.edu",
             "testOptions":["mpi"],
-            "testGroup":["regression","Imaging"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":"Only run in mpi mode"
         },
@@ -126,7 +136,7 @@
             "maintainer":"Sandra Castro",
             "maintainerEmail":"scastro@eso.org",
             "testOptions":[],
-            "testGroup":["regression","Flagging"],
+            "testGroup":["regression"],
             "timeout":0,
             "comment":""
         },

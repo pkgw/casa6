@@ -6,7 +6,6 @@ import string
 import time
 import re
 import copy
-
 from casatasks.private.casa_transition import is_CASA6
 
 if is_CASA6:
@@ -97,12 +96,11 @@ class PySynthesisImager:
         # which uses CFCache.
         if exists:
             casalog.post("CFCache already exists")
-        else:
-            self.dryGridding()
-            self.fillCFCache()
-            self.reloadCFCache()
-
-    #############################################
+        else:           
+            self.dryGridding();
+            self.fillCFCache();
+            self.reloadCFCache();
+        
     def initializeImagers(self):
 
         ## Initialize the tool for the current node
@@ -124,12 +122,19 @@ class PySynthesisImager:
         # If cfcache directory already exists, assume that it is
         # usable and is correct.  makeCFCache call then becomes a
         # NoOp.
-        cfCacheName = self.allgridpars["0"]["cfcache"]
-        exists = False
-        if not (cfCacheName == ""):
-            exists = os.path.exists(cfCacheName) and os.path.isdir(cfCacheName)
-
-        for fld in range(0, self.NF):
+        cfCacheName=''
+        exists=False
+        if(self.allgridpars['0']['gridder'].startswith('awp')):
+            cfCacheName=self.allgridpars['0']['cfcache'];
+            if (cfCacheName == ''):
+                cfCacheName = self.allimpars['0']['imagename'] + '.cf'
+                self.allgridpars['0']['cfcache']= cfCacheName 
+            exists = (os.path.exists(cfCacheName) and os.path.isdir(cfCacheName));
+        else:
+            cfCacheName=''
+            exists=True
+            
+        for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
             self.SItool.defineimage(
                 self.allimpars[str(fld)], self.allgridpars[str(fld)]
@@ -141,9 +146,12 @@ class PySynthesisImager:
         ###commenting this out so that tuneSelect is done after weighting
         ###CAS-11687
         # For cube imaging:  align the data selections and image setup
-        # if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
+        #if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
         #   self.SItool.tuneselectdata()
-        # self.makeCFCache(exists);
+        ###For cubes create cfcache ahead of each partition trying
+        ### to create it as it is not multiprocess safe
+        if("cube" in self.allimpars['0']['specmode']):
+            self.makeCFCache(exists);
 
     #############################################
 
@@ -419,11 +427,7 @@ class PySynthesisImager:
     def makePSF(self):
 
         self.makePSFCore()
-        divideInPython = (
-            self.allimpars["0"]["specmode"] == "mfs"
-            or self.allimpars["0"]["deconvolver"] == "mtmfs"
-            or ("awproj" in self.allgridpars["0"]["gridder"])
-        )
+        divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs'
         ### Gather PSFs (if needed) and normalize by weight
         for immod in range(0, self.NF):
             # for cube normalization is done in C++
@@ -447,11 +451,7 @@ class PySynthesisImager:
             lastcycle = self.IBtool.cleanComplete(lastcyclecheck=True) > 0
         else:
             lastcycle = True
-        divideInPython = (
-            self.allimpars["0"]["specmode"] == "mfs"
-            or self.allimpars["0"]["deconvolver"] == "mtmfs"
-            or ("awproj" in self.allgridpars["0"]["gridder"])
-        )
+        divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs'
         ##norm is done in C++ for cubes
         if not divideInPython:
             self.runMajorCycleCore(lastcycle)
