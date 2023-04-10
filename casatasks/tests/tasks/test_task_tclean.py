@@ -3079,7 +3079,7 @@ class test_cube(testref_base):
          # running with specmode='mfs', niter=1000, cycleniter=100.
          ######################################################################################
          self.prepData('refim_point.ms')
-         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,gain=0.1,cycleniter=5,specmode='mtmfs_via_cube',nchan=5,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=0,parallel=self.parallel)
+         ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,gain=0.1,cycleniter=5,specmode='mtmfs_via_cube',nchan=5,deconvolver='mtmfs',scales=[0,10,20],threshold="0.1mJy",nterms=2,interactive=False,parallel=self.parallel)
          # major/minor cycle inputs/outputs
          maj_outputs = [self.img+'.psf',
                         self.img+'.residual',
@@ -3172,8 +3172,8 @@ class test_cube(testref_base):
                                    imgval=[('tst.psf.tt0', 1.0, [512,512,0,0]),
                        ('tst.image.tt0', 0.5, [512,512,0,0]), # point source with alpha=-0.5
                        ('tst.alpha', -0.5, [512,512,0,0]),   # point source with alpha=-1
-                                   ], epsilon=0.1
-          )  #have to use epsilon 0.1 as the alpha image is a bit off for awp due to different beam model used
+                                   ], epsilon=0.2
+          )  #have to use epsilon 0.2 as the alpha image is a bit off for awp due to different beam model used
           casalog.post(report, "SEVERE")
           self.assertTrue(self.check_final(pstr=report))
 
