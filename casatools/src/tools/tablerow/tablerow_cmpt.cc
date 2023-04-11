@@ -35,8 +35,8 @@
 
 #include <stdint.h>
 #include <iostream>
-#include <tables/Tables/TableProxy.h>
-#include <tables/Tables/TableRowProxy.h>
+#include <casacore/tables/Tables/TableProxy.h>
+#include <casacore/tables/Tables/TableRowProxy.h>
 #include <stdcasa/StdCasa/CasacSupport.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/Exceptions/Error.h>
