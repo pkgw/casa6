@@ -33,6 +33,7 @@ import shutil
 import typing
 from typing import Tuple, List, Union, Optional
 
+from . import flaghelper as fh
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
 
@@ -65,7 +66,8 @@ def msuvbin(
     width: Optional[str] = None,
     wproject: Optional[bool] = None,
     memfrac: Optional[float] = None,
-    doflag: Optional[bool] = None,
+    mode: Optional[str] = None,
+    flagbackup: Optional[bool] = None,
 ) -> None:
     fstart = start
     fstep = width
@@ -113,6 +115,9 @@ def msuvbin(
         if (not width) or (width == ""):
             fstep = f"{fwidth/nchan}Hz"
     #print(f"fstart={fstart}, fstep={fstep}")
+    doflag= "write_flags" in mode 
+    if(doflag and flagbackup):
+        fh.backupFlags(aflocal=None, msfile=vis, prename='msuvbin')
     msbinner = msbin(
         phasecenter=phasecenter,
         nx=nx,

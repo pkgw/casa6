@@ -44,7 +44,11 @@
 
     <param type="string" name="outputvis">
       <shortdescription>name of output uvgrid</shortdescription>
-      <description>name of output uvgrid; if it existant the data will be binned additively into that uvgrid (as long as the parameters match for the grid description
+      <description>name of output uvgrid; if it existant the data will be binned additively into
+      that uvgrid (as long as the parameters match for the grid description). If the gridded ms
+      exists
+      and the gridding parameters do not match the ones with which the grid was made---
+      msuvbin will exit with an exception
       </description>
       <value></value>
     </param>
@@ -128,18 +132,37 @@
         <value range="max">0.99</value>
       </allowed>
     </param>
-    <param type="bool" name="doflag">
-      <shortdescription>when true will transfer back flag from grid to input ms</shortdescription>
-      <description>when true will transfer back flag from grid to input ms
-      This is not meant for general user. Experimental for msuvbinflagger.
+    <param type="string" name="mode">
+      <shortdescription>when mode=  &quot;write_flags_back &quot; will transfer back flag from grid to input ms</shortdescription>
+      <description>when mode  will transfer back flag from grid to input ms
+      For this to work both the original ms and the gridded ms has to exist and the flags will be
+      transferred from the gridded ms back to original ms. This is provided as a utility to
+      msuvbinflagger task.
       </description>
-      <value>False</value>
+      <value type="string">bin</value>
+      <allowed kind="enum">
+       <value>bin</value>
+       <value>write_flags_back</value>
+      </allowed>
     </param>
-
-
+    <param type="bool" name="flagbackup" subparam="true">
+      <shortdescription>backup flags before saving flags when using write_flags_back</shortdescription>
+      <description>Backup flags before saving flags when using write_flags_back
+      </description>
+       <value type="bool">False</value>
+    </param>
+ 
+    <constraints>
+      <when param="mode">
+        <equals type="string" value="write_flags_back">
+          <default param="flagbackup"><value>False</value></default>
+        </equals>
+      </when>
+    </constraints>
 
   </input>
-<returns type="void"/>
+  <returns type="void"/>
+
 
 <example>
 
