@@ -113,9 +113,13 @@ class TableGetcoliterTest(TableBase):
             return table.getcol( 'TIME', 0, 18, 100 ) == table.getcoliter( 'TIME', 0, 7, 100 )
         def test_bad_column_name( table ):
             return table.getcoliter( 'data' )
+        def test_unopened_table( ):
+            tx = table( )
+            return tx.getcoliter( 'oops' )
         parms = { 'table': self.tb }
         self.exception_check( test_element_mismatch, parms, 'attempted iteration beyond the end of iterator', exc=StopIteration )
         self.exception_check( test_bad_column_name, parms, 'column "data" does not exist', exc=RuntimeError )
+        self.exception_check( test_unopened_table, { }, 'no opened table available', exc=RuntimeError )
 
 class TableRowTest(TableBase):
     def test_get(self):

@@ -116,8 +116,9 @@ namespace casac {
             PyGILState_STATE state = PyGILState_Ensure( );
             PyObject *result = PyTuple_New(values.size( ));
             if ( result == nullptr ) {
+                result = PyErr_NoMemory();
                 PyGILState_Release(state);
-                return PyErr_NoMemory();
+                return result;
             }
 
             Py_ssize_t index=0;
@@ -129,8 +130,8 @@ namespace casac {
                     pyval = toPy(vh);
                 } catch (...) {
                     Py_DECREF(result);
-                    PyGILState_Release(state);
                     PyErr_SetString(PyExc_RuntimeError, "failed to set tuple values" );
+                    PyGILState_Release(state);
                     return NULL;
                 }
                 PyTuple_SetItem( result, index++, pyval );
@@ -153,8 +154,9 @@ namespace casac {
             PyGILState_STATE state = PyGILState_Ensure( );
             PyObject *result = PyDict_New( );
             if ( result == nullptr ) {
+                result = PyErr_NoMemory();
                 PyGILState_Release(state);
-                return PyErr_NoMemory();
+                return result;
             }
 
             auto vptr = values.begin( );
@@ -167,8 +169,8 @@ namespace casac {
                     value = toPy(vh);
                 } catch (...) {
                     Py_DECREF(result);
-                    PyGILState_Release(state);
                     PyErr_SetString(PyExc_RuntimeError, "failed to set record values" );
+                    PyGILState_Release(state);
                     return NULL;
                 }
                 PyDict_SetItemString( result, kptr->c_str( ), value );
@@ -188,8 +190,11 @@ namespace casac {
         getcoliter_Iter *p = (getcoliter_Iter *)self;
         if ( p->total_sent >= p->total_to_return ) {
             /* Raising of standard StopIteration exception with empty value. */
-            if ( p->iteration_overrun )  PyErr_SetString( PyExc_StopIteration, "attempted iteration beyond the end of iterator" );
-            else PyErr_SetNone( PyExc_StopIteration );
+            if ( p->iteration_overrun )  {
+                PyGILState_STATE state = PyGILState_Ensure( );
+                PyErr_SetString( PyExc_StopIteration, "attempted iteration beyond the end of iterator" );
+                PyGILState_Release(state);
+            } else PyErr_SetNone( PyExc_StopIteration );
             p->iteration_overrun = true;
             for ( auto ptr=p->cache->begin( ); ptr != p->cache->end( ); ++ptr )
                 ptr->clear( );
@@ -231,7 +236,9 @@ namespace casac {
         if ( ! all_of( p->cache->begin( ), p->cache->end( ),
                        [=](const std::list<casacore::ValueHolder> &l) { return l.size( ) == cache_size; } ) ) {
             p->total_to_return = p->total_sent;
+            PyGILState_STATE state = PyGILState_Ensure( );
             PyErr_SetString(PyExc_RuntimeError, "loading values from table failed" );
+            PyGILState_Release(state);
             return NULL;
         }
 
@@ -328,7 +335,9 @@ namespace casac {
         // if the user has not opened the table, this function can still be called
         // but the itsTable TableProxy member will be NULL
         if ( itsTable == nullptr ) {
+            PyGILState_STATE state = PyGILState_Ensure( );
             PyErr_SetString(PyExc_RuntimeError, "no opened table available" );
+            PyGILState_Release(state);
             return NULL;
         }
 
@@ -355,14 +364,18 @@ namespace casac {
             }
         }
         if ( ! p ) {
+            PyGILState_STATE state = PyGILState_Ensure( );
             PyErr_SetString(PyExc_RuntimeError, "could not create iterator");
+            PyGILState_Release(state);
             return NULL;
         }
 
         // initialize the iterator object using the type specification
         if ( ! PyObject_Init((PyObject *)p, &getcoliter_IterType)) {
             Py_DECREF(p);
+            PyGILState_STATE state = PyGILState_Ensure( );
             PyErr_SetString(PyExc_RuntimeError, "could not create iterator");
+            PyGILState_Release(state);
             return NULL;
         }
 
