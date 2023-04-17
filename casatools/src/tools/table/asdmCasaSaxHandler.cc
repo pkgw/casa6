@@ -1,5 +1,5 @@
 #include <iostream>
-#include <tools/table/asdmCasaSaxHandler.h>
+#include "asdmCasaSaxHandler.h"
 #include <casacore/casa/BasicSL/String.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <xercesc/sax2/Attributes.hpp>
@@ -18,7 +18,6 @@
 #include <casacore/casa/Containers/ValueHolder.h>
 #include <casacore/casa/Exceptions/Error.h>
 #include <casacore/casa/Logging/LogIO.h>
-#include <tools/utils/stdBaseInterface.h>
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/SetupNewTab.h>

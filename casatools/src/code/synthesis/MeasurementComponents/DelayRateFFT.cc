@@ -26,47 +26,16 @@
 
 #include <synthesis/MeasurementComponents/FringeJones.h>
 
-#include <msvis/MSVis/VisBuffer.h>
-#include <msvis/MSVis/VisBuffAccumulator.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <synthesis/CalTables/CTIter.h>
-#include <synthesis/MeasurementEquations/VisEquation.h>  // *
 #include <synthesis/MeasurementComponents/SolveDataBuffer.h>
-#include <synthesis/MeasurementComponents/MSMetaInfoForCal.h>
-#include <lattices/Lattices/ArrayLattice.h>
-#include <lattices/LatticeMath/LatticeFFT.h>
-#include <scimath/Mathematics/FFTServer.h>
+#include <casacore/lattices/Lattices/ArrayLattice.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
 
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/System/Aipsrc.h>
-
-#include <casa/sstream.h>
-
-#include <measures/Measures/MCBaseline.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MEpoch.h>
-#include <measures/Measures/MeasTable.h>
-
-#include <casa/Logging/LogMessage.h>
-#include <casa/Logging/LogSink.h>
-
-#include <casa/Arrays/MaskedArray.h>
-#include <casa/Arrays/MaskArrMath.h>
+#include <casacore/casa/Exceptions/Error.h>
 
 
 #include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
 #include <gsl/gsl_vector.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_spblas.h>
-#include <gsl/gsl_multilarge_nlinear.h>
 #include <gsl/gsl_multimin.h>
-#include <gsl/gsl_linalg.h>
 
 #include <iomanip>                // needed for setprecision
 

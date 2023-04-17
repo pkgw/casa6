@@ -16,13 +16,13 @@
 #include <casacore/casa/Logging/LogSink.h>
 #include <casacore/casa/Logging/LogFilter.h>
 #include <parallel/Logging/LogFilterParallel.h>
-#include <TSLogSink.h>
+#include <stdcasa/TSLogSink.h>
 #include <casacore/casa/Logging/NullLogSink.h>
 #include <casacore/casa/Logging/StreamLogSink.h>
 #include <stdcasa/version.h>
 #include <unistd.h>
 #include <sys/param.h>
-#include <CasapyWatcher.h>
+#include <stdcasa/CasapyWatcher.h>
 #include <casacore/casa/OS/File.h>
 #include <casacore/casa/BasicMath/Random.h>
 #include <casacore/casa/System/Aipsrc.h>
