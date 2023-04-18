@@ -27,17 +27,16 @@
 #include <casacore/tables/Tables/TableLock.h>
 #include <casacore/fits/FITS/FITSTable.h>
 #include <casacore/fits/FITS/SDFITSTable.h>
-#include <casa/Inputs/Input.h>
+#include <casacore/casa/Inputs/Input.h>
 #include <casacore/casa/Containers/Record.h>
 #include <casacore/casa/Containers/ValueHolder.h>
 #include <casacore/casa/Exceptions/Error.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/OS/File.h>
-#include <tools/utils/stdBaseInterface.h>
-#include <tools/table/Statistics.h>
+#include <stdcasa/Statistics.h>
 //begin modification
 //july 4 2007
-#include <tools/table/asdmCasaXMLUtil.h>
+#include "asdmCasaXMLUtil.h"
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/Tables/TableIter.h>
 #include <casacore/tables/Tables/TableRow.h>

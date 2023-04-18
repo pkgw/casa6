@@ -229,5 +229,17 @@ namespace casa{
   //   return statusCode;
   // }
 
+  std::shared_ptr<std::complex<double>> VisibilityResamplerBase::getGridPtr(size_t& size) const
+  {
+    size = 0;
+    return std::shared_ptr<std::complex<double>>();
+  }
+
+  std::shared_ptr<double> VisibilityResamplerBase::getSumWeightsPtr(size_t& size) const
+  {
+    size = 0;
+    return std::shared_ptr<double>();
+  }
+
 using namespace casacore;
 };// end namespace casa

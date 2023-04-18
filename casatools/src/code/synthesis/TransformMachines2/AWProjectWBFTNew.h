@@ -45,7 +45,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		     casacore::CountedPtr<ConvolutionFunction>& cf,
 		     casacore::CountedPtr<VisibilityResamplerBase>& visResampler,
 		     casacore::Bool applyPointingOffset=true,
-		     /* casacore::Vector<casacore::Float> pointingOffsetSigDev = {10,10}, */
 		     vector<float> pointingOffsetSigDev = {10,10},
 		     casacore::Bool doPBCorr=true,
 		     casacore::Int tilesize=16, 
@@ -69,12 +68,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     FTMachine* cloneFTM();
 
-    virtual casacore::Bool useWeightImage(){return true;};
-    virtual void setDryRun(casacore::Bool val)
-    {
-      isDryRun=val;
-      //cerr << "###### " << isDryRun << endl;
-    };
+    virtual casacore::Bool useWeightImage()    {return true;};
+    virtual void setDryRun(casacore::Bool val) {isDryRun=val;};
 
   protected:
     void ftWeightImage(casacore::Lattice<casacore::Complex>& wtImage, 

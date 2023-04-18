@@ -4,7 +4,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include <tools/utils/stdBaseInterface.h>
+#include "stdBaseInterface.h"
 #include <stdcasa/record.h>
 #include <iostream>
 #include <casacore/casa/Logging/LogIO.h>

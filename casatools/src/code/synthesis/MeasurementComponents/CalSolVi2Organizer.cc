@@ -48,6 +48,7 @@ CalSolVi2Organizer::CalSolVi2Organizer() :
   cal_(NULL),
   chanave_(NULL),
   timeave_(NULL),
+  polave_(NULL),
   calfilter_(NULL),
   factories_(),
   vi_(NULL)
@@ -264,6 +265,20 @@ void CalSolVi2Organizer::addCalFilter(Record const &config) {
   this->appendFactory(calfilter_);
 }
 
+
+
+void CalSolVi2Organizer::addCorrCombine() {
+  //  Must be at least one other layer already...
+    AlwaysAssert(factories_.nelements()>0, AipsError);
+
+  Record config;
+  config.define("mode", "default");
+  polave_= new PolAverageTVILayerFactory(config);
+  this->appendFactory(polave_);
+}
+
+
+
 void CalSolVi2Organizer::appendFactory(ViiLayerFactory* f) {
 
   Int nf=factories_.nelements();
@@ -280,6 +295,7 @@ void CalSolVi2Organizer::cleanUp() {
   if (cal_) delete cal_;  cal_=NULL;
   if (chanave_) delete chanave_;  chanave_=NULL;
   if (timeave_) delete timeave_;  timeave_=NULL;
+  if (polave_) delete polave_; polave_=NULL;
   if (calfilter_) delete calfilter_; calfilter_=NULL;
   factories_.resize(0);
 

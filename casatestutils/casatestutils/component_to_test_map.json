@@ -41,6 +41,16 @@
             "comment":"Only run in mpi mode"
         },
         {
+            "testScript":"test_regression_alma_sim_componentlist",
+            "testType":"regression",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":[],
+            "testGroup":["regression"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_regression_fits_import_export",
             "testType":"regression",
             "maintainer":"Akeem Wells",

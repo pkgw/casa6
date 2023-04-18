@@ -5,6 +5,7 @@
 #include <casacore/tables/Tables/Table.h>
 #include <list>
 #include <table_handle.h>
+#include <utility>
 
 namespace casacore{
 
