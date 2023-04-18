@@ -63,7 +63,7 @@ imagepol::open(const variant& image){
 			itsImPol= new ImagePol(tmpim);
 		}
 		else if(image.type()== variant::STRING) {
-			//PtrHolder<ImageInterface<Float> > im;
+			//std::unique_ptr<ImageInterface<Float> > im;
 			//ImageUtilities::openImage(im, toCasaString(image));
             SPIIF imageF;
             std::tie(imageF, std::ignore, std::ignore, std::ignore)

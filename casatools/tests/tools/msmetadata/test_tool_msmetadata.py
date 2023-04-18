@@ -32,6 +32,8 @@ datadir = ctsys.resolve('unittest/msmetadata/')
 fixture = os.path.join(datadir,'MSMetaData.ms')
 writeable = os.path.join(datadir,'checker.ms')
 tdm2fdm = os.path.join(datadir, 'uid___A002_Xd7be9d_X4838-spw16-18-20-22.ms')
+rxband_ms = os.path.join(datadir, 'uid___A002_Xa1f062_X37e3.ms')
+rxband_ms2 = os.path.join(datadir, 'uid___A002_X7b13df_X68f.ms')
 
 def near(a, b, epsilon):
     return abs((a-b)/max(a,b)) <= epsilon
@@ -1839,6 +1841,7 @@ class msmetadata_test(unittest.TestCase):
         got = self.md.timesforspws(1)
         self.assertTrue(numpy.all(numpy.isclose(got, expectimes, 0, 1e-6)), "Wrong times")
 
+
     def test_tdm_fdm(self):
         """Verify change to algorithm used for FDM and TDM windows CAS-13362"""
         self.md.open(tdm2fdm)
@@ -1847,6 +1850,63 @@ class msmetadata_test(unittest.TestCase):
             'Incorrect FDM windows'
         )
         self.md.done()
+
+
+    def test_rxbands(self):
+        """CAS-13973 test rxbands() method"""
+        expec = [
+            -1, -1, -1, -1, 7, 7, 7, 7, 7, 7, 7, 7, -1, -1, -1, -1, 7, 7, 7, 7,
+            7, 7, 7, 7, -1, -1, -1, -1, 9, 9, 9, 9, 9, 9, 9, 9
+        ]
+        self.md.open(rxband_ms)
+        self.assertTrue(
+            (self.md.rxbands() == expec).all(),
+            'Incorrect result for rxbands()'
+        )
+        self.assertTrue(
+            (self.md.rxbands([0, 29]) == [-1, 9]).all(),
+            'Incorrect result for rxbands()'
+        )
+        self.assertTrue(
+            (self.md.rxbands(29) == [9]).all(),
+            'Incorrect result for rxbands()'
+        )
+        self.md.done()
+        expec = [
+            -1, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6, -1, -1, -1, 6, 6, 6, 6, 6, 6,
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6
+        ]
+        self.md.open(rxband_ms2)
+        self.assertTrue(
+            (self.md.rxbands() == expec).all(),
+            'Incorrect result for rxbands()'
+        )
+        self.md.done()
+
+
+    def test_subwindows(self):
+        """CAS-13973 test subwindows() method"""
+        expec = [
+            -1, -1, -1, -1,  1,  1,  1,  1,  1,  1,  1,  1, -1, -1,
+            -1, -1,  1, 1,  1,  1,  1,  1,  1,  1, -1, -1, -1, -1,
+            1,  1,  1,  1,  1,  1, 1,  1
+        ]
+        self.md.open(rxband_ms)
+        self.assertTrue(
+            (self.md.subwindows() == expec).all(),
+            'Incorrect result for subwindows()'
+        )
+        self.assertTrue(
+            (self.md.subwindows([0, 29]) == [-1, 1]).all(),
+            'Incorrect result for subwindows()'
+        )
+        self.assertTrue(
+            (self.md.subwindows(29) == [1]).all(),
+            'Incorrect result for subwindows()'
+        )
+        self.md.done()
+
 
 if __name__ == '__main__':
     unittest.main()
