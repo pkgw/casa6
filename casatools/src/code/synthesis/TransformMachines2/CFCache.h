@@ -28,20 +28,20 @@
 #ifndef SYNTHESIS_TRANSFORM2_CFCACHE_H
 #define SYNTHESIS_TRANSFORM2_CFCACHE_H
 
-#include <casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Matrix.h>
 #include <msvis/MSVis/VisBuffer2.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/TempImage.h>
-#include <images/Images/PagedImage.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/OS/Directory.h>
-#include <casa/Logging/LogSink.h>
-#include <casa/Logging/LogMessage.h>
-#include <lattices/Lattices/LatticeCache.h>
-#include <lattices/Lattices/ArrayLattice.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/TempImage.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/OS/Directory.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogMessage.h>
+#include <casacore/lattices/Lattices/LatticeCache.h>
+#include <casacore/lattices/Lattices/ArrayLattice.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
 #include <synthesis/TransformMachines/VPSkyJones.h>
 #include <synthesis/TransformMachines2/CFStore.h>
 #include <synthesis/TransformMachines2/CFDefs.h>
@@ -174,7 +174,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Method to initialize the internal memory cache.
     //
     void initCache();
-    void initCache2(casacore::Bool verbose=false, casacore::Float selectedPA=400.0, casacore::Float dPA=-1.0);
+    void initCache2(casacore::Bool verbose=false, casacore::Float selectedPA=400.0, casacore::Float dPA=-1.0,
+		    casacore::String prefix=casacore::String(""));
     void initCacheFromList2(const casacore::String& path, 
 			    const casacore::Vector<casacore::String>& cfFileNames, 
 			    const casacore::Vector<casacore::String>& cfWtFileNames, 
@@ -279,12 +280,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     void flush();
     void flush(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""));
-    casacore::Int loadAvgPB(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""));
-    casacore::Int loadAvgPB(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > & avgPB, casacore::String qualifier=casacore::String(""))
-    {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier);};
+	///cubeinfo tuple contains nchan and frequency of first channel
+    casacore::Int loadAvgPB(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""), std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0));
+    casacore::Int loadAvgPB(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > & avgPB, casacore::String qualifier=casacore::String(""), std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0))
+    {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier,cubeinfo);};
 
     // loadAvgPB calls the method below if WtImgPrefix was set.
-    casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier);
+    casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier, std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0));
 
     casacore::Bool avgPBReady(const casacore::String& qualifier=casacore::String("")) 
     {return (avgPBReady_p && (avgPBReadyQualifier_p == qualifier));};

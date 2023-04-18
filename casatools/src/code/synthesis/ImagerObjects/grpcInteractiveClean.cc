@@ -2,7 +2,7 @@
 #include <synthesis/ImagerObjects/SIMinorCycleController.h>
 #include <casatools/Config/State.h>
 #include <casacore/casa/Logging/LogIO.h>
-#include <images/Images/PagedImage.h>
+#include <casacore/images/Images/PagedImage.h>
 #include <stdcasa/StdCasa/CasacSupport.h>
 #include <string.h>
 #include <stdlib.h>
@@ -151,13 +151,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
 
 	void grpcInteractiveCleanManager::pushDetails() {
-#ifdef INTERACTIVE_ITERATION
-        /*FIXME    detailUpdate(fromRecord(getDetailsRecord())); */
-#endif
 	}
 
     grpcInteractiveCleanState::grpcInteractiveCleanState( ) : SummaryMinor(casacore::IPosition(2, 
-                                                                                                 SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                                                           SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                                              //                                   SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
                                                                                                  0)),
                                                               SummaryMajor(casacore::IPosition(1,0)) {
 		LogIO os( LogOrigin("grpcInteractiveCleanState",__FUNCTION__,WHERE) );
@@ -173,6 +171,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         CycleThreshold = 0;
         InteractiveThreshold = 0.0;
         IsCycleThresholdAuto = true;
+        IsCycleThresholdMutable = true;
         IsThresholdAuto = false;
         CycleFactor = 1.0;
         LoopGain = 0.1;
@@ -180,6 +179,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         PauseFlag = false;
         InteractiveMode = false;
         UpdatedModelFlag = false;
+        InteractiveIterDone = 0; 
         IterDone = 0;
         StopCode = 0;
         Nsigma = 0.0;
@@ -197,7 +197,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         MinPeakResidual = 1e+9;
         MaskSum = -1.0;
         MadRMS = 0.0;
-        int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        int nSummaryFields = SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+        //int nSummaryFields = !FullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
         SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
         SummaryMajor.reformOrResize(casacore::IPosition(1,0));
         SummaryMinor = 0;
@@ -305,6 +307,17 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            }
                            auto newCycleThreshold = state.CycleThreshold;
 
+                           auto cyclethresholdismutable = iterpars.find("cyclethresholdismutable");
+                           if ( cyclethresholdismutable != iterpars.end( ) ) {
+                               state.IsCycleThresholdMutable = cyclethresholdismutable->second.toBool( );
+                               state.IsCycleThresholdAuto = state.IsCycleThresholdAuto && state.IsCycleThresholdMutable;
+                               if ( debug ) {
+                                   std::cerr << " iscyclethresholdmutable=" << (state.IsCycleThresholdMutable ? "true" : "false");
+                                   std::cerr << " iscyclethresholdauto=" << (state.IsCycleThresholdAuto ? "true" : "false");
+                                   fflush(stderr);
+                               }
+                           }
+
                            auto interactivethreshold = iterpars.find("interactivethreshold");
                            if ( interactivethreshold != iterpars.end( ) ) {
                                state.InteractiveThreshold = casaQuantity(interactivethreshold->second).getValue(Unit("Jy"));
@@ -346,10 +359,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                state.Nsigma = (float) nsigma->second.toDouble( );
                                if ( debug ) std::cerr << " nsigma=" << state.Nsigma;
                            }
+                           auto fullsummary = iterpars.find("fullsummary");
+                           if ( fullsummary != iterpars.end() ) {
+                               state.FullSummary = fullsummary->second.toBool();
+                               if ( debug ) std::cerr << " fullsummry=" << state.FullSummary;
+                           }
                            if ( debug ) std::cerr << std::endl;
 
                            if ( debug ) {
-                               std::cerr << "-------------------------------------------" << std::endl;
+                               std::cerr << "-------------------------------------------" << this << " / " << &state << std::endl;
                                std::cerr << "  exported python state: " << std::endl;
                                std::cerr << "-------------------------------------------" << std::endl;
                                std::cerr << "    Niter            " << oldNiter <<
@@ -360,6 +378,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                    " ---> " << newThreshold << std::endl;
                                std::cerr << "    CycleThreshold   " << oldCycleThreshold <<
                                    " ---> " << newCycleThreshold << std::endl;
+                               std::cerr << "    IsCycleThresholdAuto " << state.IsCycleThresholdAuto << std::endl;
                                std::cerr << "-------------------------------------------" << std::endl;
                            
 
@@ -448,6 +467,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
                 setControlsFromRecord( iterpars );
+                Int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
+                state.SummaryMinor.reformOrResize(casacore::IPosition(2, nSummaryFields ,0));
 
             } catch( AipsError &x ) {
                 throw( AipsError("Error in updating iteration parameters : " + x.getMesg()) );
@@ -464,10 +485,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		psffraction = min(psffraction, state.MaxPsfFraction);
 
 		if ( debug ) {
-			std::cerr << "-------------------------------------------" << std::endl;
+			std::cerr << "------------------------------------------- " << this << " / " << &state << std::endl;
 			std::cerr << "  algorithmic update of cycle threshold: " << std::endl;
 			std::cerr << "    CycleThreshold   " << state.CycleThreshold <<
 			    " ---> " << (state.PeakResidual * psffraction) << std::endl;
+			std::cerr << "    IsCycleThresholdAuto " << state.IsCycleThresholdAuto << std::endl;
 			std::cerr << "-------------------------------------------" << std::endl;
 		}
 
@@ -505,7 +527,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            rec.define( RecordFieldId("nsigma"),  state.Nsigma );
 
                            if( state.IsCycleThresholdAuto == true ) updateCycleThreshold(state);
-                           state.IsCycleThresholdAuto = true;        // Reset this, for the next round
+                           state.IsCycleThresholdAuto = true && state.IsCycleThresholdMutable;        // Reset this, for the next round
 
                            rec.define( RecordFieldId("cyclethreshold"), state.CycleThreshold );
                            rec.define( RecordFieldId("interactivethreshold"), state.InteractiveThreshold );
@@ -552,7 +574,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            rec.define( RecordFieldId("threshold"),  state.Threshold );
                            rec.define( RecordFieldId("nsigma"),  state.Nsigma );
                            if( state.IsCycleThresholdAuto == true ) updateCycleThreshold(state);
-                           state.IsCycleThresholdAuto = true;        // Reset this, for the next round
+                           state.IsCycleThresholdAuto = true && state.IsCycleThresholdMutable;        // Reset this, for the next round
 
                            rec.define( RecordFieldId("cyclethreshold"), state.CycleThreshold );
                            rec.define( RecordFieldId("interactivethreshold"), state.InteractiveThreshold );
@@ -601,7 +623,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            /* If autocalc, compute cyclethresh from peak res, cyclefactor and psf sidelobe
                               Otherwise, the user has explicitly set it (interactively) for this minor cycle */
                            if( state.IsCycleThresholdAuto == true ) { updateCycleThreshold(state); }
-                           state.IsCycleThresholdAuto = true; /* Reset this, for the next round */
+                           state.IsCycleThresholdAuto = true && state.IsCycleThresholdMutable; /* Reset this, for the next round */
 
                            /* The minor cycle will stop based on the cycle parameters. */
                            int maxCycleIterations = state.CycleNiter;
@@ -619,7 +641,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            return rec; }) );
     }
 
-	int grpcInteractiveCleanManager::cleanComplete( bool lastcyclecheck ){
+	int grpcInteractiveCleanManager::cleanComplete( bool lastcyclecheck, bool reachedMajorLimit ){
         LogIO os( LogOrigin("grpcInteractiveCleanManager",__FUNCTION__,WHERE) );
 
 		int stopCode=0;
@@ -644,6 +666,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            os <<LogIO::DEBUG1<<"Threshold="<<state.Threshold<<" itsNsigmaThreshold===="<<state.NsigmaThreshold<<LogIO::POST;
                            os <<LogIO::DEBUG1<<"usePeakRes="<<usePeakRes<<" itsPeakResidual="<<state.PeakResidual<<" itsPrevPeakRes="<<state.PrevPeakResidual<<LogIO::POST;
                            os <<LogIO::DEBUG1<<"itsIterDone="<<state.IterDone<<" itsNiter="<<state.Niter<<LogIO::POST;
+                           os <<LogIO::DEBUG1<<"FullSummary="<<state.FullSummary<<LogIO::POST;
 
                            /// This may interfere with some other criterion... check.
                            float tol = 0.01; // threshold test torelance (CAS-11278)
@@ -699,6 +722,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		      }
 
 		  }
+
+		if (stopCode == 0 && reachedMajorLimit) {
+		  stopCode = 9;
+		}
 
 		/*
 		if( lastcyclecheck==False)
@@ -805,8 +832,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		IPosition cShp = state.SummaryMinor.shape();
 		IPosition nShp = summary.shape();
 
-		bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
-        int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+		//bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
+        //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+                int nSummaryFields = !state.FullSummary ? 6 : SIMinorCycleController::nSummaryFields;
+        
 		if( cShp.nelements() != 2 || cShp[0] != nSummaryFields ||
 		    nShp.nelements() != 2 || nShp[0] != nSummaryFields )
 			throw(AipsError("Internal error in shape of global minor-cycle summary record"));
@@ -815,7 +844,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 		for (unsigned int row = 0; row < nShp[1]; row++) {
 			// iterations done
-		   state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = state.IterDone + summary(IPosition(2,0,row));
+		        state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = summary(IPosition(2,0,row));
+                       //if (state.FullSummary){
+		       //    state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = state.IterDone + summary(IPosition(2,0,row));
+                       //}
+                       //else{
+		       //    state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = summary(IPosition(2,0,row));
+                       //}
 		   //state.SummaryMinor( IPosition(2,0,cShp[1]+row) ) = summary(IPosition(2,0,row));
 			// peak residual
 			state.SummaryMinor( IPosition(2,1,cShp[1]+row) ) = summary(IPosition(2,1,row));
@@ -823,7 +858,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			state.SummaryMinor( IPosition(2,2,cShp[1]+row) ) = summary(IPosition(2,2,row));
 			// cycle threshold
 			state.SummaryMinor( IPosition(2,3,cShp[1]+row) ) = summary(IPosition(2,3,row));
-			if (uss) { // temporary CAS-13683 workaround
+			//if (uss) { // temporary CAS-13683 workaround
+			if (!state.FullSummary) { // temporary CAS-13683 workaround
 				// swap out mapper id with multifield id
 				state.SummaryMinor( IPosition(2,4,cShp[1]+row) ) = immod;
 				// chunk id (channel/stokes)
@@ -851,15 +887,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 				state.SummaryMinor( IPosition(2,13,cShp[1]+row) ) = summary(IPosition(2,13,row));
 				// mpi server
 				state.SummaryMinor( IPosition(2,14,cShp[1]+row) ) = summary(IPosition(2,14,row));
-				// peak memory usage
-				state.SummaryMinor( IPosition(2,15,cShp[1]+row) ) = summary(IPosition(2,15,row));
-				// deconvolver runtime
-				state.SummaryMinor( IPosition(2,16,cShp[1]+row) ) = summary(IPosition(2,16,row));
 				// outlier field id
-				state.SummaryMinor( IPosition(2,17,cShp[1]+row) ) = immod;
+				state.SummaryMinor( IPosition(2,15,cShp[1]+row) ) = immod;
 				// stopcode
-				state.SummaryMinor( IPosition(2,18,cShp[1]+row) ) = summary(IPosition(2,18,row));
+				state.SummaryMinor( IPosition(2,16,cShp[1]+row) ) = summary(IPosition(2,16,row));
 			}
+
 		}
 	}
 

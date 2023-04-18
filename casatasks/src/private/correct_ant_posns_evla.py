@@ -4,26 +4,13 @@ from __future__ import print_function
 import datetime
 import re
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from urllib.request import urlopen
-    from urllib.error import URLError
-    from casatools import table, quanta
-    from casatasks import casalog
-    from casatools.platform import bytes2str
+from urllib.request import urlopen
+from urllib.error import URLError
+from casatools import table, quanta
+from casatasks import casalog
 
-    _tb = table( )
-    _qa = quanta( )
-else:
-    from urllib2 import urlopen
-    from urllib2 import URLError
-
-    from taskinit import *
-
-    (_tb,)=gentools(['tb'])
-
-    # to make the following code the same as the CASA6 version
-    _qa = qa
+_tb = table( )
+_qa = quanta( )
 
 ######################################################################
 def correct_ant_posns_evla (vis_name, print_offsets=False):
@@ -66,6 +53,8 @@ def correct_ant_posns_evla (vis_name, print_offsets=False):
     BJB
     NRAO
     Spring 2020 (fixed version)
+
+    Revised on 2023-01-25: CAS-14035 bug fix -TT 
     '''
 
     MONTHS = [ 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
@@ -116,10 +105,7 @@ def correct_ant_posns_evla (vis_name, print_offsets=False):
     response.close()
     for year in range(2010,current_year+1):
         response = urlopen(URL_BASE + str(year))
-        if is_CASA6:
-            html = bytes2str(response.read())
-        else:
-            html = response.read()
+        html = response.read( ).decode( )
         response.close()
         html_lines = html.split('\n')
 
@@ -195,7 +181,7 @@ def correct_ant_posns_evla (vis_name, print_offsets=False):
     ants = []
     parms = []
     for ant_num_sta in ant_num_stas:
-        if ant_num_sta[3] != 0.0 or ant_num_sta[4] != 0.0 or ant_num_sta[3] != 0.0:
+        if ant_num_sta[3] != 0.0 or ant_num_sta[4] != 0.0 or ant_num_sta[5] != 0.0:
             if print_offsets:
                 print("Offsets for antenna %4s on pad %3s: %8.5f  %8.5f  %8.5f" % \
                       (ant_num_sta[1], ant_num_sta[2], ant_num_sta[3], ant_num_sta[4], ant_num_sta[5]))

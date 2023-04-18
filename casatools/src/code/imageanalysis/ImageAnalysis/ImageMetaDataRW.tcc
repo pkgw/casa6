@@ -29,16 +29,16 @@
 
 #include <imageanalysis/ImageAnalysis/ImageMetaDataRW.h>
 
-#include <casa/Containers/ValueHolder.h>
-#include <casa/Quanta/QuantumHolder.h>
-#include <coordinates/Coordinates/CoordinateUtil.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <tables/Tables/TableRecord.h>
+#include <casacore/casa/Containers/ValueHolder.h>
+#include <casacore/casa/Quanta/QuantumHolder.h>
+#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/tables/Tables/TableRecord.h>
 
 #include <imageanalysis/ImageAnalysis/ImageHistory.h>
 
-#include <casa/aips.h>
+#include <casacore/casa/aips.h>
 
 #include <iomanip>
 
@@ -1179,7 +1179,7 @@ template <class T> Vector<Quantity> ImageMetaDataRW<T>::_getRefValue() const {
             _refVal.push_back(Quantity(vals[i], units[i]));
         }
     }
-    return _refVal;
+    return Vector<Quantity>(_refVal);
 }
 
 template <class T> String ImageMetaDataRW<T>::_getRefFreqType() const {
@@ -1247,7 +1247,7 @@ template <class T> void ImageMetaDataRW<T>::_toHistory(
 
 template <class T> template <class U> String ImageMetaDataRW<T>::_quotify(const U& val) {
     ostringstream oss;
-    DataType x = whatType(&val);
+    DataType x = whatType<U>();
     if (x == TpOther && typeid(ValueHolder) == typeid(val)) {
         x = ((ValueHolder)val).dataType();
     }

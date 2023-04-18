@@ -28,42 +28,37 @@
 #include <synthesis/MeasurementEquations/Feather.h>
 #include <synthesis/MeasurementEquations/Imager.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
-#include <casa/OS/HostInfo.h>
+#include <casacore/casa/OS/HostInfo.h>
 
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/IPosition.h>
-#include <casa/iostream.h>
-#include <casa/Logging.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/Logging/LogMessage.h>
-#include <casa/Logging/LogSink.h>
-#include <scimath/Mathematics/MathFunc.h>
-#include <tables/TaQL/ExprNode.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/Slice.h>
-#include <images/Images/TempImage.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/ImageRegrid.h>
-#include <images/Images/ImageUtilities.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/IPosition.h>
+#include <iostream>
+#include <casacore/casa/Logging.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogMessage.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/scimath/Mathematics/MathFunc.h>
+#include <casacore/tables/TaQL/ExprNode.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Slice.h>
+#include <casacore/images/Images/TempImage.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/ImageRegrid.h>
+#include <casacore/images/Images/ImageUtilities.h>
 #include <synthesis/TransformMachines/PBMath.h>
-#include <lattices/LEL/LatticeExpr.h> 
-#include <lattices/LatticeMath/LatticeFFT.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <coordinates/Coordinates/CoordinateUtil.h>
-#include <coordinates/Coordinates/Projection.h>
-#include <coordinates/Coordinates/ObsInfo.h>
-#if ! defined(CASATOOLS)
-#include <casadbus/plotserver/PlotServerProxy.h>
-#include <casadbus/utilities/BusAccess.h>
-#include <casadbus/session/DBusSession.h>
-#endif
+#include <casacore/lattices/LEL/LatticeExpr.h> 
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+#include <casacore/coordinates/Coordinates/Projection.h>
+#include <casacore/coordinates/Coordinates/ObsInfo.h>
 
 #include <components/ComponentModels/GaussianDeconvolver.h>
 
@@ -109,8 +104,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     ImageUtilities::copyMiscellaneous(*sdcopy, SDImage);
     if(SDImage.getDefaultMask() != "")
       Imager::copyMask(*sdcopy, SDImage,  SDImage.getDefaultMask());
-    PtrHolder<ImageInterface<Float> > copyPtr;
-    PtrHolder<ImageInterface<Float> > copyPtr2;
+    std::unique_ptr<ImageInterface<Float> > copyPtr;
+    std::unique_ptr<ImageInterface<Float> > copyPtr2;
     
       
     Vector<Stokes::StokesTypes> stokesvec;
@@ -120,7 +115,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ImageUtilities::addDegenerateAxes (os, copyPtr, *sdcopy, "",
 					 false, false,"I", false, false,
 					 true);
-      sdcopy=CountedPtr<ImageInterface<Float> >(copyPtr.ptr(), false);
+      sdcopy=CountedPtr<ImageInterface<Float> >(copyPtr.get(), false);
       
     }
     if(CoordinateUtil::findSpectralAxis(csyslow) <0){
@@ -129,7 +124,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 					 false, true,
 					 "", false, false,
 					 true);
-      sdcopy=CountedPtr<ImageInterface<Float> >(copyPtr2.ptr(), false);
+      sdcopy=CountedPtr<ImageInterface<Float> >(copyPtr2.get(), false);
     }
     lowIm_p=new TempImage<Float>(highIm_p->shape(), csysHigh_p);
     // regrid the single dish image
@@ -199,8 +194,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     ImageUtilities::copyMiscellaneous(*intcopy, INTImage);
     if(INTImage.getDefaultMask() != "")
       Imager::copyMask(*intcopy, INTImage,  INTImage.getDefaultMask());
-    PtrHolder<ImageInterface<Float> > copyPtr;
-    PtrHolder<ImageInterface<Float> > copyPtr2;
+    std::unique_ptr<ImageInterface<Float> > copyPtr;
+    std::unique_ptr<ImageInterface<Float> > copyPtr2;
     
       
     Vector<Stokes::StokesTypes> stokesvec;
@@ -209,7 +204,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ImageUtilities::addDegenerateAxes (os, copyPtr, *intcopy, "",
 					 false, false,"I", false, false,
 					 true);
-      intcopy=CountedPtr<ImageInterface<Float> >(copyPtr.ptr(), false);
+      intcopy=CountedPtr<ImageInterface<Float> >(copyPtr.get(), false);
       
     }
     if(CoordinateUtil::findSpectralAxis(csysHigh_p) <0){
@@ -218,7 +213,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 					 false, true,
 					 "", false, false,
 					 true);
-      intcopy=CountedPtr<ImageInterface<Float> >(copyPtr2.ptr(), false);
+      intcopy=CountedPtr<ImageInterface<Float> >(copyPtr2.get(), false);
     }
 
 

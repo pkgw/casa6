@@ -24,16 +24,16 @@
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 #include <components/ComponentModels/FluxStdSrcs.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/BasicSL/String.h>
-#include <casa/System/Aipsrc.h>
-#include <measures/Measures/MDirection.h>
-#include <tables/TaQL/TableParse.h>
-#include <tables/Tables/ScalarColumn.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/System/Aipsrc.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/tables/TaQL/TableParse.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
 #include <casatools/Config/State.h>
 
 // Handy for passing anonymous arrays to functions.
-#include <scimath/Mathematics/RigidVector.h>
+#include <casacore/scimath/Mathematics/RigidVector.h>
 #include <map>
 
 
@@ -182,7 +182,7 @@ FluxStdSrcs::Source FluxStdSrcs::srcNameToEnum(const String& srcName, const MDir
       os << LogIO::NORMAL
 	 << "Trying to determine source match by position..."
 	 << LogIO::POST;
-      Table tmpsubtab = tableCommand(taql);
+      Table tmpsubtab = tableCommand(taql).table();
       if(tmpsubtab.nrow()) {
 	  ScalarColumn<String> srcNameCol(tmpsubtab,"Name");
 	  String srcNameInTable = srcNameCol.getColumnCells(RefRows(0,0))[0];

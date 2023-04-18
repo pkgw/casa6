@@ -7,22 +7,23 @@
 
 #include <msvis/MSVis/VisibilityIterator2.h>
 
-#include <casa/Arrays/Cube.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Slicer.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Quanta/MVDoppler.h>
-#include <casa/aips.h>
-#include <casa/System/AipsrcValue.h>
-#include <measures/Measures/MCDoppler.h>
-#include <measures/Measures/MDoppler.h>
-#include <measures/Measures/MeasConvert.h>
-#include <measures/Measures/Stokes.h>
-#include <ms/MSOper/MSDerivedValues.h>
-#include <ms/MeasurementSets/MSIter.h>
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <scimath/Mathematics/RigidVector.h>
-#include <scimath/Mathematics/SquareMatrix.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Slicer.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Quanta/MVDoppler.h>
+#include <casacore/casa/aips.h>
+#include <casacore/casa/System/AipsrcValue.h>
+#include <casacore/measures/Measures/MCDoppler.h>
+#include <casacore/measures/Measures/MDoppler.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/ms/MSOper/MSDerivedValues.h>
+#include <casacore/ms/MeasurementSets/MSIter.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/scimath/Mathematics/RigidVector.h>
+#include <casacore/scimath/Mathematics/SquareMatrix.h>
+#include <stdcasa/UtilJ.h>
 #include <msvis/MSVis/AveragingTvi2.h>
 #include <msvis/MSVis/ViFrequencySelection.h>
 #include <msvis/MSVis/StokesVector.h>
@@ -31,9 +32,8 @@
 #include <msvis/MSVis/VisImagingWeight.h>
 #include <msvis/MSVis/VisibilityIteratorImpl2.h>
 #include <msvis/MSVis/VisibilityIteratorImplAsync2.h>
-#include <msvis/MSVis/UtilJ.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
 
 #include <cstdarg>
 #include <map>
@@ -65,7 +65,7 @@ SortColumns::SortColumns (Bool usingDefaultSortingFunctions)
 {
 }
 
-SortColumns::SortColumns (const std::vector<std::pair<casacore::MS::PredefinedColumns, casacore::CountedPtr<casacore::BaseCompare>>> sortingDefinition)
+SortColumns::SortColumns (const std::vector<std::pair<casacore::MS::PredefinedColumns, std::shared_ptr<casacore::BaseCompare>>> sortingDefinition)
 : addDefaultColumns_p (false),
   usingDefaultSortingFunctions_p (false)
 {
@@ -74,7 +74,7 @@ SortColumns::SortColumns (const std::vector<std::pair<casacore::MS::PredefinedCo
             std::make_pair(MS::columnName(pair.first), pair.second));
 }
 
-SortColumns::SortColumns (const std::vector<std::pair<casacore::String, casacore::CountedPtr<casacore::BaseCompare>>> sortingDefinition)
+SortColumns::SortColumns (const std::vector<std::pair<casacore::String, std::shared_ptr<casacore::BaseCompare>>> sortingDefinition)
 : addDefaultColumns_p (false),
   sortingDefinition_p(sortingDefinition),
   usingDefaultSortingFunctions_p (false)
@@ -82,7 +82,7 @@ SortColumns::SortColumns (const std::vector<std::pair<casacore::String, casacore
 }
 
 void SortColumns::addSortingColumn(casacore::MS::PredefinedColumns colId,
-    casacore::CountedPtr<casacore::BaseCompare> sortingFunction)
+    std::shared_ptr<casacore::BaseCompare> sortingFunction)
 {
     if (usingDefaultSortingFunctions_p)
         throw AipsError("SortColumns invalid construction. "
@@ -93,7 +93,7 @@ void SortColumns::addSortingColumn(casacore::MS::PredefinedColumns colId,
 }
 
 void SortColumns::addSortingColumn(casacore::String colName,
-    casacore::CountedPtr<casacore::BaseCompare> sortingFunction)
+    std::shared_ptr<casacore::BaseCompare> sortingFunction)
 {
     if (usingDefaultSortingFunctions_p)
         throw AipsError("SortColumns invalid construction. "
@@ -121,7 +121,7 @@ SortColumns::getColumnIds () const
     return columnIds_p;
 }
 
-const std::vector<std::pair<casacore::String, casacore::CountedPtr<casacore::BaseCompare>>> &
+const std::vector<std::pair<casacore::String, std::shared_ptr<casacore::BaseCompare>>> &
 SortColumns::sortingDefinition() const
 {
     return sortingDefinition_p;
@@ -187,7 +187,7 @@ VisibilityIterator2::VisibilityIterator2 (const Vector<ViiLayerFactory*> & facto
 {
 
     Int nfactory=factories.nelements();
-    
+
     if(factories(nfactory-1) == nullptr)
         throw(AipsError("ViiLayerFactory in factories is null"));
 
@@ -224,10 +224,10 @@ VisibilityIterator2::~VisibilityIterator2 ()
 	delete impl_p;
 }
 
-String 
+String
 VisibilityIterator2::ViiType() const
-{ 
-  return impl_p->ViiType (); 
+{
+  return impl_p->ViiType ();
 }
 
 
@@ -339,10 +339,16 @@ VisibilityIterator2::nextChunk ()
     impl_p->nextChunk ();
 }
 
+void
+VisibilityIterator2::result(casacore::Record& res) const
+{
+    impl_p->result(res);
+}
+
 // Report Name of slowest column that changes at end of current iteration
-String VisibilityIterator2::keyChange() const 
-{ 
-  return impl_p->keyChange(); 
+String VisibilityIterator2::keyChange() const
+{
+  return impl_p->keyChange();
 }
 
 
@@ -447,7 +453,7 @@ VisibilityIterator2::useImagingWeight (const VisImagingWeight & viw)
     impl_p->useImagingWeight(viw);
 }
 
-const VisImagingWeight & 
+const VisImagingWeight &
 VisibilityIterator2::getImagingWeightGenerator () const
 {
     CheckImplementationPointer ();

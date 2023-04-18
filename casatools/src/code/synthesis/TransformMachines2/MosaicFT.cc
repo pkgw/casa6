@@ -25,60 +25,60 @@
 //#
 //# $Id$
 
-#include <casa/Quanta/UnitMap.h>
-#include <casa/Quanta/MVTime.h>
-#include <casa/Quanta/UnitVal.h>
-#include <measures/Measures/Stokes.h>
-#include <measures/Measures/UVWMachine.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <coordinates/Coordinates/Projection.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <casa/BasicSL/Constants.h>
-#include <scimath/Mathematics/FFTServer.h>
+#include <casacore/casa/Quanta/UnitMap.h>
+#include <casacore/casa/Quanta/MVTime.h>
+#include <casacore/casa/Quanta/UnitVal.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/measures/Measures/UVWMachine.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/coordinates/Coordinates/Projection.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/casa/BasicSL/Constants.h>
+#include <casacore/scimath/Mathematics/FFTServer.h>
 #include <synthesis/TransformMachines2/MosaicFT.h>
 #include <synthesis/TransformMachines2/SimplePBConvFunc.h>
 #include <synthesis/TransformMachines2/HetArrayConvFunc.h>
 #include <synthesis/TransformMachines/PBMath.h>
 #include <synthesis/TransformMachines2/VPSkyJones.h>
-#include <scimath/Mathematics/RigidVector.h>
+#include <casacore/scimath/Mathematics/RigidVector.h>
 #include <msvis/MSVis/StokesVector.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/SubImage.h>
-#include <images/Regions/ImageRegion.h>
-#include <images/Regions/WCBox.h>
-#include <casa/Containers/Block.h>
-#include <casa/Containers/Record.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/MaskedArray.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Slice.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Arrays/MatrixIter.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Exceptions/Error.h>
-#include <lattices/Lattices/ArrayLattice.h>
-#include <lattices/Lattices/SubLattice.h>
-#include <lattices/LRegions/LCBox.h>
-#include <lattices/LEL/LatticeExpr.h>
-#include <lattices/Lattices/LatticeCache.h>
-#include <lattices/LatticeMath/LatticeFFT.h>
-#include <lattices/Lattices/LatticeIterator.h>
-#include <lattices/Lattices/LatticeStepper.h>
-#include <casa/Utilities/CompositeNumber.h>
-#include <casa/OS/Timer.h>
-#include <casa/OS/HostInfo.h>
-#include <casa/sstream.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/SubImage.h>
+#include <casacore/images/Regions/ImageRegion.h>
+#include <casacore/images/Regions/WCBox.h>
+#include <casacore/casa/Containers/Block.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/MaskedArray.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Slice.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/MatrixIter.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/lattices/Lattices/ArrayLattice.h>
+#include <casacore/lattices/Lattices/SubLattice.h>
+#include <casacore/lattices/LRegions/LCBox.h>
+#include <casacore/lattices/LEL/LatticeExpr.h>
+#include <casacore/lattices/Lattices/LatticeCache.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/lattices/Lattices/LatticeIterator.h>
+#include <casacore/lattices/Lattices/LatticeStepper.h>
+#include <casacore/casa/Utilities/CompositeNumber.h>
+#include <casacore/casa/OS/Timer.h>
+#include <casacore/casa/OS/HostInfo.h>
+#include <sstream>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -294,6 +294,7 @@ void MosaicFT::findConvFunction(const ImageInterface<Complex>& iimage,
     }
     pbConvFunc_p->setVBUtil(vbutil_p);
   }
+  //cerr << "NELEMS " << interpVisFreq_p.nelements() << "  lsr " << lsrFreq_p.nelements() << endl;
   pbConvFunc_p->findConvFunction(iimage, vb, convSampling, interpVisFreq_p, convFunc, weightConvFunc_p, convSizePlanes_p, convSupportPlanes_p,
 				 convPolMap_p, convChanMap_p, convRowMap_p, (useConjConvFunc_p && !toVis_p), MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
 
@@ -719,8 +720,12 @@ void MosaicFT::finalizeToSky()
   if(pointingToImage) delete pointingToImage; pointingToImage=0;
 }
 
-void MosaicFT::setWeightImage(CountedPtr<TempImage<Float> >& wgtimage){
-  skyCoverage_p=wgtimage;
+void MosaicFT::setWeightImage(CountedPtr<ImageInterface<Float> >& wgtimage){
+  IPosition shp=wgtimage->shape();
+  CoordinateSystem cs=wgtimage->coordinates();
+  CountedPtr<TempImage<Float> > wgtim=new TempImage<Float>(shp, cs);
+  wgtim->copyData(*(wgtimage));
+  skyCoverage_p=wgtim;
   Record rec=skyCoverage_p->miscInfo();
   //For mosaicFTNew it has the nx*ny factor already in
   rec.define("isscaled", True);
@@ -762,7 +767,7 @@ extern "C" {
 		const Int*/*nx*/, const Int*/*ny*/, const Int*/*npol*/, const Int*/*nchan*/, 
 		const Int*/*support*/, const Int*/*convsize*/, const Int*/*sampling*/, 
 		const Int*/*chanmap*/, const Int*/*polmap*/,
-		DComplex* /*weightgrid*/, const Complex*/*convweight*/, const Int*/*convplanemap*/, 
+		DComplex* /*weightgrid*/, Double* /*sumwt*/, const Complex*/*convweight*/, const Int*/*convplanemap*/, 
 		const Int*/*convchanmap*/,  const Int*/*convpolmap*/, 
 		const Int*/*nconvplane*/, const Int*/*nconvchan*/, const Int*/*nconvpol*/, const Int*/*rbeg*/, 
 		const Int*/*rend*/, const Int*/*loc*/, const Int*/*off*/, const Complex*/*phasor*/);
@@ -771,7 +776,7 @@ extern "C" {
 		const Int*/*nx*/, const Int*/*ny*/, const Int*/*npol*/, const Int*/*nchan*/, 
 		const Int*/*support*/, const Int*/*convsize*/, const Int*/*sampling*/, 
 		const Int*/*chanmap*/, const Int*/*polmap*/,
-		Complex* /*weightgrid*/, const Complex*/*convweight*/, const Int*/*convplanemap*/, 
+               Complex* /*weightgrid*/, Double*/*sumwt*/, const Complex*/*convweight*/, const Int*/*convplanemap*/, 
 		const Int*/*convchanmap*/,  const Int*/*convpolmap*/, 
 		const Int*/*nconvplane*/, const Int*/*nconvchan*/, const Int*/*nconvpol*/, const Int*/*rbeg*/, 
 		const Int*/*rend*/, const Int*/*loc*/, const Int*/*off*/, const Complex*/*phasor*/);
@@ -1146,10 +1151,10 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
 
 
  
-timemass_p +=tim.real();
-Int  ixsub, iysub, icounter;
-  ixsub=1;
-  iysub=1;
+ timemass_p +=tim.real();
+ Int  ixsub, iysub, icounter;
+ ixsub=1;
+ iysub=1;
   //////***********************DEBUGGING
   //nth=1;
   ////////***************
@@ -1186,6 +1191,11 @@ Int  ixsub, iysub, icounter;
    //cerr << xsect.shape() << "  " << xsect << endl;
   const Int* pmapstor=polMap.getStorage(del);
   const Int* cmapstor=chanMap.getStorage(del);
+// Dummy sumwt for gridweight part
+  Matrix<Double> dumSumWeight(npol, nchan);
+  dumSumWeight=sumWeight;
+  Bool isDSWC;
+  Double *dsumwtstor=dumSumWeight.getStorage(isDSWC);
   Int nc=nchan;
   Int np=npol;
   Int nxp=nx;
@@ -1197,6 +1207,9 @@ Int  ixsub, iysub, icounter;
   const Int *convrowmapstor=convRowMap_p.getStorage(del);
   const Int *convchanmapstor=convChanMap_p.getStorage(del);
   const Int *convpolmapstor=convPolMap_p.getStorage(del);
+  ///
+
+  
   ////////***************************
   tim.mark(); 
 
@@ -1273,7 +1286,7 @@ Int  ixsub, iysub, icounter;
       gmoswgtd(&nvp, &nvc,flagstor, rowflagstor, wgtStorage, &nvisrow, 
 	       &nxp, &nyp, &np, &nc, &csupp, &csize, &csamp, 
 	       cmapstor, pmapstor,
-	       gridwgtstor, wconvstor, convrowmapstor, 
+	       gridwgtstor, dsumwtstor, wconvstor, convrowmapstor, 
 	       convchanmapstor,  convpolmapstor, 
 	       &nConvFunc, &nChanConv, &nPolConv, &rbeg, 
 	       &rend, locstor, offstor, phasorstor);
@@ -1353,7 +1366,7 @@ Int  ixsub, iysub, icounter;
       gmoswgts(&nvp, &nvc,flagstor, rowflagstor, wgtStorage, &nvisrow, 
 	       &nxp, &nyp, &np, &nc, &csupp, &csize, &csamp, 
 	       cmapstor, pmapstor,
-	       gridwgtstor, wconvstor, convrowmapstor, 
+	       gridwgtstor, dsumwtstor, wconvstor, convrowmapstor, 
 	       convchanmapstor,  convpolmapstor, 
 	       &nConvFunc, &nChanConv, &nPolConv, &rbeg, 
 	       &rend, locstor, offstor, phasorstor);
@@ -1364,6 +1377,7 @@ Int  ixsub, iysub, icounter;
   }
   convFunc.freeStorage(convstor, convcopy);
   weightConvFunc_p.freeStorage(wconvstor, wconvcopy);
+  dumSumWeight.putStorage(dsumwtstor, isDSWC);
   uvw.freeStorage(uvwstor, uvwcopy);
   if(!dopsf)
     data.freeStorage(datStorage, isCopy);
@@ -1375,6 +1389,188 @@ Int  ixsub, iysub, icounter;
 
 }
 
+void MosaicFT::gridImgWeights(const vi::VisBuffer2& vb){
+
+  if(doneWeightImage_p)
+    return;
+  matchChannel(vb);
+ 
+  
+  //cerr << "CHANMAP " << chanMap << endl;
+  //No point in reading data if its not matching in frequency
+  if(max(chanMap)==-1)
+    return;
+
+  Int startRow, endRow, nRow;
+  nRow=vb.nRows();
+  startRow=0;
+  endRow=nRow-1;
+  
+  
+  //const Matrix<Float> *imagingweight;
+  //imagingweight=&(vb.imagingWeight());
+  Matrix<Float> imagingweight;
+  getImagingWeight(imagingweight, vb);
+
+
+  Cube<Complex> data;
+  //Fortran gridder need the flag as ints 
+  Cube<Int> flags;
+  Matrix<Float> elWeight;
+  interpolateFrequencyTogrid(vb, imagingweight,data, flags, elWeight, FTMachine::PSF);
+  
+ 
+
+  Bool iswgtCopy;
+  const Float *wgtStorage;
+  wgtStorage=elWeight.getStorage(iswgtCopy);
+  Bool issumWgtCopy;
+  Double* sumwgtstor=sumWeight.getStorage(issumWgtCopy);
+
+  
+ 
+  // Get the uvws in a form that Fortran can use and do that
+  // necessary phase rotation. 
+  Matrix<Double> uvw(negateUV(vb));
+  Vector<Double> dphase(vb.nRows());
+  dphase=0.0;
+ 
+  doUVWRotation_p=true;
+  girarUVW(uvw, dphase, vb);
+  refocus(uvw, vb.antenna1(), vb.antenna2(), dphase, vb);
+  // This needs to be after the interp to get the interpolated channels
+  //Also has to be after rotateuvw in case tracking is on
+  findConvFunction(*image, vb);
+  //nothing to grid here as the pointing resulted in a zero support convfunc
+  if(convSupport <= 0)
+    return;
+  
+  Bool del;
+  
+  const Int* pmapstor=polMap.getStorage(del);
+  const Int* cmapstor=chanMap.getStorage(del);
+  
+  Vector<Int> rowFlags(vb.nRows());
+  rowFlags=0;
+  rowFlags(vb.flagRow())=true;
+  if(!usezero_p) {
+    for (uInt rownr=0; rownr< vb.nRows(); rownr++) {
+      if(vb.antenna1()(rownr)==vb.antenna2()(rownr)) rowFlags(rownr)=1;
+    }
+  }
+
+  //Fortran indexing
+  
+  Int rbeg=1;
+  Int rend=vb.nRows();
+
+  const Int * flagstor=flags.getStorage(del);
+  const Int * rowflagstor=rowFlags.getStorage(del);
+
+  const Int *convrowmapstor=convRowMap_p.getStorage(del);
+  const Int *convchanmapstor=convChanMap_p.getStorage(del);
+  const Int *convpolmapstor=convPolMap_p.getStorage(del);
+  
+  //Tell the gridder to grid the weights too ...need to do that once only
+  //Int doWeightGridding=1;
+  //if(doneWeightImage_p)
+  //  doWeightGridding=-1;
+  //    IPosition s(flags.shape());
+  const IPosition& fs=flags.shape();
+  //cerr << "flags shape " << fs << endl;
+  std::vector<Int>s(fs.begin(), fs.end());
+  Int nvp=s[0];
+  Int nvc=s[1];
+  Int nvisrow=s[2];
+  Int csamp=convSampling;
+  Bool uvwcopy; 
+  const Double *uvwstor=uvw.getStorage(uvwcopy);
+  Bool gridcopy;
+  Bool convcopy;
+  Bool wconvcopy;
+  const Complex *wconvstor=weightConvFunc_p.getStorage(wconvcopy);
+  Int nPolConv=convFunc.shape()[2];
+  Int nChanConv=convFunc.shape()[3];
+  Int nConvFunc=convFunc.shape()(4);
+  Bool weightcopy;
+  ////////**************************
+  Cube<Int> loc(2, nvc, vb.nRows());
+  Cube<Int> off(2, nvc, vb.nRows());
+  Matrix<Complex> phasor(nvc, vb.nRows());
+  Bool delphase;
+  Complex * phasorstor=phasor.getStorage(delphase);
+  const Double * visfreqstor=interpVisFreq_p.getStorage(del);
+  const Double * scalestor=uvScale.getStorage(del);
+  const Double * offsetstor=uvOffset.getStorage(del);
+  Int * locstor=loc.getStorage(del);
+  Int * offstor=off.getStorage(del);
+  const Double *dpstor=dphase.getStorage(del);
+
+  Int irow;
+  Int nth=1;
+#ifdef _OPENMP
+  if(numthreads_p >0){
+    nth=min(numthreads_p, omp_get_max_threads());
+  }
+  else{   
+    nth= omp_get_max_threads();
+  }
+  //nth=min(4,nth);
+#endif
+  Double cinv=Double(1.0)/C::c;
+ 
+  Int dow=0;
+
+#pragma omp parallel default(none) private(irow) firstprivate(visfreqstor, nvc, scalestor, offsetstor, csamp, phasorstor, uvwstor, locstor, offstor, dpstor, dow, cinv) shared(startRow, endRow) num_threads(nth)  
+{
+#pragma omp for
+  for (irow=startRow; irow<=endRow;irow++){
+    /*locateuvw(uvwstor,dpstor, visfreqstor, nvc, scalestor, offsetstor, csamp, 
+	      locstor, 
+	      offstor, phasorstor, irow, false);*/
+    locuvw(uvwstor, dpstor, visfreqstor, &nvc, scalestor, offsetstor, &csamp, locstor, offstor, phasorstor, &irow, &dow, &cinv);
+  }  
+
+ }//end pragma parallel
+
+
+
+
+  if(useDoubleGrid_p) {
+      //This can be parallelized by making copy of the central part of the griddedWeight
+      //and adding it after dooing the gridding
+      DComplex *gridwgtstor=griddedWeight2.getStorage(weightcopy);
+      gmoswgtd(&nvp, &nvc,flagstor, rowflagstor, wgtStorage, &nvisrow, 
+	       &nx, &ny, &npol, &nchan, &convSupport, &convSize, &convSampling, 
+	       cmapstor, pmapstor,
+	       gridwgtstor, sumwgtstor, wconvstor, convrowmapstor, 
+	       convchanmapstor,  convpolmapstor, 
+	       &nConvFunc, &nChanConv, &nPolConv, &rbeg, 
+	       &rend, locstor, offstor, phasorstor);
+      griddedWeight2.putStorage(gridwgtstor, weightcopy);
+    
+    
+
+
+
+  }
+  else{
+    Complex *gridwgtstor=griddedWeight.getStorage(weightcopy);
+    gmoswgts(&nvp, &nvc,flagstor, rowflagstor, wgtStorage, &nvisrow, 
+             &nx, &ny, &npol, &nchan, &convSupport, &convSize, &convSampling, 
+             cmapstor, pmapstor,
+             gridwgtstor, sumwgtstor, wconvstor, convrowmapstor, 
+             convchanmapstor,  convpolmapstor, 
+             &nConvFunc, &nChanConv, &nPolConv, &rbeg, 
+             &rend, locstor, offstor, phasorstor);
+    griddedWeight.putStorage(gridwgtstor, weightcopy);
+
+
+  }
+  sumWeight.putStorage(sumwgtstor, issumWgtCopy); 
+  elWeight.freeStorage(wgtStorage,iswgtCopy);
+    
+}
 
 void MosaicFT::get(vi::VisBuffer2& vb, Int row)
 {
@@ -1415,12 +1611,14 @@ void MosaicFT::get(vi::VisBuffer2& vb, Int row)
   
   
   
-  
+ 
   Cube<Complex> data;
   Cube<Int> flags;
   getInterpolateArrays(vb, data, flags);
+  
   //Need to get interpolated freqs
   findConvFunction(*image, vb);
+
   // no valid pointing in this buffer
   if(convSupport <= 0)
     return;
