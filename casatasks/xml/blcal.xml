@@ -314,6 +314,10 @@ with closure errors, use blcal.
                      appended to the time-dependent interpolation
                      specification to enforce obsId boundaries when
                      interpolating in time. 
+                   - For multi-scan datasets, 'perscan' can be
+                     appended to the time-dependent interpolation
+                     specification to enforce scan boundaries when
+                     interpolating in time. 
                    - Freq-dependent interp options can have 'flag' appended
                      to enforce channel-dependent flagging, and/or 'rel' 
                      appended to invoke relative frequency interpolation
