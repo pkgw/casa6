@@ -1,19 +1,9 @@
 import os
 import logging
 
-try:
-    # CASA 6
-    logging.debug("Importing CASAtools")
-    import casatools
-    tb = casatools.table()
-    casa6 = True
-
-except ImportError:
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying CASA5...")
-    from taskinit import tbtool
-    tb = tbtool()
-    casa5 = True
+logging.debug("Importing CASAtools")
+import casatools
+tb = casatools.table()
 
 class Weblog():
     def __init__(self, taskname, localdict):

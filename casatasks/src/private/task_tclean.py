@@ -145,6 +145,7 @@ def tclean(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
+    fullsummary,#=False,
     nmajor,#=-1,
 
     ##### (new) Mask parameters
@@ -198,7 +199,7 @@ def tclean(
     inpparams['state']= inpparams.pop('intent')
     inpparams['loopgain']=inpparams.pop('gain')
     inpparams['scalebias']=inpparams.pop('smallscalebias')
-
+    #
     # Force chanchunks=1 always now (CAS-13400)
     inpparams['chanchunks']=1
 
@@ -213,15 +214,10 @@ def tclean(
         casalog.post( "The MSMFS algorithm (deconvolver='mtmfs') with specmode='cube' is not supported", "WARN", "task_tclean" )
         return
 
-    if((specmode=='cube' or specmode=='cubedata' or specmode=='cubesource') and gridder!='awproject') and (parallel==False and mpi_available and MPIEnvironment.is_mpi_enabled):
-        casalog.post( "When CASA is launched with mpi, the parallel=False option has no effect for 'cube' imaging for gridder='mosaic','wproject','standard' and major cycles are always executed in parallel.\n", "WARN", "task_tclean" )
-        #casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect except for awproject.", "WARN", "task_tclean" )
+
+    if((specmode=='cube' or specmode=='cubedata') and (parallel==False and mpi_available and   MPIEnvironment.is_mpi_enabled) ):
+        casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect", "WARN", "task_tclean" )
         
-    if((specmode=='cube' or specmode=='cubedata' or specmode=='cubesource') and gridder=='awproject'): 
-        casalog.post( "The gridder='awproject' has not been fully tested for 'cube' imaging (parallel=True or False). Formal commissioning of this mode is expected in a subsequent release, where 'awproject' will be aligned with recent framework changes. Until then, please report errors/crashes if seen.\n", "WARN", "task_tclean" )
-        if (mpi_available and MPIEnvironment.is_mpi_enabled):
-            casalog.post("Cube imaging with awproject does not use the same MPI mechanism as the other gridders. When started with mpicasa, this imaging mode will produce an error at the end of the task that says 'parallel transport layer not initialized'. Please ignore this for now as it occurs after all computations are complete and outputs are on disk. The ability to do parallelized cube imaging with 'awproject' will be properly enabled in a subsequent release","WARN","task_tclean")
-          #  return
       
     if(perchanweightdensity==False and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with perchanweightdensity=False.", "WARN", "task_tclean" )
@@ -470,8 +466,8 @@ def tclean(
                     isit = imager.hasConverged() or (not doneMinor)
                     
                 ## Get summary from iterbot
-                if type(interactive) != bool:
-                    retrec=imager.getSummary();
+                #if type(interactive) != bool:
+                retrec=imager.getSummary(fullsummary);
                 
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()

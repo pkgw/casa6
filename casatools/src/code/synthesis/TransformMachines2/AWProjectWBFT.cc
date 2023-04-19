@@ -45,13 +45,6 @@
 #include <sstream>
 #include <casacore/casa/Utilities/CompositeNumber.h>
 
-//#define CONVSIZE (1024*4)
-//#define OVERSAMPLING 10
-#define USETABLES 0           // If equal to 1, use tabulated exp() and
-			      // complex exp() functions.
-#define MAXPOINTINGERROR 250.0 // Max. pointing error in arcsec used to
-// determine the resolution of the
-// tabulated exp() function.
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
   namespace refim{
@@ -63,19 +56,21 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 				      const Matrix<Float>& sumWt,
 				      const Bool& doFFTNorm);
     template
-    void AWProjectWBFT::makeSensitivityImage(Lattice<casacore::Complex>& wtImage,
-					     ImageInterface<Float>& sensitivityImage,
-					     const Matrix<Float>& sumWt,
-					     const Bool& doFFTNorm);
+    void AWProjectWBFT::makeWBSensitivityImage(Lattice<casacore::Complex>& wtImage,
+					       ImageInterface<Float>& sensitivityImage,
+					       const Matrix<Float>& sumWt,
+					       const Bool& doFFTNorm);
+    //==================================================================================================
     template
     void AWProjectWBFT::ftWeightImage(Lattice<casacore::DComplex>& wtImage, 
 				      const Matrix<Float>& sumWt,
 				      const Bool& doFFTNorm);
     template
-    void AWProjectWBFT::makeSensitivityImage(Lattice<casacore::DComplex>& wtImage,
-					     ImageInterface<Float>& sensitivityImage,
-					     const Matrix<Float>& sumWt,
-					     const Bool& doFFTNorm);
+    void AWProjectWBFT::makeWBSensitivityImage(Lattice<casacore::DComplex>& wtImage,
+					       ImageInterface<Float>& sensitivityImage,
+					       const Matrix<Float>& sumWt,
+					       const Bool& doFFTNorm);
+    //==================================================================================================
     template 
     void AWProjectWBFT::resampleCFToGrid(Array<casacore::Complex>& gwts, 
 					 VBStore& vbs, const VisBuffer2& vb);
@@ -101,7 +96,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			       Bool conjBeams,
 			       Bool doublePrecGrid)
     : AWProjectFT(nWPlanes,icachesize,cfcache,cf,visResampler,applyPointingOffset,pointingOffsetSigDev,doPBCorr, itilesize,pbLimit,usezero,conjBeams,doublePrecGrid),
-      avgPBReady_p(false),resetPBs_p(true),wtImageFTDone_p(false),fieldIds_p(0),rotatedCFWts_p(),visResamplerWt_p(),oneTimeMessage_p(false)
+      //avgPBReady_p(false),
+      resetPBs_p(true),wtImageFTDone_p(false),fieldIds_p(0),rotatedCFWts_p(),visResamplerWt_p(nullptr),oneTimeMessage_p(false)
   {
     (void)paSteps;
     //
@@ -109,7 +105,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // This is a pure C function pointer which FORTRAN can call.  
     // The function itself uses GCF object services.
     //
-    //    convSize=0;
     paChangeDetector.reset();
     pbLimit_p=pbLimit;
     if (applyPointingOffset) doPointing=1; else doPointing=0;
@@ -117,14 +112,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     // Set up the Conv. Func. disk cache manager object.
     //
-    //convSampling=OVERSAMPLING;
-    //    convSize=CONVSIZE;
     //use memory size defined in aipsrc if exists
     Long hostRAM = (HostInfo::memoryTotal(true)*1024); // In bytes
     hostRAM = hostRAM/(sizeof(Float)*2); // In complex pixels
     if (cachesize > hostRAM) cachesize=hostRAM;
 
-    //    visResampler_p->init(useDoubleGrid_p);
     lastPAUsedForWtImg = MAGICPAVALUE;
   }
   //
@@ -135,14 +127,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
     LogIO log_l(LogOrigin("AWProjectWBFT2", "AWProjectWBFT[R&D]"));
     // Construct from the input state record
-    
-    //    if (!fromRecord(error, stateRec)) 
+
     if (!fromRecord(stateRec)) 
       log_l << "Failed to create " << name() << " object." << LogIO::EXCEPTION;
 
     maxConvSupport=-1;
-    //convSampling=OVERSAMPLING;
-    //convSize=CONVSIZE;
     visResampler_p->init(useDoubleGrid_p);
   }
   //
@@ -161,7 +150,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	gridder         =   other.gridder;
 	isTiled         =   other.isTiled;
 	lattice         =   other.lattice;
-	arrayLattice    =   other.arrayLattice;
 	maxAbsData      =   other.maxAbsData;
 	centerLoc       =   other.centerLoc;
 	offsetLoc       =   other.offsetLoc;
@@ -169,15 +157,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	usezero_p       =   other.usezero_p;
 	doPBCorrection  =   other.doPBCorrection;
 	maxConvSupport  =   other.maxConvSupport;
-	avgPBReady_p    =   other.avgPBReady_p;
 	resetPBs_p      =   other.resetPBs_p;
 	wtImageFTDone_p =   other.wtImageFTDone_p;
 	rotatedCFWts_p  =   other.rotatedCFWts_p;
 	visResamplerWt_p=other.visResamplerWt_p; // Copy the counted pointer
 	oneTimeMessage_p = other.oneTimeMessage_p;
-	//	*visResamplerWt_p = *other.visResamplerWt_p; // Call the appropriate operator=()
-
-	//	visResampler_p=other.visResampler_p->clone();
     };
     return *this;
   };
@@ -197,8 +181,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // and the offsets in l_off and m_off.
     //
     NAnt = AWProjectFT::findPointingOffsets(vb,l_off,m_off,Evaluate);
-    //    NAnt = l_off.shape()(2);
-    
+    //
     // Resize the offset arrays if no pointing table was given.
     //
     if (NAnt <=0 )
@@ -211,21 +194,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     // Add field offsets to the pointing errors.
     //
-
-//     Float dayHr=2*3.141592653589793116;
-//     MVDirection ref(directionCoord.referenceValue()(0),
-// 		    directionCoord.referenceValue()(1)),
-//       vbDir(vb.direction1()(0).getAngle().getValue()(0),
-// 	    vb.direction1()(0).getAngle().getValue()(1));
-    
-//     if (0)
-//       {
-// 	l_off = l_off - (Float)(directionCoord.referenceValue()(0) -
-// 				dayHr-vb.direction1()(0).getAngle().getValue()(0));
-// 	m_off = m_off - (Float)(directionCoord.referenceValue()(1) -
-// 				vb.direction1()(0).getAngle().getValue()(1));
-//       }
-
     //
     // Convert the direction from image co-ordinate system and the VB
     // to MDirection.  Then convert the MDirection to Quantity so that
@@ -258,10 +226,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       {
 	offsets0.resize(NAnt);
 	offsets1.resize(NAnt);
-// 	MLCG mlcg((Int)(vb.time()(0)));
-// 	Normal nrand(&mlcg,0.0,10.0);
-// 	for(Int i=0;i<NAnt;i++) offsets0(i) = (Float)(nrand());
-// 	for(Int i=0;i<NAnt;i++) offsets1(i) = (Float)(nrand());
 	offsets0 = offsets1 = 0.0;
       }
     for(Int i=0;i<NAnt;i++)
@@ -270,13 +234,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	m_off(IPosition(3,0,0,i)) = m_off(IPosition(3,0,0,i)) + offsets1(i)/2.062642e+05;
       }
 
-    //m_off=l_off=0.0;
-//     if (fieldID != vb.fieldId())
-//       {
-// 	fieldID = vb.fieldId();
-// 	cout << l_off*2.062642e5 << endl;
-// 	cout << m_off*2.062642e5 << endl;
-//       }
     if (firstPass==0) 
       {
 // 	 cout << (Float)(directionCoord.referenceValue()(0)) << " "
@@ -292,14 +249,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   //---------------------------------------------------------------
   //
-  void AWProjectWBFT::normalizeAvgPB()
-  {
-    LogIO log_l(LogOrigin("AWProjectWBFT2","normalizeAvgPB[R&D]"));
-    // We accumulated normalized PBs.  So don't normalize the average
-    // PB.
-    pbNormalized_p = false;
+  // void AWProjectWBFT::normalizeAvgPB()
+  // {
+  //   LogIO log_l(LogOrigin("AWProjectWBFT2","normalizeAvgPB[R&D]"));
+  //   // We accumulated normalized PBs.  So don't normalize the average
+  //   // PB.
+  //   pbNormalized_p = false;
     
-  }
+  // }
   //
   //---------------------------------------------------------------
   // For wide-band case, this just tells the user that the sensitivity
@@ -314,37 +271,43 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   // calls are NoOps.
   //
   void AWProjectWBFT::makeSensitivityImage(const VisBuffer2&,
-					   const ImageInterface<Complex>& /*imageTemplate*/,
+					   const ImageInterface<Complex>& /*Complex imageTemplate*/,
 					   ImageInterface<Float>& /*sensitivityImage*/)
   {
-    if (oneTimeMessage_p == false)
+    if (avgPBReady_p == false)
       {
-	LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage(Complex)[R&D]"));
-	log_l << "Setting up for weights accumulation ";
-	if (sensitivityPatternQualifierStr_p != "") log_l << "for term " << sensitivityPatternQualifier_p << " ";
-	log_l << "during gridding to compute sensitivity pattern." 
-	      << endl
-	      << "Consequently, the first gridding cycle will be slower than the subsequent ones." 
-	      << LogIO::WARN;
-	oneTimeMessage_p=true;
+	if (oneTimeMessage_p == false)
+	  {
+	    LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage(Complex)[R&D]"));
+	    log_l << "Setting up for weights accumulation ";
+	    if (sensitivityPatternQualifierStr_p != "") log_l << "for term " << sensitivityPatternQualifier_p << " ";
+	    log_l << "during gridding to compute sensitivity pattern."
+		  << endl
+		  << "Consequently, the first gridding cycle will be slower than the subsequent ones." 
+		  << LogIO::WARN;
+	    oneTimeMessage_p=true;
+	  }
       }
   }
-  void AWProjectWBFT::makeSensitivityImage(const VisBuffer2&,
-					   const ImageInterface<DComplex>& /*imageTemplate*/,
-					   ImageInterface<Float>& /*sensitivityImage*/)
-  {
-    if (oneTimeMessage_p == false)
-      {
-	LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage(DComplex)[R&D]"));
-	log_l << "Setting up for weights accumulation ";
-	if (sensitivityPatternQualifierStr_p != "") log_l << "for term " << sensitivityPatternQualifier_p << " ";
-	log_l << "during gridding to compute sensitivity pattern." 
-	      << endl
-	      << "Consequently, the first gridding cycle will be slower than the subsequent ones." 
-	      << LogIO::WARN;
-	oneTimeMessage_p=true;
-      }
-  }
+    void AWProjectWBFT::makeSensitivityImage(const VisBuffer2&,
+					     const ImageInterface<DComplex>& /* DComplex imageTemplate*/,
+					     ImageInterface<Float>& /*sensitivityImage*/)
+    {
+      if (avgPBReady_p == false)
+	{
+	  if (oneTimeMessage_p == false)
+	    {
+	      LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage(DComplex)[R&D]"));
+	      log_l << "Setting up for weights accumulation ";
+	      if (sensitivityPatternQualifierStr_p != "") log_l << "for term " << sensitivityPatternQualifier_p << " ";
+	      log_l << "during gridding to compute sensitivity pattern."
+		    << endl
+		    << "Consequently, the first gridding cycle will be slower than the subsequent ones."
+		    << LogIO::WARN;
+	      oneTimeMessage_p=true;
+	    }
+	}
+    }
   //
   //---------------------------------------------------------------
   // 
@@ -356,10 +319,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO log_l(LogOrigin("AWProjectWBFT2", "ftWeightImage[R&D]"));
     if (wtImageFTDone_p) return;
 
-    //cerr << "From ftWeightImage" << endl;
-
-    // Bool doSumWtNorm=true;
-    // if (sumWt.shape().nelements()==0) doSumWtNorm=false;
     if ((sumWt.shape().nelements() < 2) || 
 	(sumWt.shape()(0) != wtImage.shape()(2)) || 
 	(sumWt.shape()(1) != wtImage.shape()(3)))
@@ -370,13 +329,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // code below will not compile if the abs(wtImage) is not
     // converted back to a complex type).
 
-    // LatticeExpr<Complex> le(abs(wtImage)*Complex(1,0));
-    // wtImage.copyData(le);
-
-    // {
-    //   String name("wtimg.im");
-    //   storeArrayAsImage(name,griddedWeights.coordinates(),wtImage.get());
-    // }
     LatticeFFT::cfft2d(wtImage,false);
     wtImageFTDone_p=true;
 
@@ -408,145 +360,25 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // the data-sum-of-weights.
     //
 
-    // USEFUL DEBUG MESSAGE
-    //    log_l << "SumCFWt: " << getSumOfCFWeights() << " " << max(wtBuf) << " " << sensitivityPatternQualifier_p <<LogIO::WARN << LogIO::POST;
     for(wtImIter.reset(); !wtImIter.atEnd(); wtImIter++)
       {
-	// Int pol_l=wtImIter.position()(2), chan_l=wtImIter.position()(3);
-	// Double sumwt_l=1.0;;
-	// sumwt_l = getSumOfCFWeights()(pol_l,chan_l);
-
 	wtImIter.rwCursor() = (wtImIter.rwCursor()
-			       *Float(sizeX)*Float(sizeY)
-			       //			       /sumwt_l
-			       );
-
-	////////////////////	wtImIter.rwCursor() = sqrt( fabs(wtImIter.rwCursor()) );
-
-	//	Double maxval = fabs( max( wtImIter.rwCursor() ) );
-	//	sumwt_l = getSumOfCFWeights()(pol_l,chan_l);
-	//	weightRatio_p = maxval * Float(sizeX)*Float(sizeY) / sumwt_l;
+			       *Float(sizeX)*Float(sizeY));
       }
-
-    // {
-    //   String name("ftwtimg.im");
-    //   ArrayLattice<Complex> tt(wtImage.shape());
-    //   Array<Complex> ttbuf;
-    //   Array<T> wtBUF;
-    //   wtImage.get(wtBUF,false);
-    //   tt.get(ttbuf,false);
-    //   for (int i=0;i<wtImage.shape()(0);i++)
-    // 	for (int j=0;j<wtImage.shape()(1);j++)
-    // 	  for (int k=0;k<wtImage.shape()(2);k++)
-    // 	    for (int l=0;l<wtImage.shape()(3);l++)
-    // 	      ttbuf(IPosition(4,i,j,k,l)) = wtBUF(IPosition(4,i,j,k,l));
-    //   storeArrayAsImage(name,griddedWeights_D.coordinates(),ttbuf);
-    // }
-  }
-  //
-  //---------------------------------------------------------------
-  // 
-  void AWProjectWBFT::makeSensitivitySqImage(Lattice<Complex>& wtImage,
-					     ImageInterface<Complex>& sensitivitySqImage,
-					     const Matrix<Float>& sumWt,
-					     const Bool& doFFTNorm)
-  {
-    //    if (avgPBReady_p) return;
-    LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivitySqImage[R&D]"));
-
-    //    avgPBReady_p=true;
-
-    ftWeightImage(wtImage, sumWt, doFFTNorm);
-
-    if (useDoubleGrid_p)
-      {
-	sensitivitySqImage.resize(griddedWeights_D.shape()); 
-	sensitivitySqImage.setCoordinateInfo(griddedWeights_D.coordinates());
-      }
-    else
-      {
-	sensitivitySqImage.resize(griddedWeights.shape()); 
-	sensitivitySqImage.setCoordinateInfo(griddedWeights.coordinates());
-      }
-
-    Int sizeX=wtImage.shape()(0), sizeY=wtImage.shape()(1);
-    Array<Complex> senSqBuf; sensitivitySqImage.get(senSqBuf,false); 
-    ArrayLattice<Complex> senSqLat(senSqBuf, true);
-
-    Array<Complex> wtBuf; wtImage.get(wtBuf,false);
-    ArrayLattice<Complex> wtLat(wtBuf,true);
-    //
-    // Copy one 2D plane at a time, normalizing by the sum of weights
-    // and possibly 2D FFT.
-    //
-    // Set up Lattice iterators on wtImage and sensitivityImage
-    //
-    IPosition axisPath(4, 0, 1, 2, 3);
-    IPosition cursorShape(4, sizeX, sizeY, 1, 1);
-
-    LatticeStepper wtImStepper(wtImage.shape(), cursorShape, axisPath);
-    LatticeIterator<Complex> wtImIter(wtImage, wtImStepper);
-
-    LatticeStepper senSqImStepper(senSqLat.shape(), cursorShape, axisPath);
-    LatticeIterator<Complex> senSqImIter(senSqLat, senSqImStepper);
-    //
-    // Iterate over channel and polarization axis
-    //
-    //
-    // The following code is averaging RR and LL planes and writing
-    // the result to back to both planes.  This needs to be
-    // generalized for full-pol case.
-    //
-    IPosition start0(4,0,0,0,0), start1(4,0,0,1,0), length(4,sizeX,sizeY,1,1);
-    Slicer slicePol0(start0,length), slicePol1(start1,length);
-    Array<Complex> polPlane0C, polPlane1C, polPlaneSq0C, polPlaneSq1C;
-
-    senSqLat.getSlice(polPlaneSq0C, slicePol0);
-    senSqLat.getSlice(polPlaneSq1C,slicePol1);
-    wtLat.getSlice(polPlane0C, slicePol0);
-    wtLat.getSlice(polPlane1C, slicePol1);
-
-    polPlaneSq0C = polPlane0C*polPlane1C;
-    polPlaneSq1C = polPlaneSq0C;
-
-    pbNormalized_p=false;
-
-    resetPBs_p=false;
-    // String name("avgPBSq.im");
-    // storeImg(name,sensitivitySqImage);
   }
   //
   //---------------------------------------------------------------
   // 
     template <class T>
-  void AWProjectWBFT::makeSensitivityImage(Lattice<T>& wtImage,
-					   ImageInterface<Float>& sensitivityImage,
-					   const Matrix<Float>& sumWt,
-					   const Bool& doFFTNorm)
+  void AWProjectWBFT::makeWBSensitivityImage(Lattice<T>& wtImage,
+					     ImageInterface<Float>& sensitivityImage,
+					     const Matrix<Float>& sumWt,
+					     const Bool& doFFTNorm)
   {
     if (avgPBReady_p) return;
-    LogIO log_l(LogOrigin("AWProjectWBFT2", "makeSensitivityImage[R&D]"));
+    LogIO log_l(LogOrigin("AWProjectWBFT2", "makeWBSensitivityImage[R&D]"));
 
-    // log_l << "Making sensitivity image" << LogIO::POST;
-    // {
-    //   String name("wtimg.im");
-    //   storeArrayAsImage(name,griddedWeights_D.coordinates(),wtImage.get());
-    // }
     ftWeightImage(wtImage, sumWt, doFFTNorm);
-    // {
-    //   String name("ftwtimg.im");
-    //   storeArrayAsImage(name,griddedWeights.coordinates(),wtImage.get());
-    // }
-    // if (tt_pp != "")
-    //   { // uncommented by UUU
-    // 	String name("ftwtimg"+sensitivityPatternQualifierStr_p+".im.conj");
-    // 	storeArrayAsImage(name,griddedWeights_D.coordinates(),wtImage.get());
-    //   }
-    // else
-    //   { // uncommented by UUU
-    // 	String name("ftwtimg"+sensitivityPatternQualifierStr_p+".im");
-    // 	storeArrayAsImage(name,griddedWeights_D.coordinates(),wtImage.get());
-    //   }
 
     if (useDoubleGrid_p)
       {
@@ -558,7 +390,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	sensitivityImage.resize(griddedWeights.shape()); 
 	sensitivityImage.setCoordinateInfo(griddedWeights.coordinates());
       }
-
     //
     // Rest of the code below is to (1) average the poln planes of the
     // weight image for each freq. channel, and (2) copy the averaged
@@ -581,7 +412,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ArrayLattice<T> tt(tmpWt,true);
       for(int i=0;i<nPolPlanes;i++)
 	{
-	  //	  cerr << "WT0: " << i << " " << wtImIter.position() << endl;
 	  Matrix<T> tmp0_ref;tmp0_ref.reference(wtImIter.rwMatrixCursor().nonDegenerate());
 	  ArrayLattice<T> p0(tmp0_ref,true); //Make ArrayLattice from Array by refence
 	  LatticeExpr<T> le(tt+p0);
@@ -599,10 +429,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Copy the real part of the average of all planes of the wtImage
     // to all the planes of the sensitivity image (senImage).
     //
-    // IPosition cShape(4,wtImage.shape()(0), wtImage.shape()(1),1,1);
-    // LatticeStepper YAwtImStepper(wtImage.shape(), cursorShapeWt, axisPath);
-    // LatticeIterator<T> YAwtImIter(wtImage, YAwtImStepper);
-    //
     for(wtImIter.reset(),senImIter.reset(); !wtImIter.atEnd();/*increment is inside the first for-loop below*/)
       {
 	// Extract the first polarization plane from the weight image. 
@@ -618,16 +444,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    LatticeExpr<Float> le(abs(p0));
 	    tt.copyData(le); 
 
-	    // Copy values to the sensitivty image, do type conversion if necessary
-	    // convertArray(senImIter.rwMatrixCursor(),real(tmp));
-	    //	    cerr << "SEN: " << senImIter.position() << " " << tmp.shape() << endl;
 	    senImIter++;
 	  }
       }
-    // {
-    //   String name("ftwtimg.im");
-    //   storeArrayAsImage(name,griddedWeights_D.coordinates(),sensitivityImage.get());
-    // }
 
     if (tt_pp == "")
       cfCache_p->flush(sensitivityImage,sensitivityPatternQualifierStr_p);
@@ -665,37 +484,19 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 				     //is this conversion required?
 				     //--SB (Dec. 2010)
     //
-    // Compute the sensitivity image as FT of the griddedWegiths.
+    // Compute the sensitivity image as FT of the griddedWeigths.
     // Return the result in avgPB_p.  Cache it in the cfCache_p
     // object.  And raise the avgPBReady_p flag so that this becomes a
     // null call the next time around.
-    // // REMOVE THIS CODE
-    // {
-    //   tt_pp="_conj_";
-    //   makeSensitivityImage(griddedConjWeights, *avgPB_p, weights, true);
-    //   tt_pp="";
-    //   wtImageFTDone_p = avgPBReady_p=false;
-    // }
-    // // REMOVE THIS CODE
     if (useDoubleGrid_p)
-      makeSensitivityImage(griddedWeights_D, *avgPB_p, weights, true);
+      makeWBSensitivityImage(griddedWeights_D, *avgPB_p, weights, true);
     else
-      makeSensitivityImage(griddedWeights, *avgPB_p, weights, true);
-
-    //        if (avgPBSq_p.null()) avgPBSq_p = new TempImage<Complex>();
-    //    makeSensitivitySqImage(griddedWeights, *avgPBSq_p, weights, true);
-
+      makeWBSensitivityImage(griddedWeights, *avgPB_p, weights, true);
     //
     // This calls the overloadable method normalizeImage() which
     // normalizes the raw image by the sensitivty pattern (avgPB_p).
     //
     AWProjectFT::getImage(weights,fftNormalization);
-    // if (makingPSF)
-    //   {
-    //     String name("psf.im");
-    //     image->put(griddedData);
-    //     storeImg(name,*image);
-    //   }
 	
     return *image;
   }
@@ -733,8 +534,24 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	resetPBs_p=false;
       }
-    avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p) != CFDefs::NOTCACHED);
-    //    avgPBReady_p = cfCache_p->avgPBReady(sensitivityPatternQualifierStr_p);
+
+    std::tuple<int, double>cubeinfo(1,-1.0);    
+    double freqofBegChan;
+    spectralCoord_p.toWorld(freqofBegChan, 0.0);
+        
+    cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
+
+    ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
+    //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
+    if(!avgPBReady_p)
+      avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+    
+    if(avgPBReady_p){
+        LatticeExprNode le( max( *avgPB_p ) );
+        Float avgPB_max=le.getFloat();
+        
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
+    }
     // Need to grid the weighted Convolution Functions to make the sensitivity pattern.
     if (!avgPBReady_p)
       {
@@ -763,26 +580,20 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
     LogIO log_l(LogOrigin("AWProjectWBFT2", "finalizeToSky[R&D]"));
     AWProjectFT::finalizeToSky();
-    // The following commented code is the same as in the parent class
-    // call above.
 
-    // if(isTiled) 
-    //   {
-    // 	AlwaysAssert(image, AipsError);
-    // 	AlwaysAssert(imageCache, AipsError);
-    // 	imageCache->flush();
-    // 	ostringstream o;
-    // 	imageCache->showCacheStatistics(o);
-    // 	log_l << o.str() << LogIO::POST;
-    //   }
-    
-    // if(pointingToImage) delete pointingToImage; pointingToImage=0;
-    
-    // paChangeDetector.reset();
-    // cfCache_p->flush();
-    // visResampler_p->finalizeToSky(griddedData, sumWeight);
+    if(!visResamplerWt_p)
+      return;
 
-    if (!avgPBReady_p) 
+    //
+    // SB: Not sure why the follwing if-stmt (not by SB) needs to be
+    // in this class.  This be simply avoided by overloading this
+    // method in the AWProjectWBFTHPG class making the NoOp obvious
+    // for that class, and easily extendable & maintainable.
+    //
+    if(name()=="AWProjectWBFTHPG")
+      return;
+
+     if (!avgPBReady_p) 
       {
 	if (useDoubleGrid_p)
 	  {
@@ -790,7 +601,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    griddedWeights_D.get(gwts, removeDegenerateAxis);
 	    visResamplerWt_p->finalizeToSky(gwts, sumCFWeight);
 	    visResamplerWt_p->releaseBuffers();
-	    //	    griddedWeights_D.resize(IPosition(1,0));
 	  }
 	else
 	  {
@@ -798,78 +608,59 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    griddedWeights.get(gwts, removeDegenerateAxis);
 	    visResamplerWt_p->finalizeToSky(gwts, sumCFWeight);
 	    visResamplerWt_p->releaseBuffers();
-	    //	    griddedWeights.resize(IPosition(1,0));
 	  }
       }
-    /*
-    cerr << "Gridding run time = " 
-    	 << " " << visResampler_p->runTimeG_p 
-    	 << " " << visResampler_p->runTimeG1_p 
-    	 << " " << visResampler_p->runTimeG2_p 
-    	 << " " << visResampler_p->runTimeG3_p 
-    	 << " " << visResampler_p->runTimeG4_p 
-    	 << " " << visResampler_p->runTimeG5_p 
-    	 << " " << visResampler_p->runTimeG6_p 
-    	 << " " << visResampler_p->runTimeG7_p 
-	 << " C " << runTime1_p 
-    	 << endl;
-    */
-    visResampler_p->runTimeG_p=visResampler_p->runTimeG1_p=visResampler_p->runTimeG2_p=visResampler_p->runTimeG3_p=visResampler_p->runTimeG4_p=visResampler_p->runTimeG5_p=visResampler_p->runTimeG6_p=visResampler_p->runTimeG7_p=0.0;
+    
+    visResampler_p->runTimeG_p
+      =visResampler_p->runTimeG1_p
+      =visResampler_p->runTimeG2_p
+      =visResampler_p->runTimeG3_p
+      =visResampler_p->runTimeG4_p
+      =visResampler_p->runTimeG5_p
+      =visResampler_p->runTimeG6_p
+      =visResampler_p->runTimeG7_p
+      =0.0;
     runTime1_p=0;
   }
   //
   //---------------------------------------------------------------
-  //
+  // Method sets up the inputs for the VisResampler::DataToGrid()
+  // method for gridding the CFs at the origin of the UVW-plane.  This
+  // includes application of pointing offset correction and any other
+  // term that might be included in VB2CFBMap::makeVBRow2CFBMap()
+  // method.
     template <class T>
-  void AWProjectWBFT::resampleCFToGrid(Array<T>& gwts, 
-				       VBStore& vbs, const VisBuffer2& vb)
-  {
-    //
-    // Grid the weighted convolution function as well
-    //
-    //LogIO log_l(LogOrigin("AWProjectFT2", "resampleCFToGrid[R&D]"));
-    //
-    // Now rotate and put the rotated convolution weight function
-    // in rotatedCFWts_l object.
-    //
+    void AWProjectWBFT::resampleCFToGrid(Array<T>& gwts, 
+					 VBStore& vbs, const VisBuffer2& vb)
+    {
+      visResamplerWt_p->copy(*visResampler_p);
     
-    //	makeWBCFWt(*cfwts2_p, imRefFreq_p);
+      po_p->fetchPointingOffset(*image, vb, doPointing);
+      vb2CFBMap_p->makeVBRow2CFBMap(*cfwts2_p,vb,
+				    paChangeDetector.getParAngleTolerance(),
+				    chanMap,polMap,po_p);
+      convFuncCtor_p->prepareConvFunction(vb,*vb2CFBMap_p);
+      //
+      // Set the uvw array to zero-sized array and dopsf=true.
+      // uvw.nelements()==0 is a hint to the re-sampler to put the
+      // gridded weights at the origin of the uv-grid. dopsf=true so
+      // that CF*Wts are accumulated (as against CF*Wts*Vis).
+      //
+      // Receive the sum-of-weights in a dummy array.
+      Matrix<Double> uvwOrigin;
+      vbs.uvw_p.reference(uvwOrigin); 
+      Bool dopsf_l=true;
+      vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf_l);
+      vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;  
+      Int nDataChan = vbs.flagCube_p.shape()[1];
     
-    //timer_p.mark();
-    visResamplerWt_p->copy(*visResampler_p);
-    
-    po_p->fetchPointingOffset(*image, vb, doPointing);
-    //cerr << "AWPWB: " << pointingOffset << endl;
-    // visResamplerWt_p->makeVBRow2CFBMap(*cfwts2_p,*convFuncCtor_p, vb,
-    // 				      paChangeDetector.getParAngleTolerance(),
-    // 				      chanMap,polMap,pointingOffset);
-    //    VB2CFBMap& theMap=visResamplerWt_p->getVBRow2CFBMap();
-    vb2CFBMap_p->makeVBRow2CFBMap(*cfwts2_p,vb,
-				      paChangeDetector.getParAngleTolerance(),
-				      chanMap,polMap,po_p);
-    convFuncCtor_p->prepareConvFunction(vb,*vb2CFBMap_p);
-    //runTime1_p += timer_p.real();
-    //
-    // Set the uvw array to zero-sized array and dopsf=true.
-    // uvw.nelements()==0 is a hint to the re-sampler to put the
-    // gridded weights at the origin of the uv-grid. dopsf=true so
-    // that CF*Wts are accumulated (as against CF*Wts*Vis).
-    //
-    // Receive the sum-of-weights in a dummy array.
-    Matrix<Double> uvwOrigin;
-    vbs.uvw_p.reference(uvwOrigin); 
-    Bool dopsf_l=true;
-    vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf_l);
-    
-    // Array<Complex> gwts; Bool removeDegenerateAxis=false;
-    // wtsGrid.get(gwts, removeDegenerateAxis);
-    Int nDataChan = vbs.flagCube_p.shape()[1];
-    
-    vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
-    visResamplerWt_p->DataToGrid(gwts, vbs, sumCFWeight, dopsf_l); 
-  }
+      vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+      visResamplerWt_p->DataToGrid(gwts, vbs, sumCFWeight, dopsf_l); 
+    }
   //
   //---------------------------------------------------------------
+  // Methods to accumulate data on the grid.  If necessary, also
+  // trigger the accumulation of CFs via ::resampleCFToGrid() method.
   //
   void AWProjectWBFT::resampleDataToGrid(Array<Complex>& griddedData_l,
 					 VBStore& vbs, const VisBuffer2& vb, 
@@ -895,6 +686,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 					 Bool& dopsf) 
   {
     AWProjectFT::resampleDataToGrid(griddedData_l,vbs,vb,dopsf);
+    
     if (!avgPBReady_p)
       {
 	//
@@ -906,7 +698,69 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	resampleCFToGrid(gwts, vbs, vb);
       }
   };
-  //  void AWProjectWBFT::resampleGridToData(VBStore& vbs, const VisBuffer2& vb) {};
+    
+    ////-----------------------------------------------------------------
+    // SB: Is this functionality not served by the
+    // ::resampleCFToGrid() method above?  Recommend that that be used
+    // (or modifed as required) to ensure all mathematical terms are
+    // included.
+    //
+ void  AWProjectWBFT::gridImgWeights(const VisBuffer2& vb)
+ {
+   if(avgPBReady_p)
+     return;
+   else
+     avgPB_p=nullptr;  ///make sure it is not pointing to anything
+   /*   // This does WEIGHTs gridding via the framework route 
+   // (set ftmType and use ::put() for *all* gridding)
+   ftmType_p=casa::refim::FTMachine::WEIGHT;
+   put(vb,-1,false);
+   return;
+   */
+   try
+     {
+       findConvFunction(*image, vb);
+        if(avgPBReady_p)
+          return;
+     }
+   catch(AipsError& x)
+     {
+       LogIO log_l(LogOrigin("AWProjectFT2", "put[R&D]"));
+       log_l << x.getMesg() << LogIO::WARN;
+       return;
+     }
+   Matrix<Float> imagingweight;
+   getImagingWeight(imagingweight, vb);
+   matchChannel(vb);
+   Cube<Complex> data;
+   //Fortran gridder need the flag as ints 
+   Cube<Int> flags;
+   Matrix<Float> elWeight;
+   
+   interpolateFrequencyTogrid(vb, imagingweight,data, flags , elWeight, FTMachine::PSF);
+   //Matrix<Double> uvw(negateUV(vb));
+   Matrix<Double> uvw;
+   Vector<Double> dphase(vb.nRows());
+   dphase=0.0;
+   doUVWRotation_p=true;
+   VBStore vbs;
+   Vector<Int> gridShape = griddedData2.shape().asVector();
+    ftmType_p=casa::refim::FTMachine::WEIGHT;
+   setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase, True ,gridShape);
+   if (useDoubleGrid_p){
+     	Array<DComplex> gwts; Bool removeDegenerateAxis=false;
+	griddedWeights_D.get(gwts, removeDegenerateAxis);
+	resampleCFToGrid(gwts, vbs, vb);
+        
+    }
+   else{
+     Array<Complex> gwts; Bool removeDegenerateAxis=false;
+     griddedWeights.get(gwts, removeDegenerateAxis);
+     resampleCFToGrid(gwts, vbs, vb);
+     
+   }
+    
+ }
   
   void AWProjectWBFT::setCFCache(CountedPtr<CFCache>& cfc, const Bool resetCFC) 
   {
@@ -916,676 +770,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	cfs2_p = CountedPtr<CFStore2>(&cfCache_p->memCache2_p[0],false);//new CFStore2;
 	cfwts2_p =  CountedPtr<CFStore2>(&cfCache_p->memCacheWt2_p[0],false);//new CFStore2;
 	
-	// cfCache_p->summarize(cfCache_p->memCache2_p,String("New CFC"));
-	// cfCache_p->summarize(cfCache_p->memCacheWt2_p,String(""));
 	avgPBReady_p=false;
       }
   }
 
 } //# NAMESPACE CASA - END
-
-
-// #define NEED_UNDERSCORES
-// #if defined(NEED_UNDERSCORES)
-// #define gpbmos gpbmos_
-// #define dpbmos dpbmos_
-// #define dpbmosgrad dpbmosgrad_
-// #define dpbwgrad dpbwgrad_
-// #endif
-  
-//   extern "C" { 
-//     void gpbmos(Double *uvw,
-// 		Double *dphase,
-// 		const Complex *values,
-// 		Int *nvispol,
-// 		Int *nvischan,
-// 		Int *dopsf,
-// 		const Int *flag,
-// 		const Int *rflag,
-// 		const Float *weight,
-// 		Int *nrow,
-// 		Int *rownum,
-// 		Double *scale,
-// 		Double *offset,
-// 		Complex *grid,
-// 		Int *nx,
-// 		Int *ny,
-// 		Int *npol,
-// 		Int *nchan,
-// 		const Double *freq,
-// 		const Double *c,
-// 		Int *support,
-// 		Int *convsize,
-// 		Int *convwtsize,
-// 		Int *sampling,
-// 		Int *wconvsize,
-// 		Complex *convfunc,
-// 		Int *chanmap,
-// 		Int *polmap,
-// 		Int *polused,
-// 		Double *sumwt,
-// 		Int *ant1,
-// 		Int *ant2,
-// 		Int *nant,
-// 		Int *scanno,
-// 		Double *sigma,
-// 		Float *raoff,
-// 		Float *decoff,
-// 		Double *area,
-// 		Int *doGrad,
-// 		Int *doPointingCorrection,
-// 		Int *nPA,
-// 		Int *paIndex,
-// 		Int *CFMap,
-// 		Int *ConjCFMap,
-// 		Double *currentCFPA, Double *actualPA,
-// 		Int *avgPBReady_p,
-// 		Complex *avgPB, Double *cfRefFreq_p,
-// 		Complex *convWeights,
-// 		Int *convWtSupport);
-//     void dpbmos(Double *uvw,
-// 		Double *dphase,
-// 		Complex *values,
-// 		Int *nvispol,
-// 		Int *nvischan,
-// 		const Int *flag,
-// 		const Int *rflag,
-// 		Int *nrow,
-// 		Int *rownum,
-// 		Double *scale,
-// 		Double *offset,
-// 		const Complex *grid,
-// 		Int *nx,
-// 		Int *ny,
-// 		Int *npol,
-// 		Int *nchan,
-// 		const Double *freq,
-// 		const Double *c,
-// 		Int *support,
-// 		Int *convsize,
-// 		Int *sampling,
-// 		Int *wconvsize,
-// 		Complex *convfunc,
-// 		Int *chanmap,
-// 		Int *polmap,
-// 		Int *polused,
-// 		Int *ant1, 
-// 		Int *ant2, 
-// 		Int *nant, 
-// 		Int *scanno,
-// 		Double *sigma, 
-// 		Float *raoff, Float *decoff,
-// 		Double *area, 
-// 		Int *dograd,
-// 		Int *doPointingCorrection,
-// 		Int *nPA,
-// 		Int *paIndex,
-// 		Int *CFMap,
-// 		Int *ConjCFMap,
-// 		Double *currentCFPA, Double *actualPA, Double *cfRefFreq_p);
-//     void dpbmosgrad(Double *uvw,
-// 		  Double *dphase,
-// 		  Complex *values,
-// 		  Int *nvispol,
-// 		  Int *nvischan,
-// 		  Complex *gazvalues,
-// 		  Complex *gelvalues,
-// 		  Int *doconj,
-// 		  const Int *flag,
-// 		  const Int *rflag,
-// 		  Int *nrow,
-// 		  Int *rownum,
-// 		  Double *scale,
-// 		  Double *offset,
-// 		  const Complex *grid,
-// 		  Int *nx,
-// 		  Int *ny,
-// 		  Int *npol,
-// 		  Int *nchan,
-// 		  const Double *freq,
-// 		  const Double *c,
-// 		  Int *support,
-// 		  Int *convsize,
-// 		  Int *sampling,
-// 		  Int *wconvsize,
-// 		  Complex *convfunc,
-// 		  Int *chanmap,
-// 		  Int *polmap,
-// 		  Int *polused,
-// 		  Int *ant1, 
-// 		  Int *ant2, 
-// 		  Int *nant, 
-// 		  Int *scanno,
-// 		  Double *sigma, 
-// 		  Float *raoff, Float *decoff,
-// 		  Double *area, 
-// 		  Int *dograd,
-// 		  Int *doPointingCorrection,
-// 		  Int *nPA,
-// 		  Int *paIndex,
-// 		  Int *CFMap,
-// 		  Int *ConjCFMap,
-// 		  Double *currentCFPA, Double *actualPA,Double *cfRefFreq_p);
-//   }
-//   //
-//   //----------------------------------------------------------------------
-//   //
-//   void AWProjectWBFT::runFortranGet(Matrix<Double>& uvw,Vector<Double>& dphase,
-// 				 Cube<Complex>& visdata,
-// 				 IPosition& s,
-// 				 Int& Conj,
-// 				 Cube<Int>& flags,Vector<Int>& rowFlags,
-// 				 Int& rownr,Vector<Double>& actualOffset,
-// 				 Array<Complex>* dataPtr,
-// 				 Int& aNx, Int& aNy, Int& npol, Int& nchan,
-// 				 VisBuffer2& vb,Int& Nant_p, Int& scanNo,
-// 				 Double& sigma,
-// 				 Array<Float>& l_off,
-// 				 Array<Float>& m_off,
-// 				 Double area,
-// 				 Int& doGrad,
-// 				 Int paIndex)
-//   {
-//     (void)Conj;
-//     LogIO log_l(LogOrigin("AWProjectWBFT","runFortranGet[R&D]"));
-//     enum whichGetStorage {RAOFF,DECOFF,UVW,DPHASE,VISDATA,GRADVISAZ,GRADVISEL,
-// 			  FLAGS,ROWFLAGS,UVSCALE,ACTUALOFFSET,DATAPTR,VBFREQ,
-// 			  CONVSUPPORT,CONVFUNC,CHANMAP,POLMAP,VBANT1,VBANT2,CONJCFMAP,CFMAP};
-//     Vector<Bool> deleteThem(21);
-    
-//     Double *uvw_p, *dphase_p, *actualOffset_p, *vb_freq_p, *uvScale_p;
-//     Complex *visdata_p, *dataPtr_p, *f_convFunc_p;
-//     Int *flags_p, *rowFlags_p, *chanMap_p, *polMap_p, *convSupport_p, *vb_ant1_p, *vb_ant2_p,
-//       *ConjCFMap_p, *CFMap_p;
-//     Float *l_off_p, *m_off_p;
-//     Double actualPA;
-    
-//     Vector<Int> ConjCFMap, CFMap;
-//     Int N;
-//     actualPA = getVBPA(vb);
-
-//     N=polMap.nelements();
-//     CFMap = polMap; ConjCFMap = polMap;
-//     for(Int i=0;i<N;i++) CFMap[i] = polMap[N-i-1];
-    
-//     Array<Complex> rotatedConvFunc;
-
-//     // Rotate the convolution function using Image rotation and
-//     // disable rotation in the gridder
-//     SynthesisUtils::rotateComplexArray(log_l, *cfs_p.data,/*convFunc_p*/ cfs_p.coordSys,
-// 				       rotatedConvFunc,(currentCFPA-actualPA),"LINEAR");
-//     actualPA = currentCFPA; 
-
-//     // SynthesisUtils::rotateComplexArray(log_l, convFunc_p, cfs_p.coordSys,
-//     // 				       rotatedConvFunc,0.0);
-
-//     ConjCFMap = polMap;
-//     makeCFPolMap(vb,cfStokes_p,CFMap);
-//     makeConjPolMap(vb,CFMap,ConjCFMap);
-
-    
-//     ConjCFMap_p     = ConjCFMap.getStorage(deleteThem(CONJCFMAP));
-//     CFMap_p         = CFMap.getStorage(deleteThem(CFMAP));
-    
-//     uvw_p           = uvw.getStorage(deleteThem(UVW));
-//     dphase_p        = dphase.getStorage(deleteThem(DPHASE));
-//     visdata_p       = visdata.getStorage(deleteThem(VISDATA));
-//     flags_p         = flags.getStorage(deleteThem(FLAGS));
-//     rowFlags_p      = rowFlags.getStorage(deleteThem(ROWFLAGS));
-//     uvScale_p       = uvScale.getStorage(deleteThem(UVSCALE));
-//     actualOffset_p  = actualOffset.getStorage(deleteThem(ACTUALOFFSET));
-//     dataPtr_p       = dataPtr->getStorage(deleteThem(DATAPTR));
-//     vb_freq_p       = vb.frequency().getStorage(deleteThem(VBFREQ));
-//     convSupport_p   = cfs_p.xSupport.getStorage(deleteThem(CONVSUPPORT));
-//     //    f_convFunc_p      = convFunc_p.getStorage(deleteThem(CONVFUNC));
-//     f_convFunc_p      = rotatedConvFunc.getStorage(deleteThem(CONVFUNC));
-//     chanMap_p       = chanMap.getStorage(deleteThem(CHANMAP));
-//     polMap_p        = polMap.getStorage(deleteThem(POLMAP));
-//     vb_ant1_p       = vb.antenna1().getStorage(deleteThem(VBANT1));
-//     vb_ant2_p       = vb.antenna2().getStorage(deleteThem(VBANT2));
-//     l_off_p     = l_off.getStorage(deleteThem(RAOFF));
-//     m_off_p    = m_off.getStorage(deleteThem(DECOFF));
-
-// //     static int ttt=0;
-// //     if (ttt==0) cout << l_off(IPosition(3,0,0,0)) << " " << m_off(IPosition(3,0,0,0)) << endl;
-// //     ttt++;
-    
-//     Int npa=1,actualConvSize;
-//     Int paIndex_Fortran = paIndex;
-//     //    actualConvSize = convFunc_p.shape()(0);
-//     actualConvSize = cfs_p.data->shape()(0);
-    
-//     //    IPosition shp=convSupport.shape();
-//     Int alwaysDoPointing=1;
-//     alwaysDoPointing=doPointing;
-//     dpbmos(uvw_p,
-// 	   dphase_p,
-// 	   visdata_p,
-// 	   &s.asVector()(0),
-// 	   &s.asVector()(1),
-// 	   flags_p,
-// 	   rowFlags_p,
-// 	   &s.asVector()(2),
-// 	   &rownr,
-// 	   uvScale_p,
-// 	   actualOffset_p,
-// 	   dataPtr_p,
-// 	   &aNx,
-// 	   &aNy,
-// 	   &npol,
-// 	   &nchan,
-// 	   vb_freq_p,
-// 	   &C::c,
-// 	   convSupport_p,
-// 	   &actualConvSize,
-// 	   &convSampling,
-// 	   &wConvSize,
-// 	   f_convFunc_p,
-// 	   chanMap_p,
-// 	   polMap_p,
-// 	   &polInUse_p,
-// 	   vb_ant1_p,
-// 	   vb_ant2_p,
-// 	   &Nant_p,
-// 	   &scanNo,
-// 	   &sigma,
-// 	   l_off_p, m_off_p,
-// 	   &area,
-// 	   &doGrad,
-// 	   &alwaysDoPointing,
-// 	   &npa,
-// 	   &paIndex_Fortran,
-// 	   CFMap_p,
-// 	   ConjCFMap_p,
-// 	   &currentCFPA
-// 	   ,&actualPA, &cfRefFreq_p
-// 	   );
-    
-//     ConjCFMap.freeStorage((const Int *&)ConjCFMap_p,deleteThem(CONJCFMAP));
-//     CFMap.freeStorage((const Int *&)CFMap_p,deleteThem(CFMAP));
-    
-//     l_off.freeStorage((const Float*&)l_off_p,deleteThem(RAOFF));
-//     m_off.freeStorage((const Float*&)m_off_p,deleteThem(DECOFF));
-//     uvw.freeStorage((const Double*&)uvw_p,deleteThem(UVW));
-//     dphase.freeStorage((const Double*&)dphase_p,deleteThem(DPHASE));
-//     visdata.putStorage(visdata_p,deleteThem(VISDATA));
-//     flags.freeStorage((const Int*&) flags_p,deleteThem(FLAGS));
-//     rowFlags.freeStorage((const Int *&)rowFlags_p,deleteThem(ROWFLAGS));
-//     actualOffset.freeStorage((const Double*&)actualOffset_p,deleteThem(ACTUALOFFSET));
-//     dataPtr->freeStorage((const Complex *&)dataPtr_p,deleteThem(DATAPTR));
-//     uvScale.freeStorage((const Double*&) uvScale_p,deleteThem(UVSCALE));
-//     vb.frequency().freeStorage((const Double*&)vb_freq_p,deleteThem(VBFREQ));
-//     cfs_p.xSupport.freeStorage((const Int*&)convSupport_p,deleteThem(CONVSUPPORT));
-//     //    convFunc_p.freeStorage((const Complex *&)f_convFunc_p,deleteThem(CONVFUNC));
-//     chanMap.freeStorage((const Int*&)chanMap_p,deleteThem(CHANMAP));
-//     polMap.freeStorage((const Int*&) polMap_p,deleteThem(POLMAP));
-//     vb.antenna1().freeStorage((const Int*&) vb_ant1_p,deleteThem(VBANT1));
-//     vb.antenna2().freeStorage((const Int*&) vb_ant2_p,deleteThem(VBANT2));
-//   }
-//   //
-//   //----------------------------------------------------------------------
-//   //
-//   void AWProjectWBFT::runFortranGetGrad(Matrix<Double>& uvw,Vector<Double>& dphase,
-// 				     Cube<Complex>& visdata,
-// 				     IPosition& s,
-// 				     Cube<Complex>& gradVisAzData,
-// 				     Cube<Complex>& gradVisElData,
-// 				     Int& Conj,
-// 				     Cube<Int>& flags,Vector<Int>& rowFlags,
-// 				     Int& rownr,Vector<Double>& actualOffset,
-// 				     Array<Complex>* dataPtr,
-// 				     Int& aNx, Int& aNy, Int& npol, Int& nchan,
-// 				     VisBuffer2& vb,Int& Nant_p, Int& scanNo,
-// 				     Double& sigma,
-// 				     Array<Float>& l_off,
-// 				     Array<Float>& m_off,
-// 				     Double area,
-// 				     Int& doGrad,
-// 				     Int paIndex)
-//   {
-//     LogIO log_l(LogOrigin("AWProjectWBFT","runFortranGetGrad[R&D]"));
-//     enum whichGetStorage {RAOFF,DECOFF,UVW,DPHASE,VISDATA,GRADVISAZ,GRADVISEL,
-// 			  FLAGS,ROWFLAGS,UVSCALE,ACTUALOFFSET,DATAPTR,VBFREQ,
-// 			  CONVSUPPORT,CONVFUNC,CHANMAP,POLMAP,VBANT1,VBANT2,CONJCFMAP,CFMAP};
-//     Vector<Bool> deleteThem(21);
-    
-//     Double *uvw_p, *dphase_p, *actualOffset_p, *vb_freq_p, *uvScale_p;
-//     Complex *visdata_p, *dataPtr_p, *f_convFunc_p;
-//     Complex *gradVisAzData_p, *gradVisElData_p;
-//     Int *flags_p, *rowFlags_p, *chanMap_p, *polMap_p, *convSupport_p, *vb_ant1_p, *vb_ant2_p,
-//       *ConjCFMap_p, *CFMap_p;
-//     Float *l_off_p, *m_off_p;
-//     Double actualPA;
-
-//     Vector<Int> ConjCFMap, CFMap;
-//     actualPA = getVBPA(vb);
-//     ConjCFMap = polMap;
-//     makeCFPolMap(vb,cfStokes_p,CFMap);
-//     makeConjPolMap(vb,CFMap,ConjCFMap);
-
-//     Array<Complex> rotatedConvFunc;
-//     // Rotate the convolution function using Image rotation and
-//     // disable rotation in the gridder
-//     SynthesisUtils::rotateComplexArray(log_l, *(cfs_p.data) /*convFunc_p*/, cfs_p.coordSys,
-// 				       rotatedConvFunc,(currentCFPA-actualPA));
-//     actualPA = currentCFPA; 
-
-//     // SynthesisUtils::rotateComplexArray(log_l, convFunc_p, cfs_p.coordSys,
-//     // 				       rotatedConvFunc,0.0);
-
-//     ConjCFMap_p     = ConjCFMap.getStorage(deleteThem(CONJCFMAP));
-//     CFMap_p         = CFMap.getStorage(deleteThem(CFMAP));
-    
-//     uvw_p           = uvw.getStorage(deleteThem(UVW));
-//     dphase_p        = dphase.getStorage(deleteThem(DPHASE));
-//     visdata_p       = visdata.getStorage(deleteThem(VISDATA));
-//     gradVisAzData_p = gradVisAzData.getStorage(deleteThem(GRADVISAZ));
-//     gradVisElData_p = gradVisElData.getStorage(deleteThem(GRADVISEL));
-//     flags_p         = flags.getStorage(deleteThem(FLAGS));
-//     rowFlags_p      = rowFlags.getStorage(deleteThem(ROWFLAGS));
-//     uvScale_p       = uvScale.getStorage(deleteThem(UVSCALE));
-//     actualOffset_p  = actualOffset.getStorage(deleteThem(ACTUALOFFSET));
-//     dataPtr_p       = dataPtr->getStorage(deleteThem(DATAPTR));
-//     vb_freq_p       = vb.frequency().getStorage(deleteThem(VBFREQ));
-//     convSupport_p   = cfs_p.xSupport.getStorage(deleteThem(CONVSUPPORT));
-//     //    f_convFunc_p      = convFunc_p.getStorage(deleteThem(CONVFUNC));
-//     f_convFunc_p      = rotatedConvFunc.getStorage(deleteThem(CONVFUNC));
-//     chanMap_p       = chanMap.getStorage(deleteThem(CHANMAP));
-//     polMap_p        = polMap.getStorage(deleteThem(POLMAP));
-//     vb_ant1_p       = vb.antenna1().getStorage(deleteThem(VBANT1));
-//     vb_ant2_p       = vb.antenna2().getStorage(deleteThem(VBANT2));
-//     l_off_p     = l_off.getStorage(deleteThem(RAOFF));
-//     m_off_p    = m_off.getStorage(deleteThem(DECOFF));
-    
-//     Int npa=1,actualConvSize;
-//     Int paIndex_Fortran = paIndex;
-//     //    actualConvSize = convFunc_p.shape()(0);
-//     actualConvSize = cfs_p.data->shape()(0);
-    
-//     //    IPosition shp=convSupport.shape();
-//     Int alwaysDoPointing=1;
-//     alwaysDoPointing = doPointing;
-//     dpbmosgrad(uvw_p,
-// 	     dphase_p,
-// 	     visdata_p,
-// 	     &s.asVector()(0),
-// 	     &s.asVector()(1),
-// 	     gradVisAzData_p,
-// 	     gradVisElData_p,
-// 	     &Conj,
-// 	     flags_p,
-// 	     rowFlags_p,
-// 	     &s.asVector()(2),
-// 	     &rownr,
-// 	     uvScale_p,
-// 	     actualOffset_p,
-// 	     dataPtr_p,
-// 	     &aNx,
-// 	     &aNy,
-// 	     &npol,
-// 	     &nchan,
-// 	     vb_freq_p,
-// 	     &C::c,
-// 	     convSupport_p,
-// 	     &actualConvSize,
-// 	     &convSampling,
-// 	     &wConvSize,
-// 	     f_convFunc_p,
-// 	     chanMap_p,
-// 	     polMap_p,
-// 	     &polInUse_p,
-// 	     vb_ant1_p,
-// 	     vb_ant2_p,
-// 	     &Nant_p,
-// 	     &scanNo,
-// 	     &sigma,
-// 	     l_off_p, m_off_p,
-// 	     &area,
-// 	     &doGrad,
-// 	     &alwaysDoPointing,
-// 	     &npa,
-// 	     &paIndex_Fortran,
-// 	     CFMap_p,
-// 	     ConjCFMap_p,
-// 	     &currentCFPA
-// 	     ,&actualPA,&cfRefFreq_p
-// 	     );
-//     ConjCFMap.freeStorage((const Int *&)ConjCFMap_p,deleteThem(CONJCFMAP));
-//     CFMap.freeStorage((const Int *&)CFMap_p,deleteThem(CFMAP));
-    
-//     l_off.freeStorage((const Float*&)l_off_p,deleteThem(RAOFF));
-//     m_off.freeStorage((const Float*&)m_off_p,deleteThem(DECOFF));
-//     uvw.freeStorage((const Double*&)uvw_p,deleteThem(UVW));
-//     dphase.freeStorage((const Double*&)dphase_p,deleteThem(DPHASE));
-//     visdata.putStorage(visdata_p,deleteThem(VISDATA));
-//     gradVisAzData.putStorage(gradVisAzData_p,deleteThem(GRADVISAZ));
-//     gradVisElData.putStorage(gradVisElData_p,deleteThem(GRADVISEL));
-//     flags.freeStorage((const Int*&) flags_p,deleteThem(FLAGS));
-//     rowFlags.freeStorage((const Int *&)rowFlags_p,deleteThem(ROWFLAGS));
-//     actualOffset.freeStorage((const Double*&)actualOffset_p,deleteThem(ACTUALOFFSET));
-//     dataPtr->freeStorage((const Complex *&)dataPtr_p,deleteThem(DATAPTR));
-//     uvScale.freeStorage((const Double*&) uvScale_p,deleteThem(UVSCALE));
-//     vb.frequency().freeStorage((const Double*&)vb_freq_p,deleteThem(VBFREQ));
-//     cfs_p.xSupport.freeStorage((const Int*&)convSupport_p,deleteThem(CONVSUPPORT));
-//     //    convFunc_p.freeStorage((const Complex *&)f_convFunc_p,deleteThem(CONVFUNC));
-//     chanMap.freeStorage((const Int*&)chanMap_p,deleteThem(CHANMAP));
-//     polMap.freeStorage((const Int*&) polMap_p,deleteThem(POLMAP));
-//     vb.antenna1().freeStorage((const Int*&) vb_ant1_p,deleteThem(VBANT1));
-//     vb.antenna2().freeStorage((const Int*&) vb_ant2_p,deleteThem(VBANT2));
-//   }
-//   //
-//   //----------------------------------------------------------------------
-//   //
-//   void AWProjectWBFT::runFortranPut(Matrix<Double>& uvw,Vector<Double>& dphase,
-// 				 const Complex& visdata,
-// 				 IPosition& s,
-// 				 Int& Conj,
-// 				 Cube<Int>& flags,Vector<Int>& rowFlags,
-// 				 const Matrix<Float>& weight,
-// 				 Int& rownr,Vector<Double>& actualOffset,
-// 				 Array<Complex>& dataPtr,
-// 				 Int& aNx, Int& aNy, Int& npol, Int& nchan,
-// 				 const VisBuffer2& vb,Int& Nant_p, Int& scanNo,
-// 				 Double& sigma,
-// 				 Array<Float>& l_off,
-// 				 Array<Float>& m_off,
-// 				 Matrix<Double>& sumWeight,
-// 				 Double& area,
-// 				 Int& doGrad,
-// 				 Int& doPSF,
-// 				 Int paIndex)
-//   {
-//     (void)Conj;
-//     LogIO log_l(LogOrigin("AWProjectWBFT","runFortranPut[R&D]"));
-//     enum whichGetStorage {RAOFF,DECOFF,UVW,DPHASE,VISDATA,GRADVISAZ,GRADVISEL,
-// 			  FLAGS,ROWFLAGS,UVSCALE,ACTUALOFFSET,DATAPTR,VBFREQ,
-// 			  CONVSUPPORT,CONVWTSUPPORT,CONVFUNC,CHANMAP,POLMAP,VBANT1,VBANT2,WEIGHT,
-// 			  SUMWEIGHT,CONJCFMAP,CFMAP,AVGPBPTR,CONVWTS};
-//     Vector<Bool> deleteThem(25);
-    
-//     Double *uvw_p, *dphase_p, *actualOffset_p, *vb_freq_p, *uvScale_p;
-//     Complex *dataPtr_p, *f_convFunc_p, *f_convWts_p,*avgPBPtr;
-//     Int *flags_p, *rowFlags_p, *chanMap_p, *polMap_p, *convSupport_p, *convWtSupport_p,
-//       *vb_ant1_p, *vb_ant2_p,
-//       *ConjCFMap_p, *CFMap_p;
-//     Float *l_off_p, *m_off_p;
-//     Float *weight_p;Double *sumwt_p,*isumwt_p;
-//     Double actualPA;
-//     const Complex *visdata_p=&visdata;
-    
-//     Matrix<Double> iSumWt(sumWeight.shape());
-//     iSumWt=0.0;
-//     Vector<Int> ConjCFMap, CFMap;
-//     actualPA = getVBPA(vb);
-
-//     ConjCFMap = polMap;
-//     makeCFPolMap(vb,cfStokes_p,CFMap);
-//     makeConjPolMap(vb,CFMap,ConjCFMap);
-
-//     // {
-//     //   IPosition tt;
-//     //   cfs_p.coordSys.list(log_l,MDoppler::RADIO,tt,tt);
-//     //   cfwts_p.coordSys.list(log_l,MDoppler::RADIO,tt,tt);
-//     // }
-//     Array<Complex> rotatedConvFunc_l, rotatedConvWeights_l;
-
-//     // Rotate the convolution function using Image rotation and
-//     // disable rotation in the gridder
-//     SynthesisUtils::rotateComplexArray(log_l, *(cfs_p.data)/*convFunc_p*/, cfs_p.coordSys,
-//         			       rotatedConvFunc_l,(currentCFPA-actualPA));
-//     if (!avgPBReady_p)
-//       SynthesisUtils::rotateComplexArray(log_l, *(cfwts_p.data), /*convWeights_p,*/ cfwts_p.coordSys,
-//     					 rotatedConvWeights_l,(currentCFPA-actualPA));
-//     // Disable rotation in the gridder
-//     actualPA = currentCFPA; 
-
-//     // SynthesisUtils::rotateComplexArray(log_l, convFunc_p, cfs_p.coordSys,
-//     //     			       rotatedConvFunc_l,0.0);
-//     // if (!avgPBReady_p)
-//     //   SynthesisUtils::rotateComplexArray(log_l, convWeights_p, cfwts_p.coordSys,
-//     // 					 rotatedConvWeights_l,0.0);
-
-
-//     ConjCFMap_p     = ConjCFMap.getStorage(deleteThem(CONJCFMAP));
-//     CFMap_p         = CFMap.getStorage(deleteThem(CFMAP));
-    
-//     uvw_p           = uvw.getStorage(deleteThem(UVW));
-//     dphase_p        = dphase.getStorage(deleteThem(DPHASE));
-//     flags_p         = flags.getStorage(deleteThem(FLAGS));
-//     rowFlags_p      = rowFlags.getStorage(deleteThem(ROWFLAGS));
-//     uvScale_p       = uvScale.getStorage(deleteThem(UVSCALE));
-//     actualOffset_p  = actualOffset.getStorage(deleteThem(ACTUALOFFSET));
-//     dataPtr_p       = dataPtr.getStorage(deleteThem(DATAPTR));
-//     vb_freq_p       = (Double *)(vb.frequency().getStorage(deleteThem(VBFREQ)));
-//     convSupport_p   = cfs_p.xSupport.getStorage(deleteThem(CONVSUPPORT));
-//     convWtSupport_p = cfwts_p.xSupport.getStorage(deleteThem(CONVWTSUPPORT));
-//     f_convFunc_p    = rotatedConvFunc_l.getStorage(deleteThem(CONVFUNC));
-//     f_convWts_p     = rotatedConvWeights_l.getStorage(deleteThem(CONVWTS));
-//     chanMap_p       = chanMap.getStorage(deleteThem(CHANMAP));
-//     polMap_p        = polMap.getStorage(deleteThem(POLMAP));
-//     vb_ant1_p       = (Int *)(vb.antenna1().getStorage(deleteThem(VBANT1)));
-//     vb_ant2_p       = (Int *)(vb.antenna2().getStorage(deleteThem(VBANT2)));
-//     l_off_p         = l_off.getStorage(deleteThem(RAOFF));
-//     m_off_p         = m_off.getStorage(deleteThem(DECOFF));
-//     weight_p        = (Float *)(weight.getStorage(deleteThem(WEIGHT)));
-//     sumwt_p         = sumWeight.getStorage(deleteThem(SUMWEIGHT));
-//     Bool tmp;
-//     isumwt_p        = iSumWt.getStorage(tmp);
-
-//     //    Array<Complex> avgPB_p(griddedWeights.get());
-//     Array<Complex> avgAperture;
-//     if (!avgPBReady_p)
-//       {
-// 	avgAperture.resize(griddedWeights.shape());
-// 	avgAperture.set(Complex(0,0));
-// 	avgPBPtr        = avgAperture.getStorage(deleteThem(AVGPBPTR));
-//       }
-//     else
-//       avgPBPtr=NULL;
-    
-//     Int npa=1,actualConvSize, actualConvWtSize;
-//     Int paIndex_Fortran = paIndex; 
-//     // Int doAvgPB=((avgPBReady_p==false) && 
-//     //     	 ((fabs(lastPAUsedForWtImg-actualPA)*57.2956 >= DELTAPA) || 
-//     //     	  (lastPAUsedForWtImg == MAGICPAVALUE)));
-
-//     Int doAvgPB=computeAvgPB(actualPA, lastPAUsedForWtImg);//(avgPBReady_p==false);
-//     //    actualConvSize = convFunc_p.shape()(0);
-//     actualConvSize = cfs_p.data->shape()(0);
-//     //    actualConvWtSize = convWeights_p.shape()(0);
-//     actualConvWtSize = cfwts_p.data->shape()(0);
-
-//     if (fabs(lastPAUsedForWtImg-actualPA)*57.2956 >= DELTAPA) lastPAUsedForWtImg = actualPA;
-
-//     //    IPosition shp=convSupport.shape();
-//     Int alwaysDoPointing=1;
-//     alwaysDoPointing = doPointing;
-
-//     gpbmos(uvw_p,
-// 	   dphase_p,
-// 	   visdata_p,
-// 	   &s.asVector()(0),
-// 	   &s.asVector()(1),
-// 	   &doPSF,
-// 	   flags_p,
-// 	   rowFlags_p,
-// 	   weight_p,
-// 	   &s.asVector()(2),
-// 	   &rownr,
-// 	   uvScale_p,
-// 	   actualOffset_p,
-// 	   dataPtr_p,
-// 	   &aNx,
-// 	   &aNy,
-// 	   &npol,
-// 	   &nchan,
-// 	   vb_freq_p,
-// 	   &C::c,
-// 	   convSupport_p,
-// 	   &actualConvSize,
-// 	   &actualConvWtSize,
-// 	   &convSampling,
-// 	   &wConvSize,
-// 	   f_convFunc_p,
-// 	   chanMap_p,
-// 	   polMap_p,
-// 	   &polInUse_p,
-// 	   //	   sumwt_p,
-// 	   isumwt_p,
-// 	   vb_ant1_p,
-// 	   vb_ant2_p,
-// 	   &Nant_p,
-// 	   &scanNo,
-// 	   &sigma,
-// 	   l_off_p, m_off_p,
-// 	   &area,
-// 	   &doGrad,
-// 	   &alwaysDoPointing,
-// 	   &npa,
-// 	   &paIndex_Fortran,
-// 	   CFMap_p,
-// 	   ConjCFMap_p,
-// 	   &currentCFPA,&actualPA,
-// 	   &doAvgPB,
-// 	   avgPBPtr,&cfRefFreq_p,
-// 	   f_convWts_p,convWtSupport_p
-// 	   );
-
-//     ConjCFMap.freeStorage((const Int *&)ConjCFMap_p,deleteThem(CONJCFMAP));
-//     CFMap.freeStorage((const Int *&)CFMap_p,deleteThem(CFMAP));
-    
-//     l_off.freeStorage((const Float*&)l_off_p,deleteThem(RAOFF));
-//     m_off.freeStorage((const Float*&)m_off_p,deleteThem(DECOFF));
-//     uvw.freeStorage((const Double*&)uvw_p,deleteThem(UVW));
-//     dphase.freeStorage((const Double*&)dphase_p,deleteThem(DPHASE));
-//     flags.freeStorage((const Int*&) flags_p,deleteThem(FLAGS));
-//     rowFlags.freeStorage((const Int *&)rowFlags_p,deleteThem(ROWFLAGS));
-//     actualOffset.freeStorage((const Double*&)actualOffset_p,deleteThem(ACTUALOFFSET));
-//     dataPtr.freeStorage((const Complex *&)dataPtr_p,deleteThem(DATAPTR));
-//     uvScale.freeStorage((const Double*&) uvScale_p,deleteThem(UVSCALE));
-//     vb.frequency().freeStorage((const Double*&)vb_freq_p,deleteThem(VBFREQ));
-//     cfs_p.xSupport.freeStorage((const Int*&)convSupport_p,deleteThem(CONVSUPPORT));
-//     //    convFunc_p.freeStorage((const Complex *&)f_convFunc_p,deleteThem(CONVFUNC));
-//     //    convWeights_p.freeStorage((const Complex *&)f_convFunc_p,deleteThem(CONVWTS));
-//     chanMap.freeStorage((const Int*&)chanMap_p,deleteThem(CHANMAP));
-//     polMap.freeStorage((const Int*&) polMap_p,deleteThem(POLMAP));
-//     vb.antenna1().freeStorage((const Int*&) vb_ant1_p,deleteThem(VBANT1));
-//     vb.antenna2().freeStorage((const Int*&) vb_ant2_p,deleteThem(VBANT2));
-//     weight.freeStorage((const Float*&)weight_p,deleteThem(WEIGHT));
-//     sumWeight.putStorage(sumwt_p,deleteThem(SUMWEIGHT));
-//     iSumWt.putStorage(isumwt_p,tmp);
-//     sumWeight += iSumWt;
-
-//     if (!avgPBReady_p)
-//       {
-// 	// Get the griddedWeigths as a referenced array
-// 	Array<Complex> gwts; Bool removeDegenerateAxis=false;
-// 	griddedWeights.get(gwts, removeDegenerateAxis);
-// 	//	griddedWeights.put(griddedWeights.get()+avgPB_p);
-// 	gwts = gwts + avgAperture;
-// 	// if (!reference)
-// 	//   griddedWeights.put(gwts);
-//       }
-//   }
-
 };
