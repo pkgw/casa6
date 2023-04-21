@@ -130,7 +130,11 @@ int main(int argc, char **argv)
               
               controlRecord.define("dividebyweight", True);
               Vector<String>weightnames(1,"");
+              Vector<String>pbnames(1, imstor->pb()->name());
+              imstor->pb()->unlock();
               controlRecord.define("weightnames", weightnames);
+              controlRecord.define("pbnames", pbnames);
+
               Int rank(0);
               Bool assigned; //(casa::casa::applicator.nextAvailProcess(pwrite, rank));
               Bool allDone(false);

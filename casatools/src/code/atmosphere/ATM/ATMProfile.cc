@@ -1512,12 +1512,13 @@ double AtmProfile::poli2(double ha,
 
 unsigned int AtmProfile::mkAtmProfile()
 {
+  const int MAXNHX = 20;
   static const double
-      hx[20] = { 9.225, 10.225, 11.225, 12.850, 14.850, 16.850, 18.850, 22.600, 26.600, 30.600,
+      hx[MAXNHX] = { 9.225, 10.225, 11.225, 12.850, 14.850, 16.850, 18.850, 22.600, 26.600, 30.600,
 		 34.850, 40.850, 46.850, 52.850, 58.850, 65.100, 73.100, 81.100, 89.100, 95.600 };
 
   static const double
-      px[6][20] = { { 0.3190E+03, 0.2768E+03, 0.2391E+03, 0.1864E+03, 0.1354E+03, 0.9613E+02, 0.6833E+02,
+      px[6][MAXNHX] = { { 0.3190E+03, 0.2768E+03, 0.2391E+03, 0.1864E+03, 0.1354E+03, 0.9613E+02, 0.6833E+02,
 		      0.3726E+02, 0.2023E+02, 0.1121E+02, 0.6142E+01, 0.2732E+01, 0.1260E+01, 0.6042E+00,
 		      0.2798E+00, 0.1202E+00, 0.3600E-01, 0.9162E-02, 0.2076E-02, 0.6374E-03 },
 		    { 0.3139E+03, 0.2721E+03, 0.2350E+03, 0.1833E+03, 0.1332E+03, 0.9726E+02, 0.7115E+02,
@@ -1537,7 +1538,7 @@ unsigned int AtmProfile::mkAtmProfile()
                       0.2551E+00, 0.1074E+00, 0.3224E-01, 0.8697E-02, 0.2158E-02, 0.6851E-03 } };
 
   static const double
-      tx[6][20] = { { 0.2421E+03, 0.2354E+03, 0.2286E+03, 0.2180E+03, 0.2046E+03, 0.1951E+03, 0.2021E+03,
+      tx[6][MAXNHX] = { { 0.2421E+03, 0.2354E+03, 0.2286E+03, 0.2180E+03, 0.2046E+03, 0.1951E+03, 0.2021E+03,
 		      0.2160E+03, 0.2250E+03, 0.2336E+03, 0.2428E+03, 0.2558E+03, 0.2686E+03, 0.2667E+03,
 		      0.2560E+03, 0.2357E+03, 0.2083E+03, 0.1826E+03, 0.1767E+03, 0.1841E+03 },
 		    { 0.2403E+03, 0.2338E+03, 0.2273E+03, 0.2167E+03, 0.2157E+03, 0.2157E+03, 0.2177E+03,
@@ -1693,7 +1694,7 @@ unsigned int AtmProfile::mkAtmProfile()
 
 	minmin = 20000.0;
 
-	for(k = 0; k < 20; k++) {
+	for(k = 0; k < MAXNHX; k++) {
 
 	  if( (fabs(v_layerPressure[i - 1] - dp * pow(dp1, i - 1) > 1.05*px[typeAtm_ - 1][k])) &&
 	      (fabs(v_layerPressure[i - 1] - dp * pow(dp1, i - 1) - px[typeAtm_ - 1][k])) <= minmin ) {
@@ -1738,7 +1739,9 @@ unsigned int AtmProfile::mkAtmProfile()
           v_layerPressure[i] = px[typeAtm_ - 1][j - 1];
           v_layerTemperature[i] = tx[typeAtm_ - 1][j - 1];
 	    //  - tx[typeAtm_ - 1][0] + v_layerTemperature[i0];   COMMENTED OUT 31/5/2017
-	  v_layerThickness[i] = (hx[j] - hx[j - 1]) * 1000.0 + v_layerThickness[i - 1];
+	  if(j < MAXNHX) {
+	    v_layerThickness[i] = (hx[j] - hx[j - 1]) * 1000.0 + v_layerThickness[i - 1];
+	  }
         }
 	//        std::cout << "layer " << i << " j=" << j << " v_layerThickness[" << i << "]="  << v_layerThickness[i] << " v_layerPressure[" << i << "]=" << v_layerPressure[i]  << std::endl;
         v_layerWaterVapor[i] = wgr0 * exp(-v_layerThickness[i] / (1000.0 * h0));
@@ -1758,7 +1761,10 @@ unsigned int AtmProfile::mkAtmProfile()
           v_layerPressure.push_back(px[typeAtm_ - 1][j - 1]);
           v_layerTemperature.push_back(tx[typeAtm_ - 1][j - 1]);
 	    //  - tx[typeAtm_ - 1][0] + v_layerTemperature[i0]);   COMMENTED OUT 31/5/2017
-          v_layerThickness.push_back((hx[j] - hx[j - 1]) * 1000.0 + v_layerThickness[i - 1]);
+          if(j < MAXNHX) {
+            v_layerThickness.push_back((hx[j] - hx[j - 1]) * 1000.0 + v_layerThickness[i - 1]);
+          }
+
         }
         v_layerWaterVapor.push_back(wgr0 * exp(-v_layerThickness[i] / (1000.0 * h0)));
       }
@@ -1769,7 +1775,10 @@ unsigned int AtmProfile::mkAtmProfile()
         control = false;
       }
       //      std::cout << "2 layer " << i << " alt at end of layer = " <<  v_layerThickness[i] << " atmh=" << atmh*1000 << std::endl;
-      if(v_layerThickness[i] > (atmh * 1000.0)) break;
+
+      // besides the thickness threshold, if j goes >=MAXNHX this loop cannot iterate further
+      if((j >= MAXNHX) || (v_layerThickness[i] > (atmh * 1000.0)))
+          break;
     } else {
 
       //      std::cout << "i,j,v_layerPressure.size()-1=" << i << "," << j << "," << v_layerPressure.size() - 1 << std::endl;

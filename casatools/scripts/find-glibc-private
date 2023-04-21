@@ -28,7 +28,7 @@ $glibc_private = sub {
 			   my $type = `file $file`;
 			   if ( $type =~ m|ELF| ) {
 			       my $criminal = 0;
-			       open( ELF, "nm $file 2> /dev/null |" );
+			       open( ELF, "readelf -s $file 2> /dev/null |" );
 			       while ( <ELF> ) {
 				   m|GLIBC_PRIVATE| && ($criminal = 1);
 			       }

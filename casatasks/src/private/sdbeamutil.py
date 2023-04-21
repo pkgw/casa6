@@ -70,7 +70,7 @@ class TheoreticalBeam:
         if my_qa.isangle(val):
             return self.__to_arcsec(val)
         elif my_qa.getunit(val) in ('', 'pixel'):
-            return my_qa.getvalue(val) * cell_size_arcsec
+            return my_qa.getvalue(val)[0] * cell_size_arcsec
         else:
             raise ValueError("Invalid width %s" % str(val))
 

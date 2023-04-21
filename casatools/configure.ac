@@ -38,6 +38,11 @@ WITH_GRPC=1
 AC_ARG_ENABLE( [system-grpc], AS_HELP_STRING([--enable-system-grpc],[use system grpc libraries]),
                [SYSTEM_GRPC=1], [SYSTEM_GRPC=0] )
 
+dnl ### grpc pkg-config on macos includes both x86_64 and arm64 -Xarch flags, this thwarts ccache
+AC_ARG_ENABLE( [single-arch], AS_HELP_STRING([--enable-single-arch],[ensure compile flags include only one arch (FBO ccache)]),
+               [SINGLE_ARCH_COMPILE=1], [SINGLE_ARCH_COMPILE=0] )
+AC_SUBST(SINGLE_ARCH_COMPILE)
+
 if [[ "x${CXX}" != "x" ]]; then
     dnl#########################################################################
     dnl##### set CXX_OVERRIDE to prevent all of our C++ machinations from  #####
@@ -206,9 +211,10 @@ AX_CHECK_COMPILE_FLAG(-fcx-fortran-rules,[CC_FORTRAN_COMPLEX=-fcx-fortran-rules]
 AC_SUBST(CC_FORTRAN_COMPLEX)
 AC_LANG_POP([C])
 
+LIBGFORTRAN_PATH=''
 for pp in $(dirname ${CXX})${PATH_SEPARATOR}${PATH} ${save_PATH_save}; do
     PATH=${pp}:${temporary_script_dir}
-    AC_PROG_FC([gfortran-mp-9 gfortran-mp-8 gfortran-mp-5 gfortran-mp-4.9 gfortran-mp-4.8 gfortran])
+    AC_PROG_FC([gfortran-mp-12 gfortran-mp-11 gfortran-mp-10 gfortran-mp-9 gfortran-mp-8 gfortran-mp-5 gfortran-mp-4.9 gfortran-mp-4.8 gfortran])
     AX_PATH_TO_BINARY(${FC},FC)
     if [[ -f "$FC" -a -x "$FC" ]]; then
         AC_MSG_NOTICE([Fortran compiler ${FC}])
@@ -222,8 +228,24 @@ done
 if [[ ! -f "$FC" -o ! -x "$FC" ]]; then
    echo "could not find fortran compiler..."
    exit 1
+else
+   case $host_osname in
+   linux)
+       gfortran_path_=`$FC -print-file-name=libgfortran.so 2> /dev/null`
+       ;;
+   darwin)
+       gfortran_path_=`$FC -print-file-name=libgfortran.dylib 2> /dev/null`
+       ;;
+   esac
+   if [[ -e "$gfortran_path_" ]]; then
+       AX_EXPAND_PATH([${gfortran_path_}],LIBGFORTRAN_PATH)
+       AC_MSG_NOTICE([libgfortran path ${LIBGFORTRAN_PATH}])
+  fi
 fi
+
 PATH=${save_PATH_save}
+
+AC_SUBST(LIBGFORTRAN_PATH)
 
 AC_PATH_PROG([CCACHE],[ccache])
 _ccache_path=`perl -e "use Cwd 'abs_path'; print abs_path('${CCACHE}');"`
