@@ -150,7 +150,8 @@ synthesisimager::selectdata(const casac::record& selpars)
   try
     {
 
-      if( ! itsImager ) ThrowCc("You have to run selectdata and defineimage before tuneselectdata")
+      if( ! itsImager )
+          ThrowCc("You have to run selectdata and defineimage before tuneselectdata");
 
       casacore::Record outRec;
       Vector<SynthesisParamsSelect> leDataParams;
