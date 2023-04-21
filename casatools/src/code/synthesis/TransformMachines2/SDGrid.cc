@@ -1329,6 +1329,10 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 
       // Loop over the visibilities, putting VisBuffers
       for (vi.originChunks(); vi.moreChunks(); vi.nextChunk()) {
+        if (vi.getImpl()->isNewMs()) {
+          const auto todo = true;
+          // TODO: handleNewMs()
+        }
         for (vi.origin(); vi.more(); vi.next()) {
           switch(type) {
           case FTMachine::RESIDUAL:
