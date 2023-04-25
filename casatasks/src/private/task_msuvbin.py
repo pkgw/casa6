@@ -118,7 +118,7 @@ def msuvbin(
     doflag= "write_flags" in mode 
     if(doflag and flagbackup):
         fh.backupFlags(aflocal=None, msfile=vis, prename='msuvbin')
-    msbinner = msbin(
+    msbinner = msbin.msuvbinner(
         phasecenter=phasecenter,
         nx=nx,
         ny=ny,
