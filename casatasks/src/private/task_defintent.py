@@ -4,6 +4,20 @@ import numpy as np
 
 import casatools
 
+def parseSelection(selection):
+    selected = []
+    
+    if selection == '':
+        return selected
+        
+    for item in selection.split(','):
+        if '~' in item:
+            start, end = item.split('~')
+            selected.extend(range(int(start), int(end)+1))
+        else:
+            selected.append(int(item))
+    return selected
+
 def defintent(vis='', intent='', mode='',
               scan='', field='', obsid=''):
     """
@@ -68,12 +82,18 @@ def defintent(vis='', intent='', mode='',
     stateIds = tb.getcol('STATE_ID')
     tb.close()
     
+    # split selection parameters into array
+    selectedFieldList = parseSelection(field)
+    selectedScanList = parseSelection(scan)
+    selectedObsIdList = parseSelection(obsid)
+    
     # Select rows based on field and scan and add selected intents
+    # if row field/scan is in the sting array, select that row
     for row in range(len(fieldIds)):
         # also select if field == ''
-        if field == '' or fieldIds[row] == field or fieldIds[row] == fieldnames.index(field):
+        if field == '' or fieldIds[row] in selectedFieldList or fieldIds[row] in np.where(fieldnames == field):
             foundField = True
-            if scanNum[row] == scan or scan == '':
+            if scanNum[row] in selectedScanList or scan == '':
                 #selectedRows[row] = stateIds[row]
                 selectedRows.add(row)
                 selectedIntents[stateIds[row]] = stateIds[row]
