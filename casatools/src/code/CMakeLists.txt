@@ -54,8 +54,13 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     STRING "Choose the type of build." FORCE)
 endif()
 
-# Set C++ standard to c++11
-set(CMAKE_CXX_STANDARD 11)
+# Set C++ standard to c++14 on Macs due to abseil dependency, c++11 on everything else
+if (APPLE)
+  set(CMAKE_CXX_STANDARD 14)
+else()
+  set(CMAKE_CXX_STANDARD 11)
+endif()
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Set definitions global to the whole project
