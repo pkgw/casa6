@@ -91,7 +91,7 @@ void VLADiskInput::reattachCurrent(){
 
 // Here's the online version to read data from the VLA online data repository
 
-VLADiskInput::VLADiskInput(const String& onlineFlag) 
+VLADiskInput::VLADiskInput(const String& onlineFlag)
   :VLAArchiveInput()
 {
    // Need to check for :-x to set the relative day.
@@ -111,7 +111,7 @@ VLADiskInput::VLADiskInput(const String& onlineFlag)
    }
 }
 
-VLADiskInput::VLADiskInput(const Path& fileName) 
+VLADiskInput::VLADiskInput(const Path& fileName)
   :VLAArchiveInput(),
    itsFile(new RegularFileIO(fileName)), onlineFill(false)
 {
@@ -129,7 +129,7 @@ Bool VLADiskInput::read() {
   // Clear the internal buffers and reset the flags as we will try to read some
   // more data.
   itsMemIO.clear();
-  // Find an initial record. 
+  // Find an initial record.
   Short n = 1, m;
   uInt curRecSize(0);
   Int bytesToRead(0);
@@ -151,7 +151,7 @@ Bool VLADiskInput::read() {
 	// cerr << "Uno Setting buffer size: " << logicalRecordSize << " " << VLAArchiveInput::BlockSize << endl;
 	if(logicalRecordSize > MAX_LOGICAL_RECORD_SIZE)
 		return false;
-        recordPtr = itsMemIO.setBuffer(logicalRecordSize + 
+        recordPtr = itsMemIO.setBuffer(logicalRecordSize +
 				     VLAArchiveInput::BlockSize-1);
      } catch (AipsError x) {
 	     std::cerr << "end of file???" << std::endl;
@@ -190,12 +190,12 @@ Bool VLADiskInput::read() {
 	// cerr << "Dos Setting buffer size: " << logicalRecordSize << " " << VLAArchiveInput::BlockSize << endl;
 	if(logicalRecordSize > MAX_LOGICAL_RECORD_SIZE)
 		return false;
-          recordPtr = itsMemIO.setBuffer(logicalRecordSize + 
+          recordPtr = itsMemIO.setBuffer(logicalRecordSize +
 				  VLAArchiveInput::BlockSize-1);
        }
     }
   }
-  
+
   cerr << "B File position is " << itsFile->seek(0, ByteIO::Current) << " " << endl;
   while (bytesToRead > 0) {
     thisReadSize = VLAArchiveInput::HeaderSize;
@@ -219,7 +219,7 @@ Bool VLADiskInput::read() {
       }
     }
     // The sequence numbers are OK so read the rest of the data
-    if (bytesToRead < 
+    if (bytesToRead <
 	static_cast<Int>(VLAArchiveInput::BlockSize*
 			 VLAArchiveInput::MaxBlocksPerPhysicalRecord)) {
       thisReadSize = (bytesToRead-1)/VLAArchiveInput::BlockSize + 1;
@@ -250,11 +250,11 @@ Bool VLADiskInput::read() {
 
 Bool VLADiskInput::read() {
    Bool rstatus(true);
-   itsMemIO.clear();
+   itsMemIO->clear();
    Long logicalRecordSize(MAX_LOGICAL_RECORD_SIZE);
-   Char* recordPtr = (Char *)itsMemIO.setBuffer(logicalRecordSize);
+   Char* recordPtr = (Char *)itsMemIO->setBuffer(logicalRecordSize);
    logicalRecordSize = readVLALogRec(recordPtr);
-   itsMemIO.setUsed(logicalRecordSize);
+   itsMemIO->setUsed(logicalRecordSize);
    itsRecord.seek(0);
    if(!logicalRecordSize)
       rstatus = false;
@@ -281,7 +281,7 @@ Bool VLADiskInput::findFirstRecord(Short& m) {
     // Search for the correct sequence number or give up after a while.
     Bool maybe(false);
     uInt logicalRecordSize;
-    uChar* recordPtr = itsMemIO.setBuffer(VLAArchiveInput::HeaderSize);
+    uChar* recordPtr = itsMemIO->setBuffer(VLAArchiveInput::HeaderSize);
     while (!maybe && (bytesSearched <= maxBytesToSearch)) {
       //std::cerr << n << " " << m << std::endl;
       if (bytesSearched > 0) {
@@ -294,11 +294,11 @@ Bool VLADiskInput::findFirstRecord(Short& m) {
       // std::cerr << bytesSearched << std::endl;
 
       // std::cerr << this->bytesRead() << " " << this->totalBytes() << std::endl;
-      Int bytesRead = 
+      Int bytesRead =
 	itsFile->read(VLAArchiveInput::HeaderSize, recordPtr, false);
       cerr << "BB File position is " << itsFile->seek(0, ByteIO::Current) << " " << endl;
       if (bytesRead < static_cast<Int>(VLAArchiveInput::HeaderSize)) {
-	itsMemIO.clear();
+	itsMemIO->clear();
 	return false;
       }
       // Find out what the sequence numbers are.
@@ -321,14 +321,14 @@ Bool VLADiskInput::findFirstRecord(Short& m) {
     }
     //cerr << n << " " << m << endl;
     if (bytesSearched > maxBytesToSearch) {
-      itsMemIO.clear();
+      itsMemIO->clear();
       return false;
     }
   }
   // OK so we have found the beginning of the first physical record. Now read
   // the data into the logical record.
   uInt offset = 0;
-  Int bytesToCopy = 
+  Int bytesToCopy =
     VLAArchiveInput::MaxBlocksPerPhysicalRecord * VLAArchiveInput::BlockSize -
     VLAArchiveInput::HeaderSize;
   if (m == 1) { // If m=1 we may need to copy less than the maximum number of
@@ -337,12 +337,12 @@ Bool VLADiskInput::findFirstRecord(Short& m) {
     itsRecord.seek(0);
     const Int bytesToRead =
       VLAArchiveInput::BlockSize - VLAArchiveInput::HeaderSize;
-    uChar* recordPtr = itsMemIO.setBuffer(bytesToRead);
+    uChar* recordPtr = itsMemIO->setBuffer(bytesToRead);
     // cerr << "Bytes to read " << bytesToRead << endl;
     const Int bytesRead = itsFile->read(bytesToRead, recordPtr, false);
     cerr << "CC File position is " << itsFile->seek(0, ByteIO::Current) << " " << endl;
     if (bytesRead < bytesToRead) {
-      itsMemIO.clear();
+      itsMemIO->clear();
       return false;
     }
     itsRecord.seek(0);
@@ -350,17 +350,17 @@ Bool VLADiskInput::findFirstRecord(Short& m) {
     itsRecord >> logicalRecordSize;
     logicalRecordSize *= 2;
     bytesToCopy =
-      ((logicalRecordSize - bytesToRead)/VLAArchiveInput::BlockSize + 1) * 
+      ((logicalRecordSize - bytesToRead)/VLAArchiveInput::BlockSize + 1) *
       VLAArchiveInput::BlockSize;
     offset = bytesToRead;
   }
   if (bytesToCopy > 0) {
-    uChar* recordPtr = itsMemIO.setBuffer(bytesToCopy+offset);
+    uChar* recordPtr = itsMemIO->setBuffer(bytesToCopy+offset);
     // cerr << "Bytes to copy " << bytesToCopy << endl;
     Int bytesRead = itsFile->read(bytesToCopy, recordPtr+offset, false);
     cerr << "DD File position is " << itsFile->seek(0, ByteIO::Current) << " " << endl;
     if (bytesRead < bytesToCopy) {
-      itsMemIO.clear();
+      itsMemIO->clear();
       return false;
     }
   }
@@ -376,7 +376,7 @@ uInt VLADiskInput::bytesRead() {
 uInt VLADiskInput::totalBytes() {
   return itsFile->length();
 }
-  
-// Local Variables: 
+
+// Local Variables:
 // compile-command: "gmake VLADiskInput; cd test; gmake OPTLIB=1 tVLADiskInput"
-// End: 
+// End:

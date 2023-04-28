@@ -67,7 +67,7 @@ template <class T> const casacore::String Image2DConvolver<T>::CLASS_NAME
 template <class T> Image2DConvolver<T>::Image2DConvolver(
     const SPCIIT image, const casacore::Record *const &region,
     const casacore::String& mask, const casacore::String& outname,
-    const casacore::Bool overwrite
+    const bool overwrite
 ) : ImageTask<T>(image, "", region, "", "", "", mask, outname, overwrite),
     _type(casacore::VectorKernel::GAUSSIAN),  _scale(0), _major(), _minor(),
     _pa(), _axes(image->coordinates().directionAxesNumbers()) {
@@ -112,9 +112,9 @@ std::vector<casacore::Quantity> Image2DConvolver<T>::_getConvolvingBeamForTarget
 }
 
 template <class T> void Image2DConvolver<T>::setAxes(
-    const std::pair<casacore::uInt, casacore::uInt>& axes
+    const std::pair<uint, uint>& axes
 ) {
-    casacore::uInt ndim = this->_getImage()->ndim();
+    auto ndim = this->_getImage()->ndim();
     ThrowIf(axes.first == axes.second, "Axes must be different");
     ThrowIf(
         axes.first >= ndim || axes.second >= ndim,
@@ -155,7 +155,7 @@ template <class T> SPIIT Image2DConvolver<T>::convolve() {
         *this->_getImage(), "", *this->_getRegion(), this->_getMask(),
         this->_getDropDegen(), false, false, this->_getStretch()
     );
-    const casacore::Int nDim = subImage->ndim();
+    const auto nDim = subImage->ndim();
     ThrowIf(
         _axes(0) < 0 || _axes(0) >= nDim
         || _axes(1) < 0 || _axes(1) >= nDim,
@@ -173,7 +173,7 @@ template <class T> SPIIT Image2DConvolver<T>::convolve() {
         outImage, *subImage, _type
     );
     if (subImage->isMasked()) {
-        TempLattice<Bool> mask(outImage->shape());
+        TempLattice<bool> mask(outImage->shape());
         ImageTask<T>::_copyMask(mask, *subImage);
         outImage->attachMask(mask);
     }
@@ -202,10 +202,10 @@ template <class T> void Image2DConvolver<T>::_convolve(
     // Fit2D which requires a real-valued kernel, so it seems we could support
     // complex valued images and real valued kernels if ImageConvolver was
     // smarter
-    Array<Double> kernel;
+    Array<double> kernel;
     // initialize to avoid compiler warning, kernelVolume will always be set to
     // something reasonable below before it is used.
-    Double kernelVolume = -1;
+    double kernelVolume = -1;
     std::vector<casacore::Quantity> originalParms{_major, _minor, _pa};
     if (! _targetres) {
         kernelVolume = _makeKernel(
@@ -232,7 +232,7 @@ template <class T> void Image2DConvolver<T>::_convolve(
     String brightnessUnitOut;
     auto iiOut = imageOut->imageInfo();
     auto logFactors = false;
-    Double factor1 = -1;
+    double factor1 = -1;
     double pixelArea = 0;
     auto autoScale = _scale <= 0;
     if (autoScale) {
@@ -303,11 +303,11 @@ template <class T> void Image2DConvolver<T>::_log(
 }
 
 template <class T> void Image2DConvolver<T>::_doSingleBeam(
-    ImageInfo& iiOut, Double& kernelVolume, vector<Quantity>& kernelParms,
-    Array<Double>& kernel, String& brightnessUnitOut, GaussianBeam& beamOut,
+    ImageInfo& iiOut, double& kernelVolume, vector<Quantity>& kernelParms,
+    Array<double>& kernel, String& brightnessUnitOut, GaussianBeam& beamOut,
     SPIIT imageOut, const ImageInterface<T>& imageIn,
     const vector<Quantity>& originalParms, VectorKernel::KernelTypes kernelType,
-    Bool logFactors, Double factor1, Double pixelArea
+    bool logFactors, double factor1, double pixelArea
 ) const {
     GaussianBeam inputBeam = imageIn.imageInfo().restoringBeam();
     Vector<Quantity> const kernelParmsV(kernelParms);
@@ -344,7 +344,7 @@ template <class T> void Image2DConvolver<T>::_doSingleBeam(
             GaussianBeam kernelBeam(kernelParmsV);
             factor1 = pixelArea/kernelBeam.getArea("arcsec*arcsec");
         }
-        Double factor2 = beamOut.getArea("arcsec*arcsec")/inputBeam.getArea("arcsec*arcsec");
+        double factor2 = beamOut.getArea("arcsec*arcsec")/inputBeam.getArea("arcsec*arcsec");
         if (! _suppressWarnings) {
             oss << "inverse of area of convolution kernel in pixels (" << factor1
                 << ") times the ratio of the beam areas (" << factor2 << ") = ";
@@ -370,32 +370,50 @@ template <class T> void Image2DConvolver<T>::_doSingleBeam(
     );
     // Overwrite some bits and pieces in the output image to do with the
     // restoring beam  and image units
-    casacore::Bool holdsOneSkyAxis;
-    casacore::Bool hasSky = CoordinateUtil::holdsSky (holdsOneSkyAxis, cSys, _axes.asVector());
+    bool holdsOneSkyAxis;
+    const auto hasSky = casacore::CoordinateUtil::holdsSky(
+        holdsOneSkyAxis, cSys, _axes.asVector()
+    );
     if (hasSky && ! beamOut.isNull()) {
-        iiOut.setRestoringBeam(beamOut);
+        if (_targetres) {
+            Vector<Quantity> const originalParmsV(originalParms);
+            casacore::GaussianBeam target(originalParmsV);
+            iiOut.setRestoringBeam(target);
+            if (
+                ! _suppressWarnings && ! near(
+                    beamOut, target, 1e-3, casacore::Quantity(0.01, "deg")
+                ) 
+            ) {
+                *this->_getLog() << LogIO::WARN << "Fitted restoring beam is "
+                    << beamOut << ", but putting requested target "
+                    << "resolution beam " << target << " in the image "
+                    << "metadata. Both beams may be considered consistent with "
+                    << "the convolution result." << LogIO::POST;
+            }
+        }
+        else {
+            iiOut.setRestoringBeam(beamOut);
+        }
     }
-    else {
+    else if (holdsOneSkyAxis) {
         // If one of the axes is in the sky plane, we must
         // delete the restoring beam as it is no longer meaningful
-        if (holdsOneSkyAxis) {
-            if (! _suppressWarnings) {
-                oss.str("");
-                oss << "Because you convolved just one of the sky axes" << endl;
-                oss << "The output image does not have a valid spatial restoring beam";
-                _log(oss.str(), LogIO::WARN);
-            }
-            iiOut.removeRestoringBeam();
+        iiOut.removeRestoringBeam();
+        if (! _suppressWarnings) {
+            oss.str("");
+            oss << "Because you convolved just one of the sky axes" << endl;
+            oss << "The output image does not have a valid spatial restoring beam";
+            _log(oss.str(), LogIO::WARN);
         }
     }
 }
 
 template <class T> void Image2DConvolver<T>::_doMultipleBeams(
-    ImageInfo& iiOut, Double& kernelVolume, SPIIT imageOut,
+    ImageInfo& iiOut, double& kernelVolume, SPIIT imageOut,
     String& brightnessUnitOut, GaussianBeam& beamOut, Double factor1,
     const ImageInterface<T>& imageIn, const vector<Quantity>& originalParms,
-    vector<Quantity>& kernelParms, Array<Double>& kernel,
-    VectorKernel::KernelTypes kernelType, Bool logFactors, Double pixelArea
+    vector<Quantity>& kernelParms, Array<double>& kernel,
+    VectorKernel::KernelTypes kernelType, bool logFactors, double pixelArea
 ) const {
     ImageMetaData<T> md(imageOut);
     auto nChan = md.nChannels();
@@ -413,19 +431,19 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
     if (nPol > 0) {
         end[polAxis] = 1;
     }
-    casacore::Int channel = -1;
-    casacore::Int polarization = -1;
+    int channel = -1;
+    int polarization = -1;
     if (_targetres) {
         iiOut.removeRestoringBeam();
         Vector<Quantity> const kernelParmsV(kernelParms);
         iiOut.setRestoringBeam(casacore::GaussianBeam(kernelParmsV));
     }
-    casacore::uInt count = (nChan > 0 && nPol > 0)
+    uint count = (nChan > 0 && nPol > 0)
         ? nChan * nPol
         : nChan > 0
           ? nChan
           : nPol;
-    for (casacore::uInt i=0; i<count; ++i) {
+    for (uint i=0; i<count; ++i) {
         if (nChan > 0) {
             channel = i % nChan;
             start[specAxis] = channel;
@@ -545,7 +563,7 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         }
         {
             auto doMask = imageOut->isMasked() && imageOut->hasPixelMask();
-            Lattice<Bool>* pMaskOut = 0;
+            Lattice<bool>* pMaskOut = 0;
             if (doMask) {
                 pMaskOut = &imageOut->pixelMask();
                 if (! pMaskOut->isWritable()) {
@@ -560,7 +578,7 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
             );
             RO_MaskedLatticeIterator<T> iter(subImageOut, stepper);
             for (iter.reset(); !iter.atEnd(); iter++) {
-                casacore::IPosition cursorShape = iter.cursorShape();
+                const auto cursorShape = iter.cursorShape();
                 imageOut->putSlice(iter.cursor(), outPos);
                 if (doMask) {
                     pMaskOut->putSlice(iter.getMask(), outPos);
@@ -568,16 +586,30 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
                 outPos = outPos + cursorShape;
             }
         }
-        if (! _targetres) {
-            iiOut.setBeam(
-                channel, polarization, beamOut
-            );
+        if (_targetres) {
+            Vector<Quantity> const originalParmsV(originalParms);
+            GaussianBeam target(originalParmsV);
+            if (
+                ! _suppressWarnings && ! casacore::near(
+                    beamOut, target, 1e-3, casacore::Quantity(0.01, "deg")
+                )
+            ) {
+                *this->_getLog() << LogIO::WARN << "Fitted restoring beam for "
+                    << " channel " << channel << " and polarization plane "
+                    << polarization << " is " << beamOut << " but putting "
+                    << "requested target resolution beam " << target << " in "
+                    << "the image metadata. Both beams can be considered "
+                    << "consistent with the convolution result." << LogIO::POST;
+            }
+        }
+        else {
+            iiOut.setBeam(channel, polarization, beamOut);
         }
     }
 }
 
-template <class T> Double Image2DConvolver<T>::_makeKernel(
-    casacore::Array<Double>& kernelArray,
+template <class T> double Image2DConvolver<T>::_makeKernel(
+    casacore::Array<double>& kernelArray,
     casacore::VectorKernel::KernelTypes kernelType,
     const std::vector<casacore::Quantity>& parameters,
     const casacore::ImageInterface<T>& imageIn
@@ -591,19 +623,19 @@ template <class T> Double Image2DConvolver<T>::_makeKernel(
 // Convert kernel widths to pixels from world.  Demands major and minor
 // both in pixels or both in world, else exception
 
-   casacore::Vector<casacore::Double> dParameters;
+   casacore::Vector<double> dParameters;
    const casacore::CoordinateSystem cSys = imageIn.coordinates();
 
 // Use the reference value for the shape conversion direction
 
    casacore::Vector<casacore::Quantity> wParameters(5);
-   for (casacore::uInt i=0; i<3; i++) {
+   for (uint i=0; i<3; i++) {
       wParameters(i+2) = parameters[i];
    }
 //
-   const casacore::Vector<casacore::Double> refVal = cSys.referenceValue();
+   const casacore::Vector<double> refVal = cSys.referenceValue();
    const casacore::Vector<casacore::String> units = cSys.worldAxisUnits();
-   casacore::Int wAxis = cSys.pixelAxisToWorldAxis(_axes(0));
+   uint wAxis = cSys.pixelAxisToWorldAxis(_axes(0));
    wParameters(0) = casacore::Quantity(refVal(wAxis), units(wAxis));
    wAxis = cSys.pixelAxisToWorldAxis(_axes(1));
    wParameters(1) = casacore::Quantity(refVal(wAxis), units(wAxis));
@@ -620,26 +652,26 @@ template <class T> Double Image2DConvolver<T>::_makeKernel(
    kernelArray = 0;
    kernelArray.resize(kernelShape);
    auto kernelArray2 = kernelArray.nonDegenerate(_axes);
-   auto kernelMatrix = static_cast<casacore::Matrix<Double>>(kernelArray2);
+   auto kernelMatrix = static_cast<casacore::Matrix<double>>(kernelArray2);
 
 // Fill kernel casacore::Matrix with functional (height unity)
 
    return _fillKernel (kernelMatrix, kernelType, kernelShape, dParameters);
 }
 
-template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
+template <class T> double Image2DConvolver<T>::_dealWithRestoringBeam(
     String& brightnessUnitOut,
-    GaussianBeam& beamOut, const casacore::Array<Double>& kernelArray,
-    Double kernelVolume, const casacore::VectorKernel::KernelTypes,
+    GaussianBeam& beamOut, const casacore::Array<double>& kernelArray,
+    double kernelVolume, const casacore::VectorKernel::KernelTypes,
     const casacore::Vector<casacore::Quantity>& parameters,
     const casacore::CoordinateSystem& cSys,
     const casacore::GaussianBeam& beamIn,
-    const casacore::Unit& brightnessUnitIn, casacore::Bool emitMessage
+    const casacore::Unit& brightnessUnitIn, bool emitMessage
 ) const {
     *this->_getLog() << LogOrigin(CLASS_NAME, __func__);
     // Find out if convolution axes hold the sky.  Scaling from
     // Jy/beam and Jy/pixel only really makes sense if this is true
-    casacore::Bool holdsOneSkyAxis;
+    bool holdsOneSkyAxis;
     auto hasSky = casacore::CoordinateUtil::holdsSky(
         holdsOneSkyAxis, cSys, _axes.asVector()
     );
@@ -693,7 +725,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
     beamOut = casacore::GaussianBeam();
     auto bUnitIn = upcase(brightnessUnitIn.getName());
     const auto& refPix = cSys.referencePixel();
-    Double scaleFactor = 1;
+    double scaleFactor = 1;
     brightnessUnitOut = brightnessUnitIn.getName();
     auto autoScale = _scale <= 0;
     if (hasSky && bUnitIn.contains("/PIXEL")) {
@@ -706,7 +738,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
         auto majAx = parameters(0);
         auto minAx = parameters(1);
         if (majAx.getFullUnit().getName() == "pix") {
-            casacore::Vector<casacore::Double> pixelParameters(5);
+            casacore::Vector<double> pixelParameters(5);
             pixelParameters(0) = refPix(_axes(0));
             pixelParameters(1) = refPix(_axes(1));
             pixelParameters(2) = parameters(0).getValue();
@@ -748,7 +780,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
             wParameters(2) = beamIn.getMajor();
             wParameters(3) = beamIn.getMinor();
             wParameters(4) = beamIn.getPA(true);
-            casacore::Vector<casacore::Double> dParameters;
+            casacore::Vector<double> dParameters;
             SkyComponentFactory::worldWidthsToPixel(
                 dParameters, wParameters, cSys, _axes, false
             );
@@ -760,7 +792,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
 
             // Create beam casacore::Matrix and fill with height unity
    
-            casacore::Matrix<Double> beamMatrixIn(beamShape(0), beamShape(1));
+            casacore::Matrix<double> beamMatrixIn(beamShape(0), beamShape(1));
             _fillKernel(
                 beamMatrixIn, casacore::VectorKernel::GAUSSIAN, beamShape,
                 dParameters
@@ -769,19 +801,19 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
             // Get 2-D version of convolution kenrel
             auto kernelArray2 = kernelArray.nonDegenerate(_axes);
             auto kernelMatrix
-                = static_cast<casacore::Matrix<Double>>(kernelArray2);
+                = static_cast<casacore::Matrix<double>>(kernelArray2);
             // Convolve input restoring beam array by convolution kernel array
-            casacore::Matrix<Double> beamMatrixOut;
-            casacore::Convolver<Double> conv(beamMatrixIn, kernelMatrix.shape());
+            casacore::Matrix<double> beamMatrixOut;
+            casacore::Convolver<double> conv(beamMatrixIn, kernelMatrix.shape());
             conv.linearConv(beamMatrixOut, kernelMatrix);
             // Scale kernel
             auto maxValOut = max(beamMatrixOut);
             scaleFactor = autoScale ? 1/maxValOut : _scale;
             Fit2D fitter(*this->_getLog());
-            const casacore::uInt n = beamMatrixOut.shape()(0);
+            const uint n = beamMatrixOut.shape()(0);
             auto bParameters
                 = fitter.estimate(casacore::Fit2D::GAUSSIAN, beamMatrixOut);
-            casacore::Vector<casacore::Bool> bParameterMask(
+            casacore::Vector<bool> bParameterMask(
                 bParameters.nelements(), true
             );
             bParameters(1) = (n-1)/2;          // x centre
@@ -791,7 +823,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
             fitter.addModel(
                 casacore::Fit2D::GAUSSIAN, bParameters, bParameterMask
             );
-            casacore::Array<Double> sigma;
+            casacore::Array<double> sigma;
             fitter.setIncludeRange(maxValOut/10.0, maxValOut+0.1);
             auto error = fitter.fit(beamMatrixOut, sigma);
             ThrowIf(
@@ -802,7 +834,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
             );
             auto bSolution = fitter.availableSolution();
             // Convert to world units.
-            casacore::Vector<casacore::Double> pixelParameters(5);
+            casacore::Vector<double> pixelParameters(5);
             pixelParameters(0) = refPix(_axes(0));
             pixelParameters(1) = refPix(_axes(1));
             pixelParameters(2) = bSolution(3);
@@ -821,13 +853,7 @@ template <class T> Double Image2DConvolver<T>::_dealWithRestoringBeam(
             }
         }
         else {
-            if (autoScale) {
-                // Conserve flux is the best we can do
-                scaleFactor = 1/kernelVolume;
-            }
-            else {
-                scaleFactor = _scale;
-            }
+            scaleFactor = autoScale ? 1/kernelVolume : _scale;
         }
     }
     // Put beam position angle into range
@@ -871,8 +897,8 @@ template <class T> void Image2DConvolver<T>::_checkKernelParameters(
 
 template <class T> casacore::IPosition Image2DConvolver<T>::_shapeOfKernel(
     const casacore::VectorKernel::KernelTypes kernelType,
-    const casacore::Vector<casacore::Double>& parameters,
-    const casacore::uInt ndim
+    const casacore::Vector<double>& parameters,
+    const uint ndim
 ) const {
 //
 // Work out how big the array holding the kernel should be.
@@ -881,14 +907,14 @@ template <class T> casacore::IPosition Image2DConvolver<T>::_shapeOfKernel(
 
 // Find 2D shape
 
-   casacore::uInt n;
+   uint n;
    if (kernelType==casacore::VectorKernel::GAUSSIAN) {
-      casacore::uInt n1 = _sizeOfGaussian (parameters(0), 5.0);
-      casacore::uInt n2 = _sizeOfGaussian (parameters(1), 5.0);
+      uint n1 = _sizeOfGaussian (parameters(0), 5.0);
+      uint n2 = _sizeOfGaussian (parameters(1), 5.0);
       n = max(n1,n2);
       if (n%2==0) n++;                                     // Make shape odd so centres well
    } else if (kernelType==casacore::VectorKernel::BOXCAR) {
-      n = 2 * casacore::Int(max(parameters(0), parameters(1))+0.5);
+      n = 2 * int(max(parameters(0), parameters(1))+0.5);
       if (n%2==0) n++;                                     // Make shape odd so centres well
    } else {
      throw(casacore::AipsError("Unrecognized kernel type"));        // Earlier checking should prevent this
@@ -904,34 +930,34 @@ template <class T> casacore::IPosition Image2DConvolver<T>::_shapeOfKernel(
 }
    
 template <class T>
-uInt Image2DConvolver<T>::_sizeOfGaussian(
-    const casacore::Double width, const casacore::Double nSigma
+uint Image2DConvolver<T>::_sizeOfGaussian(
+    const double width, const double nSigma
 ) const {
 // +/- 5sigma is a volume error of less than 6e-5%
 
-   casacore::Double sigma = width / sqrt(casacore::Double(8.0) * C::ln2);
-   return  (casacore::Int(nSigma*sigma + 0.5) + 1) * 2;
+   double sigma = width / sqrt(double(8.0) * C::ln2);
+   return  (int(nSigma*sigma + 0.5) + 1) * 2;
 }
 
-template <class T> Double Image2DConvolver<T>::_fillKernel(
-    casacore::Matrix<Double>& kernelMatrix,
+template <class T> double Image2DConvolver<T>::_fillKernel(
+    casacore::Matrix<double>& kernelMatrix,
     casacore::VectorKernel::KernelTypes kernelType,
     const casacore::IPosition& kernelShape,
-    const casacore::Vector<casacore::Double>& parameters
+    const casacore::Vector<double>& parameters
 ) const {
 
 // Centre functional in array (shape is odd)
 
-   auto xCentre = Double((kernelShape[_axes[0]] - 1)/2.0);
-   auto yCentre = Double((kernelShape[_axes[1]] - 1)/2.0);
-   Double height = 1;
+   auto xCentre = double((kernelShape[_axes[0]] - 1)/2.0);
+   auto yCentre = double((kernelShape[_axes[1]] - 1)/2.0);
+   double height = 1;
 
 // Create functional.  We only have gaussian2d functionals
 // at this point.  Later the filling code can be moved out
 // of the if statement
 
-   Double maxValKernel;
-   Double volumeKernel = 0;
+   double maxValKernel;
+   double volumeKernel = 0;
    auto pa = parameters[2];
    auto ratio = parameters[1]/parameters[0];
    auto major = parameters[0];
@@ -952,27 +978,27 @@ template <class T> Double Image2DConvolver<T>::_fillKernel(
 }         
 
 template <class T> void Image2DConvolver<T>::_fillGaussian(
-    Double& maxVal, Double& volume, casacore::Matrix<Double>& pixels,
-    Double height, Double xCentre, Double yCentre, Double majorAxis,
-    Double ratio, Double positionAngle
+    double& maxVal, double& volume, casacore::Matrix<double>& pixels,
+    double height, double xCentre, double yCentre, double majorAxis,
+    double ratio, double positionAngle
 ) const {
 // 
 // pa positive in +x ->+y pixel coordinate frame
 //
-   casacore::uInt n1 = pixels.shape()(0);
-   casacore::uInt n2 = pixels.shape()(1);
+   uint n1 = pixels.shape()(0);
+   uint n2 = pixels.shape()(1);
    AlwaysAssert(n1==n2,casacore::AipsError);
    positionAngle += C::pi_2;        // +y -> -x
-   casacore::Gaussian2D<Double> g2d(height, xCentre, yCentre, majorAxis,
+   casacore::Gaussian2D<double> g2d(height, xCentre, yCentre, majorAxis,
                ratio, positionAngle);
    maxVal = -1.0e30;
    volume = 0.0;
-   casacore::Vector<Double> pos(2);
-   for (casacore::uInt j=0; j<n1; ++j) {
+   casacore::Vector<double> pos(2);
+   for (uint j=0; j<n1; ++j) {
       pos[1] = j;
-      for (casacore::uInt i=0; i<n1; ++i) {
+      for (uint i=0; i<n1; ++i) {
          pos[0] = i;
-         Double val = g2d(pos);
+         double val = g2d(pos);
          pixels(i,j) = val;
          maxVal = max(val, maxVal);
          volume += val;
