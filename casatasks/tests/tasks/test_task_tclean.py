@@ -140,6 +140,8 @@ _me = measures( )
 
 refdatapath = ctsys.resolve('unittest/tclean/')
 
+defaultlogpath = casalog.logfile()
+
 ## Base Test class with Utility functions
 class testref_base(unittest.TestCase):
 
@@ -163,6 +165,8 @@ class testref_base(unittest.TestCase):
      def tearDown(self):
           """ don't delete it all """
           #self.delData()
+          if casalog.logfile() != defaultlogpath:
+              casalog.setlogfile(defaultlogpath)
 
      # Separate functions here, for special-case tests that need their own MS.
      def prepData(self,msname=""):
@@ -4227,7 +4231,7 @@ class test_modelvis(testref_base):
           self.assertTrue( hasmodcol==True and modsum>0.0 and hasvirmod==False )
 
      def test_modelvis_27(self):
-          """ [modelpredict] Test_modelvis_27: (CAS-13615) cube with and save virtual model for nsima >0.0 (in two steps) """
+          """ [modelpredict] Test_modelvis_27: (CAS-13615) cube with and save virtual model for nsigma >0.0 (in two steps) """
           self.prepData("refim_point.ms")
           delmod(self.msfile);self.th.delmodels(msname=self.msfile,modcol='delete')
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',specmode='cube',niter=10,
@@ -4236,6 +4240,75 @@ class test_modelvis(testref_base):
                        nsigma=1.0, savemodel='virtual', restoration=False, calcres=False, calcpsf=False, parallel=self.parallel)
           hasmodcol, modsum, hasvirmod = self.th.check_model(self.msfile)
           self.assertTrue( hasmodcol==False and hasvirmod==True )
+
+     def test_modelvis_28(self):
+          """ [modelpredict] Test_modelvis_28: (CAS-13925) mfs with two MSes, savemodel=modelcolumn, nsigma > 0.0 """
+          # This test checks model write only happens at the end. It checks the casalog to see 'Saving model' message
+          # appears only once (presumably happens at predict model stage only and not during major-minor cycles)
+          logstart = self.th.get_log_length()
+          ms1 = 'refim_point_onespw0.ms'
+          ms2 = 'refim_point_onespw1.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          delmod(ms1);self.th.delmodels(msname=ms1,modcol='delete')
+          delmod(ms2);self.th.delmodels(msname=ms2,modcol='delete')
+
+          ret = tclean(vis=[ms1,ms2],imagename=self.img,imsize=100,cell='8.0arcsec',specmode='mfs',niter=10,
+                       nsigma=1.0, savemodel='modelcolumn',parallel=self.parallel)
+          hasmodcol1, modsum1, hasvirmod1 = self.th.check_model(ms1)
+          hasmodcol2, modsum2, hasvirmod2 = self.th.check_model(ms2)
+          self.assertTrue( hasmodcol1==True and hasvirmod1==False )
+          self.assertTrue( hasmodcol2==True and hasvirmod2==False )
+          self.delData(ms1)
+          self.delData(ms2)
+          lnumpredict=[]
+          lnumsavemod=[]
+          with open (casalog.logfile()) as logf:
+             logf.seek(logstart)
+             for lnum, line in enumerate(logf):
+                 if 'Predict Model' in line:
+                     lnumpredict.append(lnum)
+                 elif 'Saving model column' in line:
+                     lnumsavemod.append(lnum)
+          #print('lnumpredict=',lnumpredict)
+          #print('lnumsavemod=',lnumsavemod)
+          # Test 'Saving model column' message appear after 'predict model' 
+          # if the 'saving model' message appears in lower line number it indicates saving model
+          # happens in mojar cycles prior to the final predict model stage.
+          self.assertTrue( min(lnumpredict) <  min(lnumsavemod) )
+
+     def test_modelvis_29(self):
+          """ [modelpredict] Test_modelvis_29: (CAS-13925) cube with two MSes, savemodel=modelcolumn, nsigma > 0.0 """
+          # The same as test 28 but in cube imaging mode
+          logstart = self.th.get_log_length()
+          ms1 = 'refim_point_onespw0.ms'
+          ms2 = 'refim_point_onespw1.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          delmod(ms1);self.th.delmodels(msname=ms1,modcol='delete')
+          delmod(ms2);self.th.delmodels(msname=ms2,modcol='delete')
+
+          ret = tclean(vis=[ms1,ms2],imagename=self.img,imsize=100,cell='8.0arcsec',specmode='cube',niter=10,
+                       nsigma=1.0, savemodel='modelcolumn',parallel=self.parallel)
+          hasmodcol1, modsum1, hasvirmod1 = self.th.check_model(ms1)
+          hasmodcol2, modsum2, hasvirmod2 = self.th.check_model(ms2)
+          self.assertTrue( hasmodcol1==True and hasvirmod1==False )
+          self.assertTrue( hasmodcol2==True and hasvirmod2==False )
+          self.delData(ms1)
+          self.delData(ms2)
+          lnumpredict=[]
+          lnumsavemod=[]
+          with open (casalog.logfile()) as logf:
+             logf.seek(logstart)
+             for lnum, line in enumerate(logf):
+                 if 'Predict Model' in line:
+                     lnumpredict.append(lnum)
+                 elif 'Saving model column' in line:
+                     lnumsavemod.append(lnum)
+          # Test 'Saving model column' message appear after 'predict model' 
+          # if the 'saving model' message appears in lower line number it indicates saving model
+          # happens in mojar cycles prior to the final predict model stage.
+          self.assertTrue( min(lnumpredict) <  min(lnumsavemod) )
 
 class test_startmodel(testref_base):
      def test_startmodel_regrid_mfs(self):
