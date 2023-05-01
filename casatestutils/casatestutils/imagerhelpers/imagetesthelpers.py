@@ -1187,12 +1187,18 @@ class TestHelpers:
         return pstr
 
     def check_final(self, pstr=""):
-
         import re
         casalog.post(pstr, 'INFO')
         if len(re.findall(r"\(.?Fail",pstr)) > 0:
             return False
         return True
+
+    def extract_failing_lines(self, pstr=""):
+        import re
+        ret = []
+        for match in re.findall(r"(.*\(.?Fail.*)",pstr):
+            ret.append(match)
+        return os.linesep.join(ret)
         
     def write_file(self,filename,str_text):
         """Save the string in a text file"""

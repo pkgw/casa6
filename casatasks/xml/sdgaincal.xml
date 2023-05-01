@@ -181,6 +181,9 @@ applytable -- List of sky/Tsys calibration tables you want to pre-apply.
                 For multi-obsId datasets, 'perobs' can be appended to
                 the time-dependent interpolation specification to
                 enforce obsId boundaries when interpolating in time.
+                For multi-scan datasets, 'perscan' can be appended to
+                the time-dependent interpolation specification to
+                enforce scan boundaries when interpolating in time. 
                 Add 'flag' to the freq-dependent interpolation options
                 to enforce channel-dependent flagging (rather than
                 interpolation/extrapolation).
