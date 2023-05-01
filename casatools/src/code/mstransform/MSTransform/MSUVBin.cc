@@ -111,7 +111,11 @@ MSUVBin::MSUVBin(const MDirection& phaseCenter,
 }
 
 MSUVBin::~MSUVBin(){
-
+  //close the measurementsets
+  for (uInt k=0; k < mss_p.nelements(); ++k){
+    (const_cast<MeasurementSet *>(mss_p[k]))->unlock();
+    mss_p[k]=new MeasurementSet();
+  }
 }
 Bool MSUVBin::selectData(const String& msname, const String& spw, const String& field,
 		const String& baseline, const String& scan,
