@@ -4,6 +4,38 @@ import numpy as np
 
 import casatools
 
+def parseSelection(selection):
+    selected = []
+    
+    if selection == '':
+        return selected
+        
+    for item in selection.split(','):
+        if '~' in item:
+            start, end = item.split('~')
+            selected.extend(range(int(start), int(end)+1))
+        else:
+            selected.append(int(item))
+    return selected
+    
+def selectionToQuery(queryParam, queryString):
+    elements = queryString.split(',')
+    
+    queryElements = []
+    for element in elements:
+        if '~' in element:
+            start, end = elemment.split('~')
+            start = int(start.strip())
+            end = int(end.strip())
+            
+            rangeString = f"{start} <= {queryParam} <= {end}"
+            queryElements.append(rangeString)
+        else:
+            queryElements.append(f"{queryParam} == {element.strip()}")
+            
+    queryFinal = " || ".join(queryElements)
+            
+
 def defintent(vis='', intent='', mode='',
               scan='', field='', obsid=''):
     """
@@ -40,7 +72,7 @@ def defintent(vis='', intent='', mode='',
         print('you must specify an Intent')
         return
     
-    # Table tool querey?
+    # Table tool query?
     # ----- TABLE SELECTION -----
     
     # Get field names
@@ -66,19 +98,43 @@ def defintent(vis='', intent='', mode='',
     fieldIds = tb.getcol('FIELD_ID')
     scanNum = tb.getcol('SCAN_NUMBER')
     stateIds = tb.getcol('STATE_ID')
+    
+    # query selection
+    toJoin = []
+    if (field != ''):
+        toJoin.appen(selectionToQuery('FIELD_ID', field))
+    if (scan != ''):
+        toJoin.append(selectionToQuery('SCAN_NUMBER', scan))
+    if (obsid != ''):
+        toJoin.append(selectionToQuery('OBSERVATION_ID', obsid))
+        
+    queryString = ' && '.join(toJoin)
+    selectedData = tb.query(queryString)
+    
+    selectedRows = set(selectedData.rowNumbers())
+    selectedStateIds = selectedData.getcol('STATE_ID')
+    for row in selectedRows:
+        selectedIntents[selectedStateIds[row]] = selectedStateIds[row]
+    
     tb.close()
     
+    """# split selection parameters into array
+    selectedFieldList = parseSelection(field)
+    selectedScanList = parseSelection(scan)
+    selectedObsIdList = parseSelection(obsid)
+    
     # Select rows based on field and scan and add selected intents
+    # if row field/scan is in the sting array, select that row
     for row in range(len(fieldIds)):
         # also select if field == ''
-        if field == '' or fieldIds[row] == field or fieldIds[row] == fieldnames.index(field):
+        if field == '' or fieldIds[row] in selectedFieldList or fieldIds[row] in np.where(fieldnames == field):
             foundField = True
-            if scanNum[row] == scan or scan == '':
+            if scanNum[row] in selectedScanList or scan == '':
                 #selectedRows[row] = stateIds[row]
                 selectedRows.add(row)
                 selectedIntents[stateIds[row]] = stateIds[row]
                 #selectedIntents.add(stateIds[row])
-                
+                """
     print("Number of matching rows found: ", len(selectedRows))
     
     # for Set if intent not in state table
