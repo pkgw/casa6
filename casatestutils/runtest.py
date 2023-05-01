@@ -353,7 +353,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
     if merge_target is not None:
 
-        cmd = ("git checkout " + merge_target).split()
+        cmd = ("git checkout origin/{}".format( merge_target)).split()
         print("\tRunning: ", " ".join(str(x) for x in cmd))
         run_shell_command(cmd, source_dir + "/" + repo)
 
@@ -365,7 +365,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
         else:
             print("\t{} not in Remote Repository {}".format(branch,repo))
     else:
-        cmd = ("git checkout " + branch).split()
+        cmd = ("git checkout origin/{}".format(branch)).split()
         if is_in_remote(branch,repo_path, repo):
             print("\tRunning: ", " ".join(str(x) for x in cmd))
         else:
@@ -386,7 +386,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
         if merge_target is not None:
 
-            cmd = ("git checkout " + merge_target).split()
+            cmd = ("git checkout origin/{}".format(merge_target)).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
 
@@ -401,7 +401,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
                     print("\tCheckout from build.conf")
                     branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                     print("\tTag: " + branchtag)
-                    cmd = ("git checkout " + branchtag).split()
+                    cmd = ("git checkout origin/{}".format(branchtag)).split()
                 else:
                     print("No casa6/build.conf found. Defaulting to master")
                     cmd = ("git checkout origin/{}".format(merge_target)).split()
@@ -414,11 +414,11 @@ def fetch_tests(work_dir, branch, merge_target=None):
             if os.path.isfile(source_dir+"/casa6/build.conf"):
                 branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                 print("\tTag: " + branchtag)
-                cmd = ("git checkout " + branchtag).split()
+                cmd = ("git checkout origin/{}".format(branchtag)).split()
             else:
                 # Check If Feature Branch Exists
                 if is_in_remote(branch,repo_path, repo): 
-                    cmd = ("git checkout " + branch).split()
+                    cmd = ("git checkout origin/{}".format(branch)).split()
                 else: 
                     print("\t{} not in Remote Repository {} Defaulting to master.".format(branch,repo))
                     cmd = ("git checkout origin/master").split()

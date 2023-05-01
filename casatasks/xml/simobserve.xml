@@ -148,7 +148,7 @@ if the skymodel is 2D)
 
     <param name="complist" type="string">
       <shortdescription>Componentlist to observe</shortdescription>
-<description>Component list model of the sky, added to or instead of skymodel. See https://casaguides.nrao.edu/index.php/Simulation_Guide_Component_Lists_(CASA_5.4)
+<description>Component list model of the sky, added to or instead of skymodel.
 </description>
       <value/>
     </param>
