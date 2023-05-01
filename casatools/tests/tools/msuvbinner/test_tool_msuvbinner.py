@@ -42,7 +42,7 @@ class msuvbinnerTest(unittest.TestCase):
         shutil.rmtree(self.outms, ignore_errors=True)
     def test_fill_1ms(self):
         '''test uvgridding 1 ms onto an output grid '''
-        msbinner=msuvbinner(phasecenter='J2000 19:59:28.5 40d44m01.5', nx=100, ny=100, ncorr=1, nchan=20, cellx='8arcsec', celly='8arcsec', fstart='975MHz', fstep='50MHz', memfrac=0.5, wproject=False, doflag=False)
+        msbinner=msuvbinner.msuvbinner(phasecenter='J2000 19:59:28.5 40d44m01.5', nx=100, ny=100, ncorr=1, nchan=20, cellx='8arcsec', celly='8arcsec', fstart='975MHz', fstep='50MHz', memfrac=0.5, wproject=False, doflag=False)
         msbinner.selectdata(msname=self.ms1, spw='', field='0', taql='')
         msbinner.setoutputms(self.outms)
         msbinner.filloutputms()

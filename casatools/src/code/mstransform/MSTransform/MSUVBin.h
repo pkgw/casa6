@@ -136,9 +136,11 @@ private:
 	void makeSFConv(casacore::Cube<casacore::Complex>&convFunc, 
 			casacore::Vector<casacore::Int>& convSupport, casacore::Double& wScale, casacore::Int& convSampling, 
 			casacore::Int& convSize);
-	void makeWConv(vi::VisibilityIterator2& iter,casacore::Cube<casacore::Complex>& convFunc, 
+  void makeWConv(vi::VisibilityIterator2& iter,casacore::Cube<casacore::Complex>& convFunc, 
 		       casacore::Vector<casacore::Int>& convSupport,
 			casacore::Double& wScale, casacore::Int& convSampling, casacore::Int& convSize );
+  //Check if input values are matching to what is stored in existant grid
+  bool checkOutputGridParams();
 	casacore::CoordinateSystem csys_p;
 	casacore::Int nx_p, ny_p, nchan_p, npol_p;
 	casacore::Double freqStart_p, freqStep_p;
