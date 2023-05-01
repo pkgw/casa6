@@ -114,7 +114,7 @@ MSUVBin::~MSUVBin(){
   //close the measurementsets
   for (uInt k=0; k < mss_p.nelements(); ++k){
     (const_cast<MeasurementSet *>(mss_p[k]))->unlock();
-    mss_p[k]=new MeasurementSet();
+    *(const_cast<MeasurementSet *>(mss_p[k]))=MeasurementSet();
   }
 }
 Bool MSUVBin::selectData(const String& msname, const String& spw, const String& field,
@@ -264,7 +264,7 @@ bool MSUVBin::checkOutputGridParams(){
       std::ostringstream oss;
       oss << "stored is " << phcen.toString();
       oss << " user requested " <<phaseCenter_p.toString();
-      throw(AipsError("phasecentre requested is not the same as stored in "+outMSName_p+ "  " +oss.str()));
+      throw(AipsError("phasecentre requested is not the same as stored in "+outMSName_p+ "  " +String(oss.str())));
     }
       
   // When transferring flags we don't care about the input params we take

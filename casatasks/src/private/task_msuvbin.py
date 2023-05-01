@@ -135,3 +135,4 @@ def msuvbin(
     msbinner.selectdata(msname=vis, spw=spw, field=field, taql=taql)
     msbinner.setoutputms(outputvis)
     msbinner.filloutputms()
+    del msbinner

@@ -152,6 +152,7 @@ private:
 	casacore::Bool existOut_p;
 	casacore::String outMSName_p;
 	casacore::CountedPtr<casacore::MeasurementSet> outMsPtr_p;
+  //This has to be as it is because of vi2 constructor where this is used
 	casacore::Block<const casacore::MeasurementSet *> mss_p;
 	VisBufferUtil vbutil_p;
 	casacore::Float memFraction_p;
