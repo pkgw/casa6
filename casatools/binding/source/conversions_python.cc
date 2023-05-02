@@ -9,7 +9,7 @@
 #endif
 #include <patchlevel.h>
 
-#include <stdcasa/StdCasa/string_conversions>
+#include <stdcasa/StdCasa/string_conversions.hpp>
 #include <iostream>
 
 STRINGTOCOMPLEX_DEFINITION(casac::complex,stringtoccomplex)
