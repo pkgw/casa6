@@ -102,7 +102,7 @@ def defintent(vis='', intent='', mode='',
     # query selection
     toJoin = []
     if (field != ''):
-        toJoin.appen(selectionToQuery('FIELD_ID', field))
+        toJoin.append(selectionToQuery('FIELD_ID', field))
     if (scan != ''):
         toJoin.append(selectionToQuery('SCAN_NUMBER', scan))
     if (obsid != ''):
