@@ -34,6 +34,8 @@ def selectionToQuery(queryParam, queryString):
             queryElements.append(f"{queryParam} == {element.strip()}")
             
     queryFinal = " || ".join(queryElements)
+    
+    return queryFinal
             
 
 def defintent(vis='', intent='', mode='',
@@ -98,7 +100,8 @@ def defintent(vis='', intent='', mode='',
     fieldIds = tb.getcol('FIELD_ID')
     scanNum = tb.getcol('SCAN_NUMBER')
     stateIds = tb.getcol('STATE_ID')
-    
+    obsIds = tb.getcol('OBSERVATION_ID')
+    """
     # query selection
     toJoin = []
     if (field != ''):
@@ -108,17 +111,18 @@ def defintent(vis='', intent='', mode='',
     if (obsid != ''):
         toJoin.append(selectionToQuery('OBSERVATION_ID', obsid))
         
-    queryString = ' && '.join(toJoin)
+    print(toJoin)
+    queryString = " && ".join(toJoin)
     selectedData = tb.query(queryString)
     
-    selectedRows = set(selectedData.rowNumbers())
+    selectedRows = set(selectedData.rownumbers())
     selectedStateIds = selectedData.getcol('STATE_ID')
     for row in selectedRows:
         selectedIntents[selectedStateIds[row]] = selectedStateIds[row]
-    
+    """
     tb.close()
     
-    """# split selection parameters into array
+    # split selection parameters into array
     selectedFieldList = parseSelection(field)
     selectedScanList = parseSelection(scan)
     selectedObsIdList = parseSelection(obsid)
@@ -130,11 +134,12 @@ def defintent(vis='', intent='', mode='',
         if field == '' or fieldIds[row] in selectedFieldList or fieldIds[row] in np.where(fieldnames == field):
             foundField = True
             if scanNum[row] in selectedScanList or scan == '':
-                #selectedRows[row] = stateIds[row]
-                selectedRows.add(row)
-                selectedIntents[stateIds[row]] = stateIds[row]
-                #selectedIntents.add(stateIds[row])
-                """
+                if obsIds[row] in selectedObsIdList or obsid == '':
+                    #selectedRows[row] = stateIds[row]
+                    selectedRows.add(row)
+                    selectedIntents[stateIds[row]] = stateIds[row]
+                    #selectedIntents.add(stateIds[row])
+                
     print("Number of matching rows found: ", len(selectedRows))
     
     # for Set if intent not in state table
