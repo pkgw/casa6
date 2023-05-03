@@ -24,7 +24,7 @@ def selectionToQuery(queryParam, queryString):
     queryElements = []
     for element in elements:
         if '~' in element:
-            start, end = elemment.split('~')
+            start, end = element.split('~')
             start = int(start.strip())
             end = int(end.strip())
             
