@@ -1129,7 +1129,7 @@ VisibilityIteratorImpl2::VisibilityIteratorImpl2(
 {
     // Set the default subchunk iteration sorting scheme, i.e.
     // unique timestamps in each subchunk.
-    CountedPtr<BaseCompare> singleTimeCompare(new ObjCompare<Double>());
+    auto singleTimeCompare = std::make_shared<ObjCompare<Double> >();
     subchunkSortColumns_p.addSortingColumn(MS::TIME, singleTimeCompare);
     timeScope_p = SubchunkScope;
 

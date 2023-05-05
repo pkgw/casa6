@@ -15,7 +15,6 @@
 #include <stdcasa/record.h>
 #include <stdcasa/version.h>
 #include <utils_cmpt.h>
-#include <tools/utils/stdBaseInterface.h>
 #include <climits>
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/BasicSL/String.h>
@@ -25,7 +24,7 @@
 #include <casacore/tables/Tables/TableUtil.h>
 #include <casacore/casa/System/Aipsrc.h>
 #include <casacore/casa/OS/HostInfo.h>
-#ifndef NO_CRASH_REPORTER
+#ifdef WITH_CRASH_REPORTER
 #include <stdcasa/StdCasa/CrashReporter.h>
 #endif
 #include <stdlib.h>
@@ -42,7 +41,7 @@
 #include <casacore/scimath/Mathematics/FFTW.h>
 #include <asdmstman/AsdmStMan.h>
 #include <casacore/derivedmscal/DerivedMC/Register.h>
-#include <toolversion.h>
+#include "toolversion.h"
 
 using namespace std;
 using namespace casacore;
@@ -214,7 +213,7 @@ utils::_crash_reporter_initialize (const string & crashDirectory,
                                    const string & crashPostingUrl,
 				   const string & logFile)
 {
-#ifndef NO_CRASH_REPORTER
+#ifdef WITH_CRASH_REPORTER
     // *NOTE*: Not intended for casual use!
 
     string status = casa::CrashReporter::initialize(crashDirectory, crashPosterApplication,

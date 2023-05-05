@@ -691,6 +691,5 @@ if (! beenThereDoneThat){
     grid.putStorage(tt,gDummy);
   }
 
-
 using namespace casacore;
 };// end namespace casa
