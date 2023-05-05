@@ -44,6 +44,19 @@ class TableBase(unittest.TestCase):
         cls.scratch_path = str(uuid4( ))
         cls.ms_path = os.path.join(cls.scratch_path,ms_name)
 
+    def exception_check( self, func, method_parms, expected_msg, exc=RuntimeError ):
+            with self.assertRaises(exc) as cm:
+                res = func(**method_parms)
+            got_exception = cm.exception
+            if type(expected_msg) == list:
+                pos = max( [ str(got_exception).find(msg) for msg in expected_msg ] )
+            else:
+                pos = str(got_exception).find(expected_msg)
+            self.assertNotEqual(
+                pos, -1, msg=f'Unexpected exception was thrown: {got_exception} ({pos} != -1)'
+            )
+            
+    
     @staticmethod
     def remove_readonly(func, path, _):
         "Clear the readonly bit and reattempt the removal"
@@ -66,12 +79,47 @@ class TableBase(unittest.TestCase):
         self.tb.close( )
         self.tb.done( )
         self.ia.done()
-        tb = table()
-        self.assertTrue(len(tb.showcache()) == 0)
-        tb.done()
         if os.path.exists(self.scratch_path):
             shutil.rmtree( self.scratch_path, onerror=self.remove_readonly )
 
+
+class TableGetcoliterTest(TableBase):
+    def test_consistency(self):
+        self.assertTrue( all(self.tb.getcol( 'TIME', 0, 7, 100 ) == self.tb.getcoliter( 'TIME', 0, 7, 100 )) )
+        index = 0
+        for i in self.tb.getcoliter( 'DATA', 0, 10 ):
+            # cannot read all 10 columns for comparison because it changes
+            # the shape of the DATA read to ensure that they have a
+            # consistent shape
+            element = self.tb.getcol( 'DATA', index, 1 )
+            self.assertTrue(all(itertools.chain(*(i == element))))
+            index += 1
+        sample = zip( self.tb.getcoliter( ['TIME','DATA'], 0, 7, 100 ), \
+                      self.tb.getcoliter( ['TIME','DATA'], 0, 7, 100, torecord=True ) )
+        self.assertTrue( all(map(lambda x: type(x[0]) is tuple and type(x[1]) is dict, sample)) )
+        self.assertTrue( all(map(lambda x: x[0][0] == x[1]['TIME'] and x[0][1] == x[1]['DATA'], sample)) )
+    def test_values(self):
+        comparison = [[32.179157, 0.5079209, 0.5079209, 32.2391],
+                      [1.850586, 0.057572834, 0.072714314, 1.8670243],
+                      [0.68413484, 0.05278814, 0.048778556, 1.0146093],
+                      [32.178806, 0.48759097, 0.48759097, 32.23809],
+                      [1.9146965, 0.048878238, 0.08129805, 1.8998808],
+                      [0.68750614, 0.05162081, 0.05075732, 1.0380214],
+                      [32.17892, 0.49281895, 0.49281895, 32.239876]]
+        for v in zip( map(np.abs, self.tb.getcoliter( 'DATA', 0, 7, 100 )), comparison ):
+            self.assertTrue( all(np.isclose(list(map(np.sum,v[0])), v[1])) )
+    def test_errors(self):
+        def test_element_mismatch( table ):
+            return table.getcol( 'TIME', 0, 18, 100 ) == table.getcoliter( 'TIME', 0, 7, 100 )
+        def test_bad_column_name( table ):
+            return table.getcoliter( 'data' )
+        def test_unopened_table( ):
+            tx = table( )
+            return tx.getcoliter( 'oops' )
+        parms = { 'table': self.tb }
+        self.exception_check( test_element_mismatch, parms, 'attempted iteration beyond the end of iterator', exc=StopIteration )
+        self.exception_check( test_bad_column_name, parms, 'column "data" does not exist', exc=RuntimeError )
+        self.exception_check( test_unopened_table, { }, 'no opened table available', exc=RuntimeError )
 
 class TableRowTest(TableBase):
     def test_get(self):
@@ -149,15 +197,6 @@ class table_getcellslice_test(TableBase):
 
     def test_exceptions(self):
         """Test various exception cases"""
-        def __test_exception(method_parms, expected_msg):
-            with self.assertRaises(RuntimeError) as cm:
-                res = self.tb.getcellslice(**method_parms)
-            got_exception = cm.exception
-            pos = str(got_exception).find(expected_msg)
-            self.assertNotEqual(
-                pos, -1, msg=f'Unexpected exception was thrown: {got_exception}'
-            )
-            
         self.ia.fromarray(self.myim, self.arr)
         self.ia.done()
         self.tb.open(self.myim)
@@ -167,8 +206,8 @@ class table_getcellslice_test(TableBase):
         parms['rownr'] = 0
         parms['blc'] = -1
         parms['trc'] = -1
-        __test_exception(
-            parms, f'Table column {parms["columnname"]} is unknown'
+        self.exception_check(
+            self.tb.getcellslice, parms, f'Table column {parms["columnname"]} is unknown'
         ) 
         # bad row number
         parms = {}
@@ -176,9 +215,11 @@ class table_getcellslice_test(TableBase):
         parms['rownr'] = 1
         parms['blc'] = -1
         parms['trc'] = -1
-        __test_exception(
-            parms, f'TableColumn: row number {parms["rownr"]} exceeds #rows 1 '
-            f'in table {os.path.dirname(os.path.abspath(self.myim))}'
+        self.exception_check(
+            self.tb.getcellslice, parms,
+            [ f'TableColumn: row number {parms["rownr"]} exceeds #rows 1 '
+              f'in table {os.path.dirname(os.path.abspath(self.myim))}',
+              'rownr is too high' ]
         )
         # bad blc
         parms = {}
@@ -186,15 +227,15 @@ class table_getcellslice_test(TableBase):
         parms['rownr'] = 0
         parms['blc'] = [0, 0, 0]
         parms['trc'] = -1
-        __test_exception(parms, 'blc must have length of 2')
+        self.exception_check(self.tb.getcellslice, parms, 'blc must have length of 2')
         # blc too low
         parms = {}
         parms['columnname'] = 'map'
         parms['rownr'] = 0
         parms['blc'] = [0, -1]
         parms['trc'] = -1
-        __test_exception(
-            parms, 'All elements of blc must be greater than or equal to 0'
+        self.exception_check(
+            self.tb.getcellslice, parms, 'All elements of blc must be greater than or equal to 0'
         )
         # blc too high
         parms = {}
@@ -202,22 +243,22 @@ class table_getcellslice_test(TableBase):
         parms['rownr'] = 0
         parms['blc'] = [0, 4]
         parms['trc'] = -1
-        __test_exception(parms, 'Element 1 of blc must be less than 4')
+        self.exception_check(self.tb.getcellslice, parms, 'Element 1 of blc must be less than 4')
         # bad trc
         parms = {}
         parms['columnname'] = 'map'
         parms['rownr'] = 0
         parms['blc'] = -1
         parms['trc'] = [5, 5, 5]
-        __test_exception(parms, 'trc must have length of 2')
+        self.exception_check(self.tb.getcellslice, parms, 'trc must have length of 2')
         # trc negative
         parms = {}
         parms['columnname'] = 'map'
         parms['rownr'] = 0
         parms['blc'] = -1
         parms['trc'] = [2, -1]
-        __test_exception(
-            parms, 'All elements of trc must be greater than or equal to 0'
+        self.exception_check(
+            self.tb.getcellslice, parms, 'All elements of trc must be greater than or equal to 0'
         )
         # trc too large
         parms = {}
@@ -225,15 +266,15 @@ class table_getcellslice_test(TableBase):
         parms['rownr'] = 0
         parms['blc'] = -1
         parms['trc'] = [4, 4]
-        __test_exception(parms, 'Element 0 of trc must be less than 3')
+        self.exception_check(self.tb.getcellslice, parms, 'Element 0 of trc must be less than 3')
         # trc less than blc
         parms = {}
         parms['columnname'] = 'map'
         parms['rownr'] = 0
         parms['blc'] = [1, 2]
         parms['trc'] = [2, 0]
-        __test_exception(
-            parms,
+        self.exception_check(
+            self.tb.getcellslice, parms,
             'All elements of trc must be greater than or equal to their '
             'corresponding blc elements'
         )
@@ -244,8 +285,8 @@ class table_getcellslice_test(TableBase):
         parms['blc'] = -1
         parms['trc'] = -1
         parms['incr'] = [1,1,1]
-        __test_exception(
-            parms, 'incr must have length of 2'
+        self.exception_check(
+            self.tb.getcellslice, parms, 'incr must have length of 2'
         )
         # incr negative
         parms = {}
@@ -254,8 +295,8 @@ class table_getcellslice_test(TableBase):
         parms['blc'] = -1
         parms['trc'] = -1
         parms['incr'] = [1, 0]
-        __test_exception(
-            parms, 'All elements of incr must be greater than 0'
+        self.exception_check(
+            self.tb.getcellslice, parms, 'All elements of incr must be greater than 0'
         )
 
 

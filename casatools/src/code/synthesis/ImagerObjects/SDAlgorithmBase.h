@@ -49,33 +49,11 @@
 #include<synthesis/ImagerObjects/SIImageStore.h>
 #include<synthesis/ImagerObjects/SIImageStoreMultiTerm.h>
 
-// supporting code for ContextBoundBool
-#include <mutex>
-
 namespace casa { //# NAMESPACE CASA - BEGIN
 
   /* Forware Declaration */
   class SIMinorCycleController;
 
-/**
- * Specialty bool that is guaranteed to be toggled (stop method)
- * when the context closes via RAII (Resource Acquisition Is Initialization).
- * 
- * Useful for telling a thread to stop executing, even if the calling context
- * stops unexpectedly or exceptions out of existance.
- */
-class ContextBoundBool
-{
-public:
-  ContextBoundBool(bool startValue);
-  bool getVal();
-  void stop();
-  ~ContextBoundBool();
-
-  bool itsVal;
-  bool itsInitialValue;
-  std::mutex itsMutex;
-};
 
 class SDAlgorithmBase {
 public:
@@ -91,7 +69,8 @@ public:
                    casacore::Bool isautomasking=false, 
                    //casacore::Bool fastnoise=true);
                    casacore::Bool fastnoise=true,
-                   casacore::Record robuststats=casacore::Record());
+                   casacore::Record robuststats=casacore::Record(),
+                   bool fullsummary=false);
 
   void setRestoringBeam( casacore::GaussianBeam restbeam, casacore::String usebeam );
   //  void setMaskOptions( casacore::String maskstring );
@@ -123,9 +102,6 @@ protected:
   casacore::Bool findMaxAbs(const casacore::Array<casacore::Float>& lattice,casacore::Float& maxAbs,casacore::IPosition& posMaxAbs);
   casacore::Bool findMaxAbsMask(const casacore::Array<casacore::Float>& lattice,const casacore::Array<casacore::Float>& mask,
 		      casacore::Float& maxAbs,casacore::IPosition& posMaxAbs);
-
-  // sample memory usage for profiling
-  void profileMinorCycle(ContextBoundBool &stop, casacore::uLong &peakMem);
 
   // Algorithm name
   casacore::String itsAlgorithmName;

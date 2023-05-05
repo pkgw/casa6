@@ -116,6 +116,7 @@ class ImagerParameters():
                  minpsffraction=0.1,
                  maxpsffraction=0.8,
                  interactive=False,
+                 fullsummary=False,
                  nmajor=-1,
 
                  deconvolver='hogbom',
@@ -243,14 +244,14 @@ class ImagerParameters():
 
                                     'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations, 
                                      'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
-                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename} }
+                                    'interactive':interactive, 'startmodel':startmodel, 'nsigma':nsigma,  'imagename':imagename, 'fullsummary':fullsummary} }
 
         ######### Iteration control. 
         self.iterpars = { 'niter':niter, 'cycleniter':cycleniter, 'threshold':threshold, 
                           'loopgain':loopgain, 'interactive':interactive,
                           'cyclefactor':cyclefactor, 'minpsffraction':minpsffraction, 
                           'maxpsffraction':maxpsffraction,
-                          'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor}
+                          'savemodel':savemodel,'nsigma':nsigma, 'nmajor':nmajor, 'fullsummary':fullsummary}
 
         ######### CFCache params. 
         self.cfcachepars = {'cflist': cflist}
@@ -555,8 +556,9 @@ class ImagerParameters():
                 if self.iterpars['interactive']==True or self.alldecpars['0']['usemask']=='auto-multithresh' or \
                    self.alldecpars['0']['nsigma']>0.0:
                    self.iterpars['savemodel']='none' 
-                   self.allselpars['ms0']['readonly']=True
-                   self.allselpars['ms0']['usescratch']=False
+                   for visid in self.allselpars:  
+                      self.allselpars[visid]['readonly']=True
+                      self.allselpars[visid]['usescratch']=False
 
         return errs
 

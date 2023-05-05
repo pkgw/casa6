@@ -1871,10 +1871,11 @@ Bool Imager::setoptions(const String& ftmachine, const Long cache, const Int til
 }
 
 Bool Imager::setsdoptions(const Float scale, const Float weight, 
-			  const Int convsupport, String pointCol,
-			  const Quantity truncate,
-			  const Quantity gwidth, const Quantity jwidth,
-			  const Float minweight, const Bool clipminmax)
+                          const Int convsupport, String pointCol,
+                          const Quantity truncate,
+                          const Quantity gwidth, const Quantity jwidth,
+                          const Float minweight, const Bool clipminmax,
+                          const Bool enablecache)
 {
   LogIO os(LogOrigin("imager", "setsdoptions()", WHERE));
   
@@ -1897,6 +1898,7 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
   qjwidth_p=jwidth;
   minWeight_p = minweight;
   clipminmax_p = clipminmax;
+  enablecache_p = enablecache;
 
   // Destroy the FTMachine
   if(ft_p) {delete ft_p; ft_p=0;}
@@ -2207,14 +2209,14 @@ Bool Imager::feather(const String& image, const String& highRes,
 	  os << LogIO::NORMAL // Loglevel PROGRESS
              << "Making some temporary images as the inputs have no Stokes axis.\n" 
              << LogIO::POST;
-	  PtrHolder<ImageInterface<Float> > outImage1;
+	  std::unique_ptr<ImageInterface<Float> > outImage1;
 	  outHighRes= highRes+"_stokes";
 	  ImageUtilities::addDegenerateAxes (os, outImage1, hightemp, outHighRes,
 					     false, false,
 					     "I", false, false,
 					     false);
 
-	  PtrHolder<ImageInterface<Float> > outImage2;
+	  std::unique_ptr<ImageInterface<Float> > outImage2;
 	  outLowRes= lowRes+"_stokes";
 	  ImageUtilities::addDegenerateAxes (os, outImage2, lowtemp, outLowRes,
 					     false, false,
@@ -2646,7 +2648,7 @@ Bool Imager::uvrange(const Double& uvmin, const Double& uvmax)
      spwsel << "]";
 
      MSSpectralWindow msspw(tableCommand(spwsel.str(), 
-					 mssel_p->spectralWindow()));
+					 mssel_p->spectralWindow()).table());
      MSSpWindowColumns spwc(msspw);
 
      // This averaging scheme will work even if the spectral windows are
@@ -2687,7 +2689,7 @@ Bool Imager::uvrange(const Double& uvmin, const Double& uvmax)
      // Apply the TAQL selection string, to remake the selected MS
      String parseString="select from $1 where (SQUARE(UVW[1]) + SQUARE(UVW[2]))*" + (string) strInvLambda + " > " + strUVmin.str( ) + " &&  (SQUARE(UVW[1]) + SQUARE(UVW[2]))*" + (string) strInvLambda + " < " + strUVmax.str( );
 
-     mssel_p2=new MeasurementSet(tableCommand(parseString,*mssel_p));
+     mssel_p2=new MeasurementSet(tableCommand(parseString,*mssel_p).table());
      AlwaysAssert(mssel_p2, AipsError);
      // Rename the selected MS as */SELECTED_UVRANGE
      //mssel_p2->rename(msname_p+"/SELECTED_UVRANGE", Table::Scratch);
@@ -3079,6 +3081,10 @@ Bool Imager::makeimage(const String& type, const String& image,
     String ftmachine(ftmachine_p);
     if (!ft_p)
       createFTMachine();
+    
+    os << LogIO::DEBUG1 << "FTMachine is : " << ftmachine 
+       << " (" << ft_p << ")" << LogIO::POST;
+    
     
     // Now make the required image
     Matrix<Float> weight;

@@ -584,8 +584,15 @@ void TJones::createCorruptor(const VisIter& vi, const Record& simpar, const Int 
       }
 
       // RI todo T::createCorr make min screen granularity a user parameter
-      Float fBM_interval=max(interval(),10.); // generate screens on >10s intervals
-      if (prtlev()>2) cout<<"set fBM_interval"<<" to "<<fBM_interval<<" startTime="<<corruptor_p->startTime()<<" stopTime="<<corruptor_p->stopTime()<<endl;
+      Float minFBM_interval = 0.1; // generate screens on >0.1s intervals
+      Float defaultFBM_interval = 10.; 
+      Float fBM_interval=max(interval(), minFBM_interval); 
+      if (interval() <= 0.){ // use default value
+	fBM_interval = defaultFBM_interval;
+      } else if ( (fBM_interval - interval()) > 1E-5 ){
+	os << LogIO::WARN << " Requested phase screen time granularity (" << interval() 
+	   << " s) is too small! Will use the minimum permitted value: " << minFBM_interval << " s." <<  LogIO::POST;
+      }
 
       corruptor_p->setEvenSlots(fBM_interval);
 
@@ -1384,12 +1391,12 @@ void BJones::calcWtScale() {
 
   if (cpp_) {
     Cube<Float> tr;
-    cpp_->getTresult(tr,ampfl,currObs(),currField(),-1,currSpw());
+    cpp_->getTresult(tr,ampfl,currObs(),currScan(),currField(),-1,currSpw());
     amps.reference(tr(Slice(0,2,2),Slice(),Slice()));
   }
   else if (ci_) {
-    amps=Cube<Float>(ci_->tresultF(currObs(),currField(),currSpw()))(Slice(0,2,2),Slice(),Slice());
-    ampfl=ci_->tresultFlag(currObs(),currField(),currSpw());
+    amps=Cube<Float>(ci_->tresultF(currObs(),currScan(),currField(),currSpw()))(Slice(0,2,2),Slice(),Slice());
+    ampfl=ci_->tresultFlag(currObs(),currScan(),currField(),currSpw());
   }
   else
     // BPOLY?

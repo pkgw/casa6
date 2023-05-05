@@ -30,6 +30,9 @@ This is a standard python module that provides CASA tools and tasks
 without regular CASA's bespoke CLI.
 """
 from __future__ import division, print_function
+from urllib import request
+from shutil import copyfileobj
+
 
 classifiers = """\
 Development Status :: 3 - Alpha
@@ -60,9 +63,9 @@ import os
 try:
     import casatools
     from casatools.config import build as tools_config
-except ImportError as exc:
-    print(f'Exception found when importing casatools: {type(exc).__name__} {exc}')
-    sys.exit(1)
+except ImportError:
+    print(f'casatools.config.build could not be imported, using XML casa jar directly')
+    tools_config = None
 
 from setuptools import setup, find_packages
 from distutils.dir_util import copy_tree, remove_tree
@@ -452,6 +455,13 @@ class BuildCasa(build):
         print("finalizing options...")
         build.finalize_options(self)
 
+    def xml_jar_fetch(self,xml_jar_path, xml_jar_url ):
+        if not os.path.exists(os.path.dirname(xml_jar_path)):
+            os.makedirs(os.path.dirname(xml_jar_path))
+        if not os.path.exists( xml_jar_path ):
+            with request.urlopen(xml_jar_url) as istream, open(xml_jar_path,'wb') as fd:
+                copyfileobj( istream, fd )
+
     def run(self):
 
         libdir = os.path.join("build",distutils_dir_name('lib'))
@@ -461,8 +471,15 @@ class BuildCasa(build):
         copy_tree('src',moduledir)
 
         print("generating task python files...")
-        proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
-                      stdout=subprocess.PIPE )
+        if tools_config is not None:
+            proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
+                          stdout=subprocess.PIPE )
+        else:
+            xml_jar_file = 'xml-casa-assembly-1.77.jar'
+            xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
+            xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
+            self.xml_jar_fetch(xml_jar_path, xml_jar_url)
+            proc = Popen(['java', '-jar', xml_jar_path, '-task', 'output-task=%s' % moduledir] + xml_files, stdout=subprocess.PIPE)
 
         (output, error) = pipe_decode(proc.communicate( ))
 
@@ -660,5 +677,5 @@ setup( name=module_name,version=casatasks_version,
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatools.version_string( ), 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi' ]
 )

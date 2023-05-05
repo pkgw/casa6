@@ -7,7 +7,7 @@ import numpy.random as random
 from casatasks import casalog
 from casatools import calibrater, ms, table
 
-from . import sdutil
+from . import casaxmlutil, sdutil
 from .mstools import write_history
 
 # Table tool
@@ -18,6 +18,7 @@ cb = calibrater()
 myms = ms()
 
 
+@casaxmlutil.xml_constraints_injector
 @sdutil.sdtask_decorator
 def sdcal(infile=None, calmode='tsys', fraction='10%', noff=-1,
           width=0.5, elongated=False, applytable='', interp='', spwmap={},
