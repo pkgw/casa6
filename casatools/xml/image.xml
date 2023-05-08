@@ -9026,17 +9026,17 @@ ia.close()
         <param name="major" type="any">
             <any type="variant"/>
             <description>Major axis FWHM, Quantity or float (e.g., 1arcsec).  Default is unset.</description>
-            <value>1arcsec</value>
+            <value/>
         </param>
         <param name="minor" type="any">
             <any type="variant"/>
             <description>Minor axis FWHM, Quantity or float (e.g., 1arcsec). Default is unset.</description>
-            <value>1arcsec</value>
+            <value/>
         </param>
         <param name="pa" type="any">
             <any type="variant"/>
             <description>Position angle, Quantity or float (e.g., '5deg'). Default is unset.</description>
-            <value>0deg</value>
+            <value type="string">Not specified</value>
         </param>
         <param name="beam" type="record">
             <description>The complete restoring beam (output of restoringbeam()).  Default is unset.</description>
@@ -9068,21 +9068,7 @@ ia.close()
     <returns type="bool">T or fail</returns>
     <description>
 
-This method sets the restoring beam(s) for an image.
-
-The beam may be specified in one of two ways.  
-
-First, the beam parameter may be specified for which a dictionary must be set
-containing  fields 'major', 'minor' and 'positionangle'. Each of these fields
-must contain a quantity.  This record is in the same format as  one returned by
-restoringbeam() method. In this case, the major, minor, and pa parameters are
-ignored.
-
-Second, major, minor, and pa may be specified.  Only the ones that are 
-specified are used. Each parameter should be assigned either a quantity or a
-float (units are implicitly those of the current beam - or if none, arcsec for
-the axes and degrees for the position angle). These parameters are only used if
-the beam parameter is not specified.
+This method sets the restoring beam(s) for an image or removes an existing beam(s).
 
 An image must have exactly one of the following states:
 
@@ -9100,6 +9086,34 @@ and a set of per-plane beams. Task and method behavior is undefined in that case
 and any resulting products are considered corrupt.
 
 RULES FOR BEAM MODIFICATION
+
+1. If remove=true, any existing beam(s) are removed.
+
+2. Else if imagename is specified, the beam(s) from the specified image will
+be copied to the image being accessed by the image tool. Multiple beams
+may be copied, but the two images must have the same number of frequency
+channels and polarization planes. If not, an exception is thrown.
+
+3. Else if the beam parameter is specified, it will be used. It must be fully
+specified. It must have exactly three items with keys &quot;major&quot;,
+&quot;minor&quot;, and &quot;positionangle&quot;. Each of these keys
+must be a proper quantity dictionary with keys &quot;value&quot; and
+&quot;unit&quot;. The units for all three items should be angular. The
+&quot;major&quot; and &quot;minor&quot; items must have non-negative values.
+If any of these conditions is not met, an exception will be thrown. 
+
+4. Else the &quot;major&quot;, &quot;minor&quot;, and &quot;pa&quot;
+parameters must be specified. Any or all of these may be a quantity string
+(eg, &quot;2arcsec&quot;, a quantity dictionary with keys &quot;value&quot;
+and &quot;unit&quot;. or a numerical value. &quot;major&quot; and
+&quot;minor&quot; must have non-negative values. If any of these conditions
+is not met, an exception will be thrown. In the case of a quantity
+being specified the &quot;unit&quot; should be an angular unit or no unit.
+In the case of no unit or a numerical value specified, if the image already
+has a beam then the corresponding unit for that parameter in the current beam
+will be used. If the image has no beam, then &quot;arcsec&quot; is used for
+&quot;major&quot; and &quot;minor&quot;, and &quot;deg&quot; is used for
+&quot;pa&quot;. 
 
 If an image has no beams, a traditional (global) beam can be added by setting
 both channel and polarization to negative values.
@@ -9125,22 +9139,6 @@ value. Similarly, in the case where an image has multiple polarizations, the
 beams associated with all polarizations for a given spectral channel can be
 modified to the same beam by setting channel equal to the desired spectral
 channel number and by setting polarization to a negative value.
-
-In the case where a single beam (either global or a single beam in a set of
-per-plane beams) is specified and the corresponding beam already exists,
-providing a value of zero for the major and/or minor axis will result in that
-axis not being modified. This functionality provides a means to easily change
-only the position angle of the given beam while leaving the major and minor
-axes unchanged.
-
-A beam or set of beams can be copied from another image using the imagename
-parameter to specify that image's name. If both the current image and specified
-image have multiple beams, the current image shape must be consistent with the
-specified image beam set shape.
-
-The traditional beam or a set of multiple beams can be deleted from an image by
-setting remove=True. If set to true, all other parameters are then ignored;
-all existing beams will be irrevocably deleted.
 
 </description>
 

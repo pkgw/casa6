@@ -125,148 +125,156 @@ template <class T> void BeamManipulator<T>::set(const casacore::ImageBeamSet& be
 }
 
 template <class T> void BeamManipulator<T>::set(
-	const casacore::Quantity& major, const casacore::Quantity& minor,
-	const casacore::Quantity& pa, const casacore::Record& rec,
-	casacore::Int channel, casacore::Int polarization
+    const casacore::Quantity& major, const casacore::Quantity& minor,
+    const casacore::Quantity& pa, const casacore::Record& rec,
+    int channel, int polarization
 ) {
-	if (_log) {
-		*_log << casacore::LogOrigin("BeamManipulator", __func__);
-	}
-	casacore::ImageInfo ii = _image->imageInfo();
-	casacore::Quantity bmajor, bminor, bpa;
-	if (rec.nfields() != 0) {
-		if (
-			rec.isDefined("beams") && rec.isDefined("nChannels")
-			&& rec.isDefined("nStokes")
-		) {
-			ImageMetaData<T> md(_image);
-			casacore::uInt nChanIm = md.nChannels();
-			casacore::uInt nStokesIm = md.nStokes();
-			casacore::uInt nChanBeam = rec.asuInt("nChannels");
-			casacore::uInt nStokesBeam = rec.asuInt("nStokes");
-			if (nChanIm == nChanBeam && nStokesIm == nStokesBeam) {
-				if (ii.hasBeam()) {
-					if (_log) {
-						*_log << casacore::LogIO::WARN << "Overwriting existing beam(s)" << casacore::LogIO::POST;
-					}
-					ii.removeRestoringBeam();
-				}
-			}
-		}
-		else {
-			// instantiating this object will do implicit consistency checks
-			// on the passed-in record
-			casacore::GaussianBeam beam = casacore::GaussianBeam::fromRecord(rec);
-
-			bmajor = beam.getMajor();
-			bminor = beam.getMinor();
-			bpa = beam.getPA(true);
-		}
-	}
-	else {
-		bmajor = major;
-		bminor = minor;
-		bpa = pa;
-	}
-	if (bmajor.getValue() == 0 || bminor.getValue() == 0) {
-		casacore::GaussianBeam currentBeam = ii.restoringBeam(channel, polarization);
-		if (! currentBeam.isNull()) {
-            if (major.getValue() == 0) {
-                casacore::LogIO log;
-                log << casacore::LogOrigin("BeamManipulator", __func__)
-                    << casacore::LogIO::WARN << "Specified major axis length "
-                    << "is 0, existing beam major axis will not be modified"
-                    << LogIO::POST;
-                bmajor = currentBeam.getMajor();
+    if (_log) {
+        *_log << casacore::LogOrigin("BeamManipulator", __func__);
+    }
+    casacore::ImageInfo ii = _image->imageInfo();
+    casacore::Quantity bmajor, bminor, bpa;
+    if (rec.nfields() != 0) {
+        if (
+            rec.isDefined("beams") && rec.isDefined("nChannels")
+            && rec.isDefined("nStokes")
+        ) {
+            // multi-beam record
+            ImageMetaData<T> md(_image);
+            auto nChanIm = md.nChannels();
+            auto nStokesIm = md.nStokes();
+            auto nChanBeam = rec.asuInt("nChannels");
+            auto nStokesBeam = rec.asuInt("nStokes");
+            if (nChanIm == nChanBeam && nStokesIm == nStokesBeam) {
+                if (ii.hasBeam()) {
+                    if (_log) {
+                        *_log << casacore::LogIO::WARN << "Overwriting existing beam(s)" << casacore::LogIO::POST;
+                    }
+                    ii.removeRestoringBeam();
+                }
+            }
+        }
+        else {
+            // instantiating this object will do implicit consistency checks
+            // on the passed-in record
+            if (
+                _log && (
+                    major.getValue() != 0 || minor.getValue() != 0 || pa.getValue() != 0
+                )
+            ) {
+                *_log << casacore::LogIO::WARN << "beam record was specified as well as "
+                    "at least one of major, minor, or pa. major, minor, and pa will be "
+                    "ignored" << casacore::LogIO::POST;
+            }
+            auto beam = casacore::GaussianBeam::fromRecord(rec);
+            bmajor = beam.getMajor();
+            bminor = beam.getMinor();
+            bpa = beam.getPA(true);
+        }
+    }
+    else {
+        bmajor = major;
+        bminor = minor;
+        bpa = pa;
+        _setUnitIfNecessary(bmajor, "major", ii, channel, polarization);
+        _setUnitIfNecessary(bminor, "minor", ii, channel, polarization); 
+        _setUnitIfNecessary(bpa, "pa", ii, channel, polarization); 
+    }
+    ThrowIf(
+        bmajor.getValue() <= 0 || bminor.getValue() <= 0,
+        "Both the major and minor axes must be non-negative"
+    );
+    if (ii.hasMultipleBeams()) {
+        if (channel < 0 && polarization < 0) {
+            if (_log) {
+                *_log << casacore::LogIO::WARN << "This image has per plane beams"
+                    << "but no plane (channel/polarization) was specified. All beams will be set "
+                    << "equal to the specified beam." << casacore::LogIO::POST;
+            }
+            ImageMetaData<T> md(_image);
+            ii.setAllBeams(
+                md.nChannels(), md.nStokes(),
+                casacore::GaussianBeam(bmajor, bminor, bpa)
+            );
+        }
+        else {
+            ii.setBeam(channel, polarization, bmajor, bminor, bpa);
+        }
+    }
+    else if (channel >= 0 || polarization >= 0) {
+        if (ii.restoringBeam().isNull()) {
+            if (_log) {
+                *_log << casacore::LogIO::NORMAL << "This image currently has no beams of any kind. "
+                    << "Since channel and/or polarization were specified, "
+                    << "a set of per plane beams, each equal to the specified beam, "
+                    << "will be created." << casacore::LogIO::POST;
+            }
+            ImageMetaData<T> md(_image);
+            ii.setAllBeams(
+                md.nChannels(), md.nStokes(),
+                casacore::GaussianBeam(bmajor, bminor, bpa)
+            );
+        }
+        else {
+            ThrowCc(
+                "Channel and/or polarization has "
+                "been specified, but this image has a single (global restoring "
+                "beam. This beam will not be altered. If you really want to modify "
+                "the global beam, rerun setting both channel and "
+                "polarization less than zero"
+            );
+        }
+    }
+    else {
+        if (_log) {
+            *_log << casacore::LogIO::NORMAL
+                << "Setting (global) restoring beam." << casacore::LogIO::POST;
+        }
+        ii.setRestoringBeam(casacore::GaussianBeam(bmajor, bminor, bpa));
+    }
+    ThrowIf(! _image->setImageInfo(ii), "Failed to set restoring beam");
+    if (_log) {
+        *_log << casacore::LogIO::NORMAL << "Beam parameters:"
+            << "  Major          : " << bmajor.getValue() << " " << bmajor.getUnit() << endl
+            << "  Minor          : " << bminor.getValue() << " " << bminor.getUnit() << endl
+            << "  Position Angle : " << bpa.getValue() << " " << bpa.getUnit() << endl
+            << casacore::LogIO::POST;
+    }
+}
+    
+template <class T> void BeamManipulator<T>::_setUnitIfNecessary(
+    casacore::Quantity& q, const casacore::String& label,
+    const casacore::ImageInfo& info, int channel, int polarization
+) {
+    if (q.getFullUnit() == casacore::Unit()) {
+        if (info.hasBeam()) {
+            const auto current = info.hasSingleBeam() ? info.restoringBeam() 
+                : info.restoringBeam(channel, polarization);
+            if (label == "major") {
+                q.setUnit(current.getMajor().getUnit());
+            }
+            else if (label == "minor") {
+                q.setUnit(current.getMinor().getUnit());
+            }
+            else if (label == "pa") {
+                q.setUnit(current.getPA().getUnit());
             }
             else {
-                bmajor = major;
+                ThrowCc("Logic error");
             }
-            if (minor.getValue() == 0) {
-                casacore::LogIO log;
-                log << casacore::LogOrigin("BeamManipulator", __func__)
-                    << casacore::LogIO::WARN << "Specified minor axis length "
-                    << "is 0, existing beam minor axis will not be modified"
-                    << LogIO::POST;
-                bminor = currentBeam.getMinor();
+        }
+        else {
+            if (label == "major" || label == "minor") {
+                q.setUnit("arcsec");
+            }
+            else if (label == "pa") {
+                q.setUnit("deg");
             }
             else {
-                bminor = minor;
+                ThrowCc("Logic error");
             }
-			bpa = pa.isConform("rad") ? pa : casacore::Quantity(0, "deg");
-		}
-		else {
-			ThrowIf(
-				ii.hasMultipleBeams(),
-				"This image does not have a corresponding per plane "
-				"restoring beam that can be "
-				"used to set missing input parameters"
-			);
-			ThrowCc(
-				"This image does not have a restoring beam that can be "
-				"used to set missing input parameters"
-			);
-		}
-	}
-	if (ii.hasMultipleBeams()) {
-		if (channel < 0 && polarization < 0) {
-			if (_log) {
-				*_log << casacore::LogIO::WARN << "This image has per plane beams"
-					<< "but no plane (channel/polarization) was specified. All beams will be set "
-					<< "equal to the specified beam." << casacore::LogIO::POST;
-			}
-			ImageMetaData<T> md(_image);
-			ii.setAllBeams(
-				md.nChannels(), md.nStokes(),
-				casacore::GaussianBeam(bmajor, bminor, bpa)
-			);
-		}
-		else {
-			ii.setBeam(channel, polarization, bmajor, bminor, bpa);
-		}
-	}
-	else if (channel >= 0 || polarization >= 0) {
-		if (ii.restoringBeam().isNull()) {
-			if (_log) {
-				*_log << casacore::LogIO::NORMAL << "This image currently has no beams of any kind. "
-					<< "Since channel and/or polarization were specified, "
-					<< "a set of per plane beams, each equal to the specified beam, "
-					<< "will be created." << casacore::LogIO::POST;
-			}
-			ImageMetaData<T> md(_image);
-			ii.setAllBeams(
-				md.nChannels(), md.nStokes(),
-				casacore::GaussianBeam(bmajor, bminor, bpa)
-			);
-		}
-		else {
-			ThrowCc(
-				"Channel and/or polarization has "
-				"been specified, but this image has a single (global restoring "
-				"beam. This beam will not be altered. If you really want to modify "
-				"the global beam, rerun setting both channel and "
-				"polarization less than zero"
-			);
-		}
-	}
-	else {
-		if (_log) {
-			*_log << casacore::LogIO::NORMAL
-				<< "Setting (global) restoring beam." << casacore::LogIO::POST;
-		}
-		ii.setRestoringBeam(casacore::GaussianBeam(bmajor, bminor, bpa));
-	}
-	ThrowIf(
-		! _image->setImageInfo(ii),
-		"Failed to set restoring beam"
-	);
-	if (_log) {
-		*_log << casacore::LogIO::NORMAL << "Beam parameters:"
-			<< "  Major          : " << bmajor.getValue() << " " << bmajor.getUnit() << endl
-			<< "  Minor          : " << bminor.getValue() << " " << bminor.getUnit() << endl
-			<< "  Position Angle : " << bpa.getValue() << " " << bpa.getUnit() << endl
-			<< casacore::LogIO::POST;
-	}
+        }
+    }
 }
 
 }
