@@ -5900,13 +5900,22 @@ template<class T> void image::_setrestoringbeam(
     bool remove, bool log, int channel, int polarization,
     const Record& rec, const ImageBeamSet& bs
 ) {
+    _log << _ORIGIN;
     BeamManipulator<T> bManip(image);
     bManip.setVerbose(log);
     if (remove) {
+        if (log) {
+            _log << LogIO::NORMAL << "Will remove any existing beams from image"
+                << LogIO::POST;
+        }
         bManip.remove();
         return;
     }
     else if (! bs.empty()) {
+        if (log) {
+            _log << LogIO::NORMAL << "Will copy beams from another image to this image"
+                << LogIO::POST;
+        }
         bManip.set(bs);
         return;
     }
@@ -5932,6 +5941,16 @@ template<class T> void image::_setrestoringbeam(
                 "positionangle must be sspecified and be either valid "
                 "quantity records or strings"
             );
+        }
+        if (log) {
+            _log << LogIO::NORMAL << "Will use values specified in major, "
+                << "minor, pa to set beam" << LogIO::POST;
+        }
+    }
+    else if (log) {
+        if (log) {
+            _log << LogIO::NORMAL << "Will use dictionary specified in beam "
+                << "parameter to set the beam(s)" << LogIO::POST;
         }
     }
     bManip.set(bmajor, bminor, bpa, rec, channel, polarization);
