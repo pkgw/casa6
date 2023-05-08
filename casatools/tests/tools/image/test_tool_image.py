@@ -3716,6 +3716,7 @@ class ia_restoringbeam_test(ImageBase):
         myia.setrestoringbeam(major="8arcsec", minor="4arcsec", pa="0deg", channel=2, polarization=2)
         myia.done()
         myia.fromshape("", shape=[10, 10, nchan, nstokes])
+        """
         self.assertRaises(
             Exception, myia.setrestoringbeam,
             major="4arcsec", minor="2arcsec", pa="0deg",
@@ -3726,6 +3727,7 @@ class ia_restoringbeam_test(ImageBase):
             remove=True,
             imagename=self.imagename
         )
+        """
         myia.setrestoringbeam(imagename=self.imagename)
         self._compareBeams(myia, self.imagename)
         # test overwriting

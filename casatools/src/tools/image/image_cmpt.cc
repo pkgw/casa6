@@ -5812,18 +5812,7 @@ bool image::setrestoringbeam(
         }
         std::unique_ptr<Record> rec(toRecord(beam));
         ImageBeamSet bs;
-        if (! imagename.empty()) {
-            ThrowIf(
-                ! major.empty() || ! minor.empty() || ! pa.empty(),
-                "Cannot specify both imagename and major, minor, and/or pa"
-            );
-            ThrowIf(
-                remove, "remove cannot be true if imagename is specified"
-            );
-            ThrowIf(
-                ! beam.empty(),
-                "beam must be empty if imagename specified"
-            );
+        if (! (remove || imagename.empty())) {
             ThrowIf(
                 channel >= 0 || polarization >= 0,
                 "Neither channel nor polarization can be non-negative if "
@@ -5913,15 +5902,16 @@ template<class T> void image::_setrestoringbeam(
 ) {
     BeamManipulator<T> bManip(image);
     bManip.setVerbose(log);
-    casacore::Quantity bmajor, bminor, bpa;
     if (remove) {
         bManip.remove();
         return;
     }
     else if (! bs.empty()) {
         bManip.set(bs);
+        return;
     }
-    else if (rec.empty()) {
+    casacore::Quantity bmajor, bminor, bpa;
+    if (rec.empty()) {
         if (major.empty()) {
             ThrowCc("beam record is empty, major must be specified");
         }
