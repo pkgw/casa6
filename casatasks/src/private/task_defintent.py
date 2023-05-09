@@ -3,39 +3,39 @@ import os
 import numpy as np
 
 import casatools
-
-def parseSelection(selection):
-    selected = []
     
-    if selection == '':
-        return selected
+def selectionToQuery(queryStrings):
+    # querys are constructed from a list of the query parameters
+    fieldQuery = queryStrings[0]
+    scanQuery = queryStrings[1]
+    obsQuery = queryStrings[2]
+    
+    queryTypes = ['FIELD_ID', 'SCAN_NUMBER', 'OBSERVATION_ID']
+    
+    querys = []
+    finalQuery = ''
+    
+    for i in range(len(queryTypes)):
+        queryList = []
+        # split the query string for this selection
+        elements = queryStrings[i].split(',')
         
-    for item in selection.split(','):
-        if '~' in item:
-            start, end = item.split('~')
-            selected.extend(range(int(start), int(end)+1))
-        else:
-            selected.append(int(item))
-    return selected
-    
-def selectionToQuery(queryParam, queryString):
-    elements = queryString.split(',')
-    
-    queryElements = []
-    for element in elements:
-        if '~' in element:
-            start, end = element.split('~')
-            start = int(start.strip())
-            end = int(end.strip())
-            
-            rangeString = f"{start} <= {queryParam} <= {end}"
-            queryElements.append(rangeString)
-        else:
-            queryElements.append(f"{queryParam} == {element.strip()}")
-            
-    queryFinal = " || ".join(queryElements)
-    
-    return queryFinal
+        for element in elements:
+            if '~' in element:
+                start, end = element.split('~')
+                start = int(start.strip())
+                end = int(end.strip())
+                
+                queryList += [x for x in range(start, end+1)]
+            elif element != '':
+                queryList.append(int(element.strip()))
+        
+        if queryList != []:
+            querys.append(f"{queryTypes[i]} in {queryList}")
+    if querys != []:
+        finalQuery = " && ".join(querys)
+        
+    return finalQuery
             
 
 def defintent(vis='', intent='', mode='',
@@ -101,44 +101,18 @@ def defintent(vis='', intent='', mode='',
     scanNum = tb.getcol('SCAN_NUMBER')
     stateIds = tb.getcol('STATE_ID')
     obsIds = tb.getcol('OBSERVATION_ID')
-    """
-    # query selection
-    toJoin = []
-    if (field != ''):
-        toJoin.append(selectionToQuery('FIELD_ID', field))
-    if (scan != ''):
-        toJoin.append(selectionToQuery('SCAN_NUMBER', scan))
-    if (obsid != ''):
-        toJoin.append(selectionToQuery('OBSERVATION_ID', obsid))
-        
-    print(toJoin)
-    queryString = " && ".join(toJoin)
-    selectedData = tb.query(queryString)
     
+    # query tool selection
+    taskQuery = selectionToQuery([field, scan, obsid])
+    
+    selectedData = tb.query(taskQuery)
     selectedRows = set(selectedData.rownumbers())
+    
     selectedStateIds = selectedData.getcol('STATE_ID')
-    for row in selectedRows:
-        selectedIntents[selectedStateIds[row]] = selectedStateIds[row]
-    """
+    for i in range(len(selectedRows)):
+        selectedIntents[selectedStateIds[i]] = selectedStateIds[i]
+        
     tb.close()
-    
-    # split selection parameters into array
-    selectedFieldList = parseSelection(field)
-    selectedScanList = parseSelection(scan)
-    selectedObsIdList = parseSelection(obsid)
-    
-    # Select rows based on field and scan and add selected intents
-    # if row field/scan is in the sting array, select that row
-    for row in range(len(fieldIds)):
-        # also select if field == ''
-        if field == '' or fieldIds[row] in selectedFieldList or fieldIds[row] in np.where(fieldnames == field):
-            foundField = True
-            if scanNum[row] in selectedScanList or scan == '':
-                if obsIds[row] in selectedObsIdList or obsid == '':
-                    #selectedRows[row] = stateIds[row]
-                    selectedRows.add(row)
-                    selectedIntents[stateIds[row]] = stateIds[row]
-                    #selectedIntents.add(stateIds[row])
                 
     print("Number of matching rows found: ", len(selectedRows))
     
