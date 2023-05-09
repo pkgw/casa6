@@ -70,22 +70,22 @@ private:
 class MSCalPatchKey : virtual public CalPatchKey
 {
 public:
-  MSCalPatchKey(casacore::Int obs,casacore::Int fld,casacore::Int ent,casacore::Int spw,casacore::Int ant=-1);
+  MSCalPatchKey(casacore::Int obs,casacore::Int scan,casacore::Int fld,casacore::Int ent,casacore::Int spw,casacore::Int ant=-1);
   virtual ~MSCalPatchKey(){};
   virtual casacore::String print() const;
 private:
-  casacore::Int obs_,fld_,ent_,spw_,ant_;
+  casacore::Int obs_,scan_,fld_,ent_,spw_,ant_;
 };
 
 
 class CTCalPatchKey : virtual public CalPatchKey
 {
 public:
-  CTCalPatchKey(casacore::Int clsl,casacore::Int obs,casacore::Int fld,casacore::Int spw,casacore::Int ant=-1);
+  CTCalPatchKey(casacore::Int clsl,casacore::Int obs,casacore::Int scan,casacore::Int fld,casacore::Int spw,casacore::Int ant=-1);
   virtual ~CTCalPatchKey(){};
   virtual casacore::String print() const;
 private:
-  casacore::Int clsl_,obs_,fld_,spw_,ant_;
+  casacore::Int clsl_,obs_,scan_,fld_,spw_,ant_;
 };
 
 // A base class for calmaps
@@ -162,7 +162,31 @@ private:
 
 };
 
+class ObsCalMap : public CalMap
+{
+public:
 
+  // Null ctor
+  ObsCalMap();
+
+  // Algorithmic ctor that uses casacore::MS meta info
+  ObsCalMap(const casacore::String obscalmap,
+	    const casacore::MeasurementSet& ms);
+
+};
+
+class ScanCalMap : public CalMap
+{
+public:
+
+  // Null ctor
+  ScanCalMap();
+
+  // Algorithmic ctor that uses casacore::MS meta info
+  ScanCalMap(const casacore::String scancalmap,
+	     const casacore::MeasurementSet& ms);
+
+};
 
 
 // A class to parse the contents of a single CalLib slice 
@@ -170,9 +194,10 @@ private:
 class CalLibSlice
 {
 public:
-  CalLibSlice(casacore::String obs,casacore::String fld, casacore::String ent, casacore::String spw,
+  CalLibSlice(casacore::String obs, casacore::String scan, casacore::String fld, casacore::String ent, casacore::String spw,
 	      casacore::String tinterp,casacore::String finterp,
 	      casacore::Vector<casacore::Int> obsmap=casacore::Vector<casacore::Int>(1,-1), 
+	      casacore::Vector<casacore::Int> scanmap=casacore::Vector<casacore::Int>(1,-1), 
 	      casacore::Vector<casacore::Int> fldmap=casacore::Vector<casacore::Int>(1,-1), 
 	      casacore::Vector<casacore::Int> spwmap=casacore::Vector<casacore::Int>(1,-1), 
 	      casacore::Vector<casacore::Int> antmap=casacore::Vector<casacore::Int>(1,-1));
@@ -181,9 +206,9 @@ public:
 	      const NewCalTable& ct=NewCalTable());
 
 
-  casacore::String obs,fld,ent,spw;
+  casacore::String obs,scan,fld,ent,spw;
   casacore::String tinterp,finterp;
-  CalMap obsmap, fldmap, spwmap, antmap;
+  CalMap obsmap, scanmap, fldmap, spwmap, antmap;
 
   // validation
   static casacore::Bool validateCLS(const casacore::Record& clslice);
@@ -249,22 +274,24 @@ public:
   virtual ~CLPatchPanel();
 
   // Is specific calibration explicitly available for a obs,fld,intent,spw,ant combination?
-  casacore::Bool calAvailable(casacore::Int obs, casacore::Int fld, casacore::Int ent, 
+  casacore::Bool calAvailable(casacore::Int obs, casacore::Int scan,
+			      casacore::Int fld, casacore::Int ent, 
 			      casacore::Int spw, casacore::Int ant=-1);
   // Are specified indices OK for this CL (i.e., not explicitly marked as expected but absent)
   //  Will be calibrated if calAvailable=true, will be ignored if calAvailable()=false
-  casacore::Bool MSIndicesOK(casacore::Int obs, casacore::Int fld, casacore::Int ent, 
+  casacore::Bool MSIndicesOK(casacore::Int obs, casacore::Int scan,
+			     casacore::Int fld, casacore::Int ent, 
 			     casacore::Int spw, casacore::Int ant=-1);
 
   // Interpolate, given input obs, field, intent, spw, timestamp, & (optionally) freq 
   //    returns T if new result (anywhere,anyhow)
   //  For casacore::Complex params (calls casacore::Float version)
   casacore::Bool interpolate(casacore::Cube<casacore::Complex>& resultC, casacore::Cube<casacore::Bool>& resFlag,
-		   casacore::Int obs, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
+		   casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
 		   casacore::Double time, casacore::Double freq=-1.0);
   //  For casacore::Float params
   casacore::Bool interpolate(casacore::Cube<casacore::Float>& resultR, casacore::Cube<casacore::Bool>& resFlag,
-		   casacore::Int obs, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
+		   casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
 		   casacore::Double time, casacore::Double freq=-1.0);
 
   // Interpolate, given input obs, field, intent, spw, timestamp, & freq list
@@ -272,19 +299,19 @@ public:
   //    returns T if new result (anywhere,anyhow)
   //  For casacore::Complex params (calls casacore::Float version)
   casacore::Bool interpolate(casacore::Cube<casacore::Complex>& resultC, casacore::Cube<casacore::Bool>& resFlag,
-		   casacore::Int obs, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
+		   casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
 		   casacore::Double time, const casacore::Vector<casacore::Double>& freq);
   //  For casacore::Float params
   casacore::Bool interpolate(casacore::Cube<casacore::Float>& resultR, casacore::Cube<casacore::Bool>& resFlag,
-		   casacore::Int obs, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
+		   casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int ent, casacore::Int spw, 
 		   casacore::Double time, const casacore::Vector<casacore::Double>& freq);
 
   // Const access to various state
   // TBD
 
   casacore::Bool getTresult(casacore::Cube<casacore::Float>& resultR, casacore::Cube<casacore::Bool>& resFlag,
-		  casacore::Int obs, casacore::Int fld, casacore::Int ent, casacore::Int spw);
-
+			    casacore::Int obs, casacore::Int scan, casacore::Int fld,
+			    casacore::Int ent, casacore::Int spw);
 
   // Access to CalTable's freq info
   const casacore::Vector<casacore::Double>& freqIn(casacore::Int spw)  {return freqIn_[spw]; }; // per spw
@@ -306,20 +333,22 @@ private:
 
   // Methods to support layered selection
   void selectOnCTorMS(casacore::Table& ctout,casacore::MSSelectableTable& msst,
-		      const casacore::String& obs, const casacore::String& fld, 
-		      const casacore::String& ent,
+		      const casacore::String& obs, const casacore::String& scan,
+		      const casacore::String& fld, const casacore::String& ent,
 		      const casacore::String& spw, const casacore::String& ant,
 		      const casacore::String& taql);
   void selectOnMS(casacore::MeasurementSet& msout,const casacore::MeasurementSet& msin,
-		  const casacore::String& obs, const casacore::String& fld, 
-		  const casacore::String& ent,
+		  const casacore::String& obs, const casacore::String& scan,
+		  const casacore::String& fld, const casacore::String& ent,
 		  const casacore::String& spw, const casacore::String& ant);
   void selectOnCT(NewCalTable& ctout,const NewCalTable& ctin,
-		  const casacore::String& obs, const casacore::String& fld, 
+		  const casacore::String& obs, const casacore::String& scan,
+		  const casacore::String& fld, 
 		  const casacore::String& spw, const casacore::String& ant1);
 
   // Extract unique indices from caltables
   casacore::Vector<casacore::Int> getCLuniqueObsIds(NewCalTable& ct) {return getCLuniqueIds(ct,"obs"); };
+  casacore::Vector<casacore::Int> getCLuniqueScanIds(NewCalTable& ct) {return getCLuniqueIds(ct,"scan"); };
   casacore::Vector<casacore::Int> getCLuniqueFldIds(NewCalTable& ct) {return getCLuniqueIds(ct,"fld"); };
   casacore::Vector<casacore::Int> getCLuniqueSpwIds(NewCalTable& ct) {return getCLuniqueIds(ct,"spw"); };
   casacore::Vector<casacore::Int> getCLuniqueIds(NewCalTable& ct, casacore::String vcol);
@@ -345,9 +374,9 @@ private:
   casacore::InterpolateArray1D<casacore::Double,casacore::Float>::InterpolationMethod ftype(casacore::String& strtype);
 
 
-  void recordBadMSIndices(const casacore::Vector<casacore::Int>& obs, const casacore::Vector<casacore::Int>& fld,
-			  const casacore::Vector<casacore::Int>& ent, const casacore::Vector<casacore::Int>& spw);
-
+  void recordBadMSIndices(const casacore::Vector<casacore::Int>& obs, const casacore::Vector<casacore::Int>& scan,
+			  const casacore::Vector<casacore::Int>& fld, const casacore::Vector<casacore::Int>& ent,
+			  const casacore::Vector<casacore::Int>& spw);
 
 
   // PRIVATE DATA:

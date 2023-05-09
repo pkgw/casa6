@@ -10,7 +10,7 @@
  ***/
 
 #include <iostream>
-#include <agentflagger_cmpt.h>
+#include "agentflagger_cmpt.h"
 
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/Logging/LogOrigin.h>
