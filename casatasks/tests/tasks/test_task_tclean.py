@@ -3868,7 +3868,7 @@ class test_widefield(testref_base):
           test_mosaicft_newpsfphasecenter_cube : different phasecenter for psf
           """
           self.prepData("refim_mawproject.ms")
-          ret=tclean(vis="refim_mawproject.ms",field="*",spw="*",datacolumn="corrected",imagename=self.img,imsize=512,cell="10.0arcsec",phasecenter="J2000 19:59:28.500 +40.44.01.50",stokes="I",specmode="cube",gridder="mosaic",psfphasecenter="J2000 19:59:28.520 +40.44.01.51",vptable="",pblimit=0.3,normtype="flatnoise",deconvolver="hogbom",restoration=True,weighting="natural", niter=30,gain=0.1, usemask="user",mask="",restart=True,savemodel="none",calcres=True,calcpsf=True, parallel=self.parallel)
+          ret=tclean(vis="refim_mawproject.ms",field="*",spw="*",datacolumn="corrected",imagename=self.img,imsize=512,cell="10.0arcsec",phasecenter="J2000 19:59:28.500 +40.44.01.50",stokes="I",specmode="cube",gridder="mosaic",psfphasecenter="J2000 19:59:28.520 +40.44.01.51",vptable="",pblimit=0.3,normtype="flatnoise",deconvolver="hogbom",restoration=True,weighting="briggs", niter=30,gain=0.1, usemask="user",mask="",restart=True,savemodel="none",calcres=True,calcpsf=True, parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'], imgval=[(self.img+'.image',0.99,[256,256,0,0]), (self.img+'.psf',1.0,[256,256,0,0])])
           self.assertTrue(self.check_final(report))
 

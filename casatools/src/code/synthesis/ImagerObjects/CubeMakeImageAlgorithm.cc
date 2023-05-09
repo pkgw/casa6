@@ -56,7 +56,7 @@ void CubeMakeImageAlgorithm::get() {
 	applicator.get(gridParsRec);
 	// get which channel to process #4
 	applicator.get(chanRange_p);
-	cerr <<"GET chanRange " << chanRange_p << endl;
+	//cerr <<"GET chanRange " << chanRange_p << endl;
 	// which type of image #5
 	applicator.get(imageType_p);
 	// weight params #6
@@ -128,6 +128,7 @@ void CubeMakeImageAlgorithm::task(){
 	subCimage.reset(SpectralImageUtil::getChannel(origCImage, chanRange_p[0], chanRange_p[1], true));
 	Matrix<Float> weight;
 	ift->makeImage(seType, *vi, *subCimage, weight);
+        ift->cleanupTempFiles("");
 	status_p = True;
 }
 String&	CubeMakeImageAlgorithm::name(){
