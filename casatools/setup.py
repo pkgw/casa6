@@ -193,7 +193,14 @@ class XmlCMakeBuildExt(build_ext):
         if self.with_casacpp is not None:
             cmake_args.append('-DCASACPP_ROOT=' + self.with_casacpp)
 
-        sourcedir="src/tools"
+        # Call cmake, first to create the Makefile and second to build everything
+        # The CCACHE_BASEDIR CCACHE_NOHASHDIR env variables allow ccache
+        # to work even if the absolute path of the compilation directory changes,
+        # as is the cawe with the python "build" package, that creates a temp
+        # dir under $TMPDIR/build-via-sdist-xxxxxx. See "man cmake" for details.
+        sourcedir='src/tools'
+        os.environ['CCACHE_BASEDIR'] = os.getcwd()
+        os.environ['CCACHE_NOHASHDIR'] = 'true'
         subprocess.check_call(['cmake', sourcedir] + cmake_args)
         subprocess.check_call(['cmake', '--build', '.'])
 
