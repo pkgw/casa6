@@ -7,6 +7,10 @@ from pathlib import Path
 import json
 import sys
 # IN PYTHON
+
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 def download_data(testfiles: list):
     """
     Usage 
@@ -41,15 +45,16 @@ def download_data(testfiles: list):
     for testfile in testfiles:
         startlen = len( fetch_path) 
         datapaths = [gitpaths[x] for x in [i for i, x in enumerate(gitpaths) if testfile in x]]
-        #datapaths = [x.rstrip() for x in datapaths if not x.startswith(directory)]
         datapaths = list(set(["/".join(x.split("/")[:-2]) if not x.startswith(tuple(["text","fits"])) else x for x in datapaths]))
-        #print(datapaths)
+        datapaths = [x.strip() for x in datapaths]
+
         # Check For Path explicitly 1st 
         for datapath in datapaths:
             if datapath.endswith(testfile) and datapath.split("/")[-1] == testfile: 
                 val = datapath
                 fetch_path.append(val)
                 break
+
         # Check For Path implicitly if not found initially 
         if len(fetch_path) == 0:
             for datapath in datapaths:
@@ -60,7 +65,7 @@ def download_data(testfiles: list):
         if len(fetch_path) == startlen:
             failedfind.append(testfile)
     datafile.close()
-
+    #sys.exit()
     if len(failedfind) > 0:
         print("Cannot Find Requested Data File(s) {}:.\nPlease Check File Names or contact Verification Team".format(",".join(failedfind)))
         return
@@ -315,3 +320,9 @@ EOF""".format(args.test_group)
         print("cd ..",file = bashFile)
         bashFile.close()
         print("File Saved as: {}".format(sh_filename))
+
+    if len(sys.argv) == 1:
+        print("No Arguments Given")
+        parser.print_help()
+        sys.exit(1)
+
