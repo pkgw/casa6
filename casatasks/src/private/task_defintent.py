@@ -81,6 +81,13 @@ def defintent(vis='', intent='', mode='',
     tb.open(vis+'/FIELD')
     fieldnames = tb.getcol('NAME')
     tb.close()
+    # Get field ids for names
+    fieldSplit = field.split(',')
+    fieldSplit = [x.strip() for x in fieldSplit]
+    tmpField = list(np.where(names==fieldSplit)[0])
+    tmpField = [str(x) for x in tmpField]
+    field = ",".join(tmpField)
+            
     # Get exitsing intents
     tb.open(vis+'/STATE')
     intentcol = tb.getcol('OBS_MODE')
