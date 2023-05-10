@@ -81,12 +81,23 @@ def defintent(vis='', intent='', mode='',
     tb.open(vis+'/FIELD')
     fieldnames = tb.getcol('NAME')
     tb.close()
+    
     # Get field ids for names
     fieldSplit = field.split(',')
     fieldSplit = [x.strip() for x in fieldSplit]
-    tmpField = list(np.where(names==fieldSplit)[0])
-    tmpField = [str(x) for x in tmpField]
-    field = ",".join(tmpField)
+    
+    # Link field names to ID
+    nameDict = {}
+    for i in range(len(fieldnames)):
+        if fieldnames[i] not in nameDict:
+            nameDict[fieldnames[i]] = str(i)
+        else:
+            nameDict[fieldnames[i]] += ',' + str(i)
+            
+    # Replace names in selection with IDs
+    for i in range(len(fieldSplit)):
+        if fieldSplit[i] in fieldnames:
+            field = field.replace(fieldSplit[i], nameDict[fieldSplit[i]])
             
     # Get exitsing intents
     tb.open(vis+'/STATE')
