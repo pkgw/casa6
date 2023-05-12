@@ -3,40 +3,6 @@ import os
 import numpy as np
 
 import casatools
-    
-def selectionToQuery(queryStrings):
-    # querys are constructed from a list of the query parameters
-    fieldQuery = queryStrings[0]
-    scanQuery = queryStrings[1]
-    obsQuery = queryStrings[2]
-    
-    queryTypes = ['FIELD_ID', 'SCAN_NUMBER', 'OBSERVATION_ID']
-    
-    querys = []
-    finalQuery = ''
-    
-    for i in range(len(queryTypes)):
-        queryList = []
-        # split the query string for this selection
-        elements = queryStrings[i].split(',')
-        
-        for element in elements:
-            if '~' in element:
-                start, end = element.split('~')
-                start = int(start.strip())
-                end = int(end.strip())
-                
-                queryList += [x for x in range(start, end+1)]
-            elif element != '':
-                queryList.append(int(element.strip()))
-        
-        if queryList != []:
-            querys.append(f"{queryTypes[i]} in {queryList}")
-    if querys != []:
-        finalQuery = " && ".join(querys)
-        
-    return finalQuery
-            
 
 def defintent(vis='', intent='', mode='',
               scan='', field='', obsid=''):
@@ -127,8 +93,6 @@ def defintent(vis='', intent='', mode='',
     stateIds = tb.getcol('STATE_ID')
     obsIds = tb.getcol('OBSERVATION_ID')
     
-    # query tool selection
-    #taskQuery = selectionToQuery([field, scan, obsid])
     # mstool query version
     toJoin = []
     if len(selectedIndex['field']) > 0:
