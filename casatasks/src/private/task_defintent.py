@@ -61,6 +61,7 @@ def defintent(vis='', intent='', mode='',
     """
 
     tb = casatools.table()
+    ms = casatools.ms()
     
     # If no intent has been provided exit the task and print
     if vis == '':
@@ -114,6 +115,12 @@ def defintent(vis='', intent='', mode='',
     selectedRows = set()
     selectedIntents = dict()
     
+    # NEW get query using ms tool selection
+    ms.open(vis)
+    ms.msselect({'field':field, 'scan':scan, 'observaation':obsid}, onlyparse=True)
+    selectedIndex = ms.msselectedindices()
+    ms.close()
+    
     tb.open(vis)
     fieldIds = tb.getcol('FIELD_ID')
     scanNum = tb.getcol('SCAN_NUMBER')
@@ -121,7 +128,17 @@ def defintent(vis='', intent='', mode='',
     obsIds = tb.getcol('OBSERVATION_ID')
     
     # query tool selection
-    taskQuery = selectionToQuery([field, scan, obsid])
+    #taskQuery = selectionToQuery([field, scan, obsid])
+    # mstool query version
+    toJoin = []
+    if len(selectedIndex['field']) > 0:
+        toJoin.append(f"FIELD_ID in {list(selectedIndex['field'])}")
+    if len(selectedIndex['scan']) > 0:
+        toJoin.append(f"SCAN_NUMBER in {list(selectedIndex['scan'])}")
+    if len(selectedIndex['observationid']) > 0:
+        toJoin.append(f"OBSERVATION_ID in {list(selectedIndex['observationid'])}")
+    # join into query string
+    taskQuery = " && ".join(toJoin)
     
     selectedData = tb.query(taskQuery)
     selectedRows = set(selectedData.rownumbers())
