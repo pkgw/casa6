@@ -168,17 +168,20 @@ def build_checkout(testnames, directory):
     cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
     subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
     os.remove("checkout_unit_dir.sh")
+
     for x_path in paths:
         for root, dirs, files in os.walk("casatestdata/{}".format(x_path), topdown=False):
+            #print(root, dirs, files)
             for name in files:
                 try:
                     path = os.readlink("casatestdata/{}/{}".format(x_path,name))
                 except OSError:
-                    if os.path.isdir("casatestdata/{}/{}".format(path,name)):
-                        path = "{}/{}".format(path,name)
-                        #print(path)
+                    if os.path.isdir("casatestdata/{}/{}".format(x_path,name)):
+                        path = "{}/{}".format(x_path,name)
                     else:
-                        raise
+                        #print("casatestdata/{}/{}".format(x_path,name))
+                        #raise
+                        pass
                 paths.append(path)
 
     paths = [x.split("../../")[-1] for x in paths]
@@ -261,7 +264,7 @@ cat > .git/info/sparse-checkout <<'EOF'
 {}/* \n
 readme.md
 EOF""".format(args.test_group)
-            filename = "{}-data".format(args.test_group)
+            filename = "{}-data".format("".join(args.test_group.split()))
             sourceFile = open(filename, 'w')
             print(headstring, file = sourceFile)
             sourceFile.close()
@@ -294,6 +297,7 @@ EOF""".format(args.test_group)
                         _isComponent = True
                         testnames.append(myDict["testScript"])
             filename = "-".join(components) + "-data"
+            filename = filename.replace(" ", "-")
             sourceFile = open(filename, 'w')
             print(build_checkout(testnames, directory), file = sourceFile)
             sourceFile.close()
