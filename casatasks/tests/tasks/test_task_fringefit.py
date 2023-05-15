@@ -29,10 +29,11 @@ import numpy as np
 # VERBOSE to true.  Currently there are none, so this is for developers
 # only
 VERBOSE = False
-
 from casatools import ms, ctsys, table
 from casatasks import fringefit, flagmanager, flagdata
+
 from casatestutils import testhelper as th
+ctsys_resolve = ctsys.resolve
 
 tblocal = table()
 
@@ -52,6 +53,7 @@ class Fringefit_tests(unittest.TestCase):
         shutil.rmtree(self.prefix + '.sbdcal', True)
         shutil.rmtree(self.prefix + '-zerorates.sbdcal', True)
         shutil.rmtree(self.prefix + '.mbdcal', True)
+        # shutil.rmtree(self.prefix + '.mbdcal2', True)
         shutil.rmtree(self.uvfile, True)
         shutil.rmtree('uvrange_with.cal', True)
 
@@ -70,6 +72,16 @@ class Fringefit_tests(unittest.TestCase):
                    combine='spw', gaintable=[sbdcal], refant='EF')
         reference = os.path.join(datapath, mbdcal)
         self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
+    # def test_mbd_combo(self):
+    #     sbdcal = self.prefix + '-zerorates.sbdcal'
+    #     mbdcal = self.prefix + '.mbdcal2'
+    #     fringefit(vis=self.msfile, caltable=sbdcal, field='4C39.25',
+    #               refant='EF', zerorates=True)
+    #     fringefit(vis=self.msfile, caltable=mbdcal, field='J0916+3854',
+    #                combine='spw', concatspws=False, gaintable=[sbdcal], refant='EF')
+    #     reference = os.path.join(datapath, self.prefix + '.mbdcal')
+    #     self.assertTrue(th.compTables(mbdcal, reference, ['WEIGHT', 'SNR']))
+
 
     def test_uvrange(self):
         ''' Check that the uvrnage parameter excludes antennas '''
@@ -260,6 +272,79 @@ class FreqMetaTests(unittest.TestCase):
         except RuntimeError as e: 
             print(e)
             self.assertTrue(True)
+
+
+class Fringefit_corrcomb(unittest.TestCase):
+    polcombtestms = 'gaincalcopy.ms'
+    testout = 'polcombout.cal'
+
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, 'gaincaltest2.ms'), self.polcombtestms)
+
+    def tearDown(self):
+        shutil.rmtree(self.polcombtestms)
+        if os.path.exists(self.testout):
+            shutil.rmtree(self.testout)
+
+    def test_comb(self):
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='none')
+
+        tblocal.open(self.testout)
+        none_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='all')
+
+        tblocal.open(self.testout)
+        combine_result = np.nanmean(tblocal.getcol('SNR'))
+        tblocal.close()
+
+        self.assertTrue(combine_result > none_result)
+        
+class Fringefit_paramactive_caltable(unittest.TestCase):
+    prefix = 'n08c1'
+    msfile = prefix + '.ms'
+    testcallib = 'testcaltable.txt'
+    
+    preapplytable = 'topreapply.cal'
+    nocallib = 'nocallib.cal'
+    withcallib = 'withcallib.cal'
+    
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, self.msfile), self.msfile)
+        
+    def tearDown(self):
+        shutil.rmtree(self.msfile)
+        shutil.rmtree(self.preapplytable)
+        shutil.rmtree(self.nocallib)
+        shutil.rmtree(self.withcallib)
+        os.remove(self.testcallib)
+        
+    def test_paramactive_callib(self):
+        """ Test that the default state for paramactive with callib is [T,T,F] """
+        # create the table to pre-apply
+        fringefit(vis=self.msfile, caltable=self.preapplytable, refant='0')
+        
+        # create a callib file fot the pre-apply table
+        with open(self.testcallib, 'w') as f:
+            f.write(f"caltable=\'{self.preapplytable}\'")
+            
+        # run with gaintable preapply and with callib and running default paramactive
+        fringefit(vis=self.msfile, caltable=self.nocallib, refant='0', docallib=False, gaintable=[self.preapplytable])
+        fringefit(vis=self.msfile, caltable=self.withcallib, refant='0', docallib=True, callib=self.testcallib)
+        
+        # get the FPARAM data for each table and compare
+        tblocal.open(self.nocallib)
+        res1 = tb.getcol('FPARAM')
+        tblocal.close()
+        
+        tblocal.open(self.withcallib)
+        res2 = tb.getcol('FPARAM')
+        tb.close()
+        
+        self.assertTrue(np.all(res1 == res2), msg='Results differ when preapplying with callib vs gaintable')
+    
+        
 
 if __name__ == '__main__':
     unittest.main()
