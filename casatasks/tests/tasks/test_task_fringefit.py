@@ -330,8 +330,8 @@ class Fringefit_paramactive_caltable(unittest.TestCase):
             f.write(f"caltable=\'{self.preapplytable}\'")
             
         # run with gaintable preapply and with callib and running default paramactive
-        fringefit(vis=self.msfile, caltable=self.nocallib, refant='0', docallib=False, gaintable=[self.preapplytable])
-        fringefit(vis=self.msfile, caltable=self.withcallib, refant='0', docallib=True, callib=self.testcallib)
+        fringefit(vis=self.msfile, caltable=self.nocallib, refant='0', docallib=False, gaintable=[self.preapplytable], paramactive=[])
+        fringefit(vis=self.msfile, caltable=self.withcallib, refant='0', docallib=True, callib=self.testcallib, paramactive=[])
         
         # get the FPARAM data for each table and compare
         tblocal.open(self.nocallib)
