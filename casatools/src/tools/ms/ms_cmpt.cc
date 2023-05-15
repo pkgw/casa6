@@ -94,7 +94,7 @@
 
 #include <ms_cmpt.h>
 #include <msmetadata_cmpt.h>
-#include <tools/table/Statistics.h>
+#include <stdcasa/Statistics.h>
 
 #include <casacore/casa/namespace.h>
 #include <cassert>

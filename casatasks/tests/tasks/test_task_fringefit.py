@@ -343,8 +343,6 @@ class Fringefit_paramactive_caltable(unittest.TestCase):
         tb.close()
         
         self.assertTrue(np.all(res1 == res2), msg='Results differ when preapplying with callib vs gaintable')
-    
-        
 
 if __name__ == '__main__':
     unittest.main()
