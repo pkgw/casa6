@@ -1,15 +1,11 @@
 # casatestutils Package
-
-**Table of Contents**
-
-- [casatestutils](#intro) : Generic testhelper module
-- [runtest.py](#runtest): Wrapper to run tests using pytest
-- [sparse_check.py](#sparse_check): Tool to do sparse checkout of data from casatestdata.git
-
-## casatestutils 
 A generic testhelper module for use with CASA testing.
 
 Internal documentation: https://open-confluence.nrao.edu/display/CASA/casatestutils%3A+A+generic+test+helper+module
+
+**Table of Contents**
+- [runtest.py](#runtest.py): Wrapper to run tests using pytest
+- [sparse_check.py](#sparse_check.py): Tool to do sparse checkout of data from casatestdata.git
 
 ## runtest.py
 [runtest.py](casatestutils/runtest.py) is a single test wrapper to run CASA Python tests. The script can run one or
@@ -196,9 +192,8 @@ sparse_check.download_data(["ngc5921.ms"])
 ```
 #### from the command line
 Download datasets used in a specific test script based on the taskname. The script will create a 
-taskname-data file with the contents to be fetched from git and will create a casatestdata directory
-locally containing the symbolic links to the datasets. Follow the below steps to
-do the sparse checkout for task_flagdata.
+taskname-data file with the contents to be fetched from git and will create a local casatestdata directory
+containing symbolic links to the datasets. Follow the steps below to sparse checkout data for test_task_flagdata.
 ```
 ./python3 sparse_check.py -j flagdata
 cd casatestdata
