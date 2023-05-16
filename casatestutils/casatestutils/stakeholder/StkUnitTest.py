@@ -206,8 +206,10 @@ class StkUnitTest(unittest.TestCase):
 
         # only worry about comparing the maximum value
         val = diff
+        casalog.post('diff='+str(diff)))
         if isinstance(diff, Iterable):
             val = max(diff)
+        casalog.post('val='+str(val)))
         
         # convert numpy arrays to lists so that the logs get printed on a single line
         actual = self._nparray_to_list(actual)
@@ -591,7 +593,6 @@ class StkUnitTest(unittest.TestCase):
         pars = {i:runtclean_parameters[i] for i in filter(lambda x: x not in ['common_args', 'record', 'self'], runtclean_parameters.keys())}
         # filter out duplicated parameters defined both individually and in common_args and use the one individually specified
         owpars = {k:runtclean_parameters[k] for k in filter(lambda x: x in common_args.keys() and x != 'common_args', runtclean_parameters.keys())}
-        print("owpars=",owpars)
         subkargs = {j:common_args[j] for j in filter(lambda x: x not in owpars.keys(), common_args.keys())}
         return ({**pars,**subkargs})
 
