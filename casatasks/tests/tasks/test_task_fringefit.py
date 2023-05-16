@@ -335,14 +335,16 @@ class Fringefit_paramactive_caltable(unittest.TestCase):
         
         # get the FPARAM data for each table and compare
         tblocal.open(self.nocallib)
-        res1 = tb.getcol('FPARAM')
+        res1 = tblocal.getcol('FPARAM')
         tblocal.close()
         
         tblocal.open(self.withcallib)
-        res2 = tb.getcol('FPARAM')
+        res2 = tblocal.getcol('FPARAM')
         tb.close()
         
         self.assertTrue(np.all(res1 == res2), msg='Results differ when preapplying with callib vs gaintable')
+    
+        
 
 if __name__ == '__main__':
     unittest.main()
