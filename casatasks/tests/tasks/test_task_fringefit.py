@@ -349,7 +349,7 @@ class Fringefit_paramactive_caltable(unittest.TestCase):
         
         tblocal.open(self.withcallib)
         res2 = tblocal.getcol('FPARAM')
-        tb.close()
+        tblocal.close()
         
         tblocal.open(self.manualdefault)
         res3 = tblocal.getcol('FPARAM')
