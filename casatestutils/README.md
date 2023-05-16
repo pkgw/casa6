@@ -1,9 +1,15 @@
 # casatestutils Package
 
+**Table of Contents**
+
+- [casatestutils](#intro) : Generic testhelper module
+- [runtest.py](#runtest): Wrapper to run tests using pytest
+- [sparse_check.py](#sparse_check): Tool to do sparse checkout of data from casatestdata.git
+
 ## casatestutils 
 A generic testhelper module for use with CASA testing.
 
-Documentation: https://open-confluence.nrao.edu/display/CASA/casatestutils%3A+A+generic+test+helper+module
+Internal documentation: https://open-confluence.nrao.edu/display/CASA/casatestutils%3A+A+generic+test+helper+module
 
 ## runtest.py
 [runtest.py](casatestutils/runtest.py) is a single test wrapper to run CASA Python tests. The script can run one or
@@ -174,3 +180,35 @@ Run locally using a casa tarball:
 <tarball>/bin/python3 -m jupyter notebook --browser=firefox --ip='*' --NotebookApp.toke='' --NotebookApp.password='' tests/nb_test_runtest.ipynb
 ```
 Run in [Google Colab](https://colab.research.google.com/drive/1lunhY-8iLot2H0UwFJ98_IWsmBM2TIMd?usp=sharing)
+
+## sparse_check.py
+Download test datasets from casatestdata.git using a sparse checkout. Use it inside a script or
+in the command line. See the usage:
+```
+./python3 sparse_check.py -h
+```
+
+#### from a script
+Import the module to download datasets on-the-fly based on the dataset name stored in casatestdata.git.
+```
+from casatestutils import sparse_check
+sparse_check.download_data(["ngc5921.ms"])
+```
+#### from the command line
+Download datasets used in a specific test script based on the taskname. The script will create a 
+taskname-data file with the contents to be fetched from git and will create a casatestdata directory
+locally containing the symbolic links to the datasets. Follow the below steps to
+do the sparse checkout for task_flagdata.
+```
+./python3 sparse_check.py -j flagdata
+cd casatestdata
+mv ../flagdata-data .
+source flagdata-data
+git checkout master
+cd ../
+```
+With the above steps the datasets needed to run the flagdata tests will be checked out to casatestdata.
+Run the tests in the usual way; for example:
+```
+./python3 ./test_task_flagdata.py
+```
