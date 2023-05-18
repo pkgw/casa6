@@ -3208,7 +3208,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                           if (debug):
                               print("a) xctr=%d, Incrementing mytime to %d" % (xctr, mytime))
                       if overlayAntennas and xctr+1 == len(antennasToPlot): # second fix for CAS-13568
-                          DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize)
+                          DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize, debug=debug)
                           if ((showatm or showtsky) and len(atmString) > 0):
                               DrawAtmosphere(showatm, showtsky, subplotRows, atmString,
                                              mysize, TebbSky, plotrange, xaxis, atmchan,
@@ -4019,7 +4019,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                       elif (overlayAntennas==True and xant==antennasToPlot[-1] and bOverlay == False   # ):
                             and overlayTimes==False):  # try to support antenna,time  avoid antenna labels 'phase'
                               # We do this last, because by then, the limits will be stable.
-                          DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize)
+                          DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize, debug=debug)
                       elif (overlayTimes==True and bOverlay == False
                             and overlayAntennas==False):  # try to support antenna,time
                           doneOverlayTime = True  # assumed until proven otherwise in the 'for' loop
@@ -5274,7 +5274,7 @@ def GetFieldNamesForFieldId(u, mymsmd, msFields):
         return(msFields[u])
 
 
-def DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize):
+def DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize, debug=False):
     if (debug): print("overlayAntennas=True")
     x0 = xstartPolLabel
     y0 = ystartPolLabel
