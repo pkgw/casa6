@@ -941,56 +941,6 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   Int idopsf=0;
   if(dopsf) idopsf=1;
 
-  /*if(isTiled) {
-    for (Int rownr=startRow; rownr<=endRow; rownr++) {
-
-      if(getXYPos(vb, rownr)) {
-
-	IPosition centerLoc2D(2, Int(xyPos(0)), Int(xyPos(1)));
-	Array<Complex>* dataPtr=getDataPointer(centerLoc2D, false);
-	Array<Float>*  wDataPtr=getWDataPointer(centerLoc2D, false);
-	Int aNx=dataPtr->shape()(0);
-	Int aNy=dataPtr->shape()(1);
-	Vector<Double> actualPos(2);
-	for (Int i=0;i<2;i++) {
-	  actualPos(i)=xyPos(i)-Double(offsetLoc(i));
-	}
-	// Now use FORTRAN to do the gridding. Remember to
-	// ensure that the shape and offsets of the tile are
-	// accounted for.
-	{
-	  Bool del;
-	  //	  IPosition s(data.shape());
-	  const IPosition& fs=flags.shape();
-	  std::vector<Int> s(fs.begin(), fs.end());
-
-	  ggridsd(actualPos.getStorage(del),
-		  datStorage,
-		  &s[0],
-		  &s[1],
-		  &idopsf,
-		  flags.getStorage(del),
-		  rowFlags.getStorage(del),
-		  wgtStorage,
-		  &s[2],
-		  &rownr,
-		  dataPtr->getStorage(del),
-		  wDataPtr->getStorage(del),
-		  &aNx,
-		  &aNy,
-		  &npol,
-		  &nchan,
-		  &convSupport,
-		  &convSampling,
-		  convFunc.getStorage(del),
-		  chanMap.getStorage(del),
-		  polMap.getStorage(del),
-		  sumWeight.getStorage(del));
-	}
-      }
-    }
-  }
-  else*/
   {
     Matrix<Double> xyPositions(2, endRow-startRow+1);
     xyPositions=-1e9; // make sure failed getXYPos does not fall on grid
