@@ -322,6 +322,16 @@ private:
 
   // Interpolation-Conversion processing scheme
   ConvertFirst convertFirst;
+  casacore::MSPointing ramPointingTable;
+  std::shared_ptr<casacore::MSPointingColumns> ramPointingColumnsPtr;
+  void convertPointingColumn(
+          const MeasurementSet &ms,
+          const MSPointingEnums::PredefinedColumns columnToConvert,
+          const MDirection::Types directionRef
+  );
+  casacore::Bool mustConvertPointingColumn(const casacore::MeasurementSet &ms);
+  void handleNewMs(const MeasurementSet &ms, ImageInterface<Complex>& image);
+
 
   casacore::Int getIndex(const casacore::MSPointingColumns& mspc, const casacore::Double& time,
 	       const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);

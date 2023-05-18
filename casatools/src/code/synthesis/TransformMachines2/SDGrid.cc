@@ -78,6 +78,8 @@
 #include <synthesis/TransformMachines2/SkyJones.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 
+#include <casacore/tables/TaQL/TableParse.h>
+
 using namespace casacore;
 namespace casa {
 namespace refim {//# namespace for imaging refactor
@@ -1227,6 +1229,197 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 }
 
 
+Bool SDGrid::mustConvertPointingColumn(const MeasurementSet &ms)
+{
+  switch(convertFirst) {
+    case ConvertFirst::ALWAYS: return true;
+    case ConvertFirst::NEVER: return false;
+    case ConvertFirst::AUTO:
+      {
+        const auto nPointings = ms.pointing().nrow();
+        const auto nSelectedDataRows = ms.nrow();
+        return nSelectedDataRows > nPointings ? True : False;
+      }
+    default:
+      LogIO logger(LogOrigin("SDGrid", "mustConvertPointingColumn", WHERE));
+      logger << "Bug ! Got unexpected value for SDGrid::convertFirst: "
+             << int(convertFirst)
+             << LogIO::EXCEPTION;
+  }
+  return False;
+}
+
+void SDGrid::convertPointingColumn(
+        const MeasurementSet &ms,
+        const MSPointingEnums::PredefinedColumns columnToConvert,
+        const MDirection::Types directionRef
+    ) {
+
+    LogIO logger(LogOrigin("SDGrid", "convertPointingColumn"));
+
+    const auto & nameOfColumnToConvert =
+      MSPointing::columnName(columnToConvert);
+
+    const auto & nameOfDirectionRef = MDirection::showType(directionRef);
+
+    logger << "Converting POINTING table column: " << nameOfColumnToConvert
+           << " to: " << nameOfDirectionRef
+           << LogIO::POST;
+
+    { // Check parameters
+        using POINTING = MSPointingEnums::PredefinedColumns;
+        // Column must be a direction column
+        const auto isDirectionColumn = (
+               columnToConvert == POINTING::DIRECTION
+            or columnToConvert == POINTING::TARGET
+            or columnToConvert == POINTING::POINTING_OFFSET
+            or columnToConvert == POINTING::SOURCE_OFFSET
+            or columnToConvert == POINTING::ENCODER
+        );
+        logger << nameOfColumnToConvert << ": not a direction column"
+               << LogIO::EXCEPTION;
+    }
+
+    { // Copy Pointing table structure
+        constexpr auto doNotCopyRows = True;
+        ramPointingTable = ms.pointing().copyToMemoryTable(
+            ms.pointing().tableName() +
+            "." + MSPointing::columnName(columnToConvert) +
+            "." + MDirection::showType(directionRef),
+            doNotCopyRows
+        );
+        ramPointingColumnsPtr.reset(new MSPointingColumns {ramPointingTable});
+    }
+
+    { // Set the reference frame of the direction columns
+      // ---- All direction columns, except the encoder column
+      ramPointingColumnsPtr->setDirectionRef(directionRef);
+      // ---- Encoder column
+      ramPointingColumnsPtr->setEncoderDirectionRef(directionRef);
+    }
+
+    auto quote = [](const String & s) {
+        return String("\"") + s + String("\"");
+    };
+
+    { // Perform 1 dummy conversion:
+      // Convert the direction of the first pointing
+      // 1 day before it was actually recorded
+      // to pre-set static variables in casacore functions like dUT1
+      // so that we are sure they will be updated when we convert the column
+        stringstream dummyConversion; // TaQL command
+        { // Create it
+            dummyConversion <<
+                "using style python\n"
+                "select\n"
+                "      [\n"
+                "        meas.direction(\n" <<
+                "             " << quote(nameOfDirectionRef) << "\n"
+                "           , pointing.DIRECTION\n"
+                "           , (pointing.TIME - 1d), 'UTC'\n"
+                "           , antenna.POSITION\n"
+                "        )\n"
+                "      ] as CONVERTED_DIRECTION_ONE_DAY_BEFORE\n"
+                "      , (pointing.TIME - 1d) d as oneDayBefore\n"
+                "      , pointing.TIME d as pointingDay\n"
+                "      , cdatetime(pointing.TIME) as pointingDay_Str\n"
+                "      , cdatetime(pointing.TIME -1d) as oneDayBefore_Str\n"
+                "from\n"
+                "    $1 as pointing\n"
+                "join\n"
+                "    $2 as antenna\n"
+                "    on pointing.ANTENNA_ID == antenna.rowid()\n"
+                "where\n"
+                "    pointing.rowid() == 0\n"
+                ;
+        }
+        { // Execute it
+            vector<const Table*> tables {
+                &ms.pointing(),   // $1
+                &ms.antenna(),    // $2
+            };
+            tableCommand(dummyConversion.str(), tables);
+        }
+    }
+
+    { // Now convert the column
+        stringstream convertColumn; // TaQL command
+        { // Create it
+            convertColumn <<
+                    "using style python\n"
+                    "insert\n"
+                    "    into $3 as ram_pointing_table\n"
+                    "    (\n"
+                    "          ANTENNA_ID\n"
+                    "        , TIME\n"
+                    "        , INTERVAL\n"
+                    "        , NUM_POLY\n"
+                    "        , " << nameOfColumnToConvert << "\n"
+                    "    )\n"
+                    "select\n"
+                    "      ANTENNA_ID as ANTENNA_ID_INT INTEGER\n"
+                    "    , TIME\n"
+                    "    , INTERVAL\n"
+                    "    , 0 as NUM_POLY INTEGER\n";
+            using Pointing = MSPointingEnums::PredefinedColumns;
+            switch(columnToConvert) {
+                case Pointing::ENCODER: { // ScalarColumn
+                    convertColumn <<
+                    "    , meas.direction(\n"
+                    "            " <<  quote(nameOfDirectionRef) << "\n"
+                    "          , pointing." << nameOfColumnToConvert << "\n"
+                    "          , pointing.TIME\n"
+                    "          , antenna.POSITION\n"
+                    "      )\n"
+                    ;
+                    break;
+                }
+                default: { // All other direction columns are ArrayColumns
+                    convertColumn <<
+                    "    , [\n"
+                    "           meas.direction(\n"
+                    "                 " << quote(nameOfDirectionRef) << "\n"
+                    "               , pointing." << nameOfColumnToConvert << "\n"
+                    "               , pointing.TIME\n"
+                    "               , antenna.POSITION\n"
+                    "           )\n"
+                    "      ]\n"
+                    ;
+                }
+            }
+            convertColumn <<
+                    "from\n"
+                    "    $1 as pointing\n"
+                    "join\n"
+                    "    $2 as antenna\n"
+                    "    on pointing.ANTENNA_ID = antenna.rowid()\n";
+        }
+        { // Execute it
+            vector<const casacore::Table*> tables {
+                &ms.pointing(),   // $1
+                &ms.antenna(),    // $2
+                &ramPointingTable // $3
+            };
+            tableCommand(convertColumn.str(), tables);
+        }
+    }
+}
+
+void SDGrid::handleNewMs(
+        const MeasurementSet &ms,
+        ImageInterface<Complex>& image)
+{
+  if (mustConvertPointingColumn(ms)) {
+    const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
+    const auto imageDirectionRef =
+      image.coordinates().directionCoordinate().directionType();
+    convertPointingColumn(ms, columnEnum, imageDirectionRef);
+  }
+  else {
+    ramPointingTable = MSPointing();
+    ramPointingColumnsPtr.reset();
+  }
+}
 
   // Make a plain straightforward honest-to-FSM image. This returns
   // a complex image, without conversion to Stokes. The representation
@@ -1330,8 +1523,10 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
       // Loop over the visibilities, putting VisBuffers
       for (vi.originChunks(); vi.moreChunks(); vi.nextChunk()) {
         if (vi.getImpl()->isNewMs()) {
-          const auto todo = true;
-          // TODO: handleNewMs()
+          // When convertFirst = True, re-converting the pointing table
+          // for each slice is an implementation decision.
+          // The slice loop is probably never used.
+          handleNewMs(vi.ms(), theImage);
         }
         for (vi.origin(); vi.more(); vi.next()) {
           switch(type) {
