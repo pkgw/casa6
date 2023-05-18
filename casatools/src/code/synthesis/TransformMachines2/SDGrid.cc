@@ -883,7 +883,7 @@ extern "C" {
 }
 
 void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
-		 FTMachine::Type type)
+     FTMachine::Type type)
 {
   LogIO os(LogOrigin("SDGrid", "put"));
 
@@ -996,8 +996,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
     xyPositions=-1e9; // make sure failed getXYPos does not fall on grid
     for (Int rownr=startRow; rownr<=endRow; rownr++) {
       if(getXYPos(vb, rownr)) {
-	xyPositions(0, rownr)=xyPos(0);
-	xyPositions(1, rownr)=xyPos(1);
+  xyPositions(0, rownr)=xyPos(0);
+  xyPositions(1, rownr)=xyPos(1);
       }
     }
     {
@@ -1015,27 +1015,27 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       if (call_ggridsd) {
 
       ggridsd(xyPositions.getStorage(del),
-	      datStorage,
-	      &s[0],
-	      &s[1],
-	      &idopsf,
-	      flags.getStorage(del),
-	      rowFlags.getStorage(del),
-	      wgtStorage,
-	      &s[2],
-	      &row,
-	      datStor,
-	      wgtStor,
-	      &nx,
-	      &ny,
-	      &npol,
-	      &nchan,
-	      &convSupport,
-	      &convSampling,
-	      convFunc.getStorage(del),
-	      chanMap.getStorage(del),
-	      polMap.getStorage(del),
-	      sumWeight.getStorage(del));
+        datStorage,
+        &s[0],
+        &s[1],
+        &idopsf,
+        flags.getStorage(del),
+        rowFlags.getStorage(del),
+        wgtStorage,
+        &s[2],
+        &row,
+        datStor,
+        wgtStor,
+        &nx,
+        &ny,
+        &npol,
+        &nchan,
+        &convSupport,
+        &convSampling,
+        convFunc.getStorage(del),
+        chanMap.getStorage(del),
+        polMap.getStorage(del),
+        sumWeight.getStorage(del));
 
       } else {
         Bool gminCopy;
