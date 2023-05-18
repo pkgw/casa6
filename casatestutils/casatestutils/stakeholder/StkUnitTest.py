@@ -206,10 +206,10 @@ class StkUnitTest(unittest.TestCase):
 
         # only worry about comparing the maximum value
         val = diff
-        casalog.post('diff='+str(diff)))
+        casalog.post('diff='+str(diff))
         if isinstance(diff, Iterable):
             val = max(diff)
-        casalog.post('val='+str(val)))
+        casalog.post('val='+str(val))
         
         # convert numpy arrays to lists so that the logs get printed on a single line
         actual = self._nparray_to_list(actual)
@@ -653,10 +653,6 @@ class StkUnitTest(unittest.TestCase):
 
         for single_taskcall in taskcall:
             pre_task_name, task_name, task_params, post_task_call = self._get_taskcall_parts(single_taskcall)
-            print("pre_task_name=",pre_task_name)
-            print("task_name=",task_name)
-            print("task_params=",task_params)
-            print("post_task_call=",post_task_call)
             # remove certain parameters that are custom to the test scripts
             if "compare_tclean_pars" in task_params:
                 del task_params["compare_tclean_pars"]

@@ -127,7 +127,7 @@ cache_partial_results = True if str(cache_partial_results).lower() in ['1', 'tru
 casalog.post(f"USE_PARTIAL_RESULTS: {use_partial_results}", "INFO")
 
 # root data path
-root_data_path = ctsys.resolve('casatestdata-large/stakeholder/vlass')
+root_data_path = ctsys.resolve('stakeholder/vlass')
 
 test_dict = {}
 
@@ -334,7 +334,7 @@ class test_j1302(StkUnitTest):
 
         # save results for future analysis
         np.save(self.id()+'.tt0tt1alpha.npy', curr_stats)
-        p.save(self.id()+'.beamstats.npy', beamstats_curr)
+        np.save(self.id()+'.beamstats.npy', beamstats_curr)
         np.save(self.id()+'.tcleanrecs.npy', records)
 
         # (f) Runtimes not significantly different relative to previous runs
@@ -609,7 +609,6 @@ class test_j1302(StkUnitTest):
                        'gridder':'mosaic', 'conjbeams':False, 'mosweight':False, 
                        'usepointing':False, 'uvtaper':[''],\
                        'pblimit':0.1,\
-                       'rotatepastep':5.0,\
                        'deconvolver':'mtmfs', 'nterms':1, 'smallscalebias':0.4, \
                        'weighting':'briggs', 'robust':1.0,\
                        'threshold':0.0, 'cyclefactor':3.0, 'restart':True, 'interactive':False, 'parallel':self.parallel}
