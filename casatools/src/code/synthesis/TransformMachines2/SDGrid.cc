@@ -931,8 +931,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   }
 
 
-  Vector<Int> rowFlags(vb.flagRow().nelements());
-  rowFlags=0;
+  Vector<Int> rowFlags(vb.flagRow().nelements(), 0);
   for (Int rownr=startRow; rownr<=endRow; rownr++) {
     if(vb.flagRow()(rownr)) rowFlags(rownr)=1;
   }
