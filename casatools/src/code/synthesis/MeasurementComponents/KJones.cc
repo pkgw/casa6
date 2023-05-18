@@ -674,7 +674,12 @@ void KJones::setApply(const Record& apply) {
   else {
   // Use the "physical" (centroid) frequency, per spw 
     Vector<Double> chanfreq;
-    KrefFreqs_.resize(nSpw()); KrefFreqs_.set(0.0);
+    // Nominally, there should be nSpw() (MS) reference frequencies,
+    //  but caltable may have more (or less)
+    KrefFreqs_.resize(max(nSpw(),nCalSpws)); KrefFreqs_.set(0.0);
+    // Fill KrefFreqs_ with as many as caltable can support (nCalSpws)
+    //   assuming identity with MS spw ids, for now (spwmap applied below)
+    //  (if nCalSpws>nSpw(), maybe spwmap will need more than nSpw() spws)
     for (Int ispw=0;ispw<nCalSpws;++ispw) {
       ctSpwCol.chanFreq().get(ispw,chanfreq,true);  // reshape, if nec.
       Int nch=chanfreq.nelements();
@@ -748,10 +753,13 @@ void KJones::setCallib(const Record& callib,
   }
   else {
     // Extract physical freq
-    KrefFreqs_.resize(nSpw());
+    // Nominally, there should be nSpw() (MS) reference frequencies,
+    //  but caltable may have more (or less)
+    KrefFreqs_.resize(max(nSpw(),nCTSpw));
     KrefFreqs_.set(0.0f);
-    // Only fill what is available from caltable,
+    // Fill KrefFreqs_ with as many as caltable can support (nCTSpw)
     //   assuming identity with MS spw ids, for now (spwmap applied below)
+    //  (if nCTSpw>nSpw(), maybe spwmap will need more than nSpw() spws)
     for (Int ispw=0;ispw<nCTSpw;++ispw) {
       const Vector<Double>& f(cpp_->freqIn(ispw));
       Int nf=f.nelements();
