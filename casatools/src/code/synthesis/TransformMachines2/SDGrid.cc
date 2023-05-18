@@ -894,16 +894,16 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   matchChannel(vb);
 
   //No point in reading data if its not matching in frequency
-  if(max(chanMap)==-1)
+  if (max(chanMap)==-1)
     return;
 
   Matrix<Float> imagingweight;
   //imagingweight=&(vb.imagingWeight());
   pickWeights(vb, imagingweight);
 
-  if(type==FTMachine::PSF || type==FTMachine::COVERAGE)
+  if (type==FTMachine::PSF || type==FTMachine::COVERAGE)
     dopsf=true;
-  if(dopsf) type=FTMachine::PSF;
+  if (dopsf) type=FTMachine::PSF;
   Cube<Complex> data;
   //Fortran gridder need the flag as ints
   Cube<Int> flags;
@@ -915,7 +915,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   wgtStorage=elWeight.getStorage(iswgtCopy);
   Bool isCopy;
   const Complex *datStorage=0;
-  if(!dopsf)
+  if (!dopsf)
     datStorage=data.getStorage(isCopy);
 
   // If row is -1 then we pass through all rows
@@ -939,15 +939,15 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
 
   // Take care of translation of Bools to Integer
   Int idopsf=0;
-  if(dopsf) idopsf=1;
+  if (dopsf) idopsf=1;
 
   {
     Matrix<Double> xyPositions(2, endRow-startRow+1);
     xyPositions=-1e9; // make sure failed getXYPos does not fall on grid
     for (Int rownr=startRow; rownr<=endRow; rownr++) {
-      if(getXYPos(vb, rownr)) {
-  xyPositions(0, rownr)=xyPos(0);
-  xyPositions(1, rownr)=xyPos(1);
+      if (getXYPos(vb, rownr)) {
+        xyPositions(0, rownr)=xyPos(0);
+        xyPositions(1, rownr)=xyPos(1);
       }
     }
     {
@@ -1037,7 +1037,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       wGriddedData.putStorage(wgtStor, wgtCopy);
     }
   }
-  if(!dopsf)
+  if (!dopsf)
     data.freeStorage(datStorage, isCopy);
   elWeight.freeStorage(wgtStorage,iswgtCopy);
 
