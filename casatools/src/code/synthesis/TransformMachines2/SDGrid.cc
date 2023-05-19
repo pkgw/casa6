@@ -933,12 +933,12 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   }
 
   // Take care of translation of Bools to Integer
-  Int idopsf=0;
-  if (dopsf) idopsf=1;
+  Int idopsf = dopsf ? 1 : 0;
 
   {
-    Matrix<Double> xyPositions(2, endRow-startRow+1);
-    xyPositions=-1e9; // make sure failed getXYPos does not fall on grid
+    // Make sure failed getXYPos does not fall on grid
+    constexpr Double farAway = -1e9;
+    Matrix<Double> xyPositions(2, endRow-startRow+1, farAway);
     for (Int rownr=startRow; rownr<=endRow; rownr++) {
       if (getXYPos(vb, rownr)) {
         xyPositions(0, rownr)=xyPos(0);
