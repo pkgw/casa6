@@ -1360,6 +1360,9 @@ void SDGrid::convertPointingColumn(
             tableCommand(convertColumn.str(), tables);
         }
     }
+    logger << "Converted  POINTING table column: " << nameOfColumnToConvert
+           << " to: " << nameOfDirectionRef
+           << LogIO::POST;
 }
 
 void SDGrid::handleNewMs(
