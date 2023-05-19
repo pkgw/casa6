@@ -6,13 +6,13 @@ from casatasks import casalog
 from casatools import ms as mstool
 from casatools import singledishms, table
 
-from . import sdutil
+from . import casaxmlutil, sdutil
 
 ms = mstool()
 sdms = singledishms()
 tb = table()
 
-
+@casaxmlutil.xml_constraints_injector
 @sdutil.sdtask_decorator
 def sdfit(infile=None, datacolumn=None, antenna=None, field=None, spw=None,
           timerange=None, scan=None, pol=None, intent=None,

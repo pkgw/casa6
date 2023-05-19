@@ -77,7 +77,7 @@ variant::TYPE variant::compatible_type( TYPE one_, TYPE two_ ) {
     }
 }
 
-#include "string_conversions"
+#include "string_conversions.hpp"
 
 variant::variant(const record &arg) : typev(RECORD), shape_(1,arg.size()) {
     val.recordv = new record(arg);

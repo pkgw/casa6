@@ -258,7 +258,7 @@ private:
 	std::shared_ptr<const casacore::SubImage<casacore::Float> > _subImage;
 	casacore::Record _results;
 	SpectralList _nonPolyEstimates;
-	casacore::PtrHolder<std::pair<casacore::Double, casacore::Double> > _goodAmpRange, _goodCenterRange, _goodFWHMRange;
+	std::unique_ptr<std::pair<casacore::Double, casacore::Double> > _goodAmpRange, _goodCenterRange, _goodFWHMRange;
 	casacore::Matrix<casacore::String> _worldCoords;
 	std::shared_ptr<casacore::TempImage<casacore::Float> > _sigma;
 	casacore::Double _abscissaDivisor;
@@ -315,7 +315,7 @@ private:
 
     casacore::Bool _setFitterElements(
     	ImageFit1D<casacore::Float>& fitter, SpectralList& newEstimates,
-    	const casacore::PtrHolder<const PolynomialSpectralElement>& polyEl,
+    	const std::unique_ptr<const PolynomialSpectralElement>& polyEl,
     	const std::vector<casacore::IPosition>& goodPos,
     	const casacore::IPosition& fitterShape, const casacore::IPosition& curPos,
     	casacore::uInt nOrigComps

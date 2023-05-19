@@ -24,8 +24,6 @@ The script runs in one of three modes:
    benchmarks of performance, e.g., as a function of machine.
 '''
 
-#from __future__ import print_function
-
 # =====================
 # IMPORTS
 # =====================
