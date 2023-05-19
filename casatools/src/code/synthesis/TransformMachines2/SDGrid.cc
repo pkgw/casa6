@@ -1731,7 +1731,6 @@ Int SDGrid::getIndex(const MSPointingColumns& mspc, const Double& time,
 
 Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
 
-  Bool dointerp;
   const MSPointingColumns& act_mspc = vb.subtableColumns().pointing();
   Bool nullPointingTable = (act_mspc.nrow() < 1);
   Int pointIndex = -1;
@@ -1760,7 +1759,7 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     return false;
   }
 
-  dointerp = false;
+  Bool dointerp = false;
   if (!nullPointingTable && (vb.timeInterval()(row) < act_mspc.interval()(pointIndex))) {
     dointerp = true;
     if (!isSplineInterpolationReady) {
