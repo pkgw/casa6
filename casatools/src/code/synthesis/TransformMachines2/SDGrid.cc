@@ -893,7 +893,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   // Perform matchChannel everytime
   matchChannel(vb);
 
-  //No point in reading data if its not matching in frequency
+  // No point in reading data if its not matching in frequency
   if (max(chanMap)==-1) return;
 
   Matrix<Float> imagingweight;
@@ -935,7 +935,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   // Take care of translation of Bools to Integer
   Int idopsf = dopsf ? 1 : 0;
 
-  {
+  { // Compute spectra pixel coordinates and call gridder
     // Make sure failed getXYPos does not fall on grid
     constexpr Double farAway = -1e9;
     Matrix<Double> xyPositions(2, endRow-startRow+1, farAway);
@@ -945,7 +945,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
         xyPositions(1, rownr)=xyPos(1);
       }
     }
-    {
+    { // Call gridder
       Bool del;
       const IPosition& fs=flags.shape();
       std::vector<Int> s(fs.begin(), fs.end());
@@ -956,7 +956,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       //Bool call_ggridsd = !clipminmax_ || dopsf;
       Bool call_ggridsd = !clipminmax_;
 
-      if (call_ggridsd) {
+      if (call_ggridsd) { // Call plain gridder
 
         ggridsd(
           xyPositions.getStorage(del),
@@ -983,7 +983,7 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
           sumWeight.getStorage(del)
         );
 
-      } else {
+      } else { // Call clipping gridder
         Bool gminCopy;
         Complex *gminStor = gmin_.getStorage(gminCopy);
         Bool gmaxCopy;
@@ -1035,9 +1035,12 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       wGriddedData.putStorage(wgtStor, wgtCopy);
     }
   }
-  if (!dopsf) data.freeStorage(datStorage, isCopy);
 
-  elWeight.freeStorage(wgtStorage,iswgtCopy);
+  { // Free memory
+    if (!dopsf) data.freeStorage(datStorage, isCopy);
+
+    elWeight.freeStorage(wgtStorage, iswgtCopy);
+  }
 
 }
 
