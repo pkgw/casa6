@@ -894,29 +894,26 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   matchChannel(vb);
 
   //No point in reading data if its not matching in frequency
-  if (max(chanMap)==-1)
-    return;
+  if (max(chanMap)==-1) return;
 
   Matrix<Float> imagingweight;
   //imagingweight=&(vb.imagingWeight());
   pickWeights(vb, imagingweight);
 
-  if (type==FTMachine::PSF || type==FTMachine::COVERAGE)
-    dopsf=true;
+  if (type==FTMachine::PSF || type==FTMachine::COVERAGE) dopsf=true;
   if (dopsf) type=FTMachine::PSF;
   Cube<Complex> data;
-  //Fortran gridder need the flag as ints
-  Cube<Int> flags;
+  Cube<Int> flags; //Fortran gridder need the flag as ints
   Matrix<Float> elWeight;
   interpolateFrequencyTogrid(vb, imagingweight,data, flags, elWeight, type);
-  //cerr << "number of rows " << vb.nRow() << " data shape " << data.shape() << endl;
+  //cerr << "number of rows " << vb.nRow()
+  //     << " data shape " << data.shape() << endl;
   Bool iswgtCopy;
   const Float *wgtStorage;
   wgtStorage=elWeight.getStorage(iswgtCopy);
   Bool isCopy;
   const Complex *datStorage=0;
-  if (!dopsf)
-    datStorage=data.getStorage(isCopy);
+  if (!dopsf) datStorage=data.getStorage(isCopy);
 
   // If row is -1 then we pass through all rows
   Int startRow, endRow, nRow;
@@ -929,7 +926,6 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
     startRow=row;
     endRow=row;
   }
-
 
   Vector<Int> rowFlags(vb.flagRow().nelements(), 0);
   for (Int rownr=startRow; rownr<=endRow; rownr++) {
@@ -951,7 +947,6 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
     }
     {
       Bool del;
-      //      IPosition s(data.shape());
       const IPosition& fs=flags.shape();
       std::vector<Int> s(fs.begin(), fs.end());
       Bool datCopy, wgtCopy;
@@ -963,28 +958,30 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
 
       if (call_ggridsd) {
 
-      ggridsd(xyPositions.getStorage(del),
-        datStorage,
-        &s[0],
-        &s[1],
-        &idopsf,
-        flags.getStorage(del),
-        rowFlags.getStorage(del),
-        wgtStorage,
-        &s[2],
-        &row,
-        datStor,
-        wgtStor,
-        &nx,
-        &ny,
-        &npol,
-        &nchan,
-        &convSupport,
-        &convSampling,
-        convFunc.getStorage(del),
-        chanMap.getStorage(del),
-        polMap.getStorage(del),
-        sumWeight.getStorage(del));
+        ggridsd(
+          xyPositions.getStorage(del),
+          datStorage,
+          &s[0],
+          &s[1],
+          &idopsf,
+          flags.getStorage(del),
+          rowFlags.getStorage(del),
+          wgtStorage,
+          &s[2],
+          &row,
+          datStor,
+          wgtStor,
+          &nx,
+          &ny,
+          &npol,
+          &nchan,
+          &convSupport,
+          &convSampling,
+          convFunc.getStorage(del),
+          chanMap.getStorage(del),
+          polMap.getStorage(del),
+          sumWeight.getStorage(del)
+        );
 
       } else {
         Bool gminCopy;
@@ -998,7 +995,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
         Bool npCopy;
         Int *npStor = npoints_.getStorage(npCopy);
 
-        ggridsdclip(xyPositions.getStorage(del),
+        ggridsdclip(
+          xyPositions.getStorage(del),
           datStorage,
           &s[0],
           &s[1],
@@ -1024,7 +1022,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
           convFunc.getStorage(del),
           chanMap.getStorage(del),
           polMap.getStorage(del),
-          sumWeight.getStorage(del));
+          sumWeight.getStorage(del)
+        );
 
         gmin_.putStorage(gminStor, gminCopy);
         gmax_.putStorage(gmaxStor, gmaxCopy);
@@ -1036,8 +1035,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       wGriddedData.putStorage(wgtStor, wgtCopy);
     }
   }
-  if (!dopsf)
-    data.freeStorage(datStorage, isCopy);
+  if (!dopsf) data.freeStorage(datStorage, isCopy);
+
   elWeight.freeStorage(wgtStorage,iswgtCopy);
 
 }
