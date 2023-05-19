@@ -1188,6 +1188,9 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 
 Bool SDGrid::mustConvertPointingColumn(const MeasurementSet &ms)
 {
+  const auto havePointings = ms.pointing().nrow() > 0;
+  if (not havePointings) return false;
+
   switch(convertFirst) {
     case ConvertFirst::ALWAYS: return true;
     case ConvertFirst::NEVER: return false;
@@ -1195,7 +1198,7 @@ Bool SDGrid::mustConvertPointingColumn(const MeasurementSet &ms)
       {
         const auto nPointings = ms.pointing().nrow();
         const auto nSelectedDataRows = ms.nrow();
-        return nSelectedDataRows > nPointings ? True : False;
+        return nSelectedDataRows > nPointings ? true : false;
       }
     default:
       LogIO logger(LogOrigin("SDGrid", "mustConvertPointingColumn", WHERE));
@@ -1203,7 +1206,7 @@ Bool SDGrid::mustConvertPointingColumn(const MeasurementSet &ms)
              << int(convertFirst)
              << LogIO::EXCEPTION;
   }
-  return False;
+  return false;
 }
 
 void SDGrid::convertPointingColumn(
