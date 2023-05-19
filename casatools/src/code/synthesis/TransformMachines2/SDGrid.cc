@@ -673,8 +673,8 @@ void SDGrid::finalizeToVis()
 }
 
 
-// Initialize the FFT to the Sky. Here we have to setup and initialize the
-// grid.
+// Initialize the FFT to the Sky.
+// Here we have to setup and initialize the grid.
 void SDGrid::initializeToSky(ImageInterface<Complex>& iimage,
 			     Matrix<Float>& weight, const vi::VisBuffer2& vb)
 {
@@ -812,74 +812,80 @@ Array<Float>* SDGrid::getWDataPointer(const IPosition& centerLoc2D,
 #define ggridsdclip ggridsdclip_
 #endif
 
-extern "C" {
-   void ggridsd(Double*,
-		const Complex*,
-                Int*,
-                Int*,
-                Int*,
-		const Int*,
-		const Int*,
-		const Float*,
-		Int*,
-		Int*,
-		Complex*,
-		Float*,
-                Int*,
-		Int*,
-		Int *,
-		Int *,
-                Int*,
-		Int*,
-		Float*,
-		Int*,
-		Int*,
-		Double*);
-   void ggridsdclip(Double*,
-                 const Complex*,
-                 Int*,
-                 Int*,
-                 Int*,
-                 const Int*,
-                 const Int*,
-                 const Float*,
-                 Int*,
-                 Int*,
-                 Complex*,
-                 Float*,
-                 Int*,
-                 Complex*,
-                 Float*,
-                 Complex*,
-                 Float*,
-                 Int*,
-                 Int*,
-                 Int *,
-                 Int *,
-                 Int*,
-                 Int*,
-                 Float*,
-                 Int*,
-                 Int*,
-                 Double*);
-   void dgridsd(Double*,
-		Complex*,
-                Int*,
-                Int*,
-		const Int*,
-		const Int*,
-		Int*,
-		Int*,
-		const Complex*,
-                Int*,
-		Int*,
-		Int *,
-		Int *,
-                Int*,
-		Int*,
-		Float*,
-		Int*,
-		Int*);
+extern "C" { // Gridders interfaces
+    void ggridsd(
+            Double*,
+            const Complex*,
+            Int*,
+            Int*,
+            Int*,
+            const Int*,
+            const Int*,
+            const Float*,
+            Int*,
+            Int*,
+            Complex*,
+            Float*,
+            Int*,
+            Int*,
+            Int*,
+            Int*,
+            Int*,
+            Int*,
+            Float*,
+            Int*,
+            Int*,
+            Double*
+    );
+    void ggridsdclip(
+            Double*,
+            const Complex*,
+            Int*,
+            Int*,
+            Int*,
+            const Int*,
+            const Int*,
+            const Float*,
+            Int*,
+            Int*,
+            Complex*,
+            Float*,
+            Int*,
+            Complex*,
+            Float*,
+            Complex*,
+            Float*,
+            Int*,
+            Int*,
+            Int *,
+            Int *,
+            Int*,
+            Int*,
+            Float*,
+            Int*,
+            Int*,
+            Double*
+    );
+    void dgridsd(
+            Double*,
+            Complex*,
+            Int*,
+            Int*,
+            const Int*,
+            const Int*,
+            Int*,
+            Int*,
+            const Complex*,
+            Int*,
+            Int*,
+            Int *,
+            Int *,
+            Int*,
+            Int*,
+            Float*,
+            Int*,
+            Int*
+    );
 }
 
 void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
@@ -1204,8 +1210,8 @@ void SDGrid::convertPointingColumn(
         const MeasurementSet &ms,
         const MSPointingEnums::PredefinedColumns columnToConvert,
         const MDirection::Types directionRef
-    ) {
-
+    )
+{
     LogIO logger(LogOrigin("SDGrid", "convertPointingColumn"));
 
     const auto & nameOfColumnToConvert =
