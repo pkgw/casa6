@@ -34,9 +34,6 @@ def defintent(vis='', intent='', mode='',
         print('You must specify a MS')
         return
         
-    if field == '':
-        print('You must specify a field ID or name')
-        
     if intent == '':
         print('you must specify an Intent')
         return
@@ -83,7 +80,7 @@ def defintent(vis='', intent='', mode='',
     
     # NEW get query using ms tool selection
     ms.open(vis)
-    ms.msselect({'field':field, 'scan':scan, 'observaation':obsid}, onlyparse=True)
+    ms.msselect({'field':field, 'scan':scan, 'observation':obsid}, onlyparse=True)
     selectedIndex = ms.msselectedindices()
     ms.close()
     
@@ -114,6 +111,7 @@ def defintent(vis='', intent='', mode='',
     tb.close()
                 
     print("Number of matching rows found: ", len(selectedRows))
+    print(mode.lower())
     
     # for Set if intent not in state table
     # then add a new row to the state table and change index (STATE_ID) in main table
@@ -131,8 +129,9 @@ def defintent(vis='', intent='', mode='',
         # If it doesn't add a row with the new intent
         else:
             tb.addrows(1)
-            intents = tb.getcol('OBS_MODE')
+            intents = list(tb.getcol('OBS_MODE'))
             intents[-1] = intent
+            intents = np.asarray(intents)
             tb.putcol('OBS_MODE', intents)
             newState = len(intents) - 1
             tb.close()
@@ -163,8 +162,9 @@ def defintent(vis='', intent='', mode='',
                 newState = intents.index(newIntent)
             else:
                 tb.addrows(1)
-                intents = tb.getcol('OBS_MODE')
+                intents = list(tb.getcol('OBS_MODE'))
                 intents[-1] = newIntent
+                intents = np.asarray(intents)
                 tb.putcol('OBS_MODE', intents)
                 newState = len(intents) - 1
                 selectedIntents[i] = newState
