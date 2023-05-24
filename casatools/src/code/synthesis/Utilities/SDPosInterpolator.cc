@@ -30,11 +30,32 @@
 using namespace casacore;
 namespace casa {
 
-SDPosInterpolator::SDPosInterpolator(const VisBuffer& vb, const String& pointingDirCol_p) {
-  setup(vb, pointingDirCol_p);
+SDPosInterpolator::SDPosInterpolator(
+  const VisBuffer& vb,
+  const String& pointingDirCol_p) {
+  const auto & pointingColumns = vb.msColumns().pointing();
+  const auto nant = static_cast<size_t>(vb.msColumns().antenna().nrow());
+  setup(pointingColumns, pointingDirCol_p, nant);
 }
-SDPosInterpolator::SDPosInterpolator(const vi::VisBuffer2& vb, const String& pointingDirCol_p) {
-  setup(vb, pointingDirCol_p);
+SDPosInterpolator::SDPosInterpolator(
+  const vi::VisBuffer2& vb,
+  const String& pointingDirCol_p) {
+  const auto & pointingColumns = vb.subtableColumns().pointing();
+  const auto nant = static_cast<size_t>(vb.subtableColumns().antenna().nrow());
+  setup(pointingColumns, pointingDirCol_p, nant);
+}
+SDPosInterpolator::SDPosInterpolator(
+  const MSPointing& pointingTable,
+  const String& columnName,
+  const size_t nant){
+  MSPointingColumns pointingColumns{pointingTable};
+  setup(pointingColumns, columnName, nant);
+}
+SDPosInterpolator::SDPosInterpolator(
+  const MSPointingColumns& pointingColumns,
+  const String& columnName,
+  const size_t nant){
+  setup(pointingColumns, columnName, nant);
 }
 SDPosInterpolator::SDPosInterpolator(const Vector<Vector<Double> >& time,
                                      const Vector<Vector<Vector<Double> > >& dir) {
@@ -94,8 +115,10 @@ void SDPosInterpolator::setup(const Vector<Vector<Double> >& time,
   }
 }
 
-void SDPosInterpolator::setup(const VisBuffer& vb, const String& pointingDirCol_p) {
-  const MSPointingColumns& act_mspc = vb.msColumns().pointing();
+void SDPosInterpolator::setup(
+  const MSPointingColumns& act_mspc,
+  const String& pointingDirCol_p,
+  size_t nant) {
   auto check_col = [&](Bool isnull){
     if (isnull) {
       cerr << "No " << pointingDirCol_p << " column in POINTING table" << endl;
@@ -130,12 +153,10 @@ void SDPosInterpolator::setup(const VisBuffer& vb, const String& pointingDirCol_
   }
 
   //(1)get number of pointing data for each antennaID
-  Int nant = vb.msColumns().antenna().name().nrow();
-  Vector<uInt> nPointingData(nant);
-  nPointingData = 0;
-  Int npoi = act_mspc.time().nrow();
-  for (Int i = 0; i < npoi; ++i) {
-    nPointingData(act_mspc.antennaId()(i)) += 1;
+  Vector<uInt> nPointingData(nant, 0);
+  auto pointingRows = static_cast<size_t>(act_mspc.nrow());
+  for (size_t row = 0; row < pointingRows ; ++row) {
+    nPointingData(act_mspc.antennaId()(row)) += 1;
   }
 
   //(2)setup spline coefficients for each antenna ID that
@@ -150,101 +171,7 @@ void SDPosInterpolator::setup(const VisBuffer& vb, const String& pointingDirCol_
   splineCoeff.resize(nant);
   doSplineInterpolation.resize(nant);
   doSplineInterpolation = false;
-  for (Int i = 0; i < nant; ++i) {
-    if (nPointingData(i) < 4) continue;
-    
-    doSplineInterpolation(i) = true;
-    timePointing(i).resize(nPointingData(i));
-    dirPointing(i).resize(nPointingData(i));
-    splineCoeff(i).resize(nPointingData(i) - 1);
-    for (uInt j = 0; j < dirPointing(i).nelements(); ++j) {
-      dirPointing(i)(j).resize(2);
-    }
-    for (uInt j = 0; j < splineCoeff(i).nelements(); ++j) {
-      splineCoeff(i)(j).resize(2);
-      splineCoeff(i)(j)(0).resize(4); // x
-      splineCoeff(i)(j)(1).resize(4); // y
-    }
-
-    //set ptime array etc. need for spline calculation...
-    Int tidx = 0;
-    for (Int j = 0; j < npoi; ++j) {
-      if (act_mspc.antennaId()(j) != i) continue;
-      
-      timePointing(i)(tidx) = act_mspc.time()(j);
-      dirPointing(i)(tidx) = get_direction(j);
-      tidx++;
-    }
-    
-    calcSplineCoeff(timePointing(i), dirPointing(i), splineCoeff(i));
-  }
-
-  //(3) keep time range
-  timeRangeStart.resize(nant);
-  timeRangeEnd.resize(nant);
-  for (Int iant = 0; iant < nant; ++iant) {
-    timeRangeStart(iant) = timePointing(iant)(0);
-    timeRangeEnd(iant)   = timePointing(iant)(timePointing(iant).nelements()-1);
-  }
-}
-
-void SDPosInterpolator::setup(const vi::VisBuffer2& vb, const String& pointingDirCol_p) {
-  const MSPointingColumns& act_mspc = vb.subtableColumns().pointing();
-  auto check_col = [&](Bool isnull){
-    if (isnull) {
-      cerr << "No " << pointingDirCol_p << " column in POINTING table" << endl;
-    }
-  };
-  std::function<Vector<Double>(Int)> get_direction;
-
-  //(0)check POINTING table and set function to obtain direction data
-  if (pointingDirCol_p == "TARGET") {
-    get_direction = [&](Int idx){
-      return act_mspc.targetMeas(idx).getAngle("rad").getValue();
-    };
-  } else if (pointingDirCol_p == "POINTING_OFFSET") {
-    check_col(act_mspc.pointingOffsetMeasCol().isNull());
-    get_direction = [&](Int idx){
-      return act_mspc.pointingOffsetMeas(idx).getAngle("rad").getValue();
-    };
-  } else if (pointingDirCol_p == "SOURCE_OFFSET") {
-    check_col(act_mspc.sourceOffsetMeasCol().isNull());
-    get_direction = [&](Int idx){
-      return act_mspc.sourceOffsetMeas(idx).getAngle("rad").getValue();
-    };
-  } else if (pointingDirCol_p == "ENCODER") {
-    check_col(act_mspc.encoderMeas().isNull());
-    get_direction = [&](Int idx){
-      return act_mspc.encoderMeas()(idx).getAngle("rad").getValue();
-    };
-  } else {
-    get_direction = [&](Int idx){
-      return act_mspc.directionMeas(idx).getAngle("rad").getValue();
-    };
-  }
-
-  //(1)get number of pointing data for each antennaID
-  Int nant = vb.subtableColumns().antenna().name().nrow();
-  Vector<uInt> nPointingData(nant);
-  nPointingData = 0;
-  Int npoi = act_mspc.time().nrow();
-  for (Int i = 0; i < npoi; ++i) {
-    nPointingData(act_mspc.antennaId()(i)) += 1;
-  }
-
-  //(2)setup spline coefficients for each antenna ID that
-  //   appear in the main table (spectral data) if there
-  //   are enough number of pointing data (4 or more).
-  //   in case there exists antenna ID for which not enough
-  //   (i.e., 1, 2 or 3) pointing data are given, linear
-  //   interpolation is applied for that antenna ID as
-  //   previously done.
-  timePointing.resize(nant);
-  dirPointing.resize(nant);
-  splineCoeff.resize(nant);
-  doSplineInterpolation.resize(nant);
-  doSplineInterpolation = false;
-  for (Int i = 0; i < nant; ++i) {
+  for (uInt i = 0; i < nant; ++i) {
     if (nPointingData(i) < 4) continue;
 
     doSplineInterpolation(i) = true;
@@ -261,8 +188,8 @@ void SDPosInterpolator::setup(const vi::VisBuffer2& vb, const String& pointingDi
     }
 
     //set ptime array etc. need for spline calculation...
-    Int tidx = 0;
-    for (Int j = 0; j < npoi; ++j) {
+    size_t tidx = 0;
+    for (size_t j = 0; j < pointingRows; ++j) {
       if (act_mspc.antennaId()(j) != i) continue;
 
       timePointing(i)(tidx) = act_mspc.time()(j);
@@ -276,7 +203,7 @@ void SDPosInterpolator::setup(const vi::VisBuffer2& vb, const String& pointingDi
   //(3) keep time range
   timeRangeStart.resize(nant);
   timeRangeEnd.resize(nant);
-  for (Int iant = 0; iant < nant; ++iant) {
+  for (size_t iant = 0; iant < nant; ++iant) {
     timeRangeStart(iant) = timePointing(iant)(0);
     timeRangeEnd(iant)   = timePointing(iant)(timePointing(iant).nelements()-1);
   }
