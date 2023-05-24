@@ -66,7 +66,11 @@ public:
     );
     SDPosInterpolator(
         const casacore::Vector<casacore::Vector<casacore::Double> >& time,
-        const casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > >& dir
+        const casacore::Vector<
+                  casacore::Vector<
+                      casacore::Vector<casacore::Double>
+                  >
+              >& dir
     );
     ~SDPosInterpolator();
     casacore::Vector<casacore::Bool> doSplineInterpolation;   //(antid)
@@ -76,16 +80,33 @@ public:
         const casacore::Int& index,
         const casacore::Int& antid
     );
-    casacore::Vector<casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > > >
-    getSplineCoeff();
+    casacore::Vector<
+        casacore::Vector<
+            casacore::Vector<
+                casacore::Vector<casacore::Double>
+            >
+        >
+    > getSplineCoeff();
     casacore::Bool inTimeRange(
       const casacore::Double& time,
       const casacore::Int& antid
     );
 private:
-    casacore::Vector<casacore::Vector<casacore::Double> > timePointing; //(antid)(index)
-    casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > > dirPointing; //(antid)(index)(xy)
-    casacore::Vector<casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > > > splineCoeff; //(antid)(index)(xy)(order)
+    casacore::Vector<
+        casacore::Vector<casacore::Double>
+    > timePointing; //(antid)(index)
+    casacore::Vector<
+        casacore::Vector<
+            casacore::Vector<casacore::Double>
+        >
+    > dirPointing; //(antid)(index)(xy)
+    casacore::Vector<
+        casacore::Vector<
+            casacore::Vector<
+                casacore::Vector<casacore::Double>
+            >
+        >
+    > splineCoeff; //(antid)(index)(xy)(order)
     casacore::Vector<casacore::Double> timeRangeStart; //(antid)
     casacore::Vector<casacore::Double> timeRangeEnd; //(antid)
 
@@ -96,12 +117,22 @@ private:
     );
     void setup(
         const casacore::Vector<casacore::Vector<casacore::Double> >& time,
-        const casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > >& dir
+        const casacore::Vector<
+                  casacore::Vector<
+                      casacore::Vector<casacore::Double>
+                  >
+              >& dir
     );
     void calcSplineCoeff(
         const casacore::Vector<casacore::Double>& time,
-        const casacore::Vector<casacore::Vector<casacore::Double> >& dir,
-        casacore::Vector<casacore::Vector<casacore::Vector<casacore::Double> > >& coeff
+        const casacore::Vector<
+                  casacore::Vector<casacore::Double>
+              >& dir,
+        casacore::Vector<
+            casacore::Vector<
+                casacore::Vector<casacore::Double>
+            >
+        >& coeff
     );
 };
 
