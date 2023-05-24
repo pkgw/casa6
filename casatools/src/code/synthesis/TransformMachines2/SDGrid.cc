@@ -1801,12 +1801,17 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     }
   }
 
-  // 2. At this stage we have a valid pointingIndex.
+  // 2. At this stage we have:
+  //       * either no pointings
+  //       * or pointings and a valid pointingIndex
   //    Decide now if we need to interpolate antenna's pointing direction
   //    at data-taking time:
   //    we'll do so when data is sampled faster than pointings are recorded
-  const auto pointingInterval = pointingColumns.interval()(pointingIndex);
-  const auto needInterpolation = (rowTimeInterval < pointingInterval);
+  Bool needInterpolation = False;
+  if (havePointings) {
+    const auto pointingInterval = pointingColumns.interval()(pointingIndex);
+    if (rowTimeInterval < pointingInterval) needInterpolation = True;
+  }
   const auto mustInterpolate = havePointings && needInterpolation;
 
   // 3. Create interpolator if needed
