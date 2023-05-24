@@ -1731,13 +1731,38 @@ Int SDGrid::getIndex(const MSPointingColumns& mspc, const Double& time,
 
 Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
 
-  const MSPointingColumns& act_mspc = vb.subtableColumns().pointing();
-  Bool nullPointingTable = (act_mspc.nrow() < 1);
-  Int pointIndex = -1;
-  if (!nullPointingTable) {
-    ///if(vb.newMS())  vb.newMS does not work well using msid
+  // Select the POINTING table (and columns) we'll work with
+  const auto haveConvertedColumn = ramPointingTable.nrow() > 0;
+
+  const auto & pointingColumns =  haveConvertedColumn ?
+      *ramPointingColumnsPtr
+    : vb.subtableColumns().pointing();
+
+  const auto nPointings = pointingColumns.nrow();
+  const auto havePointings = nPointings > 0;
+
+  // We'll need to call these many times, so let's call them once for good
+  const auto rowTime = vb.time()(row);
+  const auto rowTimeInterval = vb.timeInterval()(row);
+  const auto rowAntenna1 = vb.antenna1()(row);
+
+  // 1. Try to find the index of a pointing recorded:
+  //     - for the antenna of the specified row,
+  //     - at a time close enough to the time at which data was taken
+  Int pointingIndex = -1;
+
+  if (havePointings) {
+    // if (vb.newMS() vb.newMS does not work well using msid
+    // Note about above comment:
+    // - vb.newMS probably works well
+    // - but if the calling code is iterating over the rows of a subchunk
+    //   vb.newMS returns true for all rows belonging to the first subchunk
+    //   of the first chunk of a new MS.
+    // ???
+    // What if vb changed since we were last called ?
+    // What if the calling code calls put and get, with different VisBuffers ?
     if (vb.msId() != msId_p) {
-      lastIndex_p = 0;
+      lastIndex_p = 0; // No longer used ?
       if (lastIndexPerAnt_p.nelements() < (size_t)vb.nAntennas()) {
         lastIndexPerAnt_p.resize(vb.nAntennas());
       }
@@ -1745,18 +1770,35 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
       msId_p = vb.msId();
       lastAntID_p = -1;
     }
-    pointIndex = getIndex(act_mspc, vb.time()(row), -1.0, vb.antenna1()(row));
-    //Try again to locate a pointing within the integration
-    if (pointIndex < 0)
-      pointIndex = getIndex(act_mspc, vb.time()(row), vb.timeInterval()(row), vb.antenna1()(row));
-  }
-  if (!nullPointingTable && ((pointIndex < 0) || (pointIndex >= Int(act_mspc.time().nrow())))) {
-    ostringstream o;
-    o << "Failed to find pointing information for time " <<
-      MVTime(vb.time()(row)/86400.0) << ": Omitting this point";
-    logIO_p << LogIO::DEBUGGING << String(o) << LogIO::POST;
-    //    logIO_p << String(o) << LogIO::POST;
-    return false;
+    // Try to locate a pointing verifying:
+    // | POINTING.TIME - MAIN.TIME | <= 0.5*(POINTING.INTERVAL + tolerance)
+    // using first a tiny tolerance, then MAIN.INTERVAL
+    constexpr Double useTinyTolerance = -1.0;
+    Bool foundPointing {False};
+    for(const auto tolerance : {useTinyTolerance, rowTimeInterval}) {
+      pointingIndex = getIndex(
+        pointingColumns, rowTime, tolerance , rowAntenna1
+      );
+      foundPointing = pointingIndex >= 0;
+      if (foundPointing) break;
+    }
+
+    // Making the implicit type conversion explicit.
+    // Conversion is safe because it occurs only when pointingIndex >= 0.
+    const auto foundValidPointing = (
+      foundPointing and (static_cast<rownr_t>(pointingIndex) < nPointings)
+    );
+
+    if (not foundValidPointing) {
+      LogIO logger(LogOrigin("SDGrid","getXYPos"));
+      logger << LogIO::DEBUGGING;
+      logger.output()
+        << "Failed to find pointing information for time "
+        << MVTime(rowTime/86400.0)
+        << " : omitting this point";
+      logger << LogIO::POST;
+      return false;
+    }
   }
 
   Bool dointerp = false;
