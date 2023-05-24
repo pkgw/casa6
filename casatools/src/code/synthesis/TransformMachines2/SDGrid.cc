@@ -1801,26 +1801,44 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     }
   }
 
-    // 2. At this stage we have a valid pointingIndex.
-    //    Decide now if we need to interpolate antenna's pointing direction
-    //    at data-taking time:
-    //    we'll do so when data is sampled faster than pointings are recorded
-    const auto pointingInterval = pointingColumns.interval()(pointingIndex);
-    const auto needInterpolation = (rowTimeInterval < pointingInterval);
-    const auto mustInterpolate = havePointings && needInterpolation;
+  // 2. At this stage we have a valid pointingIndex.
+  //    Decide now if we need to interpolate antenna's pointing direction
+  //    at data-taking time:
+  //    we'll do so when data is sampled faster than pointings are recorded
+  const auto pointingInterval = pointingColumns.interval()(pointingIndex);
+  const auto needInterpolation = (rowTimeInterval < pointingInterval);
+  const auto mustInterpolate = havePointings && needInterpolation;
 
-  Bool dointerp = false;
-  if (!nullPointingTable && (vb.timeInterval()(row) < act_mspc.interval()(pointIndex))) {
-    dointerp = true;
-    if (!isSplineInterpolationReady) {
-      interpolator = new SDPosInterpolator(vb, pointingDirCol_p);
+  // 3. Create interpolator if needed
+  if (mustInterpolate) {
+    if (not isSplineInterpolationReady) {
+      const auto nAntennas = static_cast<size_t>(
+        vb.ms().antenna().nrow()
+      );
+      interpolator = new SDPosInterpolator(
+        pointingColumns,
+        pointingDirCol_p,
+        nAntennas
+      );
       isSplineInterpolationReady = true;
     } else {
-      if (!interpolator->inTimeRange(vb.time()(row), vb.antenna1()(row))) {
-	// setup spline interpolator for the current dataset (CAS-11261, 2018/6/13 WK)
-	delete interpolator;
-	interpolator = 0;
-	interpolator = new SDPosInterpolator(vb, pointingDirCol_p);
+      // We have an interpolator. Re-use it if possible.
+      const auto canReuseInterpolator =
+        interpolator->inTimeRange(rowTime, rowAntenna1);
+      if (not canReuseInterpolator) {
+        // setup spline interpolator for the current dataset
+        // (CAS-11261, 2018/5/22 WK)
+        // delete and re-create it
+        delete interpolator;
+        interpolator = 0;
+        const auto nAntennas = static_cast<size_t>(
+          vb.ms().antenna().nrow()
+        );
+        interpolator = new SDPosInterpolator(
+          pointingColumns,
+          pointingDirCol_p,
+          nAntennas
+        );
       }
     }
   }
