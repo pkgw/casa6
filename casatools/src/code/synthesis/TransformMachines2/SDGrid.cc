@@ -1946,11 +1946,14 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     return false;
   }
 
-  if ((pointingDirCol_p == "SOURCE_OFFSET") || (pointingDirCol_p == "POINTING_OFFSET")) {
-    //there is no sense to track in offset coordinates...hopefully the
-    //user set the image coords right
+  // 8. Handle moving sources
+  if ((pointingDirCol_p == "SOURCE_OFFSET") or
+     (pointingDirCol_p == "POINTING_OFFSET")) {
+    // it makes no sense to track in offset coordinates...
+    // hopefully the user set the image coords right
     fixMovingSource_p = false;
   }
+
   if (fixMovingSource_p) {
     if (xyPosMovingOrig_p.nelements() < 2) {
       directionCoord.toPixel(xyPosMovingOrig_p, firstMovingDir_p);
@@ -1959,7 +1962,10 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     MDirection::Ref outref1(MDirection::AZEL, mFrame_p);
     MDirection tmphadec;
     if (upcase(movingDir_p.getRefString()).contains("APP")) {
-      tmphadec = MDirection::Convert((vbutil_p->getEphemDir(vb, phaseCenterTime_p)), outref1)();
+      tmphadec = MDirection::Convert(
+        vbutil_p->getEphemDir(vb, phaseCenterTime_p),
+        outref1
+      )();
     } else if (upcase(movingDir_p.getRefString()).contains("COMET")) {
       MeasComet mcomet(Path(ephemTableName_p).absoluteName());
       mFrame_p.set(mcomet);
@@ -1971,7 +1977,11 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     Vector<Double> actPix;
     directionCoord.toPixel(actPix, actSourceDir);
 
-    //cout << row << " scan " << vb.scan()(row) << "xyPos " << xyPos << " xyposmovorig " << xyPosMovingOrig_p << " actPix " << actPix << endl;
+    //cout << row
+    //  << " scan " << vb.scan()(row)
+    //  << " xyPos " << xyPos
+    //  << " xyposmovorig " << xyPosMovingOrig_p
+    //  << " actPix " << actPix << endl;
 
     xyPos = xyPos + xyPosMovingOrig_p - actPix;
   }
