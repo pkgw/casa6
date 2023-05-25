@@ -1848,32 +1848,38 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     }
   }
 
-  if (!pointingToImage) {
-    // Set the frame
-    lastAntID_p = vb.antenna1()(row);
-    MPosition pos = vb.subtableColumns().antenna().positionMeas()(lastAntID_p);
-    MEpoch dummyEpoch(Quantity(0, "s"));
-    (!mFrame_p.epoch()) ?  mFrame_p.set(dummyEpoch) : mFrame_p.resetEpoch(dummyEpoch);
-    (!mFrame_p.position()) ? mFrame_p.set(pos) : mFrame_p.resetPosition(pos);
-    if (!nullPointingTable) {
-      if (dointerp) {
-        worldPosMeas = directionMeas(act_mspc, pointIndex, vb.time()(row));
-      } else {
-        worldPosMeas = directionMeas(act_mspc, pointIndex);
-      }
+  // 4. Create the direction conversion machine if needed
+  const auto needDirectionConverter = (
+      not havePointings or not haveConvertedColumn
+  );
+  if (not pointingToImage and needDirectionConverter) {
+    // Setup our Measures container
+    const auto & rowAntenna1Position =
+      vb.subtableColumns().antenna().positionMeas()(rowAntenna1);
+    const MEpoch dummyEpoch(Quantity(0, "s"));
+    mFrame_p = MeasFrame(dummyEpoch, rowAntenna1Position);
+    // Remember antenna id for next call,
+    // which may be done using a different VisBuffer ...
+    lastAntID_p = rowAntenna1;
+    // Compute the "model" required to setup the direction conversion machine
+    if (havePointings) {
+        worldPosMeas = mustInterpolate ?
+            directionMeas(pointingColumns, pointingIndex, rowTime)
+          : directionMeas(pointingColumns, pointingIndex);
     } else {
-      worldPosMeas = vb.direction1()(row);
+        // Without pointings, this sets the direction to the phase center
+        worldPosMeas = vb.direction1()(row);
     }
-
-    // Make a machine to convert from the worldPosMeas to the output
-    // Direction Measure type for the relevant frame
+    // Make a direction conversion machine, converting
+    // from: the reference frame of the "model"
+    // to:   image's reference frame
     MDirection::Ref outRef(directionCoord.directionType(), mFrame_p);
     pointingToImage = new MDirection::Convert(worldPosMeas, outRef);
-    if (!pointingToImage) {
+    if (not pointingToImage) {
       logIO_p << "Cannot make direction conversion machine" << LogIO::EXCEPTION;
     }
-
-    // perform direction conversion to clear cache
+    // Perform 1 dummy direction conversion to clear values
+    // cached in static variables of casacore functions like MeasTable::dUT1
     MDirection _dir_tmp = (*pointingToImage)();
   }
 
