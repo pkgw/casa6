@@ -541,7 +541,6 @@ def generate_pyinit(moduledir,tools):
                from .utils import utils as __utils
                import os as __os
                import sys as __sys
-               import numpy as np
                from casaconfig import pull_data, measures_update, config
 
                sakura( ).initialize_sakura( )    ## sakura requires explicit initialization
@@ -558,7 +557,8 @@ def generate_pyinit(moduledir,tools):
                    __os.makedirs(user_measurespath)
 
                ctsys = __utils()
-               ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui, user_agg, user_pipeline, user_cachedir )
+               ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui, 
+                                user_agg, user_pipeline, user_cachedir )
 
                logger = logsink(config.logfile) if (hasattr(config,'logfile') and config.logfile is not None) else None
 
@@ -570,11 +570,12 @@ def generate_pyinit(moduledir,tools):
                if hasattr(config,'measures_update') and (config.measures_update == True) and (__sys.argv[0] != '-m'):
                    measures_update(ctsys.rundata(), logger=logger)
 
-               if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(__os.path.join(user_measurespath, 'geodetic/IERSeop2000')))):
-                   raise ImportError('cant find measures data in ' + __os.path.realpath(__os.path.join(user_measurespath, 'geodetic/IERSeop2000')) +  ', visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
-
                if __sys.argv[0] != '-m':
-                   ctsys.setrundata(user_measurespath)
+                   __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
+                   if __resolved_iers == 'geodetic/IERSeop2000':
+                       raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+                   if len(ctsys.rundata( )) == 0:
+                       ctsys.setrundata(__resolved_iers[:-21])
 
                from .coercetype import coerce as __coerce
 
