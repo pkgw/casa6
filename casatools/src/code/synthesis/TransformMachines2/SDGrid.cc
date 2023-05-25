@@ -1883,46 +1883,66 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     MDirection _dir_tmp = (*pointingToImage)();
   }
 
-  MEpoch epoch(Quantity(vb.time()(row), "s"));
-  mFrame_p.resetEpoch(epoch);
-  if (lastAntID_p != vb.antenna1()(row)) {
-    if (lastAntID_p == -1) {
-      // antenna ID is unset
-      logIO_p << LogIO::DEBUGGING
-        << "update antenna position for conversion: new MS ID " << msId_p
-        << ", antenna ID " << vb.antenna1()(row) << LogIO::POST;
-    } else {
-      logIO_p << LogIO::DEBUGGING
-        << "update antenna position for conversion: MS ID " << msId_p
-        << ", last antenna ID " << lastAntID_p
-        << ", new antenna ID " << vb.antenna1()(row) << LogIO::POST;
+  const MEpoch rowEpoch(Quantity(rowTime, "s"));
+  { // 5. Update the frame holding the measurements for this row
+    // ---- Always reset the epoch
+    mFrame_p.resetEpoch(rowEpoch);
+    // ---- Reset antenna position only if antenna changed
+    // since we were last called
+    const auto antennaChanged = (lastAntID_p != rowAntenna1);
+    if (antennaChanged) {
+      { // Debug messages
+        if (lastAntID_p == -1) {
+          // antenna ID is unset
+          logIO_p << LogIO::DEBUGGING
+            << "updating antenna position for conversion: new MS ID " << msId_p
+            << ", antenna ID " << rowAntenna1 << LogIO::POST;
+        } else {
+          logIO_p << LogIO::DEBUGGING
+            << "updating antenna position for conversion: MS ID " << msId_p
+            << ", last antenna ID " << lastAntID_p
+            << ", new antenna ID " << rowAntenna1 << LogIO::POST;
+        }
+      }
+      MPosition rowAntenna1Position (
+          vb.subtableColumns().antenna().positionMeas()(rowAntenna1)
+      );
+      mFrame_p.resetPosition(rowAntenna1Position);
+      // Remember antenna id for next call,
+      // which may be done using a different VisBuffer ...
+      lastAntID_p = rowAntenna1;
     }
-    MPosition pos;
-    lastAntID_p = vb.antenna1()(row);
-    pos = vb.subtableColumns().antenna().positionMeas()(lastAntID_p);
-    mFrame_p.resetPosition(pos);
   }
 
-  if (!nullPointingTable) {
-    if (dointerp) {
-      MDirection newdir = directionMeas(act_mspc, pointIndex, vb.time()(row));
-      //Vector<Double> newdirv = newdir.getAngle("rad").getValue();
-      worldPosMeas = (*pointingToImage)(newdir);
-      //cerr<<"dir0="<<newdirv(0)<<endl;
-
-    //fprintf(pfile,"%.8f %.8f \n", newdirv(0), newdirv(1));
-    //printf("%lf %lf \n", newdirv(0), newdirv(1));
-    } else {
-      worldPosMeas = (*pointingToImage)(directionMeas(act_mspc, pointIndex));
-    }
+  // 6. Compute user-specified column direction at data-taking time,
+  //    converted to image's direction reference frame
+  if (havePointings) {
+      const auto columnDirection = mustInterpolate ?
+          directionMeas(pointingColumns, pointingIndex, rowTime)
+        : directionMeas(pointingColumns, pointingIndex);
+      worldPosMeas = haveConvertedColumn ?
+          columnDirection
+        : (*pointingToImage)(columnDirection);
+      { // Old debug stuff
+        //Vector<Double> newdirv = newdir.getAngle("rad").getValue();
+        //cerr<<"dir0="<<newdirv(0)<<endl;
+        //fprintf(pfile,"%.8f %.8f \n", newdirv(0), newdirv(1));
+        //printf("%lf %lf \n", newdirv(0), newdirv(1));
+      }
   } else {
-    worldPosMeas = (*pointingToImage)(vb.direction1()(row));
+      // Without pointings, this converts the direction of the phase center ?
+      worldPosMeas = (*pointingToImage)(vb.direction1()(row));
   }
 
-  Bool result = directionCoord.toPixel(xyPos, worldPosMeas);
-  if (!result) {
-    logIO_p << "Failed to find a pixel for pointing direction of "
-	    << MVTime(worldPosMeas.getValue().getLong("rad")).string(MVTime::TIME) << ", " << MVAngle(worldPosMeas.getValue().getLat("rad")).string(MVAngle::ANGLE) << LogIO::WARN << LogIO::POST;
+  // 7. Convert world direction coordinates to image pixel coordinates
+  Bool havePixel = directionCoord.toPixel(xyPos, worldPosMeas);
+  if (not havePixel) { // Log warning
+    logIO_p << LogIO::WARN
+      << "Failed to find a pixel for pointing direction of "
+      << MVTime(worldPosMeas.getValue().getLong("rad")).string(MVTime::TIME)
+      << ", "
+      << MVAngle(worldPosMeas.getValue().getLat("rad")).string(MVAngle::ANGLE)
+      << LogIO::POST;
     return false;
   }
 
@@ -1956,8 +1976,7 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     xyPos = xyPos + xyPosMovingOrig_p - actPix;
   }
 
-  return result;
-  // Convert to pixel coordinates
+  return havePixel;
 }
 
 MDirection SDGrid::directionMeas(const MSPointingColumns& mspc, const Int& index){
