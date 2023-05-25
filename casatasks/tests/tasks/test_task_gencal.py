@@ -747,7 +747,7 @@ class TestJyPerK(unittest.TestCase):
             # temp_csv should contain pol-dependent Jy/K factors
             # factors for XX is same as original factors for I while
             # factors for YY is 4 times original factors so that
-            # CPARAM value becomes 1/2 times reference value
+            # CPARAM value becomes half of reference value
             gencal(vis=self.vis,
                    caltable=self.caltable,
                    caltype='jyperk',
@@ -760,6 +760,7 @@ class TestJyPerK(unittest.TestCase):
                 datapath, 'jyperk_reference/factor_file.cal')
         self.assertTrue(th.compTables(self.caltable, reference_caltable, ['WEIGHT', 'CPARAM']))
 
+        # reference_xx is same as "reference" in test_jyperk_gencal_for_factor_file
         reference_xx = \
             np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,
                      1.,1.,1.,1.,1.,1., 1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,
@@ -768,6 +769,7 @@ class TestJyPerK(unittest.TestCase):
                      1.,1.,1.,0.13593915104866028,0.13593915104866028,0.13593915104866028,
                      1.,1.,1.,0.13782501220703125,0.13782501220703125,0.13782501220703125,
                      1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
+        # reference_yy is half of original reference value (except 1.0)
         reference_yy = np.where(
             reference_xx < 1.0, reference_xx / 2, 1.0
         )
