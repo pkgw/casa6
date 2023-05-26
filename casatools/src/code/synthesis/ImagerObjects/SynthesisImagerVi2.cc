@@ -698,32 +698,12 @@ Bool SynthesisImagerVi2::defineImage(
     gridparsVec_p[imparsVec_p.nelements()-1] = gridpars_p;
     // For now as awproject does not work with the c++ mpi cube gridding
     // make sure it works the old way as mfs
-    if ( gridparsVec_p[0].ftmachine.contains("awproject") )
-      setCubeGridding(False);
-
-		appendToMapperList(impars_p.imageName,  csys,  impars_p.shp(),
-			   ftm, iftm,
-			   gridpars.distance, gridpars.facets, gridpars.chanchunks,impars_p.overwrite,
-			   gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel);
-	
-	imageDefined_p=true;
-      }
-    catch(AipsError &x)
-      {
-	os << "Error in adding Mapper : "+x.getMesg() << LogIO::EXCEPTION;
-      }
-	imparsVec_p.resize(imparsVec_p.nelements()+1, true);
-	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
-	///For now cannot deal with cube and mtmfs in C++ parallel mode
-	if(imparsVec_p[0].deconvolver=="mtmfs") setCubeGridding(False);
-	//cerr <<"DECONV " << imparsVec_p[0].deconvolver << " cube gridding " << doingCubeGridding_p << endl;
-	gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
-	gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
-	//For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
-	//if(gridparsVec_p[0].ftmachine.contains("awproject"))
-	 //  setCubeGridding(False);
-        itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
-                     (gridparsVec_p[0].ftmachine.at(0,3)=="awp") )?False:True;
+    // if ( gridparsVec_p[0].ftmachine.contains("awproject") )
+    //   setCubeGridding(False);
+    itsMakeVP =
+      (  gridparsVec_p[0].ftmachine.contains("mosaicft") or
+        (gridparsVec_p[0].ftmachine.at(0,3) == "awp")
+      ) ? False : True;
     return true;
   }
 
