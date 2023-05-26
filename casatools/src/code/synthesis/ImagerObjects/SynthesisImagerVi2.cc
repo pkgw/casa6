@@ -737,10 +737,11 @@ Bool SynthesisImagerVi2::defineImage(
     }
 
     itsVpTable = gridpars.vpTable;
-    itsMakeVP = ( gridpars.ftmachine.contains("mosaicft") ||
-                  gridpars.ftmachine.contains("awprojectft") ) ?
-                False : True;
+    itsMakeVP = (  gridpars.ftmachine.contains("mosaicft") or
+                  (gridpars.ftmachine.at(0,3) == "awp")
+                ) ? False : True;
     CountedPtr<refim::FTMachine> ftm, iftm;
+
     createFTMachine(
       ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType,
       gridpars.facets, gridpars.wprojplanes,
@@ -751,69 +752,49 @@ Bool SynthesisImagerVi2::defineImage(
       gridpars.pointingOffsetSigDev.tovector(),
       gridpars.doPBCorr,gridpars.conjBeams,
       gridpars.computePAStep,gridpars.rotatePAStep,
-      gridpars.interpolation, impars.freqFrameValid, 1000000000,  16, impars.stokes,
+      gridpars.interpolation, impars.freqFrameValid, 1000000000, 16, impars.stokes,
       impars.imageName,
       gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
       gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-      gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi
+      gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);
+
+  if (gridpars.facets >1) {
+    // Make and connect the list.
+    Block<CountedPtr<SIImageStore> > imstorList =
+      createFacetImageStoreList( imstor, gridpars.facets );
+    for( uInt facet=0; facet<imstorList.nelements(); facet++) {
+      CountedPtr<refim::FTMachine> new_ftm, new_iftm;
+      if (facet == 0) {
+        new_ftm = ftm;
+        new_iftm = iftm;
+      }
+      else {
+        new_ftm = ftm->cloneFTM();
+        new_iftm = iftm->cloneFTM();
+      }
+      itsMappers.addMapper(
+        createSIMapper( gridpars.mType, imstorList[facet], new_ftm, new_iftm)
+      );
+    }
+  }
+  else {
+    itsMappers.addMapper(
+      createSIMapper( gridpars.mType, imstor, ftm, iftm)
     );
+  }
+  impars_p = impars;
+  gridpars_p = gridpars;
+  imageDefined_p = true;
 
-    if (gridpars.facets > 1) {
-      // Make and connect the list.
-      Block<CountedPtr<SIImageStore> > imstorList =
-        createFacetImageStoreList( imstor, gridpars.facets );
+  imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+  imparsVec_p[imparsVec_p.nelements()-1] = impars_p;
 
-      for (uInt facet=0; facet<imstorList.nelements(); facet++) {
-        CountedPtr<refim::FTMachine> new_ftm, new_iftm;
-        if (facet==0) {
-          new_ftm = ftm;
-          new_iftm = iftm;
-        }
-	itsVpTable=gridpars.vpTable;
-	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-                     (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
-	CountedPtr<refim::FTMachine> ftm, iftm;
-         
+  gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+  gridparsVec_p[gridparsVec_p.nelements()-1] = gridpars_p;
 
-	createFTMachine(ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType, 
-			gridpars.facets, gridpars.wprojplanes,
-			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
-			gridpars.convFunc,
-			gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
-			gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,
-			gridpars.pointingOffsetSigDev.tovector(),
-			gridpars.doPBCorr,gridpars.conjBeams,
-			gridpars.computePAStep,gridpars.rotatePAStep,
-			gridpars.interpolation, impars.freqFrameValid, 1000000000,  16, impars.stokes,
-			impars.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
-			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);  
-       
-        
-	if(gridpars.facets >1)
-	{
-	      // Make and connect the list.
-		Block<CountedPtr<SIImageStore> > imstorList = createFacetImageStoreList( imstor, gridpars.facets );
-		for( uInt facet=0; facet<imstorList.nelements(); facet++)
-		{
-		  CountedPtr<refim::FTMachine> new_ftm, new_iftm;
-		  if(facet==0){ new_ftm = ftm;  new_iftm = iftm; }
-		  else{ new_ftm=ftm->cloneFTM();  new_iftm=iftm->cloneFTM(); }
-		  itsMappers.addMapper(createSIMapper( gridpars.mType, imstorList[facet], new_ftm, new_iftm));
-		}
-	}
-	else{
-		itsMappers.addMapper(  createSIMapper( gridpars.mType, imstor, ftm, iftm ) );	
-	}
-        impars_p=impars;
-        gridpars_p=gridpars;
-	imageDefined_p=true;
-        imparsVec_p.resize(imparsVec_p.nelements()+1, true);
-	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
-        gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
-	gridparsVec_p[gridparsVec_p.nelements()-1]=gridpars_p;
-	return true;
+  return true;
 }
+
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, 
 				    const String& ftmachine)
   {
