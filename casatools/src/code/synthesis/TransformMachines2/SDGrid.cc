@@ -1977,7 +1977,7 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     Vector<Double> actPix;
     directionCoord.toPixel(actPix, actSourceDir);
 
-    //cout << row
+    //  cout << row
     //  << " scan " << vb.scan()(row)
     //  << " xyPos " << xyPos
     //  << " xyposmovorig " << xyPosMovingOrig_p
