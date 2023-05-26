@@ -29,7 +29,7 @@ import numpy as np
 import pylab as pl
 
 import casatools
-from casatasks import gaincal, mstransform, casalog, flagdata
+from casatasks import gaincal, mstransform, casalog, flagdata, gencal
 tb = casatools.table()
 from casatestutils import testhelper as th
 
