@@ -782,6 +782,7 @@ def tsdimaging(
     ):
 
     origin = 'tsdimaging'
+    imager = None
 
     try: # Create the Single-Dish Image
         if True: # Check and tweak input parameters
