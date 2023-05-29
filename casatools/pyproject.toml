@@ -2,10 +2,3 @@
 # Minimum requirements for the build system to execute.
 requires = ["setuptools", "wheel", "numpy"]
 build-backend = "setuptools.build_meta"
-
-[project]
-name = "casatools"
-dependencies = [
-    "casaconfig",
-    "numpy"
-]
