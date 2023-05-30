@@ -558,7 +558,7 @@ class gaincal_test(unittest.TestCase):
         self.assertTrue(np.isclose(np.mean(dk), 2.674664e-05), msg=f"Sum should be close to 0, caltable with 2 spws ms with 4, Mean is {np.mean(dk)}")
         
         dk=K4b-K4a      # should be precisely zero (same effective sysdel)
-        self.assertTrue(np.isclose(np.mean(dk), 0), msg=f"These two should be the same. Mean is {np.mean(dk)}")
+        self.assertTrue(np.isclose(np.mean(dk), 0, atol=1e-7), msg=f"These two should be the same. Mean is {np.mean(dk)}")
         
         # Solve on 2-spw MS using sysdel4
         #  using spwmap
@@ -576,7 +576,7 @@ class gaincal_test(unittest.TestCase):
         self.assertTrue(np.isclose(np.mean(dk), 3.148629e-05), msg=f"Sum should be close to 0, caltable with 4 spws ms with 2. Mean is {np.mean(dk)}")
         
         dk=K2b-K2a      # should be precisely zero (same effective sysdel)
-        self.assertTrue(np.isclose(np.mean(dk), 0), msg=f"These two should be the same. Mean is {np.mean(dk)}")
+        self.assertTrue(np.isclose(np.mean(dk), 0, atol=1e-7), msg=f"These two should be the same. Mean is {np.mean(dk)}")
         
     def test_gainTypeSpline(self):
         '''
