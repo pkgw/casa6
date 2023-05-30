@@ -54,6 +54,8 @@ static std::vector<casacore::String> _vectorStdStringToVectorString(const std::v
 
 static std::vector<long> _vectorUIntToVectorInt(const std::vector<casacore::uInt>& inset);
 
+static std::vector<long> _vectorIntToVectorLong(const std::vector<int>& inset);
+
 static std::vector<uint> _vectorIntToVectorUInt(const std::vector<long>& inset);
 
 friend class ms;

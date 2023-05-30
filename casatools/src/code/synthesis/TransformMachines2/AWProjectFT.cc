@@ -176,7 +176,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       rotateOTFPAIncr_p(0.1),
       Second("s"),Radian("rad"),Day("d"), pbNormalized_p(false), paNdxProcessed_p(),
       visResampler_p(nullptr), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
-    rotatedConvFunc_p(),
+      rotatedConvFunc_p(),
       runTime1_p(0.0), previousSPWID_p(-1), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true),
     timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
   {
@@ -375,7 +375,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	
 	padding_p=other.padding_p;
-	nWPlanes_p=other.nWPlanes_p;
 	imageCache=other.imageCache;
 	cachesize=other.cachesize;
 	tilesize=other.tilesize;
@@ -1100,17 +1099,19 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         spectralCoord_p.toWorld(freqofBegChan, 0.0);
         
         cubeinfo=std::make_tuple(image.shape()(3),freqofBegChan);
-	
-    Bool avgPBReady = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+
+
+        if(!avgPBReady_p)
+          avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
-    if(avgPBReady){
+    if(avgPBReady_p){
         LatticeExprNode le( max( *avgPB_p ) );
         Float avgPB_max=le.getFloat();
         
-        if(avgPB_max <= 0.0) avgPBReady = false;
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
     }
     
-    if(!avgPBReady) makeSensitivityImage(vb,image,*avgPB_p);
+    if(!avgPBReady_p) makeSensitivityImage(vb,image,*avgPB_p);
 
 	
     
@@ -1382,6 +1383,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     logIO() << LogOrigin("AWProjectFT", "finalizeToVis")  << LogIO::NORMAL;
     logIO()<< LogIO::WARN << "Time degrid " << timedegrid_p << LogIO::POST;
     timedegrid_p=0.0;
+
   if(!lattice.null()) lattice=0;
   griddedData.resize();
   
@@ -1477,6 +1479,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   void AWProjectFT::finalizeToSky()
   {
+
+    logIO() <<   LogIO::NORMAL2 << "time to massage data " << timemass_p << LogIO::POST;
+    logIO() <<  LogIO::NORMAL2 << "time gridding " << timegrid_p << LogIO::POST;
+   timemass_p=0.0;
+   timegrid_p=0.0;
+    
     //
     // Now we flush the cache and report statistics For memory based,
     // we don't write anything out yet.
@@ -1529,6 +1537,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     makingPSF=dopsf;
     if(dopsf)
       ftmType_p=refim::FTMachine::PSF;
+    Timer tim;
+    tim.mark();
+
     
     try
       {
@@ -1579,8 +1590,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase,dopsf,gridShape);
     timemass_p +=tim.real();
     tim.mark();
- 
-
     if (useDoubleGrid_p)
       {
 	resampleDataToGrid(griddedData2, vbs, vb, dopsf);//, *imagingweight, *data, uvw,flags,dphase,dopsf);
@@ -1624,7 +1633,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void AWProjectFT::get(VisBuffer2& vb, Int /*row*/)
   {
     findConvFunction(*image, vb);
-    
+    Timer tim;
+    tim.mark();
     Nant_p     = vb.subtableColumns().antenna().nrow();
     // Get the uvws in a form that Fortran can use
     Matrix<Double> uvw(negateUV(vb));
@@ -1649,11 +1659,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     Bool tmpDoPSF=false;
 
     setupVBStore(vbs,vb, vb.imagingWeight(),data,uvw,flags, dphase,tmpDoPSF,griddedData.shape().asVector());
+
      Timer tim;
      tim.mark();
      resampleGridToData(vbs, griddedData, vb);//, uvw, flags, dphase);
      timedegrid_p+=tim.real();
     interpolateFrequencyFromgrid(vb, data, FTMachine::MODEL);
+    timedegrid_p+=tim.real();
   }
   //
   //-------------------------------------------------------------------------
@@ -1716,6 +1728,33 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    LatticeFFT::cfft2d(*lattice,false);
 	  }
 	const IPosition latticeShape = lattice->shape();
+
+        int samp=getAWConvFunc()->getOversampling();
+        //cerr << "SAMP " << samp << endl;
+        //Do sampling size correction    
+        Vector<Float> sincConvX(nx);
+        for (Int ix=0;ix<nx;ix++) {
+          Float x=C::pi*Float(ix-nx/2)/(Float(nx)*Float(convSampling));
+          if(ix==nx/2) {
+            sincConvX(ix)=1.0;
+          }
+          else {
+            sincConvX(ix)=sin(x)/x;
+          }
+        }
+        Vector<Float> sincConvY(ny);
+        for (Int ix=0;ix<ny;ix++) {
+          Float x=C::pi*Float(ix-ny/2)/(Float(ny)*Float(convSampling));
+          if(ix==ny/2) {
+            sincConvY(ix)=1.0;
+          }
+          else {
+            sincConvY(ix)=sin(x)/x;
+          }
+        }
+    
+
+        //cerr << convSampling << " max min of sincs " << max(sincConvX) << "    " << min(sincConvX) << max(sincConvY) << "     " << min(sincConvY) << endl;
 	//
 	// Now normalize the dirty image.
 	//
@@ -1739,6 +1778,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      Int pol=lix.position()(2);
 	      Int chan=lix.position()(3);
 	      {
+
+                Int iy=lix.position()(1);
+                for (Int ix=0;ix<nx;ix++) {
+                  correction(ix)=1.0/(sincConvX(ix)*sincConvY(iy));
+                 }
+                //cerr << iy << " min max corr " << min(abs(correction)) << "    " << max(abs(correction)) << endl;
+                lix.rwVectorCursor()*=correction;
 		if(fftNormalization) 
 		  {
 		    if(weights(pol,chan)!=0.0)
@@ -1792,30 +1838,78 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     const IPosition latticeShape = weightImage.shape();
     const IPosition avgpbShape = avgPB_p->shape();
-    cout << "AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " nelems " << avgpbShape.nelements()<< "  " << sumWeight << endl;
+
+    //cout << "AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " nelems " << avgpbShape.nelements()<< "  " << sumWeight << endl;
      if(avgpbShape.nelements()==0 || ( avgpbShape != latticeShape) )
       avgPB_p->resize(weightImage.shape());
     
     Int nx=latticeShape(0);
     Int ny=latticeShape(1);
-    
-    IPosition cursorShape(4, nx, ny, latticeShape(2), latticeShape(3));
-    IPosition axisPath(4, 0, 1, 2, 3);
-    LatticeStepper lsx(latticeShape, cursorShape, axisPath);
-    LatticeIterator<Float> lix(weightImage, lsx);
-    LatticeIterator<Float> liy(*avgPB_p,lsx);
-    for(lix.reset();!lix.atEnd();lix++) 
-      {
-	lix.rwCursor()=liy.rwCursor();
+
+    int samp=getAWConvFunc()->getOversampling();
+    //Do sampling size correction    
+    Vector<Float> sincConvX(nx);
+    for (Int ix=0;ix<nx;ix++) {
+      Float x=C::pi*Float(ix-nx/2)/(Float(nx)*Float(convSampling));
+      if(ix==nx/2) {
+        sincConvX(ix)=1.0;
       }
+      else {
+        sincConvX(ix)=sin(x)/x;
+      }
+    }
+    Vector<Float> sincConvY(ny);
+    for (Int ix=0;ix<ny;ix++) {
+      Float x=C::pi*Float(ix-ny/2)/(Float(ny)*Float(convSampling));
+      if(ix==ny/2) {
+        sincConvY(ix)=1.0;
+      }
+      else {
+        sincConvY(ix)=sin(x)/x;
+      }
+    }
+    
+
+       
+
+    {
+      IPosition cursorShape(4, nx, ny, latticeShape(2), latticeShape(3));
+      IPosition axisPath(4, 0, 1, 2, 3);
+      LatticeStepper lsx(latticeShape, cursorShape, axisPath);
+      LatticeIterator<Float> lix(weightImage, lsx);
+      LatticeIterator<Float> liy(*avgPB_p,lsx);
+      for(lix.reset();!lix.atEnd();lix++) 
+        {
+          lix.rwCursor()=liy.cursor();
+        }
+    }
+    {//sampling size correction
+      Vector<Float> correction(nx);
+      correction=1.0;
+      // Do the Grid-correction
+      IPosition cursorShape(4, nx, 1, 1, 1);
+      IPosition axisPath(4, 0, 1, 2, 3);
+      LatticeStepper lsx(weightImage.shape(), cursorShape, axisPath);
+      LatticeIterator<Float> lix(weightImage, lsx);
+      for(lix.reset();!lix.atEnd();lix++) 
+        {
+               
+          Int iy=lix.position()(1);
+          for (Int ix=0;ix<nx;ix++) {
+            correction(ix)=1.0/(sincConvX(ix)*sincConvY(iy));
+          }
+          lix.rwVectorCursor()*=correction;
+        }
+        }
   }
   //---------------------------------------------------------------
     void AWProjectFT::setWeightImage(ImageInterface<Float>& weightImage){
+      //cerr <<"@@@loading weightimage" << endl;
       IPosition latticeShape = weightImage.shape();
       CoordinateSystem cs=weightImage.coordinates();
       avgPB_p=new TempImage<Float>(latticeShape, cs);
       avgPB_p->copyData(weightImage);
-
+      avgPBReady_p=True;
 
     }
     
@@ -2088,13 +2182,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     convFuncCtor_p->prepareConvFunction(vb,*vb2CFBMap_p);
     
     vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf);
-      visResampler_p->setVB2CFMap(vb2CFBMap_p);
+    visResampler_p->setVB2CFMap(vb2CFBMap_p);
     
-      //
-      // This was required for the older GPU or multi-threaded gridder.
-      // It is a VR framework call and a NoOp in VisibilityResampler.h
-      //
-      visResampler_p->initializeDataBuffers(vbs);
+    // The following code is required only for GPU or multi-threaded
+    //gridder.  Currently does not work without the rest of the
+    //GPU/multi-threaded infrastructure (though, I (SB) thought this
+    //was designed to be benign for normal gridding).
+    //
+    visResampler_p->initializeDataBuffers(vbs);
   }
   //
   //---------------------------------------------------------------

@@ -157,7 +157,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	usezero_p       =   other.usezero_p;
 	doPBCorrection  =   other.doPBCorrection;
 	maxConvSupport  =   other.maxConvSupport;
-	avgPBReady_p    =   other.avgPBReady_p;
 	resetPBs_p      =   other.resetPBs_p;
 	wtImageFTDone_p =   other.wtImageFTDone_p;
 	rotatedCFWts_p  =   other.rotatedCFWts_p;
@@ -541,17 +540,18 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     spectralCoord_p.toWorld(freqofBegChan, 0.0);
         
     cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
-    if (!avgPBReady_p)
-      {
-	avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+
+    ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
+    //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
+    if(!avgPBReady_p)
+      avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
-	if(avgPBReady_p){
-	  LatticeExprNode le( max( *avgPB_p ) );
-	  Float avgPB_max=le.getFloat();
+    if(avgPBReady_p){
+        LatticeExprNode le( max( *avgPB_p ) );
+        Float avgPB_max=le.getFloat();
         
-	  if(avgPB_max <= 0.0) avgPBReady_p = false;
-	}
-      }
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
+    }
     // Need to grid the weighted Convolution Functions to make the sensitivity pattern.
     if (!avgPBReady_p)
       {
@@ -653,10 +653,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf_l);
       vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;  
       Int nDataChan = vbs.flagCube_p.shape()[1];
-
       
-    visResamplerWt_p->setVB2CFMap(vb2CFBMap_p);
-    vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+      visResamplerWt_p->setVB2CFMap(vb2CFBMap_p);
+      vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+
       visResamplerWt_p->DataToGrid(gwts, vbs, sumCFWeight, dopsf_l); 
     }
   //
@@ -710,6 +710,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
  void  AWProjectWBFT::gridImgWeights(const VisBuffer2& vb)
  {
    findConvFunction(*image, vb);
+
    if(avgPBReady_p)
      return;
    else

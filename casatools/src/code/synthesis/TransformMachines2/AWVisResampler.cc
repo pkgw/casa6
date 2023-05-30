@@ -322,7 +322,8 @@ namespace casa{
 		  if((targetIMChan>=0) && (targetIMChan<nGridChan)) 
 		    {
 
-		      Double dataWVal = (UVW.nelements() > 0) ? dataWVal = UVW(2,irow) : 0.0;
+
+		      Double dataWVal = (UVW.nelements() > 0) ? UVW(2,irow) : 0.0;
 		      Int wndx = cfb->nearestWNdx(dataWVal*freq[ichan]/C::c);
 		      Int cfFreqNdx = cfb->nearestFreqNdx(vbSpw,ichan,vbs.conjBeams_p);
 		      Float s;
@@ -387,9 +388,12 @@ namespace casa{
 
 					  if (!onGrid(nx, ny, nw, loc, support)) break;
 
-					  convOrigin=cfShape/2;
-					  
-					  cacheAxisIncrements(cfShape, cfInc_p);
+
+					  if(cfShape[0]%2==0 && cfShape[1]%2==0)
+					    convOrigin=cfShape/2;
+                                          else
+                                            convOrigin=cfShape/2+1;
+                                          cacheAxisIncrements(cfShape, cfInc_p);
 					  nVisGridded_p++;
 #include <synthesis/TransformMachines2/accumulateToGrid.inc>
 					}
@@ -428,7 +432,8 @@ namespace casa{
     Vector<Int> cfShape=cfb->getStorage()(0,0,0)->getStorage()->shape().asVector();
     Bool finitePointingOffset=cfb->finitePointingOffsets();
 
-    Vector<Int> convOrigin = (cfShape)/2;
+
+    Vector<Int> convOrigin; // = ((cfShape[0]%2==0) && (cfShape[1]%2==0)) ? (cfShape)/2  : cfShape/2+1;
     Double cfRefFreq;//cfScale=1.0
     
     rbeg=0;
@@ -539,7 +544,8 @@ namespace casa{
 			      //
 			      if ((isOnGrid=onGrid(nx, ny, nw, loc, support))==false) break;
 			      cacheAxisIncrements(cfShape, cfInc_p);
-			      convOrigin = (cfShape)/2;
+
+			      convOrigin =  ((cfShape[0]%2==0) && (cfShape[1]%2==0)) ? (cfShape)/2  : cfShape/2+1;
 
 #include <synthesis/TransformMachines2/accumulateFromGrid.inc>
 			    }

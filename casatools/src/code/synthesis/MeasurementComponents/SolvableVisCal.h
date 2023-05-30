@@ -187,6 +187,7 @@ public:
   inline casacore::String&      solint()         { return solint_; };
   inline casacore::String&      fsolint()        { return fsolint_; };
   inline casacore::Double&      preavg()         { return preavg_; };
+  inline casacore::String&      corrcomb()       { return corrcomb_; };
   inline const SolNorm&         solNorm()        { return solnorm_;};
   inline casacore::Bool         solnorm()        { return solnorm_.donorm();};
   inline casacore::Float&       minSNR()         { return minSNR_; };
@@ -712,6 +713,9 @@ private:
   // Preavering interval
   casacore::Double preavg_;
 
+  // Combine polarizations
+  casacore::String corrcomb_;
+  
   // Do solution normalization after a solve
   SolNorm solnorm_;
 

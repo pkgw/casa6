@@ -35,6 +35,8 @@
 #include <synthesis/TransformMachines2/Utils.h>
 #include <synthesis/TransformMachines2/VBStore.h>
 #include <msvis/MSVis/VisBuffer2.h>
+
+//#include <hpg.hpp>
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <stdcasa/thread/AsynchronousTools.h>
@@ -43,8 +45,6 @@
 #include <casacore/casa/Logging/LogSink.h>
 #include <casacore/casa/Logging/LogMessage.h>
 #include <casacore/casa/OS/Timer.h>
-//#include <hpg.hpp>
-
 using sumofweight_fp = std::vector<std::vector<double>>;
 
 namespace casa { //# NAMESPACE CASA - BEGIN

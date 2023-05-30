@@ -293,7 +293,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
     void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false,
 	     FTMachine::Type type=FTMachine::OBSERVED);
-    
+
     virtual std::shared_ptr<std::complex<double>> getGridPtr(size_t& size) const override;
     virtual std::shared_ptr<double> getSumWeightsPtr(size_t& size) const override;
 
@@ -552,8 +552,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     casacore::CountedPtr<refim::FTMachine> self_p;
     casacore::CountedPtr<refim::VB2CFBMap> vb2CFBMap_p;
     casacore::CountedPtr<refim::PointingOffsets> po_p;
-    casacore::Double timemass_p, timegrid_p, timedegrid_p;
     Bool wbAWP_p;
+    casacore::Double timemass_p, timegrid_p, timedegrid_p;
 #include "AWProjectFT.FORTRANSTUFF.INC"
   };
 } //# NAMESPACE CASA - END

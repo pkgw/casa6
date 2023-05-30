@@ -1713,13 +1713,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 			}
 			if(itsMakeVP){
 			  pbnames(k)=itsMappers.imageStore(imageStoreId)->pb(k)->name();
-                          /* (itsMappers.imageStore(imageStoreId)->pb(k))->lock(FileLocker::Write, 20);
-                          if( !( (itsMappers.imageStore(imageStoreId)->pb(k))->isMasked() ) ){
-                             (itsMappers.imageStore(imageStoreId)->pb(k))->makeMask ("mask0", true, true, true, true);
-                             (itsMappers.imageStore(imageStoreId)->pb(k))->pixelMask().unlock();
-                          }
-                          */
-                          (itsMappers.imageStore(imageStoreId)->pb(k))->unlock();
+                           (itsMappers.imageStore(imageStoreId)->pb(k))->unlock();
                         }
 		}
 		controlRecord.define("weightnames", weightnames);
@@ -1795,11 +1789,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 				(itsMappers.imageStore(k))->sumwt(j)->unlock();
 				//(itsMappers.imageStore(k))->releaseLocks();
 			}
+                        (itsMappers.imageStore(k))->releaseLocks();   
 
-                        
-                        
-                        //cerr << "@@@@@@@@@@@BEFMaster pid : " << getpid() << " lock " << (itsMappers.imageStore(0))->pb()->hasLock(FileLocker::Write) << "    "  <<  (itsMappers.imageStore(0))->pb()->hasLock(FileLocker::Read)  <<  " MASK " <<(itsMappers.imageStore(0))->pb()->pixelMask().hasLock(FileLocker::Write) << "    " <<  (itsMappers.imageStore(0))->pb()->pixelMask().hasLock(FileLocker::Read)  <<endl;        
-             	(itsMappers.imageStore(k))->releaseLocks();           
 	}		
 		//Send the working directory as the child and master may be at different places
 		
@@ -1916,9 +1907,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 	  LatticeLocker lock1 (*(itsMappers.imageStore(0)->psf()), FileLocker::Write);
 	  itsMappers.imageStore(0)->psf()->setImageInfo(cubePsfImageInfo_p);
 	  itsMappers.imageStore(0)->psf()->unlock();
-          //(itsMappers.imageStore(0)->pb())->pixelMask().unlock();
           (itsMappers.imageStore(0))->pb()->unlock();
-         
 	}
 
         }  
@@ -2351,6 +2340,7 @@ void SynthesisImagerVi2::lockMS(MeasurementSet& thisms){
     /// write to the test !!  till someboody fixes this is vi2 or wait for cngi
     //if savescratch column we have tune...otherwise some channel may be 0
     // when chunking or in parallel
+    //cerr << "nchanims " << nchaninms << endl;
     if(nchaninms <30 && !(!readOnly_p && useScratch_p))
       return dataSel_p;
     
@@ -2475,7 +2465,7 @@ void SynthesisImagerVi2::unlockMSs()
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
     static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
-    else if ((ftname.contains("awprojectft")) || (ftname== "mawprojectft") || (ftname == "protoft") || (ftname == "awphpg")) {
+    else if ((ftname.at(0,3)=="awp") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
 			 padding, useAutocorr, useDoublePrec, gridFunction,
 			 aTermOn, psTermOn, mTermOn, wbAWP, cfCache, 
@@ -2707,6 +2697,7 @@ void SynthesisImagerVi2::unlockMSs()
     // release CFs that aren't required immediately.
     //cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
     cfCacheObj->setLazyFill(False);
+
     //    cerr << "Setting wtImagePrefix to " << imageNamePrefix.c_str() << endl;
     cfCacheObj->setWtImagePrefix(imageNamePrefix.c_str());
     cfCacheObj->initCache2(CFC_VERBOSE);
@@ -3242,6 +3233,7 @@ void SynthesisImagerVi2::unlockMSs()
       // 	}
   }
   //////////////////
+
    bool  SynthesisImagerVi2::makeMosaicSensitivity(){
      ///We will bother with the first image. As A projection style gridding
      ///usually is done on that first image.
@@ -3257,6 +3249,7 @@ void SynthesisImagerVi2::unlockMSs()
      }
 
           
+
     vi::VisBuffer2* vb=vi_p->getVisBuffer();
      vi_p->originChunks();
      vi_p->origin();
@@ -3274,6 +3267,7 @@ void SynthesisImagerVi2::unlockMSs()
       itsMappers.getFTM2(0)->setPBReady(false);
       itsMappers.getFTM2(0)->setFTMType(casa::refim::FTMachine::WEIGHT);
 
+
       for (vi_p->originChunks(); vi_p->moreChunks();vi_p->nextChunk())
     	{
           
@@ -3282,6 +3276,7 @@ void SynthesisImagerVi2::unlockMSs()
               if (SynthesisUtilMethods::validate(*vb)!=SynthesisUtilMethods::NOVALIDROWS)
 		    {
                       itsMappers.getFTM2(0)->gridImgWeights(*vb);//This just calls AWP::put();
+
                       cohDone += vb->nRows();
                       pm.update(Double(cohDone));
 		    }
@@ -3290,6 +3285,7 @@ void SynthesisImagerVi2::unlockMSs()
       //now load the images in weight and sumwt
       itsMappers.getFTM2(0)-> finalizeToWeightImage(*vb, imageStore(0));  
       itsMappers.getFTM2(0)->setPBReady(false);
+
       //cerr << "@@@@@@@MAKING PB " << endl;
       return True;
      
@@ -3300,6 +3296,7 @@ void SynthesisImagerVi2::unlockMSs()
     if(!itsMappers.getFTM2(0))
       return False;
     String ftmname=itsMappers.getFTM2(0)->name();
+
     if(ftmname.contains("Mosaic") || ftmname.contains("AWProjectWB")){
       //sumwt has been calcuated
       Bool donesumwt=(max(itsMappers.imageStore(0)->sumwt()->get()) > 0.0);

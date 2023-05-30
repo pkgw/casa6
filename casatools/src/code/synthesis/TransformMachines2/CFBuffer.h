@@ -323,7 +323,7 @@ using namespace casa::vi;
 						      const casacore::String& fileName=casacore::String(),
 						      const casacore::Double& conjFreq=0.0,
 						      const casacore::Int& conjPol=-1,
-						      const casacore::String& telescopeName=casacore::String(),
+						      const casacore::String& telescopeName=casacore::String("EVLA"),
 						      const casacore::Float& diameter=25.0);
     // casacore::RigidVector<casacore::Int, 3> setParams(const casacore::Int& inu, const casacore::Int& iw, const casacore::Int& muellerElement,
     // 				  const casacore::TableRecord& miscInfo);

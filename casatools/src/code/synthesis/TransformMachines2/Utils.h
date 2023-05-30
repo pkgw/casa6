@@ -32,6 +32,8 @@
 #include <casacore/casa/aips.h>
 #include <casacore/casa/Exceptions/Error.h>
 #include <msvis/MSVis/VisBuffer2.h>
+
+#include <casacore/images/Images/ImageOpener.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/images/Images/ImageInterface.h>
 #include <casacore/images/Images/ImageOpener.h>
@@ -43,6 +45,7 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <iostream>
+
 
 namespace casa
 {
