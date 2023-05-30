@@ -22,7 +22,7 @@ public:
 
   T *data() const {return data_;}
   casacore::Vector<T> casaVector() const {
-      return casacore::Vector<T>(casacore::IPosition(1, num_data_), data,
+      return casacore::Vector<T>(casacore::IPosition(1, num_data_), data_,
                                  casacore::SHARE);
   }
 private:
