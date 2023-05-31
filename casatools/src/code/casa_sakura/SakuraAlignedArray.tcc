@@ -2,7 +2,6 @@
 #include <iostream>
 
 #include <libsakura/sakura.h>
-//#include <libsakura/config.h>
 
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/Logging/LogOrigin.h>
@@ -11,20 +10,26 @@ namespace casa {
 template<typename T>
 inline SakuraAlignedArray<T>::SakuraAlignedArray(size_t num_data) :
   num_data_(num_data) {
+#if !defined(NDEBUG)
   casacore::LogIO logger(casacore::LogOrigin("SakuraAlignedArray", "SakuraAlignedArray", WHERE));
   logger << casacore::LogIO::DEBUGGING << "Constructing SakuraAlignedArray..." << casacore::LogIO::POST;
+#endif
 
   initialize();
 
+#if !defined(NDEBUG)
   logger << casacore::LogIO::DEBUGGING << "  Initial Address = " << storage_ << casacore::LogIO::POST;
   logger << casacore::LogIO::DEBUGGING << "  Aligned Address = " << data_ << casacore::LogIO::POST;
+#endif
 }
 
 template<typename T>
 inline SakuraAlignedArray<T>::SakuraAlignedArray(casacore::Vector<T> const &in_vector) :
   num_data_(in_vector.nelements()) {
+#if !defined(NDEBUG)
   casacore::LogIO logger(casacore::LogOrigin("SakuraAlignedArray", "SakuraAlignedArray", WHERE));
   logger << casacore::LogIO::DEBUGGING << "Constructing SakuraAlignedArray..." << casacore::LogIO::POST;
+#endif
 
   initialize();
 
@@ -33,8 +38,10 @@ inline SakuraAlignedArray<T>::SakuraAlignedArray(casacore::Vector<T> const &in_v
     ptr[i] = in_vector(i);
   }
 
+#if !defined(NDEBUG)
   logger << casacore::LogIO::DEBUGGING << "  Initial Address = " << storage_ << casacore::LogIO::POST;
   logger << casacore::LogIO::DEBUGGING << "  Aligned Address = " << data_ << casacore::LogIO::POST;
+#endif
 }
 
 template<typename T>
@@ -57,8 +64,10 @@ inline void SakuraAlignedArray<T>::initialize() {
 
 template<typename T>
 inline SakuraAlignedArray<T>::~SakuraAlignedArray() {
+#if !defined(NDEBUG)
   casacore::LogIO logger(casacore::LogOrigin("SakuraAlignedArray", "~SakuraAlignedArray", WHERE));
   logger << casacore::LogIO::DEBUGGING << "Destructing SakuraAlignedArray..." << casacore::LogIO::POST;
+#endif
 
   free(storage_);
 }
