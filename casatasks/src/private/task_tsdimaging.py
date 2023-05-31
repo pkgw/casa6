@@ -798,16 +798,16 @@ def tsdimaging(
                 if os.path.exists(singledish_image_path):
                     if overwrite == False:
                         raise RuntimeError(
-                                f'Output file exists: \'{singledish_image_path}\''
+                                f"Output file exists: '{singledish_image_path}'"
                               )
                     else:
                         # delete existing images
-                        casalog.post(f'Removing \'{singledish_image_path}\'')
+                        casalog.post(f"Removing '{singledish_image_path}'")
                         _remove_image(singledish_image_path)
                         assert not os.path.exists(singledish_image_path)
                         for _suffix in associate_suffixes:
                             path_to_remove = output_path_prefix + _suffix
-                            casalog.post(f'Removing \'{path_to_remove}\'')
+                            casalog.post(f"Removing '{path_to_remove}'")
                             _remove_image(path_to_remove)
                             assert not os.path.exists(path_to_remove)
 

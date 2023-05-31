@@ -703,8 +703,8 @@ class sdimaging_test0(sdimaging_unittest_base):
         print('existing file', file=f)
         f.close()
         self.task_param['overwrite'] = False
-        msg = 'Output file \'{0}\' exists.'.format(outfile)
-        self.run_exception_case(self.task_param, msg)
+        expected_task_err_msg = f"Output file exists: '{outfile}'"
+        self.run_exception_case(self.task_param, expected_task_err_msg)
 
     def test009(self):
         """Test009: Bad phasecenter string."""
