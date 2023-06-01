@@ -209,7 +209,7 @@ class JyperkGencal():
         return valid_factors
 
     @classmethod
-    def __convert_to_pol_selection(cls, polspec):
+    def __convert_to_pol_selection(cls, polspec: str) -> str:
         if polspec in ['I', '']:
             # apply the value to all polarizations
             pol = ''
