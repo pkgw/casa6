@@ -747,9 +747,9 @@ class sdimaging_test0(sdimaging_unittest_base):
     def test012(self):
         """Test012: Bad imsize."""
         self.task_param['imsize'] = [1, 0]
-        msg = 'Error in building Coordinate System and Image Shape : ' + \
-              'Internal Error : Image shape is invalid :'
-        self.run_exception_case(self.task_param, msg)
+        cpp_err_msg = ( 'Error in building Coordinate System and Image Shape: '
+                        'Internal Error : Image shape is invalid :' )
+        self.run_exception_case(self.task_param, cpp_err_msg)
 
     def test013(self):
         """Test013: Bad cell size."""
