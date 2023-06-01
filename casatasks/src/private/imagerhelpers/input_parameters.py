@@ -641,8 +641,9 @@ class ImagerParameters():
                 if self.iterpars['interactive']==True or self.alldecpars['0']['usemask']=='auto-multithresh' or \
                    self.alldecpars['0']['nsigma']>0.0:
                    self.iterpars['savemodel']='none' 
-                   self.allselpars['ms0']['readonly']=True
-                   self.allselpars['ms0']['usescratch']=False
+                   for visid in self.allselpars:  
+                      self.allselpars[visid]['readonly']=True
+                      self.allselpars[visid]['usescratch']=False
 
         return errs
 
