@@ -3526,7 +3526,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
 #
 ###
 class sdimaging_test_interp(sdimaging_unittest_base):
-    """Unit tests for sdimaging (interporation).
+    """Unit tests for sdimaging (interpolation).
 
     tests:
     test_spline_interp_single_infiles: check if spline interpolation works for single MS
