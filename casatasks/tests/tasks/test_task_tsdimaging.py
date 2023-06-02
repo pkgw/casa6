@@ -3517,18 +3517,6 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
         self.execute(self.ephtab)
 
     def test_ephemeris_cubesource(self):
-        casalog.filter(level="DEBUG2")
-        casalog.post(
-            message="Debugging Bamboo: CASA-CMDT27-TTM228PY38-3",
-            level="DEBUG2"
-        )
-        casalog.post(
-            message=(
-                "Bamboo build: CMake CI Build #15 failed. "
-                "This is to re-trigger it"
-            ),
-            level="DEBUG2"
-        )
         self.execute(phasecenter='TRACKFIELD', specmode='cubesource')
 
 
