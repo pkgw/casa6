@@ -95,7 +95,10 @@
       <shortdescription>number of correlations to store in grid</shortdescription>
       <description>number of correlations to store in grid
       if 1 is chosen and data have cross hands, then both XX and YY (or RR and LL)
-      will be gridded on the same correlation plane. 
+      will be gridded on the same correlation plane (XX or RR as MS V2.0 does not support
+      I as a correlation type).
+      if 2 is chosen the parallel hands will be stored on independent grids for each frequency channel
+      if 4 is chosen the all correlation type will be gridded independently.
       </description>
       <value>1</value>
       <allowed kind="enum">
@@ -107,18 +110,33 @@
 
     <param type="int" name="nchan">
       <shortdescription>Number of spectral channels in grid</shortdescription>
+      <description>
+	Nunmber of spectral channels in the output grid
+      </description>
       <value>1</value>
     </param>
     <param type="string" name="start">
       <shortdescription>Frequency of first spectral channel</shortdescription>
+      <description>
+	Frequency of first channel of grid. If left empty, it will try to use the
+	lowest frequency in the selected data
+      </description>
       <value></value>
     </param>
     <param type="string" name="width">
       <shortdescription>spectral channel width</shortdescription>
+      <description>
+	Spectral channel width. If left empty the badwidth of the selected data will be divided by the nchan
+	selected to determine the width of an output channel. This happens only when not output grid already exists.
+      </description>
       <value></value>
     </param>
     <param type="bool" name="wproject">
       <shortdescription>Do wprojection correction while gridding</shortdescription>
+      <description>
+	Do wprojection correction while gridding. This should be used with care as it is known to have issues like perfomance
+	and for Cotton-Schwab style cleaning. 
+      </description>
       <value>False</value>
       <allowed>
          <value>False</value>
@@ -126,6 +144,9 @@
     </param>
     <param type="double" name="memfrac">
       <shortdescription>Limit how much of memory to use</shortdescription>
+      <description>
+	Limit fraction of RAM  available to use. Default is half.
+      </description>
       <value>0.5</value>
       <allowed kind="range">
         <value range="min">0.01</value>
@@ -133,7 +154,7 @@
       </allowed>
     </param>
     <param type="string" name="mode">
-      <shortdescription>when mode=  &quot;write_flags_back &quot; will transfer back flag from grid to input ms</shortdescription>
+      <shortdescription>when mode=  &quot;write_flags_back&quot;Operation mode (bin/write_back_flags)</shortdescription>
       <description>when mode  will transfer back flag from grid to input ms
       For this to work both the original ms and the gridded ms has to exist and the flags will be
       transferred from the gridded ms back to original ms. This is provided as a utility to
