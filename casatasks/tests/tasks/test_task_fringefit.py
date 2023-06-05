@@ -301,6 +301,63 @@ class Fringefit_corrcomb(unittest.TestCase):
 
         self.assertTrue(combine_result > none_result)
         
-
+class Fringefit_paramactive_caltable(unittest.TestCase):
+    prefix = 'n08c1'
+    msfile = prefix + '.ms'
+    testcallib = 'testcaltable.txt'
+    
+    preapplytable = 'topreapply.cal'
+    nocallib = 'nocallib.cal'
+    withcallib = 'withcallib.cal'
+    manualdefault = 'manualcallib.cal'
+    
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, self.msfile), self.msfile)
+        
+    def tearDown(self):
+        shutil.rmtree(self.msfile)
+        
+        if os.path.exists(self.preapplytable):
+            shutil.rmtree(self.preapplytable)
+        if os.path.exists(self.nocallib):
+            shutil.rmtree(self.nocallib)
+        if os.path.exists(self.withcallib):
+            shutil.rmtree(self.withcallib)
+        if os.path.exists(self.manualdefault):
+            shutil.rmtree(self.manualdefault)
+        if os.path.exists(self.testcallib):
+            os.remove(self.testcallib)
+        
+    def test_paramactive_callib(self):
+        """ Test that the default state for paramactive with callib matches [T,T,F]"""
+        # create the table to pre-apply
+        fringefit(vis=self.msfile, caltable=self.preapplytable, refant='0')
+        
+        # create a callib file fot the pre-apply table
+        with open(self.testcallib, 'w') as f:
+            f.write(f"caltable=\'{self.preapplytable}\'")
+            
+        # run with gaintable preapply and with callib and running default paramactive
+        fringefit(vis=self.msfile, caltable=self.nocallib, refant='0', docallib=False, gaintable=[self.preapplytable], paramactive=[])
+        fringefit(vis=self.msfile, caltable=self.withcallib, refant='0', docallib=True, callib=self.testcallib, paramactive=[])
+        fringefit(vis=self.msfile, caltable=self.manualdefault, refant='0', docallib=True, callib=self.testcallib, paramactive=[True,True,False])
+        
+        # get the FPARAM data for each table and compare
+        tblocal.open(self.nocallib)
+        res1 = tblocal.getcol('FPARAM')
+        tblocal.close()
+        
+        tblocal.open(self.withcallib)
+        res2 = tblocal.getcol('FPARAM')
+        tblocal.close()
+        
+        tblocal.open(self.manualdefault)
+        res3 = tblocal.getcol('FPARAM')
+        tblocal.close()
+        
+        self.assertTrue(np.all(res1 == res2), msg='Results differ when preapplying with callib vs gaintable')
+        self.assertTrue(np.all(res2 == res3), msg='Results differ between paramactive [] and [True,True,False]')
+    
+        
 if __name__ == '__main__':
     unittest.main()
