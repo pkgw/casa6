@@ -301,6 +301,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_defintent",
+            "testType":"casatasks",
+            "maintainer":"Neal Schweighart",
+            "maintainerEmail":"nschweig@nrao.edu",
+            "testOptions":[],
+            "testGroup":["defintent","Calibration"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_delmod",
             "testType":"casatasks",
             "maintainer":"Neal Schweighart",
