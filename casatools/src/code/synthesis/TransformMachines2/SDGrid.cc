@@ -943,8 +943,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
 
   { // Compute spectra pixel coordinates and call gridder
     // Make sure failed getXYPos does not fall on grid
-    constexpr Double farAway = -1e9;
-    Matrix<Double> xyPositions(2, endRow-startRow+1, farAway);
+    constexpr Double kFarAway = -1e9;
+    Matrix<Double> xyPositions(2, endRow-startRow+1, kFarAway);
     for (Int rownr=startRow; rownr<=endRow; rownr++) {
       if (getXYPos(vb, rownr)) {
         xyPositions(0, rownr)=xyPos(0);
