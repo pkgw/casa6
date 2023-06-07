@@ -451,23 +451,6 @@ def _handle_image_params(imsize, cell, phasecenter,
     return _imsize, _cell, _phasecenter
 
 
-def _calc_pblimit(minweight):
-    """FIXME: what's going on here ?
-
-    If _calc_pblimit is no longer needed,
-    what about getting rid of it ?
-    """
-    if minweight == 0.0:
-        # set tiny value
-        pblimit = 1e-16
-    else:
-        pblimit = minweight
-
-    # disable pixel mask by pblimit
-    pblimit = 1e-16
-    return pblimit
-
-
 def _get_param(ms_index, param):
     if isinstance(param, str):
         return param
@@ -877,9 +860,6 @@ def tsdimaging(
                     _restfreq, pointingcolumn, _ephemsrcname
                 )
 
-        if True: # Calculate pblimit from minweight
-            pblimit = _calc_pblimit(minweight)
-
         if True: # Set up PySynthesisImager Input Parameters
             # - List all parameters that you need here
             # - Defaults will be assumed for unspecified parameters
@@ -923,7 +903,7 @@ def tsdimaging(
                 clipminmax=clipminmax,
                 # normalizer
                 normtype='flatsky',
-                pblimit=pblimit
+                pblimit=1e-16 # TODO: explain why 1e-16 ?
             )
 
         if True: # Construct the PySynthesisImager object, with all input parameters
