@@ -1447,8 +1447,6 @@ void SDGrid::handleNewMs(
     IPosition blc(theImage.shape().size(), 0);
     IPosition trc(theImage.shape() - 1);
     for (Int k=0; k < nloop; ++k) {
-      const auto firstSlice = (k==0);
-
       Int bchan; // Slice boundaries along the channel axis
       Int echan;
       { // Compute them
