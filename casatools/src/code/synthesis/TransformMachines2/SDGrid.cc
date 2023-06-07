@@ -239,7 +239,7 @@ void SDGrid::init() {
 
     ok();
 
-    if (true) { // Initialize members
+    { // Initialize members
         isTiled = false;
 
         nx    = image->shape()(0);
@@ -262,7 +262,7 @@ void SDGrid::init() {
         );
     }
 
-    if (true) { // Compute Convolution Function
+    { // Compute Convolution Function
         convType = downcase(convType);
         logIO() << LogIO::NORMAL2
                 << "Convolution function: " << convType
