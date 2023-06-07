@@ -1,5 +1,6 @@
 ##########################################################################
-#
+# Re-factored version of VLASS v1.2 tests
+# ----------------------------------------
 # Run the tests as described in
 # # https://open-confluence.nrao.edu/pages/viewpage.action?spaceKey=CASA&title=Requirements+for+VLASS+Imaging+Pipeline+Stakeholders+Tests
 # There wasn't a great definition of the work to be done, so much of it is being interpretted by me (BGB).
@@ -70,7 +71,7 @@
 #About Two Data sets (based on John Tobin's comment in CAS-13832)
 # J1302: southern source (-10.51.16.73), has a flat spectrum with a little polarization
 # J1927: northern source (+61.17.32.898), has a steeper spectrum and polarized emission
-
+#
 #J1302 Tests
 #1. mtmfs: Should match values for "Stokes I" in the "Values to be compared"
 #vis:'J1302_12field.ms' gridder:'mosaic'
@@ -103,6 +104,24 @@
 #vis:'J1927_12field.ms', gridder:'ql'
 #testname: test_j1927_ql
 #
+##########################################################################
+# Test structure (post-refactor)
+# A.K.A - note for test writers
+#
+# Each test involves multiple tclean calls so tbat a wrapper function, 
+# run_tclean is defined in the begging of each test.
+#
+# The common parameters for all the multiple tclean calls are dinfed in a 
+# dictionary, common_args. For each test, run_tclean is defined with
+# individual tclean parameters that may change and common_args.
+# 
+# *Cleaning up files after the run*
+# To clean up generated files after the run, delData is called.
+# DelData is defined in each test class and will be called at tearDown
+# unless CACHE_PARTIAL_RESULTS is set to true. 
+# DelData will delete the input vis (defined in self.vis) and all generated
+# images (imagename.* ). DelData also delete files in a list, 
+# self.teardown_files.
 ##########################################################################
 
 import os
@@ -160,7 +179,7 @@ class test_j1302(StkUnitTest):
         if self.vis != "" and os.path.exists(self.vis):
             del_files.append(self.vis)
         for img in self.imgs:
-            img_files = glob.glob(img+'*')
+            img_files = glob.glob(img+'.*')
             del_files += img_files
         for teardown_file in self.teardown_files:
             if teardown_file in del_files:
@@ -196,7 +215,6 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir = os.path.join(root_data_path, 'J1302/Stakeholder-test-mosaic-data')
-        #img0 = 'J1302_iter2'
         basetname = 'J1302_mtmfs'
         img0 = f"{basetname}_iter2"
         masks = ['secondmask.mask', 'QLcatmask.mask']
@@ -208,7 +226,6 @@ class test_j1302(StkUnitTest):
 
         self.teardown_files += [f'{basetname}_{x}' for x in masks]
 
-        #spw = ''
         rms = [0.00017975829898762892, 0.0013099727978948515] # tt0, tt1 noise floor as measured from a full-scale image run, Range: [700,800],[3300,1900]
         starttime = datetime.now()
 
@@ -519,8 +536,6 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_awproject] start       @
         #########################################################
 
-        #self.mom8_creator(image=img1+'.image.tt0', scaling=-2, range_list=[0.002, 0.32], imgname="j1302_awproject_iter2_tt0")
-        #self.mom8_creator(image=img1+'.image.tt1', scaling=-2, range_list=[0.007, 0.16], imgname="j1302_awproject_iter2_tt1")
         self.mom8_creator(image=img1+'.image.tt0', range_list=[-0.02, 0.32], imgname="j1302_awproject_iter2_tt0")
         self.mom8_creator(image=img1+'.image.tt1', range_list=[-0.07, 0.16], imgname="j1302_awproject_iter2_tt1")
 
@@ -600,7 +615,6 @@ class test_j1302(StkUnitTest):
         ###################################################
 
         def iname(image_iter, spw, stokes):
-            #return 'J1302_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
             return basetname+'_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
 
         tstobj = self
@@ -789,9 +803,6 @@ class test_j1302(StkUnitTest):
         # %% Generate Images [test_j1302_mosaic_cube] start       @
         ###########################################################
 
-        #self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0.002, 0.32], imgname="j1302_mosaic_cube_spw2")
-        #self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0.001, 0.32], imgname="j1302_mosaic_cube_spw8")
-        #self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0.001, 0.30], imgname="j1302_mosaic_cube_spw14")
         self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[-0.02, 0.32], imgname="j1302_mosaic_cube_spw2")
         self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[-0.01, 0.32], imgname="j1302_mosaic_cube_spw8")
         self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[-0.01, 0.30], imgname="j1302_mosaic_cube_spw14")
@@ -840,8 +851,6 @@ class test_j1302(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = os.path.join(root_data_path,'J1302/Stakeholder-test-mosaic-data')
-        #img0 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter0'
-        #img1 = 'VLASS1.2.ql.T08t20.J1302.10.2048.v1.I.iter1'
         basetname = 'J1302_ql'
         img0 = f'{basetname}_iter0'
         img1 = f'{basetname}_iter1'
@@ -1009,7 +1018,7 @@ class test_j1927(StkUnitTest):
         if self.vis != "" and os.path.exists(self.vis):
             del_files.append(self.vis)
         for img in self.imgs:
-            img_files = glob.glob(img+'*')
+            img_files = glob.glob(img+'.*')
             del_files += img_files
         for teardown_file in self.teardown_files:
             if teardown_file in del_files:
@@ -1044,7 +1053,6 @@ class test_j1927(StkUnitTest):
         #intermediate pipeline step.
         test_name = self._testMethodName
         data_path_dir  = os.path.join(root_data_path, 'J1927/J1927-stakeholdertest-mosaic-data')
-        #img0 = 'J1927_iter2'
         basetname = 'J1927_mtmfs'
         img0 = f'{basetname}_iter2'
         masks = ['secondmask.mask', 'QLcatmask.mask']
@@ -1163,8 +1171,6 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_mtmfs] start       @
         #####################################################
 
-        #self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
-        #self.mom8_creator(image=img0+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mtmfs_tt0")
         self.mom8_creator(image=img0+'.image.tt0', range_list=[-0.05, 0.88], imgname="j1927_mtmfs_tt0")
         self.mom8_creator(image=img0+'.image.tt1', range_list=[-0.05, 0.41], imgname="j1927_mtmfs_tt1")
 
@@ -1227,8 +1233,6 @@ class test_j1927(StkUnitTest):
             os.system(f"mv {masks[i]} {basetname}_{masks[i]}")
         self.teardown_files += [f'{basetname}_{x}' for x in masks]
 
-        # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_cube_unittest"
-        # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
         spw_chans = ''
         rms = {'0': 0.0004637447465635465, '1': 0.0005062325702676312, '2': 0.0004403419438565781} # per-spw noise floor as measured from a full-scale image run, Range:[100,100],[3900,1900]
         starttime = datetime.now()
@@ -1253,7 +1257,6 @@ class test_j1927(StkUnitTest):
         #################################################
 
         def iname(image_iter, spw, stokes):
-        #    return 'J1927_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
             return basetname+'_'+image_iter+'_'+spw.replace('~','-')+'_'+stokes
 
         tstobj = self
@@ -1409,9 +1412,6 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_mosaic_cube] start       @
         ###########################################################
 
-        #self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[0, 0.78], imgname="j1927_mosaic_cube_spw2")
-        #self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[0, 0.88], imgname="j1927_mosaic_cube_spw8")
-        #self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[0, 0.92], imgname="j1927_mosaic_cube_spw14")
         self.mom8_creator(image=iname('iter2', '0', 'IQUV')+'.image.tt0', range_list=[-0.05, 0.78], imgname="j1927_mosaic_cube_spw2")
         self.mom8_creator(image=iname('iter2', '1', 'IQUV')+'.image.tt0', range_list=[-0.05, 0.88], imgname="j1927_mosaic_cube_spw8")
         self.mom8_creator(image=iname('iter2', '2', 'IQUV')+'.image.tt0', range_list=[-0.05, 0.92], imgname="j1927_mosaic_cube_spw14")
@@ -1460,8 +1460,6 @@ class test_j1927(StkUnitTest):
         img0 = f'{basetname}_iter0'
         img1 = f'{basetname}_iter1'
         self.prepData(self.vis, data_path_dir, partial_results_dirname="partial_results_test_j1927_ql")
-        # rundir = "/users/bbean/dev/CAS-12427/src/casalith/build-casalith/work/linux/test_vlass_j1927_QL_unittest"
-        # os.system(f"mv {rundir}/run_results/VLASS* {rundir}/nosedir/test_vlass_1v2/")
         imsize = 7290
         rms = 0.00023228885125825126 # noise floor as measured from a full-scale image run, Range: [2800,2900],[4300,3600]
 
@@ -1574,7 +1572,6 @@ class test_j1927(StkUnitTest):
         # %% Generate Images [test_j1927_ql] start       @
         ##################################################
 
-        #self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[0, 0.90], imgname="j1927_ql")
         self.mom8_creator(image=img1+'.image.pbcor.tt0.subim', range_list=[-0.1, 0.90], imgname="j1927_ql")
 
         ##########################################
