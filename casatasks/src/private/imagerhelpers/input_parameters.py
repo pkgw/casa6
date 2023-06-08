@@ -249,8 +249,8 @@ class ImagerParameters():
                 # deconvolver group
                 'deconvolver': deconvolver,
                 'vptable': vptable,
-                # single-dish specific
                 'imagename': imagename,
+                # single-dish specific parameters
                 # ---- spatial coordinates
                 'pointingcolumntouse': pointingcolumntouse,
                 'convertfirst': convertfirst,
