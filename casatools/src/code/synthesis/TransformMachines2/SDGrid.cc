@@ -1483,9 +1483,11 @@ void SDGrid::handleNewMs(
       // Loop over the visibilities, putting VisBuffers
       for (vi.originChunks(); vi.moreChunks(); vi.nextChunk()) {
         if (vi.getImpl()->isNewMs()) {
-          // When convertFirst = True, re-converting the pointing table
-          // for each slice is an implementation decision.
-          // The slice loop is probably never used.
+          // When we pre-convert the user-specified POINTING column
+          // - e.g. when convertFirst = always -, re-converting it
+          // at each slice iteration is an implementation decision.
+          // The slice loop is probably rarely used, and when it is
+          // it means we have little RAM available.
           handleNewMs(vi.ms(), theImage);
         }
         for (vi.origin(); vi.more(); vi.next()) {
