@@ -18,23 +18,16 @@ import pdb
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
 
-from casatasks import casalog
 
-from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
-from casatasks.private.imagerhelpers.input_parameters import saveparams2last
-from casatasks.private.imagerhelpers.imager_parallel_continuum import (
-    PyParallelContSynthesisImager,
-)
-from casatasks.private.imagerhelpers.imager_parallel_cube import (
-    PyParallelCubeSynthesisImager,
-)
-from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import (
-    PyMtmfsViaCubeSynthesisImager,
-)
-from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-from .cleanhelper import write_tclean_history, get_func_params
-from casatools import table
-from casatools import synthesisimager
+    from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
+    from casatasks.private.imagerhelpers.input_parameters import saveparams2last
+    from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
+    from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+    from .cleanhelper import write_tclean_history, get_func_params
+    from casatools import table
+    from casatools import synthesisutils
+    from casatools import synthesisimager
 
 try:
     from casampi.MPIEnvironment import MPIEnvironment
@@ -469,7 +462,11 @@ def tclean(
                 mytb.putkeyword("imageinfo", iminf)
                 mytb.putkeyword("miscinfo", miscinf)
                 mytb.done()
-                imager = imagerInst(params=paramList)
+                mysu=synthesisutils()
+                mysu.fitPsfBeam(imagename=bparm['imagename'],
+                                nterms=(bparm['nterms']  if deconvolver=="mtmfs" else 1),
+                                psfcutoff=bparm['psfcutoff'])
+                imager = PySynthesisImager(params=paramList)
                 imager.initializeImagers()
                 imager.initializeNormalizers()
                 imager.setWeighting()

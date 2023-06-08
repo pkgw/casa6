@@ -9990,8 +9990,7 @@ where $F = \nu/\nu_0$ and $\nu_0$ is the rest frequency.  If the rest frequency
 has not been set in your image, you can set it via a coordinate system (cs) tool
 using the setrestfrequency() method().
 
-If the output of summary is saved to a variable, then the header field (for
-instance, mysummary['header']) has the following fields:
+The keys of the returned dictionary are
 
 ndim          Dimension of the image.
 shape         Length of each axis in the image.
