@@ -238,8 +238,9 @@ public:
     virtual unsigned int connectBinAt(unsigned int i) const {
         return binAt(i); };
 
-    virtual std::map<std::string, std::string> getColorizeMap() const = 0;	
-    
+    // Return map of colorized values to color, and whether all plots use the same color list
+    virtual std::map<std::string, std::string> getColorizeMap(bool& shared_colormap) const = 0;
+
     // IMPLEMENTED METHODS //
     
     // Returns true if the data is binned, false otherwise.
