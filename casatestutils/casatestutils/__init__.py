@@ -395,3 +395,4 @@ def stats_dict(out_dict):
             return function(*args, **kwargs)
         return all_wrapped
     return stats_decorator
+

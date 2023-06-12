@@ -37,6 +37,7 @@
 #include <singledish/SingleDish/LineFinder.h>
 #include <singledish/SingleDish/LineFindingUtils.h>
 #include <casacore/casa/Utilities/Assert.h>
+#include <casa_sakura/SakuraAlignedArray.h>
 
 using namespace std;
 
@@ -104,8 +105,8 @@ list<pair<size_t,size_t>> MADLineFinder(size_t const num_data,
   size_t average_factor =1;
   //size_t maxgap = num_data;
   list<pair<size_t,size_t>> line_list;
-  Vector<float> binned_data(num_data);
-  Vector<bool> binned_mask(num_data);
+  SakuraAlignedArray<float> binned_data(num_data);
+  SakuraAlignedArray<bool> binned_mask(num_data);
   float *binned_data_p = binned_data.data();
   bool *binned_mask_p = binned_mask.data();
   while (true) {
@@ -124,9 +125,9 @@ list<pair<size_t,size_t>> MADLineFinder(size_t const num_data,
     os << LogIO::DEBUG1 << "---> Binned channel = " << num_binned << LogIO::POST;
 #endif
     // caluculate MAD array
-    Vector<float> mad_data(num_binned);
-    Vector<bool> line_mask(num_binned);
-    Vector<bool> search_mask(num_binned);
+    SakuraAlignedArray<float> mad_data(num_binned);
+    SakuraAlignedArray<bool> line_mask(num_binned);
+    SakuraAlignedArray<bool> search_mask(num_binned);
     float *mad_data_p = mad_data.data();
     bool *line_mask_p = line_mask.data();
     bool *search_mask_p = search_mask.data();
@@ -178,7 +179,7 @@ list<pair<size_t,size_t>> MADLineFinder(size_t const num_data,
 	//LineFinderUtils::mergeGapByFalse(num_binned, binned_mask.data,
 	//				 maxgap/average_factor, new_lines);
 	// extend wing
-	Vector<int8_t> sign(num_binned);
+	SakuraAlignedArray<int8_t> sign(num_binned);
 	int8_t *sign_p = sign.data();
 	LineFinderUtils::createSignByAThreshold(num_binned, mad_data_p,
 						//mad_threshold, sign_p);
