@@ -44,7 +44,7 @@ target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::SAKURA)
 
 # Optional HPG dependency
 if(DEFINED hpg_FOUND AND ${hpg_FOUND})
-  target_link_libraries(casacpp_synthesis PRIVATE hpg::hpg)
+	target_link_libraries(casacpp_synthesis PUBLIC hpg::hpg)
 endif()
 
 # FFTW dependency

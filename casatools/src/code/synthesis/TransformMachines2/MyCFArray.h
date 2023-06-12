@@ -1,3 +1,4 @@
+#ifdef USE_HPG
 #include <hpg/hpg.hpp>
 #ifndef SYNTHESIS_TRANSFORM2_MYCFARRAY_H
 #define SYNTHESIS_TRANSFORM2_MYCFARRAY_H
@@ -95,3 +96,4 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   }
 }
 #endif // include guard
+#endif // USE_HPG
