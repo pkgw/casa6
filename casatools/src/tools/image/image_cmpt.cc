@@ -5938,7 +5938,7 @@ template<class T> void image::_setrestoringbeam(
         catch (const AipsError& x) {
             ThrowCc(
                 "If beam record not specified, all of major, minor, and "
-                "positionangle must be sspecified and be either valid "
+                "positionangle must be specified and be either valid "
                 "quantity records or strings"
             );
         }
