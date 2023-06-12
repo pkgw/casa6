@@ -1786,6 +1786,35 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
     residual()->unlock();
   }
 
+  void SIImageStore::divideResidualByWeightSD(Float pblimit) {
+
+    LogIO os(LogOrigin("SIImageStore", "divideResidualByWeightSD", WHERE));
+    LatticeLocker lock1(*(residual()), FileLocker::Write);
+
+    if (itsUseWeight) {
+      LatticeExpr<Float> deno = LatticeExpr<Float>(*weight());
+      LatticeExpr<Float> ratio = iif(deno > 0.0, *(residual()) / deno, 0.0);
+      residual()->copyData(ratio);
+    }
+    else {
+      // If no normalization happened, print a warning. The user must check if it's right or not.
+      // Or... later if we get a gridder that does pre-norms, this warning can go.
+      os << LogIO::WARN << "No normalization done to residual" << LogIO::POST;
+    }
+
+    ///// A T/F mask in the residual will confuse users looking at the interactive clean
+    ///// window
+    if ((residual()->getDefaultMask() == "") && hasPB() && pblimit >=0.0) {
+      copyMask(pb(), residual());
+    }
+
+    if ((pblimit < 0.0) && (residual()->getDefaultMask()).matches("mask0")) {
+      removeMask(residual());
+    }
+
+    residual()->unlock();
+  }
+
   void SIImageStore::divideModelByWeight(Float pblimit, const String normtype)
   {
     LogIO os( LogOrigin("SIImageStore","divideModelByWeight",WHERE) );
