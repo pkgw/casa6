@@ -23,18 +23,18 @@
   Int *cfInc_p_ptr                = cfInc_p.getStorage(Dummy);
   Int phaseGradOrigin_l[2]; 
   
-  phaseGradOrigin_l[0] = cached_phaseGrad_p.shape()(0)/2;
+  phaseGradOrigin_l[0] = cached_phaseGrad_p.shape()(0)/2 ;
   phaseGradOrigin_l[1] = cached_phaseGrad_p.shape()(1)/2;
-
+   
   for(Int iy=-support_ptr[1]; iy <= support_ptr[1]; iy++) 
     {
-      iLoc[1]    = SynthesisUtils::nint(sampling_ptr[1]*iy+off_ptr[1]-1);
+      iLoc[1]    = SynthesisUtils::nint(sampling_ptr[1]*iy+off_ptr[1]);
       igrdpos_ptr[1] = loc_ptr[1]+iy;
       iCFPos_ptr[1]  = iLoc[1] + convOrigin_ptr[1];
 
       for(Int ix=-support_ptr[0]; ix <= support_ptr[0]; ix++) 
 	{
-	  iLoc[0]    = SynthesisUtils::nint(sampling_ptr[0]*ix+off_ptr[0]-1);
+	  iLoc[0]    = SynthesisUtils::nint(sampling_ptr[0]*ix+off_ptr[0]);
 	  igrdpos_ptr[0] = loc_ptr[0]+ix;
 	  iCFPos_ptr[0]  = iLoc[0] + convOrigin_ptr[0];
 	  {

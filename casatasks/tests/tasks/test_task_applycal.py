@@ -26,6 +26,7 @@ import os
 import unittest
 import shutil
 import numpy as np
+from datetime import datetime, timedelta
 
 import casatools
 from casatasks import applycal, mstransform, gaincal, casalog, clearcal
@@ -115,6 +116,25 @@ def drop_solution_for_antenna(caltable, antenna):
     finally:
         tb.close()
 
+def addcalrow(time, scan, antenna, spw, gain):
+    dt = datetime.strptime(time, '%Y-%m-%dT%H:%M:%S')
+    timestamp = (dt - datetime(1970, 1, 1)) / timedelta(seconds=1)
+    timestamp += 40587 * 86400
+    zeros = np.zeros(2).reshape(2,1)
+    row = tb.nrows()
+    tb.addrows(1)
+    tb.putcell('TIME', row, timestamp)
+    tb.putcell('FIELD_ID', row, 0)
+    tb.putcell('SPECTRAL_WINDOW_ID', row, spw)
+    tb.putcell('ANTENNA1', row, antenna)
+    tb.putcell('ANTENNA2', row, -1)
+    tb.putcell('SCAN_NUMBER', row, scan)
+    cparam = np.array([gain, gain]).reshape(2, 1)
+    tb.putcell('CPARAM', row, cparam)
+    tb.putcell('PARAMERR', row, zeros)
+    tb.putcell('FLAG', row, zeros)
+
+
 # Input data files
 msdata = 'gaincaltest2.ms'
 altdata = 'ngc5921.ms'
@@ -135,6 +155,8 @@ datacopy = 'applycalcopy.ms'
 dataref = 'referencedata.ms'
 altcopy = 'altcopy.ms'
 temptcal = 'temptcal.T0'
+tempgcal = 'tempgcal.G0'
+tempcallib = 'tempcallib.txt'
 
 mmscopy = 'mmsapplycalcopy.mms'
 mmsbcalcopy = 'mmsbcalcopy.cal'
@@ -194,6 +216,12 @@ class applycal_test(unittest.TestCase):
 
         if os.path.exists(temptcal):
             shutil.rmtree(temptcal)
+
+        if os.path.exists(tempgcal):
+            shutil.rmtree(tempgcal)
+
+        if os.path.exists(tempcallib):
+            os.remove(tempcallib)
 
         if os.path.exists(mmscopy):
             shutil.rmtree(mmscopy)
@@ -729,6 +757,125 @@ class applycal_test(unittest.TestCase):
         print(files)
         for ff in files:
             self.assertFalse(ff.__contains__('flagversions'))
+
+
+    def test_perscan(self):
+        '''
+            test_perscan
+            --------------------
+
+            Check that "perscan" interpolation works
+        '''
+        # Create a calibration table that changes the gain for a
+        # single antenna in a single scan
+        cblocal = calibrater()
+        cblocal.open(vlbacopy, False, False, False)
+        cblocal.createcaltable(tempgcal, 'Complex', 'G Jones', True)
+        cblocal.close()
+        tb.open(tempgcal, nomodify=False)
+        for antenna in range(10):
+            for spw in range(2):
+                if antenna == 8:
+                    addcalrow('2017-06-06T00:18:00', 1, antenna, spw, 1)
+                    addcalrow('2017-06-06T00:22:00', 2, antenna, spw, 100)
+                    addcalrow('2017-06-06T00:25:00', 3, antenna, spw, 1)
+                else:
+                    addcalrow('2017-06-06T00:18:00', 1, antenna, spw, 1)
+                    addcalrow('2017-06-06T00:22:00', 2, antenna, spw, 1)
+                    addcalrow('2017-06-06T00:25:00', 3, antenna, spw, 1)
+        tb.close()
+
+        # Calibrate without "perscan" interpolation.  The gain
+        # correction will leak into neighbouring scans.
+        applycal(vlbacopy, gaintable=[tempgcal], applymode='calonly')
+
+        tb.open(vlbacopy)
+        sel = tb.taql('select * from ' + vlbacopy +
+                      ' where ANTENNA1=4 and ANTENNA2=8 and SCAN_NUMBER=1')
+        tb.close()
+        uncorrected = np.mean(np.abs(sel.getcol('DATA')))
+        corrected = np.mean(np.abs(sel.getcol('CORRECTED_DATA')))
+        sel.close()
+
+        self.assertFalse(np.isclose(uncorrected, corrected, rtol=1e-2, atol=1e-4))
+
+        # Calibrate with "perscan" interpolation.  The gain correction
+        # should not leak into neighbouring scans.
+        applycal(vlbacopy, gaintable=[tempgcal], interp=['linearperscan'],
+                 applymode='calonly')
+
+        tb.open(vlbacopy)
+        sel = tb.taql('select * from ' + vlbacopy +
+                      ' where ANTENNA1=4 and ANTENNA2=8 and SCAN_NUMBER=1')
+        tb.close()
+        perscan = np.mean(np.abs(sel.getcol('CORRECTED_DATA')))
+        sel.close()
+
+        self.assertTrue(np.isclose(uncorrected, perscan, rtol=8e-7, atol=1e-8))
+
+        
+    def test_perscan_callib(self):
+        '''
+            test_perscan
+            --------------------
+
+            Check that "perscan" interpolation works; callib version
+        '''
+        # Create a calibration table that changes the gain for a
+        # single antenna in a single scan
+        cblocal = calibrater()
+        cblocal.open(vlbacopy, False, False, False)
+        cblocal.createcaltable(tempgcal, 'Complex', 'G Jones', True)
+        cblocal.close()
+        tb.open(tempgcal, nomodify=False)
+        for antenna in range(10):
+            for spw in range(2):
+                if antenna == 8:
+                    addcalrow('2017-06-06T00:18:00', 1, antenna, spw, 1)
+                    addcalrow('2017-06-06T00:22:00', 2, antenna, spw, 100)
+                    addcalrow('2017-06-06T00:25:00', 3, antenna, spw, 1)
+                else:
+                    addcalrow('2017-06-06T00:18:00', 1, antenna, spw, 1)
+                    addcalrow('2017-06-06T00:22:00', 2, antenna, spw, 1)
+                    addcalrow('2017-06-06T00:25:00', 3, antenna, spw, 1)
+        tb.close()
+
+        # Calibrate without "perscan" interpolation.  The gain
+        # correction will leak into neighbouring scans.
+        with open(tempcallib, 'w') as f:
+            line = f"caltable='{tempgcal}' tinterp='linear'\n"
+            f.write(line)
+
+        applycal(vlbacopy, docallib=True, callib=tempcallib,
+                 applymode='calonly')
+
+        tb.open(vlbacopy)
+        sel = tb.taql('select * from ' + vlbacopy +
+                      ' where ANTENNA1=4 and ANTENNA2=8 and SCAN_NUMBER=1')
+        tb.close()
+        uncorrected = np.mean(np.abs(sel.getcol('DATA')))
+        corrected = np.mean(np.abs(sel.getcol('CORRECTED_DATA')))
+        sel.close()
+
+        self.assertFalse(np.isclose(uncorrected, corrected, rtol=1e-2, atol=1e-4))
+
+        # Calibrate with "perscan" interpolation.  The gain correction
+        # should not leak into neighbouring scans.
+        with open(tempcallib, 'w') as f:
+            line = f"caltable='{tempgcal}' tinterp='linear' scanmap='self'\n"
+            f.write(line)
+
+        applycal(vlbacopy, docallib=True, callib=tempcallib,
+                 applymode='calonly')
+
+        tb.open(vlbacopy)
+        sel = tb.taql('select * from ' + vlbacopy +
+                      ' where ANTENNA1=4 and ANTENNA2=8 and SCAN_NUMBER=1')
+        tb.close()
+        perscan = np.mean(np.abs(sel.getcol('CORRECTED_DATA')))
+        sel.close()
+
+        self.assertTrue(np.isclose(uncorrected, perscan, rtol=8e-7, atol=1e-8))
 
 
     def test_gaincurve(self):
