@@ -200,7 +200,7 @@ class test_j1302(StkUnitTest):
     # Test 1
     @stats_dict(test_dict)
     def test_j1302_mtmfs(self):
-        """ J1302 mosaic gridder """
+        """ J1302 (southern source), mosaic gridder, Stokes I imaging """
         ######################################################################################
         # Should match values for "Stokes I" in the "Values to be compared"
         ######################################################################################
@@ -377,7 +377,7 @@ class test_j1302(StkUnitTest):
     # Test 2
     @stats_dict(test_dict)
     def test_j1302_awproject(self):
-        """ J1302 awproject gridder"""
+        """ J1302 (southern source), awproject gridder, Stokes I imaging"""
         ######################################################################################
         # Should match values for "Stokes I" in the "Values to be compared"
         ######################################################################################
@@ -574,7 +574,7 @@ class test_j1302(StkUnitTest):
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Tclean crashes with mpicasa+mosaic gridder+stokes imaging.")
     @stats_dict(test_dict)
     def test_j1302_mosaic_cube(self):
-        """ J1302 cube mosaic gridder """
+        """ J1302 (southern source), coarse cube (continum image per spw), mosaic gridder, Stokes IQUV imaging """
         ######################################################################################
         # Should match values for "Cube" in the "Values to be compared"
         ######################################################################################
@@ -838,7 +838,7 @@ class test_j1302(StkUnitTest):
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Only run in serial, since John Tobin only executed this test in serial (see 01/12/22 comment on CAS-12427).")
     @stats_dict(test_dict)
     def test_j1302_ql(self):
-        """ J1302 QL, mosaic gridder """
+        """ J1302 (southern source), QL, mosaic gridder, Stokes I imaging """
         ######################################################################################
         # Should match values for "QL" in the "Values to be compared"
         ######################################################################################
@@ -1038,7 +1038,7 @@ class test_j1927(StkUnitTest):
     # Test 5
     @stats_dict(test_dict)
     def test_j1927_mtmfs(self):
-        """ J1927, mosaic gridder """
+        """ J1927 (northern source), mosaic gridder, Stokes I imaging """
         ######################################################################################
         # Should match values for "Stokes I" in the "Values to be compared"
         ######################################################################################
@@ -1211,7 +1211,7 @@ class test_j1927(StkUnitTest):
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Tclean crashes with mpicasa+mosaic gridder+stokes imaging.")
     @stats_dict(test_dict)
     def test_j1927_mosaic_cube(self):
-        """ J1927, cube mosaic gridder """
+        """ J1927 (northern source), coarse cube (continuum image per spw), mosaic gridder, Stokes IQUV imaging """
         ######################################################################################
         # Should match values for "Cube" in the "Values to be compared"
         ######################################################################################
@@ -1443,7 +1443,7 @@ class test_j1927(StkUnitTest):
     # @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Only run in serial, since John Tobin only executed this test in serial (see 01/12/22 comment on CAS-12427).")
     @stats_dict(test_dict)
     def test_j1927_ql(self):
-        """ J1927 QL, mosaic gridder """
+        """ J1927 (northern source) QL, mosaic gridder, Stokes I imaging """
         ######################################################################################
         # Should match values for "QL" in the "Values to be compared"
         ######################################################################################
