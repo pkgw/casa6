@@ -689,15 +689,15 @@ class ImagerParameters:
                     self.iterpars["cycleniter"] = min(self.iterpars["niter"], 100)
 
             # saving model is done separately outside of iter. control for interactive clean and or automasking cases
-            if self.iterpars["savemodel"] != "none":
-                if (
-                    self.iterpars["interactive"] == True
-                    or self.alldecpars["0"]["usemask"] == "auto-multithresh"
-                    or self.alldecpars["0"]["nsigma"] > 0.0
-                ):
-                    self.iterpars["savemodel"] = "none"
-                    self.allselpars["ms0"]["readonly"] = True
-                    self.allselpars["ms0"]["usescratch"] = False
+
+            if self.iterpars['savemodel']!='none':
+                if self.iterpars['interactive']==True or self.alldecpars['0']['usemask']=='auto-multithresh' or \
+                   self.alldecpars['0']['nsigma']>0.0:
+                   self.iterpars['savemodel']='none' 
+                   for visid in self.allselpars:  
+                      self.allselpars[visid]['readonly']=True
+                      self.allselpars[visid]['usescratch']=False
+
 
         return errs
 
