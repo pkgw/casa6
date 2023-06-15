@@ -1561,6 +1561,16 @@
             "comment":""
         },
         {
+            "testScript":"test_tool_msuvbinner",
+            "testType":"casatools",
+            "maintainer":"Kumar Golap",
+            "maintainerEmail":"kgolap@nrao.edu",
+            "testOptions":[],
+            "testGroup":["casatools"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_tool_quanta",
             "testType":"casatools",
             "maintainer":"Dave Mehringer",

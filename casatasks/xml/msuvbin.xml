@@ -1,0 +1,237 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns="http://casa.nrao.edu/schema/psetTypes.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+<task type="function" name="msuvbin" category="manipulation, imaging" visibility="experimental">
+  <shortdescription>grid the visibility data onto a defined uniform grid (in the form of an ms); multiple MS\'s can be done onto the same grid</shortdescription>
+  <description>
+          msuvbin is a uv gridding task. The use is for large volumes
+          of data (from multiple epochs) that needs to be imaged into
+          one image.  One way of proceeding is to image the epochs and
+          average them after wards. Rather than doing this averaging
+          the visibilities on a common uv grid has several convenience
+          advantages like easily doing the proper weighted averaging and imaging.
+          If an output grid already exists and a second ms is gridded on the grid
+          then the output grid parameters is ignored but the existant grid is used.
+
+  </description>
+  <input>
+    <param type="string" name="vis" mustexist="true">
+       <shortdescription>Name of input visibility </shortdescription>
+       <description>Name of input visibility file (MS)
+       default: none;
+       </description>
+      <value></value>
+    </param>
+
+    <param type="string" name="field">
+      <shortdescription>field(s) to select</shortdescription>
+      <description>Field selection of input ms; use mssel syntax</description>
+      <value></value>
+    </param>
+
+    <param type="string" name="spw">
+      <shortdescription>Spw selection</shortdescription>
+      <description>Spw selection; mssel syntax </description>
+      <value></value>
+    </param>
+
+    <param type="string" name="taql">
+      <shortdescription>TaQl string for data selection</shortdescription>
+      <description>TaQl string for data selection; the advance user can do
+      sophisticated data selection; see http://casacore.github.io/casacore-notes/199.html
+      </description>
+      <value></value>
+    </param>
+
+    <param type="string" name="outputvis">
+      <shortdescription>name of output uvgrid</shortdescription>
+      <description>name of output uvgrid; if it existant the data will be binned additively into
+      that uvgrid (as long as the parameters match for the grid description). If the gridded ms
+      exists
+      and the gridding parameters do not match the ones with which the grid was made---
+      msuvbin will exit with an exception
+      </description>
+      <value></value>
+    </param>
+    <param type="string" name="phasecenter">
+      <shortdescription>phase center of uv grid</shortdescription>
+      <description>phase center of uv grid; if empty it will default
+      the first field selected in the input ms
+      </description>
+      <value></value>
+    </param>
+    
+    <param type="any" name="imsize"> 
+      <shortdescription>Number of pixels</shortdescription>
+      <description>Number of pixels
+      example:
+      
+      imsize = [350,250]
+      imsize = 500 is equivalent to [500,500]
+      
+      To take proper advantage of internal optimized FFT routines, the
+      number of pixels must be even and factorizable by 2,3,5 only.
+      To find the nearest optimal imsize to that desired by the user, please use the following tool method:
+      
+      from casatools import synthesisutils
+      su = synthesisutils()
+      su.getOptimumSize(345) 
+      Output :  360
+      </description>
+      <type>int</type><type>intVec</type>
+      <value type="intVec"><value>100</value></value>
+    </param>
+    
+    <param type="string" name="cell">
+      <shortdescription>pixel cell size defined in sky dimension</shortdescription>
+      <description>pixel cell size defined in sky dimension
+      This should be in the units of sky angle. Usually you want to have a pixel size that
+      is smaller than the maximum resolution that can be expected from the data.
+
+      </description>
+      <value>1arcsec</value>
+    </param>
+
+    <param type="int" name="ncorr">
+      <shortdescription>number of correlations to store in grid</shortdescription>
+      <description>number of correlations to store in grid
+      if 1 is chosen and data have cross hands, then both XX and YY (or RR and LL)
+      will be gridded on the same correlation plane (XX or RR as MS V2.0 does not support
+      I as a correlation type).
+      if 2 is chosen the parallel hands will be stored on independent grids for each frequency channel
+      if 4 is chosen the all correlation type will be gridded independently.
+      </description>
+      <value>1</value>
+      <allowed kind="enum">
+        <value>1</value>
+        <value>2</value>
+        <value>4</value>
+      </allowed>
+    </param>
+
+    <param type="int" name="nchan">
+      <shortdescription>Number of spectral channels in grid</shortdescription>
+      <description>
+	Nunmber of spectral channels in the output grid
+      </description>
+      <value>1</value>
+    </param>
+    <param type="string" name="start">
+      <shortdescription>Frequency of first spectral channel</shortdescription>
+      <description>
+	Frequency of first channel of grid. If left empty, it will try to use the
+	lowest frequency in the selected data
+      </description>
+      <value></value>
+    </param>
+    <param type="string" name="width">
+      <shortdescription>spectral channel width</shortdescription>
+      <description>
+	Spectral channel width. If left empty the badwidth of the selected data will be divided by the nchan
+	selected to determine the width of an output channel. This happens only when not output grid already exists.
+      </description>
+      <value></value>
+    </param>
+    <param type="bool" name="wproject">
+      <shortdescription>Do wprojection correction while gridding</shortdescription>
+      <description>
+	Do wprojection correction while gridding. This should be used with care as it is known to have issues like perfomance
+	and for Cotton-Schwab style cleaning. 
+      </description>
+      <value>False</value>
+      <allowed>
+         <value>False</value>
+      </allowed>
+    </param>
+    <param type="double" name="memfrac">
+      <shortdescription>Limit how much of memory to use</shortdescription>
+      <description>
+	Limit fraction of RAM  available to use. Default is half.
+      </description>
+      <value>0.5</value>
+      <allowed kind="range">
+        <value range="min">0.01</value>
+        <value range="max">0.99</value>
+      </allowed>
+    </param>
+    <param type="string" name="mode">
+      <shortdescription>when mode=  &quot;write_flags_back&quot;Operation mode (bin/write_back_flags)</shortdescription>
+      <description>when mode  will transfer back flag from grid to input ms
+      For this to work both the original ms and the gridded ms has to exist and the flags will be
+      transferred from the gridded ms back to original ms. This is provided as a utility to
+      msuvbinflagger task.
+      </description>
+      <value type="string">bin</value>
+      <allowed kind="enum">
+       <value>bin</value>
+       <value>write_flags_back</value>
+      </allowed>
+    </param>
+    <param type="bool" name="flagbackup" subparam="true">
+      <shortdescription>backup flags before saving flags when using write_flags_back</shortdescription>
+      <description>Backup flags before saving flags when using write_flags_back
+      </description>
+       <value type="bool">False</value>
+    </param>
+ 
+    <constraints>
+      <when param="mode">
+        <equals type="string" value="write_flags_back">
+          <default param="flagbackup"><value>False</value></default>
+        </equals>
+      </when>
+    </constraints>
+
+  </input>
+  <returns type="void"/>
+
+
+<example>
+
+
+
+
+       Keyword arguments:
+       vis -- Name of input visibility file
+              default: none; example: vis='ngc5921.ms'
+       field -- Field name list
+               default: '' ==> all
+               field = '1328+307'  specifies source '1328+307'
+               field = '4' specified field with index 4
+       spw -- Spw selection
+               default: spw = '' (all spw)
+               spw='2'
+       taql  --TaQl expression for data selection (see https://casacore.github.io/casacore-notes/199.html)
+               default taql=''
+               Example select all data where U &gt; 1 m in the ms
+               taql='UVW[0] &gt; 1'
+       outputvis -- name of output grid
+               default: ''  The user has to give something here
+       phasecenter -- phasecenter of the grid
+               default= ''
+                phasecenter='J2000 18h03m04 -20d00m45.1'
+      imsize  -- number of pixels along the x and y axes of the grid
+               default=100
+               imsize=[1000, 1000]
+       cell -- cellsize of the grid (given in sky units)
+               default: '1arcsec'
+               cell='0.1arcsec'
+        ncorr -- number of correlation/polarization plane in uv grid (allowed 1, 2, 4)
+               default: 1
+               ncorr=4
+        nchan -- number of spectral channel
+               default: 1
+               nchan=2000
+        start -- frequency of the first channel
+               default: '';  User has to give something useful here
+        width -- spectral channel width
+               default: ''
+        wproject -- do wprojection correction while gridding
+                default: False
+                wproject=True
+        memfrac -- control how much of computer's memory is available for  gridding
+                default=0.5
+                memfrac=0.9
+
+ </example>
+ </task>
+ </casaxml>
