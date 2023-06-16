@@ -234,10 +234,9 @@ public:
     if (pos != casacore::String::npos) {
       record.name = field_name_with_id.substr(0, pos);
       casacore::Int field_id = casacore::String::toInt(field_name_with_id.substr(pos + 2));
-      if (field_id < 0) {
+      if (field_id < 0 || (casacore::uInt) field_id >= is_reserved_.size()) {
         record.field_id = defaultFieldId();
-      } else if ((casacore::uInt) field_id >= is_reserved_.size()
-          || !is_reserved_[field_id]) {
+      } else if (!is_reserved_[field_id]) {
         record.field_id = field_id;
         is_reserved_[field_id] = true;
       } else {

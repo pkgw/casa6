@@ -31,7 +31,7 @@
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/AWProjectFT.h>
 #include <synthesis/TransformMachines/SynthesisError.h>
-#include <images/Images/ImageInterface.h>
+#include <casacore/images/Images/ImageInterface.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <synthesis/TransformMachines/BeamCalc.h>
 #include <synthesis/TransformMachines2/CFStore.h>
@@ -43,15 +43,15 @@
 #include <synthesis/TransformMachines2/VLACalcIlluminationConvFunc.h>
 #include <synthesis/TransformMachines2/ConvolutionFunction.h>
 #include <synthesis/TransformMachines2/PolOuterProduct.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/LinearCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <casa/System/ProgressMeter.h>
-#include <lattices/LatticeMath/LatticeFFT.h>
-#include <casa/Utilities/CompositeNumber.h>
-#include <casa/OS/Directory.h>
-#include <casa/OS/Timer.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/LinearCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/casa/System/ProgressMeter.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/casa/Utilities/CompositeNumber.h>
+#include <casacore/casa/OS/Directory.h>
+#include <casacore/casa/OS/Timer.h>
 #include <ostream>
 #ifdef _OPENMP
 #include <omp.h>
@@ -358,7 +358,6 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    
 		    cfWtBuf.resize(pbshp);
 		    cfBuf.resize(pbshp);
-
 		    const Vector<Double> sampling_l(2,sampling);
 		    //		    Double wval = wValues[iw];
 		    Matrix<Complex> cfBufMat(cfBuf.nonDegenerate()), 
@@ -420,6 +419,19 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    // WBAWP CODE BEGIN -- ftATermSq_l has conj. PolCS
 		    cfWtBuf *= ftATerm_l.get()*conj(ftATermSq_l.get());
 		    //tim.mark();
+                    //////TESTOO/////////////
+                    /* {
+                      String tmpname=File::newUniqueName("./", "WTerm").baseName();
+                      cerr << "WTERM image " << tmpname << endl;
+                      PagedImage<Complex> tempB(pbShape, cs_l, tmpname);
+                      tempB.putSlice(cfBufMat, PolnPlane);
+                      
+                      
+                      }*/
+                    //////////////////////
+
+
+                    
 		    //UUU cfWtBuf *= ftATerm_l.get();
 		    cfBuf *= ftATerm_l.get();
 		    //tim.show("W*A*2: ");
@@ -487,7 +499,6 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    IPosition shp(twoDPB_l.shape());
 		    IPosition start(4, 0, 0, 0, 0), pbSlice(4, shp[0]-1, shp[1]-1,1/*polInUse*/, 1),
 		      sliceLength(4,cfBuf.shape()[0]-1,cfBuf.shape()[1]-1,1,1);
-		    
 		    cfBuf(Slicer(start,sliceLength)).nonDegenerate()
 		      =(twoDPB_l.getSlice(start, pbSlice, true));
 		    
@@ -573,6 +584,8 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    if (!isDryRun)
 		      AWConvFunc::resizeCF(cfBuf, xSupport, ySupport, supportBuffer, sampling,0.0);
 
+
+                    
 		    if (!isDryRun)
 		      {
 			LogIO log_l(LogOrigin("AWConvFunc2", "fillConvFuncBuffer[R&D]"));
@@ -1217,10 +1230,11 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
     Int ConvFuncOrigin=func.shape()[0]/2;  // Conv. Func. is half that size of convSize
     
     Bool found = setUpCFSupport(func, xSupport, ySupport, sampling,peak);
-
+   
     //Int supportBuffer = (Int)(aTerm_p->getOversampling()*1.5);
-    Int bot=(Int)(ConvFuncOrigin-sampling*xSupport-supportBuffer),//-convSampling/2, 
-      top=(Int)(ConvFuncOrigin+sampling*xSupport+supportBuffer);//+convSampling/2;
+    ///Make the cutout have even number of pixels...odd numbers are a pest !
+    Int bot=(Int)((ConvFuncOrigin-sampling*xSupport-supportBuffer)/2)*2;   //-convSampling/2, 
+    Int  top=(Int)((ConvFuncOrigin+sampling*xSupport+supportBuffer)/2)*2-1;  //+convSampling/2;
     //    bot *= 2; top *= 2;
     bot = max(0,bot);
     top = min(top, func.shape()(0)-1);
@@ -1970,6 +1984,10 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 			   //use.  While not accurate, may be
 			   //sufficient for the purpose of the
 			   //anti-aliasing operator.
+                           ///At this stage if telescopeName is blank or empty spaces
+                           //then it is EVLA
+                           if(miscInfo.telescopeName.size() < 2)
+                             miscInfo.telescopeName="EVLA";
 			   Int bandID = BeamCalc::Instance()->getBandID(miscInfo.freqValue,miscInfo.telescopeName,miscInfo.bandName);
 			   skyMinFreq = casa::EVLABandMinFreqDefaults[bandID];
 			 }

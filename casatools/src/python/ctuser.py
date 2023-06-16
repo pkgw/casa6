@@ -106,6 +106,7 @@ else:
         else:
             f.close()
             try:
-                exec(open(configrc).read( ))
+                with open(configrc) as rc:
+                    exec(rc.read( ))
             except:
                 sys.stderr.write("error: evaluation of %s failed\n" % configrc)

@@ -25,59 +25,59 @@
 //#
 //# $Id$
 #include <cmath>
-#include <casa/Quanta/Quantum.h>
-#include <casa/Quanta/UnitMap.h>
-#include <casa/Quanta/UnitVal.h>
-#include <measures/Measures/Stokes.h>
-#include <casa/Quanta/Euler.h>
-#include <casa/Quanta/RotMatrix.h>
-#include <measures/Measures/MFrequency.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <coordinates/Coordinates/Projection.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/casa/Quanta/UnitMap.h>
+#include <casacore/casa/Quanta/UnitVal.h>
+#include <casacore/measures/Measures/Stokes.h>
+#include <casacore/casa/Quanta/Euler.h>
+#include <casacore/casa/Quanta/RotMatrix.h>
+#include <casacore/measures/Measures/MFrequency.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/coordinates/Coordinates/Projection.h>
 #include <casacore/lattices/Lattices/LatticeLocker.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <casa/BasicSL/Constants.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/casa/BasicSL/Constants.h>
 #include <synthesis/TransformMachines2/FTMachine.h>
 #include <synthesis/TransformMachines2/SkyJones.h>
 #include <synthesis/TransformMachines2/VisModelData.h>
 #include <synthesis/TransformMachines2/BriggsCubeWeightor.h>
-#include <scimath/Mathematics/RigidVector.h>
+#include <casacore/scimath/Mathematics/RigidVector.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/StokesVector.h>
 #include <msvis/MSVis/MSUtil.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/ImageUtilities.h>
-#include <casa/Containers/Block.h>
-#include <casa/Containers/Record.h>
-#include <casa/Arrays/ArrayIter.h>
-#include <casa/Arrays/ArrayLogical.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/MatrixMath.h>
-#include <casa/Arrays/MaskedArray.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/MatrixIter.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Utilities/BinarySearch.h>
-#include <casa/Exceptions/Error.h>
-#include <scimath/Mathematics/NNGridder.h>
-#include <scimath/Mathematics/ConvolveGridder.h>
-#include <measures/Measures/UVWMachine.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/ImageUtilities.h>
+#include <casacore/casa/Containers/Block.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Arrays/ArrayIter.h>
+#include <casacore/casa/Arrays/ArrayLogical.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/MatrixMath.h>
+#include <casacore/casa/Arrays/MaskedArray.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/MatrixIter.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Utilities/BinarySearch.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/scimath/Mathematics/NNGridder.h>
+#include <casacore/scimath/Mathematics/ConvolveGridder.h>
+#include <casacore/measures/Measures/UVWMachine.h>
 
-#include <casa/System/ProgressMeter.h>
+#include <casacore/casa/System/ProgressMeter.h>
 
-#include <casa/OS/Timer.h>
-#include <casa/sstream.h>
-#include <casa/iostream.h>
+#include <casacore/casa/OS/Timer.h>
+#include <sstream>
+#include <iostream>
 #include <iomanip>
 using namespace casacore;
 namespace casa{//# CASA namespace
@@ -100,7 +100,7 @@ using namespace casa::vi;
 			   pointingDirCol_p("DIRECTION"),
 			   cfStokes_p(), cfCache_p(), cfs_p(), cfwts_p(), cfs2_p(), cfwts2_p(), 
 			   canComputeResiduals_p(false), toVis_p(true), 
-                           numthreads_p(-1), pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0)
+                           numthreads_p(-1), pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0), ftmType_p(FTMachine::CORRECTED), avgPBReady_p(false)
   {
     spectralCoord_p=SpectralCoordinate();
     isPseudoI_p=false;
@@ -122,7 +122,7 @@ using namespace casa::vi;
     pointingDirCol_p("DIRECTION"),
     cfStokes_p(), cfCache_p(cfcache), cfs_p(), cfwts_p(), cfs2_p(), cfwts2_p(),
     convFuncCtor_p(cf),canComputeResiduals_p(false), toVis_p(true), numthreads_p(-1), 
-    pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0)
+    pbLimit_p(0.05),sj_p(0), cmplxImage_p( ), vbutil_p(), phaseCenterTime_p(-1.0), doneThreadPartition_p(-1), briggsWeightor_p(nullptr), tempFileNames_p(0), ftmType_p(FTMachine::CORRECTED), avgPBReady_p(false)
   {
     spectralCoord_p=SpectralCoordinate();
     isPseudoI_p=false;
@@ -230,6 +230,8 @@ using namespace casa::vi;
       mtype_p=other.mtype_p;
       briggsWeightor_p=other.briggsWeightor_p;
       ft_p=other.ft_p;
+      ftmType_p = other.ftmType_p;
+      avgPBReady_p = other.avgPBReady_p;
     };
     return *this;
   };
@@ -499,7 +501,6 @@ using namespace casa::vi;
       }
 
 
-      
       initPolInfo(vb);
       Vector<Int> intpolmap(visPolMap_p.nelements());
       for (uInt kk=0; kk < intpolmap.nelements(); ++kk){
@@ -507,7 +508,8 @@ using namespace casa::vi;
       }
       pop_p->initCFMaps(intpolmap, polMap);
 
-      //cerr << "initmaps polmap "<< polMap << endl;
+      
+
 
 
       
@@ -988,6 +990,7 @@ using namespace casa::vi;
        (vb.nChannels()==1) || 
        (freqInterpMethod_p== InterpolateArray1D<Double, Complex>::nearestNeighbour) ){
         origdata->reference(data);
+        interpVisFreq_p=visFreq;
         return false;
       }
   
@@ -1734,6 +1737,8 @@ using namespace casa::vi;
     }
     
     initializeToSky(theImage,weight,*vb);
+    //This call is a NOP for all weighting schemes except for cube-briggs-perchanweightdensity
+    initBriggsWeightor(vi);
     Bool useCorrected= !(MSColumns(vi.ms()).correctedData().isNull());
     if((type==FTMachine::CORRECTED) && (!useCorrected))
       type=FTMachine::OBSERVED;
@@ -1827,6 +1832,7 @@ using namespace casa::vi;
      // doConversion_p[spw]=freqFrameValid_p;
 
       if(lsrFreq.nelements() ==0){
+        matchPol(vb);
         return false;
       }
       lsrFreq_p.resize(lsrFreq.nelements());
@@ -1918,6 +1924,7 @@ using namespace casa::vi;
   	<<      " of ms " << vb.msId() << " is not being used "
   	<< LogIO::WARN << LogIO::POST;
         */
+        matchPol(vb); ///sometimes the polmap is needed even if chanmap failed
         return false;
       }
 
@@ -2540,9 +2547,9 @@ using namespace casa::vi;
 	
 	// Take sumWeights from corrToStokes here....
         LatticeLocker lock1 (*(imstore->sumwt()), FileLocker::Write);
-        Matrix<Float> sumWeightStokes((imstore->sumwt())->shape()(2), (imstore->sumwt())->shape()(3));
-        
-        //  convertArray(sumWtComp, sumWeights);
+        Bool donesumwt=(max(imstore->sumwt()->get()) > 0.0);
+        if(!donesumwt){
+          Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
         CoordinateSystem incoord=image->coordinates();
         CoordinateSystem outcoord=imstore->sumwt()->coordinates();
         StokesImageUtil::ToStokesSumWt(sumWeightStokes, sumWeights, outcoord, incoord);
@@ -2555,10 +2562,11 @@ using namespace casa::vi;
         sumWtArr(blc, trc).reform(sumWeightStokes.shape())=sumWeightStokes;
         
 	//StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
-	AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
+		AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
 		      ((imstore->sumwt())->shape()[3] == sumWeightStokes.shape()[1] ) , AipsError );
 
-	(imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
+		(imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
+        }
         imstore->sumwt()->unlock();
 	
       }
@@ -2622,6 +2630,91 @@ using namespace casa::vi;
     return;
   };
 
+
+/////------------------------------------------------
+void FTMachine::finalizeToWeightImage(const VisBuffer2& vb,
+				   CountedPtr<SIImageStore> imstore  )				   
+  {
+    // Check vector lengths. 
+    AlwaysAssert( imstore->getNTaylorTerms(false)==1, AipsError);
+
+    Matrix<Float> sumWeights;
+
+    //------------------------------------------------------------------------------------
+    // Straightforward case. No extra primary beams. No image mosaic
+    if(sj_p.nelements() == 0 ) 
+      {
+       
+        
+	if( useWeightImage()  ) {
+          //if( name().contains("Mosaic") ){
+          {
+              finalizeToSky();
+            }
+          LatticeLocker lock1 (*(imstore->weight()), FileLocker::Write);
+	  getWeightImage( *(imstore->weight())  , sumWeights);
+          imstore->weight()->unlock();
+
+	  // Fill weight image only once, during PSF generation. Remember.... it is normalized only once
+	  // during PSF generation.
+	}
+	if(sumWeights.nelements() >0){
+          // Take sumWeights from corrToStokes here....
+          LatticeLocker lock1 (*(imstore->sumwt()), FileLocker::Write);
+          Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
+          StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
+          
+          AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeightStokes.shape()[0] ) && 
+                        ((imstore->sumwt())->shape()[3] == sumWeightStokes.shape()[1] ) , AipsError );
+          
+          (imstore->sumwt())->put( sumWeightStokes.reform((imstore->sumwt())->shape()) );
+          imstore->sumwt()->unlock();
+        }
+	
+      }
+    //------------------------------------------------------------------------------------
+    // Image Mosaic only :  Multiply the residual, and weight image by the PB.
+    else 
+      {
+      
+      // Now, do the same with the weight image and sumwt ( only on the first pass )
+	{
+	  SubImage<Float>  weightImage(  *(imstore->weight()) , true);
+	  TempImage<Float> temp(weightImage.shape(), weightImage.coordinates());
+	  getWeightImage(temp, sumWeights);
+
+	  for (uInt k=0; k < sj_p.nelements(); ++k){
+	    (sj_p(k))->applySquare(temp,temp, vb, -1);
+	  }
+
+	  LatticeExpr<Float> addToWgt( weightImage + temp );
+	  weightImage.copyData(addToWgt);
+	  
+	  AlwaysAssert( ( (imstore->sumwt())->shape()[2] == sumWeights.shape()[0] ) && 
+			((imstore->sumwt())->shape()[3] == sumWeights.shape()[1] ) , AipsError );
+
+	  SubImage<Float>  sumwtImage(  *(imstore->sumwt()) , true);
+	  TempImage<Float> temp2(sumwtImage.shape(), sumwtImage.coordinates());
+	  temp2.put( sumWeights.reform(sumwtImage.shape()) );
+	  LatticeExpr<Float> addToWgt2( sumwtImage + temp2 );
+	  sumwtImage.copyData(addToWgt2);
+	  
+	  //cout << "In finalizeGridCoreMos : sumwt : " << sumwtImage.get() << endl;
+	  
+	}
+
+      }
+    //------------------------------------------------------------------------------------
+
+
+    
+    return;
+  };
+
+
+  
+  
+/////-----------------------------------------------
   Bool FTMachine::changedSkyJonesLogic(const vi::VisBuffer2& vb, Bool& firstRow, Bool& internalRow)
   {
     firstRow=false;
@@ -2641,6 +2734,19 @@ using namespace casa::vi;
     }
     return (firstRow || internalRow) ;
   }
+
+  std::shared_ptr<std::complex<double>> FTMachine::getGridPtr(size_t& size) const
+  {
+    size = 0;
+    return std::shared_ptr<std::complex<double>>();
+  }
+
+  std::shared_ptr<double> FTMachine::getSumWeightsPtr(size_t& size) const
+  {
+    size = 0;
+    return std::shared_ptr<double>();
+  }
+
   void FTMachine::setCFCache(CountedPtr<CFCache>& /*cfc*/, const Bool /*loadCFC*/) 
   {
     throw(AipsError("FTMachine::setCFCache() directly called!"));

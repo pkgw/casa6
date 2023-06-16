@@ -28,12 +28,13 @@
 #ifndef SYNTHESIS_CALSOLVI2ORGANIZER_H
 #define SYNTHESIS_CALSOLVI2ORGANIZER_H
 
-#include <casa/aips.h>
-#include <casa/iostream.h>
-#include <casa/BasicSL/String.h>
-#include <ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/casa/aips.h>
+#include <iostream>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <msvis/MSVis/SimpleSimVi2.h>
 #include <mstransform/TVI/ChannelAverageTVI.h>
+#include <mstransform/TVI/PolAverageTVI.h>
 #include <synthesis/MeasurementComponents/CalibratingVi2.h>
 
 
@@ -80,6 +81,9 @@ public:
   // Add time-averaging layer factory
   void addTimeAve(float timebin);
 
+  void addCorrCombine();
+
+  
   // Add calibration specific data filter
   // config should have the following entries:
   // "mode" (String) -- calibration mode (only "SDGAIN_OTFD" is supported)
@@ -105,7 +109,7 @@ private:
 		     bool combfld,bool combspw);
 
   // Pointers to the various kinds of layer factories we may use
-  vi::ViiLayerFactory *data_, *cal_, *chanave_, *timeave_, *calfilter_;
+  vi::ViiLayerFactory *data_, *cal_, *chanave_, *timeave_, *polave_, *calfilter_;
 
   //vi::SimpleSimVi2LayerFactory *ss_;
   //vi::CalSolvingVi2LayerFactoryByVE *cal_;
