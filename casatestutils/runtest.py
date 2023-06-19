@@ -359,7 +359,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
         if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
             print("\tMerging {} into {}".format(branch, merge_target))
-            cmd = ("git merge --verbose origin/" + re.findall("([^\/]+$)",branch )[0]).split()
+            cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch )[0]).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
             print("\tRunning: git status")
@@ -395,7 +395,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
             if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
                 print("\tMerging {} into {}".format(branch, merge_target))
-                cmd = ("git merge --verbose origin/" + re.findall("([^\/]+$)",merge_target)[0]).split()
+                cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",merge_target)[0]).split()
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
                 run_shell_command(cmd, source_dir + "/" + repo)
                 out = subprocess.check_output(["git", "status"])
