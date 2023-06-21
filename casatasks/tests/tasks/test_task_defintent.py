@@ -15,6 +15,7 @@
 #
 #
 # Based on the requirements listed in casadocs found here:
+# https://casadocs.readthedocs.io/en/stable/api/tt/casatasks.calibration.defintent.html
 #
 #
 ##########################################################################
