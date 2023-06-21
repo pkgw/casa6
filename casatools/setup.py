@@ -202,7 +202,7 @@ class XmlCMakeBuildExt(build_ext):
         os.environ['CCACHE_BASEDIR'] = os.getcwd()
         os.environ['CCACHE_NOHASHDIR'] = 'true'
         if 'CMAKE_BUILD_PARALLEL_LEVEL' not in os.environ:
-            cmake_par = len(os.sched_getaffinity(0)) - 1
+            cmake_par = os.sysconf('SC_NPROCESSORS_ONLN') -1
             os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(1 if cmake_par == 0 else cmake_par)
         subprocess.check_call(['cmake', sourcedir] + cmake_args)
         subprocess.check_call(['cmake', '--build', '.'])
