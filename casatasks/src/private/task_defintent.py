@@ -132,18 +132,22 @@ def defintent(vis='', intent='', mode='',
         # Iterate over all the changed rows and set the state id to the old one
         tb.open(vis, nomodify=False)
         stateCol = tb.getcol('STATE_ID')
-        rowsToRemove = set()
+        #rowsToRemove = set()
         for item in revertList:
             stateCol[int(item.split(':')[0])] = int(item.split(':')[1])
-            rowsToRemove.add(int(item.split(':')[1]))
+            #rowsToRemove.add(int(item.split(':')[1]))
         # Set the state col back after reverting
         tb.putcol('STATE_ID', stateCol)
         tb.close()
         
         # Remove the row from the STATE table
         tb.open(vis+'/STATE', nomodify=False)
-        for row in rowsToRemove:
-            tb.removerows(row)
+        modes = tb.getcol('OBS_MODE')
+        for i in range(len(modes)):
+            if modes[i] == intent:
+                tb.removerows(i)
+        #for row in rowsToRemove:
+            #tb.removerows(row)
         tb.close()
 
     # for Set if intent not in state table
