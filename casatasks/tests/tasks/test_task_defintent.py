@@ -121,7 +121,6 @@ class Defintent_tests(unittest.TestCase):
         
     def test_select_obsid(self):
         """ A selection of intents to replace can be made with obsid """
-        # TODO: Look for ms with more interesting obs ids
         # run defintent only selecting a subset of obsids
         defintent(vis=self.msfile, intent='testintent', mode='set', obsid='0')
         
@@ -138,6 +137,26 @@ class Defintent_tests(unittest.TestCase):
                 statesmatch = False
         # if the states weren't replaced for the obsids then fail
         self.assertTrue(statesmatch)
+        
+    def test_revert(self):
+        """ Test that revert mode can be used to reverse changes """
+        # save the list of changes to revert
+        revertlist = defintent(vis=self.msfile, intent='markedForReversion', mode='set')
+        
+        # Get the number of rows in the state table before reversion
+        tb.open(self.msfile + '/STATE')
+        beforeRevert = tb.nrows()
+        tb.close()
+        
+        # revert the changes
+        after = defintent(vis=self.msfile, intent='markedForReversion', mode='revert', revertList=revertlist)
+        
+        # get the number of rows after reversion
+        tb.getcol(self.msfile + '/STATE')
+        afterRevert = tb.nrows()
+        tb.close()
+        
+        self.assertTrue(afterRevert < beforeRevert)
     
 if __name__ == '__main__':
     unittest.main()

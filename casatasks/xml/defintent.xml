@@ -57,9 +57,17 @@ Allows the user to manually set scan intents
                 <value/>
         </param>
         
+        <param name="revertList" type="stringVec">
+<shortdescription>A list that describes how to revert STATE_ID changes</shortdescription>
+<description>
+    Select ObsId
+</description>
+                <value/>
+        </param>
+        
         </input>
 
-<returns type="void"/>
+<returns type="stringVec"/>
 
 <example>
 

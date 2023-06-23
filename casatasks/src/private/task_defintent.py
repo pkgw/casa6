@@ -5,7 +5,8 @@ import numpy as np
 import casatools
 
 def defintent(vis='', intent='', mode='',
-              scan='', field='', obsid=''):
+              scan='', field='', obsid='',
+              revertList=[]):
     """
     Description:
     Allows users to manually set the intents for a selection of scans, fields, or obsids.
@@ -24,10 +25,13 @@ def defintent(vis='', intent='', mode='',
         Defaults to all fields selected.
     obsid: Select the obsids to modify
         Defaults to all obsids selected
+        
+    Return: Returns a list detailing which STATE_IDs have been changed. This can be used to revert changes
     """
 
     tb = casatools.table()
     ms = casatools.ms()
+    changeList = []
     
     # If no intent has been provided exit the task and print
     if vis == '':
@@ -75,7 +79,8 @@ def defintent(vis='', intent='', mode='',
     if (type(scan) != list):
         scan = str(scan)
     
-    selectedRows = set()
+    #selectedRows = set()
+    selectedRows = []
     selectedIntents = dict()
     
     # NEW get query using ms tool selection
@@ -102,20 +107,48 @@ def defintent(vis='', intent='', mode='',
     taskQuery = " && ".join(toJoin)
     
     selectedData = tb.query(taskQuery)
-    selectedRows = set(selectedData.rownumbers())
+    #selectedRows = set(selectedData.rownumbers())
+    selectedRows = selectedData.rownumbers()
     
     selectedStateIds = selectedData.getcol('STATE_ID')
     for i in range(len(selectedRows)):
         selectedIntents[selectedStateIds[i]] = selectedStateIds[i]
+        
+        tmpString =  str(selectedRows[i]) + ':' + str(selectedStateIds[i])
+        changeList.append(tmpString)
         
     tb.close()
                 
     print("Number of matching rows found: ", len(selectedRows))
     print(mode.lower())
     
+    # For Revert mode
+    if mode.lower() == 'revert':
+        # If there is no provided revertList break out
+        if revertList == []:
+            print("No revert list provided")
+            
+        # Revert list structure is [(<ROW>,<OLD STATE_ID>)...]
+        # Iterate over all the changed rows and set the state id to the old one
+        tb.open(vis, nomodify=False)
+        stateCol = tb.getcol('STATE_ID')
+        rowsToRemove = set()
+        for item in revertList:
+            stateCol[int(item.split(':')[0])] = int(item.split(':')[1])
+            rowsToRemove.add(int(item.split(':')[1]))
+        # Set the state col back after reverting
+        tb.putcol('STATE_ID', stateCol)
+        tb.close()
+        
+        # Remove the row from the STATE table
+        tb.open(vis+'/STATE', nomodify=False)
+        for row in rowsToRemove:
+            tb.removerows(row)
+        tb.close()
+
     # for Set if intent not in state table
     # then add a new row to the state table and change index (STATE_ID) in main table
-    if mode.lower() == 'set':
+    elif mode.lower() == 'set':
         # Keep track of the new value to set the state_id to
         newState = -1
         # Adding to intents col
@@ -147,7 +180,7 @@ def defintent(vis='', intent='', mode='',
         tb.close()
     
     # For Append mode
-    if mode.lower() == 'append':
+    elif mode.lower() == 'append':
         statetb = vis+'/STATE'
         # Find our selected intents
         for i in selectedIntents:
@@ -180,4 +213,4 @@ def defintent(vis='', intent='', mode='',
         tb.putcol('STATE_ID', stateCol)
         tb.close()
 
-    return
+    return changeList
