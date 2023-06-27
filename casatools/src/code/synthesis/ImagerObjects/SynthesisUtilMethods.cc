@@ -2025,8 +2025,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     if( imsize.nelements() != 2 ){ err += "imsize must be a vector of 2 Ints\n"; }
     if( cellsize.nelements() != 2 ) { err += "cellsize must be a vector of 2 Quantities\n"; }
-    constexpr auto kEpsilon = std::numeric_limits<double>::epsilon();
-    if( cellsize[0].getValue() < kEpsilon || cellsize[1].getValue() < kEpsilon ) {
+    if( cellsize[0].getValue() == 0.0 || cellsize[1].getValue() == 0.0 ) {
         err += "cellsize must be nonzero\n";
     }
 
