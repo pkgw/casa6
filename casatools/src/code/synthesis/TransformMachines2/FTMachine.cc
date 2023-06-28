@@ -399,7 +399,7 @@ using namespace casa::vi;
       //  computation time especially for spectral cubes.
       {
         Vector<Double> equal= (mImage_p.getAngle()-
-			       vbutil_p->getPhaseCenter(vb, phaseCenterTime_p).getAngle()).getValue();
+			       vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p).getAngle()).getValue();
         if((abs(equal(0)) < abs(directionCoord.increment()(0)))
   	 && (abs(equal(1)) < abs(directionCoord.increment()(1)))){
   	doUVWRotation_p=false;
@@ -427,11 +427,11 @@ using namespace casa::vi;
 	throw(AipsError("Cannot define frame because of no access to OBSERVATION table")); 
       if(observatory.contains("ATCA") || observatory.contains("DRAO")
          || observatory.contains("WSRT")){
-        uvwMachine_p=new casacore::UVWMachine(mImage_p, vbutil_p->getPhaseCenter(vb, phaseCenterTime_p), mFrame_p,
+        uvwMachine_p=new casacore::UVWMachine(mImage_p, vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p), mFrame_p,
   				  true, false);
       }
       else{
-        uvwMachine_p=new casacore::UVWMachine(mImage_p, vbutil_p->getPhaseCenter(vb, phaseCenterTime_p), mFrame_p,
+        uvwMachine_p=new casacore::UVWMachine(mImage_p, vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p), mFrame_p,
   				  false, tangentSpecified_p);
       }
       AlwaysAssert(uvwMachine_p, AipsError);
@@ -1087,7 +1087,7 @@ using namespace casa::vi;
 	mFrame_p.set(mLocation_p, MEpoch(Quantity(vb.time()(0), "s"), (romscol_p->timeMeas())(0).getRef()));
       MDirection::Types outType;
       MDirection::getType(outType, mImage_p.getRefString());
-      MDirection phasecenter=MDirection::Convert(vbutil_p->getPhaseCenter(vb, phaseCenterTime_p), MDirection::Ref(outType, mFrame_p))();
+      MDirection phasecenter=MDirection::Convert(vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p), MDirection::Ref(outType, mFrame_p))();
       MDirection inFieldPhaseCenter=phasecenter;
 
       if(fixMovingSource_p){
@@ -1121,13 +1121,13 @@ using namespace casa::vi;
 	if(observatory.contains("ATCA") || observatory.contains("WSRT")){
 		//Tangent specified is being wrongly used...it should be for a
 	    	//Use the safest way  for now.
-	  uvwMachine_p=new UVWMachine(inFieldPhaseCenter, vbutil_p->getPhaseCenter(vb, phaseCenterTime_p), mFrame_p,
+	  uvwMachine_p=new UVWMachine(inFieldPhaseCenter, vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p), mFrame_p,
 					true, false);
 	    phaseShifter_p=new UVWMachine(mImage_p, phasecenter, mFrame_p,
 					true, false);
 	}
 	else{
-	  uvwMachine_p=new UVWMachine(inFieldPhaseCenter, vbutil_p->getPhaseCenter(vb, phaseCenterTime_p),  mFrame_p,
+	  uvwMachine_p=new UVWMachine(inFieldPhaseCenter, vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p),  mFrame_p,
 				      false, false);
 	  phaseShifter_p=new UVWMachine(mImage_p, phasecenter,  mFrame_p,
 				      false, false);
@@ -1245,11 +1245,11 @@ using namespace casa::vi;
   	if(observatory.contains("ATCA") || observatory.contains("WSRT")){
   		//Tangent specified is being wrongly used...it should be for a
   	    	//Use the safest way  for now.
-	  uvwMachine_p=new UVWMachine(phasecenter, vbutil_p->getPhaseCenter(vb, phaseCenterTime_p), mFrame_p,
+	  uvwMachine_p=new UVWMachine(phasecenter, vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p), mFrame_p,
   					true, false);
   	}
   	else{
-	  uvwMachine_p=new UVWMachine(phasecenter, vbutil_p->getPhaseCenter(vb, phaseCenterTime_p), mFrame_p,
+	  uvwMachine_p=new UVWMachine(phasecenter, vbutil_p->getPhaseCenter(vb, ephemTableName_p, phaseCenterTime_p), mFrame_p,
   					false,tangentSpecified_p);
   	    }
        }

@@ -2490,6 +2490,7 @@ void SynthesisImagerVi2::unlockMSs()
 
     ///Set tracking of moving source if any
     if(movingSource_p != ""){
+      os<<"setMovingSource for FT/IFT movingSource_p=" << movingSource_p << LogIO::POST;
       theFT->setMovingSource(movingSource_p);
       theIFT->setMovingSource(movingSource_p);
     }
@@ -3380,6 +3381,8 @@ void SynthesisImagerVi2::unlockMSs()
     LogIO os( LogOrigin("SynthesisImagerVi2","makePrimaryBeam",WHERE) );
 
     os << "vi2 : Evaluating Primary Beam model onto image grid(s)" << LogIO::POST;
+    //debeg
+    os << "CHECK mod !!!!!!!" <<LogIO::POST;
 
     itsMappers.initPB();
 
@@ -3392,6 +3395,8 @@ void SynthesisImagerVi2::unlockMSs()
     MDirection origMovingDir;
     MDirection newPhaseCenter;
     Bool trackBeam=getMovingDirection(*vb, origMovingDir, True);
+    os << "movingSource_p here ="<<movingSource_p <<LogIO::POST;
+    String ephempath = movingSource_p; 
     //////
     for(vi_p->originChunks(); vi_p->moreChunks(); vi_p->nextChunk())
       {
@@ -3407,12 +3412,16 @@ void SynthesisImagerVi2::unlockMSs()
 	    if(!fieldDone){
 	      fieldsDone[vb->msId()].insert(vb->fieldId()(0));
 	      if(trackBeam){
+                os << "TrackBram true.." << LogIO::POST;
 		MDirection newMovingDir;
 		getMovingDirection(*vb, newMovingDir);
 		//newPhaseCenter=vb->phaseCenter();
-                newPhaseCenter=vbU.getPhaseCenter(*vb);
+		os<<" ephempath="<<ephempath <<LogIO::POST;
+                newPhaseCenter=vbU.getPhaseCenter(*vb, ephempath);
+              os << "newPhaseCenter from getPhaseCent. =" << newPhaseCenter.toString() << LogIO::POST; 
 		newPhaseCenter.shift(MVDirection(-newMovingDir.getAngle()+origMovingDir.getAngle()), False);
 	      }
+              os << "newPhaseCenter after shift=" << newPhaseCenter.toString() << LogIO::POST; 
 	      itsMappers.addPB(*vb,pbMath, newPhaseCenter, trackBeam);
 	      
 	    }
@@ -3425,6 +3434,8 @@ void SynthesisImagerVi2::unlockMSs()
   }// end makePB
 
   Bool SynthesisImagerVi2::getMovingDirection(const vi::VisBuffer2& vb,  MDirection& outDir, const Bool useImageEpoch){
+    //for debugging cas14152 -remove it later 
+    LogIO os( LogOrigin("SynthesisImagerVi2","getMovingDir",WHERE) );
     MDirection movingDir;
     Bool trackBeam=False;
       
@@ -3433,6 +3444,7 @@ void SynthesisImagerVi2::unlockMSs()
       mFrame.resetEpoch((itsMappers.imageStore(0))->getCSys().obsInfo().obsDate());
 
     }
+    os << "SynImgrVi2::getMovingDir   movingSource_p ====" << movingSource_p  << LogIO::POST;
     if(movingSource_p != ""){
       MDirection::Types refType;
       trackBeam=True;
@@ -3443,6 +3455,7 @@ void SynthesisImagerVi2::unlockMSs()
 	MeasComet laComet(laTable, leSentier.absoluteName());
 	movingDir.setRefString("COMET");
 	mFrame.set(laComet);
+        os << "set COMET movingSource_p=" << movingSource_p << LogIO::POST;
       }
       ///if not a table 
       else  if(casacore::MDirection::getType(refType, movingSource_p)){
