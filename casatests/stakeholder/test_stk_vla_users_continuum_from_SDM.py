@@ -73,9 +73,14 @@ class Test_vla_users_continuum(unittest.TestCase):
         self.maskfile = '3c391_clean_mask.crtf'
         # os.symlink(data_path+self.maskfile, self.maskfile)
         self.writeMask()
+        # Control if running in parallel with mpicasa
         self.parallel = False
+        # Control if creating Multi-MS with mpicasa
+        self.mms = False
         if ParallelTaskHelper.isMPIEnabled():
+            casalog.post('MPI is enabled. Will run in parallel using Multi-MS for calibration and tclean')
             self.parallel = True
+            self.mms = True
 
     def tearDown(self):
         generate_weblog("vla_users_continuum_from_SDM",test_dict)
@@ -106,7 +111,7 @@ class Test_vla_users_continuum(unittest.TestCase):
 
         ## Data Import
         importasdm(asdm=sdmname,
-                vis=sdmname+'.ms', createmms=False,
+                vis=sdmname+'.ms', createmms=self.mms,
                 ocorr_mode='co', asis='Receiver CalAtmosphere',
                 process_caldevice=True, process_pointing=True, savecmds=True,
                 outfile=sdmname+'.flagonline.txt',
