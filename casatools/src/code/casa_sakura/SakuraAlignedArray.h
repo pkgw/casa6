@@ -20,16 +20,20 @@ public:
   SakuraAlignedArray(casacore::Vector<T> const &in_vector);
   ~SakuraAlignedArray();
 
-  T *data;               // pointer to aligned data
-  casacore::Vector<T> *casaVector; // pointer to aligned CASA Vector
+  T *data() const {return data_;}
+  casacore::Vector<T> casaVector() const {
+      return casacore::Vector<T>(casacore::IPosition(1, num_data_), data_,
+                                 casacore::SHARE);
+  }
 private:
   void initialize();
   size_t num_data_;      // number of data to be stored
   void *storage_;        // starting address of allocated memory (unaligned)
+  T *data_;               // pointer to aligned data
 };
 
 } //# NAMESPACE CASA - END
 
 #include <casa_sakura/SakuraAlignedArray.tcc>
-  
+
 #endif /* _CASA_SAKURA_ALIGNED_ARRAY_H_ */

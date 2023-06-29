@@ -1474,7 +1474,7 @@ bool componentlist::setspectrum(
                 indexParam = index.toDoubleVec()[0];
             }
             else {
-                ThrowCc("Unrecognized type for index, must be double or doubleArray")
+                ThrowCc("Unrecognized type for index, must be double or doubleArray");
             }
             MFrequency refFreq = itsList->component(which).spectrum().refFrequency();
             spectrumPtr.reset(new SpectralIndex(refFreq, indexParam));

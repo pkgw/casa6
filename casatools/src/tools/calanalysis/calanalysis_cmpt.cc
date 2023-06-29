@@ -1545,6 +1545,6 @@ Bool calanalysis::parseWeight( const bool& weight,
 
 }
 
-#include <tools/calanalysis/calanalysis_template.h>
+#include "calanalysis_template.h"
 
 } // casac namespace
