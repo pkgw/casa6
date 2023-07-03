@@ -6229,6 +6229,203 @@ class test_ephemeris(testref_base):
           report = report1 + report2 + report3
           self.assertTrue(self.check_final(pstr=report))
 
+     def test_onefield_mfs_exttab_eph(self):
+          " [ephemeris] test_onefield_mfs_exttab_eph: single field (standard gridder), mfs mode using an external ephemeris table"
+
+          # use the table created in 2020.06.29 querying JPL-Horizons 
+          # As this is the updated ephemeredes of Venus it will be different from the one attached to the MS.
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = '/export/home/murasame2/casadev/imagerRefact/cas14152/Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, field='0', imagename=self.img, imsize=[288, 288], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='mfs', gridder='standard', niter=0, parallel=self.parallel)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_sf_ephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          _ia.open(self.img+'.residual')
+          cencoord = _ia.toworld([144.5, 144.5, 0, 0])['numeric']
+          ra = qa.time(str(cencoord[0])+'rad',prec=9)[0]
+          dec = qa.angle(str(cencoord[1])+'rad',prec=9)[0]
+          # internal ephem
+          # cen : 15:57:29.022, 22:52:08.606
+          #  4.17781081e+00, -2.96080103e-01
+          # ext tab
+          # cen : 15:57:28.633, 22:52:08.491
+          #   4.17778246e+00, -2.96088470e-01 (rad)
+          # --
+          # t0 = 58491.4746311111
+          # internal ephem nearest t0 index => 6 
+          #    ra = 4.177752946218525 (rad), dec = -0.2960678077424548 (rad)
+          # external tabl
+          #    ra = 4.177723595598271, dec = -0.2960762580449165
+          report = report1 + report2 + report3
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_onefield_cube_exttab_eph(self):
+          " [ephemeris] test_onefield_cube_eph : single field (standard gridder), cubesource mode "
+
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = '/export/home/murasame2/casadev/imagerRefact/cas14152/Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, field='0', imagename=self.img, imsize=[288, 288], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='cubesource', gridder='standard', niter=0, parallel=False)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_sf_ephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          report = report1 + report2 + report3
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_multifield_mfs_exttab_eph(self):
+          " [ephemeris] test_multifield_mfs_eph : multifield (mosaic gridder), mfs mode "
+
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = '/export/home/murasame2/casadev/imagerRefact/cas14152/Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=[480, 420], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='mfs', gridder='mosaic', niter=0, parallel=self.parallel)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_mos_ephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          report = report1 + report2 + report3
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_multifield_cube_exttab_eph(self):
+          " [ephemeris] test_multifield_cube_eph : multifield (mosaic gridder), cubesource mode "
+
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = '/export/home/murasame2/casadev/imagerRefact/cas14152/Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=[480, 420], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='cubesource', gridder='mosaic', niter=0, parallel=False)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_mos_ephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          report = report1 + report2 + report3
+          self.assertTrue(self.check_final(pstr=report))
 
 class test_errors_failures(testref_base):
 
