@@ -1661,7 +1661,7 @@ save to FLAG_CMD
                         <default param="uvrange"><value type="string"/></default>
                         <default param="observation"><value type="string"/></default>
                         <default param="feed"><value type="string"/></default>
-                        <default param="quackinterval"><value type="double">0.0</value></default>
+                        <default param="quackinterval"><value type="double">1.0</value></default>
                         <default param="quackmode"><value type="string">beg</value></default>
                         <default param="quackincrement"><value type="bool">False</value></default>                   
                     </equals>                    
