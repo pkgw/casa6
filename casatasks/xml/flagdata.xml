@@ -714,7 +714,7 @@ visibilities for flagging.
 <shortdescription>Quack n seconds from scan beginning or end</shortdescription>
 <description>Time in seconds from scan beginning or end to flag.
                      Subparameter of mode='quack'
-                     Default: 0.0
+                     Default: 1.0
 
                      Note: Make time slightly smaller than the desired
                      time.
