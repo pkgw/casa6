@@ -38,19 +38,21 @@ datapath = ctsys.resolve('unittest/defintent/')
 
 class Defintent_tests(unittest.TestCase):
     msfile = 'gaincaltest2.ms'
+    outfile = 'testoutfile.ms'
 
     def setUp(self):
         shutil.copytree(os.path.join(datapath,self.msfile), self.msfile)
 
     def tearDown(self):
         shutil.rmtree(self.msfile)
+        shutil.rmtree(self.testoutfile)
         
     def test_mode_append(self):
         """ A new intent should be added that appends to the previous intent """
-        defintent(vis=self.msfile, intent='testintent', mode='append')
+        defintent(vis=self.msfile, intent='testintent', mode='append', outputvis=self.testoutfile)
         
         # Get the intents and states
-        tb.open(self.msfile + '/STATE')
+        tb.open(self.testoutfile + '/STATE')
         intents = tb.getcol('OBS_MODE')
         tb.close()
         tb.open(self.msfile)
@@ -65,13 +67,13 @@ class Defintent_tests(unittest.TestCase):
         
     def test_mode_set(self):
         """ A new intent is added and replaces the old intent """
-        defintent(vis=self.msfile, intent='testintent', mode='set')
+        defintent(vis=self.msfile, intent='testintent', mode='set', outputvis=self.testoutfile)
         
         # Get the intents and states
-        tb.open(self.msfile + '/STATE')
+        tb.open(self.testoutfile + '/STATE')
         intents = tb.getcol('OBS_MODE')
         tb.close()
-        tb.open(self.msfile)
+        tb.open(self.testoutfile)
         states = tb.getcol('STATE_ID')
         tb.close()
         
@@ -83,10 +85,10 @@ class Defintent_tests(unittest.TestCase):
     def test_select_scan(self):
         """ A selection of intents to replace can be made with scan """
         # run defintent only selecting a subset of scans
-        defintent(vis=self.msfile, intent='testintent', mode='set', scan='0,1,2,3')
+        defintent(vis=self.msfile, intent='testintent', mode='set', outputvis=self.testoutfile,  scan='0,1,2,3')
         
         # Get the scans and new states
-        tb.open(self.msfile)
+        tb.open(self.testoutfile)
         scanNumber = tb.getcol('SCAN_NUMBER')
         stateId = tb.getcol('STATE_ID')
         tb.close()
@@ -103,10 +105,10 @@ class Defintent_tests(unittest.TestCase):
     def test_select_field(self):
         """ A selection of intents to replace can be made with field """
         # run defintent only selecting a subset of fields
-        defintent(vis=self.msfile, intent='testintent', mode='set', field='0')
+        defintent(vis=self.msfile, intent='testintent', mode='set', outputvis=self.testoutfile, field='0')
         
         # Get the scans and new states
-        tb.open(self.msfile)
+        tb.open(self.testoutfile)
         fieldNumber = tb.getcol('FIELD_ID')
         stateId = tb.getcol('STATE_ID')
         tb.close()
@@ -122,10 +124,10 @@ class Defintent_tests(unittest.TestCase):
     def test_select_obsid(self):
         """ A selection of intents to replace can be made with obsid """
         # run defintent only selecting a subset of obsids
-        defintent(vis=self.msfile, intent='testintent', mode='set', obsid='0')
+        defintent(vis=self.msfile, intent='testintent', mode='set', outputvis=self.testoutfile, obsid='0')
         
         # Get the scans and new states
-        tb.open(self.msfile)
+        tb.open(self.testoutfile)
         obsNumber = tb.getcol('OBSERVATION_ID')
         stateId = tb.getcol('STATE_ID')
         tb.close()
