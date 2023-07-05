@@ -133,11 +133,15 @@ def defintent(vis='', intent='', mode='',
     print(mode.lower())
     
     # if there is an outputvis make a copy
-    if outputvis != '':
+    if outputvis != '' and outputvis != vis:
         if os.path.exists(outputvis):
             print("outputvis already exists! Exiting task...")
             return
         shutil.copytree(vis, outputvis)
+    # if the outputvis is the same as the vis. edit the vis table and don't make a copy
+    elif outputvis == vis:
+        outputvis = vis
+        print("outputvis and vis are the same. Editing provided vis...")
     else:
         print("No outputvis has been specified, please enter an outputvis name")
         return
