@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 import os
 import numpy as np
-
+import shutil
 import casatools
 
 def defintent(vis='', intent='', mode='',
-              scan='', field='', obsid='',
-              revertList=[]):
+              outputvis='', scan='', field='',
+              obsid=''):
     """
     Description:
     Allows users to manually set the intents for a selection of scans, fields, or obsids.
@@ -26,12 +26,12 @@ def defintent(vis='', intent='', mode='',
     obsid: Select the obsids to modify
         Defaults to all obsids selected
         
-    Return: Returns a list detailing which STATE_IDs have been changed. This can be used to revert changes
+    Return: none
     """
 
     tb = casatools.table()
     ms = casatools.ms()
-    changeList = []
+    #changeList = []
     
     # If no intent has been provided exit the task and print
     if vis == '':
@@ -95,6 +95,16 @@ def defintent(vis='', intent='', mode='',
     stateIds = tb.getcol('STATE_ID')
     obsIds = tb.getcol('OBSERVATION_ID')
     
+    '''# Dict to write to the outfile if it exists
+    outfileDict = {}
+    outfileDict["origin_state_ids"] = stateIds
+    paramDict = {'vis':vis, 'intent':intent, 'mode':mode, 'outfile':outfile,
+              'originfile':originfile, 'scan':scan, 'field':field,
+              'obsid':obsid}
+    outfileDict["task_parameters"] = paramDict
+    outfileDict["execution_time"] = date.today().strftime("%B %d, %Y")'''
+    
+    
     # mstool query version
     toJoin = []
     if len(selectedIndex['field']) > 0:
@@ -114,49 +124,36 @@ def defintent(vis='', intent='', mode='',
     for i in range(len(selectedRows)):
         selectedIntents[selectedStateIds[i]] = selectedStateIds[i]
         
-        tmpString =  str(selectedRows[i]) + ':' + str(selectedStateIds[i])
-        changeList.append(tmpString)
+        #tmpString =  str(selectedRows[i]) + ':' + str(selectedStateIds[i])
+        #changeList.append(tmpString)
         
     tb.close()
                 
     print("Number of matching rows found: ", len(selectedRows))
     print(mode.lower())
     
-    # For Revert mode
-    if mode.lower() == 'revert':
-        # If there is no provided revertList break out
-        if revertList == []:
-            print("No revert list provided")
-            
-        # Revert list structure is [(<ROW>,<OLD STATE_ID>)...]
-        # Iterate over all the changed rows and set the state id to the old one
-        tb.open(vis, nomodify=False)
-        stateCol = tb.getcol('STATE_ID')
-        #rowsToRemove = set()
-        for item in revertList:
-            stateCol[int(item.split(':')[0])] = int(item.split(':')[1])
-            #rowsToRemove.add(int(item.split(':')[1]))
-        # Set the state col back after reverting
-        tb.putcol('STATE_ID', stateCol)
-        tb.close()
+    # if there is an outputvis make a copy
+    if outputvis != '':
+        if os.path.exists(outputvis):
+            print("outputvis already exists! Exiting task...")
+            return
+        shutil.copytree(vis, outputvis)
+    else:
+        print("No outputvis has been specified, please enter an outputvis name")
+        return
         
-        # Remove the row from the STATE table
-        tb.open(vis+'/STATE', nomodify=False)
-        modes = tb.getcol('OBS_MODE')
-        for i in range(len(modes)):
-            if modes[i] == intent:
-                tb.removerows(i)
-        #for row in rowsToRemove:
-            #tb.removerows(row)
-        tb.close()
-
+    # if there is an origin file write the dict content to it
+    '''if originfile != '':
+        with open(originfile, 'wb') as file:
+            pickle.dump(outfileDict, file, protocol=pickle.HIGHEST_PROTOCOL)'''
+    
     # for Set if intent not in state table
     # then add a new row to the state table and change index (STATE_ID) in main table
-    elif mode.lower() == 'set':
+    if mode.lower() == 'set':
         # Keep track of the new value to set the state_id to
         newState = -1
         # Adding to intents col
-        statetb = vis+'/STATE'
+        statetb = outputvis+'/STATE'
         tb.open(statetb, nomodify=False)
         intents = tb.getcol('OBS_MODE')
         # Check if the intent already exists
@@ -174,7 +171,7 @@ def defintent(vis='', intent='', mode='',
             tb.close()
             
             # For all selected rows replace with new state_id
-            tb.open(vis, nomodify=False)
+            tb.open(outputvis, nomodify=False)
             stateCol = tb.getcol('STATE_ID')
             for row in selectedRows:
                 stateCol[row] = newState
@@ -185,7 +182,7 @@ def defintent(vis='', intent='', mode='',
     
     # For Append mode
     elif mode.lower() == 'append':
-        statetb = vis+'/STATE'
+        statetb = outputvis+'/STATE'
         # Find our selected intents
         for i in selectedIntents:
             newState = -1
@@ -209,7 +206,7 @@ def defintent(vis='', intent='', mode='',
             tb.close()
         
         # For all selected rows replace with new ID
-        tb.open(vis, nomodify=False)
+        tb.open(outputvis, nomodify=False)
         stateCol = tb.getcol('STATE_ID')
         for row in selectedRows:
             if stateCol[row] in selectedIntents:
@@ -217,4 +214,4 @@ def defintent(vis='', intent='', mode='',
         tb.putcol('STATE_ID', stateCol)
         tb.close()
 
-    return changeList
+    return

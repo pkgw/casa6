@@ -32,6 +32,14 @@ Allows the user to manually set scan intents
                 <value/>
         </param>
         
+        <param name="outputvis" type="string">
+<shortdescription>Makes a copy of the ms to edit</shortdescription>
+<description>
+    Creates an output ms with all the changes from the task leaving the original vis untouched.
+</description>
+                <value/>
+        </param>
+        
         <param name="scan" type="string">
 <shortdescription>Select Scan</shortdescription>
 <description>
@@ -57,17 +65,9 @@ Allows the user to manually set scan intents
                 <value/>
         </param>
         
-        <param name="revertList" type="stringVec">
-<shortdescription>A list that describes how to revert STATE_ID changes</shortdescription>
-<description>
-    Select ObsId
-</description>
-                <value/>
-        </param>
-        
         </input>
 
-<returns type="stringVec"/>
+<returns type="void"/>
 
 <example>
 
