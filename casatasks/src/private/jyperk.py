@@ -545,13 +545,20 @@ class JyPerKDatabaseClient():
         """Check if 'success' of retval dict is True.
 
         This method only checks if the api was able to complete the process successfully or not.
-        It is expected that 'success' will be False as a response, so the mothod does not raise
-        RuntimeError. If the 'success' is False, the *Transelator classes will reject the factor
-        value.
+        It is expected that 'success' will be False as a response in case if query was successful
+        but response contains nothing due to any error in the server. In that case, this method
+        raises RuntimeError to propagate server side error to the user.
+
+        Arguments:
+            retval: dictionary translated from JSON response from the server
+
+        Raises:
+            RuntimeError: response contains nothing due to any error in the server
         """
         if not retval['success']:
             msg = 'Failed to get a Jy/K factor from DB: {}'.format(retval['error'])
-            casalog.post(msg)
+            casalog.post(msg, priority='ERROR')
+            raise RuntimeError(msg)
 
 
 class Translator():
