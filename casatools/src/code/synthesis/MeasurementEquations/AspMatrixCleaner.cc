@@ -76,6 +76,9 @@ using Eigen::VectorXd;
 
 // for alglib
 #include <synthesis/MeasurementEquations/objfunc_alglib.h>
+//#include <synthesis/MeasurementEquations/objfunc_alglib_lm.h>
+//#include <synthesis/MeasurementEquations/objfunc_alglib_log.h>
+//#include <synthesis/MeasurementEquations/objfunc_alglib_beta.h>
 using namespace alglib;
 
 using namespace casacore;
@@ -408,7 +411,7 @@ Int AspMatrixCleaner::aspclean(Matrix<Float>& model,
           runlong = true;
           os << LogIO::NORMAL3 << "Run hogbom for longer iterations b/c it's approaching convergence. init model flux " << initModelFlux << " model flux " << modelFlux << LogIO::POST;
         }*/
-
+        
         switchedToHogbom(runlong);
       }
     }
@@ -1463,8 +1466,9 @@ void AspMatrixCleaner::maxDirtyConvInitScales(float& strengthOptimum, int& optim
   AlwaysAssert(optimumScale < itsNInitScales, AipsError);
 }
 
-// ALGLIB
-vector<Float> AspMatrixCleaner::getActiveSetAspen()
+
+// ALGLIB - "beta" = 1/2scale^2
+/*vector<Float> AspMatrixCleaner::getActiveSetAspen()
 {
   LogIO os(LogOrigin("AspMatrixCleaner", "getActiveSetAspen()", WHERE));
 
@@ -1472,16 +1476,16 @@ vector<Float> AspMatrixCleaner::getActiveSetAspen()
     throw(AipsError("Initial scales for Asp are not defined"));
 
   if (!itsSwitchedToHogbom &&
-  	  accumulate(itsNumIterNoGoodAspen.begin(), itsNumIterNoGoodAspen.end(), 0) >= 5)
+      accumulate(itsNumIterNoGoodAspen.begin(), itsNumIterNoGoodAspen.end(), 0) >= 5)
   {
-  	os << "Switched to hogbom because of frequent small components." << LogIO::POST;
+    os << "Switched to hogbom because of frequent small components." << LogIO::POST;
     switchedToHogbom();
   }
 
   if (itsSwitchedToHogbom)
-  	itsNInitScales = 1;
+    itsNInitScales = 1;
   else
-  	itsNInitScales = itsInitScaleSizes.size();
+    itsNInitScales = itsInitScaleSizes.size();
 
   // Dirty * initial scales
   Matrix<Complex> dirtyFT;
@@ -1536,22 +1540,520 @@ vector<Float> AspMatrixCleaner::getActiveSetAspen()
     activeSetCenter.push_back(positionOptimum);
 
     // initialize alglib option
+    unsigned int length = tempx.size();
+    real_1d_array x;
+    x.setlength(length);
+
+    Float beta = 0.0;
+
+    // initialize starting point
+    for (unsigned int i = 0; i < length; i+=2)
+    {
+      beta = 1 / (2*pow(tempx[i+1], 2));
+
+      x[i] = tempx[i]; // amp
+      x[i+1] = beta; //beta
+    }
+    
+    std::cout << "before: opt strength/scale " << tempx[0] << " " << tempx[1] << endl;
+    std::cout << "before: beta " << beta << std::endl;
+
+    ParamAlglibObj optParam(*itsDirty, *itsXfr, activeSetCenter, fft, itsOptimumScaleSize);
+    ParamAlglibObj *ptrParam;
+    ptrParam = &optParam;
+
+    //real_1d_array s = "[1,1]";
+    real_1d_array s = "[1,10]";
+    double epsg = 1e-3;
+    double epsf = 1e-3;
+    double epsx = 1e-3;
+    ae_int_t maxits = 5;
+    minlbfgsstate state;
+    minlbfgscreate(1, x, state);
+    minlbfgssetcond(state, epsg, epsf, epsx, maxits);
+    minlbfgssetscale(state, s);
+    minlbfgssetprecscale(state);
+    minlbfgsreport rep;
+    alglib::minlbfgsoptimize(state, objfunc_alglib, NULL, (void *) ptrParam);
+    minlbfgsresults(state, x, rep);
+    
+    double *x1 = x.getcontent();
+    cout << "x1[0] " << x1[0] << " x1[1] " << x1[1] << endl;
+
+    // end alglib bfgs optimization
+
+    double amp = 0;
+    double scale = 0;
+
+    amp = x[0]; // i
+    beta = fabs(x[1]); // i+1
+
+    if (isnan(amp) || isnan(beta) || beta == 0)
+    {
+      scale = 0;
+      amp = (*itsDirty)(itsPositionOptimum); // This is to avoid divergence due to amp being too large.
+                                             // amp=strengthOptimum gives similar results
+    }
+    else{
+      scale = sqrt(1/(2.0 * beta)) ;
+      if (scale < 0.4)
+      {
+        scale = 0;
+        amp = (*itsDirty)(itsPositionOptimum);
+      }
+    }
+
+
+    itsGoodAspAmplitude.push_back(amp); // active-set amplitude
+    itsGoodAspActiveSet.push_back(scale); // active-set
+
+    itsStrengthOptimum = amp;
+    itsOptimumScaleSize = scale;
+    itsGoodAspCenter = activeSetCenter;
+
+    // debug
+    os << LogIO::NORMAL3 << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << LogIO::POST;
+    cout << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << endl;
+
+  } // finish bfgs optimization
+
+  AlwaysAssert(itsGoodAspCenter.size() == itsGoodAspActiveSet.size(), AipsError);
+  AlwaysAssert(itsGoodAspAmplitude.size() == itsGoodAspActiveSet.size(), AipsError);
+
+  // debug info
+  /*for (unsigned int i = 0; i < itsAspAmplitude.size(); i++)
+  {
+    //cout << "After opt AspApm[" << i << "] = " << itsAspAmplitude[i] << endl;
+    //cout << "After opt AspScale[" << i << "] = " << itsAspScaleSizes[i] << endl;
+    //cout << "After opt AspCenter[" << i << "] = " << itsAspCenter[i] << endl;
+    cout << "AspScale[ " << i << " ] = " << itsAspScaleSizes[i] << " center " << itsAspCenter[i] << endl;
+  }* / 
+
+  return itsGoodAspActiveSet; // return optimized scale
+}*/
+
+
+// ALGLIB - "log(PSF*Aspen)
+/*vector<Float> AspMatrixCleaner::getActiveSetAspen()
+{
+  LogIO os(LogOrigin("AspMatrixCleaner", "getActiveSetAspen()", WHERE));
+
+  if(int(itsInitScaleXfrs.nelements()) == 0)
+    throw(AipsError("Initial scales for Asp are not defined"));
+
+  if (!itsSwitchedToHogbom &&
+      accumulate(itsNumIterNoGoodAspen.begin(), itsNumIterNoGoodAspen.end(), 0) >= 5)
+  {
+    os << "Switched to hogbom because of frequent small components." << LogIO::POST;
+    switchedToHogbom();
+  }
+
+  if (itsSwitchedToHogbom)
+    itsNInitScales = 1;
+  else
+    itsNInitScales = itsInitScaleSizes.size();
+
+  // Dirty * initial scales
+  Matrix<Complex> dirtyFT;
+  fft.fft0(dirtyFT, *itsDirty);
+  itsDirtyConvInitScales.resize(0);
+  itsDirtyConvInitScales.resize(itsNInitScales); // 0, 1width, 2width, 4width and 8width
+  //cout << "itsInitScaleSizes.size() " << itsInitScaleSizes.size() << " itsInitScales.size() " << itsInitScales.size() << " NInitScales # " << itsNInitScales << endl;
+  for (int scale=0; scale < itsNInitScales; scale++)
+  {
+    Matrix<Complex> cWork;
+
+    itsDirtyConvInitScales[scale] = Matrix<Float>(itsDirty->shape());
+    cWork=((dirtyFT)*(itsInitScaleXfrs[scale]));
+    fft.fft0((itsDirtyConvInitScales[scale]), cWork, false);
+    fft.flip((itsDirtyConvInitScales[scale]), false, false);
+
+    //cout << "remake itsDirtyConvInitScales " << scale << " max itsInitScales[" << scale << "] = " << max(fabs(itsInitScales[scale])) << endl;
+    //cout << " max itsInitScaleXfrs[" << scale << "] = " << max(fabs(itsInitScaleXfrs[scale])) << endl;
+  }
+
+  float strengthOptimum = 0.0;
+  int optimumScale = 0;
+  IPosition positionOptimum(itsDirty->shape().nelements(), 0);
+  itsGoodAspActiveSet.resize(0);
+  itsGoodAspAmplitude.resize(0);
+  itsGoodAspCenter.resize(0);
+
+  maxDirtyConvInitScales(strengthOptimum, optimumScale, positionOptimum);
+
+  os << LogIO::NORMAL3 << "Peak among the smoothed residual image is " << strengthOptimum  << " and initial scale: " << optimumScale << LogIO::POST;
+  // cout << " its itsDirty is " << (*itsDirty)(positionOptimum);
+  // cout << " at location " << positionOptimum[0] << " " << positionOptimum[1] << " " << positionOptimum[2];
+
+
+  itsStrengthOptimum = strengthOptimum;
+  itsPositionOptimum = positionOptimum;
+  itsOptimumScale = optimumScale;
+  itsOptimumScaleSize = itsInitScaleSizes[optimumScale];
+
+  // initial scale size = 0 gives the peak res, so we don't
+  // need to do the LBFGS optimization for it
+  if (itsOptimumScale == 0)
+    return {};
+  else
+  {
+    // the new aspen is always added to the active-set
+    vector<Float> tempx;
+    vector<IPosition> activeSetCenter;
+
+    tempx.push_back(strengthOptimum);
+    tempx.push_back(itsInitScaleSizes[optimumScale]);
+    activeSetCenter.push_back(positionOptimum);
+
+    // initialize alglib option
+    unsigned int length = tempx.size();
+    real_1d_array x;
+    x.setlength(length);
+
+    Float a = 0.0;
+    Float b = 0.0;
+    Float c = 0.0;
+
+    // initialize starting point
+    for (unsigned int i = 0; i < length; i+=2)
+    {
+      a = log(tempx[i]) - ((pow(positionOptimum[0], 2)+pow(positionOptimum[1], 2))/(2*pow(tempx[i+1]+itsPsfWidth, 2)));
+      b = (positionOptimum[0]+positionOptimum[1]) / pow(tempx[i+1]+itsPsfWidth, 2);
+      c = -1 / (2*pow(tempx[i+1]+itsPsfWidth, 2));
+
+      x[i] = a;
+      x[i+1] = b;
+      x[i+2] = c;
+    }
+    
+    std::cout << "before: itsPSFWidth " << itsPsfWidth << " opt strength/scale " << tempx[0] << " " << tempx[1] << endl;
+    std::cout << "before: a/b/c " << a << " " << b << " " << c << std::endl;
+
+    ParamAlglibObj optParam(*itsDirty, *itsXfr, activeSetCenter, fft, itsOptimumScaleSize);
+    ParamAlglibObj *ptrParam;
+    ptrParam = &optParam;
+
+    real_1d_array s = "[1,1,1]";
+    double epsg = 1e-3;
+    double epsf = 1e-3;
+    double epsx = 1e-3;
+    ae_int_t maxits = 5;
+    minlbfgsstate state;
+    minlbfgscreate(1, x, state);
+    minlbfgssetcond(state, epsg, epsf, epsx, maxits);
+    minlbfgssetscale(state, s);
+    minlbfgsreport rep;
+    alglib::minlbfgsoptimize(state, objfunc_alglib, NULL, (void *) ptrParam);
+    minlbfgsresults(state, x, rep);
+    
+    double *x1 = x.getcontent();
+    cout << "x1[0] " << x1[0] << " x1[1] " << x1[1] << " x1[2] " << x1[2] << endl;
+
+    // end alglib bfgs optimization
+
+    double amp = 0;
+    double scale = 0;
+
+    a = x[0]; // i
+    b = x[1]; // i+1
+    c = x[2]; // i+2
+
+    amp = exp(a - (pow(b,2)/(4.0*c)));
+    scale = sqrt(-1/(2.0 * c)) - itsPsfWidth;
+
+    if (fabs(scale) < 0.4)
+    {
+      scale = 0;
+      amp = (*itsDirty)(itsPositionOptimum); // This is to avoid divergence due to amp being too large.
+                                             // amp=strengthOptimum gives similar results
+    }
+    else
+      scale = fabs(scale);
+
+    itsGoodAspAmplitude.push_back(amp); // active-set amplitude
+    itsGoodAspActiveSet.push_back(scale); // active-set
+
+    itsStrengthOptimum = amp;
+    itsOptimumScaleSize = scale;
+    itsGoodAspCenter = activeSetCenter;
+
+    // debug
+    os << LogIO::NORMAL3 << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << LogIO::POST;
+    cout << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << endl;
+
+  } // finish bfgs optimization
+
+  AlwaysAssert(itsGoodAspCenter.size() == itsGoodAspActiveSet.size(), AipsError);
+  AlwaysAssert(itsGoodAspAmplitude.size() == itsGoodAspActiveSet.size(), AipsError);
+
+  // debug info
+  /*for (unsigned int i = 0; i < itsAspAmplitude.size(); i++)
+  {
+    //cout << "After opt AspApm[" << i << "] = " << itsAspAmplitude[i] << endl;
+    //cout << "After opt AspScale[" << i << "] = " << itsAspScaleSizes[i] << endl;
+    //cout << "After opt AspCenter[" << i << "] = " << itsAspCenter[i] << endl;
+    cout << "AspScale[ " << i << " ] = " << itsAspScaleSizes[i] << " center " << itsAspCenter[i] << endl;
+  }* / 
+
+  return itsGoodAspActiveSet; // return optimized scale
+}
+*/
+
+// ALGLIB - LM
+/*
+vector<Float> AspMatrixCleaner::getActiveSetAspen()
+{
+  LogIO os(LogOrigin("AspMatrixCleaner", "getActiveSetAspen()", WHERE));
+
+  if(int(itsInitScaleXfrs.nelements()) == 0)
+    throw(AipsError("Initial scales for Asp are not defined"));
+
+  if (!itsSwitchedToHogbom &&
+      accumulate(itsNumIterNoGoodAspen.begin(), itsNumIterNoGoodAspen.end(), 0) >= 5)
+  {
+    os << "Switched to hogbom because of frequent small components." << LogIO::POST;
+    switchedToHogbom();
+  }
+
+  if (itsSwitchedToHogbom)
+    itsNInitScales = 1;
+  else
+    itsNInitScales = itsInitScaleSizes.size();
+
+  // Dirty * initial scales
+  Matrix<Complex> dirtyFT;
+  fft.fft0(dirtyFT, *itsDirty);
+  itsDirtyConvInitScales.resize(0);
+  itsDirtyConvInitScales.resize(itsNInitScales); // 0, 1width, 2width, 4width and 8width
+  //cout << "itsInitScaleSizes.size() " << itsInitScaleSizes.size() << " itsInitScales.size() " << itsInitScales.size() << " NInitScales # " << itsNInitScales << endl;
+  for (int scale=0; scale < itsNInitScales; scale++)
+  {
+    Matrix<Complex> cWork;
+
+    itsDirtyConvInitScales[scale] = Matrix<Float>(itsDirty->shape());
+    cWork=((dirtyFT)*(itsInitScaleXfrs[scale]));
+    fft.fft0((itsDirtyConvInitScales[scale]), cWork, false);
+    fft.flip((itsDirtyConvInitScales[scale]), false, false);
+
+    //cout << "remake itsDirtyConvInitScales " << scale << " max itsInitScales[" << scale << "] = " << max(fabs(itsInitScales[scale])) << endl;
+    //cout << " max itsInitScaleXfrs[" << scale << "] = " << max(fabs(itsInitScaleXfrs[scale])) << endl;
+  }
+
+  float strengthOptimum = 0.0;
+  int optimumScale = 0;
+  IPosition positionOptimum(itsDirty->shape().nelements(), 0);
+  itsGoodAspActiveSet.resize(0);
+  itsGoodAspAmplitude.resize(0);
+  itsGoodAspCenter.resize(0);
+
+  maxDirtyConvInitScales(strengthOptimum, optimumScale, positionOptimum);
+
+  os << LogIO::NORMAL << "Peak among the smoothed residual image is " << strengthOptimum  << " and initial scale: " << optimumScale << LogIO::POST;
+  //cout << "Peak among the smoothed residual image is " << strengthOptimum  << " and initial scale: " << optimumScale << endl;
+  // cout << " its itsDirty is " << (*itsDirty)(positionOptimum);
+  // cout << " at location " << positionOptimum[0] << " " << positionOptimum[1] << " " << positionOptimum[2];
+
+
+  itsStrengthOptimum = strengthOptimum;
+  itsPositionOptimum = positionOptimum;
+  itsOptimumScale = optimumScale;
+  itsOptimumScaleSize = itsInitScaleSizes[optimumScale];
+
+  // initial scale size = 0 gives the peak res, so we don't
+  // need to do the LBFGS optimization for it
+  if (itsOptimumScale == 0)
+    return {};
+  else
+  {
+    // the new aspen is always added to the active-set
+    vector<Float> tempx;
+    vector<IPosition> activeSetCenter;
+
+    tempx.push_back(strengthOptimum);
+    tempx.push_back(itsInitScaleSizes[optimumScale]);
+    activeSetCenter.push_back(positionOptimum);
+
+    // initialize alglib option
+    unsigned int length = tempx.size();
+    real_1d_array x;
+    x.setlength(length);
+    
+    real_1d_array s; //G55
+    s.setlength(length);
+
+    // initialize starting point
+    for (unsigned int i = 0; i < length; i+=2)
+    {
+        x[i] = tempx[i]; //amp
+        x[i+1] = tempx[i+1]; //scale
+
+        // G55 like
+        s[i] = tempx[i]; //amp
+        s[i+1] = tempx[i+1]; //scale
+    }
+
+    ParamAlglibObj optParam(*itsDirty, *itsXfr, activeSetCenter, fft);
+    ParamAlglibObj *ptrParam;
+    ptrParam = &optParam;
+
+    //real_1d_array s = "[0.001,10]"; //G55
+    //real_1d_array s = "[1,1]";
+    double epsg = 1e-3;
+    double epsf = 1e-3;
+    double epsx = 1e-3;
+    ae_int_t maxits = 5;
+    minlmstate state;
+    minlmcreatev(1, x, 0.0001, state);
+    minlmsetcond(state, epsx, maxits);
+    minlmsetscale(state, s);
+    minlmreport rep;
+    alglib::minlmoptimize(state, objfunc_alglib, NULL, (void *) ptrParam);
+    minlmresults(state, x, rep);
+    double *x1 = x.getcontent();
+    //cout << "x1[0] " << x1[0] << " x1[1] " << x1[1] << endl;
+
+    // end alglib bfgs optimization
+
+    double amp = x[0]; // i
+    double scale = x[1]; // i+1
+
+    if (fabs(scale) < 0.4)
+    {
+      scale = 0;
+      amp = (*itsDirty)(itsPositionOptimum); // This is to avoid divergence due to amp being too large.
+                                             // amp=strengthOptimum gives similar results
+    }
+    else
+      scale = fabs(scale);
+
+    itsGoodAspAmplitude.push_back(amp); // active-set amplitude
+    itsGoodAspActiveSet.push_back(scale); // active-set
+
+    itsStrengthOptimum = amp;
+    itsOptimumScaleSize = scale;
+    itsGoodAspCenter = activeSetCenter;
+
+    // debug
+    os << LogIO::NORMAL << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << LogIO::POST;
+    //cout << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << " at " << itsPositionOptimum << endl;
+
+  } // finish bfgs optimization
+
+  AlwaysAssert(itsGoodAspCenter.size() == itsGoodAspActiveSet.size(), AipsError);
+  AlwaysAssert(itsGoodAspAmplitude.size() == itsGoodAspActiveSet.size(), AipsError);
+
+  // debug info
+  /*for (unsigned int i = 0; i < itsAspAmplitude.size(); i++)
+  {
+    //cout << "After opt AspApm[" << i << "] = " << itsAspAmplitude[i] << endl;
+    //cout << "After opt AspScale[" << i << "] = " << itsAspScaleSizes[i] << endl;
+    //cout << "After opt AspCenter[" << i << "] = " << itsAspCenter[i] << endl;
+    cout << "AspScale[ " << i << " ] = " << itsAspScaleSizes[i] << " center " << itsAspCenter[i] << endl;
+  }* /
+
+  return itsGoodAspActiveSet; // return optimized scale
+}*/
+
+
+// ALGLIB - gold - not "log"
+
+vector<Float> AspMatrixCleaner::getActiveSetAspen()
+{
+  LogIO os(LogOrigin("AspMatrixCleaner", "getActiveSetAspen()", WHERE));
+
+  if(int(itsInitScaleXfrs.nelements()) == 0)
+    throw(AipsError("Initial scales for Asp are not defined"));
+
+  if (!itsSwitchedToHogbom &&
+  	  accumulate(itsNumIterNoGoodAspen.begin(), itsNumIterNoGoodAspen.end(), 0) >= 5)
+  {
+  	os << "Switched to hogbom because of frequent small components." << LogIO::POST;
+    switchedToHogbom();
+  }
+
+  if (itsSwitchedToHogbom)
+  	itsNInitScales = 1;
+  else
+  	itsNInitScales = itsInitScaleSizes.size();
+
+  // Dirty * initial scales
+  Matrix<Complex> dirtyFT;
+  fft.fft0(dirtyFT, *itsDirty);
+  itsDirtyConvInitScales.resize(0);
+  itsDirtyConvInitScales.resize(itsNInitScales); // 0, 1width, 2width, 4width and 8width
+  //cout << "itsInitScaleSizes.size() " << itsInitScaleSizes.size() << " itsInitScales.size() " << itsInitScales.size() << " NInitScales # " << itsNInitScales << endl;
+  for (int scale=0; scale < itsNInitScales; scale++)
+  {
+    Matrix<Complex> cWork;
+
+    itsDirtyConvInitScales[scale] = Matrix<Float>(itsDirty->shape());
+    cWork=((dirtyFT)*(itsInitScaleXfrs[scale]));
+    fft.fft0((itsDirtyConvInitScales[scale]), cWork, false);
+    fft.flip((itsDirtyConvInitScales[scale]), false, false);
+
+    //cout << "remake itsDirtyConvInitScales " << scale << " max itsInitScales[" << scale << "] = " << max(fabs(itsInitScales[scale])) << endl;
+    //cout << " max itsInitScaleXfrs[" << scale << "] = " << max(fabs(itsInitScaleXfrs[scale])) << endl;
+  }
+
+  float strengthOptimum = 0.0;
+  int optimumScale = 0;
+  IPosition positionOptimum(itsDirty->shape().nelements(), 0);
+  itsGoodAspActiveSet.resize(0);
+  itsGoodAspAmplitude.resize(0);
+  itsGoodAspCenter.resize(0);
+
+  maxDirtyConvInitScales(strengthOptimum, optimumScale, positionOptimum);
+
+  os << LogIO::NORMAL3 << "Peak among the smoothed residual image is " << strengthOptimum  << " and initial scale: " << optimumScale << LogIO::POST;
+  //cout << "Peak among the smoothed residual image is " << strengthOptimum  << " and initial scale: " << optimumScale << endl;
+  // cout << " its itsDirty is " << (*itsDirty)(positionOptimum);
+  // cout << " at location " << positionOptimum[0] << " " << positionOptimum[1] << " " << positionOptimum[2];
+
+
+  itsStrengthOptimum = strengthOptimum;
+  itsPositionOptimum = positionOptimum;
+  itsOptimumScale = optimumScale;
+  itsOptimumScaleSize = itsInitScaleSizes[optimumScale];
+
+  // initial scale size = 0 gives the peak res, so we don't
+  // need to do the LBFGS optimization for it
+  if (itsOptimumScale == 0)
+    return {};
+  else
+  {
+    // the new aspen is always added to the active-set
+    vector<Float> tempx;
+    vector<IPosition> activeSetCenter;
+
+    tempx.push_back(strengthOptimum);
+    tempx.push_back(itsInitScaleSizes[optimumScale]);
+    activeSetCenter.push_back(positionOptimum);
+
+    // initialize alglib option
 	  unsigned int length = tempx.size();
     real_1d_array x;
 	  x.setlength(length);
 
+    // for G55 ,etc
+    real_1d_array s;
+    s.setlength(length);
+
 	  // initialize starting point
 	  for (unsigned int i = 0; i < length; i+=2)
 	  {
-	      x[i] = tempx[i];
-	      x[i+1] = tempx[i+1];
+	      x[i] = tempx[i]; //amp
+	      x[i+1] = tempx[i+1]; //scale
+
+        s[i] = tempx[i]; //amp
+        s[i+1] = tempx[i+1]; //scale
 	  }
 
 	  ParamAlglibObj optParam(*itsDirty, *itsXfr, activeSetCenter, fft);
     ParamAlglibObj *ptrParam;
     ptrParam = &optParam;
 
-	  real_1d_array s = "[1,1]";
+	  //real_1d_array s = "[1,1]";
+      //real_1d_array s = "[0.001,10]";
 	  double epsg = 1e-3;
 	  double epsf = 1e-3;
 	  double epsx = 1e-3;
@@ -1563,7 +2065,7 @@ vector<Float> AspMatrixCleaner::getActiveSetAspen()
 	  minlbfgsreport rep;
 	  alglib::minlbfgsoptimize(state, objfunc_alglib, NULL, (void *) ptrParam);
 	  minlbfgsresults(state, x, rep);
-	  //double *x1 = x.getcontent();
+	  double *x1 = x.getcontent();
 	  //cout << "x1[0] " << x1[0] << " x1[1] " << x1[1] << endl;
 
 	  // end alglib bfgs optimization
@@ -1589,7 +2091,7 @@ vector<Float> AspMatrixCleaner::getActiveSetAspen()
 
     // debug
     os << LogIO::NORMAL3 << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << LogIO::POST;
-    //cout << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << endl;
+    //cout << "optimized strengthOptimum " << itsStrengthOptimum << " scale size " << itsOptimumScaleSize << " at " << itsPositionOptimum << endl;
 
   } // finish bfgs optimization
 
@@ -1856,7 +2358,8 @@ void AspMatrixCleaner::switchedToHogbom(bool runlong)
 {
 	LogIO os(LogOrigin("AspMatrixCleaner", "switchedToHogbom", WHERE));
 
-	itsSwitchedToHogbom = true;
+  itsSwitchedToHogbom = true;
+  //itsSwitchedToHogbom = false;
   itsNthHogbom += 1;
   itsNumIterNoGoodAspen.resize(0);
   //itsNumHogbomIter = ceil(100 + 50 * (exp(0.05*itsNthHogbom) - 1)); // zhang's formula
