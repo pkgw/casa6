@@ -38,7 +38,7 @@ datapath = ctsys.resolve('unittest/defintent/')
 
 class Defintent_tests(unittest.TestCase):
     msfile = 'gaincaltest2.ms'
-    outfile = 'testoutfile.ms'
+    testoutfile = 'testoutfile.ms'
 
     def setUp(self):
         shutil.copytree(os.path.join(datapath,self.msfile), self.msfile)
