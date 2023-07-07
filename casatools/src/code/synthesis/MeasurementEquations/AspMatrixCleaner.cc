@@ -2359,7 +2359,12 @@ void AspMatrixCleaner::switchedToHogbom(bool runlong)
 	LogIO os(LogOrigin("AspMatrixCleaner", "switchedToHogbom", WHERE));
 
   itsSwitchedToHogbom = true;
-  //itsSwitchedToHogbom = false;
+
+  // if users set it, do not automatically switch to hogbom 
+  // this makes G55 result even better 
+  if (itsFusedThreshold < 0)
+    itsSwitchedToHogbom = false;
+  
   itsNthHogbom += 1;
   itsNumIterNoGoodAspen.resize(0);
   //itsNumHogbomIter = ceil(100 + 50 * (exp(0.05*itsNthHogbom) - 1)); // zhang's formula
