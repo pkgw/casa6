@@ -55,7 +55,7 @@ class Defintent_tests(unittest.TestCase):
         tb.open(self.testoutfile + '/STATE')
         intents = tb.getcol('OBS_MODE')
         tb.close()
-        tb.open(self.msfile)
+        tb.open(self.testoutfile)
         states = tb.getcol('STATE_ID')
         tb.close()
         
