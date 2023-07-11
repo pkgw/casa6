@@ -537,7 +537,7 @@ class JyPerKDatabaseClient():
             return json.loads(response)
 
         except json.JSONDecodeError as e:
-            msg = 'Failed to get a Jy/K factor from DB: JSON Syntax error. {}'.format(e)
+            msg = 'Failed to get Jy/K factors from DB: JSON Syntax error. {}'.format(e)
             casalog.post(msg)
             raise RuntimeError(msg)
 
@@ -556,7 +556,7 @@ class JyPerKDatabaseClient():
             RuntimeError: response contains nothing due to any error in the server
         """
         if not retval['success']:
-            msg = 'Failed to get a Jy/K factor from DB: {}'.format(retval['error'])
+            msg = 'Failed to get Jy/K factors from DB: {}'.format(retval['error'])
             casalog.post(msg, priority='ERROR')
             raise RuntimeError(msg)
 
