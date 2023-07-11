@@ -10,12 +10,19 @@ import pprint
 import functools
 import inspect
 from collections import OrderedDict
+import numpy as np
+from typing import Tuple
 import filecmp
 
 
 from casatasks.private.casa_transition import is_CASA6
-from casatools import synthesisutils
-from casatasks import casalog
+
+if is_CASA6:
+    from casatools import synthesisutils
+    from casatools import table, ms, synthesisutils, quanta
+    from casatasks import casalog
+else:
+    from taskinit import *
 
 
 """
@@ -29,6 +36,8 @@ Summary...
 ######################################################
 ######################################################
 ######################################################
+
+
 
 
 class ImagerParameters:
@@ -274,6 +283,7 @@ class ImagerParameters:
         }
 
         ######### Deconvolution
+
         self.alldecpars = {
             self.defaultKey: {
                 "id": 0,
@@ -308,7 +318,7 @@ class ImagerParameters:
                 "startmodel": startmodel,
                 "nsigma": nsigma,
                 "imagename": imagename,
-                'fullsummary':fullsummary,
+                "fullsummary": fullsummary,
             }
         }
 
@@ -325,7 +335,7 @@ class ImagerParameters:
             "savemodel": savemodel,
             "nsigma": nsigma,
             "nmajor": nmajor,
-            'fullsummary':fullsummary,
+            "fullsummary": fullsummary,
         }
 
         ######### CFCache params.
@@ -680,6 +690,7 @@ class ImagerParameters:
                     self.iterpars["cycleniter"] = min(self.iterpars["niter"], 100)
 
             # saving model is done separately outside of iter. control for interactive clean and or automasking cases
+
             if self.iterpars['savemodel']!='none':
                 if self.iterpars['interactive']==True or self.alldecpars['0']['usemask']=='auto-multithresh' or \
                    self.alldecpars['0']['nsigma']>0.0:
@@ -687,6 +698,7 @@ class ImagerParameters:
                    for visid in self.allselpars:  
                       self.allselpars[visid]['readonly']=True
                       self.allselpars[visid]['usescratch']=False
+
 
         return errs
 
@@ -1039,7 +1051,7 @@ def saveparams2last(func=None, multibackup=True):
         with open(outfile, "w") as _f:
             for _i in range(len(byIndex)):
                 _f.write("%-20s = %s\n" % (byIndex[_i], repr(params[byIndex[_i]])))
-            _f.write("#tclean( ")
+            _f.write("#" + func.__name__ + "( ")
             for _i in range(len(byIndex)):
                 _f.write("%s=%s" % (byIndex[_i], repr(params[byIndex[_i]])))
                 if _i < len(params) - 1:
@@ -1054,3 +1066,32 @@ def saveparams2last(func=None, multibackup=True):
 
 
 ######################################################
+
+
+def determineFreqRange(
+    vis: str = "", fieldid: int = 0, spw: str = "*"
+) -> Tuple[np.double, np.double]:
+    _tb = table()
+    _ms = ms()
+    _su = synthesisutils()
+    _qa = quanta()
+    minFreq = 1.0e20
+    maxFreq = 0.0
+    _tb.open(vis)
+    fieldids = _tb.getcol("FIELD_ID")
+    _tb.done()
+    # advisechansel does not work on fieldids not in main
+    if fieldid not in fieldids:
+        fieldid = fieldids[0]
+    frange = _su.advisechansel(
+        msname=vis, getfreqrange=True, fieldid=fieldid, spwselection=spw
+    )
+    if minFreq > _qa.convert(frange["freqstart"], "Hz")["value"]:
+        minFreq = _qa.convert(frange["freqstart"], "Hz")["value"]
+    if maxFreq < _qa.convert(frange["freqend"], "Hz")["value"]:
+        maxFreq = _qa.convert(frange["freqend"], "Hz")["value"]
+
+    if minFreq > maxFreq:
+        raise Exception(f"Failed to determine frequency range in ms {vis}")
+    freqwidth = maxFreq - minFreq
+    return (minFreq, freqwidth)

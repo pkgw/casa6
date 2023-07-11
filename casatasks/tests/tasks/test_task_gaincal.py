@@ -29,7 +29,7 @@ import numpy as np
 import pylab as pl
 
 import casatools
-from casatasks import gaincal, mstransform, casalog, flagdata
+from casatasks import gaincal, mstransform, casalog, flagdata, gencal
 tb = casatools.table()
 from casatestutils import testhelper as th
 
@@ -68,6 +68,21 @@ flagcopy = 'flagged.ms'
 datacopy = 'gaincalTestCopy.ms'
 merged_copy1 = 'merged_copy1.ms'
 merged_copy2 = 'merged_copy2.ms'
+
+msname0= rootpath + 'gaincaltestK.ms'
+datacopyK = 'gaincaltestKcopy.ms'
+
+# created within:
+sysdel4='gaincaltestK_4spw.K'        # gencal delays for 4 spws
+solvedel4a='gaincaltestK.Ksolve4a'   # solved delays
+
+msname1='gaincaltestK_2spw.ms'
+sysdel2='gaincaltestK_2spw.K'        # gencal delays for 2 spws
+solvedel2a='gaincaltestK.Ksolve2a'   # solved delays
+
+solvedel4b='gaincaltestK.Ksolve4b'   # solved delays (mixed 2->4)
+solvedel2b='gaincaltestK.Ksolve2b'   # solved delays (mixed 4->2)
+cleanupList = [sysdel4, solvedel4a, msname1, sysdel2, solvedel2a, solvedel4b, solvedel2b]
 
 def getparam(caltable, colname='CPARAM'):
     ''' Open a caltable and get the provided column '''
@@ -137,6 +152,7 @@ class gaincal_test(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         shutil.copytree(datapath, datacopy)
+        shutil.copytree(msname0, datacopyK)
         shutil.copytree(merged_dataset1, merged_copy1)
         shutil.copytree(merged_dataset2, merged_copy2)
         #change permissions
@@ -193,10 +209,15 @@ class gaincal_test(unittest.TestCase):
 
         if os.path.exists('testspwmap.G3'):
             shutil.rmtree('testspwmap.G3')
+            
+        for item in cleanupList:
+            if os.path.exists(item):
+                shutil.rmtree(item)
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(datacopy)
+        shutil.rmtree(datacopyK)
         shutil.rmtree(merged_copy1)
         shutil.rmtree(merged_copy2)
         
@@ -459,6 +480,103 @@ class gaincal_test(unittest.TestCase):
         gaincal(vis=datacopy, caltable=tempCal, field='0', smodel=[1,0,0,0], solint='inf', combine='scan', gaintype='KCROSS', refant='0')
         
         self.assertTrue(np.all(tableComp(tempCal, typeCalK)[:,1] == 'True'))
+        
+    def test_gainTypeKSpwCountMisMatch(self):
+        '''
+            test_gainTypeKSpwCountMisMatch
+            -------------------------------
+            
+            Check that a caltable can be applied when the number of spws
+            in the ms and caltable do not match
+        '''
+        
+        # create systematic delay caltable, same in all 4 spws
+        d=list([0,0]+list(pl.arange(1,19)/100.))*4
+        gencal(vis=datacopyK,caltable=sysdel4,
+               caltype='sbd',
+               spw='0,1,2,3',antenna='0,1,2,3,4,5,6,7,8,9',pol='R,L',parameter=d)
+        # extract truth for comparisons below:
+        tb.open(sysdel4)
+        sysK4=tb.getcol('FPARAM')
+        tb.close()
+        
+        # solve for delays relative to the systematic delay caltable
+        #  one solution for all, combining scans, fields
+        gaincal(vis=datacopyK,caltable=solvedel4a,
+                gaintype='K',smodel=[1,0,0,0],
+                solint='inf',combine='scan,field',refant='0',
+                gaintable=[sysdel4])
+        # extract results and compare to k0
+        tb.open(solvedel4a)
+        K4a=tb.getcol('FPARAM')
+        tb.close()
+        
+        dk=K4a+sysK4    # sum should be ~zero
+        self.assertTrue(np.isclose(np.mean(dk), 2.674306e-5), msg=f"Sum should be ~zero, caltable with all 4 spws. {np.mean(dk)}")
+        
+        # extract spws 0,3 from orig MS to create MS with only 2 spws
+        mstransform(vis=datacopyK,outputvis=msname1,
+                    spw='0,3',datacolumn='data')
+
+        # create systematic delay table for the 2-spw MS
+        #  d[0:40] is half of original
+        gencal(vis=msname1,caltable=sysdel2,
+               caltype='sbd',
+               spw='0,1',antenna='0,1,2,3,4,5,6,7,8,9',pol='R,L',parameter=d[0:40])
+        # extract truth for comparisons below:
+        tb.open(sysdel2)
+        sysK2=tb.getcol('FPARAM')
+        tb.close()
+        
+        # solve for delays relative to the systematic delay caltable
+        #  one solution for all, combining scans, fields
+        gaincal(vis=msname1,caltable=solvedel2a,
+                gaintype='K',smodel=[1,0,0,0],
+                solint='inf',combine='scan,field',refant='0',
+                gaintable=[sysdel2])
+        # extract results and compare to k0
+        tb.open(solvedel2a)
+        K2a=tb.getcol('FPARAM')
+        tb.close()
+        
+        dk=K2a+sysK2    # sum should be ~zero (within noise)
+        self.assertTrue(np.isclose(np.mean(dk), 3.147865e-05), msg=f"Sum should be close to 0 within noise, caltable and ms with 2 spws. Mean is {np.mean(dk)}")
+        
+        # Solve on orig dataset using sysdel2
+        #  using spwmap
+        #  solutions should match original (sysK4)
+        gaincal(vis=datacopyK,caltable=solvedel4b,
+                gaintype='K',smodel=[1,0,0,0],
+                solint='inf',combine='scan,field',refant='0',
+                gaintable=[sysdel2],spwmap=[0,0,1,1])
+        # extract results and compare to sysK4
+        tb.open(solvedel4b)
+        K4b=tb.getcol('FPARAM')
+        tb.close()
+        
+        dk=K4b+sysK4    # sum should be ~zero
+        self.assertTrue(np.isclose(np.mean(dk), 2.674664e-05), msg=f"Sum should be close to 0, caltable with 2 spws ms with 4, Mean is {np.mean(dk)}")
+        
+        dk=K4b-K4a      # should be precisely zero (same effective sysdel)
+        self.assertTrue(np.isclose(np.mean(dk), 0, atol=1e-7), msg=f"These two should be the same. Mean is {np.mean(dk)}")
+        
+        # Solve on 2-spw MS using sysdel4
+        #  using spwmap
+        #  solutions should match original (sysK2)
+        gaincal(vis=msname1,caltable=solvedel2b,
+                gaintype='K',smodel=[1,0,0,0],
+                solint='inf',combine='scan,field',refant='0',
+                gaintable=[sysdel4],spwmap=[[0,1]])
+        # extract results and compare to sysK2
+        tb.open(solvedel2b)
+        K2b=tb.getcol('FPARAM')
+        tb.close()
+        
+        dk=K2b+sysK2    # sum should be ~zero
+        self.assertTrue(np.isclose(np.mean(dk), 3.148629e-05), msg=f"Sum should be close to 0, caltable with 4 spws ms with 2. Mean is {np.mean(dk)}")
+        
+        dk=K2b-K2a      # should be precisely zero (same effective sysdel)
+        self.assertTrue(np.isclose(np.mean(dk), 0, atol=1e-7), msg=f"These two should be the same. Mean is {np.mean(dk)}")
         
     def test_gainTypeSpline(self):
         '''

@@ -8,6 +8,19 @@ import re
 import copy
 from casatasks.private.casa_transition import is_CASA6
 
+if is_CASA6:
+    from casatools import (
+        synthesisimager,
+        synthesisdeconvolver,
+        synthesisnormalizer,
+        iterbotsink,
+        ctsys,
+        table,
+        image,
+    )
+    from casatasks import casalog
+    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+
 from casatools import (
     synthesisimager,
     synthesisdeconvolver,
@@ -23,6 +36,15 @@ from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 ctsys_hostinfo = ctsys.hostinfo
 _tb = table()
 _ia = image()
+    synthesisimager = casac.synthesisimager
+    synthesisdeconvolver = casac.synthesisdeconvolver
+    synthesisnormalizer = casac.synthesisnormalizer
+    # make it look like the CASA6 version even though it's using the CASA5 named tool not present in CASA6
+    iterbotsink = casac.synthesisiterbot
+
+    ctsys_hostinfo = casac.cu.hostinfo
+
+    _tb = tb
 """
 A set of helper functions for tclean.
 
@@ -82,12 +104,11 @@ class PySynthesisImager:
         # which uses CFCache.
         if exists:
             casalog.post("CFCache already exists")
-        else:
-            self.dryGridding()
-            self.fillCFCache()
-            self.reloadCFCache()
-
-    #############################################
+        else:           
+            self.dryGridding();
+            self.fillCFCache();
+            self.reloadCFCache();
+        
 
     def initializeImagers(self):
 
@@ -125,6 +146,7 @@ class PySynthesisImager:
             
         for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
+
             # print(f'####allimpars={self.allimpars[str(fld)]} \n    allgridpars={self.allgridpars[str(fld)]}')
             self.SItool.defineimage(
                 self.allimpars[str(fld)], self.allgridpars[str(fld)]
@@ -214,9 +236,6 @@ class PySynthesisImager:
         for immod in range(0, self.NF):
             self.SDtools[immod].pbcor()
 
-    #############################################
-
-
     def getSummary(self,fullsummary,fignum=1):
         summ = self.IBtool.getiterationsummary()
         casalog.post('getSummary call: fullsummary='+str(fullsummary))
@@ -225,6 +244,7 @@ class PySynthesisImager:
         if ('summaryminor' in summ):
             summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'],fullsummary)
         #self.plotReport( summ, fignum )
+
         return summ
 
     #############################################

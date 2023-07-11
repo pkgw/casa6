@@ -26,11 +26,12 @@ def _copy_file_or_dir(src, dst):
     else:
         shutil.copy2(src, dst)
 
-def _del_file_or_dir(filename):
-    if (os.path.isdir(filename)):
-        shutil.rmtree(filename)
-    else:
-        os.remove(filename)
+# move this to the class method to access from the vlass test script 
+#def _del_file_or_dir(filename):
+#    if (os.path.isdir(filename)):
+#        shutil.rmtree(filename)
+#    else:
+#        os.remove(filename)
 
 class StkUnitTest(unittest.TestCase):
     """ Adds some stakeholder test specific extensions to the general unit test class """
@@ -43,7 +44,7 @@ class StkUnitTest(unittest.TestCase):
         html_files = glob.glob('*.html')
         #for f in list(png_files)+list(html_files):
         for f in list(html_files):
-            _del_file_or_dir(f)
+            cls.del_file_or_dir(cls,f)
 
     def setUp(self):
         super().setUp()
@@ -59,8 +60,8 @@ class StkUnitTest(unittest.TestCase):
 
     def tearDown(self):
         super().tearDown()
-        if not cache_partial_results:
-            self.delData()
+        #if not cache_partial_results:
+        #    self.delData()
 
     def delData(self):
         """ Clean up generated data. """
@@ -83,7 +84,7 @@ class StkUnitTest(unittest.TestCase):
 
         # delete the del_files
         for f in del_files:
-            _del_file_or_dir(f)
+            self.del_file_or_dir(f)
 
     def prepData(self, msname, data_path_dir, *copyargs, partial_results_dirname=""):
         """ Copies the given measurement set (and other copyargs) to the current directory.
@@ -131,6 +132,12 @@ class StkUnitTest(unittest.TestCase):
                 casalog.post(f"{i}: {files[i]}", "SEVERE")
                 _copy_file_or_dir(join(fromdir, files[i]), files[i])
                 self.teardown_files.append(files[i])
+
+    def del_file_or_dir(self,filename):
+        if (os.path.isdir(filename)):
+            shutil.rmtree(filename)
+        else:
+            os.remove(filename)
 
     def check_img_exists(self, img):
         """ Returns true if the image exists. A report is collected internally, to be returned as a group report in get_imgs_exist_results(...).
@@ -199,8 +206,10 @@ class StkUnitTest(unittest.TestCase):
 
         # only worry about comparing the maximum value
         val = diff
+        casalog.post('diff='+str(diff))
         if isinstance(diff, Iterable):
             val = max(diff)
+        casalog.post('val='+str(val))
         
         # convert numpy arrays to lists so that the logs get printed on a single line
         actual = self._nparray_to_list(actual)
@@ -578,6 +587,15 @@ class StkUnitTest(unittest.TestCase):
         subprocess.call('mogrify -trim '+imgname, shell=True)
         self.mom8_images.append(imgname)
 
+    def filter_runtclean_parameters(self, runtclean_parameters, common_args):
+        """ Filter run_tclean parameters for tclean task call """
+        # extract individually specified parameters
+        pars = {i:runtclean_parameters[i] for i in filter(lambda x: x not in ['common_args', 'record', 'self'], runtclean_parameters.keys())}
+        # filter out duplicated parameters defined both individually and in common_args and use the one individually specified
+        owpars = {k:runtclean_parameters[k] for k in filter(lambda x: x in common_args.keys() and x != 'common_args', runtclean_parameters.keys())}
+        subkargs = {j:common_args[j] for j in filter(lambda x: x not in owpars.keys(), common_args.keys())}
+        return ({**pars,**subkargs})
+
     def _get_taskcall_parts(self, single_taskcall):
         """ Splits the task call into the function call and parameters """
         braces_stack = []
@@ -635,7 +653,6 @@ class StkUnitTest(unittest.TestCase):
 
         for single_taskcall in taskcall:
             pre_task_name, task_name, task_params, post_task_call = self._get_taskcall_parts(single_taskcall)
-
             # remove certain parameters that are custom to the test scripts
             if "compare_tclean_pars" in task_params:
                 del task_params["compare_tclean_pars"]
@@ -654,6 +671,8 @@ class StkUnitTest(unittest.TestCase):
             if pre_task_name.strip() == "def" and task_name.strip() == "run_tclean":
                 run_tclean_call = task_call
             elif pre_task_name+task_name == "records.append":
+                pass
+            elif pre_task_name.strip() == "return":
                 pass
             else:
                 task_calls.append(task_call)
