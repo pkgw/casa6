@@ -97,6 +97,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 // <dt> functions to sort the components
 // <dd> See the <src>sort</src>, <src>type</src> &
 //      <src>namel</src> functions.
+// <dt> Functions to test the existence of, set, and retrieve a table record
+//      with keyword name "metadata".
 // </dl>
 
 // ComponentLists are memory based objects that can write their contents to and
@@ -180,7 +182,7 @@ public:
   // encapsulation; when changing an object's data, the object should be aware.
   ComponentList(
       const casacore::Path& fileName, casacore::Bool readOnly=false,
-      casacore::Bool rewriteTable=casacore::True
+      casacore::Bool rewriteTable=true
   );
 
   // The Copy constructor uses reference semantics
@@ -477,6 +479,12 @@ public:
   // casacore::Table& getTable();
 
   const casacore::Table& getTable() const;
+
+  // check for the existence of a table record with keyword "metadata".
+  bool hasMetaData() const;
+
+  // set the metadata table record
+  void setMetaData(const casacore::Record& md);
 
 private:
   // Privarte function to create the casacore::Table which will hold the components

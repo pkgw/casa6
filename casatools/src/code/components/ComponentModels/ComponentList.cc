@@ -598,7 +598,7 @@ void ComponentList::setRefFrequencyUnit(const Vector<Int>& which,
 SkyComponent& ComponentList::component(const uInt& index) {
 //  AlwaysAssert(itsROFlag == false, AipsError);
   AlwaysAssert(index < nelements(), AipsError);
-  DebugAssert(ok(), AipsError);
+  //DebugAssert(ok(), AipsError);
   return itsList[itsOrder[index]];
 }
 
@@ -738,9 +738,9 @@ Bool ComponentList::ok() const {
            << LogIO::POST;
      return false;
   }
-  if (itsTable.isNull() == false) {
+  if (! itsTable.isNull()) {
     String tablename = itsTable.tableName();
-    if (Table::isReadable(tablename) == false) {
+    if (! Table::isReadable(tablename)) {
 	LogIO logErr(LogOrigin("ComponentList", "ok()"));
 	logErr << LogIO::SEVERE 
 	       << "Table associated with ComponentList is not readable"
@@ -1258,9 +1258,16 @@ const Table& ComponentList::getTable() const {
     return itsTable;
 }
 
-// Local Variables: 
-// compile-command: "gmake ComponentList"
-// End: 
+bool ComponentList::hasMetaData() const {
+    return itsTable.keywordSet().fieldNumber("metadata") >= 0;
+}
+
+void ComponentList::setMetaData(const Record& md) {
+    auto& kwSet = itsTable.rwKeywordSet();
+    TableRecord tr(md);
+    kwSet = tr;
+}
+
 
 } //# NAMESPACE CASA - END
 

@@ -247,6 +247,50 @@ cl.open('crux.cl')
   </comments>
 </method>
 
+<method name="hasmd" type="function">
+  
+  <shortdescription>Does the attached component list table have a "metadata" table keyword?</shortdescription>
+  
+  <description>
+    
+      Does the attached component list table have a "metadata" table keyword? This
+      method will not work for in-memory componentlists. That is, the componentlist
+      must exist on disk. If not, an exception is thrown.
+   
+  </description>
+  <returns type="bool"/>
+  <example>
+      cl2 = componentlist()
+      cl2.open('my.cl')
+      cl2.hasmd())
+      cl2.done()
+  </example>
+</method>
+
+<method name="setmd" type="function">
+  
+  <shortdescription>Set the "metadata" table keyword for this componentlist.</shortdescription>
+  
+  <description>
+    
+    Set the "metadata" keyword for the componentlist table. Will overwrite the corrent value
+    of "metadata" if it exists. 
+  </description>
+  <input>
+    <param name="record" type="record">
+      <description> Value to set the "metadata" keyword to. </description>
+      <value/>
+    </param> 
+  </input>
+  <example>
+      cl2 = componentlist()
+      cl2.open('my.cl')
+      myrec = {'me': 2, 'you': 3}
+      cl2.setmd(myrec)
+      cl2.done()
+  </example>
+</method>
+
 
 <method name="torecord" type="function">
 

@@ -19,17 +19,24 @@
 #
 ##########################################################################
 
-import unittest
+import os, shutil, unittest
 
 from casatools import componentlist as cltool
 
 class componentlist_test(unittest.TestCase):
-    
+
+
+    tablename = 'my.cl'
+
     def setUp(self):
-        return
+        self.cleanup()
 
     def tearDown(self):
-        return
+        self.cleanup()
+
+    def cleanup(self):
+        if os.path.exists(self.tablename):
+            shutil.rmtree(self.tablename)
  
     def test_summarize(self):
         """Test the cl.summarize() method"""
@@ -94,6 +101,20 @@ class componentlist_test(unittest.TestCase):
             x['type'] == 'Power Logarithmic Polynomial',
             'Incorrect spectral type'
         )
+
+
+    def test_hasmd(self):
+        """Test hasmd() method"""
+        mycl = cltool()
+        self.assertRaises(Exception, mycl.hasmd)
+        mycl.addcomponent(
+            [1,0,0,0],'Jy','Stokes',['J2000', '10:30:00.00', '-20.00.00.0'],
+            'gaussian','4arcsec','2arcsec','30deg'
+        )
+        self.assertRaises(Exception, mycl.hasmd)
+        mycl.rename(self.tablename)
+        self.assertFalse(mycl.hasmd())
+        mycl.close()
 
 if __name__ == '__main__':
     unittest.main()

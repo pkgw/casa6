@@ -119,7 +119,7 @@ bool componentlist::open(const std::string& filename, const bool nomodify,
       itsBin = new ComponentList();
     }
     rstat=true;
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -146,7 +146,7 @@ long componentlist::asciitocomponentlist(const std::string& /*filename*/,
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -213,7 +213,7 @@ bool componentlist::concatenate(const ::casac::variant& list,
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -241,7 +241,7 @@ componentlist::remove(const std::vector<long>& which, const bool /*log*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -261,7 +261,7 @@ bool componentlist::purge()
 	} else {
 	  *itsLog << LogIO::WARN << "componentlist is not opened, please open first" << LogIO::POST;
 	}
-  } catch (AipsError x){
+  } catch (AipsError& x){
 	  *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
   }
@@ -285,7 +285,7 @@ bool componentlist::recover(const bool /*log*/)
 	  *itsLog << LogIO::WARN << "componentlist is not opened, please open first" << LogIO::POST;
 	}
 
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
   }
@@ -305,7 +305,7 @@ long componentlist::length()
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -352,7 +352,7 @@ bool componentlist::sort(const std::string& criteria, const bool /*log*/)
     } else {
       *itsLog << LogIO::WARN << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
   }
@@ -375,7 +375,7 @@ bool componentlist::isphysical(const std::vector<long>& which)
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -398,7 +398,7 @@ std::vector<double> componentlist::sample(const ::casac::variant& /*direction_*/
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -420,7 +420,7 @@ bool componentlist::rename(const std::string& filename, const bool /*log*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -443,7 +443,7 @@ bool componentlist::simulate(const long howmany, const bool /*log*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -527,22 +527,15 @@ bool componentlist::addcomponent(
 
 bool componentlist::close(const bool log)
 {
-  itsLog->origin(LogOrigin("componentlist", "close"));
-
   bool rstat(false);
   try {
-	  if(itsList)
-	     delete itsList;
-	  if(itsBin)
-	     delete itsBin;
-	  itsList = 0;
-          itsBin = 0;
-	  itsList = new ComponentList();
-	  itsBin = new ComponentList();
-	  if(log)
-	     *itsLog << LogIO::WARN << "componentlist closed" << LogIO::POST;
+      rstat = done();
+	  if(log) {
+          *itsLog << LogOrigin(LogOrigin("componentlist", __FUNCTION__))
+          << LogIO::WARN << "componentlist closed" << LogIO::POST;
+      }
 	  rstat=true;
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
   }
@@ -576,22 +569,57 @@ bool componentlist::done()
 
   bool rstat(false);
   try{
-    if(itsList)
-      delete itsList;
-    if(itsBin)
-      delete itsBin;
-    itsList = 0;
-    itsBin = 0;
+    if(itsList) {
+        delete itsList;
+        itsList = nullptr;
+    }
+    if(itsBin) {
+        delete itsBin;
+        itsBin = nullptr;
+    }
     //bring it back to the state of construction
     itsList = new ComponentList();
     itsBin = new ComponentList();
     rstat=true;
   }
-  catch(AipsError x){
+  catch(const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
   return rstat;
+}
+
+bool componentlist::hasmd() {
+    try {
+        if (itsList->getTable().isNull()) {
+            itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
+            *itsLog << LogIO::SEVERE << "Componentlist does not exist on disk"
+                << LogIO::POST;
+        }
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << LogIO::POST;
+        return itsList->hasMetaData();
+    }
+    catch (const AipsError& x){
+	    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
+	    RETHROW(x)
+    }
+    return false;
+}
+
+void componentlist::setmd(const record& rec) {
+    try {
+        if (itsList->getTable().isNull()) {
+            itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
+            *itsLog << LogIO::SEVERE << "Componentlist does not exist on disk"
+                << LogIO::POST;
+        }
+        return itsList->setMetaData(toRecord(record));
+    }
+    catch (const AipsError& x){
+	    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
+	    RETHROW(x)
+    }
+    return false;
 }
 
 bool componentlist::select(const std::vector<long>& which)
@@ -612,7 +640,7 @@ bool componentlist::select(const std::vector<long>& which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -636,7 +664,7 @@ bool componentlist::deselect(const std::vector<long>& which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -656,7 +684,7 @@ std::vector<long> componentlist::selected()
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -677,7 +705,7 @@ std::string componentlist::getlabel(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -699,7 +727,7 @@ bool componentlist::setlabel(const long which, const std::string& value,
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -726,7 +754,7 @@ std::vector<double> componentlist::getfluxvalue(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -748,7 +776,7 @@ std::string componentlist::getfluxunit(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -769,7 +797,7 @@ std::string componentlist::getfluxpol(const long /*which*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -891,7 +919,7 @@ bool componentlist::setflux(
 		rstat = true;
 
 	}
-	catch (AipsError x){
+	catch (const AipsError& x){
 		*itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 		RETHROW(x)
 	}
@@ -921,7 +949,7 @@ bool componentlist::convertfluxunit(const long which, const std::string& unit)
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -946,7 +974,7 @@ bool componentlist::convertfluxpol(const long which, const std::string& polariza
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch(AipsError x){
+  catch(const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -980,7 +1008,7 @@ bool componentlist::convertfluxpol(const long which, const std::string& polariza
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1001,7 +1029,7 @@ std::string componentlist::getrefdirra(const long /*which*/, const std::string& 
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1023,7 +1051,7 @@ std::string componentlist::getrefdirdec(const long /*which*/, const std::string&
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1045,7 +1073,7 @@ std::string componentlist::getrefdirframe(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1074,7 +1102,7 @@ bool componentlist::setrefdir(const long which, const ::casac::variant& ra,
 	} else {
 	  *itsLog << LogIO::WARN << "componentlist is not opened, please open first" << LogIO::POST;
 	}
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
   }
@@ -1132,7 +1160,8 @@ bool componentlist::convertrefdir(const long which, const std::string& frame)
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } 
+  catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE
                   << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
@@ -1154,7 +1183,7 @@ componentlist::shapetype(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x) {
+  catch (const AipsError& x) {
     *itsLog << LogIO::SEVERE
             << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
@@ -1187,7 +1216,7 @@ bool componentlist::fromrecord(const ::casac::record& rec)
     delete elRec;
     rstat=true;
 
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1213,7 +1242,7 @@ bool componentlist::fromrecord(const ::casac::record& rec)
 
     }
        
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE
                   << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
@@ -1243,7 +1272,7 @@ bool componentlist::fromrecord(const ::casac::record& rec)
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE
                   << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
@@ -1345,7 +1374,7 @@ bool componentlist::setshape(const long which, const std::string& type,
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
 	  *itsLog << LogIO::SEVERE
                   << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	  RETHROW(x)
@@ -1368,7 +1397,7 @@ bool componentlist::convertshape(const long /*which*/, const std::string& /*majo
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1389,7 +1418,7 @@ std::string componentlist::spectrumtype(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x) {
+  catch (const AipsError& x) {
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1417,7 +1446,7 @@ std::string componentlist::spectrumtype(const long which)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1604,7 +1633,7 @@ bool componentlist::setstokesspectrum(const long which, const std::string& eltyp
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1625,7 +1654,7 @@ bool componentlist::setstokesspectrum(const long which, const std::string& eltyp
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1646,7 +1675,7 @@ double componentlist::getfreqvalue(const long /*which*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1667,7 +1696,7 @@ std::string componentlist::getfrequnit(const long /*which*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1688,7 +1717,7 @@ std::string componentlist::getfreqframe(const long /*which*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch(AipsError x){
+  catch(const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1715,7 +1744,7 @@ bool componentlist::setfreq(const long which, const double value,
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1745,7 +1774,7 @@ bool componentlist::setfreqframe(const long which, const std::string& frame,
       *itsLog << LogIO::WARN
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
-  } catch (AipsError x){
+  } catch (const AipsError& x){
     *itsLog << LogIO::SEVERE
             << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
@@ -1768,7 +1797,7 @@ bool componentlist::convertfrequnit(const long which, const std::string& unit)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1798,7 +1827,7 @@ bool componentlist::convertfrequnit(const long which, const std::string& unit)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE
             << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
@@ -1831,7 +1860,7 @@ bool componentlist::add(const ::casac::record& thecomponent, const bool /*iknow*
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1853,7 +1882,7 @@ bool componentlist::replace(const long /*which*/, const ::casac::record& /*list*
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch (AipsError x){
+  catch (const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
@@ -1880,7 +1909,7 @@ bool componentlist::summarize(const long which) {
 			rstat = false;
 		}
 	}
-	catch (AipsError x){
+	catch (const AipsError& x){
 		*itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 		RETHROW(x)
 	}
@@ -1903,7 +1932,7 @@ bool componentlist::iscomponentlist(const ::casac::variant& /*tool*/)
               << "componentlist is not opened, please open first" << LogIO::POST;
     }
   }
-  catch(AipsError x){
+  catch(const AipsError& x){
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x)
   }
