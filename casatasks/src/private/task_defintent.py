@@ -41,6 +41,20 @@ def defintent(vis='', intent='', mode='',
     if intent == '':
         print('you must specify an Intent')
         return
+        
+    # if there is an outputvis make a copy
+    if outputvis != '' and outputvis != vis:
+        if os.path.exists(outputvis):
+            print("outputvis already exists! Exiting task...")
+            return
+        shutil.copytree(vis, outputvis)
+    # if the outputvis is the same as the vis. edit the vis table and don't make a copy
+    elif outputvis == vis:
+        outputvis = vis
+        print("outputvis and vis are the same. Editing provided vis...")
+    else:
+        print("No outputvis has been specified, please enter an outputvis name")
+        return
     
     # Table tool query?
     # ----- TABLE SELECTION -----
@@ -131,25 +145,6 @@ def defintent(vis='', intent='', mode='',
                 
     print("Number of matching rows found: ", len(selectedRows))
     print(mode.lower())
-    
-    # if there is an outputvis make a copy
-    if outputvis != '' and outputvis != vis:
-        if os.path.exists(outputvis):
-            print("outputvis already exists! Exiting task...")
-            return
-        shutil.copytree(vis, outputvis)
-    # if the outputvis is the same as the vis. edit the vis table and don't make a copy
-    elif outputvis == vis:
-        outputvis = vis
-        print("outputvis and vis are the same. Editing provided vis...")
-    else:
-        print("No outputvis has been specified, please enter an outputvis name")
-        return
-        
-    # if there is an origin file write the dict content to it
-    '''if originfile != '':
-        with open(originfile, 'wb') as file:
-            pickle.dump(outfileDict, file, protocol=pickle.HIGHEST_PROTOCOL)'''
     
     # for Set if intent not in state table
     # then add a new row to the state table and change index (STATE_ID) in main table
