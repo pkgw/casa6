@@ -41,6 +41,16 @@
             "comment":"Only run in mpi mode"
         },
         {
+            "testScript":"test_regression_alma_sim_componentlist",
+            "testType":"regression",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":[],
+            "testGroup":["regression"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_regression_fits_import_export",
             "testType":"regression",
             "maintainer":"Akeem Wells",
@@ -141,10 +151,30 @@
             "comment":""
         },
         {
+            "testScript":"test_stk_vla_users_continuum_from_SDM",
+            "testType":"stakeholder",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":["mpi"],
+            "testGroup":["stakeholder"],
+            "timeout":14400,
+            "comment":""
+        },
+        {
             "testScript":"test_stk_vlass_pipeline_imaging",
             "testType":"stakeholder",
             "maintainer":"Sandra Castro",
             "maintainerEmail":"scastro@eso.org",
+            "testOptions":["mpi"],
+            "testGroup":["stakeholder"],
+            "timeout":7200,
+            "comment":""
+        },
+        {
+            "testScript":"test_stk_vlass_pipeline_imaging_v1.2",
+            "testType":"stakeholder",
+            "maintainer":"Tak Tsutsumi",
+            "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":["mpi"],
             "testGroup":["stakeholder"],
             "timeout":14400,
@@ -1535,6 +1565,16 @@
             "testType":"casatools",
             "maintainer":"Dave Mehringer",
             "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["casatools"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_tool_msuvbinner",
+            "testType":"casatools",
+            "maintainer":"Kumar Golap",
+            "maintainerEmail":"kgolap@nrao.edu",
             "testOptions":[],
             "testGroup":["casatools"],
             "timeout":0,
