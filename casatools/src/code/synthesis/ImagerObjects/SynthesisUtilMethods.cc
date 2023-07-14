@@ -401,7 +401,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  MDirection mdir(mtype);
 	  if(Table::isReadable(ephemtab)){
 	    ephemTable=ephemtab;
-            //os << "check here ephemTable =" << ephemTable << LogIO::POST;  
 	  }
 	  else if(ephemtab=="TRACKFIELD"){
 	   ephemTable=(mscol.field()).ephemPath(field_id); 
@@ -3101,7 +3100,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 */
 
   MDirection SynthesisParamsImage::getMovingSourceDir(const MeasurementSet& ms, const MEpoch& refEp, const MPosition& obsposition, const MDirection::Types outframe){
-    //LogIO os( LogOrigin("SynthesisParamsImage","getMovingSourceDir",WHERE) );
     MDirection outdir;
     String ephemtab(movingSource);
     if(movingSource=="TRACKFIELD"){
@@ -3119,7 +3117,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       tmpazel=MDirection::Convert(trackDir, outref1)();
     }
     else{
-      //os << "ephemtab=" << ephemtab << LogIO::POST;
       MeasComet mcomet(Path(ephemtab).absoluteName());
       mframe.set(mcomet);
       tmpazel=MDirection::Convert(MDirection(MDirection::COMET), outref1)();

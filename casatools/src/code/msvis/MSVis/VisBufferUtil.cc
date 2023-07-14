@@ -53,8 +53,6 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-// for debugging -- remove it later
-//#include <casacore/casa/Logging/LogIO.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -957,9 +955,6 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
   }
 
    MDirection VisBufferUtil::getPhaseCenter(const vi::VisBuffer2& vb, const String& extEphem, const Double timeo){
-    // for debugging
-    //LogIO os( LogOrigin("VisBufferUtil","getPhaseCenter",WHERE) );
-    // os << "extEphem=="<<LogIO::POST;
      //Timer tim;
 
      Double timeph = timeo > 0.0 ? timeo : vb.time()(0);
@@ -990,18 +985,11 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
 		     //cerr << t[uniqIndx[k]] << "   " <<  fieldId[origindx[uniqIndx[k]]] << endl;
 		     //cerr << msfc.phaseDirMeas(fieldId[origindx[uniqIndx[k]]], t[uniqIndx[k]]) << endl;
 		     //cerr << "size " <<  cachedPhaseCenter_p[oldPCMSId_p].size() << endl;
-                     ////String ephemIfAny=msfc.ephemPath(fieldId[origindx[uniqIndx[k]]]);
-                     String inEphem=msfc.ephemPath(fieldId[origindx[uniqIndx[k]]]);
-                     String ephemIfAny = (extEphem != "" && extEphem != "TRACKFIELD" && extEphem != inEphem)? extEphem: inEphem; 
-                     //debug
-                     //os << "vbU::getPhaseCenter inEphem=="<<inEphem << LogIO::POST;
-                     //os << "extEphem=="<< extEphem << LogIO::POST;
-                     //os << "ephemIfAny=="<< ephemIfAny << LogIO::POST;
+                     String ephemIfAny=msfc.ephemPath(fieldId[origindx[uniqIndx[k]]]);
                      if(ephemIfAny=="" || !Table::isReadable(ephemIfAny, False)){
 		       (cachedPhaseCenter_p[oldPCMSId_p])[t[uniqIndx[k]]]=msfc.phaseDirMeas(fieldId[origindx[uniqIndx[k]]], t[uniqIndx[k]]);
                      }
                      else{
-                       //os<<" getPhaseCent. calls getEphemBasePhaseDir using "<<ephemIfAny << LogIO::POST;
                        Vector<MDirection> refDir(msfc.referenceDirMeasCol()(fieldId[origindx[uniqIndx[k]]]));
                        (cachedPhaseCenter_p[oldPCMSId_p])[t[uniqIndx[k]]]=getEphemBasedPhaseDir(vb, ephemIfAny, refDir(0),   t[uniqIndx[k]]);
                      }

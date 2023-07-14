@@ -166,7 +166,7 @@ public:
    casacore::MDirection getPointingDir(const vi::VisBuffer2& vb, const casacore::Int antid, const casacore::Int row, const casacore::MDirection::Types dirframe=casacore::MDirection::AZELGEO, const casacore::Bool usePointing=true);
    //get the phaseCenter for a given time   ..cached so that it does not need to do small read every time of access
    // time -ve means   use the first time in the vb
-    casacore::MDirection getPhaseCenter(const vi::VisBuffer2& vb, const casacore::String& extEphem="", const casacore::Double time=-1.0);
+    casacore::MDirection getPhaseCenter(const vi::VisBuffer2& vb, const casacore::Double time=-1.0);
     ///Get the ephemeris direction of a source fieldid of vb at time given 
     //or the first time in the visBuffer 
     casacore::MDirection getEphemDir(const vi::VisBuffer2& vb, const casacore::Double time=-1.0);
