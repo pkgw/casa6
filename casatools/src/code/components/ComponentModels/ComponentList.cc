@@ -58,6 +58,7 @@
 #include <casacore/casa/Quanta/MVAngle.h>
 #include <casacore/casa/Quanta/MVDirection.h>
 #include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/casa/Containers/ValueHolder.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/casa/Quanta/Unit.h>
 #include <casacore/casa/OS/Path.h>
@@ -70,6 +71,7 @@
 #include <casacore/tables/Tables/TableDesc.h>
 #include <casacore/tables/Tables/ColDescSet.h>
 #include <casacore/tables/Tables/TableLock.h>
+#include <casacore/tables/Tables/TableProxy.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/tables/DataMan/TiledCellStMan.h>
 #include <casacore/casa/Utilities/Assert.h>
@@ -77,8 +79,12 @@
 #include <casacore/casa/Utilities/Sort.h>
 #include <casacore/casa/BasicSL/String.h>
 #include <casacore/casa/Containers/Record.h>
+#include <stdcasa/variant.h>
+#include <stdcasa/StdCasa/CasacSupport.h>
+#include <memory>
 
 using namespace casacore;
+using namespace casac;
 namespace casa { //# NAMESPACE CASA - BEGIN
 
 const String fluxName = "Flux";
@@ -329,7 +335,7 @@ void ComponentList::setLabel(const Vector<Int>& which,
   DebugAssert(ok(), AipsError);
 }
 
-void ComponentList::getFlux(Vector<Quantity>& fluxQuant, const Int& which) const {
+void ComponentList::getFlux(Vector<casacore::Quantity>& fluxQuant, int which) const {
    SkyComponent comp = component(which);
    // each element in the returned vector represents a different polarization.
    // NumericTraits::Conjugate is just a confusing way of saying Complex if you
@@ -339,7 +345,7 @@ void ComponentList::getFlux(Vector<Quantity>& fluxQuant, const Int& which) const
    Unit unit = comp.flux().unit();
    fluxQuant.resize(flux.nelements());
    for (uInt i=0; i<flux.nelements(); ++i) {
-       fluxQuant[i] = Quantity(real(flux[i]), unit);
+       fluxQuant[i] = casacore::Quantity(real(flux[i]), unit);
    }
 }
 
@@ -1262,10 +1268,26 @@ bool ComponentList::hasMetaData() const {
     return itsTable.keywordSet().fieldNumber("metadata") >= 0;
 }
 
-void ComponentList::setMetaData(const Record& md) {
-    auto& kwSet = itsTable.rwKeywordSet();
-    TableRecord tr(md);
-    kwSet = tr;
+void ComponentList::putKeyword(const variant& keyword, const variant& value) {
+    ThrowIf(itsTable.isNull(), "A table is not attached to this ComponentList");
+    auto mytype = keyword.type();
+    ThrowIf(
+        ! (mytype == variant::STRING && mytype == variant::INT),
+        "keyword must either be a string or an integer"
+    );
+    std::unique_ptr<ValueHolder> aval(toValueHolder(value));
+    TableProxy tp(itsTable);
+    switch(keyword.type()) {
+        case variant::STRING :
+            tp.putKeyword(String(), String(keyword.toString()), -1, false, *aval);
+            break;
+        case variant::INT :
+            tp.putKeyword(String(), String(), keyword.toInt(), false, *aval);
+            break;
+        default :
+            // check above should have handled this case already
+            ThrowCc("Keyword must be string or int");
+    }
 }
 
 

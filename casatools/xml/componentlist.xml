@@ -267,28 +267,33 @@ cl.open('crux.cl')
   </example>
 </method>
 
-<method name="setmd" type="function">
-  
-  <shortdescription>Set the "metadata" table keyword for this componentlist.</shortdescription>
-  
-  <description>
-    
-    Set the "metadata" keyword for the componentlist table. Will overwrite the corrent value
-    of "metadata" if it exists. 
-  </description>
-  <input>
-    <param name="record" type="record">
-      <description> Value to set the "metadata" keyword to. </description>
-      <value/>
-    </param> 
-  </input>
-  <example>
+<method name="putkeyword" type="function">
+    <shortdescription>Set the specified table keyword.</shortdescription>
+    <description>
+        Set the specified keyword in the componentlist table. If the keyword already exists
+        in the table, it will be overwritten with this specified value. The keyword must
+        be an integer or a string. The value can be any type that CASA supports as an
+        input parameter to tool methods.
+    </description>
+    <input>
+        <param name="keyword" type="record">
+            <description> Value to be set.. </description>
+            <value/>
+        </param> 
+        <param name="value" type="any">
+            <description> Value to be set. </description>
+            <value/>
+            <any type="variant"/>
+        </param> 
+    </input>
+    <returns/>
+    <example>
       cl2 = componentlist()
       cl2.open('my.cl')
       myrec = {'me': 2, 'you': 3}
       cl2.setmd(myrec)
       cl2.done()
-  </example>
+    </example>
 </method>
 
 

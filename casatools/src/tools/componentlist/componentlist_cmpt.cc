@@ -606,20 +606,14 @@ bool componentlist::hasmd() {
     return false;
 }
 
-void componentlist::setmd(const record& rec) {
+void componentlist::putkeyword(const variant& keyword, const variant& value) {
     try {
-        if (itsList->getTable().isNull()) {
-            itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
-            *itsLog << LogIO::SEVERE << "Componentlist does not exist on disk"
-                << LogIO::POST;
-        }
-        return itsList->setMetaData(toRecord(record));
+        itsList->putKeyword(keyword, value);
     }
     catch (const AipsError& x){
 	    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	    RETHROW(x)
     }
-    return false;
 }
 
 bool componentlist::select(const std::vector<long>& which)

@@ -49,8 +49,11 @@ class Unit;
 template <class Ms> class MeasRef;
 }
 
-namespace casa { //# NAMESPACE CASA - BEGIN
+namespace casac {
+    class variant;
+}
 
+namespace casa { //# NAMESPACE CASA - BEGIN
 
 // <summary> A class for manipulating groups of components </summary>
 
@@ -292,7 +295,7 @@ public:
   // get the the flux as a double
   // param: which - the component number (0 based)
   // return The flux as a Quantity
-  void getFlux(casacore::Vector<casacore::Quantity>& fluxQuant, const casacore::Int& which) const;
+  void getFlux(casacore::Vector<casacore::Quantity>& fluxQuant, int which) const;
   void getFlux(casacore::Vector<casacore::Quantum<casacore::Complex> >& fluxQuant, const casacore::Int& which);
 
   // get the associated polarizations as a vector of strings for the
@@ -484,7 +487,7 @@ public:
   bool hasMetaData() const;
 
   // set the metadata table record
-  void setMetaData(const casacore::Record& md);
+  void putKeyword(const casac::variant& keyword, const casac::variant& value);
 
 private:
   // Privarte function to create the casacore::Table which will hold the components
