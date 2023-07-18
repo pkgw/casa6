@@ -254,6 +254,7 @@ SimplePBConvFunc::SimplePBConvFunc(): nchan_p(-1),
 
   const MDirection& SimplePBConvFunc::pointingDirAnt1(const vi::VisBuffer2& vb){
    
+
     std::ostringstream oss;
     
     oss << vb.msId() << "_" << vb.antenna1()(0) << "_";

@@ -954,7 +954,7 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
     //cerr << "ant " << ant << " indices " << indices << endl;
   }
 
-   MDirection VisBufferUtil::getPhaseCenter(const vi::VisBuffer2& vb, const String& extEphem, const Double timeo){
+   MDirection VisBufferUtil::getPhaseCenter(const vi::VisBuffer2& vb, const Double timeo){
      //Timer tim;
 
      Double timeph = timeo > 0.0 ? timeo : vb.time()(0);
