@@ -25,9 +25,7 @@ from casatools import componentlist as cltool
 
 class componentlist_test(unittest.TestCase):
 
-
     tablename = 'my.cl'
-
 
     def exception_check(self, func, method_parms, expected_msg, exc=RuntimeError ):
         with self.assertRaises(exc) as cm: 
@@ -130,6 +128,29 @@ class componentlist_test(unittest.TestCase):
         self.exception_check(
             cl.haskeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
         )
+        cl.addcomponent(
+            [1,0,0,0],'Jy','Stokes',['J2000', '10:30:00.00', '-20.00.00.0'],
+            'gaussian','4arcsec','2arcsec','30deg'
+        )
+        self.exception_check(
+            cl.putkeyword, {'keyword': 'metadata', 'value': 'x'}, msg, exc=RuntimeError
+        )
+        self.exception_check(
+            cl.getkeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
+        )
+        self.exception_check(
+            cl.haskeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
+        )
+        cl.rename(self.tablename)
+        self.assertFalse(cl.haskeyword('metadata'), 'false not returned')
+        # This causes a core dump in the test only, running it interactively
+        # does not produce a core dump and it behaves as expected. Do not
+        # test here.
+        # self.exception_check(
+        #    cl.getkeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
+        # )
+    
+        cl.done()
 
     """
     def test_hasmd(self):

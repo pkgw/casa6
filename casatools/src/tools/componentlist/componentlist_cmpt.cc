@@ -565,21 +565,36 @@ bool componentlist::close(const bool log)
 
 bool componentlist::done()
 {
-  itsLog->origin(LogOrigin("componentlist", "done"));
+  itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
+  *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
 
   bool rstat(false);
+
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
   try{
     if(itsList) {
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
+      
         delete itsList;
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
         itsList = nullptr;
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
+     
     }
+       
     if(itsBin) {
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
         delete itsBin;
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
         itsBin = nullptr;
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
     }
     //bring it back to the state of construction
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
     itsList = new ComponentList();
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
     itsBin = new ComponentList();
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
     rstat=true;
   }
   catch(const AipsError& x){
@@ -590,6 +605,7 @@ bool componentlist::done()
 }
 
 bool componentlist::haskeyword(const string& keyword) {
+  itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
     try {
         return itsList->hasKeyword(String(keyword));
     }
@@ -601,6 +617,7 @@ bool componentlist::haskeyword(const string& keyword) {
 }
 
 void componentlist::putkeyword(const string& keyword, const variant& value) {
+  itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
     try {
         itsList->putKeyword(String(keyword), value);
     }
@@ -611,7 +628,9 @@ void componentlist::putkeyword(const string& keyword, const variant& value) {
 }
 
 ::casac::variant* componentlist::getkeyword(const std::string& keyword) {
+  itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
     try {
+        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << endl;
         return itsList->getKeyword(String(keyword));
     }
     catch (const AipsError& x){

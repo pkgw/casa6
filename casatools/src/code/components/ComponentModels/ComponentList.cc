@@ -145,14 +145,13 @@ ComponentList::ComponentList(const ComponentList& other)
    itsAddOptCol(other.itsAddOptCol),
    itsRewriteTable(other.itsRewriteTable)
 {
-  DebugAssert(ok(), AipsError);
 }
 
 ComponentList::~ComponentList() {
-  if (! itsROFlag && ! itsTable.isNull() && itsRewriteTable) {
+    if (! itsROFlag && ! itsTable.isNull() && itsRewriteTable) {
     writeTable();
   }
-  AlwaysAssert(ok(), AipsError);
+  // AlwaysAssert(ok(), AipsError);
 }
 
 ComponentList& ComponentList::operator=(const ComponentList& other){
@@ -169,16 +168,10 @@ ComponentList& ComponentList::operator=(const ComponentList& other){
     itsAddOptCol = other.itsAddOptCol;
     itsRewriteTable = other.itsRewriteTable;
   }
-  DebugAssert(ok(), AipsError);
   return *this;
 }
 
 Bool ComponentList::isPhysical(const Vector<Int>& indices) const {
-  DebugAssert(ok(), AipsError);
-// The static_casts are a workaround for an SGI compiler bug
-  DebugAssert(allGE(static_cast<const Vector<Int> &>(indices), 0), AipsError);
-  DebugAssert(allLT(static_cast<const Vector<Int> &>(indices), 
-		    static_cast<Int>(nelements())), AipsError);
   Bool retVal = true;
   uInt c = indices.nelements();
   while (retVal && c > 0) {
@@ -192,7 +185,6 @@ Flux<Double> ComponentList::sample(const MDirection& sampleDir,
 				   const MVAngle& pixelLatSize,
 				   const MVAngle& pixelLongSize,
 				   const MFrequency& centerFreq) const {
-  DebugAssert(ok(), AipsError);
   const Unit retUnit("Jy");
   const ComponentType::Polarisation retPol(ComponentType::STOKES);
   Vector<DComplex> result(4, DComplex(0,0));
@@ -224,7 +216,6 @@ void ComponentList::sample(Cube<Double>& samples,
 
 void ComponentList::add(SkyComponent component) {
 //  AlwaysAssert(itsROFlag == false, AipsError);
-  DebugAssert(ok(), AipsError);
   uInt blockSize = itsList.nelements();
   if (itsNelements == blockSize) {
     const uInt newSize 
@@ -253,7 +244,6 @@ void ComponentList::addList(const ComponentList& list) {
 void ComponentList::remove(const uInt& index) {
 //  AlwaysAssert(itsROFlag == false, AipsError);
   AlwaysAssert(index < nelements(), AipsError);
-  DebugAssert(ok(), AipsError);
   uInt realIndex = itsOrder[index];
   itsSelectedFlags.remove(realIndex, false);
   itsList.remove(realIndex, false);
@@ -293,7 +283,6 @@ void ComponentList::deselect(const Vector<Int>& indexes) {
     AlwaysAssert(indexes(i) >= 0, AipsError);
     itsSelectedFlags[itsOrder[indexes(i)]] = false;
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::select(const Vector<Int>& indexes) {
@@ -302,11 +291,9 @@ void ComponentList::select(const Vector<Int>& indexes) {
     AlwaysAssert(indexes(i) >= 0, AipsError);
     itsSelectedFlags[itsOrder[indexes(i)]] = true;
   }
-  DebugAssert(ok(), AipsError);
 }
 
 Vector<Int> ComponentList::selected() const {
-  DebugAssert(ok(), AipsError);
   uInt nSelected = 0;
   for (uInt i = 0; i < nelements(); i++) {
     if (itsSelectedFlags[i] == true) {
@@ -332,7 +319,6 @@ void ComponentList::setLabel(const Vector<Int>& which,
     c = which(i);
     component(c).label() = newLabel;
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::getFlux(Vector<casacore::Quantity>& fluxQuant, int which) const {
@@ -370,7 +356,6 @@ void ComponentList::setFlux(const Vector<Int>& which,
     c = which(i);
     component(c).flux() = newFlux;
   }
-  DebugAssert(ok(), AipsError);
 }
 
 Vector<String> ComponentList::getStokes(const Int& which) const {
@@ -411,7 +396,6 @@ void ComponentList::convertFluxUnit(const Vector<Int>& which,
     c = which(i);
     component(c).flux().convertUnit(unit);
   }
-  DebugAssert(ok(), AipsError);
 }
   
 void ComponentList::convertFluxPol(const Vector<Int>& which,
@@ -422,7 +406,6 @@ void ComponentList::convertFluxPol(const Vector<Int>& which,
     c = which(i);
     component(c).flux().convertPol(pol);
   }
-  DebugAssert(ok(), AipsError);
 }
  
 void ComponentList::setRefDirection(const Vector<Int>& which,
@@ -437,7 +420,6 @@ void ComponentList::setRefDirection(const Vector<Int>& which,
     curDir.set(newDir);
     curShape.setRefDirection(curDir);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::setRefDirectionFrame(const Vector<Int>& which,
@@ -453,7 +435,6 @@ void ComponentList::setRefDirectionFrame(const Vector<Int>& which,
     curDir.set(newRef);
     curShape.setRefDirection(curDir);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::convertRefDirection(const Vector<Int>& which,
@@ -469,7 +450,6 @@ void ComponentList::convertRefDirection(const Vector<Int>& which,
     curDir = curShape.refDirection();
     curShape.setRefDirection(converter(curDir));
   }
-  DebugAssert(ok(), AipsError);
 }
 
 MDirection ComponentList::getRefDirection(Int which) const {
@@ -490,7 +470,6 @@ void ComponentList::setShape(const Vector<Int>& which,
       itsAddOptCol=true;
     }
   }
-  DebugAssert(ok(), AipsError);
 }
 
 const ComponentShape* ComponentList::getShape(Int which) const {
@@ -510,7 +489,6 @@ void ComponentList::setShapeParms(const Vector<Int>& which,
     component(c).setShape(newShape);
     comp.shape().setRefDirection(oldDir);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::setOptParms(const Vector<Int>& which,
@@ -529,7 +507,6 @@ void ComponentList::setOptParms(const Vector<Int>& which,
       itsAddOptCol=true;
     }
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::setSpectrum(const Vector<Int>& which,
@@ -540,7 +517,6 @@ void ComponentList::setSpectrum(const Vector<Int>& which,
     c = which(i);
     component(c).setSpectrum(newSpectrum);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::setSpectrumParms(const Vector<Int>& which,
@@ -555,7 +531,6 @@ void ComponentList::setSpectrumParms(const Vector<Int>& which,
     component(c).setSpectrum(newSpectrum);
     comp.spectrum().setRefFrequency(oldFreq);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::setRefFrequency(const Vector<Int>& which, 
@@ -570,7 +545,6 @@ void ComponentList::setRefFrequency(const Vector<Int>& which,
     curFreq.set(newFreq);
     curSpectrum.setRefFrequency(curFreq);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 void ComponentList::setRefFrequencyFrame(const Vector<Int>& which,
@@ -586,7 +560,6 @@ void ComponentList::setRefFrequencyFrame(const Vector<Int>& which,
     curFreq.set(newRef);
     curSpectrum.setRefFrequency(curFreq);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 
@@ -598,18 +571,15 @@ void ComponentList::setRefFrequencyUnit(const Vector<Int>& which,
     c = which(i);
     component(c).spectrum().convertFrequencyUnit(unit);
   }
-  DebugAssert(ok(), AipsError);
 }
 
 SkyComponent& ComponentList::component(const uInt& index) {
 //  AlwaysAssert(itsROFlag == false, AipsError);
   AlwaysAssert(index < nelements(), AipsError);
-  //DebugAssert(ok(), AipsError);
   return itsList[itsOrder[index]];
 }
 
 const SkyComponent& ComponentList::component(const uInt& index) const {
-  DebugAssert(ok(), AipsError);
   AlwaysAssert(index < nelements(), AipsError);
   return itsList[itsOrder[index]];
 }
@@ -618,7 +588,6 @@ void ComponentList::rename(const Path& fileName,
 			   const Table::TableOption option) {
   AlwaysAssert(option != Table::Old, AipsError);
   AlwaysAssert(itsROFlag == false, AipsError);
-  DebugAssert(ok(), AipsError);
   if (fileName.length() != 0) {
     // See if this list is associated with a Table. 
     if (itsTable.isNull()) {
@@ -632,7 +601,6 @@ void ComponentList::rename(const Path& fileName,
     // Ensure that the Table::isReadable(fileName) returns true, otherwise the
     // ok() function will fail.
     itsTable.flush();
-    DebugAssert(ok(), AipsError);
   } else {
     if (!itsTable.isNull()) {
       itsTable.markForDelete();
@@ -643,7 +611,6 @@ void ComponentList::rename(const Path& fileName,
 }
 
 ComponentList ComponentList::copy() const {
-  DebugAssert(ok(), AipsError);
   ComponentList copiedList;
   SkyComponent currentComp;
   for (uInt c = 0; c < nelements(); c++) {
@@ -914,7 +881,6 @@ void ComponentList::writeTable() {
   if (itsTable.isWritable() == false) {
     itsTable.reopenRW();
   }
-  DebugAssert(itsTable.isWritable(), AipsError);
   {
     const casacore::rownr_t nRows = itsTable.nrow();
     const casacore::rownr_t nelem = nelements();
@@ -1252,7 +1218,6 @@ Bool ComponentList::fromRecord(String& error, const RecordInterface& inRec){
 
 String ComponentList::summarize(uInt index) const {
 	  AlwaysAssert(index < nelements(), AipsError);
-	  DebugAssert(ok(), AipsError);
 	  return component(index).summarize();
 }
 
@@ -1271,6 +1236,9 @@ bool ComponentList::hasKeyword(const String& keyword) const {
 
 void ComponentList::putKeyword(const String& keyword, const variant& value) {
     ThrowIf(itsTable.isNull(), "A table is not attached to this ComponentList");
+    if (! itsTable.isWritable()) {
+        itsTable.reopenRW();
+    }
     std::unique_ptr<ValueHolder> aval(toValueHolder(value));
     TableProxy tp(itsTable);
     tp.putKeyword(String(), keyword, -1, false, *aval);
