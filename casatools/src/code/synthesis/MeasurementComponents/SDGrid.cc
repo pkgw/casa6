@@ -1728,7 +1728,8 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     //     - for the antenna of specified row,
     //     - at a time close enough to the time at which
     //       data of specified row was taken using that antenna
-    Int pointingIndex = -1;
+    constexpr Int invalidIndex = -1;
+    Int pointingIndex = invalidIndex;
     if (havePointings) {
         #if defined(SDGRID_PERFS)
         StartStop trigger(cSearchValidPointing);
