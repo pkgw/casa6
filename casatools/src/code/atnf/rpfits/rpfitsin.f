@@ -29,6 +29,7 @@ C-----------------------------------------------------------------------
      :          jstat, k, lun, pcount, SIMPLE
       real      buffer(640), crpix4, grphdr(11), r1, r2, revis,
      :          sc_buf(max_sc*max_if*ant_max), pra, pdec
+      static :: buffer
       double precision d2pi
       character keyvalue*20, keyword*8, m(32)*80, terr*2
 

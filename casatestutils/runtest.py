@@ -306,13 +306,13 @@ def run_shell_command(cmd, run_directory):
 
 def is_in_remote(branch,repo_path, repo):
     if branch != 'master':
-        cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, branch )
+        cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("([^\/]+$)",branch )[0])
         #print("\tRunning: ", cmd)
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell = True)
         out = proc.stdout.read()
         if int(out)== 0: # If Feature Branch Exists Does Not exist, revert to master
             return False
-        else: 
+        else:
             return True
     else:
         return True
@@ -352,20 +352,26 @@ def fetch_tests(work_dir, branch, merge_target=None):
     run_shell_command(cmd, source_dir)
 
     if merge_target is not None:
-
-        cmd = ("git checkout " + merge_target).split()
+        
+        cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
         print("\tRunning: ", " ".join(str(x) for x in cmd))
         run_shell_command(cmd, source_dir + "/" + repo)
 
         if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
             print("\tMerging {} into {}".format(branch, merge_target))
-            cmd = ("git merge " + branch).split()
+
+            cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch )[0]).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
-            run_shell_command(cmd, source_dir + "/" + repo)
+            out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+            print(out.decode("utf-8"))
+
+            print("\tRunning: git status")
+            out = subprocess.check_output(["git", "status"], cwd=source_dir + "/" + repo)
+            print(out.decode("utf-8"))
         else:
             print("\t{} not in Remote Repository {}".format(branch,repo))
     else:
-        cmd = ("git checkout " + branch).split()
+        cmd = ("git checkout origin/{}".format(re.findall("([^\/]+$)",branch )[0])).split()
         if is_in_remote(branch,repo_path, repo):
             print("\tRunning: ", " ".join(str(x) for x in cmd))
         else:
@@ -386,25 +392,30 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
         if merge_target is not None:
 
-            cmd = ("git checkout " + merge_target).split()
+            cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
 
             if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
                 print("\tMerging {} into {}".format(branch, merge_target))
-                cmd = ("git merge " + branch).split()
+                cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch)[0]).split()
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
-                run_shell_command(cmd, source_dir + "/" + repo)
+                out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+                print(out.decode("utf-8"))
+
+                print("\tRunning: git status")
+                out = subprocess.check_output(["git", "status"], cwd=source_dir + "/" + repo)
+                print(out.decode("utf-8"))
             else:
                 print("\t{} not in Remote Repository {}".format(branch,repo))
                 if os.path.isfile(source_dir+"/casa6/build.conf"):
                     print("\tCheckout from build.conf")
                     branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                     print("\tTag: " + branchtag)
-                    cmd = ("git checkout " + branchtag).split()
+                    cmd = ("git checkout origin/{}".format(branchtag)).split()
                 else:
                     print("No casa6/build.conf found. Defaulting to master")
-                    cmd = ("git checkout origin/{}".format(merge_target)).split()
+                    cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
                 run_shell_command(cmd, source_dir + "/" + repo)
 
@@ -414,12 +425,12 @@ def fetch_tests(work_dir, branch, merge_target=None):
             if os.path.isfile(source_dir+"/casa6/build.conf"):
                 branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                 print("\tTag: " + branchtag)
-                cmd = ("git checkout " + branchtag).split()
+                cmd = ("git checkout origin/{}".format(branchtag)).split()
             else:
                 # Check If Feature Branch Exists
-                if is_in_remote(branch,repo_path, repo): 
-                    cmd = ("git checkout " + branch).split()
-                else: 
+                if is_in_remote(branch,repo_path, repo):
+                    cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+                else:
                     print("\t{} not in Remote Repository {} Defaulting to master.".format(branch,repo))
                     cmd = ("git checkout origin/master").split()
 
@@ -468,7 +479,7 @@ def unpack_tarball(pkg, outputdir):
         break
 
     if installpath is None:
-        raise  RuntimeError("Couldn't find a directory that looks like a Casa distribution. Expected directory name to start with 'casa-'")  
+        raise  RuntimeError("Couldn't find a directory that looks like a Casa distribution. Expected directory name to start with 'casa-'")
     return outputdir + "/" + installpath
 
 def get_casatestutils_exec_path(pkg_dir):
@@ -507,7 +518,7 @@ def write_conftest(conf_name):
         write_conftest_linux(conf_name)
 
 def run_cmd(cmd):
-    try: 
+    try:
         from casampi.MPIEnvironment import MPIEnvironment
         if MPIEnvironment.is_mpi_enabled:
             pytest.main(cmd)
@@ -831,7 +842,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
-            if pmode == 'both': 
+            if pmode == 'both':
                 cwd = work_dir + "/" + test.name + '_mpi'
 
             print("Running cmd " + str(cmd) + "in " + cwd)
@@ -1142,7 +1153,7 @@ if __name__ == "__main__":
                     for test_path in test_paths:
                         #print(test_path)
                         for test in testnames:
-                            if not test.endswith(".py"): 
+                            if not test.endswith(".py"):
                                 test = test + ".py"
                             #print(test)
                             for root, dirs, files in os.walk(test_path):

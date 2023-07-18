@@ -10,6 +10,7 @@ class Weblog():
         self.localdict = localdict
         self.taskname = taskname
         self.test_counter = 1
+        self.total_runtime = 0
         self.all_passed = True
         #self.html = open("test_{}_weblog.html".format(self.taskname.lower()), 'w')
 
@@ -196,7 +197,10 @@ class Weblog():
                     continue
             self.all_passed = False
             Weblog(self.taskname, self.localdict).generate_table_row(str(self.test_counter), str(key), dictionary[key]['description'],  dictionary[key]['runtime'], "tg-ck9b" if dictionary[key]['status'] == True else "tg-r50r" )
+            self.total_runtime += dictionary[key]['runtime']
             self.test_counter += 1
+        Weblog(self.taskname, self.localdict).generate_table_row(str(self.test_counter),'Total', 'Total test runtime', self.total_runtime, "tg-ck9b")
+        
         with open("test_{}_weblog.html".format(self.taskname.lower()), 'a+') as self.html:
             if self.all_passed:
                 self.html.write("<tr>" + "\n")

@@ -4567,7 +4567,7 @@ bool image::putregion(
             );
         }
         else {
-            ThrowCc("Logic error")
+            ThrowCc("Logic error");
         }
         if (ret) {
             _statsF.reset();
@@ -5812,41 +5812,26 @@ bool image::setrestoringbeam(
         }
         std::unique_ptr<Record> rec(toRecord(beam));
         ImageBeamSet bs;
-        if (! imagename.empty()) {
-            ThrowIf(
-                ! major.empty() || ! minor.empty() || ! pa.empty(),
-                "Cannot specify both imagename and major, minor, and/or pa"
-            );
-            ThrowIf(
-                remove, "remove cannot be true if imagename is specified"
-            );
-            ThrowIf(
-                ! beam.empty(),
-                "beam must be empty if imagename specified"
-            );
+        if (! (remove || imagename.empty())) {
             ThrowIf(
                 channel >= 0 || polarization >= 0,
                 "Neither channel nor polarization can be non-negative if "
                 "imagename is specified"
             );
-            std::unique_ptr<ImageInterface<Float> > k;
+            std::unique_ptr<ImageInterface<Float>> k;
             ImageUtilities::openImage(k, imagename);
-            if (k.get() == 0) {
-                std::unique_ptr<ImageInterface<Float> > c;
+            if (! k) {
+                // It's not clear to me why the previous two lines are repeated
+                // here. Maybe a different template parameter was intended?
+                std::unique_ptr<ImageInterface<Float>> c;
                 ImageUtilities::openImage(c, imagename);
-                ThrowIf(
-                    c.get() == 0,
-                    "Unable to open " + imagename
-                );
+                ThrowIf(! c, "Unable to open " + imagename);
                 bs = c->imageInfo().getBeamSet();
             }
             else {
                 bs = k->imageInfo().getBeamSet();
             }
-            ThrowIf(
-                bs.empty(),
-                "Image " + imagename + " has no beam"
-            );
+            ThrowIf(bs.empty(), "Image " + imagename + " has no beam");
         }
         if (_imageF) {
             _setrestoringbeam(
@@ -5915,22 +5900,60 @@ template<class T> void image::_setrestoringbeam(
     bool remove, bool log, int channel, int polarization,
     const Record& rec, const ImageBeamSet& bs
 ) {
+    _log << _ORIGIN;
     BeamManipulator<T> bManip(image);
     bManip.setVerbose(log);
     if (remove) {
+        if (log) {
+            _log << LogIO::NORMAL << "Will remove any existing beams from image"
+                << LogIO::POST;
+        }
         bManip.remove();
+        return;
     }
     else if (! bs.empty()) {
+        if (log) {
+            _log << LogIO::NORMAL << "Will copy beams from another image to this image"
+                << LogIO::POST;
+        }
         bManip.set(bs);
+        return;
     }
-    else {
-        bManip.set(
-            major.empty() ? casacore::Quantity() : _casaQuantityFromVar(major),
-            minor.empty() ? casacore::Quantity() : _casaQuantityFromVar(minor),
-            pa.empty() ? casacore::Quantity() : _casaQuantityFromVar(pa),
-            rec, channel, polarization
-        );
+    casacore::Quantity bmajor, bminor, bpa;
+    if (rec.empty()) {
+        if (major.empty()) {
+            ThrowCc("beam record is empty, major must be specified");
+        }
+        else if (minor.empty()) {
+            ThrowCc("beam record is empty, minor must be specified");
+        }
+        else if (pa.empty()) {
+            ThrowCc("beam record is empty, positionangle must be specified");
+        }
+        try {
+            bmajor = _casaQuantityFromVar(major);
+            bminor = _casaQuantityFromVar(minor);
+            bpa = _casaQuantityFromVar(pa);
+        }
+        catch (const AipsError& x) {
+            ThrowCc(
+                "If beam record not specified, all of major, minor, and "
+                "positionangle must be specified and be either valid "
+                "quantity records or strings"
+            );
+        }
+        if (log) {
+            _log << LogIO::NORMAL << "Will use values specified in major, "
+                << "minor, pa to set beam" << LogIO::POST;
+        }
     }
+    else if (log) {
+        if (log) {
+            _log << LogIO::NORMAL << "Will use dictionary specified in beam "
+                << "parameter to set the beam(s)" << LogIO::POST;
+        }
+    }
+    bManip.set(bmajor, bminor, bpa, rec, channel, polarization);
 }
 
 String image::_quantityRecToString(const Record& q) {
@@ -6847,11 +6870,14 @@ casacore::Quantity image::_casaQuantityFromVar(const ::casac::variant& theVar) {
         casacore::QuantumHolder qh;
         String error;
         if (
-            theVar.type() == ::casac::variant::STRING
-            || theVar.type() == ::casac::variant::STRINGVEC
+            theVar.type() == casac::variant::STRING
+            || theVar.type() == casac::variant::STRINGVEC
+            || theVar.type() == casac::variant::DOUBLE
+            || theVar.type() == casac::variant::INT
+            || theVar.type() == casac::variant::UINT
         ) {
             ThrowIf(
-                !qh.fromString(error, theVar.toString()),
+                ! qh.fromString(error, theVar.toString()),
                 "Error " + error + " in converting quantity "
             );
         }
@@ -6867,6 +6893,7 @@ casacore::Quantity image::_casaQuantityFromVar(const ::casac::variant& theVar) {
         else if (theVar.type() == variant::BOOLVEC) {
             return casacore::Quantity();
         }
+        auto debug = qh.asQuantity();
         return qh.asQuantity();
     }
     catch (const AipsError& x) {
@@ -6879,7 +6906,6 @@ casacore::Quantity image::_casaQuantityFromVar(const ::casac::variant& theVar) {
 
 bool image::isconform(const string& other) {
     _log << _ORIGIN;
-
     if (_detached()) {
         return false;
     }
