@@ -149,23 +149,10 @@ class componentlist_test(unittest.TestCase):
         # self.exception_check(
         #    cl.getkeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
         # )
-    
+        cl.putkeyword('metadata', 'myval')
+        self.assertTrue(cl.haskeyword('metadata'), 'cl does not have expected keyword')
+        self.assertEqual(cl.getkeyword('metadata'), 'myval', 'cl keyword value unexpected')
         cl.done()
-
-    """
-    def test_hasmd(self):
-        ""Test hasmd() method""
-        mycl = cltool()
-        self.assertRaises(Exception, mycl.hasmd)
-        mycl.addcomponent(
-            [1,0,0,0],'Jy','Stokes',['J2000', '10:30:00.00', '-20.00.00.0'],
-            'gaussian','4arcsec','2arcsec','30deg'
-        )
-        self.assertRaises(Exception, mycl.hasmd)
-        mycl.rename(self.tablename)
-        self.assertFalse(mycl.hasmd())
-        mycl.close()
-    """
 
 
 if __name__ == '__main__':
