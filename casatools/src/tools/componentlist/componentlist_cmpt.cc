@@ -589,15 +589,9 @@ bool componentlist::done()
   return rstat;
 }
 
-bool componentlist::hasmd() {
+bool componentlist::haskeyword(const string& keyword) {
     try {
-        if (itsList->getTable().isNull()) {
-            itsLog->origin(LogOrigin("componentlist", __FUNCTION__));
-            *itsLog << LogIO::SEVERE << "Componentlist does not exist on disk"
-                << LogIO::POST;
-        }
-        *itsLog << LogIO::WARN << __FILE__ << " " << __LINE__ << LogIO::POST;
-        return itsList->hasMetaData();
+        return itsList->hasKeyword(String(keyword));
     }
     catch (const AipsError& x){
 	    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
@@ -606,14 +600,25 @@ bool componentlist::hasmd() {
     return false;
 }
 
-void componentlist::putkeyword(const variant& keyword, const variant& value) {
+void componentlist::putkeyword(const string& keyword, const variant& value) {
     try {
-        itsList->putKeyword(keyword, value);
+        itsList->putKeyword(String(keyword), value);
     }
     catch (const AipsError& x){
 	    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
 	    RETHROW(x)
     }
+}
+
+::casac::variant* componentlist::getkeyword(const std::string& keyword) {
+    try {
+        return itsList->getKeyword(String(keyword));
+    }
+    catch (const AipsError& x){
+	    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
+	    RETHROW(x)
+    }
+    return nullptr;
 }
 
 bool componentlist::select(const std::vector<long>& which)

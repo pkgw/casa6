@@ -79,8 +79,8 @@
 #include <casacore/casa/Utilities/Sort.h>
 #include <casacore/casa/BasicSL/String.h>
 #include <casacore/casa/Containers/Record.h>
-#include <stdcasa/variant.h>
 #include <stdcasa/StdCasa/CasacSupport.h>
+#include <stdcasa/variant.h>
 #include <memory>
 
 using namespace casacore;
@@ -1264,32 +1264,24 @@ const Table& ComponentList::getTable() const {
     return itsTable;
 }
 
-bool ComponentList::hasMetaData() const {
-    return itsTable.keywordSet().fieldNumber("metadata") >= 0;
+bool ComponentList::hasKeyword(const String& keyword) const {
+    ThrowIf(itsTable.isNull(), "A table is not attached to this ComponentList");
+    return itsTable.keywordSet().fieldNumber(keyword) >= 0;
 }
 
-void ComponentList::putKeyword(const variant& keyword, const variant& value) {
+void ComponentList::putKeyword(const String& keyword, const variant& value) {
     ThrowIf(itsTable.isNull(), "A table is not attached to this ComponentList");
-    auto mytype = keyword.type();
-    ThrowIf(
-        ! (mytype == variant::STRING && mytype == variant::INT),
-        "keyword must either be a string or an integer"
-    );
     std::unique_ptr<ValueHolder> aval(toValueHolder(value));
     TableProxy tp(itsTable);
-    switch(keyword.type()) {
-        case variant::STRING :
-            tp.putKeyword(String(), String(keyword.toString()), -1, false, *aval);
-            break;
-        case variant::INT :
-            tp.putKeyword(String(), String(), keyword.toInt(), false, *aval);
-            break;
-        default :
-            // check above should have handled this case already
-            ThrowCc("Keyword must be string or int");
-    }
+    tp.putKeyword(String(), keyword, -1, false, *aval);
 }
 
+variant* ComponentList::getKeyword(const String& keyword) const {
+    ThrowIf(itsTable.isNull(), "A table is not attached to this ComponentList");
+    TableProxy tp(itsTable);
+    auto value = tp.getKeyword(String(), keyword, -1);
+    return fromValueHolder(value);
+}
 
 } //# NAMESPACE CASA - END
 

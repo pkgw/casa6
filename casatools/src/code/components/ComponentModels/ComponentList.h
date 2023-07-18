@@ -483,11 +483,24 @@ public:
 
   const casacore::Table& getTable() const;
 
-  // check for the existence of a table record with keyword "metadata".
-  bool hasMetaData() const;
 
-  // set the metadata table record
-  void putKeyword(const casac::variant& keyword, const casac::variant& value);
+  // Does the table have the specified table keyword? If the there isn't
+  // an attached table. an exception is thrown. This is a convenience method
+  // to support String keywords and is not meant as a complete replacement
+  // for the Table API.
+  bool hasKeyword(const casacore::String& keyword) const;
+
+  // Set the specified table keyword. If the there isn't an attached table,
+  // an exception is thrown. This is a convenience method
+  // to support String keywords and is not meant as a complete replacement
+  // for the Table API.
+  void putKeyword(const casacore::String& keyword, const casac::variant& value);
+
+  // Get the specified table keyword. If the there isn't an attached table,
+  // an exception is thrown. If the specified table keyword doesn't exist,
+  // an exception is thrown. This is a convenience method to support String
+  // keywords and is not meant as a complete replacement for the Table API.
+  casac::variant* getKeyword(const casacore::String& keyword) const;
 
 private:
   // Privarte function to create the casacore::Table which will hold the components
@@ -508,6 +521,7 @@ private:
   // <li> casacore::AipsError - If the table is not writable (and readOnly==false)
   // </thrown>
   void readTable(const casacore::Path& fileName, const casacore::Bool readOnly);
+  
   casacore::Block<SkyComponent> itsList;
   casacore::uInt itsNelements;
   casacore::Table itsTable;

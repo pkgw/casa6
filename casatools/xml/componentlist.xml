@@ -247,22 +247,30 @@ cl.open('crux.cl')
   </comments>
 </method>
 
-<method name="hasmd" type="function">
+<method name="haskeyword" type="function">
   
-  <shortdescription>Does the attached component list table have a "metadata" table keyword?</shortdescription>
+  <shortdescription>Does the attached component list table have the specified keyword??</shortdescription>
   
   <description>
     
-      Does the attached component list table have a "metadata" table keyword? This
+      Does the attached component list table have the specified keyword? This
       method will not work for in-memory componentlists. That is, the componentlist
-      must exist on disk. If not, an exception is thrown.
+      must exist on disk. If not, an exception is thrown. This method is for
+      convenience for string keywords and is not meant as a replacement for the
+      table tool API.
    
   </description>
+    <input>
+        <param name="keyword" type="string">
+            <description>Keyword. </description>
+            <value>metadata</value>
+        </param>
+    </input> 
   <returns type="bool"/>
   <example>
       cl2 = componentlist()
       cl2.open('my.cl')
-      cl2.hasmd())
+      res = cl2.haskeyword('metadata'))
       cl2.done()
   </example>
 </method>
@@ -270,15 +278,18 @@ cl.open('crux.cl')
 <method name="putkeyword" type="function">
     <shortdescription>Set the specified table keyword.</shortdescription>
     <description>
-        Set the specified keyword in the componentlist table. If the keyword already exists
-        in the table, it will be overwritten with this specified value. The keyword must
-        be an integer or a string. The value can be any type that CASA supports as an
-        input parameter to tool methods.
+        Set the specified keyword in the componentlist table. If the keyword
+        already exists in the table, it will be overwritten with this specified
+        value. The value can be any type that CASA supports as an input
+        parameter to tool methods. This method will not work for in-memory
+        componentlists. That is, the componentlist must exist on disk. If not,
+        an exception is thrown. This method is for convenience for string
+        keywords and is not meant as a replacement for the table tool API.
     </description>
     <input>
-        <param name="keyword" type="record">
-            <description> Value to be set.. </description>
-            <value/>
+        <param name="keyword" type="string">
+            <description>Keyword.</description>
+            <value>metadata</value>
         </param> 
         <param name="value" type="any">
             <description> Value to be set. </description>
@@ -290,8 +301,35 @@ cl.open('crux.cl')
     <example>
       cl2 = componentlist()
       cl2.open('my.cl')
-      myrec = {'me': 2, 'you': 3}
-      cl2.setmd(myrec)
+      myrec = {'fred': 2, 'you': 3}
+      cl2.setkeyword('metadata')
+      cl2.done()
+    </example>
+</method>
+
+<method name="getkeyword" type="function">
+    <shortdescription>Get the specified table keyword.</shortdescription>
+    <description>
+        Get the specified keyword in the componentlist table. This method
+        will not work for in-memory componentlists. That is, the componentlist
+        must exist on disk. If not, an exception is thrown. If the specified
+        keyword does not exist in the table, an exception is thrown. This
+        method is for convenience for string keywords and is not meant as a
+        replacement for the table tool API.
+    </description>
+    <input>
+        <param name="keyword" type="string">
+            <description>Keyword.</description>
+            <value>metadata</value>
+        </param> 
+    </input>
+    <returns type="any">
+     <any type="variant"/>
+    </returns>
+    <example>
+      cl2 = componentlist()
+      cl2.open('my.cl')
+      res = cl2.getkeyword('metadata')
       cl2.done()
     </example>
 </method>

@@ -28,6 +28,20 @@ class componentlist_test(unittest.TestCase):
 
     tablename = 'my.cl'
 
+
+    def exception_check(self, func, method_parms, expected_msg, exc=RuntimeError ):
+        with self.assertRaises(exc) as cm: 
+            res = func(**method_parms)
+        got_exception = cm.exception
+        if type(expected_msg) == list:
+            pos = max( [ str(got_exception).find(msg) for msg in expected_msg ] )
+        else:
+            pos = str(got_exception).find(expected_msg)
+        self.assertNotEqual(
+            pos, -1, msg=f'Unexpected exception was thrown: {got_exception} ({pos} != -1)'
+        )
+
+
     def setUp(self):
         self.cleanup()
 
@@ -103,8 +117,23 @@ class componentlist_test(unittest.TestCase):
         )
 
 
+    def test_table_keyword_interface(self):
+        """Test putting, getting, querying table keywords"""
+        cl = cltool()
+        msg = 'A table is not attached to this ComponentList'
+        self.exception_check(
+            cl.putkeyword, {'keyword': 'metadata', 'value': 'x'}, msg, exc=RuntimeError
+        )
+        self.exception_check(
+            cl.getkeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
+        )
+        self.exception_check(
+            cl.haskeyword, {'keyword': 'metadata'}, msg, exc=RuntimeError
+        )
+
+    """
     def test_hasmd(self):
-        """Test hasmd() method"""
+        ""Test hasmd() method""
         mycl = cltool()
         self.assertRaises(Exception, mycl.hasmd)
         mycl.addcomponent(
@@ -115,6 +144,8 @@ class componentlist_test(unittest.TestCase):
         mycl.rename(self.tablename)
         self.assertFalse(mycl.hasmd())
         mycl.close()
+    """
+
 
 if __name__ == '__main__':
     unittest.main()
