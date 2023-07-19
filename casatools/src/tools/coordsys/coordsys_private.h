@@ -6,8 +6,8 @@ void setcoordsys(casacore::CoordinateSystem &acsys);
 
 private:
 
-mutable casacore::PtrHolder<casacore::LogIO>  _log;
-casacore::PtrHolder<casacore::CoordinateSystem> _csys;
+mutable std::unique_ptr<casacore::LogIO>  _log;
+std::unique_ptr<casacore::CoordinateSystem> _csys;
 casacore::String _imageName;
 
 // private constructor to make components on the fly

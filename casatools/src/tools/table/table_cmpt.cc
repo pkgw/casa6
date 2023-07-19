@@ -15,41 +15,42 @@
 #include <iostream>
 #include <algorithm>
 #include <table_cmpt.h>
-#include <casa/aips.h>
-#include <tables/DataMan/IncrementalStMan.h>
-#include <tables/DataMan/IncrStManAccessor.h>
-#include <tables/DataMan/MemoryStMan.h>
-#include <tables/Tables/Table.h>
-#include <tables/Tables/TableProxy.h>
-#include <tables/Tables/TableColumn.h>
-#include <tables/TaQL/TableParse.h>
-#include <tables/Tables/TableLock.h>
-#include <fits/FITS/FITSTable.h>
-#include <fits/FITS/SDFITSTable.h>
-#include <casa/Inputs/Input.h>
-#include <casa/Containers/Record.h>
-#include <casa/Containers/ValueHolder.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/OS/File.h>
-#include <tools/utils/stdBaseInterface.h>
-#include <tools/table/Statistics.h>
+#include <tablerow_cmpt.h>
+#include <casacore/casa/aips.h>
+#include <casacore/tables/DataMan/IncrementalStMan.h>
+#include <casacore/tables/DataMan/IncrStManAccessor.h>
+#include <casacore/tables/DataMan/MemoryStMan.h>
+#include <casacore/tables/Tables/Table.h>
+#include <casacore/tables/Tables/TableProxy.h>
+#include <casacore/tables/Tables/TableColumn.h>
+#include <casacore/tables/TaQL/TableParse.h>
+#include <casacore/tables/Tables/TableLock.h>
+#include <casacore/fits/FITS/FITSTable.h>
+#include <casacore/fits/FITS/SDFITSTable.h>
+#include <casacore/casa/Inputs/Input.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Containers/ValueHolder.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/OS/File.h>
+#include <stdcasa/Statistics.h>
 //begin modification
 //july 4 2007
-#include <tools/table/asdmCasaXMLUtil.h>
-#include <tables/Tables/TableDesc.h>
-#include <tables/Tables/TableIter.h>
-#include <tables/Tables/TableRow.h>
-#include <tables/Tables/SetupNewTab.h>
-#include <tables/Tables/ScaColDesc.h>
-#include <tables/Tables/ArrColDesc.h>
-#include <tables/DataMan/StandardStMan.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <tables/Tables/ArrayColumn.h>
-#include <tables/Tables/PlainTable.h>
-#include <casa/Utilities/Regex.h>
+#include "asdmCasaXMLUtil.h"
+#include <casacore/tables/Tables/TableDesc.h>
+#include <casacore/tables/Tables/TableIter.h>
+#include <casacore/tables/Tables/TableRow.h>
+#include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/tables/Tables/ScaColDesc.h>
+#include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/DataMan/StandardStMan.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
+#include <casacore/tables/Tables/PlainTable.h>
+#include <casacore/casa/Utilities/Regex.h>
 // jagonzal: Needed for ISM error detection tool
-#include <tables/DataMan/DataManError.h>
+#include <casacore/tables/DataMan/DataManError.h>
+#include <utility>
 
 
 using namespace std;
@@ -64,24 +65,35 @@ using namespace casac;
 using namespace casacore;
 namespace casac {
 
-table::table()
+table::table(const string &tablename, const record &lockoptions, bool nomodify)
 {
-   itsTable = 0;
    itsLog = new casacore::LogIO;
+   if ( tablename.size() > 0 ) {
+      Record *tlock = NULL;
+      try {
+         tlock = toRecord(lockoptions);
+         if(nomodify){
+            if(itsTable)close();
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Old) );
+         } else {
+            if(itsTable)close();
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Update) );
+         }
+      } catch (...) { }
+      delete tlock;
+   }
 }
 
-table::table(casacore::TableProxy *theTable)
+table::table(TableHandle *theTable) : itsTable(theTable)
 {
-   //itsTable = new TableProxy(*theTable);
-   itsTable = theTable;
    itsLog = new casacore::LogIO;
 }
 
 table::~table()
 {
+  remove_all_tablerows( );
   delete itsLog;
-  if(itsTable)
-     delete itsTable;
+  itsTable.reset( );
 }
 
 bool
@@ -91,12 +103,13 @@ table::open(const std::string& tablename, const ::casac::record& lockoptions, co
     try {
         Record *tlock = toRecord(lockoptions);
         //TableLock *itsLock = getLockOptions(tlock);
+        remove_all_tablerows( );
         if(nomodify){
             if(itsTable)close();
-            itsTable = new casacore::TableProxy(String(tablename),*tlock,Table::Old);
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Old) );
         } else {
             if(itsTable)close();
-            itsTable = new casacore::TableProxy(String(tablename),*tlock,Table::Update);
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Update) );
         }
         delete tlock;
         rstat = true;
@@ -124,11 +137,12 @@ table::create(const std::string& tablename, const ::casac::record& tabledesc,
    Record *tdesc = toRecord(tabledesc);
    Record *dmI   = toRecord(dminfo);
 
+   remove_all_tablerows( );
    if(itsTable)
      close();
-   itsTable = new casacore::TableProxy(String(tablename), *tlock,
-                                   String(endianformat), String(memtype),
-                                   nrow, *tdesc, *dmI);
+   itsTable.reset( new TableHandle( tablename, *tlock,
+                                    endianformat, memtype,
+                                    nrow, *tdesc, *dmI ) );
    delete tlock;
    delete tdesc;
    delete dmI;
@@ -191,8 +205,8 @@ table::close()
 
  Bool rstat(false);
  try {
-    delete itsTable;
-    itsTable = 0;
+    remove_all_tablerows( );
+    itsTable.reset( );
     rstat = true;
  } catch (AipsError x) {
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
@@ -285,7 +299,7 @@ table::fromfits(const std::string& tablename, const std::string& fitsfile, const
     }
     
     tab.flush();
-    TableProxy *tb = new casacore::TableProxy(tab);
+    TableHandle *tb = new TableHandle(tab);
     rstat = new casac::table(tb);
     cout << "done." << endl;
 
@@ -311,7 +325,7 @@ table::copy(const std::string& newtablename, const bool deep, const bool valueco
  try {
 	 if(itsTable){
 		 Record *tdminfo = toRecord(dminfo);
-		 TableProxy *mycopy = new TableProxy;
+		 TableHandle *mycopy = new TableHandle;
 		 *mycopy = itsTable->copy(newtablename, memorytable, deep, valuecopy, endian, *tdminfo, norows);
 		 delete tdminfo;
 		 rstat = new casac::table(mycopy);
@@ -629,7 +643,7 @@ table::toasciifmt(const std::string& asciifile, const std::string& headerfile, c
 	    Vector<Int> precision; // optional vector describing the output precision for each column in "columns"
 	                           // - leave empty for now to use default precision
 	    Bool useBrackets(true); // use bracket format for array output by default
-	    message = itsTable->toAscii(String(asciifile), String(headerfile), toVectorString(columns), 
+	    message = itsTable->toAscii(asciifile, headerfile, toVectorString(columns),
 					String(sep), precision, useBrackets);
 	    if(message.size() > 0){
 		*itsLog << LogIO::WARN << "toasciifmt: " << message << LogIO::POST;
@@ -654,7 +668,7 @@ table::taql(const std::string& taqlcommand)
  ::casac::table *rstat(0);
  try {
    if(itsTable){
-     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlcommand));
+     TableHandle *theQTab = new TableHandle(tableCommand(taqlcommand).table());
      rstat = new ::casac::table(theQTab);
    } else {
      *itsLog << LogIO::WARN
@@ -692,7 +706,7 @@ table::query(const std::string& query, const std::string& name,
        taqlString << " orderby " << sortlist;
      if(!name.empty())
        taqlString << " giving \"" << name << "\"";
-     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlString.str()));
+     TableHandle *theQTab = new TableHandle(tableCommand(taqlString.str()).table());
      rstat = new ::casac::table(theQTab);
    } else {
      *itsLog << LogIO::WARN
@@ -893,7 +907,8 @@ table::selectrows(const std::vector<long>& rownrs, const std::string& name)
  ::casac::table *rstat(0);
  try {
 	 if(itsTable){
-		 rstat = new casac::table(new TableProxy(itsTable->selectRows(rownrs, String(name))));
+         Vector<Int64> const rownrsV(rownrs);
+		 rstat = new casac::table(new TableHandle(itsTable->selectRows(rownrsV, String(name))));
 	 } else {
 		 *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
 	 }
@@ -1249,7 +1264,8 @@ table::removerows(const std::vector<long>& rownrs)
  Bool rstat(false);
  try {
 	 if(itsTable){
-		 itsTable->removeRow(rownrs);
+         Vector<Int64> const rownrsV(rownrs);
+		 itsTable->removeRow(rownrsV);
 		 rstat = true;
 	 } else {
 		 *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
@@ -1361,23 +1377,121 @@ table::getcell(const std::string& columnname, const long rownr)
  return rstat;
 }
 
-::casac::variant*
-table::getcellslice(const std::string& columnname, const long rownr, const std::vector<long>& blc, const std::vector<long>& trc, const std::vector<long>& incr)
-{
- *itsLog << LogOrigin(__func__, columnname);
- ::casac::variant *rstat(0);
- try {
-	 if(itsTable){
-		 ValueHolder theVal = itsTable->getCellSlice(columnname, rownr, blc, trc, incr);
-		 rstat = fromValueHolder(theVal);
-	 } else {
-		 *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
-	 }
- } catch (AipsError x) {
-    *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
-    RETHROW(x);
- }
- return rstat;
+void table::_checkCorner(
+    const vector<long>& corner, const String& name, const IPosition& shape,
+    const pair<vector<long>, vector<long>>* const &blctrc
+) {
+    const auto ndim = shape.size();
+    const auto lt0 = [](long x) {return x < 0;};
+    ThrowIf(
+        ndim != corner.size(),
+        name + " must have length of " + String::toString(ndim)
+    );
+    ThrowIf(
+        find_if(corner.begin(), corner.end(), lt0) != corner.end(),
+        "All elements of " + name + " must be greater than or equal to 0"
+    );
+    for (uint i=0; i<ndim; ++i) {
+        ThrowIf(
+            corner[i] >= shape[i],
+            "Element " + String::toString(i) + " of " + name + " must be less "
+            "than " + String::toString(shape[i])
+        );
+    }
+    if (blctrc) {
+        const auto blc = blctrc->first;
+        const auto trc = blctrc->second;
+        for (uint i=0; i<blc.size(); ++i) {
+            ThrowIf(
+                trc[i] < blc[i],
+                "All elements of trc must be greater than or equal to their "
+                "corresponding blc elements"
+            );
+        }
+    }
+}
+
+casac::variant* table::getcellslice(
+    const std::string& columnname, const long rownr,
+    const std::vector<long>& blc, const std::vector<long>& trc, 
+    const std::vector<long>& incr 
+) {
+    *itsLog << LogOrigin(__FUNCTION__, columnname);
+    try {
+        if (! itsTable) {
+            *itsLog << LogIO::WARN << "No table specified, please open first"
+                << LogIO::POST;
+        }
+        TableColumn col(itsTable->table(), columnname);
+        auto shape = col.shape(rownr);
+        auto ndim = shape.size();
+        auto blcCopy = blc;
+        if (blc.size() == 1 && blc[0] == -1) {
+            // default value used
+            ThrowIf(
+                ndim == 0,
+                "It appears arrays in this column have different shapes, and "
+                "so the shape of the requested row cannot easily be "
+                "determined. Please explicitly specify the blc and trc."
+            );
+            blcCopy = vector<long>(ndim, 0);
+        }
+        else {
+            _checkCorner(blcCopy, "blc", shape);
+        }
+        auto trcCopy = trc;
+        if (trc.size() == 1 && trc[0] == -1) {
+            // default value
+            ThrowIf(
+                ndim == 0,
+                "It appears arrays in this column have different shapes, "
+                "and so the shape of the requested row cannot easily be "
+                "determined. Please explicitly specify the blc and trc."
+            );
+            trcCopy = vector<long>(ndim);
+            for (uint i=0; i<shape.size(); ++i) {
+                trcCopy[i] = shape[i] - 1;
+            }
+        }
+        else {
+            auto p = make_pair(blc, trc);
+            _checkCorner(trcCopy, "trc", shape, &p);
+        }
+        auto incrCopy = incr;
+        if (incr.size() != ndim && incrCopy.size() == 1 && incr[0] == 1) { 
+            // the default value of incr must be expanded
+            incrCopy = vector<long>(ndim, 1);
+        }
+        else {
+            ThrowIf(
+                ndim != incrCopy.size(),
+                "incr must have length of " + String::toString(ndim)
+            );
+            const auto lt0 = [](long x) {return x <= 0;};
+            ThrowIf(
+                find_if(
+                    incrCopy.begin(), incrCopy.end(), lt0) != incrCopy.end(
+                ),
+                "All elements of incr must be greater than 0"
+            );
+        }
+        Vector<int> cblc(ndim), ctrc(ndim), cinc(ndim);
+        for (uInt i=0; i<ndim; ++i) {
+            cblc[i] = (int)blcCopy[i];
+            ctrc[i] = (int)trcCopy[i];
+            cinc[i] = (int)incrCopy[i];
+        }
+        ValueHolder theVal = itsTable->getCellSlice(
+            columnname, rownr, cblc, ctrc, cinc
+        );
+        return fromValueHolder(theVal);
+    }    
+    catch (const AipsError& x) { 
+        *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg()
+            << LogIO::POST;
+        RETHROW(x);
+    }    
+    return nullptr;
 }
 
 ::casac::variant*
@@ -1386,14 +1500,14 @@ table::getcol(const std::string& columnname, const long startrow, const long nro
  *itsLog << LogOrigin(__func__, columnname);
  ::casac::variant *rstat(0);
  try {
-	 if(itsTable){
+     if(itsTable){
                  // ValueHolder theVal = itsTable->getColumn(columnname, startrow, nrow, rowincr);
-		 rstat = fromValueHolder(itsTable->getColumn(columnname, startrow, nrow, rowincr));
+         rstat = fromValueHolder(itsTable->getColumn(columnname, startrow, nrow, rowincr));
                  // rstat = fromValueHolder(theVal);
-	 } else {
-		 *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
-	 }
- } catch (AipsError x) {
+     } else {
+         *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
+     }    
+ } catch (AipsError x) { 
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x);
  }
@@ -1426,8 +1540,11 @@ table::getcolslice(const std::string& columnname, const std::vector<long>& blc, 
  ::casac::variant *rstat(0);
  try {
 	 if(itsTable){
-		 ValueHolder theVal = itsTable->getColumnSlice(columnname, startrow, nrow, rowincr, blc,
-				                               trc, incr);
+         Vector<Int> const blcV(blc);
+         Vector<Int> const trcV(trc);
+         Vector<Int> const incrV(incr);
+		 ValueHolder theVal = itsTable->getColumnSlice(columnname, startrow, nrow, rowincr, blcV,
+				                               trcV, incrV);
 		 rstat = fromValueHolder(theVal);
 	 } else {
 		 *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
@@ -1457,7 +1574,8 @@ table::putcell(const std::string& columnname, const std::vector<long>& rownr,
       }
 
       ValueHolder *aval = toValueHolder(thevalue);
-      itsTable->putCell(columnname, rownr, *aval);
+      Vector<Int64> const rownrV(rownr);
+      itsTable->putCell(columnname, rownrV, *aval);
       delete aval;
       return true;
     } else {
@@ -1489,7 +1607,10 @@ table::putcellslice(const std::string& columnname, const long rownr,
       }
 
       ValueHolder *aval = toValueHolder(value);
-      itsTable->putCellSlice(columnname, rownr, blc, trc, incr, *aval);
+      Vector<Int> const blcV(blc);
+      Vector<Int> const trcV(trc);
+      Vector<Int> const incrV(incr);
+      itsTable->putCellSlice(columnname, rownr, blcV, trcV, incrV, *aval);
       delete aval;
       return true;
     } else {
@@ -1589,7 +1710,9 @@ table::putcolslice(const std::string& columnname, const ::casac::variant& value,
         iinc.resize(blc.size());
         iinc.set(1);
       }
-      itsTable->putColumnSlice(String(columnname), startrow, nrow, rowincr, blc, trc, iinc, *aval);
+      Vector<Int> const blcV(blc);
+      Vector<Int> const trcV(trc);
+      itsTable->putColumnSlice(String(columnname), startrow, nrow, rowincr, blcV, trcV, iinc, *aval);
       delete aval;
       rstat = true;
     } else {
@@ -2098,16 +2221,15 @@ bool table::fromascii(const std::string& tablename, const std::string& asciifile
 
    *itsLog << LogOrigin(__func__, tablename);
    try {
-      Vector<String> atmp, btmp;
+      vector<std::string> atmp, btmp;
       IPosition tautoshape;
-      if(!itsTable)
-         delete itsTable;
+      remove_all_tablerows( );
+      itsTable.reset( );
       if(columnnames.size( ) > 0 && columnnames[0] != "")
-	      atmp = toVectorString(columnnames);
+          atmp = columnnames;
       if(datatypes.size( ) > 0 && datatypes[0] != "")
-	      btmp = toVectorString(datatypes);
-      itsTable = new casacore::TableProxy(String(asciifile), String(headerfile), String(tablename), autoheader, tautoshape, String(sep), String(commentmarker), firstline, lastline, atmp, btmp);
-      // itsTable = new casacore::TableProxy(asciifile, headerfile, String(tablename));
+          btmp = datatypes;
+      itsTable.reset( new TableHandle( asciifile, headerfile, tablename, autoheader, tautoshape, sep, commentmarker, firstline, lastline, atmp, btmp) );
       rstatus = true;
    } catch (AipsError x) {
       *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
@@ -2435,7 +2557,22 @@ bool table::testincrstman(const std::string& column)
 }
 
 
-
+::casac::tablerow*
+table::row( const std::vector<std::string> &columnnames, bool exclude ) {
+    *itsLog << LogOrigin(__func__,itsTable ? name( ) : "row without table");
+    try {
+        if ( itsTable ) {
+            auto result = new tablerow( this, itsTable, columnnames, exclude );
+            created_rows.push_back(result);
+            return result;
+        }
+    } catch (AipsError x) {
+        *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg( ) << LogIO::POST;
+        RETHROW(x);
+    }
+    *itsLog << LogIO::SEVERE << "Row access from unitialized table" << LogIO::POST;
+    throw AipsError("row access from unitialized table");
+}
 
 } // casac namespace
 

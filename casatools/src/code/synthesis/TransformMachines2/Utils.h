@@ -29,18 +29,22 @@
 #define SYNTHESIS_TRANSFORM2_UTILS_H
 
 
-#include <casa/aips.h>
-#include <casa/Exceptions/Error.h>
+#include <casacore/casa/aips.h>
+#include <casacore/casa/Exceptions/Error.h>
 #include <msvis/MSVis/VisBuffer2.h>
-#include <casa/Quanta/Quantum.h>
-#include <images/Images/ImageInterface.h>
+
+#include <casacore/images/Images/ImageOpener.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/images/Images/ImageInterface.h>
 //#include <ms/MeasurementSets/MeasurementSet.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
-#include <ms/MeasurementSets/MSColumns.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
 #include <synthesis/TransformMachines/CFCell.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/iostream.h>
+#include <casacore/images/Images/TempImage.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <iostream>
+
 
 namespace casa
 {
@@ -61,6 +65,7 @@ namespace casa
     void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::Complex>& cf);
     void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::DComplex>& cf);
     void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::Float>& cf);
+    void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::Double>& cf);
     
     casacore::Bool isVBNaN(const VisBuffer2& vb, casacore::String& mesg);
     namespace SynthesisUtils
@@ -135,11 +140,14 @@ namespace casa
       
       void showCS(const casacore::CoordinateSystem& cs, std::ostream& os, const casacore::String& msg=casacore::String());
       const casacore::Array<casacore::Complex> getCFPixels(const casacore::String& Dir, const casacore::String& fileName);
+      void putCFPixels(const casacore::String& Dir, const casacore::String& fileName,
+		       const casacore::Array<casacore::Complex>& srcpix);
       const casacore::IPosition getCFShape(const casacore::String& Dir, const casacore::String& fileName);
 
       void rotate2(const double& actualPA, CFCell& baseCFC, CFCell& cfc, const double& rotAngleIncr);
       
       casacore::TableRecord getCFParams(const casacore::String& dirName,const casacore::String& fileName,
+					casacore::IPosition& cfShape,
 					casacore::Array<casacore::Complex>& pixelBuffer,
 					casacore::CoordinateSystem& coordSys, 
 					casacore::Double& sampling,
@@ -152,6 +160,15 @@ namespace casa
 
       casacore::Vector<casacore::String> parseBandName(const casacore::String& fullName);
 
+      casacore::CoordinateSystem makeModelGridFromImage(const std::string& modelImageName,
+				  casacore::TempImage<casacore::DComplex>& modelImageGrid);
+
+      void makeAWLists(const casacore::Vector<double>& wVals,
+		       const casacore::Vector<double>& fVals,
+		       const bool& wbAWP, const uint& nw,
+		       const double& imRefFreq, const double& spwRefFreq,
+		       casacore::Vector<int>& wNdxList, casacore::Vector<int>& spwNdxList,
+		       const int vbSPW);
     }
     
     void getHADec(casacore::MeasurementSet& ms, const VisBuffer2& vb, casacore::Double &HA, casacore::Double& RA, casacore::Double& Dec);

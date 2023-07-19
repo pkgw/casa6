@@ -44,12 +44,13 @@
 #include <alma/Enumerations/CSubscanIntent.h>
 #include <alma/Enumerations/CTimeSampling.h>
 #include <alma/Enumerations/CWindowFunction.h>
-#include <casa/Logging/StreamLogSink.h>
-#include <casa/Logging/LogSink.h>
+#include <alma/Enumtcl/SubscanIntent.h>
+#include <casacore/casa/Logging/StreamLogSink.h>
+#include <casacore/casa/Logging/LogSink.h>
 
 #include "ASDM2MSException.h"
 
-#include <tables/Tables/TableProxy.h>
+#include <casacore/tables/Tables/TableProxy.h>
 #include <alma/MS2ASDM/MS2ASDM.h>
 #include <asdmstman/AsdmStMan.h>
 #include <ScansParser.h>
@@ -61,7 +62,6 @@
 #include "UvwCoords.h"
 #include "Name2Table.h"
 #include "BDF2AsdmStManIndex.h"
-#include "SubscanIntent.h"
 
 using namespace std;
 using namespace asdm;
@@ -6383,3 +6383,5 @@ namespace casac {
     }
 
 }
+
+#include "BdFlagger.inc"

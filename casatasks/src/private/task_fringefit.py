@@ -15,18 +15,23 @@ else:
 
 def fringefit(vis=None,caltable=None,
               field=None,spw=None,intent=None,
-              selectdata=None,timerange=None,antenna=None,scan=None,
+              selectdata=None,timerange=None,uvrange=None,
+              antenna=None,scan=None,
               observation=None, msselect=None,
               solint=None,combine=None,refant=None,
               minsnr=None,zerorates=None,globalsolve=None,niter=None,
               delaywindow=None,ratewindow=None,append=None,
               corrdepflags=None,
+              corrcomb=None,
               docallib=None,callib=None,gaintable=None,gainfield=None,interp=None,spwmap=None,
               paramactive=None,
+              concatspws=None,
               parang=None):
 
     #Python script
     casalog.origin('fringefit')
+
+    # 
 
     try: 
         mycb = calibrater()
@@ -38,10 +43,11 @@ def fringefit(vis=None,caltable=None,
 
         # Do data selection according to selectdata
         if (selectdata):
+            casalog.post("Selecting data")
             # pass all data selection parameters in as specified
             mycb.selectvis(time=timerange,spw=spw, scan=scan, field=field,
                            intent=intent, observation=str(observation),
-                           baseline=antenna,chanmode='none',
+                           baseline=antenna,uvrange=uvrange,chanmode='none',
                            msselect=msselect)
         else:
             # selectdata=F, so time,scan,baseline,msselect=''
@@ -53,8 +59,6 @@ def fringefit(vis=None,caltable=None,
         # signal use of correlation-dependent flags, if requested
         if corrdepflags:
             mycb.setcorrdepflags(True)
-
-                        
         # Arrange applies....
             
         if docallib:
@@ -64,15 +68,6 @@ def fringefit(vis=None,caltable=None,
             mycb.setcallib(mycallib.cld)
 
         else:
-            if paramactive is None or paramactive==[]:
-                paramactive=[True, True, False]
-            else:
-                if len(paramactive)!=3:
-                    casalog.post("paramactive: " + paramactive)
-                    raise ValueError( 'Error: paramactive vector must have exactly three entries' )
-            # Have to solve for peculiar phase!
-            paramactive.insert(0, True)
-
             # by traditional parameters
 
             ngaintab = 0;
@@ -114,26 +109,34 @@ def fringefit(vis=None,caltable=None,
                     mycb.setapply(t=0.0,table=gaintable[igt],field=thisgainfield,
                                   calwt=True,spwmap=thisspwmap,interp=thisinterp)
 
-            if len(delaywindow) != 2:
-                delaywindow = [-1e6, 1e6]
-            if len(ratewindow) != 2:
-                ratewindow = [-1e6, 1e6]
-
         # ...and now the specialized terms
-        # (BTW, interp irrelevant for these, since they are evaluated)
-                
+        if paramactive is None or paramactive==[]:
+            paramactive=[True, True, False]
+        else:
+            if len(paramactive)!=3:
+                casalog.post("paramactive: " + paramactive)
+                raise ValueError( 'Error: paramactive vector must have exactly three entries' )
+        # Have to solve for peculiar phase!
+        paramactive.insert(0, True)
+
+        if len(delaywindow) != 2:
+            delaywindow = [-1e6, 1e6]
+        if len(ratewindow) != 2:
+            ratewindow = [-1e6, 1e6]
+
         # Apply parallactic angle, if requested
         if parang: mycb.setapply(type='P')
-
         # Set up for solving; only support one gaintype
-        mycb.setsolve(type="FRINGE",t=solint,refant=refant,
+        mycb.setsolve(type="FRINGE",t=solint,refant=refant,preavg=0.001,
                       minsnr=minsnr,combine=combine,
                       zerorates=zerorates,
                       globalsolve=globalsolve,
                       niter=niter,
+                      corrcomb=corrcomb,
                       delaywindow=delaywindow,
                       ratewindow=ratewindow,
                       paramactive=paramactive,
+                      concatspws=concatspws,
                       table=caltable,append=append)
         mycb.solve()
 

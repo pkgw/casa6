@@ -424,6 +424,10 @@ class calibrater_test(unittest.TestCase):
         obsids[10:10000] = 1
         tb.putcol('OBSERVATION_ID', obsids)
         tb.close()
+        # Add a new row to the observation subtable
+        tb.open(self._vis+'/OBSERVATION', nomodify=False)
+        tb.copyrows(self._vis+'/OBSERVATION')
+        tb.close()
 
         tb.open(self._cal, nomodify=False)
         obsids = tb.getcol('OBSERVATION_ID')
@@ -431,17 +435,7 @@ class calibrater_test(unittest.TestCase):
         tb.putcol('OBSERVATION_ID', obsids)
         tb.close()
 
-        rowswithobs = []
-        rowswithoutobs = []
         tb.open(self._vis)
-        datacol = tb.getcol('OBSERVATION_ID')
-
-        for i in range(len(datacol)):
-            if datacol[i] == 0:
-                rowswithobs.append(i)
-            else:
-                rowswithoutobs.append(i)
-
         # Now save the DATA column to compare later
         beforedata = tb.getcol('DATA')[0][0]
         tb.close()
@@ -656,17 +650,17 @@ class calibrater_test(unittest.TestCase):
     def test_returnDict(self):
         """ Check that the returndict function gives a dictonary with the expected keys """
         cb.open(self._vis)
-        expectedKeys =  ['antennas', 'apply tables', 'field', 'intents', 'observation', 'scan', 'solve table', 'spw']
+        expectedKeys =  ['apply_tables', 'selectvis', 'solve_tables']
         res = cb.returndict()
-        beforeSpw = res['spw']
+        beforeSpw = res['selectvis']['spw']
         resKeys = res.keys()
 
         cb.selectvis(spw='1')
         res = cb.returndict()
-        afterSpw = res['spw']
+        afterSpw = res['selectvis']['spw']
 
         for key in resKeys:
-            self.assertTrue(key in expectedKeys)
+            self.assertTrue(key in expectedKeys, msg=key + " not in expected keys")
         self.assertTrue(len(resKeys) == len(expectedKeys))
         self.assertFalse(np.array_equal(beforeSpw, afterSpw))
         self.assertTrue(np.array_equal(afterSpw, [1]))
