@@ -1646,7 +1646,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/>0s</default>
+                        <default param="timebin"> <value type="string">0s</value></default>
                         <default param="clipzeros"> <value type="bool">False</value></default>
                     </equals>
                     <equals value="quack">
@@ -1722,7 +1722,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/>0s</default>
+                        <default param="timebin"> <value type="string">0s</value></default>
                     </equals>
                     <equals value="rflag">
                         <default param="field"><value type="string"/></default>
