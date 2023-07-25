@@ -151,7 +151,7 @@
             "comment":""
         },
         {
-            "testScript":"test_stk_vlass_pipeline_imaging",
+            "testScript":"test_stk_vla_users_continuum_from_SDM",
             "testType":"stakeholder",
             "maintainer":"Sandra Castro",
             "maintainerEmail":"scastro@eso.org",
@@ -161,13 +161,23 @@
             "comment":""
         },
         {
-            "testScript":"test_stk_vlass_pipeline_imaging_v1.2",
+            "testScript":"test_stk_vlass_pipeline_imaging",
+            "testType":"stakeholder",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":["mpi"],
+            "testGroup":["stakeholder"],
+            "timeout":7200,
+            "comment":""
+        },
+        {
+            "testScript":"test_stk_vlass_pipeline_imaging_1v2",
             "testType":"stakeholder",
             "maintainer":"Tak Tsutsumi",
             "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":["mpi"],
             "testGroup":["stakeholder"],
-            "timeout":14400,
+            "timeout":64800,
             "comment":""
         },
         {
