@@ -1,0 +1,71 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd       file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
+
+<task category="calibration" name="calmod" type="function">
+    <shortdescription>Rotate a Measurement Set to a new phase-center</shortdescription>
+        <description>
+This application retrieves calibrator information via telescope-specific web services
+and writes this information as a componentlist so that it may be used by applications
+downstream.
+        </description>
+        <input>
+            <param name="outfile" type="path">
+                <shortdescription>The name of the output component list to be written. Must be specified</shortdescription>
+                <description>The name of the output component list to be written. Must be specified
+                     Default: none, must be specified
+                        Example: outfile='3c273.cl'
+                </description>
+                <value type="string"/>
+            </param>
+        </input>
+        <input>
+            <param name="source" type="string">
+                <shortdescription>The calibrator name.</shortdescription>
+                <description>The calibrator name. The case-insensitive names ‘3C48’, ‘3C286’, ‘3C138’,
+                    and ‘3C147’ are supported. Exactly one of source or direction must be specified. 
+                </description>
+                <value type="string"/>
+            </param>
+            <param name="direction" type="string">
+                <shortdescription>The direction of the calibrator</shortdescription>
+                <description>An alternative to source. It is the direction of the calibrator. The supported
+                    formats are those of CASA’s direction measure formats, eg 'J2000 12:34:56 -12.34.56'. The
+                    web service will attempt to locate a known calibrator near this direction. Exactly one of
+                    source or direction must be specified.
+                </description>
+                <value type="string"/>
+            </param>
+            <param mustexist="true" name="band" type="string">
+                <shortdescription>The receiver band for which the source structure is needed</shortdescription>
+                <description>A string representing the case-insensitive code of the band for which the data are
+                    required. For the VLA, supported codes are ‘P’, ‘L’, ‘S’, ‘C’, ‘X’, ‘U’, ‘K’, ‘A’ and ‘Q’.
+                </description>
+                <value type="string"/>
+            </param>
+            <param mustexist="true" name="obsdate" type="double">
+                <shortdescription>The observation date</shortdescription>
+                <description>
+                    The date for which to obtain the calibrator information, in MJD. Non-positive
+                    values will cause an exception to be thrown. 
+                </description>
+                <value type="double">0</value>
+            </param>
+            <param name="refdate" type="double">
+                <shortdescription>The reference date in MJD after which new database entries will be ignored.</shortdescription>
+                <description>
+                    The reference date in MJD after which new database entries will be ignored. Used to support
+                    historical reproducibility. A non-positive value will result in this parameter being ignored,
+                    and the most recent entry will be used (which may be later than obsdate). 
+                </description>
+                <value type="double">0</value>
+            </param>
+            <param name="hosts" type="stringVec">
+                <shortdescription>List of hostnames to use when querying the web service.</shortdescription>
+                <description>
+                    List of hostnames to use when querying the web service. They will be queried in
+                    order until a successful response is received.
+                </description>
+                <value type="stringVecc">TBD</value>
+            </param>
+        </input>    
+    <returns>void</returns></task>
+ </casaxml>
