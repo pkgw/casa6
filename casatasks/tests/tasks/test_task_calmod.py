@@ -50,7 +50,7 @@ class calmod_test(unittest.TestCase):
             pos, -1, msg=f'Unexpected exception was thrown: {exc}'
         )
 
-        
+
     def test_inputs(self):
         '''Test inputs meet various constraints'''
         with self.assertRaises(RuntimeError) as cm: 
@@ -62,6 +62,25 @@ class calmod_test(unittest.TestCase):
         with self.assertRaises(RuntimeError) as cm: 
             calmod('my.cl', 'mysource', 'mydirection')
         self.exception_verification(cm, 'Both source and direction may not be simultaneously specified')
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', 'mysource')
+        self.exception_verification(cm, 'band must be specified')
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', 'mysource', band='m')
+        self.exception_verification(cm, 'band m not supported')
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', 'mysource', band='q', obsdate=0)
+        self.exception_verification(cm, 'obsdate must be >= 44239')
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', 'mysource', band='q', obsdate=50000, refdate=1)
+        self.exception_verification(cm, 'refdate must be <= 0 or >= 44239')
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', 'mysource', band='q', obsdate=50000, refdate=0)
+        self.exception_verification(cm, 'hosts must be specified')
+        hosts = ['https://my.out.edu', 'zz']
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', 'mysource', band='q', obsdate=50000, refdate=0, hosts=hosts)
+        self.exception_verification(cm, 'zz is not a valid host expressed as a URL')
         
 
 if __name__ == '__main__':
