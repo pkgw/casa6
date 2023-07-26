@@ -1,3 +1,4 @@
+from casatools import measures
 from urllib.parse import urlparse
 
 
@@ -17,23 +18,29 @@ def calmod(
     print(f'refdate is {refdate}')
     print(f'hosts is {hosts}')
     if not outfile.strip():
-        raise RuntimeError('outfile must be specified')
+        raise ValueError('outfile must be specified')
     if not (source.strip() or direction.strip()):
-        raise RuntimeError('Exactly one of source or direction must be specified')
+        raise ValueError('Exactly one of source or direction must be specified')
     if source and direction:
-        raise RuntimeError('Both source and direction may not be simultaneously specified')
+        raise ValueError('Both source and direction may not be simultaneously specified')
+    if source and source.upper() not in ("3C48", "3C286", "3C138", "3C147"):
+        raise ValueError(f'Unsupported calibrator {source}')
+    if direction:
+        dirstr = direction.split(' ')
+        if not (len(dirstr) == 3 and measures().direction(dirstr[0], dirstr[1], dirstr[2])):
+            raise ValueError(f'Illegal direction specification {direction}')
     if not band:
-        raise RuntimeError('band must be specified')
+        raise ValueError('band must be specified')
     if band.upper() not in ["P", "L", "S", "C", "X", "U", "K", "A", "Q"]:
-        raise RuntimeError(f'band {band} not supported')
+        raise ValueError(f'band {band} not supported')
     if obsdate < 44239:
-        raise RuntimeError('obsdate must be >= 44239')
+        raise ValueError('obsdate must be >= 44239')
     if refdate > 0 and refdate < 44239:
-        raise RuntimeError('refdate must be <= 0 or >= 44239')
+        raise ValueError('refdate must be <= 0 or >= 44239')
     if not hosts:
-        raise RuntimeError('hosts must be specified')
+        raise ValueError('hosts must be specified')
     for h in hosts:
         if not __is_valid_url_host(h):
-            raise RuntimeError(f'{h} is not a valid host expressed as a URL')
+            raise ValueError(f'{h} is not a valid host expressed as a URL')
 
     

@@ -53,33 +53,42 @@ class calmod_test(unittest.TestCase):
 
     def test_inputs(self):
         '''Test inputs meet various constraints'''
-        with self.assertRaises(RuntimeError) as cm: 
+        with self.assertRaises(ValueError) as cm: 
             calmod()
         self.exception_verification(cm, 'outfile must be specified')
-        with self.assertRaises(RuntimeError) as cm: 
+        with self.assertRaises(ValueError) as cm: 
             calmod('my.cl')
         self.exception_verification(cm, 'Exactly one of source or direction must be specified')
-        with self.assertRaises(RuntimeError) as cm: 
+        with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', 'mysource', 'mydirection')
         self.exception_verification(cm, 'Both source and direction may not be simultaneously specified')
-        with self.assertRaises(RuntimeError) as cm: 
+        with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', 'mysource')
+        self.exception_verification(cm, 'Unsupported calibrator mysource')
+        with self.assertRaises(ValueError) as cm:
+            calmod('my.cl', direction='mydirection')
+        self.exception_verification(cm, 'Illegal direction specification mydirection')
+        with self.assertRaises(ValueError) as cm:
+            calmod('my.cl', direction='1 2 3')
+        self.exception_verification(cm, 'Illegal direction specification 1 2 3')
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48')
         self.exception_verification(cm, 'band must be specified')
-        with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', 'mysource', band='m')
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='m')
         self.exception_verification(cm, 'band m not supported')
-        with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', 'mysource', band='q', obsdate=0)
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=0)
         self.exception_verification(cm, 'obsdate must be >= 44239')
-        with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', 'mysource', band='q', obsdate=50000, refdate=1)
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
         self.exception_verification(cm, 'refdate must be <= 0 or >= 44239')
-        with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', 'mysource', band='q', obsdate=50000, refdate=0)
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0)
         self.exception_verification(cm, 'hosts must be specified')
         hosts = ['https://my.out.edu', 'zz']
-        with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', 'mysource', band='q', obsdate=50000, refdate=0, hosts=hosts)
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
         self.exception_verification(cm, 'zz is not a valid host expressed as a URL')
         
 

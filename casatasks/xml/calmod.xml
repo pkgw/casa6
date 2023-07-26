@@ -28,9 +28,17 @@ downstream.
             <param name="direction" type="string">
                 <shortdescription>The direction of the calibrator</shortdescription>
                 <description>An alternative to source. It is the direction of the calibrator. The supported
-                    formats are those of CASA’s direction measure formats, eg 'J2000 12:34:56 -12.34.56'. The
-                    web service will attempt to locate a known calibrator near this direction. Exactly one of
-                    source or direction must be specified.
+                    formats are of the form 'EPOCH LONGITUDE LATITUDE', eg
+                    
+                    'J2000 12:34:56 -12.34.56'.
+                    'J2000 19h53m50 40d06m00'
+                    'B1950 292.5deg -40.0deg'
+                    'ICRS 13:05:27.2780 -049.28.04.458'
+                    'GALACTIC 47.5rad -60.22rad
+
+                    Only astronomical coordinate systems should be used; eg AZEL is right out. The web service
+                    will attempt to locate a known calibrator near this direction, where "near" is defined by
+                    the web service team. Exactly one of source or direction must be specified.
                 </description>
                 <value type="string"/>
             </param>
