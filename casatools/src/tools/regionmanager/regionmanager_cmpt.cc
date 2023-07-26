@@ -13,30 +13,30 @@
 #include <math.h>
 
 #include <regionmanager_cmpt.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Containers/Record.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/fstream.h>
-#include <casa/Logging/LogFilter.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/Logging/LogOrigin.h>
-#include <casa/OS/Directory.h>
-#include <casa/OS/EnvVar.h>
-#include <casa/OS/HostInfo.h>
-#include <casa/OS/RegularFile.h>
-#include <casa/OS/SymLink.h>
-#include <casa/Utilities/Assert.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <coordinates/Coordinates/CoordinateUtil.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <images/Regions/ImageRegion.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <fstream>
+#include <casacore/casa/Logging/LogFilter.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogOrigin.h>
+#include <casacore/casa/OS/Directory.h>
+#include <casacore/casa/OS/EnvVar.h>
+#include <casacore/casa/OS/HostInfo.h>
+#include <casacore/casa/OS/RegularFile.h>
+#include <casacore/casa/OS/SymLink.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/coordinates/Coordinates/CoordinateUtil.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/images/Regions/ImageRegion.h>
 #include <imageanalysis/Regions/CasacRegionManager.h>
 #include <imageanalysis/Annotations/RegionTextList.h>
-#include <tables/Tables/TableRecord.h>
-#include <casa/namespace.h>
-#include <images/Regions/WCUnion.h>
+#include <casacore/tables/Tables/TableRecord.h>
+#include <casacore/casa/namespace.h>
+#include <casacore/images/Regions/WCUnion.h>
 
 using namespace std;
 
@@ -51,11 +51,11 @@ regionmanager::regionmanager()
 regionmanager::~regionmanager() {}
 
 void regionmanager::setup() {
-    if (! _regMan.ptr()) {
-    	_regMan.set(new CasacRegionManager());
+    if (! _regMan.get()) {
+        _regMan = std::unique_ptr<casa::CasacRegionManager>(new CasacRegionManager());
     }
-    if (! _log.ptr()) {
-    	_log.set(new LogIO());
+    if (! _log.get()) {
+        _log = std::unique_ptr<casacore::LogIO>(new LogIO());
     }
 }
 
@@ -102,7 +102,7 @@ regionmanager::box(const std::vector<double>& blc, const std::vector<double>& tr
 	    dblc.resize();
 	}
 	
-	PtrHolder<Record> lebox;
+	std::unique_ptr<Record> lebox;
 	if ( frac || useAllDefaults ) {
 	    if(inc.size()==1 && inc[0]==1)
 	    {
@@ -110,7 +110,7 @@ regionmanager::box(const std::vector<double>& blc, const std::vector<double>& tr
 		dinc.set(1.0);
 	    }
 
-	    lebox.set(
+	    lebox = std::unique_ptr<Record>(
 	    	_regMan->box(dblc, dtrc, dinc,
 	    	String(absrel), frac, String(comment))
 	    );
@@ -127,14 +127,14 @@ regionmanager::box(const std::vector<double>& blc, const std::vector<double>& tr
 		dinc.set(1.0);
 	    }
 
-	    lebox.set(
+	    lebox = std::unique_ptr<Record>(
 	    	_regMan->box(dblc, dtrc, dinc, String(absrel),
 	    	frac, String(comment))
 	    );
 	}
 	
 
-	if (lebox.ptr()){
+	if (lebox.get()){
 	    return fromRecord(*lebox);
 	}
 	return 0;
@@ -168,29 +168,29 @@ regionmanager::complement(
 
 	// Create a single region to find the complement of.
 	::casac::variant localvar(regions); //cause its const
-	PtrHolder<casacore::ImageRegion> unionReg;
-	PtrHolder<casacore::Record> lesRegions(toRecord((localvar.asRecord())));
+	std::unique_ptr<casacore::ImageRegion> unionReg;
+	std::unique_ptr<casacore::Record> lesRegions(toRecord((localvar.asRecord())));
 
 	// If the "isRegion" field exists then we assume the record
 	// is a region, otherwise we have a set of regions.
 	if(lesRegions->fieldNumber("isRegion")==-1 && lesRegions->nfields() > 1 ) {
-	    unionReg.set(dounion(lesRegions));
+	    unionReg = std::unique_ptr<casacore::ImageRegion>(dounion(lesRegions));
 	}
 	else {
 	    if ( lesRegions->fieldNumber("isRegion")==-1 ) {
 		TableRecord theRec;
 		theRec.assign( lesRegions->asRecord(casacore::RecordFieldId(0) ) );
-		unionReg.set(ImageRegion::fromRecord( theRec, "" ));
+		unionReg = std::unique_ptr<casacore::ImageRegion>(ImageRegion::fromRecord( theRec, "" ));
 	   }
 	    else {
-	    	unionReg.set(ImageRegion::fromRecord( *lesRegions, "" ));
+            unionReg = std::unique_ptr<casacore::ImageRegion>(ImageRegion::fromRecord( *lesRegions, "" ));
 	    }
 	}
 	
 	// And find the complement
-	PtrHolder<casacore::ImageRegion> leComplementReg;
-	if( unionReg.ptr() ){
-	    leComplementReg.set(_regMan->doComplement(*unionReg));
+	std::unique_ptr<casacore::ImageRegion> leComplementReg;
+	if( unionReg.get() ){
+	    leComplementReg = std::unique_ptr<casacore::ImageRegion>(_regMan->doComplement(*unionReg));
 	}
 	
 	casacore::Record returnRec;
@@ -235,11 +235,11 @@ regionmanager::concatenation(
 	// ALgorihtm
 	//   1. convert incoming image record to a Casacore::Record(s)
 	::casac::variant localregs(regions); //cause its const
-	PtrHolder<casacore::Record> lesRegions(toRecord((localregs.asRecord())));
+	std::unique_ptr<casacore::Record> lesRegions(toRecord((localregs.asRecord())));
 	
 	//   2. convert incoming box record to a TableRecord
 	::casac::variant localbox(box); //cause its const
-	PtrHolder<casacore::Record> boxRec(toRecord((localbox.asRecord())));
+	std::unique_ptr<casacore::Record> boxRec(toRecord((localbox.asRecord())));
 	ThrowIf(
 		boxRec->fieldNumber("isRegion")==-1,
 	    "parameter 'box' has to be a region record. Invalid region record given"
@@ -248,7 +248,7 @@ regionmanager::concatenation(
 	boxTblRec.assign( *boxRec );
 	
 	//   3. call doConcatenation from in itsRegMgr object
-	PtrHolder<ImageRegion> leConcatReg(
+	std::unique_ptr<ImageRegion> leConcatReg(
 		_regMan->doConcatenation( *lesRegions, boxTblRec )
 	);
 	
@@ -296,8 +296,8 @@ regionmanager::difference(const ::casac::record& region1, const ::casac::record&
     
     try {
 	// Get the incoming records into TableRecords.
-	PtrHolder<casacore::Record> reg1(toRecord(region1));
-	PtrHolder<casacore::Record> reg2(toRecord(region2));
+	std::unique_ptr<casacore::Record> reg1(toRecord(region1));
+	std::unique_ptr<casacore::Record> reg2(toRecord(region2));
 
 	TableRecord rec1;
 	rec1.assign(*reg1);
@@ -310,17 +310,17 @@ regionmanager::difference(const ::casac::record& region1, const ::casac::record&
 		<< LogIO::POST;
 	
 	// Now turn them into image regions
-	PtrHolder<ImageRegion> imgReg1(ImageRegion::fromRecord(rec1,""));
-	PtrHolder<ImageRegion> imgReg2(ImageRegion::fromRecord(rec2,""));
+	std::unique_ptr<ImageRegion> imgReg1(ImageRegion::fromRecord(rec1,""));
+	std::unique_ptr<ImageRegion> imgReg2(ImageRegion::fromRecord(rec2,""));
 	
 	ThrowIf (
-		! imgReg1.ptr() || ! imgReg2.ptr(),
+		! imgReg1.get() || ! imgReg2.get(),
 		"Unable to convert input to Image Regions"
 	);
-	PtrHolder<ImageRegion> diffReg(_regMan->doDifference(*imgReg1, *imgReg2));
+	std::unique_ptr<ImageRegion> diffReg(_regMan->doDifference(*imgReg1, *imgReg2));
 
 	ThrowIf(
-		! diffReg.ptr(),
+		! diffReg.get(),
 		"An error has occured while creating the difference of the two regions"
 	);
 
@@ -345,8 +345,8 @@ regionmanager::difference(const ::casac::record& region1, const ::casac::record&
 bool
 regionmanager::done()
 {
-	_regMan.set(0);
-	_log.set(0);
+	_regMan.reset( );
+	_log.reset( );
     return true;
 }
 
@@ -363,19 +363,19 @@ regionmanager::fromtextfile(
     		"Illegal shape. Please provide a legal image "
     		"shape consistent with the supplied coordinate system"
     	);
-    	PtrHolder<CoordinateSystem> ncsys;
+    	std::unique_ptr<CoordinateSystem> ncsys;
     	IPosition myShape(vector<int>(shape.begin(),shape.end()));
-    	PtrHolder<Record> csysRec(toRecord(csys));
+    	std::unique_ptr<Record> csysRec(toRecord(csys));
 
     	if((csysRec->nfields()) > 0){
     	    ThrowIf(
     	    	csysRec->nfields() < 2,
     	    	"Given coordsys parameter is not a valid coordsystem record"
     	    );
-    	    ncsys.set((CoordinateSystem::restore(*csysRec, "")));
+            ncsys = std::unique_ptr<CoordinateSystem>((CoordinateSystem::restore(*csysRec, "")));
     	}
     	RegionTextList annList(
-    		filename, ncsys.ptr() ? *ncsys : _regMan->getcoordsys(),
+    		filename, ncsys.get() ? *ncsys : _regMan->getcoordsys(),
             myShape
     	);
 		return fromRecord(annList.regionAsRecord());
@@ -397,13 +397,13 @@ regionmanager::fromtext(
     try {
     	CoordinateSystem coordsys;
     	IPosition myShape(vector<int>(shape.begin(),shape.end()));
-    	PtrHolder<Record> csysRec(toRecord(csys));
+    	std::unique_ptr<Record> csysRec(toRecord(csys));
         if((csysRec->nfields()) != 0){
     	    ThrowIf(
     	    	csysRec->nfields() < 2,
     	    	"Given coordsys parameter is not a valid coordsystem record"
     	    );
-    	    PtrHolder<CoordinateSystem> c(
+    	    std::unique_ptr<CoordinateSystem> c(
     	    	CoordinateSystem::restore(*csysRec, "")
     	    );
     	    coordsys = CoordinateSystem(*c);
@@ -430,7 +430,7 @@ regionmanager::fromfiletorecord(
 	setup();
     *_log << LogOrigin("regionmanager", __func__);
     try {
-    	PtrHolder<Record> leReg(RegionManager::readImageFile(filename, regionName));
+    	std::unique_ptr<Record> leReg(RegionManager::readImageFile(filename, regionName));
     	return fromRecord(*leReg);
     }
     catch (const AipsError& x) {
@@ -444,7 +444,7 @@ regionmanager::tofile(const std::string& filename, const ::casac::record& region
     setup();
     *_log << LogOrigin("regionmanager", __func__);
     try{
-      PtrHolder<casacore::Record> leRegion(toRecord(region));
+      std::unique_ptr<casacore::Record> leRegion(toRecord(region));
       //the string lolo below does not matter its being ignored it seems.
       //may be it was meant for future use
       return RegionManager::writeImageFile(String(filename), "lolo", *leRegion);
@@ -466,7 +466,7 @@ regionmanager::fromrecordtotable(const std::string& tablename,
 
     try {
 	*_log << LogOrigin("regionmanager", "fromrecordtotable");
-	PtrHolder<casacore::Record> leRec(toRecord(regionrec));
+	std::unique_ptr<casacore::Record> leRec(toRecord(regionrec));
     
 	String elname=toCasaString(regionname);
 	return (
@@ -488,9 +488,9 @@ regionmanager::fromtabletorecord(
   try {
     String elname=toCasaString(regionname);
     
-    PtrHolder<casacore::Record> leRec(_regMan->tableToRecord(String(tablename), elname));
-    if(! leRec.ptr()) {
-    	leRec.set(new Record());
+    std::unique_ptr<casacore::Record> leRec(_regMan->tableToRecord(String(tablename), elname));
+    if(! leRec.get()) {
+        leRec = std::unique_ptr<casacore::Record>(new Record());
     }
     return fromRecord(*leRec);
   }
@@ -513,8 +513,8 @@ regionmanager::intersection(const ::casac::variant& regions, const std::string& 
 	);
 
 	    ::casac::variant localvar(regions); //cause its const
-	    PtrHolder<casacore::Record> lesRegions(toRecord((localvar.asRecord())));
-	    PtrHolder<ImageRegion> intersectReg;
+	    std::unique_ptr<casacore::Record> lesRegions(toRecord((localvar.asRecord())));
+	    std::unique_ptr<ImageRegion> intersectReg;
 	    ThrowIf(
 	    	lesRegions->nfields() < 2,
 	    	"need 2 or more regions to make an intersection"
@@ -529,18 +529,18 @@ regionmanager::intersection(const ::casac::variant& regions, const std::string& 
 		    << "\nRegionManager val 2 " << rec2.asInt("isRegion") 
 		    << LogIO::POST;
             
-	    PtrHolder<ImageRegion> reg0(ImageRegion::fromRecord(rec1,""));
-	    PtrHolder<ImageRegion> reg1(ImageRegion::fromRecord(rec2,""));
+	    std::unique_ptr<ImageRegion> reg0(ImageRegion::fromRecord(rec1,""));
+	    std::unique_ptr<ImageRegion> reg1(ImageRegion::fromRecord(rec2,""));
 
-	    if(reg0.ptr() && reg1.ptr()) {
-	    	intersectReg.set(_regMan->doIntersection(*reg0, *reg1));
+	    if(reg0.get() && reg1.get()) {
+	        intersectReg = std::unique_ptr<ImageRegion>(_regMan->doIntersection(*reg0, *reg1));
 	    }
 	    for (uInt k=2; k < (lesRegions->nfields()); ++k){
 		rec1.assign(lesRegions->asRecord(casacore::RecordFieldId(k)));
 
-		reg0.set(ImageRegion::fromRecord(rec1, ""));
+		reg0 = std::unique_ptr<ImageRegion>(ImageRegion::fromRecord(rec1, ""));
 		ImageRegion reg3(*intersectReg);
-		intersectReg.set(_regMan->doIntersection(*reg0, reg3));
+		intersectReg = std::unique_ptr<ImageRegion>(_regMan->doIntersection(*reg0, reg3));
 	    }
 
 	    casacore::Record intersectrec;
@@ -567,10 +567,10 @@ regionmanager::ispixelregion(const ::casac::record& region)
 	setup();
     *_log << LogOrigin("regionmanager", __func__);
     try {
-    	PtrHolder<casacore::Record> localvar(toRecord(region));
+    	std::unique_ptr<casacore::Record> localvar(toRecord(region));
     	TableRecord letblrec;
     	letblrec.assign(*localvar);
-    	PtrHolder<ImageRegion> reg(ImageRegion::fromRecord(letblrec, ""));
+    	std::unique_ptr<ImageRegion> reg(ImageRegion::fromRecord(letblrec, ""));
     	return RegionManager::isPixelRegion(*reg);
     }
     catch (const AipsError& x) {
@@ -588,10 +588,10 @@ regionmanager::isworldregion(const ::casac::record& region)
 
 
     try {
-	PtrHolder<casacore::Record> localvar(toRecord(region));
+	std::unique_ptr<casacore::Record> localvar(toRecord(region));
 	TableRecord letblrec;
 	letblrec.assign(*localvar);
-	PtrHolder<ImageRegion> reg(ImageRegion::fromRecord(letblrec, ""));
+	std::unique_ptr<ImageRegion> reg(ImageRegion::fromRecord(letblrec, ""));
 	return RegionManager::isWorldRegion(*reg);
     } catch (AipsError x) {
 	*_log << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
@@ -624,14 +624,14 @@ regionmanager::setcoordinates(const ::casac::record& csys)
     *_log << LogOrigin("regionmanager", __func__);
 
     try {
-	PtrHolder<casacore::Record> csysRec(toRecord(csys));
+	std::unique_ptr<casacore::Record> csysRec(toRecord(csys));
 	ThrowIf(
 		csysRec->nfields() <2,
 		"Given coorsys parameter does not appear to be a valid coordsystem record"
 	);
-	PtrHolder<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
+	std::unique_ptr<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
 	ThrowIf(
-		! coordsys.ptr(),
+		! coordsys.get(),
 		"Could not convert given record to a coordsys"
 	);
 
@@ -657,8 +657,8 @@ regionmanager::makeunion(const ::casac::variant& regions, const std::string& com
     	);
 
     	::casac::variant localvar(regions); //cause its const
-    	PtrHolder<casacore::Record> lesRegions(toRecord((localvar.asRecord())));
-    	PtrHolder<ImageRegion> unionReg(dounion(lesRegions));
+    	std::unique_ptr<casacore::Record> lesRegions(toRecord((localvar.asRecord())));
+    	std::unique_ptr<ImageRegion> unionReg(dounion(lesRegions));
 
     	casacore::Record unionrec;
     	unionrec.assign(unionReg->toRecord(""));
@@ -718,7 +718,7 @@ vector<long> regionmanager::selectedchannels(
 }
 
 // Implementation courtesy of Honglin (https://bugs.aoc.nrao.edu/browse/CAS-1666, 2009dec16)
-casacore::ImageRegion* regionmanager::dounion(const PtrHolder<casacore::Record>& regions) {
+casacore::ImageRegion* regionmanager::dounion(const std::unique_ptr<casacore::Record>& regions) {
     ThrowIf(
     	regions->nfields() < 2 || regions->fieldNumber("isRegion") != -1,
     	"need 2 or more regions to make a union"
@@ -733,12 +733,12 @@ casacore::ImageRegion* regionmanager::dounion(const PtrHolder<casacore::Record>&
         unionRegions[i] = ImageRegion::fromRecord(trec, "");
     }
     WCUnion leUnion(unionRegions);
-    SPtrHolder<ImageRegion> retval(new ImageRegion(leUnion));
+    std::unique_ptr<ImageRegion> retval(new ImageRegion(leUnion));
     for (uInt i = 0; i < nreg; i++) {
     	delete unionRegions[i];
     }
 
-    return retval.transfer();
+    return retval.release( );
 }
 
 ::casac::record*
@@ -749,7 +749,7 @@ regionmanager::wbox(const ::casac::variant& blc, const ::casac::variant& trc, co
     try {
       casacore::Vector<casacore::String> losBlc;
 	casacore::Vector<casacore::String> losTrc;
-	PtrHolder<casacore::Record> leRegion;
+	std::unique_ptr<casacore::Record> leRegion;
 
 	if(blc.type() == ::casac::variant::STRING ){
 	  sepCommaEmptyToVectorStrings(losBlc, blc.toString());
@@ -772,18 +772,18 @@ regionmanager::wbox(const ::casac::variant& blc, const ::casac::variant& trc, co
 	}
  
 	Vector<Int>pixaxes(pixelaxes);
-	PtrHolder<casacore::Record> csysRec(toRecord(csys));
+	std::unique_ptr<casacore::Record> csysRec(toRecord(csys));
 	if((csysRec->nfields()) != 0){ 
-	    PtrHolder<casacore::Record> csysRec(toRecord(csys));
+	    std::unique_ptr<casacore::Record> csysRec(toRecord(csys));
 	    ThrowIf(
 	    	csysRec->nfields() <2,
 	    	"Given coordsys parameter does not appear to be a valid coordsystem record"
 	    );
-	    PtrHolder<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
-	    leRegion.set(_regMan->wbox(losBlc, losTrc,  pixaxes, *coordsys, String(absrel), String(comment)));
+	    std::unique_ptr<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
+	    leRegion = std::unique_ptr<casacore::Record>(_regMan->wbox(losBlc, losTrc,  pixaxes, *coordsys, String(absrel), String(comment)));
 	} else {
 	    //user has set csys already
-	    leRegion.set(
+	    leRegion = std::unique_ptr<casacore::Record>(
 	    	_regMan->wbox(
 	    		losBlc, losTrc, pixaxes, String(absrel), String(comment)
 	    	)
@@ -826,28 +826,28 @@ regionmanager::wpolygon(const ::casac::variant& x, const ::casac::variant& y,
 	    throw(AipsError("trc has to be a string or vector of strings")); 
 	}
 
-	PtrHolder<ImageRegion> leRegion;
+	std::unique_ptr<ImageRegion> leRegion;
 
 	Vector<Int>pixaxes(pixelaxes);
-	PtrHolder<casacore::Record> csysRec(toRecord(csys));
+	std::unique_ptr<casacore::Record> csysRec(toRecord(csys));
 	if((csysRec->nfields()) != 0){ 
-	    PtrHolder<casacore::Record> csysRec(toRecord(csys));
+	    std::unique_ptr<casacore::Record> csysRec(toRecord(csys));
 	    ThrowIf(
 	    	csysRec->nfields() <2,
 	    	"Given coorsys parameter does not appear to be a valid coordsystem record"
 	    );
-	    PtrHolder<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
-	    leRegion.set(_regMan->wpolygon(losX, losY,  pixaxes, *coordsys,
+	    std::unique_ptr<casacore::CoordinateSystem> coordsys(casacore::CoordinateSystem::restore(*csysRec, ""));
+	    leRegion = std::unique_ptr<ImageRegion>(_regMan->wpolygon(losX, losY,  pixaxes, *coordsys,
 				   String(absrel)));
 	}
 	else{
 	    //user has set csys already
-	    leRegion.set(_regMan->wpolygon(losX, losY, pixaxes, String(absrel)));
+	    leRegion = std::unique_ptr<ImageRegion>(_regMan->wpolygon(losX, losY, pixaxes, String(absrel)));
 	}
 
-	if(leRegion.ptr()){
+	if(leRegion.get()){
       
-	    PtrHolder<casacore::Record> leRec(new casacore::Record());
+	    std::unique_ptr<casacore::Record> leRec(new casacore::Record());
 	    leRec->assign(leRegion->toRecord(String("")));
 	    leRec->define("comment", comment);
 	    return fromRecord(*leRec);
@@ -872,13 +872,13 @@ record* regionmanager::frombcs(
 
     try {
     	String regionString;
-    	PtrHolder<Record> regionPtr;
+    	std::unique_ptr<Record> regionPtr;
     	if(region.type() == variant::STRING) {
     		regionString = region.toString();
     	}
     	else if (region.type() == variant::RECORD) {
-    		PtrHolder<variant> clone(region.clone());
-    		regionPtr.set(toRecord(clone->asRecord()));
+    		std::unique_ptr<variant> clone(region.clone());
+            regionPtr = std::unique_ptr<Record>(toRecord(clone->asRecord()));
     	}
     	else if (region.type() == variant::BOOLVEC) {
     		// default type for variants apparently, nothing to do
@@ -902,17 +902,17 @@ record* regionmanager::frombcs(
     		ThrowCc("Unsupported value for stokescontrol: " + stokescontrol);
     	}
     	if (! csys.empty()) {
-    		PtrHolder<Record> csysRec(toRecord(csys));
+    		std::unique_ptr<Record> csysRec(toRecord(csys));
     		ThrowIf(
     			csysRec->nfields() < 2,
     			"Given coordsys parameter does not appear "
     			"to be a valid coordsystem record"
     		);
-    		PtrHolder<CoordinateSystem> coordsys(
+    		std::unique_ptr<CoordinateSystem> coordsys(
     			CoordinateSystem::restore(*csysRec, "")
     		);
     		ThrowIf(
-    			! coordsys.ptr(),
+    			! coordsys.get(),
     			"Could not convert given csys record "
     			"to a CoordinateSystem object"
     		);
@@ -927,7 +927,7 @@ record* regionmanager::frombcs(
     	return fromRecord(
     		_regMan->fromBCS(
     			diagnostics, nSelectedChannels, myStokes,
-    			regionPtr.ptr(), regionString, myChans, sControl, myBox,
+    			regionPtr.get(), regionString, myChans, sControl, myBox,
     			imShape
     		)
     	);

@@ -31,23 +31,23 @@
 
 #include <synthesis/TransformMachines2/FTMachine.h>
 #include <synthesis/TransformMachines2/SkyJones.h>
-#include <casa/Arrays/Matrix.h>
-#include <scimath/Mathematics/FFTServer.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/scimath/Mathematics/FFTServer.h>
 #include <msvis/MSVis/VisBuffer2.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/ImageInterface.h>
-#include <casa/Containers/Block.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Utilities/CountedPtr.h>
-#include <scimath/Mathematics/ConvolveGridder.h>
-#include <lattices/Lattices/LatticeCache.h>
-#include <lattices/Lattices/ArrayLattice.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <measures/Measures/Measure.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MPosition.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/casa/Containers/Block.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
+#include <casacore/scimath/Mathematics/ConvolveGridder.h>
+#include <casacore/lattices/Lattices/LatticeCache.h>
+#include <casacore/lattices/Lattices/ArrayLattice.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/measures/Measures/Measure.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
 
 namespace casacore{
 
@@ -186,6 +186,8 @@ public:
   void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
 	   FTMachine::Type type=FTMachine::OBSERVED);
 
+  virtual void gridImgWeights(const vi::VisBuffer2& vb);
+  
   // Make the entire image
   void makeImage(FTMachine::Type type,
 		 vi::VisibilityIterator2& vs,
@@ -237,7 +239,7 @@ public:
   virtual void ComputeResiduals(vi::VisBuffer2&/*vb*/, casacore::Bool /*useCorrected*/) {};
 
   //Sometimes weightimage is already calculated ...just use it
-  virtual void setWeightImage(casacore::CountedPtr<casacore::TempImage<casacore::Float> >& wgtimage);
+  virtual void setWeightImage(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >& wgtimage);
 protected:        
 
   casacore::Int nint(casacore::Double val) {return casacore::Int(floor(val+0.5));};

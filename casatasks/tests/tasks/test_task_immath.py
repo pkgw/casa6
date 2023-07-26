@@ -1803,13 +1803,13 @@ class immath_test3(unittest.TestCase):
         old_log = casalog.logfile()
         logfile = 'test_beam_logging_precision0.log'
         self.assertTrue(casalog.setlogfile(logfile), 'Failed to set log file')
-        self.assertTrue(myia.fromshape(beam0, shape), 'Failed to created image ' + beam0)
+        self.assertTrue(myia.fromshape(beam0, shape), 'Failed to create image ' + beam0)
         self.assertTrue(
             myia.setrestoringbeam(major='3.234arcmin', minor='1.0arcmin', pa='0.0deg'),
             'Failed to set beam for image ' + beam0
         )
         myia.done()
-        self.assertTrue(myia.fromshape(beam1, shape), 'Failed to created image ' + beam1)
+        self.assertTrue(myia.fromshape(beam1, shape), 'Failed to create image ' + beam1)
         self.assertTrue(
             myia.setrestoringbeam(major='3.235arcmin', minor='1.0arcmin', pa='0.0deg'),
             'Failed to set beam for image ' + beam1
@@ -1819,9 +1819,8 @@ class immath_test3(unittest.TestCase):
         f = open(logfile, 'r')
         lines = f.readlines()
         f.close()
-        i0 = 14
-        i1 = 16
-
+        i0 = 16
+        i1 = 18
         self.assertTrue(re.search("3.235", lines[i0]), 'Expected pattern not found')
         self.assertTrue(re.search("3.234", lines[i1]), 'Expected pattern not found')
         shutil.rmtree(beam_out)
@@ -1845,8 +1844,8 @@ class immath_test3(unittest.TestCase):
         f = open(logfile, 'r')
         lines = f.readlines()
         f.close()
-        i0 = 12
-        i1 = 14
+        i0 = 14
+        i1 = 16
 
         self.assertTrue(re.search("3.234568", lines[i0]), 'Expected pattern not found')
         self.assertTrue(re.search("3.234567", lines[i1]), 'Expected pattern not found')
@@ -1871,8 +1870,8 @@ class immath_test3(unittest.TestCase):
         f = open(logfile, 'r')
         lines = f.readlines()
         f.close()
-        i0 = 12
-        i1 = 14
+        i0 = 14
+        i1 = 16
 
         self.assertTrue(re.search("3.23456789027778", lines[i0]), 'Expected pattern not found')
         self.assertTrue(re.search("3.23456789017778", lines[i1]), 'Expected pattern not found')
@@ -1881,6 +1880,7 @@ class immath_test3(unittest.TestCase):
         self.assertTrue(casalog.setlogfile(old_log), 'Failed to reset log file')
         os.remove(logfile)
     
+
 if __name__ == '__main__':
     unittest.main()
 

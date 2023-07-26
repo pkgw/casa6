@@ -33,8 +33,8 @@
 
 #ifndef MSTRANSFORM_MSUVBIN_H
 #define MSTRANSFORM_MSUVBIN_H
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/VisBuffer.h>
 #include <msvis/MSVis/VisBufferUtil.h>
@@ -136,9 +136,11 @@ private:
 	void makeSFConv(casacore::Cube<casacore::Complex>&convFunc, 
 			casacore::Vector<casacore::Int>& convSupport, casacore::Double& wScale, casacore::Int& convSampling, 
 			casacore::Int& convSize);
-	void makeWConv(vi::VisibilityIterator2& iter,casacore::Cube<casacore::Complex>& convFunc, 
+  void makeWConv(vi::VisibilityIterator2& iter,casacore::Cube<casacore::Complex>& convFunc, 
 		       casacore::Vector<casacore::Int>& convSupport,
 			casacore::Double& wScale, casacore::Int& convSampling, casacore::Int& convSize );
+  //Check if input values are matching to what is stored in existant grid
+  bool checkOutputGridParams();
 	casacore::CoordinateSystem csys_p;
 	casacore::Int nx_p, ny_p, nchan_p, npol_p;
 	casacore::Double freqStart_p, freqStep_p;
@@ -150,6 +152,7 @@ private:
 	casacore::Bool existOut_p;
 	casacore::String outMSName_p;
 	casacore::CountedPtr<casacore::MeasurementSet> outMsPtr_p;
+  //This has to be as it is because of vi2 constructor where this is used
 	casacore::Block<const casacore::MeasurementSet *> mss_p;
 	VisBufferUtil vbutil_p;
 	casacore::Float memFraction_p;

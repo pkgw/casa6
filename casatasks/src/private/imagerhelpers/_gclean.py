@@ -86,6 +86,11 @@ class gclean:
                 self._cycleniter = int(msg['cycleniter'])
             except ValueError:
                 pass
+        if 'nmajor' in msg:
+            try:
+                self._nmajor = int(msg['nmajor'])
+            except ValueError:
+                pass
         if 'threshold' in msg:
             self._threshold = msg['threshold']
         if 'cyclefactor' in msg:
@@ -98,7 +103,7 @@ class gclean:
 
     def __init__( self, vis, imagename, imsize=[100], cell="1arcsec", specmode='cube', nchan=-1, start='',
                   width='', interpolation='linear', gridder='standard', pblimit=0.2, deconvolver='hogbom',
-                  niter=0, threshold='0.1Jy', cycleniter=-1, cyclefactor=1.0, scales=[],
+                  niter=0, threshold='0.1Jy', cycleniter=-1, nmajor=1, cyclefactor=1.0, scales=[],
                   history_filter=lambda index, arg, history_value: history_value ):
         self._vis = vis
         self._imagename = imagename
@@ -115,6 +120,7 @@ class gclean:
         self._niter = niter
         self._threshold = threshold
         self._cycleniter = cycleniter
+        self._nmajor = nmajor
         self._cyclefactor = cyclefactor
         self._mask = ''
         self._scales = scales
@@ -210,17 +216,17 @@ class gclean:
                 tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
                                            specmode=self._specmode, interpolation=self._interpolation, nchan=self._nchan,
                                            start=self._start, width=self._width, pblimit=self._pblimit, deconvolver=self._deconvolver,
-                                           cyclefactor=self._cyclefactor, scales=self._scales, interactive=0,
+                                           cyclefactor=self._cyclefactor, scales=self._scales, interactive=False, 
 
                                            niter=1, gain=0.000001 )
             else:
                 tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
                                            specmode=self._specmode, interpolation=self._interpolation, nchan=self._nchan,
                                            start=self._start, width=self._width, pblimit=self._pblimit, deconvolver=self._deconvolver,
-                                           cyclefactor=self._cyclefactor, scales=self._scales, interactive=0,
+                                           cyclefactor=self._cyclefactor, scales=self._scales, interactive=False,
 
                                            niter=self._niter, restart=True, calcpsf=False, calcres=False,
-                                           threshold=self._threshold, cycleniter=self._cycleniter,
+                                           threshold=self._threshold, cycleniter=self._cycleniter, nmajor=self._nmajor,
                                            maxpsffraction=1, minpsffraction=0, mask=self._mask )
 
             new_summaryminor_rec = gclean.__filter_convergence(tclean_ret['summaryminor'])

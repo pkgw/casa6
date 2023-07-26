@@ -30,20 +30,20 @@
 
 #include <synthesis/TransformMachines2/AWVisResampler.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <scimath/Mathematics/FFTServer.h>
-#include <scimath/Mathematics/Convolver.h>
-#include <lattices/LatticeMath/LatticeFFT.h>
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/scimath/Mathematics/FFTServer.h>
+#include <casacore/scimath/Mathematics/Convolver.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/PagedImage.h>
 #include <msvis/MSVis/VisBuffer2.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Arrays/Slice.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/Array.h>
-#include <casa/OS/HostInfo.h>
-#include <casa/sstream.h>
-#include <casa/Utilities/CompositeNumber.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Slice.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/OS/HostInfo.h>
+#include <sstream>
+#include <casacore/casa/Utilities/CompositeNumber.h>
 
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
@@ -64,9 +64,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO log_l(LogOrigin("AWProjectWBFTNew2", "ftWeightImage[R&D]"));
     if (wtImageFTDone_p) return;
 
-    // Bool doSumWtNorm=true;
-    // if (sumWt.shape().nelements()==0) doSumWtNorm=false;
-
     if ((sumWt.shape().nelements() < 2) || 
 	(sumWt.shape()(0) != wtImage.shape()(2)) || 
 	(sumWt.shape()(1) != wtImage.shape()(3)))
@@ -77,18 +74,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // code below will not compile if the abs(wtImage) is not
     // converted back to a complex type).
 
-    // LatticeExpr<Complex> le(abs(wtImage)*Complex(1,0));
-    // wtImage.copyData(le);
-
-    // {
-    //   String name("wtimg.im");
-    //   storeArrayAsImage(name,image->coordinates(),wtImage.get());
-    // }
     LatticeFFT::cfft2d(wtImage,false);
-    // {
-    //   String name("ftwtimg.im");
-    //   storeArrayAsImage(name,image->coordinates(),wtImage.get());
-    // }
     wtImageFTDone_p=true;
 
     Int sizeX=wtImage.shape()(0), sizeY=wtImage.shape()(1);
@@ -119,33 +105,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // the data-sum-of-weights.
     //
 
-    // USEFUL DEBUG MESSAGE
-    //cerr << "SumCFWt: " << getSumOfCFWeights() << " " << max(wtBuf) << " " << sensitivityPatternQualifier_p << endl;
     for(wtImIter.reset(); !wtImIter.atEnd(); wtImIter++)
       {
-	// Int pol_l=wtImIter.position()(2), chan_l=wtImIter.position()(3);
-	// Lets write some mildly obfuscated code ~[8-)
-	//if ((sensitivityPatternQualifier_p == -1) && (doSumWtNorm))
-	//  sumwt_l = ((sumwt_l = getSumOfCFWeights()(pol_l,chan_l))==0)?1.0:sumwt_l;
-
-	//sumwt_l = getSumOfCFWeights()(pol_l,chan_l);
-
 	wtImIter.rwCursor() = (wtImIter.rwCursor()
-			       *Float(sizeX)*Float(sizeY)
-			       //U			       /sumwt_l
-			       );
-
-	////////////////////	wtImIter.rwCursor() = sqrt( fabs(wtImIter.rwCursor()) );
-
-	//Double maxval = fabs( max( wtImIter.rwCursor() ) );
-	//cout << "sumwt from WBAWPNew::ftWeightImage : " << sumwt_l << "  max val in wtimg : " << maxval << endl;
-
-
-
-	//	sumwt_l = getSumOfCFWeights()(pol_l,chan_l);
-	//	weightRatio_p = maxval * Float(sizeX)*Float(sizeY) / sumwt_l;
+			       *Float(sizeX)*Float(sizeY));
       }
-
   }
 
  

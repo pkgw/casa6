@@ -8429,7 +8429,26 @@ image {\sff zz1}.
     </input>
     <returns type="record">record</returns>
     <description>
-        Get the area of the image's restoring beam.
+        Get the area of the image's restoring beam. If a non-negative channel and non-negative polarization
+        are specified, the area for the beam associated with that channel and polarization will be
+        returned. The return value will be a dictionary containing the keys 'arcsec2' and 'pixels', and
+        the associated values will be the beam area in arcsec2 and in pixels, respectively. If both
+        channel and polarization are set to negative values, then a dictionary with the same keys will
+        be returned, and the values will be either scalars (if the image has a single traditional
+        beam) or arrays if the image has multiple beams. In the latter case, the arrays will have
+        shapes indicative of the number of channels and number of polarizations. If the image has
+        a spectral axis but not a polarization axis, the returned arrays will be one dimensional and
+        have a length equal to the number of channels. Similarly, if the image has a polarization
+        axis but not a spectral axis, the arrays will be one dimensional and have a lenghts equal
+        to the number of polarizations. If the image has both a spectral and polarization axis,
+        the returned arrays will be two dimensional with shape (m, n) where m is the length
+        of the first channel or polarization axis, and n is the length of the second channel or
+        polarization axis. So, if an image has shape [200, 200, 10, 4] with 10 channels and 
+        4 stokes, the returned arrays will have shapes of (10, 4) representing the spectral
+        axis as the first axis and the polarization axis as the second. If, instead, the image
+        shape is [200, 200, 4, 10] again with 10 channels and 4 stokes, the shape of the
+        returned arrays will be (4, 10) since the polarization axis precedes the spectral
+        axis.
     </description>
 </method>
 
@@ -8444,37 +8463,93 @@ image {\sff zz1}.
             <description>The zero-based polarization plane number for a per-plane beam. Default -1</description>
             <value>-1</value>
         </param>
+        <param name="mbret" direction="in" type="string">
+            <description>Determines the format of the dictionary returned if there are multiple beams and both channel and polarization are negative. Supported values are "list" and "matrix" (case insensitive, minimum match supported).</description>
+            <value>list</value>
+        </param>
     </input>
     <returns type="record">record or fail</returns>
 <description>
 
-This function gets the restoring beam(s), if any. If the image has a traditional
-restoring beam, that is returned no matter what channel and polarization are set to.
-If the image has per-plane beams and at least one of channel or polarization is
-set to a non-negative value, the beam for that particular plane is returned. In both
-these cases, the returned record contains fields 'major', 'minor' and
-'postionangle'.   Each of these fields contains a quantity.
+This function returns the restoring beam(s), if any, of the attached image.    
 
-If the image contains multiple beams and both channel and polarization are negative,
-a record containing all the beams is returned. This record contains three fields.
-&quot;nChannels&quot; contains an integer value equal to the number of channels, &quot;nStokes&quot;
-contains an integer value equal to the number of polarizations, and &quot;beams&quot; contains
-a record of information for all beams.
- If the image has no polarization
-axis or no spectral axis, the fields in the &quot;beams&quot; record run from &quot;\*0&quot; to the number
-of spectral channels or number of polarizations less one, eg &quot;\*31&quot; for an image with 32 channels.
-Each of these fields references a beam subrecord with the structure described above for a single beam.
+If mbret=&quot;matrix&quot; (or &quot;m&quot;), an exception will be thrown if the attached image
+does not have per-plane beams, or if channel or polarization is specified to be
+non-negative. See below for more information on the mbret parameter.
 
-If the image contains both a spectral axis and a polarization axis, the record returned contains
-fields running from &quot;\*0&quot; to the number of spectral channels less one, eg &quot;\*31&quot; for an image
-with 32 spectral channels. Each of these fields has an associated subrecord with fields running
-from &quot;\*0&quot; to the number of polarizations less one, eg &quot;\*3&quot; in an image with 4 polarizations.
-Each one of those fields is associated with a beam record for that corresponding channel and
-polarization. The beam record has a structure described above for a single beam.
+If mbret=&quot;list&quot; (or &quot;l&quot;) and the attached image has no restoring beam(s), an
+empty dictionary is returned.
 
-If there is no restoring beam, this function returds an empty record.
+If the image has a single traditional restoring beam and mbret=&quot;list&quot;,
+the beam is returned as a dictionary no matter what channel and polarization
+values are specified. This dictionary has keys &quot;major&quot;,
+&quot;minor&quot;, andi &quot;positionangle&quot;, and each of these fields
+contains a dictionary with &quot;value&quot; and &quot;unit&quot; keys which
+provide the quantity associated with each beam parameter.
 
-You can set the restoring beam with function 
+If mbret=&quot;list&quot;, and if the image has per-plane beams, and the image
+has both spectral and polarization axes, and if both channel and polarization
+are set to non-negative values that are less than the number of planes along
+each parameter's representative axis, the beam for that particular
+channel/polarization pair is returned. If at least one of these values is set
+to greater or equal to the number of planes along that parameter's
+representative axis, and that axis exists and is not degenerate, then an
+exception will be thrown. In the case of a non-extant axis or a degenerate axis,
+the parameter associated with that axis can be set to any value and a beam will
+be returned, because in that case there is exactly one beam for each plane
+along the other parameter's representative axis, and so there is no ambiguity
+regarding which beam to return. In the case where both spectral and polarization
+axes exist and are not degenerate, an exception will be thrown if one of channel
+or polarization is set to a non-negative value and the other is set to a
+negative value. In the above cases in which a beam is returned, the returned
+dictionary will have the same structure as that previously described in the
+single beam case. 
+
+If the image contains multiple beams and both channel and polarization are
+specified to be negative, the structure of the returned dictionary depends on
+the specified value of mbret. Supported values of this parameter are
+&quot;list&quot; and &quot;matrix&quot; (case insensitive, mimimum match
+supported). In both cases, the returned dictionary will contain the keys
+&quot;nChannels&quot;, which contains an integer value equal to the number of
+channels, and &quot;nStokes&quot;, which contains an integer value equal to the
+number of polarizations. In the case where one axis doesn't exist, the
+associated value will be 1.
+
+In the case of mbret=&quot;list&quot;, the returned dictionary will contain the
+key &quot;beams&quot;, which contains a sub-dictionary of information for all
+beams. This subdictionary contains keys &quot;*0&quot; through
+&quot;*(c-1)&quot;, where c is the value associated with the
+&quot;nChannels&quot; key. Each of these keys has an associated value which is a
+subdictionary containing keys &quot;*0&quot; through &quot;*(p-1)&quot;, where p
+is the value associated associated with the &quot;nStokes&quot; key. Each
+of these keys has an assciated value of a beam dictionary, the structure of
+which is the same as described previously for a single beam image, which is
+associated with that particular channel/polarization pair.
+
+In the case of mbret=&quot;matrix&quot;, the returned dictionary will have keys 
+&quot;major&quot;, &quot;minor&quot;, and &quot;pa&quot; which hold values
+representing the major axes, the minor axes, and the position angle,
+respectively, of all beams. Each of these fields contains a dictionary which
+represents a quantity with keys &quot;unit&quot; and &quot;value&quot;. The
+&quot;unit&quot; field contains a string representing the unit of the
+associated value. The &quot;value&quot; field contains a matrix with values
+corresponding to the associated parameter for the associated beam. In the case
+where an image does not have both a spectral and polarization axis, these
+matrices will have shape (n, 1), where n is the number of planes on the extant
+axis. In the case where an image has both spectral and polarization axes, the
+matrices will have shape (m, n) where m is the number of channels if the
+spectral axis precedes the polarization axis, or the number of polarization
+planes otherwise, and n is the number of planes on the axis not represented by
+m. So, an image with a spectral axis that has 5 channels and precedes the
+polarization axis that has 4 planes, the returned matrix shape will be (5, 4).
+In the case where the number of spectral and polarization planes are the same
+as in the previous example, but the polarization axis precedes the spectral
+axis, the matrix shape will be (4, 5). Thus, the matrix shape pair follows the
+order of the image spectral and polarization axes. This mode is useful for
+returning to the python UI the major axes, minor axes, and position angles
+directly as numpy arrays.
+
+The restoring beam(s) of an image may be set with image tool method 
 <link anchor="images:image.setrestoringbeam.function">setrestoringbeam</link>.
 
 </description>
@@ -8948,38 +9023,38 @@ ia.close()
 <method name="setrestoringbeam" type="function">
     <shortdescription>Set the restoringbeam</shortdescription>
     <input>
-        <param name="major" direction="in" type="any">
+        <param name="major" type="any">
             <any type="variant"/>
             <description>Major axis FWHM, Quantity or float (e.g., 1arcsec).  Default is unset.</description>
-            <value>1arcsec</value>
+            <value/>
         </param>
-        <param name="minor" direction="in" type="any">
+        <param name="minor" type="any">
             <any type="variant"/>
             <description>Minor axis FWHM, Quantity or float (e.g., 1arcsec). Default is unset.</description>
-            <value>1arcsec</value>
+            <value/>
         </param>
-        <param name="pa" direction="in" type="any">
+        <param name="pa" type="any">
             <any type="variant"/>
             <description>Position angle, Quantity or float (e.g., '5deg'). Default is unset.</description>
-            <value>0deg</value>
+            <value type="string">Not specified</value>
         </param>
-        <param name="beam" direction="in" type="record">
+        <param name="beam" type="record">
             <description>The complete restoring beam (output of restoringbeam()).  Default is unset.</description>
             <value/>
         </param>
-        <param name="remove" direction="in" type="bool">
+        <param name="remove" type="bool">
             <description>Delete the restoring beam?</description>
             <value>false</value>
         </param>
-        <param name="log" direction="in" type="bool">
+        <param name="log" type="bool">
             <description>Write new beam values to the logger?</description>
             <value>true</value>
         </param>
-        <param name="channel" direction="in" type="int">
+        <param name="channel" type="int">
             <description>Zero-based channel number for which to set a per plane beam. If the image has a traditional beam, set to less than zero. Default -1.</description>
             <value>-1</value>
         </param>
-        <param name="polarization" direction="in" type="int">
+        <param name="polarization" type="int">
             <description>Zero-based polarization number for which to set a per plane beam. If the image has a traditional beam, set to less than zero. Default -1.</description>
             <value>-1</value>
         </param>
@@ -8993,21 +9068,7 @@ ia.close()
     <returns type="bool">T or fail</returns>
     <description>
 
-This method sets the restoring beam(s) for an image.
-
-The beam may be specified in one of two ways.  
-
-First, the beam parameter may be specified for which a dictionary must be set
-containing  fields 'major', 'minor' and 'positionangle'. Each of these fields
-must contain a quantity.  This record is in the same format as  one returned by
-restoringbeam() method. In this case, the major, minor, and pa parameters are
-ignored.
-
-Second, major, minor, and pa may be specified.  Only the ones that are 
-specified are used. Each parameter should be assigned either a quantity or a
-float (units are implicitly those of the current beam - or if none, arcsec for
-the axes and degrees for the position angle). These parameters are only used if
-the beam parameter is not specified.
+This method sets the restoring beam(s) for an image or removes an existing beam(s).
 
 An image must have exactly one of the following states:
 
@@ -9025,6 +9086,34 @@ and a set of per-plane beams. Task and method behavior is undefined in that case
 and any resulting products are considered corrupt.
 
 RULES FOR BEAM MODIFICATION
+
+1. If remove=true, any existing beam(s) are removed.
+
+2. Else if imagename is specified, the beam(s) from the specified image will
+be copied to the image being accessed by the image tool. Multiple beams
+may be copied, but the two images must have the same number of frequency
+channels and polarization planes. If not, an exception is thrown.
+
+3. Else if the beam parameter is specified, it will be used. It must be fully
+specified. It must have exactly three items with keys &quot;major&quot;,
+&quot;minor&quot;, and &quot;positionangle&quot;. Each of these keys
+must be a proper quantity dictionary with keys &quot;value&quot; and
+&quot;unit&quot;. The units for all three items should be angular. The
+&quot;major&quot; and &quot;minor&quot; items must have non-negative values.
+If any of these conditions is not met, an exception will be thrown. 
+
+4. Else the &quot;major&quot;, &quot;minor&quot;, and &quot;pa&quot;
+parameters must be specified. Any or all of these may be a quantity string
+(eg, &quot;2arcsec&quot;, a quantity dictionary with keys &quot;value&quot;
+and &quot;unit&quot;. or a numerical value. &quot;major&quot; and
+&quot;minor&quot; must have non-negative values. If any of these conditions
+is not met, an exception will be thrown. In the case of a quantity
+being specified the &quot;unit&quot; should be an angular unit or no unit.
+In the case of no unit or a numerical value specified, if the image already
+has a beam then the corresponding unit for that parameter in the current beam
+will be used. If the image has no beam, then &quot;arcsec&quot; is used for
+&quot;major&quot; and &quot;minor&quot;, and &quot;deg&quot; is used for
+&quot;pa&quot;. 
 
 If an image has no beams, a traditional (global) beam can be added by setting
 both channel and polarization to negative values.
@@ -9050,15 +9139,6 @@ value. Similarly, in the case where an image has multiple polarizations, the
 beams associated with all polarizations for a given spectral channel can be
 modified to the same beam by setting channel equal to the desired spectral
 channel number and by setting polarization to a negative value.
-
-A beam or set of beams can be copied from another image using the imagename
-parameter to specify that image's name. If both the current image and specified
-image have multiple beams, the current image shape must be consistent with the
-specified image beam set shape.
-
-The traditional beam or a set of multiple beams can be deleted from an image by
-setting remove=True. If set to true, all other parameters are then ignored;
-all existing beams will be irrevocably deleted.
 
 </description>
 
@@ -9169,7 +9249,7 @@ ib.done()
      </param>
   
      <param name="force" type="bool">
-     <description>If T then force the stored statistical accumulations to be regenerated</description>
+     <description>If True then force the stored statistical accumulations to be regenerated</description>
      <value>false</value>
      </param>
   
@@ -9333,11 +9413,29 @@ say {\stfaf includepix=b}, then this is interpreted as {\stfaf
 includepix=[-abs(b),abs(b)]}. 
 
 This function generates a 'storage' lattice, into which the statistics
-are written.  It is only regenerated when necessary.  For example, if
-you run the function twice with identical arguments, the statistics will
-be directly retrieved from the storage lattice the second time. 
-However, you can force regeneration of the storage image if you set
-{\stfaf force=T}.  The storage medium is either in memory or on disk,
+are written as a means to improve performance on successive identical runs.
+After the initial execution of this method, it is only regenerated as
+necessary.  For example, if you run the method twice with
+identical arguments, the statistics will be directly retrieved from the
+storage lattice the second time, and the statistics will not be recomputed. 
+However, you can force regeneration of the statistics if you set force=True.
+VERY IMPORTANT NOTE. If you have an open image tool on which you've run
+statistics(), and
+change the pixel values of the opened image via another tool or a task, the
+opened image tool has no knowledge that pixel values have been changed, and
+so if you run ia.statistics() again with that tool, you will very likely
+get incorrect results since they come from the statistics stored from a previous
+run. First of all, it is highly discouraged that you do anything like this.
+Tools maintain state that only they know about internally; if you change
+an image that is already opened with another image tool or task, the general
+outcome will be undefined when you run methods on the already opened tool.
+However, if for some reason you must do this,
+first consider changing your algorithm because there should be no reason
+to have to do this. But, if you decide to continue down that path that will
+likely lead you over the edge of a cliff, then you can set force=True to
+ensure statistics are always recomputed.
+
+The storage medium is either in memory or on disk,
 depending upon its size.  You can force it to disk if you set {\stfaf
 disk=T}, otherwise it decides for itself.    
 
@@ -9897,8 +9995,7 @@ where $F = \nu/\nu_0$ and $\nu_0$ is the rest frequency.  If the rest frequency
 has not been set in your image, you can set it via a coordinate system (cs) tool
 using the setrestfrequency() method().
 
-If the output of summary is saved to a variable, then the header field (for
-instance, mysummary['header']) has the following fields:
+The keys of the returned dictionary are
 
 ndim          Dimension of the image.
 shape         Length of each axis in the image.

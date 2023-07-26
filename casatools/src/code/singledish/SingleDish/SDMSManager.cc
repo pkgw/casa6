@@ -1,4 +1,4 @@
-//# SDMSManager.cc: this defines single dish MS transform manager 
+//# SDMSManager.cc: this defines single dish MS transform manager
 //#                inheriting MSTransformManager.
 //#
 //# Copyright (C) 2015
@@ -26,18 +26,22 @@
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 //# $Id$
+#include <algorithm>
+#include <array>
 #include <iostream>
+#include <iterator>
+#include <list>
 
 //#include <libsakura/sakura.h>
 //#include <libsakura/config.h>
 
-#include <casa/Logging/LogIO.h>
-#include <casa/Logging/LogOrigin.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Utilities/Sort.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogOrigin.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Utilities/Sort.h>
 
-#include <ms/MSSel/MSSelectionTools.h>
+#include <casacore/ms/MSSel/MSSelectionTools.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <msvis/MSVis/VisSetUtil.h>
 
@@ -66,7 +70,7 @@ SDMSManager::~SDMSManager() {
 // -----------------------------------------------------------------------
 // Fill output MS with data from an input VisBuffer
 // -----------------------------------------------------------------------
-void SDMSManager::fillCubeToOutputMs(vi::VisBuffer2 *vb,Cube<Float> const &data_cube, 
+void SDMSManager::fillCubeToOutputMs(vi::VisBuffer2 *vb,Cube<Float> const &data_cube,
                                      Cube<Bool> const *flag_cube, Matrix<Float> const *weight_matrix) {
   setupBufferTransformations(vb);
 
@@ -100,7 +104,7 @@ void SDMSManager::fillCubeToOutputMs(vi::VisBuffer2 *vb,Cube<Float> const &data_
 // ----------------------------------------------------------------------------------------
 // Fill main (data) columns which have to be combined together to produce bigger SPWs
 // ----------------------------------------------------------------------------------------
-void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef, 
+void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
                                      Cube<Float> const &data_cube, Cube<Bool> const *flag_cube) {
   ArrayColumn<Bool> *outputFlagCol = NULL;
   for (dataColMap::iterator iter = dataColMap_p.begin(); iter != dataColMap_p.end(); iter++) {
@@ -121,7 +125,7 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
         setTileShape(rowRef, outputMsCols_p->data());
         Cube<Complex> cdata_cube(data_cube.shape());
         convertArray(cdata_cube, data_cube);
-        transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(), 
+        transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(),
                             outputFlagCol, applicableSpectrum);
         break;
       }
@@ -137,11 +141,11 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
         convertArray(cdata_cube, data_cube);
         if (iter->second == MS::DATA) {
           setTileShape(rowRef, outputMsCols_p->data());
-          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(), 
+          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->data(),
                               outputFlagCol, applicableSpectrum);
         } else {
           setTileShape(rowRef, outputMsCols_p->correctedData());
-          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->correctedData(), 
+          transformCubeOfData(vb, rowRef, cdata_cube, outputMsCols_p->correctedData(),
                               outputFlagCol, applicableSpectrum);
         }
         break;
@@ -157,11 +161,11 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
 
         if (iter->second == MS::DATA) {
           setTileShape(rowRef, outputMsCols_p->data());
-          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->data(), 
+          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->data(),
                               outputFlagCol, applicableSpectrum);
         } else {
           setTileShape(rowRef, outputMsCols_p->modelData());
-          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->modelData(), 
+          transformCubeOfData(vb, rowRef, vb->visCubeModel(), outputMsCols_p->modelData(),
                               outputFlagCol, applicableSpectrum);
         }
         break;
@@ -175,7 +179,7 @@ void SDMSManager::fillCubeToDataCols(vi::VisBuffer2 *vb, RefRows &rowRef,
           outputFlagCol = NULL;
         }
         setTileShape(rowRef, outputMsCols_p->floatData());
-        transformCubeOfData(vb, rowRef, data_cube, outputMsCols_p->floatData(), 
+        transformCubeOfData(vb, rowRef, data_cube, outputMsCols_p->floatData(),
                             outputFlagCol, applicableSpectrum);
         break;
       }
@@ -293,79 +297,70 @@ void SDMSManager::setIterationApproach() {
 
     return;
   }
-  // User column is set.
-  uInt nSortColumns = userSortCols_.nelements();
-  Block<Int> removeCols(3), addCols(2);
-  uInt nRemoveCols = 0 ;
-  uInt nAddCols = 0 ;
-  logger_p.origin(_ORIGIN);
-  if (timespan_p.contains("scan") && (getBlockId(userSortCols_, MS::SCAN_NUMBER) > -1)) {
-    logger_p << LogIO::NORMAL << "Combining data through scans for time average. "
-             << "Removing SCAN_NUMBER from user sort list." << LogIO::POST;    
-    removeCols[nRemoveCols] = MS::SCAN_NUMBER;
-    nRemoveCols += 1;
-  }
-  if (timespan_p.contains("state") && (getBlockId(userSortCols_, MS::STATE_ID) > -1)) {
-    logger_p << LogIO::NORMAL << "Combining data through state for time average. "
-             <<  "Removing STATE_ID form user sort list." << LogIO::POST;
-    removeCols[nRemoveCols] = MS::STATE_ID;
-    nRemoveCols += 1;
-  }
-  if (timespan_p.contains("field") && (getBlockId(userSortCols_, MS::FIELD_ID) > -1)) {
-    logger_p << LogIO::NORMAL << "Combining data through state for time average. "
-             <<  "Removing FIELD_ID form user sort list." << LogIO::POST;
-    removeCols[nRemoveCols] = MS::FIELD_ID;
-    nRemoveCols += 1;
-  }
-  if (combinespws_p && (getBlockId(userSortCols_, MS::DATA_DESC_ID) > -1) ) {
-    logger_p << LogIO::NORMAL << "Combining data from selected spectral windows. "
-             << "Removing DATA_DESC_ID from user sort list" << LogIO::POST;
-    removeCols[nRemoveCols] = MS::DATA_DESC_ID;
-    nRemoveCols += 1;
-  }
-  if (timeAverage_p) {
-    if (!timespan_p.contains("scan")
-        && (getBlockId(userSortCols_, MS::SCAN_NUMBER) < 0)) {
-      logger_p << LogIO::NORMAL << "Splitting data by scans for time average. "
-               <<  "Adding SCAN_NUMBER to user sort list." << LogIO::POST;
-      addCols[nAddCols] = MS::SCAN_NUMBER;
-      nAddCols += 1;
-    }
-    if (!timespan_p.contains("state")
-        && (getBlockId(userSortCols_, MS::STATE_ID) < 0)) {
-      logger_p << LogIO::NORMAL << "Splitting data by state for time average. "
-               <<  "Adding STATE_ID to user sort list." << LogIO::POST;
-      addCols[nAddCols] = MS::STATE_ID;
-      nAddCols += 1;
-    }
-    if (!timespan_p.contains("field")
-        && (getBlockId(userSortCols_, MS::FIELD_ID) < 0)) {
-      logger_p << LogIO::NORMAL << "Splitting data by field for time average. "
-               <<  "Adding FIELD_ID to user sort list." << LogIO::POST;
-      addCols[nAddCols] = MS::FIELD_ID;
-      nAddCols += 1;
-    }
-  }
-  nSortColumns += (nAddCols - nRemoveCols);
-  sortColumns_p = Block<Int>(nSortColumns);
-  uInt sortColumnIndex = 0;
 
-  for (size_t i = 0; i < userSortCols_.nelements(); ++i) {
-    bool addcol = true;
-    for (size_t j = 0 ; j < nRemoveCols; ++j) {
-      if (getBlockId(userSortCols_, removeCols[i]) > -1) {
-          addcol = false; // the columns is in removeColumns
+  // User column is set.
+  logger_p.origin(_ORIGIN);
+
+  using ColumnId = MSMainEnums::PredefinedColumns;
+  struct CheckItem {
+    CheckItem(ColumnId const &id, String const &name, String const &type, Bool const &remove)
+        : columnId{id}, columnName{name}, paramType{type}, removeIt{remove}, addIt{!remove}
+    {}
+    ColumnId columnId;
+    String columnName;
+    String paramType;
+    Bool removeIt;
+    Bool addIt;
+  };
+  auto const userSortColExists = [&](ColumnId const &columnId) {
+    return getBlockId(userSortCols_, columnId) > -1;
+  };
+
+  // copy userSortCols_ to std::list
+  std::list<ColumnId> userSortColsList;
+  std::transform(
+    userSortCols_.begin(), userSortCols_.end(),
+    std::back_inserter(userSortColsList),
+    [](Int const &i) {return static_cast<ColumnId>(i);}
+  );
+
+  // list of columns that may be added/removed depending on the value of timespan_p
+  std::array<CheckItem, 3> const checkList {{
+    {MS::SCAN_NUMBER, "SCAN_NUMBER", "scan", timespan_p.contains("scan")},
+    {MS::STATE_ID, "STATE_ID", "state", timespan_p.contains("state")},
+    {MS::FIELD_ID, "FIELD_ID", "field", timespan_p.contains("field")},
+  }};
+
+  // remove columns from userSortColsList if necessary
+  for (auto const &item: checkList) {
+    if (item.removeIt && userSortColExists(item.columnId)) {
+      logger_p << LogIO::NORMAL;
+      logger_p << "Combining data through " << item.paramType << "s for time average. ";
+      logger_p << "Removing " << item.columnName << " from user sort list." << LogIO::POST;
+      userSortColsList.remove(item.columnId);
+    }
+  }
+
+  // add columns to userSortColsList if necessary
+  if (timeAverage_p) {
+    for (auto const &item: checkList) {
+      if (item.addIt && !userSortColExists(item.columnId)) {
+        logger_p << LogIO::NORMAL
+                 << "Splitting data by " << item.paramType << "s for time average. "
+                 << "Adding " << item.columnName << " to user sort list." << LogIO::POST;
+        userSortColsList.push_back(item.columnId);
       }
     }
-    if (addcol) {
-      sortColumns_p[sortColumnIndex] = userSortCols_[i];
-      ++sortColumnIndex;
-    }
   }
-  for (size_t i = 0; i < nAddCols; ++i) {
-    sortColumns_p[sortColumnIndex] = addCols[i];
-    ++sortColumnIndex;
-  }
+
+  // copy back userSortColsList to sortColumns_p
+  constexpr bool forceSmaller = true;
+  constexpr bool copyElements = false;
+  sortColumns_p.resize(userSortColsList.size(), forceSmaller, copyElements);
+  std::transform(
+    userSortColsList.begin(), userSortColsList.end(), sortColumns_p.begin(),
+    [](ColumnId const &i) {return static_cast<Int>(i);}
+  );
 
   ostringstream oss;
   for (size_t i = 0; i < sortColumns_p.nelements(); ++i) {

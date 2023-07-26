@@ -26,17 +26,17 @@
 //# $Id: VLAOnlineInput.cc,v 19.1.20.4 2006/02/17 23:46:40 wyoung Exp $
 
 #include <nrao/VLA/VLAOnlineInput.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/IO/MemoryIO.h>
-#include <casa/IO/ByteIO.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/IO/MemoryIO.h>
+#include <casacore/casa/IO/ByteIO.h>
 #include <nrao/VLA/nreal.h>
-#include <casa/stdlib.h>
+#include <cstdlib>
 
 
 // this is an expediant, we should get it from the IERS table
 #define LEAP_SECONDS 33
-  
+
 String VLAOnlineInput::getTodaysFile(int relDay){
   int LeapSeconds = LEAP_SECONDS;
   time_t curTime, holdTime;          /* time vars */
@@ -45,7 +45,7 @@ String VLAOnlineInput::getTodaysFile(int relDay){
   curTime = time(&holdTime) + LeapSeconds + relDay*86400;
   tmTime = gmtime(&curTime);
   oldDay = tmTime->tm_yday;
-  
+
 // Format up the online vla file
 
   aDate << visDir << "/vla";
@@ -55,10 +55,10 @@ String VLAOnlineInput::getTodaysFile(int relDay){
   aDate.width(2);
   aDate << tmTime->tm_mon+1 << "-" << tmTime->tm_mday << ".dat";
   return(String(aDate.str()));
-} 
-  
+}
+
 // simple function see what today is
-  
+
 Int VLAOnlineInput::whatsToday(){
   time_t LeapSeconds = LEAP_SECONDS;
   time_t curTime, holdTime;          /* time vars */
@@ -70,7 +70,7 @@ Int VLAOnlineInput::whatsToday(){
 
 // Here's the online version to read data from the VLA online data repository
 
-VLAOnlineInput::VLAOnlineInput(String &onlineFlag, Int afiles) 
+VLAOnlineInput::VLAOnlineInput(String &onlineFlag, Int afiles)
   :VLAArchiveInput()
 {
    // Need to check for :-x to set the relative day.
@@ -85,7 +85,7 @@ VLAOnlineInput::VLAOnlineInput(String &onlineFlag, Int afiles)
       std::cerr << getTodaysFile() << std::endl;
       //olopen_(&dum, (char *)getTodaysFile().data(), 1);
       olopen_(&dum, const_cast<char*>("online"), 1);
-      oladvf_(&dum, &afiles);      // Positions the online filler 
+      oladvf_(&dum, &afiles);      // Positions the online filler
                                    // afile < 0 previous days upto 14
                                    // afile == 0, start of current day
 				   // afile > 0, now
@@ -102,17 +102,17 @@ VLAOnlineInput::~VLAOnlineInput() {
 
 Bool VLAOnlineInput::read() {
 	Bool rstatus(true);
-  itsMemIO.clear();
+  itsMemIO->clear();
   Long logicalRecordSize(MAX_LOGICAL_RECORD_SIZE);
-  Char* recordPtr = (Char *)itsMemIO.setBuffer(logicalRecordSize);
+  Char* recordPtr = (Char *)itsMemIO->setBuffer(logicalRecordSize);
   logicalRecordSize = readVLALogRec(recordPtr);
-  itsMemIO.setUsed(logicalRecordSize);
+  itsMemIO->setUsed(logicalRecordSize);
   itsRecord.seek(0);
   if(!logicalRecordSize)
 	  rstatus = false;
   return rstatus;
 }
 
-// Local Variables: 
+// Local Variables:
 // compile-command: "gmake VLADiskInput; cd test; gmake OPTLIB=1 tVLADiskInput"
-// End: 
+// End:

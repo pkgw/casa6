@@ -26,7 +26,7 @@
 
 #include <synthesis/CalLibrary/CalLibraryParse.h>
 #include <casacore/casa/Logging/LogIO.h>
-#include <casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogSink.h>
 
 using namespace casacore;
 namespace casa {
@@ -65,12 +65,14 @@ void CalLibraryParse::resetParamRecord() {
     paramRec_.define("intent", "");
     paramRec_.define("spw", "");
     paramRec_.define("obs", "");
+    paramRec_.define("scan", "");
     paramRec_.define("tinterp", "");
     paramRec_.define("finterp", "");
     paramRec_.define("reach", "");
     addDefaultMap("antmap");
     addDefaultMap("fldmap");
     addDefaultMap("obsmap");
+    addDefaultMap("scanmap");
     addDefaultMap("spwmap");
 }
 

@@ -51,8 +51,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                                 itsMinResidual(0),itsMinResidualNoMask(0),
                                 itsPeakResidualNoMask(0), itsNsigma(0),
                                 itsMadRMS(0), itsMaskSum(0),
-                                itsSummaryMinor(IPosition(2,
-                                                            SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                //itsSummaryMinor(IPosition(2,
+                                //                            SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
+                                itsSummaryMinor(IPosition(2, SIMinorCycleController::nSummaryFields, // temporary CAS-13683 workaround
                                                             0)),
 				itsDeconvolverID(0) 
   {}
@@ -197,6 +198,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsMaskSum = maskSum;
   }
 
+  void SIMinorCycleController::setFullSummary(bool fullSummary)
+  {
+    itsFullSummary = fullSummary;
+  }
+
   void SIMinorCycleController::resetMinResidual()
   {
     itsMinResidual = itsPeakResidual;
@@ -278,11 +284,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     returnRecord.define( RecordFieldId("masksum"), itsMaskSum);
     returnRecord.define( RecordFieldId("nsigmathreshold"), itsNsigmaThreshold);
     returnRecord.define( RecordFieldId("nsigma"), itsNsigma);
+    returnRecord.define( RecordFieldId("fullsummary"), itsFullSummary);
 
     /* Reset Counters and summary for the current set of minorcycle iterations */
     itsIterDone = 0;
     itsIterDiff = -1;
-    int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    int nSummaryFields = !itsFullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
     itsSummaryMinor.resize( IPosition( 2, nSummaryFields, 0) , true );
 
     return returnRecord;
@@ -290,6 +298,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   void SIMinorCycleController::setCycleControls(Record &recordIn) {
     LogIO os( LogOrigin("SIMinorCycleController",__FUNCTION__,WHERE) );
+
     if (recordIn.isDefined("cycleniter"))
       {recordIn.get(RecordFieldId("cycleniter"), itsCycleNiter);}
     else
@@ -315,6 +324,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     else 
       { throw(AipsError(" nsigma is not defined in input minor-cycle controller ") );}
 
+    //if (recordIn.isDefined("fullsummary"))
+   //  {recordIn.get(RecordFieldId("fullsummary"), itsFullSummary);}
+    //else 
+    //  { throw(AipsError(" fullsummary is not defined in input minor-cycle controller ") );}
+    //os<<" in setCycleControls done... "<<LogIO::POST;
+
     /* Reset the counters for the new cycle */
     itsMaxCycleIterDone = 0;
     itsCycleIterDone = 0;
@@ -328,18 +343,27 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   void SIMinorCycleController::addSummaryMinor(uInt deconvolverid, uInt chan, uInt pol,
                                                Int cycleStartIter, Int startIterDone, Float startmodelflux, Float startpeakresidual, Float startpeakresidualnomask,
-                                               Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Float peakMem, Float runtime, Int stopCode)
+                                               Float modelflux, Float peakresidual, Float peakresidualnomask, Float masksum, Int mpiRank, Int stopCode, bool fullsummary)
   {
     LogIO os( LogOrigin("SIMinorCycleController", __FUNCTION__ ,WHERE) );
-
     IPosition shp = itsSummaryMinor.shape();
-    bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
-    int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+    //bool uss = SIMinorCycleController::useSmallSummaryminor(); // temporary CAS-13683 workaround
+    //int nSummaryFields = uss ? 6 : SIMinorCycleController::nSummaryFields;
+    //int nSummaryFields = fullsummary ? 6 : SIMinorCycleController::nSummaryFields;
+
+    int nSummaryFields = !fullsummary ? 6 : SIMinorCycleController::nSummaryFields;
     if( shp.nelements() != 2 && shp[0] != nSummaryFields ) 
       throw(AipsError("Internal error in shape of minor-cycle summary record"));
      itsSummaryMinor.resize( IPosition( 2, nSummaryFields, shp[1]+1 ) , true );
      // iterations done
-     itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+     // make it non-cummulative for all cases
+     itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     //if(!fullsummary) {
+     //    itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone - startIterDone;
+     //}
+     //else {
+     //    itsSummaryMinor( IPosition(2, 0, shp[1] ) ) = itsIterDone;
+     // }
      // peak residual
      itsSummaryMinor( IPosition(2, 1, shp[1] ) ) = (Double) peakresidual;
      // model flux
@@ -350,7 +374,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
      itsSummaryMinor( IPosition(2, 4, shp[1] ) ) = deconvolverid;
      // channel id
      itsSummaryMinor( IPosition(2, 5, shp[1] ) ) = chan;
-     if (!uss) {
+     //if (!uss) {
+     if (fullsummary) {
          // polarity id
          itsSummaryMinor( IPosition(2, 6, shp[1] ) ) = pol;
          // cycle start iterations done (ie earliest iterDone for the entire minor cycle)
@@ -369,18 +394,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
          itsSummaryMinor( IPosition(2, 13, shp[1] ) ) = (Double) masksum;
          // mpi server
          itsSummaryMinor( IPosition(2, 14, shp[1] ) ) = mpiRank;
-         // peak memory used by the application
-         itsSummaryMinor( IPosition(2, 15, shp[1] ) ) = peakMem;
-         // ellapsed time of the deconvolver
-         itsSummaryMinor( IPosition(2, 16, shp[1] ) ) = runtime;
          // outlier field id, to be provided in grpcInteractiveCleanManager::mergeMinorCycleSummary
-         itsSummaryMinor( IPosition(2, 17, shp[1] ) ) = 0;
+         itsSummaryMinor( IPosition(2, 15, shp[1] ) ) = 0;
          // stopcode
-         itsSummaryMinor( IPosition(2, 18, shp[1] ) ) = stopCode;
+         itsSummaryMinor( IPosition(2, 16, shp[1] ) ) = stopCode;
      }
+
   }// end of addSummaryMinor
 
   // temporary CAS-13683 workaround
+  /***
   Bool SIMinorCycleController::useSmallSummaryminor()
   {
     if (const char* use_small_summaryminor_p = std::getenv("USE_SMALL_SUMMARYMINOR"))
@@ -392,7 +415,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
     return false;
   }
-  
+  ***/
   
 } //# NAMESPACE CASA - END
 

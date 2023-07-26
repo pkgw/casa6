@@ -32,14 +32,14 @@
 #include <synthesis/CalTables/CTTimeInterp1.h>
 #include <synthesis/CalTables/RIorAParray.h>
 #include <synthesis/CalTables/VisCalEnum.h>
-#include <scimath/Mathematics/InterpolateArray1D.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Cube.h>
-#include <ms/MeasurementSets/MeasurementSet.h>
-#include <ms/MeasurementSets/MSField.h>
-#include <ms/MeasurementSets/MSColumns.h>
-#include <casa/aips.h>
+#include <casacore/scimath/Mathematics/InterpolateArray1D.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/ms/MeasurementSets/MSField.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
+#include <casacore/casa/aips.h>
 
 //#include <casa/BasicSL/Constants.h>
 //#include <casa/OS/File.h>
@@ -106,17 +106,17 @@ public:
 
   // Interpolate, given input field, spw, timestamp, & (optionally) freq list
   //    returns T if new result (anywhere)
-  casacore::Bool interpolate(casacore::Int obs, casacore::Int fld, casacore::Int spw, casacore::Double time, casacore::Double freq=-1.0);
-  casacore::Bool interpolate(casacore::Int obs, casacore::Int fld, casacore::Int spw, casacore::Double time, const casacore::Vector<casacore::Double>& freq);
+  casacore::Bool interpolate(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw, casacore::Double time, casacore::Double freq=-1.0);
+  casacore::Bool interpolate(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw, casacore::Double time, const casacore::Vector<casacore::Double>& freq);
 
   // Access to the result
-  casacore::Array<casacore::Float>& resultF(casacore::Int obs, casacore::Int fld, casacore::Int spw) { return result_(spw,fld,thisobs(obs)); };
-  casacore::Array<casacore::Complex> resultC(casacore::Int obs, casacore::Int fld, casacore::Int spw) { return RIorAPArray(result_(spw,fld,thisobs(obs))).c(); };
-  casacore::Array<casacore::Bool>& rflag(casacore::Int obs, casacore::Int fld, casacore::Int spw) { return resFlag_(spw,fld,thisobs(obs)); };
+  casacore::Array<casacore::Float>& resultF(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw) { return result_(spw,fld,thisTimeSeg(obs,scan)); };
+  casacore::Array<casacore::Complex> resultC(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw) { return RIorAPArray(result_(spw,fld,thisTimeSeg(obs,scan))).c(); };
+  casacore::Array<casacore::Bool>& rflag(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw) { return resFlag_(spw,fld,thisTimeSeg(obs,scan)); };
 
   // Temporary public function for testing
-  casacore::Array<casacore::Float>& tresultF(casacore::Int obs, casacore::Int fld, casacore::Int spw) { return timeResult_(spw,fld,thisobs(obs)); };
-  casacore::Array<casacore::Bool>& tresultFlag(casacore::Int obs, casacore::Int fld, casacore::Int spw) { return timeResFlag_(spw,fld,thisobs(obs)); };
+  casacore::Array<casacore::Float>& tresultF(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw) { return timeResult_(spw,fld,thisTimeSeg(obs,scan)); };
+  casacore::Array<casacore::Bool>& tresultFlag(casacore::Int obs, casacore::Int scan, casacore::Int fld, casacore::Int spw) { return timeResFlag_(spw,fld,thisTimeSeg(obs,scan)); };
 
   // spwOK info for users
   casacore::Bool spwOK(casacore::Int spw) const;
@@ -146,11 +146,8 @@ private:
   void sliceTable();
   void makeInterpolators();
 
-  casacore::Int thisobs(casacore::Int obs) { return (byObs_?obs:0); };
+  casacore::Int thisTimeSeg(casacore::Int obs, casacore::Int scan) { return (byScan_?scan:byObs_?obs:0); };
     
-  // The MSMetaInfoForCal pointer
-  const MSMetaInfoForCal* msmc_;
-
   // Methods to set up 1:1 patch-panel maps
   //  Private for now as not yet ready to control from outside
   // Field
@@ -200,6 +197,12 @@ private:
   // The Caltable
   NewCalTable ct_;
 
+  // The caltable's name (for forming log messages)
+  casacore::String ctname_;
+  
+  // The MSMetaInfoForCal pointer
+  const MSMetaInfoForCal* msmc_;
+
   // casacore::Matrix type
   VisCalEnum::MatrixType mtype_;
 
@@ -222,7 +225,7 @@ private:
   casacore::Vector<INTERPMETHOD> freqInterpMethodVec_;  // per ms spw
   
   // Are we slicing caltable by field?
-  casacore::Bool byObs_,byField_;
+  casacore::Bool byObs_,byScan_,byField_;
 
   // CalTable freq axis info
   casacore::Vector<casacore::Int> nChanIn_;
@@ -231,14 +234,14 @@ private:
 
   // Obs, Field, Spw, Ant _output_ (casacore::MS) sizes 
   //   calibration required for up to this many
-  casacore::Int nMSObs_, nMSFld_, nMSSpw_, nMSAnt_, nMSElem_;
+  casacore::Int nMSTimeSeg_, nMSFld_, nMSSpw_, nMSAnt_, nMSElem_;
 
   // Alternate field indices
   casacore::Vector<casacore::Int> altFld_;
 
   // Obs, Field, Spw, Ant _input_ (CalTable) sizes
   //  patch panels should not violate these (point to larger indices)
-  casacore::Int nCTObs_, nCTFld_, nCTSpw_, nCTAnt_, nCTElem_;
+  casacore::Int nCTTimeSeg_, nCTFld_, nCTSpw_, nCTAnt_, nCTElem_;
 
   // OK flag
   casacore::Vector<casacore::Bool> spwInOK_;
@@ -251,24 +254,25 @@ private:
   casacore::Vector<casacore::Bool> conjTab_;
 
   // Internal result Arrays
-  casacore::Cube<casacore::Cube<casacore::Float> > timeResult_,freqResult_;   // [nMSSpw_,nMSFld_,nMSObs_][nFpar,nChan,nAnt]
-  casacore::Cube<casacore::Cube<casacore::Bool> >  timeResFlag_,freqResFlag_; // [nMSSpw_,nMSFld_,nMSObs_][nFpar,nChan,nAnt]
+  casacore::Cube<casacore::Cube<casacore::Float> > timeResult_,freqResult_;   // [nMSSpw_,nMSFld_,nMSTimeSeg_][nFpar,nChan,nAnt]
+  casacore::Cube<casacore::Cube<casacore::Bool> >  timeResFlag_,freqResFlag_; // [nMSSpw_,nMSFld_,nMSTimeSeg_][nFpar,nChan,nAnt]
 
   // Current interpolation result Arrays
   //  These will reference time or freq result, depending on context,
   //  and may be referenced by external code
-  casacore::Cube<casacore::Cube<casacore::Float> > result_;     // [nMSSpw_,nMSFld_,nMSObs_][nFpar,nChan,nAnt]
-  casacore::Cube<casacore::Cube<casacore::Bool> >  resFlag_;    // [nMSSpw_,nMSFld_,nMSObs_][nFpar,nChan,nAnt]
+  casacore::Cube<casacore::Cube<casacore::Float> > result_;     // [nMSSpw_,nMSFld_,nMSTimeSeg_][nFpar,nChan,nAnt]
+  casacore::Cube<casacore::Cube<casacore::Bool> >  resFlag_;    // [nMSSpw_,nMSFld_,nMSTimeSeg_][nFpar,nChan,nAnt]
 
   // The CalTable slices
   casacore::Array<NewCalTable*> ctSlices_;  // [nCTElem_,nCTSpw_,nCTFld_,nCTObs_]
 
   // The pre-patched casacore::Time interpolation engines
   //   These are populated by the available caltables slices
-  casacore::Array<CTTimeInterp1*> tI_;  // [nMSElem_,nMSSpw_,nMSFld_,nMSObs_]
-  casacore::Array<casacore::Bool> tIdel_;         // [nMSElem_,nMSSpw_,nMSFld_,mMSObs_]
+  casacore::Array<CTTimeInterp1*> tI_;  // [nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_]
+  casacore::Array<casacore::Bool> tIdel_;         // [nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_]
+  casacore::Array<casacore::Bool> tIMissingLogged_;         // [nMSElem_,nMSSpw_,nMSFld_,nMSTimeSeg_]
 
-  casacore::Vector<casacore::Int> lastFld_,lastObs_;
+  casacore::Vector<casacore::Int> lastFld_,lastObs_,lastScan_;
 
   // Pointer to the factory to use to create CTTimeInterp1s (or specializations)
   CTTIFactoryPtr cttifactoryptr_;

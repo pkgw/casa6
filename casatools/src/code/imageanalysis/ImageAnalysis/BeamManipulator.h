@@ -3,7 +3,7 @@
 
 #include <imageanalysis/ImageTypedefs.h>
 
-#include <casa/Quanta/Quantum.h>
+#include <casacore/casa/Quanta/Quantum.h>
 
 namespace casa {
 
@@ -63,6 +63,12 @@ public:
 private:
 	SPIIT _image;
 	std::shared_ptr<casacore::LogIO> _log;
+
+    void _setUnitIfNecessary(
+        casacore::Quantity& q, const casacore::String& label,
+        const casacore::ImageInfo& info, int channel, int polarization
+    );
+
 };
 }
 
