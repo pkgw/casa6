@@ -42,18 +42,18 @@ downstream.
                 </description>
                 <value type="string"/>
             </param>
-            <param mustexist="true" name="band" type="string">
+            <param name="band" type="string">
                 <shortdescription>The receiver band for which the source structure is needed</shortdescription>
                 <description>A string representing the case-insensitive code of the band for which the data are
                     required. For the VLA, supported codes are ‘P’, ‘L’, ‘S’, ‘C’, ‘X’, ‘U’, ‘K’, ‘A’ and ‘Q’.
                 </description>
                 <value type="string"/>
             </param>
-            <param mustexist="true" name="obsdate" type="double">
+            <param name="obsdate" type="double">
                 <shortdescription>The observation date</shortdescription>
                 <description>
                     The date for which to obtain the calibrator information, in MJD. Non-positive
-                    values will cause an exception to be thrown. 
+                    indicate that the most recent data will be written.
                 </description>
                 <value type="double">0</value>
             </param>
