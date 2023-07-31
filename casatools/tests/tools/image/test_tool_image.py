@@ -23,7 +23,7 @@
 # deconvolvefrombeam, fft, findsources, fromarray, fromcomplist, fromfits, fromimage, fromrecord, fromshape,
 # getregion, hanning, histograms, imageconcat, insert, isconform, makecomplex, maskhandler, modify,
 # newfromimage, pad, putchunk, getchunk, putregion, replacemaskedpixels, restoringbeam, rotate, sepconvolve, set,
-# setbrightnessunit, setcoordsys, setmiscinfo, summary, tofits, twopointcorrelation
+# setbrightnessunit, setcoordsys, setmiscinfo, summary, tofits, twopointcorrelation, fitsheader
 ##########################################################################
 import shutil
 import pytest
