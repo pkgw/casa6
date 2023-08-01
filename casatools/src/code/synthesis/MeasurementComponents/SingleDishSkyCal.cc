@@ -52,6 +52,7 @@
 #include <synthesis/Utilities/PointingDirectionCalculator.h>
 #include <synthesis/Utilities/PointingDirectionProjector.h>
 #include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casa_sakura/SakuraAlignedArray.h>
 #include <libsakura/sakura.h>
 #include <cassert>
 
@@ -176,7 +177,7 @@ public:
 private:
   DataColumnAccessor() {}
   casacore::ArrayColumn<casacore::Complex> dataCol_;
-};    
+};
 
 class FloatDataColumnAccessor {
 public:
@@ -323,7 +324,7 @@ inline casacore::Vector<casacore::Double> detectEdge(casacore::Vector<casacore::
   }
   return edgeList;
 }
-  
+
 inline casacore::Vector<casacore::String> detectRaster(casacore::MeasurementSet const &ms,
 					       casacore::Int const ant,
 					       casacore::Float const fraction,
@@ -495,7 +496,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 //
 // SingleDishSkyCal
 //
-  
+
 // Constructor
 SingleDishSkyCal::SingleDishSkyCal(VisSet& vs)
   : VisCal(vs),
@@ -564,7 +565,7 @@ void SingleDishSkyCal::differentiate( CalVisBuffer & /*cvb*/)
 {
 }
 
-void SingleDishSkyCal::differentiate(VisBuffer& /*vb*/, Cube<Complex>& /*V*/,     
+void SingleDishSkyCal::differentiate(VisBuffer& /*vb*/, Cube<Complex>& /*V*/,
                                      Array<Complex>& /*dV*/, Matrix<Bool>& /*Vflg*/)
 {
 }
@@ -618,7 +619,7 @@ void SingleDishSkyCal::setApply(const Record& apply)
   else {
     applyCopy.define("interp", "linear,linearflag");
   }
-  
+
   // call parent method
   SolvableVisCal::setApply(applyCopy);
 }
@@ -658,7 +659,7 @@ void SingleDishSkyCal::fillCalibrationTable(MeasurementSet const &ms) {
     debuglog << "Process " << ispw
 	     << "(nchan " << nChanParList()[ispw] << ")"
 	     << debugpost;
-    
+
     Int ifield = msIter.fieldId();
     ScalarColumn<Int> antennaCol(current, "ANTENNA1");
     currAnt_ = antennaCol(0);
@@ -703,7 +704,7 @@ void SingleDishSkyCal::fillCalibrationTable(MeasurementSet const &ms) {
       numSpectra++;
       timeCentroid += timeList[i];
       effectiveExposure += exposure[i];
-      
+
       Matrix<Bool> mask = !flagCol(i);
       MaskedArray<Float> mdata(dataCol(i), mask);
       MaskedArray<Float> weight(Matrix<Float>(mdata.shape(), exposure[i]), mask);
@@ -736,7 +737,7 @@ void SingleDishSkyCal::fillCalibrationTable(MeasurementSet const &ms) {
 	interval_ = effectiveExposure;
 
 	debuglog << "spw " << ispw << ": solveAllRPar.shape=" << solveAllRPar().shape() << " nPar=" << nPar() << " nChanPar=" << nChanPar() << " nElem=" << nElem() << debugpost;
-	
+
   size_t const nCorr = dataSum.shape()[0];
 	Cube<Float> const rpar = dataSum.addDegenerate(1);
 	Cube<Bool> const parOK = resultMask.addDegenerate(1);
@@ -776,13 +777,13 @@ void SingleDishSkyCal::keepNCT() {
 
   // update INTERVAL
   ncmc.interval().putColumnCells(rows,interval_);
-}    
+}
 
 void SingleDishSkyCal::initSolvePar()
 {
   debuglog << "SingleDishSkyCal::initSolvePar()" << debugpost;
   for (Int ispw=0;ispw<nSpw();++ispw) {
-    
+
     currSpw()=ispw;
 
     switch(parType()) {
@@ -860,7 +861,7 @@ void SingleDishSkyCal::syncCalMat(const Bool &/*doInv*/)
 
   debuglog << "SingleDishSkyCal::syncCalMat DONE" << debugpost;
 }
-  
+
 void SingleDishSkyCal::syncDiffMat()
 {
   debuglog << "SingleDishSkyCal::syncDiffMat()" << debugpost;
@@ -869,8 +870,8 @@ void SingleDishSkyCal::syncDiffMat()
 void SingleDishSkyCal::syncWtScale()
 {
   debuglog << "syncWtScale" << debugpost;
-  
-  // allocate necessary memory 
+
+  // allocate necessary memory
   currWtScale().resize(currentSky().shape());
   currWtScale() = 1.0;
 
@@ -881,7 +882,7 @@ void SingleDishSkyCal::syncWtScale()
   else {
     calcWtScale<LinearWeightScalingScheme>();
   }
-  
+
   debuglog << "syncWtScale DONE" << debugpost;
 }
 
@@ -978,7 +979,7 @@ void SingleDishSkyCal::calcWtScale()
 
   debuglog << "calcWtScale<ScalingScheme> DONE" << debugpost;
 }
-  
+
 Float SingleDishSkyCal::calcPowerNorm(Array<Float>& /*amp*/, const Array<Bool>& /*ok*/)
 {
   return 0.0f;
@@ -1013,7 +1014,7 @@ void SingleDishSkyCal::applyCal2(vi::VisBuffer2 &vb, Cube<Complex> &Vout, Cube<F
   Bool* flagR=&flagRv(0);
   Int* a1=&a1v(0);
   Int* a2=&a2v(0);
-  
+
   // iterate rows
   Int nRow=vb.nRows();
   Int nChanDat=vb.nChannels();
@@ -1030,15 +1031,15 @@ void SingleDishSkyCal::applyCal2(vi::VisBuffer2 &vb, Cube<Complex> &Vout, Cube<F
   // TODO: storage must be aligned for future use
   Matrix<Complex> visCubeSlice;
   Matrix<Bool> flagCubeSlice;
-  
+
   for (Int row=0; row<nRow; row++,flagR++,a1++,a2++) {
     debuglog << "spw: " << currSpw() << " antenna: " << *a1 << debugpost;
     assert(*a1 == *a2);
-    
+
     // Solution channel registration
     Int solCh0(0);
     dataChan=&dataChanv(0);
-      
+
     // If cal _parameters_ are not freqDep (e.g., a delay)
     //  the startChan() should be the same as the first data channel
     if (freqDepMat() && !freqDepPar())
@@ -1057,16 +1058,16 @@ void SingleDishSkyCal::applyCal2(vi::VisBuffer2 &vb, Cube<Complex> &Vout, Cube<F
       // apply calibration
       engineC().apply(visCubeSlice, flagCubeSlice);
     }
-    
+
     // If requested, update the weights
     if (!trial && calWt()) {
       wtmat.reference(wt.array());
       updateWt2(wtmat,*a1);
     }
-    
+
     if (!trial)
       wt.next();
-    
+
   }
 }
 
@@ -1190,7 +1191,7 @@ void SingleDishSkyCal::updateWt2(Matrix<Float> &weight, const Int &antenna1)
 //
 // SingleDishPositionSwitchCal
 //
-  
+
 // Constructor
 SingleDishPositionSwitchCal::SingleDishPositionSwitchCal(VisSet& vs)
   : VisCal(vs),
@@ -1205,7 +1206,7 @@ SingleDishPositionSwitchCal::SingleDishPositionSwitchCal(const MSMetaInfoForCal&
 {
   debuglog << "SingleDishPositionSwitchCal::SingleDishPositionSwitchCal(const MSMetaInfoForCal& msmc)" << debugpost;
 }
-  
+
 SingleDishPositionSwitchCal::SingleDishPositionSwitchCal(const Int& nAnt)
   : VisCal(nAnt),
     SingleDishSkyCal(nAnt)
@@ -1392,7 +1393,7 @@ void SingleDishPositionSwitchCal::fillCalibrationTable(casacore::MeasurementSet 
 //
 // SingleDishRasterCal
 //
-  
+
 // Constructor
 SingleDishRasterCal::SingleDishRasterCal(VisSet& vs)
   : VisCal(vs),
@@ -1437,11 +1438,11 @@ void SingleDishRasterCal::setSolve(const Record& solve)
 
   logSink() << "fraction=" << fraction_ << endl
             << "numedge=" << numEdge_ << LogIO::POST;
-  
+
   // call parent setSolve
   SolvableVisCal::setSolve(solve);
 }
-  
+
 MeasurementSet SingleDishRasterCal::selectReferenceData(MeasurementSet const &ms)
 {
   debuglog << "SingleDishRasterCal::selectReferenceData" << debugpost;
@@ -1456,7 +1457,7 @@ MeasurementSet SingleDishRasterCal::selectReferenceData(MeasurementSet const &ms
   //   oss << "(ANTENNA1 == " << iant << " && ANTENNA2 == " << iant << " && (";
   //   String separator = "";
   //   for (size_t i = 0; i < timeRangeList.size(); ++i) {
-  //     if (timeRangeList[i].size() > 0) { 
+  //     if (timeRangeList[i].size() > 0) {
   //   	oss << separator << "(" << timeRangeList[i] << ")";
   //   	separator = " || ";
   //     }
@@ -1472,14 +1473,14 @@ MeasurementSet SingleDishRasterCal::selectReferenceData(MeasurementSet const &ms
   oss << "(ANTENNA1 == ANTENNA2 && (";
   String separator = "";
   for (size_t i = 0; i < timeRangeList.size(); ++i) {
-    if (timeRangeList[i].size() > 0) { 
+    if (timeRangeList[i].size() > 0) {
       oss << separator << "(" << timeRangeList[i] << ")";
       separator = " || ";
     }
   }
   oss << "))";
   debuglog << "oss.str()=" << oss.str() << debugpost;
-  
+
   oss //<< ")"
       << " ORDER BY FIELD_ID, ANTENNA1, FEED1, DATA_DESC_ID, TIME";
   return MeasurementSet(tableCommand(oss.str(), ms).table());
@@ -1488,7 +1489,7 @@ MeasurementSet SingleDishRasterCal::selectReferenceData(MeasurementSet const &ms
 //
 // SingleDishOtfCal
 //
-  
+
 // Constructor
 SingleDishOtfCal::SingleDishOtfCal(VisSet& vs)
   : VisCal(vs),
@@ -1633,9 +1634,11 @@ MeasurementSet SingleDishOtfCal::selectReferenceData(MeasurementSet const &ms)
         p.setDirection(pointings_dirs);
         const Matrix<Double> &pointings_coords = p.project();
         // Extract edges of the observed region for the (field_id,antenna,spectral window) triple
-        Vector<Double> pointings_x(pointings_coords.row(0).copy());
-        Vector<Double> pointings_y(pointings_coords.row(1).copy());
-        Vector<Bool> is_edge(pointings_coords.ncolumn(),false);
+        SakuraAlignedArray<Double> pointings_x(pointings_coords.row(0));
+        SakuraAlignedArray<Double> pointings_y(pointings_coords.row(1));
+        SakuraAlignedArray<Bool> is_edge_storage(pointings_coords.ncolumn());
+        Vector<Bool> is_edge = is_edge_storage.casaVector();
+        is_edge = false;
         double pixel_size = 0.0;
         {
           // CAS-9956
