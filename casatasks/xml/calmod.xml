@@ -49,22 +49,21 @@ downstream.
                 </description>
                 <value type="string"/>
             </param>
-            <param name="obsdate" type="double">
+            <param name="obsdate" type="int">
                 <shortdescription>The observation date</shortdescription>
                 <description>
-                    The date for which to obtain the calibrator information, in MJD. Non-positive
-                    indicate that the most recent data will be written.
+                    The date for which to obtain the calibrator information, in MJD.
                 </description>
-                <value type="double">0</value>
+                <value type="int">0</value>
             </param>
-            <param name="refdate" type="double">
+            <param name="refdate" type="int">
                 <shortdescription>The reference date in MJD after which new database entries will be ignored.</shortdescription>
                 <description>
                     The reference date in MJD after which new database entries will be ignored. Used to support
                     historical reproducibility. A non-positive value will result in this parameter being ignored,
                     and the most recent entry will be used (which may be later than obsdate). 
                 </description>
-                <value type="double">0</value>
+                <value type="int">0</value>
             </param>
             <param name="hosts" type="stringVec">
                 <shortdescription>List of hostnames to use when querying the web service.</shortdescription>

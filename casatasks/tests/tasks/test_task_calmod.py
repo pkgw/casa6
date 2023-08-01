@@ -25,24 +25,51 @@ import glob
 import numpy as np
 import os
 import shutil
+import subprocess
+import sys
+from time import sleep
 import unittest
+from casatasks import casalog
 
 from casatools import componentlist, measures
 
 from casatasks import calmod
 
+
 class calmod_test(unittest.TestCase):
 
 
+    hostname = 'http://127.0.0.1:8080'
+
+
+    @classmethod
+    def setUpClass(cls):
+        server = os.sep.join([
+            os.path.dirname(os.path.abspath(__file__)),
+            'calmod_helpers', 'vlafluxcal.py'
+        ])
+        cls.web_server = subprocess.Popen(
+            ['python', server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        sleep(2)
+
     def setUp(self):
         self.cl = componentlist()
+        self.clname = 'my.cl'
 
 
     def tearDown(self):
         self.cl.done()
         del self.cl
+        if os.path.exists(self.clname):
+            shutil.rmtree(self.clname)
 
     
+    @classmethod
+    def tearDownClass(cls):
+        cls.web_server.terminate()
+
+
     def exception_verification(self, cm, expected_msg):
         exc = cm.exception
         pos = str(exc).find(expected_msg)
@@ -52,7 +79,7 @@ class calmod_test(unittest.TestCase):
 
 
     def test_inputs(self):
-        '''Test inputs meet various constraints'''
+        """Test inputs meet various constraints"""
         with self.assertRaises(ValueError) as cm: 
             calmod()
         self.exception_verification(cm, 'outfile must be specified')
@@ -78,19 +105,45 @@ class calmod_test(unittest.TestCase):
             calmod('my.cl', '3c48', band='m')
         self.exception_verification(cm, 'band m not supported')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=0)
-        self.exception_verification(cm, 'obsdate must be >= 44239')
+            calmod('my.cl', '3c48', band='q', obsdate=1)
+        self.exception_verification(cm, 'obsdate must be <= 0 or >= 44239')
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
         self.exception_verification(cm, 'refdate must be <= 0 or >= 44239')
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0)
         self.exception_verification(cm, 'hosts must be specified')
-        hosts = ['https://my.out.edu', 'zz']
+        hosts = ['zz']
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
         self.exception_verification(cm, 'zz is not a valid host expressed as a URL')
+        hosts = ['http://my.bogus.com:8080']
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
+        self.exception_verification(cm, 'All URLs failed to return a component list')
+
+
+    def test_component_list_writing(self):
+        """Test successful writing of a component list"""
+        hosts = [self.hostname]
+        calmod(self.clname, '3C48', band='Q',obsdate=50000, hosts=hosts)
+        self.cl.open(self.clname)
+        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
+        ws = self.cl.getkeyword('web_service')
+        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
+        self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
         
+    
+    def test_direction(self):
+        """Test direction input"""
+        hosts = [self.hostname]
+        direction = 'J2000 01:37:41.1 33.09.32'
+        calmod(self.clname, direction=direction, band='Q',obsdate=50000, hosts=hosts)
+        self.cl.open(self.clname)
+        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
+        ws = self.cl.getkeyword('web_service')
+        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
+
 
 if __name__ == '__main__':
      unittest.main()
