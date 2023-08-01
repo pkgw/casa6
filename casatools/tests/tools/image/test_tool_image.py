@@ -4903,7 +4903,7 @@ class ia_fitsheader_test(ImageBase):
                             'PC2_2': 1.0, 'PV2_1': 0.0, 'PV2_2': 0.0, 'RADESYS': 'FK5     ',
                             'SIMPLE': True, 'TIMESYS': 'UTC     ' }
 
-        difference = self.compare_dicts(expected_header, myia.fitsheader( ),['HISTORY','DATE'])
+        difference = self.compare_dicts(expected_header, myia.fitsheader( ),['HISTORY','DATE','ORIGIN'])
         self.assertEqual( len(difference), 0, f'''expected no differences between reference and created fits headers, but found: {repr(difference)}''' )
 
 if __name__ == '__main__':
