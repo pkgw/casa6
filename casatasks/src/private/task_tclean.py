@@ -85,7 +85,7 @@ def imageDimensions(residname):
     return nstokes, nfreq, stokes_axis, freq_axis
 
 
-def fillSummaryMinor(residname, field_id, channo, stokes, stokes_axis, freq_axis):
+def fillSummaryMinor(residname, field_id, channo, stokes, stokes_axis, freq_axis, fullsummary):
     """
     Given the input image name, and the corresponding field, channel number, and
     Stokes plane, extract the relevant information from the image to generate a
@@ -99,6 +99,7 @@ def fillSummaryMinor(residname, field_id, channo, stokes, stokes_axis, freq_axis
     stokes          Stokes plane to query in the image, int
     stokes_axis     The axis to index for Stokes, int
     freq_axis       The axis to index for frequency, int
+    fullsummary     Construct a full summary, or only a subset, bool
 
     Returns:
     summaryminor     Dict containing the necessary (key:value) pairs
@@ -119,21 +120,36 @@ def fillSummaryMinor(residname, field_id, channo, stokes, stokes_axis, freq_axis
         trc = [shape[0], shape[1], channo, stokes]
 
     data = ia.getchunk(blc, trc, dropdeg=True)
+    mask = ia.getchunk(blc, trc, dropdeg=True, getmask=True)
     ia.close()
 
     peak_resid = numpy.amax(data)
+    if fullsummary:
+        peak_resid_NM = numpy.amax(data*mask)
+        mask_sum = numpy.sum(mask)
 
     summaryminor = dict()
     # This entire function is only invoked in the special case of niter=0
-    summaryminor['iterDone'] = [0,]
+    summaryminor['iterDone'] = [0.0,]
     summaryminor['peakRes'] = [peak_resid,]
     # model flux has to be zero because no iterations were performed
-    summaryminor['modelFlux'] = [0,]
+    summaryminor['modelFlux'] = [0.0,]
     # No threshold because no deconvolution done
-    summaryminor['cyclethresh'] = [0,]
+    summaryminor['cycleThresh'] = [0.0,]
+
+    if fullsummary:
+        summaryminor['cycleStartIters'] = [0.0,]
+        summaryminor['startIterDone'] = [0.0,]
+        summaryminor['startPeakRes'] = [peak_resid,]
+        summaryminor['startModelFlux'] = [0.0,]
+        summaryminor['startPeakResNM'] = [peak_resid_NM,]
+        summaryminor['peakResNM'] = [peak_resid_NM,]
+        summaryminor['masksum'] = [mask_sum,]
+        summaryminor['mpiServer'] = [0.0,]
+        summaryminor['stopCode'] = [3,]
+
 
     return summaryminor
-
 
 
 def constructSummaryMinor(bparm):
@@ -153,6 +169,11 @@ def constructSummaryMinor(bparm):
 
     residname=bparm['imagename']+'.residual.tt0' if(os.path.exists( bparm['imagename']+'.residual.tt0')) else bparm['imagename']+'.residual'
     casalog.post("Residname %s " % residname, "INFO3", "task_tclean")
+    casalog.post("Outlier file is %s " % bparm['outlierfile'])
+
+    fullsummary = bparm['fullsummary']
+    for key in bparm.keys():
+        casalog.post("%s \t %s" % (key, str(bparm[key])))
     if os.path.exists(residname):
         nstokes, nfreq, stokes_axis, freq_axis = imageDimensions(residname)
 
@@ -166,7 +187,7 @@ def constructSummaryMinor(bparm):
             for cc in range(nfreq):
                 summaryminor[ff][cc] = dict()
                 for ss in range(nstokes):
-                    summaryminor[ff][cc][ss] = fillSummaryMinor(residname, ff, cc, ss, stokes_axis, freq_axis)
+                    summaryminor[ff][cc][ss] = fillSummaryMinor(residname, ff, cc, ss, stokes_axis, freq_axis, fullsummary)
 
         return summaryminor
 
