@@ -1,7 +1,7 @@
 <casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd       file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
 
 <task category="calibration" name="calmod" type="function">
-    <shortdescription>Rotate a Measurement Set to a new phase-center</shortdescription>
+    <shortdescription>Retrieve calibrator brightness distributions from telescope-specific web services.</shortdescription>
         <description>
 This application retrieves calibrator information via telescope-specific web services
 and writes this information as a componentlist so that it may be used by applications
@@ -14,10 +14,8 @@ downstream.
                      Default: none, must be specified
                         Example: outfile='3c273.cl'
                 </description>
-                <value type="string"/>
+                <value/>
             </param>
-        </input>
-        <input>
             <param name="source" type="string">
                 <shortdescription>The calibrator name.</shortdescription>
                 <description>The calibrator name. The case-insensitive names ‘3C48’, ‘3C286’, ‘3C138’,
