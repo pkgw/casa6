@@ -69,7 +69,8 @@ downstream.
                     List of hostnames to use when querying the web service. They will be queried in
                     order until a successful response is received.
                 </description>
-                <value type="stringVecc">TBD</value>
+                <!-- <value type="string">&quot;something.nrao.edu&quote;</value> -->
+                <value type="string"/>
             </param>
         </input>    
     <returns>void</returns></task>
