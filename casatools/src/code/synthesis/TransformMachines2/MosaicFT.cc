@@ -189,7 +189,7 @@ MosaicFT& MosaicFT::operator=(const MosaicFT& other)
 //void MosaicFT::setSharingFT(MosaicFT& otherFT){
 //  otherFT_p=&otherFT;
 //}
-void MosaicFT::init() {
+  void MosaicFT::init(const vi::VisBuffer2& /*vb*/) {
   
   /* if((image->shape().product())>cachesize) {
     isTiled=true;
@@ -319,7 +319,7 @@ void MosaicFT::initializeToVis(ImageInterface<Complex>& iimage,
   ok();
   
   //  if(convSize==0) {
-    init();
+    init(vb);
     
     //  }
   
@@ -458,7 +458,9 @@ void MosaicFT::finalizeToVis()
     logIO() << o.str() << LogIO::POST;
   }
   */
-  if(pointingToImage) delete pointingToImage; pointingToImage=0;
+  if(pointingToImage)
+    delete pointingToImage;
+  pointingToImage=0;
 }
 
 
@@ -477,7 +479,7 @@ void MosaicFT::initializeToSky(ImageInterface<Complex>& iimage,
   image=&iimage;
   toVis_p=False;
   //  if(convSize==0) {
-    init();
+    init(vb);
     
     //  }
   
@@ -1060,6 +1062,8 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   // This needs to be after the interp to get the interpolated channels
   //Also has to be after rotateuvw in case tracking is on
   findConvFunction(*image, vb);
+  //cerr << "Put convsup " << convSupport << " max min convFunc " << max(convFunc) << "   " << min(convFunc) << "  "  << max(weightConvFunc_p) << min(weightConvFunc_p)  << "SHP " << convFunc.shape() << "   " << weightConvFunc_p.shape() << endl;
+  //cerr << "convRowMap " << convRowMap_p  << " " << convChanMap_p << "  " << convPolMap_p << endl; 
   //nothing to grid here as the pointing resulted in a zero support convfunc
   if(convSupport <= 0)
     return;
@@ -1086,7 +1090,25 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   
   
 
+  //cerr << "convSamp " << convSampling << " convsupp " << convSupport << " consize " << convSize << " convFunc " << convFunc.shape() << endl;
+  //TESTOO
+  /*{
+    ArrayIterator<Complex> itC(convFunc, IPosition(2,0,1));
+    ArrayIterator<Complex> itW(weightConvFunc_p, IPosition(2,0,1));
+    itC.origin();
+    itW.origin();
+    Int k=0;
+    while(!itC.pastEnd()){
+      cerr << k << "sum conv plane " << sum(itC.array()) << "  wt " << sum(itW.array()) << endl;
 
+      itC.next();
+      itW.next();
+      ++k;
+    }
+
+    }*/
+  //TESTOO
+  
   //Tell the gridder to grid the weights too ...need to do that once only
   //Int doWeightGridding=1;
   //if(doneWeightImage_p)
@@ -1273,7 +1295,8 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       sumwgt[icounter].putStorage(swgtptr[icounter],swgtdel[icounter]);
       sumWeight=sumWeight+sumwgt[icounter];
     }    
-    
+
+    //cerr << "SUMWEIG " << sumWeight << endl;
     griddedData2.putStorage(gridstor, gridcopy);
     if(dopsf && (nth >4))
       tweakGridSector(nx, ny, ixsub, iysub);
@@ -1378,6 +1401,7 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   convFunc.freeStorage(convstor, convcopy);
   weightConvFunc_p.freeStorage(wconvstor, wconvcopy);
   dumSumWeight.putStorage(dsumwtstor, isDSWC);
+  //cerr << "dumSumwe " << dumSumWeight << endl;
   uvw.freeStorage(uvwstor, uvwcopy);
   if(!dopsf)
     data.freeStorage(datStorage, isCopy);
@@ -1517,6 +1541,7 @@ void MosaicFT::gridImgWeights(const vi::VisBuffer2& vb){
   }
   //nth=min(4,nth);
 #endif
+
   Double cinv=Double(1.0)/C::c;
  
   Int dow=0;
@@ -1683,7 +1708,7 @@ void MosaicFT::get(vi::VisBuffer2& vb, Int row)
   }
   //nth=min(4,nth);
 #endif
-
+ 
   Timer tim;
   tim.mark();
 

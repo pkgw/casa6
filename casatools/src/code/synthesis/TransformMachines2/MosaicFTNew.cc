@@ -25,9 +25,8 @@
 //#
 //# $Id$
 
+
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
-
-
 #include <msvis/MSVis/VisibilityIterator.h>
 #include <casacore/casa/Quanta/UnitMap.h>
 #include <casacore/casa/Quanta/MVTime.h>

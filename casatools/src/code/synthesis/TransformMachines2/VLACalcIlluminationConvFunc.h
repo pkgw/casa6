@@ -62,15 +62,15 @@ namespace casa{
     void loadFromImage(casacore::String &fileName);
     void getIdealConvFunc(casacore::Array<casacore::Complex>& buf);
     //void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid, casacore::Bool makeMueller);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid, casacore::Int makeMuerller=0);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid, casacore::Bool makeMueller);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid, casacore::Int makeMuerller=0);
     void ftAperture() {ftAperture(convFunc_p); pbRead_p=true;};
     void storePB(casacore::String& fileName);
 
     casacore::Bool pbReady() {return pbRead_p;}
 
-    casacore::CoordinateSystem makeUVCoords(casacore::CoordinateSystem& imageCoordSys,
-				  casacore::IPosition& shape, casacore::Double refFreq=-1.0);
+    static casacore::CoordinateSystem makeUVCoords(const casacore::CoordinateSystem& imageCoordSys,
+				  const casacore::IPosition& shape, casacore::Double refFreq=-1.0);
     void regridAperture(casacore::CoordinateSystem& skyCS, 
 			casacore::IPosition& skyShape, 
 			casacore::TempImage<casacore::Complex>& uvGrid, 
@@ -88,7 +88,6 @@ namespace casa{
     void setApertureParams(ApertureCalcParams& ap,
 			   const casacore::Float& Freq, const casacore::Float& pa, 
 			   const casacore::Int& bandID,
-			   const casacore::Int& inStokes,
 			   const casacore::IPosition& skyShape,
 			   const casacore::Vector<casacore::Double>& uvIncr);
 

@@ -1543,7 +1543,7 @@ C
       integer, intent(in) ::  flag(nvispol, nvischan, nrow)
       integer, intent(in) ::  rflag(nrow)
       integer, intent(in) ::  support
-      integer, intent(in) :: chanmap(nchan), polmap(npol)
+      integer, intent(in) :: chanmap(*), polmap(*)
       integer, intent(in) :: convplanemap(nrow), convchanmap(nvischan)
       integer, intent(in) ::  convpolmap(nvispol)
       complex :: nvalue
@@ -1569,7 +1569,12 @@ C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
       integer :: apol, achan, aconvplane, irow
       integer :: aconvchan, aconvpol
       real :: wt, wtx, wty
+
       
+C      write(*,*) 'polmap, ', polmap
+C      write(*,*) 'convpm,', convpolmap
+C      write(*,*) 'chanmp,', chanmap
+C      write(*,*) 'convcm,', convchanmap
 
       do irow=rbeg, rend
          aconvplane=convplanemap(irow)+1

@@ -1,6 +1,6 @@
 // -*- C++ -*-
 //# AWConvFunc.h: Definition of the AWConvFunc class
-//# Copyright (C) 1997,1998,1999,2000,2001,2002,2003
+//# Copyright (C) 1997-2023
 //# Associated Universities, Inc. Washington DC, USA.
 //#
 //# This library is free software; you can redistribute it and/or modify it
@@ -59,6 +59,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //-------------------------------------------------------------------------------------------
   //
   namespace refim{
+    //forward decs
+    class WPConvFunc;
+    class EVLAAperture;
   class AWConvFunc : public ConvolutionFunction
   {
   public:
@@ -67,8 +70,50 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	       const casacore::CountedPtr<WTerm> wTerm,
 	       const casacore::Bool wbAWP=false,
 	       const casacore::Bool conjPB=casacore::True);
+    
+    //this constructor is from 2023 to generate aw convfunc on the fly
+    //For now noot using generic Aterm but specificall ELVA/VLA specialization
+    AWConvFunc(std::shared_ptr<EVLAAperture> aterm, std::shared_ptr<WPConvFunc> wterm);
+    
+    
+    
+    
 
     ~AWConvFunc() {};
+    //Makes the FT of PB (should be replicated to apply product of 2 different VP for 
+    //heterogenous array
+    // No oversampling at this stage
+    // return conv function RR, RL, LR LL and freq axis as long a freq vector, 
+    // supports are freqlist long
+    // if dosquint=false pa ignored and a average RR, LL  beam is made
+    // The shape of convFunc is [convSize, convSize, 4, len(freqlist)]
+    // npix will be support on which the beam will be calculated
+    // this can be used to rescale the beam along with the csys to the grid it is being 
+    //applied
+    void makeAConvFunc(casacore::Array<casacore::Complex>& convFunc, 
+                       casacore::Array<casacore::Complex>& wtconv,
+                       casacore::CoordinateSystem& csys,
+                       casacore::Vector<casacore::Int>& asupport, 
+                       casacore::Int& npix,
+                       const casacore::Vector<casacore::Double>& freqlist, 
+                       const casacore::Bool dosquint=False,
+                       const casacore::Double& pa=0.0);
+    //Makes the combination of wvals along A terms freqScale
+    //return shapes of convFunc as [convSize, convSize, 4, len(freq), len(Wvals)]
+    //returned matrix support is of shape [len(freq], len(wVals)]
+    void makeAWConvFunc(casacore::Array<casacore::Complex>& convFunc, 
+                       casacore::Array<casacore::Complex>& wtconv,
+                       casacore::CoordinateSystem& csys,
+                       casacore::Matrix<casacore::Int>& awsupport,
+                       casacore::Int& npix,
+                       const casacore::Vector<casacore::Double>& freqlist, 
+                       const casacore::Vector<casacore::Double>& wVals,
+                       const casacore::Bool dosquint=False,
+                       const casacore::Double& pa=0.0);
+    
+    
+    
+    
     AWConvFunc& operator=(const AWConvFunc& other);
     virtual void makeConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
 				  const VisBuffer2& vb,
@@ -173,12 +218,33 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 				 casacore::Bool reset=true);
     void makePBSq(casacore::ImageInterface<casacore::Complex>& inImage);
 
+    //for now this will support EVLA and VLA defined bands in evla L to Q
+    //and VLA L to Q
+    // return optimal cellsize and npix to calculate beam on
+    std::pair<casacore::Quantity, int> getBeamCellSize(const String& bandName="EVLA_L");
+    //find support and normalize convfunc for A Term only
+    casacore::Bool supportAndNormalizeAFunc(casacore::Int& sup, 
+                                       casacore::Array<casacore::Complex>& conv,
+                                       casacore::Array<casacore::Complex>& wtconv);
+    //support returned is row is freq axis, col is w axis
+    //It will reduce the array XY size to match largest support found 
+    // aTermsup is just to make sure any support found is not smaller than support for
+    // just a Aterm conv
+    casacore::Bool supportResizeAWConv(casacore::Matrix<casacore::Int>& sup, casacore::Array<casacore::Complex>& conv, const casacore::Vector<casacore::Int>& aTermSup);
+
+	
+	
 
     casacore::Vector<casacore::Double> thePix_p;
     casacore::Vector<casacore::Vector<casacore::Double> >pixFieldGrad_p;
     casacore::Double imRefFreq_p;
     casacore::Bool wbAWP_p, conjPB_p;
     casacore::CountedPtr<CFBuffer> baseCFB_p;
+    ///These are the object that generates image/and UV domains A and W term
+    std::shared_ptr<EVLAAperture> atermMaker_p;
+    std::shared_ptr<WPConvFunc> wtermMaker_p;
+    refim::MathUtils mutils_p;
+    casacore::CoordinateSystem csys_p;
   };
   //
   //-------------------------------------------------------------------------------------------

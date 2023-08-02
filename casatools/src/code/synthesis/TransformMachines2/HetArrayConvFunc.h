@@ -97,6 +97,10 @@ namespace casa {
    virtual void reset();
    virtual casacore::String name() {return casacore::String("HetArrayConvFunc");}
     //----------------------------------------------
+    //Spply phase gradient to convfuncs 5 dim convfuncs expected X,Y, pol, chan, row
+    virtual void rephaseConvFunc(const casacore::ImageInterface<casacore::Complex>& iimage, 
+                                 const vi::VisBuffer2& vb,const casacore::Int& convSampling, casacore::Array<casacore::Complex>& convFunc, 
+                                 casacore::Array<casacore::Complex>& weightConvFunc,const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
 
     private:
    void applyGradientToYLine(const casacore::Int iy, casacore::Complex*& convFunctions, 
