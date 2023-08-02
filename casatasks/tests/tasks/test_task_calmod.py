@@ -111,7 +111,7 @@ class calmod_test(unittest.TestCase):
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
         self.exception_verification(cm, 'refdate must be <= 0 or >= 44239')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0)
+            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=[])
         self.exception_verification(cm, 'hosts must be specified')
         hosts = ['zz']
         with self.assertRaises(ValueError) as cm: 
