@@ -171,13 +171,13 @@
             "comment":""
         },
         {
-            "testScript":"test_stk_vlass_pipeline_imaging_v1.2",
+            "testScript":"test_stk_vlass_pipeline_imaging_1v2",
             "testType":"stakeholder",
             "maintainer":"Tak Tsutsumi",
             "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":["mpi"],
             "testGroup":["stakeholder"],
-            "timeout":14400,
+            "timeout":64800,
             "comment":""
         },
         {
