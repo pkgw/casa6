@@ -438,6 +438,10 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         return;
 
     }
+    /////TESTOO elkey
+    String elkey=String::toString(vb.msId())+String("_")+String::toString(vb.spectralWindows()[0])+String("_")+String::toString(visFreq.nelements());
+
+    /////////////////
     actualConvIndex_p=convIndex(vb, visFreq.nelements());
     //cerr << "actual conv index " << actualConvIndex_p << " doneMainconv " << doneMainConv_p << endl;
     if(doneMainConv_p.shape()[0] < (actualConvIndex_p+1)) {
@@ -457,7 +461,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
     ////Trap for cases when the selection seem to have changed
     if(doneMainConv_p[actualConvIndex_p]){
-      if(nBeamChans != (*convFunctions_p[actualConvIndex_p]).shape()[3])
+      if(nBeamChans > (*convFunctions_p[actualConvIndex_p]).shape()[3])
 	doneMainConv_p[actualConvIndex_p]=False;
       
     }
@@ -799,7 +803,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         Int lattSize=convFuncTemp.shape()(0);
         (*convSupportBlock_p[actualConvIndex_p])=convSupport_p;
         LogIO os(LogOrigin("HetArrConvFunc", "findConvFunction", WHERE));
-        os << "convolution function support: " << convSupport_p  << LogIO::POST;
+        os << "convolution function support: " << convSupport_p<< "ELKEY " << elkey  << " actualConvInd "<< actualConvIndex_p <<  " pointer " << this << LogIO::POST;
 
         if(newConvSize < lattSize) {
             IPosition blc(5, (lattSize/2)-(newConvSize/2),
@@ -1379,7 +1383,7 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
     String pointingid=String::toString(pixdepoint(0))+"_"+String::toString(pixdepoint(1));
     String msid=vb.msName(true);
 
-   
+
     if(convFunctionMap_p.nelements() == 0) {
         convFunctionMap_p.resize(nx_p*ny_p);
         convFunctionMap_p.set(-1);
@@ -1575,6 +1579,7 @@ Float HetArrayConvFunc::interpLanczos( const Double& x , const Double& y, const 
 }
 
 ImageInterface<Float>&  HetArrayConvFunc::getFluxScaleImage() {
+
   if(!calcFluxScale_p)
     throw(AipsError("Programmer Error: flux image cannot be retrieved"));
   if(!filledFluxScale_p) {

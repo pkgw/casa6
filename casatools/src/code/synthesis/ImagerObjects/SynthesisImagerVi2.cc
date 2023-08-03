@@ -98,6 +98,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iomanip>
+
 #include <chrono>
 #include <thread>
 #include <synthesis/Parallel/Applicator.h>

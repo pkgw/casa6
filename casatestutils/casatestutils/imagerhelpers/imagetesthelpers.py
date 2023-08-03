@@ -301,6 +301,8 @@ class TestHelpers:
         if 'summaryminor' in summ:
             idx = self._get_chanstoke_withiters_cycleN(summ)
             peakres = summ['summaryminor'][0][idx[0]][idx[1]]['peakRes'][idx[2]]
+        else:
+            casalog.post("Error! no 'summaryminor' in tclean return value "+str(summ)[:2000], "SEVERE", "TestHelpers")
         return peakres
 
     def check_peak_res(self, summ,correctres, epsilon=0.05):
@@ -548,25 +550,29 @@ class TestHelpers:
     def check_val(self, val, correctval, valname='Value', exact=False, epsilon=0.05, testname = "check_val"):
         pstr = ''
         out = True
-        if numpy.isnan(val) or numpy.isinf(val):
-            out = False
-        if correctval == None and val != None:
-            out = False
-        if correctval != None and val == None:
-            out = False
-        if out==True and val != None:
-            if exact==True:
-                if correctval != val:
-                    out = False
+        try:
+            if numpy.isnan(val) or numpy.isinf(val):
+                out = False
+            if correctval == None and val != None:
+                out = False
+            if correctval != None and val == None:
+                out = False
+            if out==True and val != None:
+                if exact==True:
+                    if correctval != val:
+                        out = False
+                else:
+                    if abs(correctval - val)/abs(correctval) > epsilon:
+                        out=False
+            if exact == True:
+                pstr = "[ {} ] {} is {} ( {} : should be {}, Exact: True )\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval) )
             else:
-                if abs(correctval - val)/abs(correctval) > epsilon:
-                    out=False
-        if exact == True:
-            pstr = "[ {} ] {} is {} ( {} : should be {}, Exact: True )\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval) )
-        else:
-            pstr = "[ {} ] {} is {} ( {} : should be {}, Epsilon: {})\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval), str(epsilon) )
-        logging.info(pstr)
-        return out, pstr
+                pstr = "[ {} ] {} is {} ( {} : should be {}, Epsilon: {})\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval), str(epsilon) )
+            logging.info(pstr)
+            return out, pstr
+        except TypeError:
+            casalog.post("Error! TypeError for val "+str(val)+", correctval "+str(correctval), "SEVERE", "TestHelpers")
+            raise
 
     def check_val_less_than(self, val, bound, valname='Value',testname ="check_val_less_than"):
         pstr = ''

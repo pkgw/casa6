@@ -1156,25 +1156,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     LogIO os( LogOrigin("SIImageStoreMultiTerm","pbcorPlane",WHERE) );
 
-    /// Temp Code to prevent this approximate PBCOR from happening for EVLA data
-    if(1)
-      {
-	String telescope = itsCoordSys.obsInfo().telescope();
-	if ( telescope != "ALMA" )
-	  {
-	    os << LogIO::WARN << "Wideband (multi-term) PB correction is not yet available via tclean in the 4.7 release. Please use the widebandpbcor task instead. "<< LogIO::POST;
-	    return;
-	  }
-	else
-	  {
-	    os << LogIO::WARN << "Wideband (multi-term) PB Correction is currently only an approximation. It assumes no PB frequency dependence. This code has been added for the 4.7 release to support the current ALMA pipeline, which does not apply corrections for the frequency dependence of the primary beam across small fractional bandwidths. Please look at the help for the 'pbcor' parameter and use the widebandpbcor task if needed. " <<LogIO::POST;
-	  }
-
-	
-      }
-
-
-    // message saying that it's only stokes I for now...
+    os << "Multi-term PBcor : Dividing all Taylor coefficient images by the tt0 average PB. Please refer to documentation of the 'pbcor' parameter in tclean for information about accurate correction of wideband primary beam effects." << LogIO::POST;
 
     for(uInt tix=0; tix<itsNTerms; tix++)
       {

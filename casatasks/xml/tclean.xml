@@ -410,21 +410,21 @@ To find the nearest optimal imsize to that desired by the user, please use the f
      <shortdescription>Spectral definition mode (mfs,cube,cubedata, cubesource)</shortdescription>
 <description>Spectral definition mode (mfs,cube,cubedata, cubesource)
 
-                       mode='mfs' : Continuum imaging with only one output image channel.
-                                             (mode='cont' can also be used here)
+                       specmode='mfs' : Continuum imaging with only one output image channel.
+                                                      (mode='cont' can also be used here)
 
-                       mode='cube' : Spectral line imaging with one or more channels
-                                               Parameters start, width,and nchan define the spectral
-                                               coordinate system and can be specified either in terms
-                                               of channel numbers, frequency or velocity in whatever
-                                               spectral frame is specified in 'outframe'.
-                                               All internal and output images are made with outframe as the
-                                               base spectral frame. However imaging code internally uses the fixed
-                                               spectral frame, LSRK for automatic internal software
-                                               Doppler tracking so that a spectral line observed over an
-                                               extended time range will line up appropriately.
-                                               Therefore the output images have additional spectral frame conversion
-                                               layer in LSRK on the top the base frame.
+                       specmode='cube' : Spectral line imaging with one or more channels
+                                                      Parameters start, width,and nchan define the spectral
+                                                     coordinate system and can be specified either in terms
+                                                     of channel numbers, frequency or velocity in whatever
+                                                     spectral frame is specified in 'outframe'.
+                                                     All internal and output images are made with outframe as the
+                                                     base spectral frame. However imaging code internally uses the fixed
+                                                     spectral frame, LSRK for automatic internal software
+                                                     Doppler tracking so that a spectral line observed over an
+                                                     extended time range will line up appropriately.
+                                                     Therefore the output images have additional spectral frame conversion
+                                                      layer in LSRK on the top the base frame.
 
 
                                                (Note : Even if the input parameters are specified in a frame
@@ -438,22 +438,36 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                                
 
-                        mode='cubedata' : Spectral line imaging with one or more channels
-                                                        There is no internal software Doppler tracking so
-                                                        a spectral line observed over an extended time range
-                                                        may be smeared out in frequency. There is strictly
-                                                        no valid spectral frame with which to label the output
-                                                        images, but they will list the frame defined in the MS.
+                        specmode='cubedata' : Spectral line imaging with one or more channels
+                                                                There is no internal software Doppler tracking so
+                                                                a spectral line observed over an extended time range
+                                                                may be smeared out in frequency. There is strictly
+                                                                no valid spectral frame with which to label the output
+                                                                images, but they will list the frame defined in the MS.
 
-                                                        mode='cubesource': Spectral line imaging while
-                                                        tracking moving source (near field or solar system
-                                                        objects). The velocity of the source is accounted
-                                                        and the frequency reported is in the source frame.
-                                                        As there is not SOURCE frame defined,
-                                                        the frame reported will be REST (as it may not be
-                                                        in the rest frame emission region may be
-                                                        moving w.r.t the systemic velocity frame)
+                                                               mode='cubesource': Spectral line imaging while
+                                                               tracking moving source (near field or solar system
+                                                               objects). The velocity of the source is accounted
+                                                               and the frequency reported is in the source frame.
+                                                               As there is not SOURCE frame defined,
+                                                               the frame reported will be REST (as it may not be
+                                                               in the rest frame emission region may be
+                                                               moving w.r.t the systemic velocity frame)
 
+                        mode='mtmfs_via_cube' : Multiterm continuum imaging with cube major cycles. 
+                                                              This mode requires deconvolver='mtmfs' with nterms>1 
+                                                              and user-set choices of 'reffreq' and 'nchan'. 
+
+                                                              The output images and minor cycle are similar to specmode='mfs' 
+                                                              with deconvolver='mtmfs', but the major cycles are done in 
+                                                              cube mode (and require a setting of 'reffreq' and 'nchan'). 
+                                                              By default, frequency-dependent primary beam correction is 
+                                                              applied to each channel, before being combined across frequency
+                                                              to make the inputs to the 'mtmfs' deconvolver.  This results in 
+                                                              implicit wideband pb-correction, with the deconvolver seeing only
+                                                              the sky spectral structure.
+
+                               
 
 </description>
      <value type="string">mfs</value>
@@ -463,6 +477,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
        <value>cube</value>
        <value>cubedata</value>
        <value>cubesource</value>
+       <value>mtmfs_via_cube</value>
      </allowed>
     </param>
 
@@ -1505,17 +1520,37 @@ to use the correct direction in which the antenna is pointing with respect to th
 
                        A new image with extension .image.pbcor will be created from
                        the evaluation of   .image / .pb  for all pixels above the specified pblimit.
-
+                       
                        Note : Stand-alone PB-correction can be triggered by re-running
                                  tclean with the appropriate imagename and with
                                  niter=0, calcpsf=False, calcres=False, pbcor=True, vptable='vp.tab'
                                  ( where vp.tab is the name of the vpmanager file.
                                     See the inline help for the 'vptable' parameter )
 
-                       Note : Multi-term PB correction that includes a correction for the
-                                 spectral index of the PB has not been enabled for the 4.7 release.
-                                 Please use the widebandpbcor task instead.
-                                 ( Wideband PB corrections are required when the amplitude of the
+                       Note : For deconvolver='mtmfs', pbcor will divide each Taylor term image by the .tt0 average PB.   
+                                  For all gridders, this calculation is accurate for small fractional bandwidths.  
+
+                                  For large fractional bandwidths, please use one of the following options.
+
+                                  (a) For single pointings, run the tclean task with specmode='mfs', deconvolver='mtmfs', 
+                                        and gridder='standard' with pbcor=True or False. 
+                                        If a PB-corrected spectral index is required, 
+                                        please use the widebandpbcor task to apply multi-tern PB-correction.
+
+                                  (b) For mosaics, run tclean task with specmode='mfs', deconvolver='mtmfs',
+                                        and gridder='awproject' , wbawp=True, conjbeams=True, with pbcor=True.  
+                                        This option applies wideband PB correction as part of the gridding step and
+                                        pbcor=True will be accurate because the spectral index map will already 
+                                        be PB-corrected. 
+
+                                  (c) For mosaics, run tclean with specmode='mtmfs_via_cube', deconvolver='mtmfs', 
+                                        and gridder='standard' or 'mosaic' with pbcor=True.  
+                                        This option applies wideband PB-correction to channelized residual images
+                                        prior to the minor cycle and pbcor=True will be accurate because the spectral 
+                                        index map will already be PB-corrected. 
+
+                        Note : Frequency-dependent PB corrections are typically required for full-band imaging with the VLA. 
+                                    Wideband PB corrections are required when the amplitude of the
                                     brightest source is known accurately enough to be sensitive
                                     to the difference in the PB gain between the upper and lower
                                     end of the band at its location. As a guideline, the artificial spectral
@@ -2574,6 +2609,10 @@ to use the correct direction in which the antenna is pointing with respect to th
        <equals type="string" value="mfs">
          <default param="reffreq"><value>&quot;&quot;</value></default>
 
+       </equals>
+       <equals type="string" value="mtmfs_via_cube">
+         <default param="reffreq"><value>&quot;&quot;</value></default>
+         <default param="nchan"><value>-1</value></default>
        </equals>
        <equals type="string" value="cube">
          <default param="nchan"><value>-1</value></default>

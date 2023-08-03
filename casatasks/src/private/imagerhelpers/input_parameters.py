@@ -24,7 +24,6 @@ if is_CASA6:
 else:
     from taskinit import *
 
-    synthesisutils = casac.synthesisutils
 
 """
 A set of helper functions for the tasks  tclean
@@ -37,6 +36,7 @@ Summary...
 ######################################################
 ######################################################
 ######################################################
+
 
 
 
@@ -159,6 +159,7 @@ class ImagerParameters:
         clipminmax=False,
     ):
         self.allparameters = dict(locals())
+
         ############TESTOO for debugging Felipe's crash
         # params_str=pprint.pformat(self.allparameters)
         # casalog.post('ALLPARAMS : ' + params_str, 'WARN', 'CAS-9386-DEBUG')
