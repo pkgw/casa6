@@ -253,6 +253,7 @@ casa_add_library( synthesis
  MeasurementComponents/EVLASwPow.cc
  MeasurementComponents/FJones.cc
  MeasurementComponents/FringeJones.cc
+ MeasurementComponents/DelayRateFFT.cc
  MeasurementComponents/GlobalFTMachineCallbacks.cc
  MeasurementComponents/GridBoth.cc
  MeasurementComponents/GSpline.cc
@@ -940,6 +941,7 @@ casa_add_unit_test( MODULES synthesis SOURCES TransformMachines/test/tPBMath1DEV
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tSynthesisImager.cc  TransformMachines2/test/MakeMS.cc )
 casa_add_unit_test( MODULES synthesis SOURCES Parallel/test/tApplicator.cc )
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tSynthesisImagerVi2.cc  TransformMachines2/test/MakeMS.cc )
+casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tAWProjectCube.cc  TransformMachines2/test/MakeMS.cc )
 casa_add_unit_test( MODULES synthesis SOURCES ImagerObjects/test/tSIMakeImage.cc  TransformMachines2/test/MakeMS.cc )
 casa_add_unit_test( MODULES synthesis SOURCES Utilities/test/tFFT2D.cc  )
 casa_add_unit_test( MODULES synthesis SOURCES CalTables/test/tCTPatchedInterp.cc )

@@ -120,6 +120,7 @@ String BriggsCubeWeightor::initImgWeightCol(
     if (freq == refFreq_p)
       return imWgtColName_p;
   }
+
   refFreq_p = cs.toWorld(IPosition(4, 0, 0, 0, 0))[3];
   visWgt_p = vi.getImagingWeightGenerator();
   VisImagingWeight vWghtNat("natural");

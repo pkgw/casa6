@@ -35,6 +35,7 @@
 #include <singledish/SingleDish/SingleDishMS.h>
 #include <stdcasa/StdCasa/CasacSupport.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
+#include <casa_sakura/SakuraAlignedArray.h>
 
 // for importasap and importnro
 #include <singledishfiller/Filler/NRO2MSReader.h>
@@ -411,7 +412,7 @@ bool SingleDishMS::prepare_for_process(string const &in_column_name,
   // The other available keys
   // - buffermode, realmodelcol, usewtspectrum, tileshape,
   // - chanaverage, chanbin, useweights,
-  // - combinespws, ddistart, hanning
+  // - ddistart, hanning
   // - regridms, phasecenter, restfreq, outframe, interpolation, nspw,
   // - mode, nchan, start, width, veltype,
   // - timeaverage, timebin, timespan, maxuvwdistance
@@ -1366,11 +1367,11 @@ void SingleDishMS::doSubtractBaseline(string const& in_column_name,
       size_t const num_pol = static_cast<size_t>(vb->nCorrelations());
       size_t const num_row = static_cast<size_t>(vb->nRows());
       Cube<Float> data_chunk(num_pol, num_chan, num_row, Array<Float>::uninitialized);
-      Vector<float> spec(num_chan, Array<float>::uninitialized);
+      SakuraAlignedArray<float> spec(num_chan);
       Cube<Bool> flag_chunk(num_pol, num_chan, num_row, Array<Bool>::uninitialized);
-      Vector<bool> flag(num_chan, Array<bool>::uninitialized);
-      Vector<bool> mask(num_chan, Array<bool>::uninitialized);
-      Vector<bool> mask_after_clipping(num_chan, Array<bool>::uninitialized);
+      SakuraAlignedArray<bool> flag(num_chan);
+      SakuraAlignedArray<bool> mask(num_chan);
+      SakuraAlignedArray<bool> mask_after_clipping(num_chan);
       float *spec_data = spec.data();
       bool *flag_data = flag.data();
       bool *mask_data = mask.data();
@@ -1538,7 +1539,7 @@ void SingleDishMS::doSubtractBaseline(string const& in_column_name,
             if (num_coeff_max < num_coeff) {
               num_coeff_max = num_coeff;
             }
-            Vector<double> coeff(num_coeff);
+            SakuraAlignedArray<double> coeff(num_coeff);
             double *coeff_data = coeff.data();
 
             //---GetBestFitBaselineCoefficientsFloat()...
@@ -1998,7 +1999,7 @@ void SingleDishMS::subtractBaselineCspline(string const& in_column_name,
   std::vector<LIBSAKURA_SYMBOL(LSQFitContextFloat) *> bl_contexts;
   bl_contexts.clear();
   size_t const bltype = BaselineType_kCubicSpline;
-  Vector<size_t> boundary(npiece+1, Array<size_t>::uninitialized);
+  SakuraAlignedArray<size_t> boundary(npiece+1);
   size_t *boundary_data = boundary.data();
 
   doSubtractBaseline(in_column_name,
@@ -2271,12 +2272,12 @@ void SingleDishMS::applyBaselineTable(string const& in_column_name,
       size_t const num_pol = static_cast<size_t>(vb->nCorrelations());
       size_t const num_row = static_cast<size_t>(vb->nRows());
       Cube<Float> data_chunk(num_pol, num_chan, num_row);
-      Vector<float> spec(num_chan);
+      SakuraAlignedArray<float> spec(num_chan);
       float *spec_data = spec.data();
       Cube<Bool> flag_chunk(num_pol, num_chan, num_row);
-      Vector<bool> flag(num_chan);
+      SakuraAlignedArray<bool> flag(num_chan);
       bool *flag_data = flag.data();
-      Vector<bool> mask(num_chan);
+      SakuraAlignedArray<bool> mask(num_chan);
       bool *mask_data = mask.data();
       Matrix<Float> weight_matrix(num_pol, num_row, Array<Float>::uninitialized);
 
@@ -2359,8 +2360,10 @@ void SingleDishMS::applyBaselineTable(string const& in_column_name,
               (*iter).second[ctx_indices[idx]];
           //cout << "Got context for type " << (*iter).first << ": idx=" << ctx_indices[idx] << endl;
 
-          double *coeff_data = coeff.data();
-          size_t *boundary_data = boundary.data();
+          SakuraAlignedArray<double> coeff_storage(coeff);
+          double *coeff_data = coeff_storage.data();
+          SakuraAlignedArray<size_t> boundary_storage(boundary);
+          size_t *boundary_data = boundary_storage.data();
           string subtract_funcname;
           switch (static_cast<size_t>(fit_param.baseline_type)) {
           case BaselineType_kPolynomial:
@@ -2486,9 +2489,9 @@ void SingleDishMS::fitLine(string const& in_column_name,
       size_t const num_pol = static_cast<size_t>(vb->nCorrelations());
       size_t const num_row = static_cast<size_t>(vb->nRows());
       Cube<Float> data_chunk(num_pol, num_chan, num_row);
-      Vector<float> spec(num_chan);
+      SakuraAlignedArray<float> spec(num_chan);
       Cube<Bool> flag_chunk(num_pol, num_chan, num_row);
-      Vector<bool> mask(num_chan);
+      SakuraAlignedArray<bool> mask(num_chan);
       // CAUTION!!!
       // data() method must be used with special care!!!
       float *spec_data = spec.data();
@@ -2844,11 +2847,11 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
       size_t const num_row = static_cast<size_t>(vb->nRows());
       auto orig_rows = vb->rowIds();
       Cube<Float> data_chunk(num_pol, num_chan, num_row);
-      Vector<float> spec(num_chan);
+      SakuraAlignedArray<float> spec(num_chan);
       Cube<Bool> flag_chunk(num_pol, num_chan, num_row);
-      Vector<bool> flag(num_chan);
-      Vector<bool> mask(num_chan);
-      Vector<bool> mask_after_clipping(num_chan);
+      SakuraAlignedArray<bool> flag(num_chan);
+      SakuraAlignedArray<bool> mask(num_chan);
+      SakuraAlignedArray<bool> mask_after_clipping(num_chan);
       // CAUTION!!!
       // data() method must be used with special care!!!
       float *spec_data = spec.data();
@@ -3025,7 +3028,7 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
           if (bltype == BaselineType_kCubicSpline) {
             num_boundary = fit_param.npiece+1;
           }
-          Vector<size_t> boundary(num_boundary,Array<size_t>::uninitialized);
+          SakuraAlignedArray<size_t> boundary(num_boundary);
           size_t *boundary_data = boundary.data();
 
           if (write_baseline_text || write_baseline_csv || write_baseline_table) {
@@ -3048,7 +3051,7 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
             if (num_coeff > num_coeff_max) {
               num_coeff_max = num_coeff;
             }
-            Vector<double> coeff(num_coeff);
+            SakuraAlignedArray<double> coeff(num_coeff);
             // CAUTION!!!
             // data() method must be used with special care!!!
             double *coeff_data = coeff.data();

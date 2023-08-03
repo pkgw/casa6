@@ -323,7 +323,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       {recordIn.get(RecordFieldId("nsigma"), itsNsigma);}
     else 
       { throw(AipsError(" nsigma is not defined in input minor-cycle controller ") );}
-    os<<"    itsNsigma="<<itsNsigma<<LogIO::POST;
 
     //if (recordIn.isDefined("fullsummary"))
    //  {recordIn.get(RecordFieldId("fullsummary"), itsFullSummary);}
