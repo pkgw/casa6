@@ -36,6 +36,7 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 
+#include <casa_sakura/SakuraAlignedArray.h>
 #include <singledish/SingleDish/LineFindingUtils.h>
 #include <singledish/SingleDish/LineFinder.h>
 
@@ -50,7 +51,7 @@ string print_array(size_t const num_data, DataType const* data) {
   oss << "[";
   if (num_data > 0)
     oss << data[0] ;
-  for (size_t i=1; i<num_data; ++i) 
+  for (size_t i=1; i<num_data; ++i)
     oss << ", " << data[i];
   oss << "]";
   return oss.str();
@@ -107,10 +108,10 @@ int main(int argc, char *argv[]) {
   {// Test mask creation
     cout << "\n**********\nTest mask creation\n**********" << endl;
     size_t const num_data = 20;
-    Vector<float> data(num_data);
-    Vector<float> mad(num_data);
-    Vector<bool> in_mask(num_data);
-    Vector<bool> out_mask(num_data);
+    SakuraAlignedArray<float> data(num_data);
+    SakuraAlignedArray<float> mad(num_data);
+    SakuraAlignedArray<bool> in_mask(num_data);
+    SakuraAlignedArray<bool> out_mask(num_data);
     float* dptr = data.data();
     bool* mptr = in_mask.data();
     for (size_t i = 0 ; i < num_data; ++i) {
@@ -143,9 +144,9 @@ int main(int argc, char *argv[]) {
     cout << "in_mask = " << print_array<bool>(num_data, in_mask.data()) << endl;
     LineFinderUtils::maskToRangesList(num_data, in_mask.data(), lines);
     print_line(lines);
-    
+
     for (size_t i = 0; i<num_data; ++i) {
-      in_mask[i] = (i%4 != 1) ? true : false;
+      in_mask.data()[i] = (i%4 != 1) ? true : false;
     }
     cout << "\nin_mask = " << print_array<bool>(num_data, in_mask.data()) << endl;
     LineFinderUtils::maskToRangesList(num_data, in_mask.data(), lines);
@@ -168,7 +169,7 @@ int main(int argc, char *argv[]) {
     cout << "[Regect narrow (<3)]" << endl;
     print_line(mylines);
     size_t binsize = 4;
-    size_t offset = 1;  
+    size_t offset = 1;
     LineFinderUtils::deBinRanges(binsize, offset, mylines);
     cout << "[debin (bin=" << binsize << ", offset=" << offset << ")]" << endl;
     print_line(mylines);
