@@ -157,6 +157,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	usezero_p       =   other.usezero_p;
 	doPBCorrection  =   other.doPBCorrection;
 	maxConvSupport  =   other.maxConvSupport;
+        avgPBReady_p= other.avgPBReady_p;
 	resetPBs_p      =   other.resetPBs_p;
 	wtImageFTDone_p =   other.wtImageFTDone_p;
 	rotatedCFWts_p  =   other.rotatedCFWts_p;
@@ -710,7 +711,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
  void  AWProjectWBFT::gridImgWeights(const VisBuffer2& vb)
  {
    findConvFunction(*image, vb);
-
+   //cerr << "IN gridWTImage" << endl;
    if(avgPBReady_p)
      return;
    else

@@ -1479,9 +1479,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   void AWProjectFT::finalizeToSky()
   {
-
-    logIO() <<   LogIO::NORMAL2 << "time to massage data " << timemass_p << LogIO::POST;
-    logIO() <<  LogIO::NORMAL2 << "time gridding " << timegrid_p << LogIO::POST;
+    logIO() << LogOrigin("AWProjectFT", "finalizeToSky")  << LogIO::NORMAL;
+    logIO() <<   LogIO::WARN << "time to massage data " << timemass_p << LogIO::POST;
+    logIO() <<  LogIO::WARN << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
     
@@ -1491,9 +1491,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     //    LogIO log_l(LogOrigin("AWProjectFT2", "finalizeToSky[R&D]"));
 
-    logIO() << LogOrigin("AWProjectFT", "finalizeToSky")  << LogIO::NORMAL;
-    logIO() << LogIO::WARN << "time to massage data " << timemass_p << LogIO::POST;
-    logIO() << LogIO::WARN<< "time gridding " << timegrid_p << LogIO::POST;
     if(pointingToImage) delete pointingToImage;
     pointingToImage=0;
 
@@ -1529,10 +1526,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			FTMachine::Type type)
   {
 
-    Timer tim;
-    tim.mark();
- 
     
+    matchChannel(vb);
+ 
+
+    //cerr << "CHANMAP " << chanMap << endl;
+    //No point in reading data if its not matching in frequency
+    if(max(chanMap)==-1)
+      return;
     // Take care of translation of Bools to Integer
     makingPSF=dopsf;
     if(dopsf)
@@ -1632,6 +1633,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   void AWProjectFT::get(VisBuffer2& vb, Int /*row*/)
   {
+
+    matchChannel(vb);
+ 
+
+    //cerr << "CHANMAP " << chanMap << endl;
+    //No point in reading data if its not matching in frequency
+    if(max(chanMap)==-1)
+      return;
+
+    
     findConvFunction(*image, vb);
     Timer tim;
     tim.mark();
@@ -1660,12 +1671,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     setupVBStore(vbs,vb, vb.imagingWeight(),data,uvw,flags, dphase,tmpDoPSF,griddedData.shape().asVector());
 
-     Timer tim;
      tim.mark();
      resampleGridToData(vbs, griddedData, vb);//, uvw, flags, dphase);
      timedegrid_p+=tim.real();
     interpolateFrequencyFromgrid(vb, data, FTMachine::MODEL);
-    timedegrid_p+=tim.real();
   }
   //
   //-------------------------------------------------------------------------
@@ -1700,7 +1709,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     else
       {
 	log_l << "Sum of weights: " << weights << " " << max(griddedData2) << " " << min(griddedData2) << LogIO::POST;
-	cerr << "Sum of weights: " << setprecision(20) << weights << endl;
+	//cerr << "Sum of weights: " << setprecision(20) << weights << endl;
       }
     // UUU else
       {
@@ -1730,7 +1739,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	const IPosition latticeShape = lattice->shape();
 
         int samp=getAWConvFunc()->getOversampling();
-        //cerr << "SAMP " << samp << endl;
+        //cerr << "SAMP " << samp << " ConvSampling "<< convSampling << endl;
         //Do sampling size correction    
         Vector<Float> sincConvX(nx);
         for (Int ix=0;ix<nx;ix++) {
@@ -1847,6 +1856,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     Int ny=latticeShape(1);
 
     int samp=getAWConvFunc()->getOversampling();
+    //cerr << "2 samp " << samp << " convSamp " << convSampling << endl;
     //Do sampling size correction    
     Vector<Float> sincConvX(nx);
     for (Int ix=0;ix<nx;ix++) {

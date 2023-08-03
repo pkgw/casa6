@@ -276,6 +276,9 @@ void CubeMajorCycleAlgorithm::task(){
               if(!subImgr.loadMosaicSensitivity()){
                 subImgr.makeMosaicSensitivity();
                 writeBackToFullImage(weightNames_p[0], chanRange_p[0],chanRange_p[1], (subImStor[0]->weight()));
+                writeBackToFullImage(sumwtNames_p[0], chanRange_p[0], chanRange_p[1], (subImStor[0]->sumwt()));
+                                                                                                                   
+                
               }
               subImgr.loadMosaicSensitivity();
             }

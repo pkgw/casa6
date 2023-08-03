@@ -137,6 +137,8 @@ namespace casa{
     wNdxList.resize(nWCFs);
     for(int i=0;i<nWCFs;i++) wNdxList[i] = i;
 
+
+    //   cerr << "nWCFs" << nWCFs << " vbSPW " << vbSPW << " fvals " << fVals << endl;
     // Make list of SPW-CF indexes
     int nSPWCFs=fVals.nelements();
     if (wbAWP==true)
@@ -168,8 +170,9 @@ namespace casa{
 
 	spwNdxList.resize(1);
 	spwNdxList[0]=refSPW;
+       
       }
-
+    //  cerr << "spwNdxList " << spwNdxList << endl;
     return;
   }
   //
@@ -562,8 +565,10 @@ namespace casa{
       //bool reloadCFs = (((cachedVBSpw_p != vbSpw) &&                        // when data for a new SPW arrives,
       //			 (vbs.nWPlanes_p > 1)    && (vbs.wbAWP_p==true)) || // if WB A-term and w-term corrections are requested, or
       //			(hpgGridder_p==NULL));                              // if the HPG is uninitialized (first-pass)
-      bool reloadCFs=(hpgGridder_p==NULL);
-      
+      bool reloadCFs=(hpgGridder_p==NULL) || (cachedVBSpw_p != vbSpw);
+      //TESTOOO
+      //reloadCFs=True;
+      //////////////////
       double spwRefFreq = vbs.vb_p->subtableColumns().spectralWindow().refFrequency()(vbSpw);
       int nVBAntenna = vbs.vb_p->nAntennas();
       int nVBChannels = vbs.vb_p->nChannels();
@@ -608,7 +613,7 @@ namespace casa{
 	      makeAWLists(*cfb, vbs.wbAWP_p, vbs.nWPlanes_p,
 			  vbs.imRefFreq_p, spwRefFreq,
 			  wNdxList, spwNdxList,
-			  -1);
+                          vbSpw);
 
 	      // MakeCFArray::makeCFArray(vbs.wbAWP_p, vbs.nWPLanes_p,
 	      // 		  ...(skyImage),...

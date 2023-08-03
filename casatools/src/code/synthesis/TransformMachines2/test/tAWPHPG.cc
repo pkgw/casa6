@@ -134,12 +134,10 @@ void createAWPFTMachine(const String ftmName,
   // Construct the appropriate re-sampler.
   //
   CountedPtr<refim::VisibilityResamplerBase> visResampler;
-  /*REMOVE COMMENT when knowledge how to build
-    if (ftmName == "awphpg")
+      if (ftmName == "awphpg")
     visResampler = new refim::AWVisResamplerHPG();
     else
-    REMOVE*/
-    visResampler = new refim::AWVisResampler();
+      visResampler = new refim::AWVisResampler();
 
   visResampler->setModelImage(modelImageName);
   //
@@ -154,8 +152,7 @@ void createAWPFTMachine(const String ftmName,
   //  Float pbLimit_l=1e-3;
   //  vector<float> posigdev = {300.0,300.0};
   // Float pbLimit_l=1e-3;
-  /* REMOVE comment
-   if(ftmName=="awphpg"){
+     if(ftmName=="awphpg"){
       theFT=new refim::AWProjectWBFTHPG(wprojPlane, cache/2, 
 					   cfCacheObj, awConvFunc,
 					   visResampler,
@@ -165,8 +162,7 @@ void createAWPFTMachine(const String ftmName,
       theFT->setPBReady(true);
     }
     else
-    REMOVE */
-      {
+        {
       theFT = new refim::AWProjectWBFTNew(wprojPlane, cache/2, 
 				      cfCacheObj, awConvFunc, 
 				      visResampler,
@@ -175,7 +171,9 @@ void createAWPFTMachine(const String ftmName,
 				      useDoublePrec);
     }
   cfCacheObj = new refim::CFCache();
-  cfCacheObj->setCacheDir(cfCache.data());
+  cfCacheObj->setCacheDir(cfCache.data());                             /////TESTOO LAZY FILL ?
+    cfCacheObj->setLazyFill(False);
+
   cfCacheObj->setWtImagePrefix(imageNamePrefix.c_str());
   cfCacheObj->initCache2();
   
