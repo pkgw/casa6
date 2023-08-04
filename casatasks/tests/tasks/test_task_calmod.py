@@ -49,9 +49,9 @@ class calmod_test(unittest.TestCase):
             'calmod_helpers', 'vlafluxcal.py'
         ])
         cls.web_server = subprocess.Popen(
-            ['python', server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            [sys.executable, server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        sleep(2)
+        sleep(10)
 
     def setUp(self):
         self.cl = componentlist()

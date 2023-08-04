@@ -231,6 +231,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_calmod",
+            "testType":"casatasks",
+            "maintainer":"Dave Mehringer",
+            "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["calmod"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_calstat",
             "testType":"casatasks",
             "maintainer":"Neal Schweighart",
