@@ -293,7 +293,7 @@ def sdintimaging(
     sdpsf, 
     sdgain, 
     dishdia,
-    ####### Interfermeter Data Selection
+    ####### Interferometer Data Selection
     vis,#='', 
     selectdata,
     field,#='', 
@@ -497,6 +497,12 @@ def sdintimaging(
         casalog.post("Negative values less than -1 for nmajor are reserved for possible future implementation", "WARN", "task_sdintimaging")
         return
 
+    
+    if ((type(dishdia) != float and type(dishdia) != int) or dishdia <= 0):
+        casalog.post('Invalid dishdia: '+str(dishdia), 'WARN')
+        casalog.post("The dishdia parameter needs to provide the diameter (meters) of the SD telescope which produced the SD image.", "WARN", "task_sdintimaging")
+        return
+    
 
 #    if parallel==True:
 #        casalog.post("Cube parallelization (all major cycles) is currently not supported via task_sdintimaging. This will be enabled after a cube parallelization rework.")
@@ -662,7 +668,14 @@ def sdintimaging(
                                         nterms=nterms, reffreq=inpparams['reffreq'], dopsf=False)
 
             #print("Fit for multiterm")
-            synu.fitPsfBeam(joint_multiterm,nterms=nterms)
+            if(deconvolver=='mtmfs'):
+                # work around file naming issue
+                os.system('rm -rf '+joint_multiterm+'tmp.psf')
+                os.system('ln -sf '+joint_multiterm+'.psf.tt0 '+joint_multiterm+'tmp.psf')
+                synu.fitPsfBeam(joint_multiterm+'tmp',nterms=nterms)
+                os.system('rm -rf '+joint_multiterm+'tmp.psf')
+            else:
+                synu.fitPsfBeam(joint_multiterm,nterms=nterms)
 
         if niter>0 :
             isit = deconvolvertool.hasConverged()
