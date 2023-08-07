@@ -161,7 +161,12 @@ def defintent(vis='', intent='', mode='',
             newState = np.where(intents == intent)
         # If it doesn't add a row with the new intent
         else:
-            tb.addrows(1)
+            # If there are no intents to begin with add blank zero to prevent listobs segfault (?)
+            numIntents = len(list(tb.getcol('OBS_MODE')))
+            if numIntents == 0:
+                tb.addrows(2)
+            else:
+                tb.addrows(1)
             intents = list(tb.getcol('OBS_MODE'))
             intents[-1] = intent
             intents = np.asarray(intents)
