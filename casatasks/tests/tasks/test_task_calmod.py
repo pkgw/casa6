@@ -27,6 +27,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 from time import sleep
 import unittest
 from casatasks import casalog
@@ -40,6 +41,14 @@ class calmod_test(unittest.TestCase):
 
 
     hostname = 'http://127.0.0.1:8080'
+
+
+    @classmethod
+    def capture_output(cls, subprocess):
+        stdout, stderr = cls.web_server.communicate()
+        casalog.post(f'stdout: {stdout.decode("utf-8")}', 'INFO')
+        casalog.post(f'stderr: {stderr.decode("utf-8")}', 'WARN')
+
 
 
     @classmethod
@@ -67,7 +76,13 @@ class calmod_test(unittest.TestCase):
     
     @classmethod
     def tearDownClass(cls):
+        output_thread = threading.Thread(
+            target=cls.capture_output, args=(cls.web_server,)
+        )
+        output_thread.start()
+        sleep(2)
         cls.web_server.terminate()
+        output_thread.join()
 
 
     def exception_verification(self, cm, expected_msg):
