@@ -9,7 +9,7 @@ import os, sys
 import sqlite3
 from sqlite3 import Error as sqlError
 from casatools import quanta, measures, componentlist
-
+from casatasks import casalog
 
 APPNAME = 'VLA Calibrator Database'
 
@@ -52,10 +52,12 @@ def execute_read(connection, query):
     cursor = connection.cursor()
     result = None
     try:
+        casalog.post(f'Attempt to run {query}', 'INFO')
         cursor.execute(query)
         result = cursor.fetchall()
         return result
     except sqlError as e:
+        casalog.post(f'Query failed, Exception was {e}', 'WARN')
         raise
 
 
@@ -251,8 +253,10 @@ def vlacal_cl_for_setjy( source, band, obsdate, refdate ):
 
     excess_low = flux_low - pb17_low
     excess_high = flux_high - pb17_high
-
-    if np.isfinite( np.log(excess_high/excess_low) ):
+    casalog.post(f'excess_high {excess_high}', 'WARN')
+    casalog.post(f'excess_low {excess_low}', 'WARN')
+    casalog.post(f'excess_high/excess_low {excess_high/excess_low}', 'WARN')
+    if excess_high/excess_low > 0 and np.isfinite( np.log(excess_high/excess_low) ):
         core_index = np.log(excess_high/excess_low) / np.log(f_max/f_min)
     else:
         core_index = 0.0
