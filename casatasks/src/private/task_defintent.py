@@ -177,6 +177,10 @@ def defintent(vis='', intent='', mode='',
             # For all selected rows replace with new state_id
             tb.open(outputvis, nomodify=False)
             stateCol = tb.getcol('STATE_ID')
+            # If there were no intents set to 0 (empty intent?)
+            for row in range(tb.nrows()):
+                stateCol[row] = 0
+            
             for row in selectedRows:
                 stateCol[row] = newState
             tb.putcol('STATE_ID', stateCol)
