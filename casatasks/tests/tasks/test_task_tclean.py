@@ -523,6 +523,7 @@ class test_onefield(testref_base):
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,fullsummary=True,parallel=self.parallel)
           report1=self.th.checkall(imgexist=[self.img+'.psf', self.img+'.residual'], imgexistnot=[self.img+'.image'],nmajordone=1)
           dict_check1 = self.th.check_ret_structure(ret)
+          report_dict = self.th.checkall(ret=ret, peakres=1.1250, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
 
           ## Start directly with minor cycle and do only the last major cycle.
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,calcpsf=False,calcres=False,deconvolver='clark',parallel=self.parallel)
@@ -533,6 +534,7 @@ class test_onefield(testref_base):
           report3=self.th.checkall(ret=ret, peakres=0.161, modflux=0.991, imgexist=[self.img+'.psf',self.img+'.residual', self.img+'.image'],nmajordone=1)
 
           self.assertTrue(self.check_final(pstr=report+report1+report2+report3))
+          self.assertTrue(self.check_final(pstr=report_dict))
           self.assertTrue(dict_check1[0] == 'full')
           self.assertTrue(dict_check1[1])
 
@@ -550,6 +552,7 @@ class test_onefield(testref_base):
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='mtmfs',restoration=False,parallel=self.parallel,fullsummary=True)
           report1=self.th.checkall(imgexist=[self.img+'.psf.tt0',self.img+'.psf.tt1', self.img+'.residual.tt0', self.img+'.residual.tt1'], imgexistnot=[self.img+'.image.tt0'],nmajordone=1)
           dict_check1 = self.th.check_ret_structure(ret)
+          report_dict = self.th.checkall(ret=ret, peakres=1.1250, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
 
           ## Start directly with minor cycle and do only the last major cycle.
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,calcpsf=False,calcres=False,deconvolver='mtmfs',parallel=self.parallel)
@@ -567,6 +570,7 @@ class test_onefield(testref_base):
           report4=self.th.checkall(ret=ret, peakres=0.0477, modflux=1.077, imgexist=[self.img+'.psf.tt1',self.img+'.residual.tt1', self.img+'.image.tt1', self.img+'.alpha'],nmajordone=2,imgval=[(self.img+'.alpha',-1.0,[50,50,0,0])])
 
           self.assertTrue(self.check_final(pstr=report+report1+report2+report3+report4))
+          self.assertTrue(self.check_final(pstr=report_dict))
           self.assertTrue(dict_check1[0] == 'full')
           self.assertTrue(dict_check1[1])
 
@@ -696,6 +700,8 @@ class test_onefield(testref_base):
                         parallel=self.parallel,
                         fullsummary=True)
           dict_check1 = self.th.check_ret_structure(ret1)
+          report_dict = self.th.checkall(ret=ret1, peakres=1.5, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+
           imsmooth(imagename=self.img+'.image', targetres=True, major='120.0arcsec', minor='120.0arcsec', pa='0deg',outfile=self.img+'.smoothed.image',overwrite=True)
 
           ret2 = tclean(vis=self.msfile,imagename=self.img+'.rest',
@@ -719,6 +725,7 @@ class test_onefield(testref_base):
           
           ## Pass or Fail (and why) ?
           self.assertTrue(self.check_final(estr+report))
+          self.assertTrue(self.check_final(report_dict))
           self.assertTrue(dict_check1[0] == 'full')
           self.assertTrue(dict_check1[1])
 
@@ -1237,7 +1244,33 @@ class test_iterbot(testref_base):
 ##Task level tests : multi-field, 2chan.
 ### For some of these tests, do the same with uvsub and compare ? 
 class test_multifield(testref_base):
-     
+
+     def test_multifield_return_dict_mfs(self):
+          """ [multifield] test_multifield_return_dict_mfs : niter=0 Return dict values, two fields, both mfs """
+          self.prepData("refim_twopoints_twochan.ms")
+          self.th.write_file(self.img+'.out.txt', 'imagename='+self.img+'1\nnchan=1\nimsize=[80,80]\ncell=[8.0arcsec,8.0arcsec]\nphasecenter=J2000 19:58:40.895 +40.55.58.543\nusemask=user\nmask=circle[[40pix,40pix],10pix]')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=0,deconvolver='hogbom',parallel=self.parallel,fullsummary=True)
+          report_dict = self.th.checkall(ret=ret, peakres=1.04, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+          dict_check1 = self.th.check_ret_structure(ret)
+
+          self.assertTrue(self.check_final(report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
+
+     def test_multifield_return_dict_mtmfs(self):
+          """ [multifield] test_multifield_return_dict_mtmfs : niter=0 Return dict values, two fields, both mtmfs """
+          self.prepData("refim_twopoints_twochan.ms")
+          self.th.write_file(self.img+'.out.txt', 'imagename='+self.img+'1\nnchan=1\nimsize=[80,80]\ncell=[8.0arcsec,8.0arcsec]\nphasecenter=J2000 19:58:40.895 +40.55.58.543\nusemask=user\nmask=circle[[40pix,40pix],10pix]')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=0,deconvolver='mtmfs',parallel=self.parallel,fullsummary=True)
+          report_dict = self.th.checkall(ret=ret, peakres=1.04, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+          dict_check1 = self.th.check_ret_structure(ret)
+
+          self.assertTrue(self.check_final(report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
+
+
+
      def test_multifield_both_mfs(self):
           """ [multifield] Test_Multifield_both_mfs : Two fields, both mfs """
           self.prepData("refim_twopoints_twochan.ms")
