@@ -30,12 +30,15 @@ import sys
 import threading
 from time import sleep
 import unittest
+
+
 from casatasks import casalog
 
 from casatools import componentlist, measures
 
 from casatasks import calmod
 
+import casatestutils
 
 class calmod_test(unittest.TestCase):
 
@@ -53,10 +56,12 @@ class calmod_test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        server = os.sep.join([
-            os.path.dirname(os.path.abspath(__file__)),
-            'calmod_helpers', 'vlafluxcal.py'
-        ])
+
+        server = os.sep.join([casatestutils.__path__[0],
+            'calmod_helpers', 'vlafluxcal.py'])
+
+        print(server)
+
         cls.web_server = subprocess.Popen(
             [sys.executable, server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
