@@ -1832,9 +1832,18 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     }
 
     // 4. Create the direction conversion machine if needed
+
+    if ( pointingDirCol_p == "SOURCE_OFFSET" or
+         pointingDirCol_p == "POINTING_OFFSET" ) {
+        // It makes no sense to track in offset coordinates...
+        // hopefully the user sets the image coords right
+        fixMovingSource_p = false;
+    }
+
     const auto needDirectionConverter = (
-        not havePointings or not haveConvertedColumn
+        not havePointings or not haveConvertedColumn or fixMovingSource_p
     );
+
     if (needDirectionConverter) {
         if (not pointingToImage) {
             // Set the frame
@@ -1961,12 +1970,6 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     }
 
     // 8. Handle moving sources
-    if ((pointingDirCol_p == "SOURCE_OFFSET") || (pointingDirCol_p == "POINTING_OFFSET")) {
-        // It makes no sense to track in offset coordinates...
-        // hopefully the user sets the image coords right
-        fixMovingSource_p = false;
-    }
-
     if (fixMovingSource_p) {
         #if defined(SDGRID_PERFS)
         StartStop trigger(cHandleMovingSource);
