@@ -21,21 +21,13 @@ if is_CASA6:
     from casatasks import casalog
     from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 
-from casatools import (
-    synthesisimager,
-    synthesisdeconvolver,
-    synthesisnormalizer,
-    iterbotsink,
-    ctsys,
-    table,
-    image,
-)
-from casatasks import casalog
-from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-
-ctsys_hostinfo = ctsys.hostinfo
-_tb = table()
-_ia = image()
+    ctsys_hostinfo = ctsys.hostinfo
+    _tb = table()
+    _ia = image()
+else:
+    from taskinit import *
+    from imagerhelpers.summary_minor import SummaryMinor
+    
     synthesisimager = casac.synthesisimager
     synthesisdeconvolver = casac.synthesisdeconvolver
     synthesisnormalizer = casac.synthesisnormalizer
