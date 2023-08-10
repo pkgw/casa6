@@ -39,6 +39,7 @@
 
 #include <mpi.h>
 
+using std::shared_ptr;
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
 
@@ -240,8 +241,8 @@ Int MPITransport::put(const Record &r){
    rBuf.putstart("MPIRecord",1);
    rBuf << r;
    rBuf.putend();
-    uInt bytes2send=rBuf.getpos();
-    //cerr << "Bytes 2 send " << bytes2send << endl;
+   uInt bytes2send=rBuf.getpos();
+   //cerr << "Bytes 2 send " << bytes2send << endl;
    // warning: sstat set but not used!
    Int sstat = MPI_Send((void *)&bytes2send, 1, MPI_UNSIGNED, sendTo, myOp, MPI_COMM_WORLD);
    sstat = MPI_Send((void *)buffer->getBuffer(), bytes2send, MPI_UNSIGNED_CHAR, sendTo, myOp,

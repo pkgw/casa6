@@ -1737,6 +1737,8 @@ using namespace casa::vi;
     }
     
     initializeToSky(theImage,weight,*vb);
+    //This call is a NOP for all weighting schemes except for cube-briggs-perchanweightdensity
+    initBriggsWeightor(vi);
     Bool useCorrected= !(MSColumns(vi.ms()).correctedData().isNull());
     if((type==FTMachine::CORRECTED) && (!useCorrected))
       type=FTMachine::OBSERVED;

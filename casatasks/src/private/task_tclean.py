@@ -25,6 +25,7 @@ if is_CASA6:
     from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
     from .cleanhelper import write_tclean_history, get_func_params
     from casatools import table
+    from casatools import synthesisutils
     from casatools import synthesisimager
 else:
     from taskinit import *
@@ -395,6 +396,10 @@ def tclean(
                 mytb.putkeyword('imageinfo',iminf)
                 mytb.putkeyword('miscinfo',miscinf)
                 mytb.done()
+                mysu=synthesisutils()
+                mysu.fitPsfBeam(imagename=bparm['imagename'],
+                                nterms=(bparm['nterms']  if deconvolver=="mtmfs" else 1),
+                                psfcutoff=bparm['psfcutoff'])
                 imager = PySynthesisImager(params=paramList)
                 imager.initializeImagers()
                 imager.initializeNormalizers()
