@@ -65,12 +65,26 @@ using namespace casac;
 using namespace casacore;
 namespace casac {
 
-table::table()
+table::table(const string &tablename, const record &lockoptions, bool nomodify)
 {
    itsLog = new casacore::LogIO;
+   if ( tablename.size() > 0 ) {
+      Record *tlock = NULL;
+      try {
+         tlock = toRecord(lockoptions);
+         if(nomodify){
+            if(itsTable)close();
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Old) );
+         } else {
+            if(itsTable)close();
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Update) );
+         }
+      } catch (...) { }
+      delete tlock;
+   }
 }
 
-table::table(casacore::TableProxy *theTable) : itsTable(theTable)
+table::table(TableHandle *theTable) : itsTable(theTable)
 {
    itsLog = new casacore::LogIO;
 }
@@ -92,10 +106,10 @@ table::open(const std::string& tablename, const ::casac::record& lockoptions, co
         remove_all_tablerows( );
         if(nomodify){
             if(itsTable)close();
-            itsTable.reset( new casacore::TableProxy(String(tablename),*tlock,Table::Old) );
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Old) );
         } else {
             if(itsTable)close();
-            itsTable.reset( new casacore::TableProxy(String(tablename),*tlock,Table::Update) );
+            itsTable.reset( new TableHandle(String(tablename),*tlock,Table::Update) );
         }
         delete tlock;
         rstat = true;
@@ -126,9 +140,9 @@ table::create(const std::string& tablename, const ::casac::record& tabledesc,
    remove_all_tablerows( );
    if(itsTable)
      close();
-   itsTable.reset( new casacore::TableProxy(String(tablename), *tlock,
-                                            String(endianformat), String(memtype),
-                                            nrow, *tdesc, *dmI) );
+   itsTable.reset( new TableHandle( tablename, *tlock,
+                                    endianformat, memtype,
+                                    nrow, *tdesc, *dmI ) );
    delete tlock;
    delete tdesc;
    delete dmI;
@@ -285,7 +299,7 @@ table::fromfits(const std::string& tablename, const std::string& fitsfile, const
     }
     
     tab.flush();
-    TableProxy *tb = new casacore::TableProxy(tab);
+    TableHandle *tb = new TableHandle(tab);
     rstat = new casac::table(tb);
     cout << "done." << endl;
 
@@ -311,7 +325,7 @@ table::copy(const std::string& newtablename, const bool deep, const bool valueco
  try {
 	 if(itsTable){
 		 Record *tdminfo = toRecord(dminfo);
-		 TableProxy *mycopy = new TableProxy;
+		 TableHandle *mycopy = new TableHandle;
 		 *mycopy = itsTable->copy(newtablename, memorytable, deep, valuecopy, endian, *tdminfo, norows);
 		 delete tdminfo;
 		 rstat = new casac::table(mycopy);
@@ -629,7 +643,7 @@ table::toasciifmt(const std::string& asciifile, const std::string& headerfile, c
 	    Vector<Int> precision; // optional vector describing the output precision for each column in "columns"
 	                           // - leave empty for now to use default precision
 	    Bool useBrackets(true); // use bracket format for array output by default
-	    message = itsTable->toAscii(String(asciifile), String(headerfile), toVectorString(columns), 
+	    message = itsTable->toAscii(asciifile, headerfile, toVectorString(columns),
 					String(sep), precision, useBrackets);
 	    if(message.size() > 0){
 		*itsLog << LogIO::WARN << "toasciifmt: " << message << LogIO::POST;
@@ -654,7 +668,7 @@ table::taql(const std::string& taqlcommand)
  ::casac::table *rstat(0);
  try {
    if(itsTable){
-     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlcommand).table());
+     TableHandle *theQTab = new TableHandle(tableCommand(taqlcommand).table());
      rstat = new ::casac::table(theQTab);
    } else {
      *itsLog << LogIO::WARN
@@ -692,7 +706,7 @@ table::query(const std::string& query, const std::string& name,
        taqlString << " orderby " << sortlist;
      if(!name.empty())
        taqlString << " giving \"" << name << "\"";
-     casacore::TableProxy *theQTab = new TableProxy(tableCommand(taqlString.str()).table());
+     TableHandle *theQTab = new TableHandle(tableCommand(taqlString.str()).table());
      rstat = new ::casac::table(theQTab);
    } else {
      *itsLog << LogIO::WARN
@@ -894,7 +908,7 @@ table::selectrows(const std::vector<long>& rownrs, const std::string& name)
  try {
 	 if(itsTable){
          Vector<Int64> const rownrsV(rownrs);
-		 rstat = new casac::table(new TableProxy(itsTable->selectRows(rownrsV, String(name))));
+		 rstat = new casac::table(new TableHandle(itsTable->selectRows(rownrsV, String(name))));
 	 } else {
 		 *itsLog << LogIO::WARN << "No table specified, please open first" << LogIO::POST;
 	 }
@@ -2207,15 +2221,15 @@ bool table::fromascii(const std::string& tablename, const std::string& asciifile
 
    *itsLog << LogOrigin(__func__, tablename);
    try {
-      Vector<String> atmp, btmp;
+      vector<std::string> atmp, btmp;
       IPosition tautoshape;
       remove_all_tablerows( );
       itsTable.reset( );
       if(columnnames.size( ) > 0 && columnnames[0] != "")
-          atmp = toVectorString(columnnames);
+          atmp = columnnames;
       if(datatypes.size( ) > 0 && datatypes[0] != "")
-          btmp = toVectorString(datatypes);
-      itsTable.reset( new casacore::TableProxy(String(asciifile), String(headerfile), String(tablename), autoheader, tautoshape, String(sep), String(commentmarker), firstline, lastline, atmp, btmp) );
+          btmp = datatypes;
+      itsTable.reset( new TableHandle( asciifile, headerfile, tablename, autoheader, tautoshape, sep, commentmarker, firstline, lastline, atmp, btmp) );
       rstatus = true;
    } catch (AipsError x) {
       *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
