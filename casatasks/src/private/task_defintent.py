@@ -169,6 +169,8 @@ def defintent(vis='', intent='', mode='',
                 tb.addrows(1)
             intents = list(tb.getcol('OBS_MODE'))
             intents[-1] = intent
+            if numIntents == 0:
+                intents[0] = 'UNSPECIFIED'
             intents = np.asarray(intents)
             tb.putcol('OBS_MODE', intents)
             newState = len(intents) - 1
