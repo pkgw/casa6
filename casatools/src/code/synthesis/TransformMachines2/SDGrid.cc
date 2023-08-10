@@ -1849,9 +1849,17 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
   }
 
   // 4. Create the direction conversion machine if needed
+  if ( pointingDirCol_p == "SOURCE_OFFSET" or
+       pointingDirCol_p == "POINTING_OFFSET" ) {
+    // it makes no sense to track in offset coordinates...
+    // hopefully the user set the image coords right
+    fixMovingSource_p = false;
+  }
+
   const auto needDirectionConverter = (
-      not havePointings or not haveConvertedColumn
+      not havePointings or not haveConvertedColumn or fixMovingSource_p
   );
+
   if (not pointingToImage and needDirectionConverter) {
     // Setup our Measures container
     const auto & rowAntenna1Position =
@@ -1947,13 +1955,6 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
   }
 
   // 8. Handle moving sources
-  if ((pointingDirCol_p == "SOURCE_OFFSET") or
-     (pointingDirCol_p == "POINTING_OFFSET")) {
-    // it makes no sense to track in offset coordinates...
-    // hopefully the user set the image coords right
-    fixMovingSource_p = false;
-  }
-
   if (fixMovingSource_p) {
     if (xyPosMovingOrig_p.nelements() < 2) {
       directionCoord.toPixel(xyPosMovingOrig_p, firstMovingDir_p);
