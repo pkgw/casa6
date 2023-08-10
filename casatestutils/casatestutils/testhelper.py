@@ -7,27 +7,15 @@ import time
 import numpy as np
 import math
 
-try:
-    # CASA 6
-    from casatools import table
-    # Most of this helper file is about table operations. The ms and image tools are used
-    # only for a couple of functions (for which there might be a better place)
-    from casatools import ms, image
+from casatools import table
+# Most of this helper file is about table operations. The ms and image tools are used
+# only for a couple of functions (for which there might be a better place)
+from casatools import ms, image
 
-    tb_local = table()
-    tb_local2 = table()
-    ms_local = ms()
-    image_local = image()
-except ImportError:
-    # CASA 5
-    from taskinit import tbtool
-    from taskinit import mstool, iatool
-
-    tb_local = tbtool()
-    tb_local2 = tbtool()
-    ms_local = mstool()
-    image_local = iatool()
-
+tb_local = table()
+tb_local2 = table()
+ms_local = ms()
+image_local = image()
 
 '''
 A set of common helper functions for unit tests:

@@ -530,7 +530,7 @@ CalStatsFitter::FIT CalStatsFitter::lsqFit( const Vector<Double>& oAbs,
 
     fit.oModel = Vector<Double>( uiNumData, (Double) 0.0 );
     for ( uInt o=0; o<=(uInt)eOrder; o++ ) {
-      fit.oModel += fit.oPars[o] * pow(oAbs,(Int)o);
+      fit.oModel += fit.oPars[o] * pow(oAbs,(Double)o);
     }
 
     fit.oRes = Vector<Double>( oValue - fit.oModel );

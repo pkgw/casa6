@@ -1594,6 +1594,43 @@ windows in the dataset and close the tool.
             </example>
         </method>
         
+        <method direction="in" name="rxbands" type="function">
+            <shortdescription>ALMA-specific. Get the values of the receiver bands for the specified spws.</shortdescription>
+             <input>
+                <param name="spwids" direction="in" type="any">
+                    <description>Zero-based spw ID(s) for which to get the values (integer or interger array). Unspecified will return all receiver band values.</description>
+                     <value type="string"/>
+                    <type>string</type><type>int</type><type>intVec</type>
+                </param>
+            </input>
+            <returns type="intVec"/>
+            <description>
+                ALMA-only. Returns an integer array containing the receiver band
+                of the specified spw(s). A return value of -1 means no receiver
+                band number could be determined. The name of the spw is first
+                checked to determine if the receiver band value is encoded
+                there. If not, the corresponding spectral window ID is sought in
+                the ASDM_RECEIVER table, if it exists, and if it has less than
+                or equal number of rows compared to the SPECTRAL_WINDOW table.
+                If the corresponding spectral window can be found in the
+                ASDM_RECEIVER table, then the corresponding frequencyBand column
+                value is checked to determine if the receiver band information
+                is encoded there. In the case where the spectral window ID is
+                present in multiple cells of the spectralWindowId column, the
+                first row in which the ID is found is used to determine the
+                receiver band. If all these tests fail, -1 is returned for the
+                specified spectral window.
+            </description>
+            <example>
+    msmd.open(&quot;my.ms&quot;)
+    # get the receiver bands for spws 8 and 2.
+    rx_bands = msmd.rxbands([8, 2])
+    # get all receiver bands
+    all_rx_bands = msmd.rxbands()
+    msmd.done()
+            </example>
+        </method>
+
         <method name="scannumbers" type="function">
             <shortdescription>Get an array of the unique scan numbers associated with the MS for the specified observation ID and array ID.</shortdescription>
             <input>
@@ -2146,6 +2183,32 @@ windows in the dataset and close the tool.
             </example>
         </method>
         
+        <method direction="in" name="subwindows" type="function">
+            <shortdescription>ALMA-specific. Get the values of the subwindows for the specified spws.</shortdescription>
+             <input>
+                <param name="spwids" direction="in" type="any">
+                    <description>Zero-based spw ID(s) for which to get the values (integer or interger array). Unspecified will return all receiver band values.</description>
+                     <value type="string"/>
+                    <type>string</type><type>int</type><type>intVec</type>
+                </param>
+            </input>
+            <returns type="intVec"/>
+            <description>
+                ALMA-only. Returns an integer array containing the subwindow of
+                the specified spw(s). The spw name is checked to determine if
+                the subwindow value is encoded within it. A return value of -1
+                indicates that a subwindow number could be determined. 
+            </description>
+            <example>
+    msmd.open(&quot;my.ms&quot;)
+    # get the subwindows for spws 8 and 2.
+    sws = msmd.subwindows([8, 2])
+    # get all subwindows
+    all_sws = msmd.subwindows()
+    msmd.done()
+            </example>
+        </method>
+
         <method name="statesforscan" type="function">
             <shortdescription>Get an array of the unique state IDs for the specified scan number, observation ID, and array ID.</shortdescription>
              <input>

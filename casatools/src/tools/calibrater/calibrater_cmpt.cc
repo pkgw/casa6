@@ -12,27 +12,27 @@
 #include <iostream>
 #include <calibrater_cmpt.h>
 #include <synthesis/MeasurementComponents/Calibrater.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/Utilities/Assert.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Utilities/Assert.h>
 
-#include <casa/BasicSL/String.h>
-#include <casa/Containers/Record.h>
-#include <casa/Containers/RecordDesc.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Containers/RecordDesc.h>
 
-#include <casa/Quanta/QC.h>
-#include <casa/Utilities/Regex.h>
+#include <casacore/casa/Quanta/QC.h>
+#include <casacore/casa/Utilities/Regex.h>
 //#include <casa/BasicSL/Constants.h>
-#include <casa/OS/File.h>
-#include <casa/OS/SymLink.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <ms/MeasurementSets.h>
-#include <ms/MeasurementSets/MSRange.h>
-#include <ms/MeasurementSets/MSField.h>
-#include <ms/MeasurementSets/MSSpectralWindow.h>
+#include <casacore/casa/OS/File.h>
+#include <casacore/casa/OS/SymLink.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/ms/MeasurementSets.h>
+#include <casacore/ms/MeasurementSets/MSRange.h>
+#include <casacore/ms/MeasurementSets/MSField.h>
+#include <casacore/ms/MeasurementSets/MSSpectralWindow.h>
 #include <synthesis/TransformMachines/VisModelData.h>
 #include <synthesis/CalLibrary/CalLibraryTools.h>
 
-#include <measures/Measures/MeasTable.h>
+#include <casacore/measures/Measures/MeasTable.h>
 #include <iostream>
 
 using namespace std;
@@ -369,9 +369,11 @@ calibrater::setsolve(const std::string& type,
                      const bool zerorates,
                      const bool globalsolve,
                      const long niter,
+                     const std::string& corrcomb,
                      const vector<double>& delaywindow,
                      const vector<double>& ratewindow,
                      const vector<bool>& paramactive,
+                     const bool concatspws,
 		     const std::string& solmode,
 		     const vector<double>& rmsthresh
     )
@@ -406,7 +408,8 @@ calibrater::setsolve(const std::string& type,
 			    toCasaString(refant),refantmode,
 			    solnorm,normtype, minsnr,combine,fillgaps,
 			    cfcache, painc, fitorder, fraction, numedge, radius, smooth,
-                            zerorates, globalsolve, niter, delaywindowV, ratewindowV, paramactiveV, solmode, rmsthreshV);
+                            zerorates, globalsolve, niter, corrcomb, delaywindowV, ratewindowV,
+			    paramactiveV, concatspws, solmode, rmsthreshV);
   } catch(AipsError x) {
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
     RETHROW(x);

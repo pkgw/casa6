@@ -8,13 +8,13 @@
  ***/
 
 #include <iostream>
-#include <casa/Exceptions/Error.h>
-#include <casa/BasicSL/String.h>
-#include <casa/Containers/Record.h>
-#include <casa/Utilities/Assert.h>
-#include <ms/MeasurementSets.h>
-#include <ms/MeasurementSets/MSHistoryHandler.h>
-#include <casa/Logging/LogIO.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Containers/Record.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/ms/MeasurementSets.h>
+#include <casacore/ms/MeasurementSets/MSHistoryHandler.h>
+#include <casacore/casa/Logging/LogIO.h>
 
 //#include <synthesis/ImagerObjects/TmpSwitch.h>
 
@@ -152,7 +152,8 @@ synthesisimager::selectdata(const casac::record& selpars)
   try
     {
 
-      if( ! itsImager ) ThrowCc("You have to run selectdata and defineimage before tuneselectdata")
+      if( ! itsImager )
+          ThrowCc("You have to run selectdata and defineimage before tuneselectdata");
 
       casacore::Record outRec;
       Vector<SynthesisParamsSelect> leDataParams;

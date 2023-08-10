@@ -26,14 +26,14 @@
 //# $Id$
 
 #include <nrao/VLA/VLATapeInput.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/IO/MemoryIO.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/IO/MemoryIO.h>
 
 const uInt VLATapeInput::ReadSize = VLAArchiveInput::BlockSize *
                                    VLAArchiveInput::MaxBlocksPerPhysicalRecord;
 
-VLATapeInput::VLATapeInput(const Path& device, uInt whichFile) 
+VLATapeInput::VLATapeInput(const Path& device, uInt whichFile)
   :VLAArchiveInput(),
    itsTape(device),
    itsFiles(1,whichFile),
@@ -42,12 +42,12 @@ VLATapeInput::VLATapeInput(const Path& device, uInt whichFile)
 {
   itsTape.setVariableBlockSize();
   if (!nextFile()) {
-    throw(AipsError("VLATapeInput:: problem positioning the tape to file " + 
+    throw(AipsError("VLATapeInput:: problem positioning the tape to file " +
 		    String::toString(whichFile)));
   }
 }
 
-VLATapeInput::VLATapeInput(const Path& device, const Block<uInt>& whichFiles) 
+VLATapeInput::VLATapeInput(const Path& device, const Block<uInt>& whichFiles)
   :VLAArchiveInput(),
    itsTape(device),
    itsFiles(whichFiles),
@@ -72,7 +72,7 @@ VLATapeInput::VLATapeInput(const Path& device, const Block<uInt>& whichFiles)
     lastFile = thisFile;
   }
   if (!nextFile()) {
-    throw(AipsError("VLATapeInput:: problem positioning the tape to file " + 
+    throw(AipsError("VLATapeInput:: problem positioning the tape to file " +
 		    String::toString(whichFiles[0])));
   }
 }
@@ -109,7 +109,7 @@ Bool VLATapeInput::findFirstRecord(Short& m) {
     itsRecord >> m;
   }
   if (bytesSearched > maxBytesToSearch) {
-    itsMemIO.clear();
+    itsMemIO->clear();
     return false;
   }
   // OK so we have found the beginning of the first record. Copy the rest of
@@ -127,7 +127,7 @@ Bool VLATapeInput::findFirstRecord(Short& m) {
     bytesToCopy = logicalRecordSize * 2;
   }
   itsRecord.seek(0);
-  itsRecord.write(bytesToCopy, 
+  itsRecord.write(bytesToCopy,
 		  itsBuffer.storage() + VLAArchiveInput::HeaderSize);
   DebugAssert(n == 1, AipsError);
   DebugAssert(m > 0, AipsError);
@@ -139,12 +139,12 @@ Bool VLATapeInput::fillBuffer(uInt& bytesToRead) {
   DebugAssert(bytesToRead <= VLATapeInput::ReadSize, AipsError);
   DebugAssert(bytesToRead%VLAArchiveInput::BlockSize == 0, AipsError);
   const Int bytesRead = itsTape.read(bytesToRead, itsBuffer.storage(), false);
-//   cerr << "  Bytes read: " << bytesRead 
-//        << " Position: " << itsInputPtr->seek(0L, ByteIO::Current) 
-//        << " Length: " << itsInputPtr->length() 
+//   cerr << "  Bytes read: " << bytesRead
+//        << " Position: " << itsInputPtr->seek(0L, ByteIO::Current)
+//        << " Length: " << itsInputPtr->length()
 //        << endl;
   if ((bytesRead <= 0) || (bytesRead%VLAArchiveInput::BlockSize != 0)) {
-    itsMemIO.clear();
+    itsMemIO->clear();
     return false;
   }
   bytesToRead = bytesRead;
@@ -181,9 +181,9 @@ Bool VLATapeInput::nextFile() {
 Bool VLATapeInput::nextRecord() {
   // Clear the internal buffers and reset the flags as we will try to read some
   // more data.
-  const Bool gotDataPrev = itsMemIO.length() > 0 ? true : false;
-  itsMemIO.clear();
-  // Find an initial record. 
+  const Bool gotDataPrev = itsMemIO->length() > 0 ? true : false;
+  itsMemIO->clear();
+  // Find an initial record.
   Short n = 1, m;
   if (findFirstRecord(m) == false) {
     if (gotDataPrev) return false; // End of file
@@ -195,7 +195,7 @@ Bool VLATapeInput::nextRecord() {
 		    "* you have a corrupted tape."));
 
   }
-  uInt thisReadSize = itsMemIO.length();
+  uInt thisReadSize = itsMemIO->length();
   DebugAssert(thisReadSize >= VLAArchiveInput::HeaderSize, AipsError);
   // We have the first physical record in Memory. Now decode how long this
   // logical record is.
@@ -205,9 +205,9 @@ Bool VLATapeInput::nextRecord() {
   logicalRecordSize *= 2;
   itsRecord.seek(0, ByteIO::End);
   Int bytesToRead = logicalRecordSize - thisReadSize;
-//   cerr << "Still have " << bytesToRead << " bytes to read out of " 
+//   cerr << "Still have " << bytesToRead << " bytes to read out of "
 //        << logicalRecordSize << " bytes in this record."
-//        << " The buffer contains " << itsMemIO.length() << " bytes" 
+//        << " The buffer contains " << itsMemIO->length() << " bytes"
 //        << endl;
   while (bytesToRead > 0) {
     if (bytesToRead < static_cast<Int>(VLATapeInput::ReadSize)) {
@@ -216,7 +216,7 @@ Bool VLATapeInput::nextRecord() {
     } else {
       thisReadSize = VLATapeInput::ReadSize;
     }
-    
+
     if (fillBuffer(thisReadSize) == false) return false;
     // Check the sequence numbers
     {
@@ -229,27 +229,27 @@ Bool VLATapeInput::nextRecord() {
 //       cerr << "Sequence numbers: Found m = " << newm << " n = " << newn;
 //       cerr << "   Expected m = " << m << " n = " << n+1 << endl;
       if (newm != m || ++n != newn) {
-	itsMemIO.clear();
+	itsMemIO->clear();
 	return false;
       }
-      itsRecord.seek(-static_cast<Int64>(VLAArchiveInput::HeaderSize), 
+      itsRecord.seek(-static_cast<Int64>(VLAArchiveInput::HeaderSize),
                      ByteIO::End);
     }
     // The sequence numbers are OK so write the rest of the data
     const uInt bytesToWrite = thisReadSize -4u;
-    //const uInt bytesToWrite = thisReadSize < static_cast<uInt>(bytesToRead) ? 
+    //const uInt bytesToWrite = thisReadSize < static_cast<uInt>(bytesToRead) ?
                               //(thisReadSize - 4u): thisReadSize;
 
     itsRecord.write(bytesToWrite,
 		    itsBuffer.storage() + VLAArchiveInput::HeaderSize);
     bytesToRead -= thisReadSize;
-//     cerr << "Read a logical block. Still have " 
-// 	 << bytesToRead << " bytes to read. The buffer contains " 
-// 	 << itsMemIO.length() << " bytes" << endl;
+//     cerr << "Read a logical block. Still have "
+// 	 << bytesToRead << " bytes to read. The buffer contains "
+// 	 << itsMemIO->length() << " bytes" << endl;
   }
   itsRecord.seek(0);
   return true;
 }
-// Local Variables: 
+// Local Variables:
 // compile-command: "gmake VLATapeInput; cd test; gmake OPTLIB=1 tVLATapeInput"
-// End: 
+// End:

@@ -31,34 +31,34 @@
  *      Author: kgolap
  */
 
-#include <casa/Arrays/ArrayMath.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Cube.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/OS/HostInfo.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Cube.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/OS/HostInfo.h>
 
-#include <casa/System/ProgressMeter.h>
-#include <casa/Quanta/QuantumHolder.h>
-#include <casa/Utilities/CompositeNumber.h>
-#include <measures/Measures/MeasTable.h>
-#include <ms/MeasurementSets/MSPolColumns.h>
-#include <ms/MeasurementSets/MSPolarization.h>
+#include <casacore/casa/System/ProgressMeter.h>
+#include <casacore/casa/Quanta/QuantumHolder.h>
+#include <casacore/casa/Utilities/CompositeNumber.h>
+#include <casacore/measures/Measures/MeasTable.h>
+#include <casacore/ms/MeasurementSets/MSPolColumns.h>
+#include <casacore/ms/MeasurementSets/MSPolarization.h>
 #include <mstransform/MSTransform/MSUVBin.h>
 #include <mstransform/MSTransform/MSTransformDataHandler.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <coordinates/Coordinates/SpectralCoordinate.h>
-#include <coordinates/Coordinates/StokesCoordinate.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/TempImage.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/coordinates/Coordinates/StokesCoordinate.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/TempImage.h>
 #include <msvis/MSVis/MSUtil.h>
 #include <msvis/MSVis/VisBuffer.h>
 #include <msvis/MSVis/VisBuffer2Adapter.h>
 #include <imageanalysis/Utilities/SpectralImageUtil.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
-#include <scimath/Mathematics/FFTPack.h>
-#include <scimath/Mathematics/ConvolveGridder.h>
+#include <casacore/scimath/Mathematics/FFTPack.h>
+#include <casacore/scimath/Mathematics/ConvolveGridder.h>
 #include <wcslib/wcsconfig.h>  /** HAVE_SINCOS **/
 #include <math.h>
 #ifdef _OPENMP
@@ -111,7 +111,11 @@ MSUVBin::MSUVBin(const MDirection& phaseCenter,
 }
 
 MSUVBin::~MSUVBin(){
-
+  //close the measurementsets
+  for (uInt k=0; k < mss_p.nelements(); ++k){
+    (const_cast<MeasurementSet *>(mss_p[k]))->unlock();
+    *(const_cast<MeasurementSet *>(mss_p[k]))=MeasurementSet();
+  }
 }
 Bool MSUVBin::selectData(const String& msname, const String& spw, const String& field,
 		const String& baseline, const String& scan,
@@ -140,7 +144,9 @@ Bool MSUVBin::selectData(const String& msname, const String& spw, const String& 
 
 void MSUVBin::setOutputMS(const String& msname){
 	outMSName_p=msname;
+        checkOutputGridParams();
 }
+
 
 void MSUVBin::createOutputMS(const Int nrrow){
 	if(Table::isReadable(outMSName_p)){
@@ -215,6 +221,65 @@ void MSUVBin::createOutputMS(const Int nrrow){
 	outMsPtr_p->flush(true);
 
 	existOut_p=false;
+
+}
+bool MSUVBin::checkOutputGridParams(){
+  //Table does not exist nothing to check
+  if(!Table::isReadable(outMSName_p))
+    return true;
+  MeasurementSet theGridMS(outMSName_p, Table::Old);
+  if(!theGridMS.keywordSet().isDefined("MSUVBIN")){
+		throw(AipsError("The ms "+outMSName_p+" was not made with the UV binner"));
+	}
+  Record rec=theGridMS.keywordSet().asRecord("MSUVBIN");
+  Int nx, ny, nchan, npol;
+  rec.get("nx", nx);
+  rec.get("ny", ny);
+  rec.get("nchan", nchan);
+  rec.get("npol", npol);
+  if(!doFlag_p){
+    if(nx != nx_p || ny != ny_p || nchan != nchan_p || npol != npol_p){
+      LogIO os(LogOrigin("MSUVBin", "checkGridParams", WHERE));
+      os << LogIO::SEVERE << "Output is a binned ms of "<< nx << " by " << ny << " with "<< npol << " pol and "<< nchan << " channels where as user has given [" << nx_p << ", " << ny_p << ", " << npol_p << ", " << nchan_p << "]"  << LogIO::POST;
+      return false;
+    }
+  }
+  CoordinateSystem *tempCoordsys;
+  tempCoordsys=CoordinateSystem::restore(rec, "csys");
+  if(tempCoordsys==NULL)
+    throw(AipsError("could recover grid info from ms"));
+  
+  Vector<Double> pixelPhaseCenter(2);
+  pixelPhaseCenter(0) = Double( nx / 2 );
+  pixelPhaseCenter(1) = Double( ny / 2 );
+  MDirection phcen;
+  (tempCoordsys->directionCoordinate(0)).toWorld(phcen, pixelPhaseCenter);
+  if(!doFlag_p && ((phaseCenter_p.getRefPtr()->getType()) != ((phcen.getRefPtr())->getType()))){
+    throw(AipsError("Requested output frame is not the same as what was used with existant "+outMSName_p));
+  }
+  MVDirection mvphcen=phcen.getValue();
+  Double sep=mvphcen.separation(phaseCenter_p.getValue());
+  if(!doFlag_p && (sep > 2.0*(tempCoordsys->directionCoordinate(0)).increment()(0)))
+    {
+      std::ostringstream oss;
+      oss << "stored is " << phcen.toString();
+      oss << " user requested " <<phaseCenter_p.toString();
+      throw(AipsError("phasecentre requested is not the same as stored in "+outMSName_p+ "  " +String(oss.str())));
+    }
+      
+  // When transferring flags we don't care about the input params we take
+  // what is stored
+  if(doFlag_p){
+    nx_p=nx;
+    ny_p=ny;
+    nchan_p=nchan;
+    npol_p=npol;
+    csys_p=*tempCoordsys;
+    phaseCenter_p=phcen;
+  }
+        
+  delete tempCoordsys;
+  return true;
 
 }
 Int MSUVBin::recoverGridInfo(const String& msname){
@@ -343,6 +408,8 @@ Bool MSUVBin::fillNewBigOutputMS(){
 	Vector<Double> incr;
 	Vector<Int> cent;
 	Matrix<Double> uvw;
+        Double numOfFlagsBefore=0;
+        Double numOfFlagsAfter=0;
 	//need to build or recover csys at this stage
 	makeCoordsys();
 	Double reffreq=SpectralImageUtil::worldFreq(csys_p, Double(nchan_p/2));
@@ -458,16 +525,19 @@ Bool MSUVBin::fillNewBigOutputMS(){
                          "", "", "", true);
 		Double rowsDone=0.0;
 		//cerr << "Before: Num of flagged model " << ntrue(uvw.row(2) ==(-666.0)) << endl;
+                
      for (iter.originChunks(); iter.moreChunks(); iter.nextChunk()){
 	for(iter.origin(); iter.more(); iter.next()){
 	  if(doFlag_p){
-	    cerr << " before " << ntrue(vb->flagCube()) << endl;
+            numOfFlagsBefore += ntrue(vb->flagCube());
+	    //cerr << " before " << ntrue(vb->flagCube()) << endl;
 	    Cube<Bool> datFlag=vb->flagCube();
 	    locateFlagFromGrid(*vb, datFlag,
 				 realWghtSpec,
 				flag, rowFlag, uvw, ant1,
 			       ant2, timeCen, startchan, endchan);
-	    cerr << " after " << ntrue(datFlag) << endl;
+	    //cerr << " after " << ntrue(datFlag) << endl;
+            numOfFlagsAfter += ntrue(datFlag);
 	    iter.writeFlag(datFlag);
 
 	  }
@@ -544,6 +614,11 @@ Bool MSUVBin::fillNewBigOutputMS(){
        //cerr << "After: Num of flagged model " << ntrue(uvw.row(2) ==(-666.0)) << endl;
        saveData(grid, flag, rowFlag, realWghtSpec, uvw, ant1, ant2, timeCen, startchan, endchan, imagWghtSpec);
 	}
+        if(doFlag_p){
+          LogIO os(LogOrigin("MSUVBin", "TransferFlags", WHERE));
+          os  << "Number of flags before transfer " << numOfFlagsBefore << "\n";
+          os << "Number of flags after transfer " << numOfFlagsAfter   << LogIO::POST;
+}
 	storeGridInfo();
 	return true;
 }
@@ -2629,7 +2704,7 @@ void MSUVBin::makeWConv(vi::VisibilityIterator2& iter, Cube<Complex>& convFunc, 
     for (trial=0; trial<cpConvSize/2-2;++trial) {
     //for (trial=cpConvSize/2-2;trial>0;trial--) {
     // if((abs(convFunc(trial,0,iw))>1e-3)||(abs(convFunc(0,trial,iw))>1e-3) ) {
-     if((abs(convFuncPtr[ooLong(trial)+ploffset])/abs(maxes[0])< 1e-5)||(abs(convFuncPtr[ooLong(trial*(cpConvSize/2-1))+ploffset])/abs(maxes[0]) < 1e-5) ) {
+     if((abs(convFuncPtr[ooLong(trial)+ploffset])/abs(maxes[0])< 1e-3)||(abs(convFuncPtr[ooLong(trial*(cpConvSize/2-1))+ploffset])/abs(maxes[0]) < 1e-3) ) {
       //if((abs(convFuncPtr[ooLong(trial)+ploffset]) < 1e-3)||(abs(convFuncPtr[ooLong(trial*(cpConvSize/2-1))+ploffset]) < 1e-3) ) {
       //if(abs(convFuncPtr[ooLong(trial)+ploffset])*abs(convFuncPtr[ooLong(trial*(cpConvSize/2-1))+ploffset]) < 1e-3){
       ///diagonal

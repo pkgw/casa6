@@ -28,10 +28,10 @@
 #ifndef SYNTHESIS_MSMETAINFOFORCAL_H
 #define SYNTHESIS_MSMETAINFOFORCAL_H
 
-#include <casa/aips.h>
-#include <casa/iostream.h>
-#include <casa/BasicSL/String.h>
-#include <ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/casa/aips.h>
+#include <iostream>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <msvis/MSVis/SimpleSimVi2.h>
 
 namespace casacore {
@@ -52,6 +52,8 @@ public:
 
   // Construct from a supplied MS object
   MSMetaInfoForCal(const casacore::MeasurementSet& ms);
+  MSMetaInfoForCal(const casacore::MeasurementSet& ms,
+		   casacore::String msname);
 
   // Construct from nAnt,nSpw
   MSMetaInfoForCal(casacore::uInt nAnt,casacore::uInt nSpw,casacore::uInt nFld);
