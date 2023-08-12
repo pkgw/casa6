@@ -1922,6 +1922,18 @@ of the image, and all pixels of other axes.
     </param>
   </input>
   <returns type="variant"/>
+<description>
+  This method constructs a FITS header dictionary which describes the current image. The
+  exclude parameter can either be a string or a list of strings. It indicates FITS header
+  keywords to exclude. This may be useful for the HISTORY keyword because the HISTORY can
+  be very long. If the retstr parameter is set to True, then a string will be returned
+  representing the FITS header. The exculde parameter has no effect when the header
+  information is returned as a single string. An new IMAGENME keyword is added to the
+  header. The value for IMAGENME is the string returned by name method, but the name is
+  truncated to the maximum size for a FITS header value, 68 characters. The image name
+  is truncated from the beginning of the string to reduce it to 68 characters, so the
+  value will contain either the full name or the final 68 characters of the name.
+</description>
 </method>
 
  
