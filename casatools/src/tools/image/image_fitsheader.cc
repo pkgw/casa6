@@ -134,7 +134,16 @@ namespace casac {
             if ( success == false ) {
                 ThrowCc("header creation failed: " + error);
             }
-            fhi.kw.mk( "IMAGENME", _imageF->name( ).c_str( ) );
+            size_t name_length = _imageF->name( ).length( );
+            if ( name_length > 0 ) {
+                //------------------------------------------------------
+                //-- FITS header values are limited to 68 characters  --
+                //------------------------------------------------------
+                char *imagenme = strdup(_imageF->name( ).c_str( ));
+                fhi.kw.mk( "IMAGENME", strlen(imagenme) > 68 ? &imagenme[name_length-68] : imagenme );
+                free(imagenme);
+            }
+
             // exclude not currently supported with retstr == true
             return retstr ? new variant(fhi.kw.toString( )) :
                 new variant(kw2record(fhi.kw,exclude));
