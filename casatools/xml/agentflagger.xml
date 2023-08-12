@@ -815,7 +815,7 @@ for the quack mode. Data selection follows the MS Selection syntax.
 
      <param name="quackinterval" type="double">
      <description>Quack length in seconds. Default: </description>
-     <value>0.0</value>
+     <value>1.0</value>
      </param>
 
      <param name="quackincrement" type="bool">
