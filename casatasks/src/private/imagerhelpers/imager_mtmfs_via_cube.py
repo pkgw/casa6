@@ -41,7 +41,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     """
     @time_func
     def __init__(self, params: ImagerParameters) -> None:
-        print("INIT MODIFIED CODE")
         # Set up the mfs part for deconv
         mfsparams = copy.deepcopy(params)
         mfsparams.allimpars["0"]["specmode"] = "mfs"
@@ -245,7 +244,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         #time0 = time.time()
         super().runMajorCycle(isCleanCycle)
         time1 = time.time()
-        suffixes = ["residual", "sumwt"]
+        suffixes = ["residual"] #, "sumwt"]
         for immod in range(0, self.NF):
             inpcube = self.get_image_name(immod, "residual")
             pbcube = self.get_image_name(immod, "pb")
@@ -453,8 +452,11 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                     imtype=1   ## num_terms should be nterms
                 if suffix == 'pb':   ## may not be used..... 
                     imtype=2   ## num_terms is 1 (for now)
+                if suffix == "sumwt":
+                    imtype=3
                 t0=time.time()
                 _su.cube_to_taylor_sum(cubename=imname,mtname=imname,nterms=nterms,reffreq=reffreq,imtype=imtype)
+                ##print(f"Imname : {imname} , suffix : {suffix} and type : {imtype}")
                 t1 = time.time()
                 print(f'#######---- Function cube_to_taylor_sum  took {(t1-t0)}s')
 
