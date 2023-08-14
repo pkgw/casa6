@@ -198,8 +198,11 @@ def defintent(vis='', intent='', mode='',
             newState = -1
             tb.open(statetb, nomodify=False)
             intents = tb.getcol('OBS_MODE')
-            # Add a row with old intent + new
-            newIntent = intents[i] + ',' + intent
+            # Add a row with old intent + new, if it was UNSPECIFIED just do the new intent (?)
+            if intents[i] == 'UNSPECIFIED':
+                newIntent = intent
+            else:
+                newIntent = intents[i] + ',' + intent
             # Check if thie intent already exists
             if newIntent in intents:
                 print("Intent already exists")
