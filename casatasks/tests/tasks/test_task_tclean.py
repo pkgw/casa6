@@ -5433,7 +5433,7 @@ class test_mtmfsviacube(testref_base):
      ## Tests for mtmfs_via_cube : Compare with 'mfs' for a point source at the phase center, where PB does not matter.
      def test_mtmfsviacube_compare_with_mfs(self):
          """ test_mtmfs_via_cube_compare_with_mfs: tests mfs via cube with 
-         classical mfs nterms=2
+         classical mfs nterms=2. With mpicasa, one will use the cube-parallelization, and the other will use continuum parallelization. 
          """
          self.prepData('refim_point.ms')
          outimname1 = 'tst.mfs'
@@ -5450,7 +5450,8 @@ class test_mtmfsviacube(testref_base):
                        gridder='standard',
                        deconvolver='mtmfs',
                        nterms=2,
-                       scales=[0])
+                       scales=[0],
+                       parallel=self.parallel)
 
          ret2 = tclean(vis='refim_point.ms',
                        imagename=outimname2,
