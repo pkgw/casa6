@@ -49,7 +49,7 @@ class VisEquation;
 class EVLASwPow : public GJones {
 public:
 
-  enum SPType{SWPOW,EVLAGAIN=SWPOW,RQ,SWPOVERRQ,NONE};
+  enum SPType{SWPOW,EVLAGAIN=SWPOW,RQ,SWPOVERRQ,SWPOWWTS,NONE};
   
   static SPType sptype(casacore::String name);
   static casacore::String sptype(SPType sptype);
