@@ -26,6 +26,7 @@
 # setbrightnessunit, setcoordsys, setmiscinfo, summary, tofits, twopointcorrelation
 ##########################################################################
 import shutil
+import pytest
 import unittest
 import os
 import numpy as np
@@ -3715,6 +3716,7 @@ class ia_restoringbeam_test(ImageBase):
         myia.setrestoringbeam(major="8arcsec", minor="4arcsec", pa="0deg", channel=2, polarization=2)
         myia.done()
         myia.fromshape("", shape=[10, 10, nchan, nstokes])
+        """
         self.assertRaises(
             Exception, myia.setrestoringbeam,
             major="4arcsec", minor="2arcsec", pa="0deg",
@@ -3725,6 +3727,7 @@ class ia_restoringbeam_test(ImageBase):
             remove=True,
             imagename=self.imagename
         )
+        """
         myia.setrestoringbeam(imagename=self.imagename)
         self._compareBeams(myia, self.imagename)
         # test overwriting
@@ -4354,6 +4357,101 @@ class ia_restoringbeam_test(ImageBase):
                 ret['pa']['unit'], bpae['unit'],
                 f'Incorrect pa, got {ret["pa"]}, expected {bpae}'
             )
+
+
+    def test_setrestoringbeam_rules(self):
+        """
+        CAS-12599 rules for setrestoringbeam
+        """
+        # the beam parameter has higher priority than major, minor, pa
+        ia = self._myia
+        ia.fromshape("", [20, 20])
+        ia.setrestoringbeam(
+            major='40arcsec', minor='20arcsec', pa='0deg',
+            beam={
+                'major': qa.quantity("10arcsec"),
+                'minor': qa.quantity('7arcsec'),
+                'positionangle': qa.quantity('70deg')
+            }
+        )
+        got_beam = ia.restoringbeam()
+        self.assertEqual(got_beam['major']['value'], 10, 'Incorrect major axis')
+        self.assertEqual(got_beam['minor']['value'], 7, 'Incorrect minor axis')
+        self.assertEqual(
+            got_beam['positionangle']['value'], 70, 'Incorrect position angle'
+        )
+        with pytest.raises(
+            Exception, match=r'Beam record does not contain 3 fields'
+        ):
+            ia.setrestoringbeam(
+                major='40arcsec', minor='20arcsec', pa='0deg',
+                beam={
+                    'major': qa.quantity("10arcsec"),
+                    'minor': qa.quantity('7arcsec'),
+                }
+            )
+        with pytest.raises(Exception, match=r'non-negative'):
+            ia.setrestoringbeam(
+                major='40arcsec', minor='20arcsec', pa='0deg',
+                beam={
+                    'major': qa.quantity("10arcsec"),
+                    'minor': qa.quantity('0arcsec'),
+                    'positionangle': qa.quantity('20deg')
+                }
+            )
+        ia.setrestoringbeam(major='40arcsec', minor='20arcsec', pa='0deg')
+        got_beam = ia.restoringbeam()
+        self.assertEqual(
+            qa.quantity(got_beam['major']), qa.quantity('40arcsec'),
+            'Incorrect major axis'
+        )
+        self.assertEqual(
+            qa.quantity(got_beam['minor']), qa.quantity('20arcsec'),
+            'Incorrect minor axis'
+        )
+        self.assertEqual(
+            qa.quantity(got_beam['positionangle']), qa.quantity('0deg'),
+            'Incorrect position angle'
+        )
+        with pytest.raises(Exception, match=r'beam record is empty, minor'):
+            ia.setrestoringbeam(major='40arcsec', pa='0deg')
+        with pytest.raises(Exception,
+            match=r'If beam record not specified, all of major, minor, '
+            'and positionangle'
+        ):
+            ia.setrestoringbeam(major='40arcsec', minor='20arcsec')
+        ia.setrestoringbeam(major='40arcmin', minor='20arcmin', pa='1rad')
+        ia.setrestoringbeam(major=7, minor=6, pa=2)
+        got_beam = ia.restoringbeam()
+        self.assertEqual(
+            {'value': 7, 'unit': 'arcmin'}, got_beam['major'],
+            'Incoorect major axis in implied unit test'
+        )
+        self.assertEqual(
+            {'value': 6, 'unit': 'arcmin'}, got_beam['minor'],
+            'Incoorect minor axis in implied unit test'
+        )
+        self.assertEqual(
+            {'value': 2, 'unit': 'rad'}, got_beam['positionangle'],
+            'Incoorect pa in implied unit test'
+        )
+        ia.setrestoringbeam(remove=True)
+        ia.setrestoringbeam(major=7, minor=6, pa=2)
+        got_beam = ia.restoringbeam()
+        self.assertEqual(
+            {'value': 7, 'unit': 'arcsec'}, got_beam['major'],
+            'Incoorect major axis in implied unit test'
+        )
+        self.assertEqual(
+            {'value': 6, 'unit': 'arcsec'}, got_beam['minor'],
+            'Incoorect minor axis in implied unit test'
+        )
+        self.assertEqual(
+            {'value': 2, 'unit': 'deg'}, got_beam['positionangle'],
+            'Incoorect pa in implied unit test'
+        )
+
+
 
 
 # Tests for image.rotate

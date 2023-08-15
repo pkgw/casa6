@@ -51,7 +51,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                 ...
         }
 
-    where <vis n> is the name of the nth MS in the intput list of MSs. An entry for a given MS
+    where <vis n> is the name of the nth MS in the input list of MSs. An entry for a given MS
     is only present if there are differences between that MS and the first MS in the list.
 
     If there are no differences in the setup of the MSs, the returned dictionary is empty.
@@ -71,8 +71,12 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
     it is tested in the other table whether the column actually contains data,
     i.e. cell 0 can be read. If not, the absence of the column is ignored. 
 
+    Independently from the value of testcontent, all optional Main table columns are
+    tested as to whether they are present and if so whether they contain data.
+    A warning is raised if they don't contain data.
+
     """
-    
+
     rval = {}
 
     if type(vis) != list:
@@ -97,14 +101,16 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             
         return rval
 
+    haspointing = np.zeros(len(vis)) # track the presence of pointing tables
+    viscount = 0
+
     # Gather information from first MS in list
 
     tb.open(vis[0])
     descr_a = tb.getdesc()
     tb.close()
 
-    if testcontent:
-        descr_a['_name_'] = vis[0]
+    descr_a['_name_'] = vis[0]
 
     descr_a_kw = descr_a['_keywords_']
     if not 'MS_VERSION' in descr_a_kw:
@@ -129,13 +135,23 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             subtbpath = descr_a_kw[mysubtb].split(' ')
             if subtbpath[0] == 'Table:':
                 subtbpaths_a.append(subtbpath[1])
-                subtbnames_a.append(subtbpath[1].split('/')[-1])
+                myname = subtbpath[1].split('/')[-1]
+                subtbnames_a.append(myname)
                 tb.open(subtbpath[1])
                 mydesc = tb.getdesc()
-                if testcontent:
-                    mydesc['_name_'] = subtbpath[1]
-                subtbdescs_a.append(mydesc)
+                if myname == 'POINTING':
+                    haspointing[0] = 1
+                    casalog.post('Checking for unpopulated POINTING table in first MS ...', 'INFO')
+                    try:
+                        tb.getcell('TIME',0)
+                    except:
+                        haspointing[0] = 0
                 tb.close()
+                mydesc['_name_'] = subtbpath[1]
+                subtbdescs_a.append(mydesc)
+                    
+    casalog.post('Checking for unpopulated optional Main Table columns in first MS ...', 'INFO')
+    opt_main_populated(descr_a) # ... in first MS
 
     # Loop over other MSs and check against first
 
@@ -143,12 +159,13 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
         if myvis==vis[0]:
             raise ValueError(myvis+' is contained in the list more than once.')
 
+        viscount += 1
+
         tb.open(myvis)
         descr_b = tb.getdesc()
         tb.close()
 
-        if testcontent:
-            descr_b['_name_'] = myvis
+        descr_b['_name_'] = myvis
 
         descr_b_kw = descr_b['_keywords_']
         if not 'MS_VERSION' in descr_b_kw:
@@ -173,13 +190,20 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                 subtbpath = descr_b_kw[mysubtb].split(' ')
                 if subtbpath[0] == 'Table:':
                     subtbpaths_b.append(subtbpath[1])
-                    subtbnames_b.append(subtbpath[1].split('/')[-1])
+                    myname = subtbpath[1].split('/')[-1]
+                    subtbnames_b.append(myname)
                     tb.open(subtbpath[1])
                     mydesc = tb.getdesc()
-                    if testcontent:
-                        mydesc['_name_'] = subtbpath[1]
-                    subtbdescs_b.append(mydesc)
+                    if myname == 'POINTING':
+                        haspointing[viscount] = 1
+                        casalog.post('Checking for unpopulated POINTING table ...', 'INFO')
+                        try:
+                            tb.getcell('TIME',0)
+                        except:
+                            haspointing[viscount] = 0
                     tb.close()
+                    mydesc['_name_'] = subtbpath[1]
+                    subtbdescs_b.append(mydesc)
 
         # Comparison
         compresult = {}
@@ -189,6 +213,10 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
         if cmpres != {}:
             compresult['Main'] = cmpres
 
+        casalog.post('Checking for unpopulated optional Main Table columns ...', 'INFO')
+        opt_main_populated(descr_b) 
+
+        # Subtables
         for i in range(len(subtbnames_a)): # loop over tables in first MS
             if not subtbnames_a[i] in subtbnames_b:
                 compresult[subtbnames_a[i]] = {'present_a': True, 'present_b': False}
@@ -205,6 +233,14 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
 
         if compresult != {}:
             rval[myvis] = compresult
+
+    # evaluate haspointing array
+    if (1 in haspointing) and (False in ( haspointing == 1 )): 
+        casalog.post('Some but not all of the input MSs are lacking a populated POINTING table:', 'WARN')
+        for i in range(len(haspointing)):
+            if haspointing[i] == 0:
+                casalog.post('   '+str(i)+': '+vis[i], 'WARN')
+        casalog.post('The joint dataset will not have a valid POINTING table.', 'WARN')
 
     return rval
 
@@ -315,4 +351,39 @@ def sort_mslist(vis, visweightscale=None):
         return sortedvis, sortedtimes, sortedvisweightscale
     else:
         return sortedvis, sortedtimes
+
+
+def opt_main_populated(descr, ignorecol=[]):
+    """Utilty function for check_mslist
+       Check the optional Main Table data columns and raise warnings
+       if they exist but don't contain data.
+
+       descr - table description of the main table
+
+       The absence of columns listed in ignorecol is ignored.
+
+       Returns True if no warnings were raised.
+    """
+
+    rval = True
+
+    opt_main_cols = ['DATA', 'FLOAT_DATA', 'LAG_DATA', 'SIGMA_SPECTRUM', 'WEIGHT_SPECTRUM']
+
+    tbname = descr['_name_']
+
+    for myentry in opt_main_cols:
+        if myentry in descr and not myentry in ignorecol: # only inspect relevant columns
+            tb.open(tbname)
+            try:
+                tb.getcell(myentry,0)
+            except:
+                tb.close()
+                rval = False
+                casalog.post('Column '+myentry+' in table '+tbname+' has no data. Accessing it will cause errors.','WARN')
+                continue
+            tb.close()
+
+    return rval
+
+
 
