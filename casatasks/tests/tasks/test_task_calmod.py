@@ -30,6 +30,8 @@ import sys
 import threading
 from time import sleep
 import unittest
+from urllib import request
+from urllib.error import URLError
 
 
 from casatasks import casalog
@@ -59,13 +61,31 @@ class calmod_test(unittest.TestCase):
 
         server = os.sep.join([casatestutils.__path__[0],
             'calmod_helpers', 'vlafluxcal.py'])
-
-        print(server)
-
+        casalog.post(f'server is {server}', 'INFO')
         cls.web_server = subprocess.Popen(
             [sys.executable, server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        sleep(10)
+        url = 'http://127.0.0.1:8080'
+        req = request.Request(url)
+        i = 0
+        started = False
+        while not started:
+            try:
+                with request.urlopen(req) as response:
+                    pass
+            except (ConnectionRefusedError, URLError) as e:
+                started = str(e) == 'HTTP Error 400: BAD REQUEST'
+                if i == 19:
+                    raise RuntimeError('Unable to start web server within 10 seconds')
+            i += 1
+            sleep(0.5)
+            if started:
+                break
+        casalog.post(
+            f'Web server successfully started between {0.5*(i-1)} and {0.5*i} seconds',
+            'INFO'
+        )
+
 
     def setUp(self):
         self.cl = componentlist()
