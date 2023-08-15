@@ -202,7 +202,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
             )
         else:
-            imname = self.get_dec_pars_for_immod(immod)['imagename']
+            imname = self.get_dec_pars_for_immod(0)['imagename']
             t0 = time.time()
             _su.apply_freq_dep_pb(cubename=imname,mtname=imname,pblimit=np.fabs(pblimit))
             t1 = time.time()
