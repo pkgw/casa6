@@ -227,7 +227,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //peakresidual = itsPeakResidual;
 
     peakresidual = itsMTCleaner.getpeakresidual();
-    cout << "Peak res from matR : " << peakresidual << endl;
+    // cout << "Peak res from matR : " << peakresidual << endl; // Uncomment for debugging
 
 
     // Retrieve residual to be saved to the .residual file in finalizeDeconvolver
@@ -239,7 +239,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
 
     peakresidual = max(abs(itsMatResiduals[0]*itsMatMask));
-    cout << "Peak res from new math : " << peakresidual << endl;
+    // cout << "Peak res from new math : " << peakresidual << endl; // Uncomment for debugging
     modelflux = sum( itsMatModels[0] ); // Performance hog ?
 
   }	    
