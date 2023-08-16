@@ -18,8 +18,11 @@ downstream.
             </param>
             <param name="source" type="string">
                 <shortdescription>The calibrator name.</shortdescription>
-                <description>The calibrator name. The case-insensitive names ‘3C48’, ‘3C286’, ‘3C138’,
-                    and ‘3C147’ are supported. Exactly one of source or direction must be specified. 
+                <description>
+                    The calibrator name. The case-insensitive names
+                    &quot;3C48&quot;, &quot;3C286&quot;, &quot;3C138&quot;,
+                    and &quot;3C147&quot; are supported. Exactly one of source
+                    or direction must be specified. 
                 </description>
                 <value type="string"/>
             </param>
@@ -32,7 +35,7 @@ downstream.
                     'J2000 19h53m50 40d06m00'
                     'B1950 292.5deg -40.0deg'
                     'ICRS 13:05:27.2780 -049.28.04.458'
-                    'GALACTIC 47.5rad -60.22rad
+                    'GALACTIC 47.5rad -60.22rad'
 
                     Only astronomical coordinate systems should be used; eg AZEL is right out. The web service
                     will attempt to locate a known calibrator near this direction, where "near" is defined by
@@ -42,8 +45,9 @@ downstream.
             </param>
             <param name="band" type="string">
                 <shortdescription>The receiver band for which the source structure is needed</shortdescription>
-                <description>A string representing the case-insensitive code of the band for which the data are
-                    required. For the VLA, supported codes are ‘P’, ‘L’, ‘S’, ‘C’, ‘X’, ‘U’, ‘K’, ‘A’ and ‘Q’.
+                <description>A string representing the case-insensitive code of
+                    the band for which the data are required. For the VLA,
+                    supported codes are &quot;P&quot;, &quot;L&quot;, &quot;S&quot;, &quot;C&quot;, &quot;X&quot;, &quot;U&quot;, &quot;K&quot;, &quot;A&quot;, and &quot;Q&quot;.
                 </description>
                 <value type="string"/>
             </param>
