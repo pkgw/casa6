@@ -40,6 +40,7 @@ casa_add_python( tools tools_recipes_python lib/python${PYTHONV}/recipes
   lsms.py
   make_labelled_ms.py
   makepb.py
+  mslisthelper.py
   opacity.py
   pixelmask2cleanmask.py
   plotazel.py

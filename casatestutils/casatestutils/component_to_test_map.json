@@ -1251,6 +1251,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_testconcat",
+            "testType":"casatasks",
+            "maintainer":"Dirk Petry",
+            "maintainerEmail":"dpetry@eso.org",
+            "testOptions":[],
+            "testGroup":["concat"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_tsdimaging",
             "testType":"casatasks",
             "maintainer":"Takeshi Nakazato",
