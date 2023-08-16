@@ -3,6 +3,7 @@ from casatasks import casalog
 from datetime import datetime, timedelta
 import json
 from urllib import request
+from urllib.error import URLError, HTTPError
 from urllib.parse import urlparse, quote
 
 
@@ -68,8 +69,12 @@ def calmod(
         casalog.post(f'Trying {url} ...', 'NORMAL')
         try:
             components = __query(url)
+        except HTTPError as e:
+            casalog.post(f'Caught HTTPError: {str(e)}', 'WARN')
+        except URLError as e:
+            casalog.post(f'Caught URLError: {str(e)}', 'WARN')
         except Exception as e:
-            casalog.post(f'Error connecting to URL {url}. Message was {e.args}', 'WARN')
+            casalog.post(f'Caught Exception when trying to connect: {str(e)}', 'WARN')
         if components:
             break
     if not components:
