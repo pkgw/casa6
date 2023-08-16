@@ -89,7 +89,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
               pbConvFunc_p->findUsefulChannels(chunkfreq, vb);
-              cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
+              //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
               std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
               if(doSquint_p)
                 pAs.push_back(getPA(vb));
@@ -112,7 +112,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         paInc=fabs(pAs[0]-pAs[1]);
     }
     
-    cerr <<  "Freqs " <<  freqs <<  endl;
+    //cerr <<  "Freqs " <<  freqs <<  endl;
     if (nw_p == 0)
       nw_p = 1;
     Vector<Double> wVals(nw_p,0);

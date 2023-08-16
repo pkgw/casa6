@@ -147,7 +147,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   Matrix<Int> awSupport;
   calcCsys_p = outcsys_p;
   calcNpix_p = min(nx_p,  ny_p);
-  cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
+  //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
     
@@ -205,15 +205,15 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   /// uvgrid
   Float factorX=fabs(calcCsys_p.increment()(0)/outcsys_p.increment()(0));
   Float factorY=fabs(calcCsys_p.increment()(1)/outcsys_p.increment()(1));
-  cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
+  //cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
-  cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p <<  endl;
+  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p <<  endl;
   MathUtils m;
   Array<Complex>newAWConv = m.resampleViaFFT(awConv,  factorX,  factorY);
   Array<Complex> newWtConv = m.resampleViaFFT(aWwtConv,  factorX,  factorY);
   Float correcfac = float(awConv.shape()(0) *awConv.shape()(1) *oversamp_p*oversamp_p)/float(newAWConv.shape()(0) *newAWConv.shape()(1));
-  cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
+  //cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
   newAWConv *= correcfac;
   newWtConv *= correcfac;
   /*{ 
