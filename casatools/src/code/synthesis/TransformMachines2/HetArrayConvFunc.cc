@@ -949,6 +949,40 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
 
 }
+  void HetArrayConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
+					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
+					  Array<Complex>& weightConvFunc,const MVDirection& extraShift, const Bool useExtraShift){
+    storeImageParams(iimage,vb);
+     toPix(vb, extraShift, useExtraShift);
+    Vector<Double> pixFieldDir(2);
+    pixFieldDir=thePix_p;
+     pixFieldDir(0)=pixFieldDir(0)- Double(nx_p / 2);
+    pixFieldDir(1)=pixFieldDir(1)- Double(ny_p / 2);
+    pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx_p)/Double(convSampling);
+    pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny_p)/Double(convSampling);
+    Int nconvrow=convFunc.shape()(4);
+    Int nconvchan=convFunc.shape()(3);
+    Int nconvpol=convFunc.shape()(2);
+    Int convsize=convFunc.shape()(0);
+    Bool delc;
+    Bool delw;
+    Double dirX=pixFieldDir(0);
+    Double dirY=pixFieldDir(1);
+    Complex *convstor=convFunc.getStorage(delc);
+    Complex *weightstor=weightConvFunc.getStorage(delw);
+    #pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol)
+    {
+      
+        #pragma omp for
+        for(Int iy=0; iy<convsize; ++iy) {
+            applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol);
+
+        }
+    }///End of pragma
+    convFunc.putStorage(convstor, delc);
+    weightConvFunc.putStorage(weightstor, delw);
+    
+  }
 
 typedef unsigned long long ooLong;
 

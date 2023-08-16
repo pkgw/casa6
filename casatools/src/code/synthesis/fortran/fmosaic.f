@@ -717,12 +717,14 @@ C     write(*,*)off
       integer :: aconvpol, aconvchan, xind2, yind2
       integer :: posx, posy, msupportx, msupporty, psupportx, psupporty
       logical :: centin
-
+      logical :: doconj
    
 
 
       do irow=rbeg, rend
-         aconvplane=convplanemap(irow)+1
+C     sign of convplanemap determines if to use conjg
+         aconvplane=abs(convplanemap(irow))+1
+         doconj = (convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then 
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -760,7 +762,8 @@ C     the final image by this term.
      $                                   off(1, ichan, irow)
                                     xind=iloc(1)+(convsize)/2+1
                                     cwt=convfunc(xind, yind, 
-     $                                  aconvpol, aconvchan, aconvplane)
+     $                                aconvpol, aconvchan, aconvplane)
+                                    if(doconj) cwt=conjg(cwt)
 C                          write(*,*) support, iloc
 C      write(*,*) loc(1, ichan, irow)+ix,loc(2, ichan, irow)+iy,xind,yind
                                     grid(loc(1, ichan, irow)+ix,
@@ -1543,7 +1546,7 @@ C
       integer, intent(in) ::  flag(nvispol, nvischan, nrow)
       integer, intent(in) ::  rflag(nrow)
       integer, intent(in) ::  support
-      integer, intent(in) :: chanmap(nchan), polmap(npol)
+      integer, intent(in) :: chanmap(*), polmap(*)
       integer, intent(in) :: convplanemap(nrow), convchanmap(nvischan)
       integer, intent(in) ::  convpolmap(nvispol)
       complex :: nvalue
@@ -1559,7 +1562,7 @@ C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
       real :: norm, phase
 
       logical :: omos
-
+      logical :: doconj
     
       integer, intent(in) :: loc(2, nvischan, nrow), 
      $     off(2,nvischan,nrow)
@@ -1569,10 +1572,16 @@ C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
       integer :: apol, achan, aconvplane, irow
       integer :: aconvchan, aconvpol
       real :: wt, wtx, wty
+
       
+C      write(*,*) 'polmap, ', polmap
+C      write(*,*) 'convpm,', convpolmap
+C      write(*,*) 'chanmp,', chanmap
+C      write(*,*) 'convcm,', convchanmap
 
       do irow=rbeg, rend
-         aconvplane=convplanemap(irow)+1
+         aconvplane=abs(convplanemap(irow))+1
+         doconj=(convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -1599,6 +1608,7 @@ C        write(*,*) 'iloc(2)', iloc(2), off(2), yind
 C        write(*,*) 'iloc(1)', iloc(1), off(1), xind
                                     cwt=convfunc(xind, yind, aconvpol,
      $                                   aconvchan,aconvplane)
+                                    if(doconj) cwt=conjg(cwt)
                                     nvalue=nvalue+cwt*
      $                                   grid(loc(1, ichan, irow)+ix,
      $                                   loc(2, ichan, irow)+iy,

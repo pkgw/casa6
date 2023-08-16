@@ -33,6 +33,7 @@
 #include <casacore/measures/Measures/MeasTable.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
+#include <synthesis/Utilities/FFT2D.h>
 #include <casacore/casa/Utilities/Assert.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -44,6 +45,8 @@
 #include <casacore/lattices/Lattices/TiledLineStepper.h> 
 #include <casacore/lattices/Lattices/LatticeStepper.h> 
 #include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/casa/OS/Timer.h>
+
 #include <casacore/casa/System/Aipsrc.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 
@@ -524,6 +527,8 @@ namespace casa{
     return true;
   }
   //
+  
+ 
   //---------------------------------------------------------------
   //Rotate a complex array using a the given coordinate system and the
   //angle in radians.  Default interpolation method is "CUBIC".
@@ -1007,8 +1012,8 @@ namespace casa{
     return list[index];
   }
 
-  CoordinateSystem SynthesisUtils::makeUVCoords(CoordinateSystem& imageCoordSys,
-						IPosition& shape)
+  CoordinateSystem SynthesisUtils::makeUVCoords(const CoordinateSystem& imageCoordSys,
+						const IPosition& shape)
   {
     CoordinateSystem FTCoords = imageCoordSys;
     
@@ -1449,6 +1454,7 @@ namespace casa{
       return;
     }
 
+
   template
   std::vector<Double>::iterator SynthesisUtils::Unique(std::vector<Double>::iterator first, std::vector<Double>::iterator last);
   template
@@ -1463,7 +1469,268 @@ namespace casa{
   template 
   Int SynthesisUtils::stdNearestValue(const vector<Int>& list, const Int& val, Int& index);
 
+/////===========
+   MathUtils::MathUtils(){
+    Timer tim;
+    tim.mark();
+    initSincCache();
+    tim.show("Calculating 16000 sines");
+  }
+  Array<Complex> MathUtils::resample(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
 
+    if(factorX == 1.0 && factorY==1.0)
+      return inarray;
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    IPosition shp=inarray.shape();
+    cerr <<  "shp " <<  shp <<  endl;
+    shp(0)=Int(nx*factorX/8.0)*8;
+    shp(1)=Int(ny*factorY/8.0)*8;
+    Int newNx=shp(0);
+    Int newNy=shp(1);
+     cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));
+   
+   /*IPosition incursor=IPosition(inarray.shape().nelements(),1);
+    incursor[0]=nx;
+    incursor[1]=ny;
+    IPosition outcursor=IPosition(inarray.shape().nelements(),1);
+    outcursor[0]=shp[0];
+    outcursor[1]=shp[1];
+    */
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    //for (zzz=0; zzz< shp.(4); ++zzz){
+    //  for(yyy=0; yyy< shp.(3); ++yyy){
+    // for(xxx=0; xxx< shp.(2); ++xxx){
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        //Matrix<Float> leReal=real(Matrix<Complex>(inIt.array()));
+        //Matrix<Float> leImag=imag(Matrix<Complex>(inIt.array()));
+        Matrix<Float> leReal=real(inmat);
+        Matrix<Float> leImag=imag(inmat);
+        Bool leRealCopy, leImagCopy;
+        Float *realptr=leReal.getStorage(leRealCopy);
+        Float *imagptr=leImag.getStorage(leImagCopy);
+        Bool isCopy;
+        Matrix<Complex> outMat(outIt.array());
+        Complex *intPtr=outMat.getStorage(isCopy);
+        Float realval, imagval;
+#ifdef _OPENMP
+        omp_set_nested(0);
+#endif
+        #pragma omp parallel for default(none) private(realval, imagval) firstprivate(intPtr, realptr, imagptr, nx, ny, newNx, newNy) shared(leReal, leImag)
+
+        for (Int k =0; k < newNy; ++k) {
+            Double y =Double(k)/Double(newNy)*Double(ny);
+
+            for (Int j=0; j < newNx; ++j) {
+                //      Interpolate2D interp(Interpolate2D::LANCZOS);
+                Double x=Double(j)/Double(newNx)*Double(nx);
+                //interp.interp(realval, where, leReal);
+                realval=interpLanczos(x , y, nx, ny,
+                                      realptr, 3);
+                imagval=interpLanczos(x , y, nx, ny,
+                                      imagptr, 3);
+                //interp.interp(imagval, where, leImag);
+                intPtr[k*Int(newNx)+j]=Complex(realval, imagval);
+            }
+
+        }
+        outMat.putStorage(intPtr, isCopy);
+        leReal.putStorage(realptr, leRealCopy);
+        leImag.putStorage(imagptr, leImagCopy);
+        inIt.next();
+        outIt.next();
+    }
+    return out;
+}
+    void MathUtils::initSincCache(){
+     for (Float u=-4000; u<4000; ++u){ 
+      Float ux=u/1000.0;
+      if (ux == 0) {
+        sincCache_p[u+4000]=1.0;
+      }
+      else{
+	sincCache_p[u+4000]= sin(C::pi * ux) / (C::pi * ux);
+      }
+    }
+    sincCachePtr_p=sincCache_p.data(); 
+      
+    }
+    Float MathUtils::sinc(const Float x)  {
+        Int index=x*1000+4000;
+ 
+    
+        return sincCachePtr_p[index];
+
+    }
+    casacore::Float MathUtils::interpLanczos( const casacore::Double& x , const casacore::Double& y, const casacore::Double& nx, const casacore::Double& ny,   const casacore::Float* data, const casacore::Float a){
+          Double floorx = floor(x);
+          Double floory = floor(y);
+          Float result=0.0;
+          if (floorx < a || floorx >= nx - a || floory < a || floory >= ny - a) {
+            result = 0;
+            return result;
+          }
+    for (Float i = floorx - a + 1; i <= floorx + a; ++i) {
+      for (Float j = floory - a + 1; j <= floory + a; ++j) {
+        result += Float(Double(data[Int(j*nx+i)]) * sinc(x - i)*sinc((x-i)/ a) * sinc(y - j)*sinc((y-j)/ a));
+      }
+    }
+    return result;
+    
+    
+    }
+    Array<Complex> MathUtils::getMiddle(const Array<Complex>& inArr, const int nx, const int ny){
+     IPosition outshape=inArr.shape();
+     outshape[0]=nx;
+     outshape[1]=ny;
+     IPosition blc(2, (inArr.shape()[0]-nx)/2, (inArr.shape()[1]-ny)/2);
+     IPosition trc(2, (inArr.shape()[0]+nx)/2-1, (inArr.shape()[1]+ny)/2-1);
+     Array<Complex> outArr(outshape);
+     ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+     ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+     inIt.origin();
+     outIt.origin();
+     while(!inIt.pastEnd()){
+       //cerr << "Shapes in getM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+       outIt.array().assign(inIt.array()(blc,  trc));
+       inIt.next();
+       outIt.next();
+       
+       
+     }
+      
+      return outArr;
+    }
+     
+    void MathUtils::putMiddle(Array<Complex>& outArr, const Array<Complex>& inArr) {
+     Int nx = inArr.shape()[0];
+     Int ny = inArr.shape()[1];
+     if(nx < outArr.shape()[0] && ny < outArr.shape()[1]){
+       IPosition blc(2,  (outArr.shape()[0]-nx)/2,  (outArr.shape()[1]-ny)/2);
+       IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
+       ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+       ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+       inIt.origin();
+       outIt.origin();
+       outIt.array()(blc, trc)=inIt.array();
+       inIt.next();
+       outIt.next();
+     }
+     else if(outArr.shape()[0] < nx && outArr.shape()[1] < ny){// take the inner of inArray
+        IPosition blc(2,  (nx-outArr.shape()[0])/2,  (ny-outArr.shape()[1])/2);
+        IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
+        ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+        ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+        inIt.origin();
+        outIt.origin();
+        //cerr << "Shapes in putM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+        outIt.array()=inIt.array()(blc, trc);
+        inIt.next();
+        outIt.next();
+
+
+     }
+     else{
+       throw(AipsError("Programmer's error  cannot use PutMiddle"));
+
+     }
+       
+       
+    }
+      
+    Array<Complex> MathUtils::resampleViaFFT(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
+
+      if(factorX==1.0 && factorY==1.0)
+        return inarray;
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    IPosition shp=inarray.shape();
+    cerr <<  "shp " <<  shp <<  endl;
+    shp(0)=Int(std::ceil(nx*factorX/8.0))*8;
+    shp(1)=Int(std::ceil(ny*factorY/8.0))*8;
+    Int newNx=shp(0);
+    Int newNy=shp(1);
+    /* cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));  
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    FFT2D ftsmall;
+    FFT2D ftlarge;
+    
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        Bool isCopy;
+        Complex * inmatptr=inmat.getStorage(isCopy);
+        ftsmall.c2cFFT(inmatptr, nx, ny, True);
+        inmat.putStorage(inmatptr,isCopy);
+        Matrix<Complex> outMat(outIt.array());
+        putMiddle(outMat, inmat);
+        Complex *intPtr=outMat.getStorage(isCopy);
+        ftlarge.c2cFFT(intPtr, newNx, newNy, False);
+        outMat.putStorage(intPtr, isCopy);
+        Float fac=Float(newNx)*Float(newNy)/Float(nx*ny);
+        outMat *= fac; 
+        inIt.next();
+        outIt.next();
+        
+    }*/
+  
+    return resampleViaFFT(inarray,  newNx,  newNy);
+    }
+    Array<Complex> MathUtils::resampleViaFFT(const Array<Complex>& inarray, const Int newNx, const Int newNy) {
+
+     
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    if (newNx == nx && newNy == ny)
+       return inarray;
+    IPosition shp=inarray.shape();
+    cerr <<  "shp " <<  shp <<  endl;
+    
+    shp(0) = newNx;
+    shp(1) = newNy;
+     cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));  
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    FFT2D ftsmall;
+    FFT2D ftlarge;
+    
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        Bool isCopy;
+        Complex * inmatptr=inmat.getStorage(isCopy);
+        ftsmall.c2cFFT(inmatptr, nx, ny, True);
+        inmat.putStorage(inmatptr,isCopy);
+        Matrix<Complex> outMat(outIt.array());
+        putMiddle(outMat, inmat);
+        Complex *intPtr=outMat.getStorage(isCopy);
+        ftlarge.c2cFFT(intPtr, newNx, newNy, False);
+        outMat.putStorage(intPtr, isCopy);
+        Float fac=Float(newNx)*Float(newNy)/Float(nx*ny);
+        outMat *= fac; 
+        inIt.next();
+        outIt.next();
+        
+    }
+  
+    return out;
+    }
   }  
    
     //using namespace casacore;
