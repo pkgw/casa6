@@ -34,32 +34,38 @@
 #include <synthesis/TransformMachines2/VBStore.h>
 #include <synthesis/TransformMachines2/VisibilityResamplerBase.h>
 #include <msvis/MSVis/VisBuffer2.h>
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Vector.h>
 //#include <msvis/MSVis/AsynchronousTools.h>
 
-#include <casa/Logging/LogIO.h>
-#include <casa/Logging/LogSink.h>
-#include <casa/Logging/LogMessage.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogMessage.h>
 
 namespace casa { //# NAMESPACE CASA - BEGIN
   namespace refim{
   class VisibilityResampler: public VisibilityResamplerBase
   {
   public: 
-    VisibilityResampler(): VisibilityResamplerBase() {};
+    VisibilityResampler(): VisibilityResamplerBase() {nVBs_p=nVisGridded_p=0;};
     //    VisibilityResampler(const CFStore& cfs): VisibilityResamplerBase(cfs) {};
     VisibilityResampler(const VisibilityResampler& other):VisibilityResamplerBase()
     {copy(other);}
 
     //    {setConvFunc(cfs);};
-    virtual ~VisibilityResampler() {};
+    virtual ~VisibilityResampler()
+    {
+      // cerr << "~VisibilityResampler:: "
+      // 	   << "No. of VBs  processed: " << nVBs_p << endl
+      // 	   << "No. of vis. processed: " << nVisGridded_p << endl;
+    };
 
     //    VisibilityResampler& operator=(const VisibilityResampler& other);
 
     void copy(const VisibilityResamplerBase& other)
     {VisibilityResamplerBase::copy(other);}
 
+    virtual Bool needCFPhaseScreen() {return true;};
     virtual VisibilityResamplerBase* clone() 
     {return new VisibilityResampler(*this);}
 
@@ -141,7 +147,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 				      const casacore::Matrix<casacore::Double>& sumwt) {(void)griddedData;(void)sumwt;};
     virtual void initializeDataBuffers(VBStore& vbs) {(void)vbs;};
 
-
     virtual void releaseBuffers() {};
     //
     //------------------------------------------------------------------------------
@@ -150,6 +155,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
   protected:
     async::Mutex *myMutex_p;
+    double nVBs_p, nVisGridded_p;
     // casacore::Vector<casacore::Double> uvwScale_p, offset_p, dphase_p;
     // casacore::Vector<casacore::Int> chanMap_p, polMap_p;
     // CFStore convFuncStore_p;

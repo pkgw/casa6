@@ -24,6 +24,7 @@
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 //# $Id$
+#include <memory>
 
 #include <msvis/MSVis/MSIter2.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -41,7 +42,7 @@
 #include <casacore/measures/Measures/MeasTable.h>
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MEpoch.h>
-#include <casa/Quanta/MVTime.h>
+#include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/measures/Measures/Stokes.h>
 #include <casacore/tables/Tables/TableRecord.h>
 #include <casacore/casa/Logging/LogIO.h>
@@ -51,7 +52,7 @@ using namespace casacore;
 
 namespace casa { //# NAMESPACE CASA - BEGIN
 namespace vi {  //# NAMESPACE VI - BEGIN
- 
+
 MSSmartInterval::MSSmartInterval(Double interval,
 				 Vector<Double>& timebounds) :
   MSInterval(interval),
@@ -98,12 +99,12 @@ int MSSmartInterval::comp(const void * obj1, const void * obj2) const
 
   // Shortcut if interval is trivially small, or supplied times
   //   differ by more than the interval
-  //   TBD: move zeroInterval_ context to own function 
+  //   TBD: move zeroInterval_ context to own function
   //        and point to it (handle v1==v2 also)?
   if (zeroInterval_ || abs(v1-v2)>interval2_)
     return v1 < v2 ? -1 : 1;
 
-  // Reaching here, v1 and v2 differ by less than the inverval_, 
+  // Reaching here, v1 and v2 differ by less than the inverval_,
   //  so work harder to discern if they are in the same interval,
   //  with attention to where the specified timeBounds_ are.
 
@@ -112,7 +113,7 @@ int MSSmartInterval::comp(const void * obj1, const void * obj2) const
   //   which could be problematic....
   if (nBounds_>1) {
     if (v2<timeBounds_[bidx_]) {
-      // search from beginning, 
+      // search from beginning,
       bidx_=binarySearch(found_,timeBounds_,v2,nBounds_,0);
       if (!found_) --bidx_;  // handle exact match
     }
@@ -126,12 +127,12 @@ int MSSmartInterval::comp(const void * obj1, const void * obj2) const
 
     // Offset boundary identified
     offset2_=timeBounds_[bidx_];
-    
+
     // If v1 is prior to the detected boundary...
     if (v1 < offset2_) return -1;
-    
+
     // If v1 later than the next higher boundary...
-    if ( ((bidx_+1)<nBounds_) &&      // a forward bound available   
+    if ( ((bidx_+1)<nBounds_) &&      // a forward bound available
 	 (v1 > timeBounds_[bidx_+1]) ) return 1;
   }
   else {
@@ -192,10 +193,10 @@ void MSIter2::origin()
 
 
 
-void MSIter2::construct2(const Block<Int>& sortColumns, 
+void MSIter2::construct2(const Block<Int>& sortColumns,
 			 Bool addDefaultSortColumns)
 {
-  This = (MSIter2*)this; 
+  This = (MSIter2*)this;
   nMS_p=bms_p.nelements();
   if (nMS_p==0) throw(AipsError("MSIter::construct -  No input MeasurementSets"));
   for (size_t i=0; i<nMS_p; i++) {
@@ -213,10 +214,10 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
   // If these columns are not explicitly sorted on, they will be added
   // BEFORE any others, unless addDefaultSortColumns=False
 
-  Block<Int> cols; 
+  Block<Int> cols;
   // try to reuse the existing sorted table if we didn't specify
   // any sortColumns
-  if (sortColumns.nelements()==0 && 
+  if (sortColumns.nelements()==0 &&
       bms_p[0].keywordSet().isDefined("SORT_COLUMNS")) {
     // note that we use the order of the first MS for all MS's
     Vector<String> colNames = bms_p[0].keywordSet().asArrayString("SORT_COLUMNS");
@@ -231,7 +232,7 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
   bool scanSeen = false;
   Int nCol=0;
   for (uInt i=0; i<cols.nelements(); i++) {
-    if (cols[i]>0 && 
+    if (cols[i]>0 &&
 	cols[i]<MS::NUMBER_PREDEFINED_COLUMNS) {
       if (cols[i]==MS::ARRAY_ID && !arrayInSort_p) { arrayInSort_p=True; nCol++; }
       if (cols[i]==MS::FIELD_ID && !fieldInSort_p) { fieldInSort_p=True; nCol++; }
@@ -243,7 +244,7 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
     }
   }
   Block<String> columns;
-  
+
   Int iCol=0;
   if (addDefaultSortColumns) {
     columns.resize(cols.nelements()+4-nCol);
@@ -280,15 +281,15 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
       columns[iCol++]=MS::columnName(MS::TIME);
     }
   }
-  
+
   // now find the time column and set the compare function
-  Block<CountedPtr<BaseCompare> > objComp(columns.nelements());
+  Block<std::shared_ptr<BaseCompare> > objComp(columns.nelements());
   Block<Int> sortOrd(columns.nelements());
   timeComp_p = 0;
   Bool fieldBounded(false);
   Bool scanBounded=scanSeen;
   for (uInt i=0; i<columns.nelements(); i++) {
-    
+
     // Meaningful if this occurs before TIME
     if (columns[i]==MS::columnName(MS::FIELD_ID)) fieldBounded=true;
 
@@ -299,15 +300,15 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
       //this->discernEnforcedTimeBounds(timebounds,scanBounded,fieldBounded);
       this->discernEnforcedTimeBounds(timebounds,scanBounded,fieldBounded,interval_p);
 
-      timeComp_p = new MSSmartInterval(interval_p,timebounds);
+      timeComp_p = std::make_shared<MSSmartInterval>(interval_p,timebounds);
       //timeComp_p = new MSInterval(interval_p);
       objComp[i] = timeComp_p;
     }
     sortOrd[i]=Sort::Ascending;
   }
   Block<Int> orders(columns.nelements(),TableIterator::Ascending);
-  
-  // Store the sorted table for future access if possible, 
+
+  // Store the sorted table for future access if possible,
   // reuse it if already there
   for (size_t i=0; i<nMS_p; i++) {
     Bool useIn=False, store=False, useSorted=False;
@@ -326,7 +327,7 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
       sorted = bms_p[i].keywordSet().asTable("SORTED_TABLE");
       // if sorted table is smaller it can't be useful, remake it
       if (sorted.nrow() < bms_p[i].nrow()) store = bms_p[i].isWritable();
-      else { 
+      else {
 	// if input is a sorted subset of the stored sorted table
 	// we can use the input in the iterator
 	if (isSubSet(bms_p[i].rowNumbers(),sorted.rowNumbers())) {
@@ -350,7 +351,7 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
       if (aips_debug) cout << "MSIter::construct - resorting table"<<endl;
       sorted = bms_p[i].sort(columns, objComp, sortOrd, Sort::QuickSort);
     }
-    
+
     // Only store if globally requested _and_ locally decided
     if (storeSorted_p && store) {
 	// We need to get the name of the base table to add a persistent
@@ -358,7 +359,7 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
 	// There is no table function to get this, so we use the name of
 	// the antenna subtable to get at it.
 	String anttab = bms_p[i].antenna().tableName();
-	sorted.rename(anttab.erase(anttab.length()-7)+"SORTED_TABLE",Table::New); 
+	sorted.rename(anttab.erase(anttab.length()-7)+"SORTED_TABLE",Table::New);
 	sorted.flush();
 	bms_p[i].rwKeywordSet().defineTable("SORTED_TABLE",sorted);
 	bms_p[i].rwKeywordSet().define("SORT_COLUMNS", Vector<String>(columns.begin( ),columns.end( )));
@@ -373,7 +374,7 @@ void MSIter2::construct2(const Block<Int>& sortColumns,
     } else {
       tabIter_p[i] = new TableIterator(sorted,columns,objComp,orders,
 				       TableIterator::NoSort);
-    } 
+    }
     tabIterAtStart_p[i]=True;
   }
   setMSInfo();
@@ -385,11 +386,11 @@ MSIter2::MSIter2(const MSIter2& other): MSIter(other)
   operator=(other);
 }
 
-MSIter2::~MSIter2() 
+MSIter2::~MSIter2()
 {}
 
-MSIter2& 
-MSIter2::operator=(const MSIter2& other) 
+MSIter2&
+MSIter2::operator=(const MSIter2& other)
 {
   if (this==&other) return *this;
   MSIter::operator=(other);
@@ -526,11 +527,11 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
       scanmap[nscan++]=timecol(0)-0.001;
     }
   }
-  
+
   timebounds.resize(nscan);
-  for (Int iscan=0;iscan<nscan;++iscan) 
+  for (Int iscan=0;iscan<nscan;++iscan)
     timebounds[iscan]=scanmap[iscan];
-  
+
   //cout << "timebounds = " << timebounds-86400.0*floor(timebounds(0)/86400.0) << endl;
 }
 
@@ -557,7 +558,7 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
       fieldcol.attach(ti.table(),MS::columnName(MS::FIELD_ID));
       thisScan=scancol(0);
       thisField=fieldcol(0);
-      
+
       if (nscan==0                                    ||  // first iteration
 	  (scanBounded && (thisScan!=lastScan))       ||  // per-scan and scan change
 	  (fieldBounded && ( (thisField!=lastField) ||    // per-field and field change
@@ -565,7 +566,7 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
 	  ) {
 
 	/*
-	cout << nscan << " " 
+	cout << nscan << " "
 	     << thisScan << " "
 	     << thisField << " "
 	     << MVTime((timecol(0)-expcol(0)/2.0)/C::day).string(MVTime::YMD,7)
@@ -582,9 +583,9 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
   }
 
   timebounds.resize(nscan);
-  for (Int iscan=0;iscan<nscan;++iscan) 
+  for (Int iscan=0;iscan<nscan;++iscan)
     timebounds[iscan]=timemap[iscan];
-  
+
 }
 
 
@@ -612,7 +613,7 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
       fieldcol.attach(ti.table(),MS::columnName(MS::FIELD_ID));
       thisScan=scancol(0);
       thisField=fieldcol(0);
-      
+
       if (nscan==0                                    ||  // first iteration
 	  (scanBounded && (thisScan!=lastScan))       ||  // per-scan and scan change
 	  (fieldBounded && (thisField!=lastField))    ||  // per-field and field change
@@ -621,7 +622,7 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
 	  ) {
 
 	/*
-	cout << nscan << " " 
+	cout << nscan << " "
 	     << thisScan << " "
 	     << thisField << " "
 	     << MVTime((timecol(0)-expcol(0)/2.0)/C::day).string(MVTime::YMD,7)
@@ -638,9 +639,9 @@ void MSIter2::discernEnforcedTimeBounds(Vector<Double>& timebounds,
   }
 
   timebounds.resize(nscan);
-  for (Int iscan=0;iscan<nscan;++iscan) 
+  for (Int iscan=0;iscan<nscan;++iscan)
     timebounds[iscan]=timemap[iscan];
-  
+
 }
 
 

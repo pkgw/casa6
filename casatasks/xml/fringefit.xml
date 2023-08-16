@@ -46,6 +46,22 @@ Previous calibrations should be applied on the fly.
                 <value/>
         </param>
 
+            <param subparam="true" name="uvrange" type="any">
+<shortdescription>Select data by baseline length.</shortdescription>
+<description>Select data by baseline length.
+                     Default = '' (all)
+
+                        Examples:
+                        uvrange='0~1000klambda'; uvrange from 0-1000 kilo-lambda
+                        uvrange='&gt;4klambda';uvranges greater than 4 kilo-lambda
+                        uvrange='0~1000km'; uvrange in kilometers
+</description>
+        <any type="variant"/>
+        <value type="string"/>
+    </param>
+
+        
+
         <param type="string" name="antenna" subparam="true"><shortdescription>Select data based on antenna/baseline</shortdescription><description>Select data based on antenna/baseline</description>
                 
                 <value/>
@@ -158,11 +174,17 @@ Previous calibrations should be applied on the fly.
         of data from antennas with only one good polarization (e.g., one polarization
         is bad or entirely absent).  Solutions for the bad or missing polarization 
         will be rendered as flagged.
-
       </description>
       <value>False</value>
     </param>
 
+    <param type="string" name="corrcomb">
+      <shortdescription>Combine correlations</shortdescription>
+      <description>Combine correlations: "all" and "none" are currently
+      supported values</description>
+      <value>none</value>
+    </param>
+      
   <param type="bool" name="docallib">
     <shortdescription>Use callib or traditional cal apply parameters</shortdescription>
     <description>Control means of specifying the caltables
@@ -240,6 +262,10 @@ Previous calibrations should be applied on the fly.
     appended to the time-dependent interpolation
     specification to enforce obsId boundaries when
     interpolating in time. 
+    * For multi-scan datasets, 'perscan' can be
+    appended to the time-dependent interpolation
+    specification to enforce scan boundaries when
+    interpolating in time. 
     * Freq-dependent interp options can have 'flag' appended
     to enforce channel-dependent flagging, and/or 'rel' 
     appended to invoke relative frequency interpolation
@@ -299,6 +325,16 @@ Previous calibrations should be applied on the fly.
     <value/>
   </param>
 
+  <param type="bool" name="concatspws">
+    <shortdescription>Choose between multi-band FFT strategies</shortdescription>
+    <description>For combine='spw', the multi-band FFT solution can be
+    done in two different ways.  For concatspws=True (the default), spws are
+    combined onto a wider frequency grid.  For concatspws=False, each
+    spw is separated FFT'd, and the results are combined using the
+    shift theorem; this mode is experimental.</description>
+    <value>True</value>
+  </param>
+    
     <param type="bool" name="parang">
       <shortdescription>Apply parallactic angle correction on the fly</shortdescription>
         <description>Apply parallactic angle correction on the fly.

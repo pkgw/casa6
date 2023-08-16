@@ -714,7 +714,7 @@ visibilities for flagging.
 <shortdescription>Quack n seconds from scan beginning or end</shortdescription>
 <description>Time in seconds from scan beginning or end to flag.
                      Subparameter of mode='quack'
-                     Default: 0.0
+                     Default: 1.0
 
                      Note: Make time slightly smaller than the desired
                      time.
@@ -1646,7 +1646,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/></default>
+                        <default param="timebin"> <value type="string">0s</value></default>
                         <default param="clipzeros"> <value type="bool">False</value></default>
                     </equals>
                     <equals value="quack">
@@ -1661,7 +1661,7 @@ save to FLAG_CMD
                         <default param="uvrange"><value type="string"/></default>
                         <default param="observation"><value type="string"/></default>
                         <default param="feed"><value type="string"/></default>
-                        <default param="quackinterval"><value type="double">0.0</value></default>
+                        <default param="quackinterval"><value type="double">1.0</value></default>
                         <default param="quackmode"><value type="string">beg</value></default>
                         <default param="quackincrement"><value type="bool">False</value></default>                   
                     </equals>                    
@@ -1722,7 +1722,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/></default>                        
+                        <default param="timebin"> <value type="string">0s</value></default>
                     </equals>
                     <equals value="rflag">
                         <default param="field"><value type="string"/></default>
@@ -1750,7 +1750,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/></default>                        
+                        <default param="timebin"> <value type="string">0s</value></default>
                     </equals>
                     <equals value="antint">
                         <default param="field"><value type="string"/></default>

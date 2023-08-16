@@ -28,17 +28,17 @@
 #ifndef SYNTHESIS_TRANSFORM2_CFBUFFER_H
 #define SYNTHESIS_TRANSFORM2_CFBUFFER_H
 #include <synthesis/TransformMachines/SynthesisError.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
 #include <synthesis/TransformMachines2/CFDefs.h>
 #include <synthesis/TransformMachines/CFCell.h>
 #include <synthesis/TransformMachines2/Utils.h>
-#include <images/Images/ImageInterface.h>
-#include <casa/Utilities/CountedPtr.h>
-#include <casa/Utilities/Sort.h>
-#include <casa/Logging/LogOrigin.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
+#include <casacore/casa/Utilities/Sort.h>
+#include <casacore/casa/Logging/LogOrigin.h>
 #include <msvis/MSVis/VisBuffer2.h>
-#include <casa/Logging/LogSink.h>
-#include <casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogIO.h>
 
 //
 // <summary> defines interface for the storage for convolution functions </summary>
@@ -251,12 +251,13 @@ using namespace casa::vi;
     
     inline casacore::Int nearestWNdx(const casacore::Double& wVal) 
     {
-      //      return SynthesisUtils::nint(sqrt(wValIncr_p*abs(wVal)));
-      return max(0,min((int)(sqrt(wValIncr_p*abs(wVal))),(int)wValues_p.nelements())-1);
-      // Int ndx=(int)(sqrt(wValIncr_p*abs(wVal)));
-      // if ((uInt)ndx >= wValues_p.nelements())
-      // 	cerr << endl << endl << ndx << " " <<  wVal << " " << wValIncr_p << endl << endl;
-      // return min(ndx,wValues_p.nelements()-1);
+      return max(0,
+		 min(
+		     (int)round(sqrt(wValIncr_p*abs(wVal))),
+		     (int)(wValues_p.nelements()-1)
+		     )
+		 ); // CAS-13191
+      //return max(0,min((int)round(sqrt(abs(wVal)/wValIncr_p)),(int)(wValues_p.nelements()-1))); // CAS-13191
     }
     
     casacore::Double nearest(casacore::Bool& found, const casacore::Double& val, const casacore::Vector<casacore::Double>& valList, const casacore::Double& incr);
@@ -322,7 +323,7 @@ using namespace casa::vi;
 						      const casacore::String& fileName=casacore::String(),
 						      const casacore::Double& conjFreq=0.0,
 						      const casacore::Int& conjPol=-1,
-						      const casacore::String& telescopeName=casacore::String(),
+						      const casacore::String& telescopeName=casacore::String("EVLA"),
 						      const casacore::Float& diameter=25.0);
     // casacore::RigidVector<casacore::Int, 3> setParams(const casacore::Int& inu, const casacore::Int& iw, const casacore::Int& muellerElement,
     // 				  const casacore::TableRecord& miscInfo);

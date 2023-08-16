@@ -29,11 +29,11 @@
 
 #include <graphics/GenericPlotter/PlotOptions.h>
 
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Vector.h>
 
-#include <casa/BasicSL/String.h>
-#include <casa/Utilities/CountedPtr.h>
+#include <casacore/casa/BasicSL/String.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 #include <casacore/casa/BasicMath/Math.h>
 
 namespace casa {
@@ -237,8 +237,10 @@ public:
     virtual unsigned int binAt(unsigned int i) const = 0;
     virtual unsigned int connectBinAt(unsigned int i) const {
         return binAt(i); };
-    
-    
+
+    // Return map of colorized values to color, and whether all plots use the same color list
+    virtual std::map<std::string, std::string> getColorizeMap(bool& shared_colormap) const = 0;
+
     // IMPLEMENTED METHODS //
     
     // Returns true if the data is binned, false otherwise.

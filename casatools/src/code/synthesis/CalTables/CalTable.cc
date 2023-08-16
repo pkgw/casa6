@@ -27,12 +27,12 @@
 //----------------------------------------------------------------------------
 
 #include <synthesis/CalTables/CalTable.h>
-#include <tables/Tables/SetupNewTab.h>
-#include <tables/Tables/TableRow.h>
-#include <tables/TaQL/TableParse.h>
-#include <tables/Tables/ScalarColumn.h>
-#include <casa/Arrays.h>
-#include <casa/Arrays/ArrayMath.h>
+#include <casacore/tables/Tables/SetupNewTab.h>
+#include <casacore/tables/Tables/TableRow.h>
+#include <casacore/tables/TaQL/TableParse.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/casa/Arrays.h>
+#include <casacore/casa/Arrays/ArrayMath.h>
 #include <msvis/MSVis/MSCalEnums.h>
 
 using namespace casacore;
@@ -260,7 +260,7 @@ CalTable CalTable::select (const String& calSelect)
     return *this;
   } else {
     String parseString = "select from $1 where " + calSelect;
-    Table result = tableCommand (parseString, *itsMainTable);
+    Table result = tableCommand (parseString, *itsMainTable).table();
     return CalTable (result);
   };
 };
@@ -282,7 +282,7 @@ void CalTable::select2 (const String& calSelect)
   Int nspace = calSelect.freq (' ');
   if (!calSelect.empty() && nspace!=len) {
     String parseString = "select from $1 where " + calSelect;
-    Table *selected = new Table(tableCommand (parseString, *itsMainTable));
+    Table *selected = new Table(tableCommand (parseString, *itsMainTable).table());
     delete itsMainTable;
     itsMainTable=selected;
   };

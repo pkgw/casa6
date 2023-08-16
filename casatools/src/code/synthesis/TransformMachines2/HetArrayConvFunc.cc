@@ -33,34 +33,34 @@
 #include <casacore/casa/Arrays/Slice.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Cube.h>
-#include <scimath/Mathematics/FFTServer.h>
-#include <measures/Measures/MeasTable.h>
-#include <scimath/Mathematics/MathFunc.h>
-#include <scimath/Mathematics/ConvolveGridder.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Utilities/CompositeNumber.h>
-#include <coordinates/Coordinates/CoordinateSystem.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/scimath/Mathematics/FFTServer.h>
+#include <casacore/measures/Measures/MeasTable.h>
+#include <casacore/scimath/Mathematics/MathFunc.h>
+#include <casacore/scimath/Mathematics/ConvolveGridder.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Utilities/CompositeNumber.h>
+#include <casacore/coordinates/Coordinates/CoordinateSystem.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
 
-#include <images/Images/ImageInterface.h>
-#include <images/Images/PagedImage.h>
-#include <images/Images/SubImage.h>
-#include <images/Images/TempImage.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/PagedImage.h>
+#include <casacore/images/Images/SubImage.h>
+#include <casacore/images/Images/TempImage.h>
 #include <imageanalysis/Utilities/SpectralImageUtil.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/Logging/LogSink.h>
-#include <casa/Logging/LogMessage.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogMessage.h>
 
-#include <lattices/Lattices/ArrayLattice.h>
-#include <lattices/Lattices/SubLattice.h>
-#include <lattices/LRegions/LCBox.h>
-#include <lattices/Lattices/LatticeConcat.h>
-#include <lattices/LEL/LatticeExpr.h>
-#include <lattices/Lattices/LatticeCache.h>
-#include <lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/lattices/Lattices/ArrayLattice.h>
+#include <casacore/lattices/Lattices/SubLattice.h>
+#include <casacore/lattices/LRegions/LCBox.h>
+#include <casacore/lattices/Lattices/LatticeConcat.h>
+#include <casacore/lattices/LEL/LatticeExpr.h>
+#include <casacore/lattices/Lattices/LatticeCache.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
 
 
-#include <ms/MeasurementSets/MSColumns.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
 
 #include <msvis/MSVis/VisBuffer2.h>
 
@@ -72,7 +72,7 @@
 #include <synthesis/TransformMachines2/HetArrayConvFunc.h>
 #include <synthesis/MeasurementEquations/VPManager.h>
 
-#include <casa/OS/Timer.h>
+#include <casacore/casa/OS/Timer.h>
 
 
 
@@ -398,7 +398,6 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
     convFuncChanMap.resize(vb.nChannels());
     Vector<Double> beamFreqs;
     findUsefulChannels(convFuncChanMap, beamFreqs, vb, visFreq);
-    //cerr << "SPW " << vb.spectralWindow() << "   beamFreqs "<< beamFreqs <<  " chamMap " << convFuncChanMap << endl;
     Int nBeamChans=beamFreqs.nelements();
     /////For now not doing beam rotation or squints but to be enabled easily
     convFuncPolMap.resize(vb.nCorrelations());
@@ -439,7 +438,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         return;
 
     }
-    actualConvIndex_p=convIndex(vb);
+    actualConvIndex_p=convIndex(vb, visFreq.nelements());
     //cerr << "actual conv index " << actualConvIndex_p << " doneMainconv " << doneMainConv_p << endl;
     if(doneMainConv_p.shape()[0] < (actualConvIndex_p+1)) {
         //cerr << "resizing DONEMAIN " <<   doneMainConv_p.shape()[0] << endl;
@@ -456,6 +455,16 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         //cerr << "invalidating doneMainConv " <<  convFunctions_p[actualConvIndex_p]->shape()[3] << " =? " << nBeamChans << " convsupp " << convSupport_p.nelements() << endl;
     }
 
+    ////Trap for cases when the selection seem to have changed
+    if(doneMainConv_p[actualConvIndex_p]){
+      if(nBeamChans != (*convFunctions_p[actualConvIndex_p]).shape()[3])
+	doneMainConv_p[actualConvIndex_p]=False;
+      
+    }
+
+
+
+    
     // Get the coordinate system
     CoordinateSystem coords(iimage.coordinates());
     Int directionIndex=coords.findCoordinate(Coordinate::DIRECTION);
@@ -500,7 +509,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
     pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx)/Double(convSamp);
     pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny)/Double(convSamp);
 
-
+  
     if(!doneMainConv_p[actualConvIndex_p]) {
       //cerr << "doneMainConv_p " << actualConvIndex_p << endl;
 
@@ -771,9 +780,9 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
 
         doneMainConv_p[actualConvIndex_p]=true;
-        convFunctions_p.resize(actualConvIndex_p+1);
-        convWeights_p.resize(actualConvIndex_p+1);
-        convSupportBlock_p.resize(actualConvIndex_p+1);
+	convFunctions_p.resize(actualConvIndex_p+1);
+	convWeights_p.resize(actualConvIndex_p+1);
+	convSupportBlock_p.resize(actualConvIndex_p+1);
 	//Using conjugate change support to be larger of either
 	if((nchan_p == 1) && getConjConvFunc) {
 	  Int conjsupp=conjSupport(beamFreqs) ;
@@ -860,7 +869,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
     ///vb
     ndishpair=max(convFuncRowMap)+1;
 
-    convSupportBlock_p.resize(actualConvIndex_p+1);
+    //convSupportBlock_p.resize(actualConvIndex_p+1);
     convSizes_p.resize(actualConvIndex_p+1);
     //convSupportBlock_p[actualConvIndex_p]=new Vector<Int>(ndishpair);
     //(*convSupportBlock_p[actualConvIndex_p])=convSupport_p;
@@ -891,6 +900,10 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
 
     // cerr << "convfunc shapes " <<  convFunc_p.shape() <<  "   " << weightConvFunc_p.shape() << "  " << convSize_p << " pol " << nBeamPols << "  chan " << nBeamChans << " ndishpair " << ndishpair << endl;
+     /////Due to a bug in buildCoordSysCore...sometimes an image bigger
+    ///than the spw selection chosen  is made
+     if(nBeamChans > convFunc_p.shape()[3])
+       nBeamChans = convFunc_p.shape()[3];
     //convSupport_p.resize();
     //convSupport_p=(*convSupportBlock_p[actualConvIndex_p]);
     Bool delc;
@@ -903,6 +916,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
     #pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, elconvsize, ndishpair, nBeamChans, nBeamPols)
     {
+      
         #pragma omp for
         for(Int iy=0; iy<elconvsize; ++iy) {
             applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, elconvsize, ndishpair, nBeamChans, nBeamPols);
@@ -1363,52 +1377,18 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
         return 2;
     }
     String pointingid=String::toString(pixdepoint(0))+"_"+String::toString(pixdepoint(1));
-    //Int fieldid=vb.fieldId();
     String msid=vb.msName(true);
-    //If channel or pol length has changed underneath...then its time to
-    //restart the map
-    /*
-    if(convFunctionMap_p.ndefined() > 0){
-      if ((fluxScale_p.shape()[3] != nchan_p) || (fluxScale_p.shape()[2] != npol_p)){
-    convFunctionMap_p.clear();
-      }
-    }
 
-    */
-    if(convFunctionMap_p.nelements() > 0) {
-        if (calcFluxScale_p && ((fluxScale_p.shape()[3] != nchan_p) || (fluxScale_p.shape()[2] != npol_p))) {
-            convFunctionMap_p.resize();
-            nDefined_p=0;
-        }
-    }
-    //String mapid=msid+String("_")+pointingid;
-    /*
-    if(convFunctionMap_p.ndefined() == 0){
-      convFunctionMap_p.define(mapid, 0);
-      actualConvIndex_p=0;
-      fluxScale_p=TempImage<Float>(IPosition(4,nx_p,ny_p,npol_p,nchan_p), csys_p);
-      filledFluxScale_p=false;
-      fluxScale_p.set(0.0);
-      return -1;
-    }
-    */
+   
     if(convFunctionMap_p.nelements() == 0) {
         convFunctionMap_p.resize(nx_p*ny_p);
         convFunctionMap_p.set(-1);
         convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]]=0;
         nDefined_p=1;
         actualConvIndex_p=0;
-        if(calcFluxScale_p) {
-            fluxScale_p=TempImage<Float>(IPosition(4,nx_p,ny_p,npol_p,nchan_p), csys_p);
-            filledFluxScale_p=false;
-            fluxScale_p.set(0.0);
-        }
         return -1;
     }
 
-    // if(!convFunctionMap_p.isDefined(mapid)){
-    //  actualConvIndex_p=convFunctionMap_p.ndefined();
-    //  convFunctionMap_p.define(mapid, actualConvIndex_p);
     if(convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]] <0) {
         actualConvIndex_p=nDefined_p;
         convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]]=nDefined_p;
@@ -1417,22 +1397,6 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
         return -1;
     }
     else {
-        /*
-        actualConvIndex_p=convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]];
-        convFunc_p.resize(); // break any reference
-        weightConvFunc_p.resize();
-        convSupport_p.resize();
-        //Here we will need to use the right xyPlane for different PA range
-        //and frequency may be
-        convFunc_p.reference(*convFunctions_p[actualConvIndex_p]);
-        weightConvFunc_p.reference(*convWeights_p[actualConvIndex_p]);
-        //Again this for one time of antenna only later should be fixed for all
-        // antennas independently
-        //these are not really needed right now
-        convSupport_p=(*convSupportBlock_p[actualConvIndex_p]);
-        convSize_p=(*convSizes_p[actualConvIndex_p])[0];
-        makerowmap(vb, rowMap);
-        */
         actualConvIndex_p=0;
         return -1;
     }
@@ -1611,41 +1575,42 @@ Float HetArrayConvFunc::interpLanczos( const Double& x , const Double& y, const 
 }
 
 ImageInterface<Float>&  HetArrayConvFunc::getFluxScaleImage() {
-    if(!calcFluxScale_p)
-        throw(AipsError("Programmer Error: flux image cannot be retrieved"));
-    if(!filledFluxScale_p) {
-        //The best flux image for a heterogenous array is the weighted coverage
-        fluxScale_p.copyData(*(convWeightImage_p));
-        IPosition blc(4,nx_p, ny_p, npol_p, nchan_p);
-        IPosition trc(4, ny_p, ny_p, npol_p, nchan_p);
-        blc(0)=0;
-        blc(1)=0;
-        trc(0)=nx_p-1;
-        trc(1)=ny_p-1;
+  if(!calcFluxScale_p)
+    throw(AipsError("Programmer Error: flux image cannot be retrieved"));
+  if(!filledFluxScale_p) {
+    //The best flux image for a heterogenous array is the weighted coverage
+    fluxScale_p=TempImage<Float>(IPosition(4, nx_p, ny_p, npol_p, nchan_p), csys_p);
+    fluxScale_p.copyData(*(convWeightImage_p));
+    IPosition blc(4,nx_p, ny_p, npol_p, nchan_p);
+    IPosition trc(4, ny_p, ny_p, npol_p, nchan_p);
+    blc(0)=0;
+    blc(1)=0;
+    trc(0)=nx_p-1;
+    trc(1)=ny_p-1;
 
-        for (Int j=0; j < npol_p; ++j) {
-            for (Int k=0; k < nchan_p ; ++k) {
+    for (Int j=0; j < npol_p; ++j) {
+      for (Int k=0; k < nchan_p ; ++k) {
 
-                blc(2)=j;
-                trc(2)=j;
-                blc(3)=k;
-                trc(3)=k;
-                Slicer sl(blc, trc, Slicer::endIsLast);
-                SubImage<Float> fscalesub(fluxScale_p, sl, true);
-                Float planeMax;
-                LatticeExprNode LEN = max( fscalesub );
-                planeMax =  LEN.getFloat();
-                if(planeMax !=0) {
-                    fscalesub.copyData( (LatticeExpr<Float>) (fscalesub/planeMax));
+        blc(2)=j;
+        trc(2)=j;
+        blc(3)=k;
+        trc(3)=k;
+        Slicer sl(blc, trc, Slicer::endIsLast);
+        SubImage<Float> fscalesub(fluxScale_p, sl, true);
+        Float planeMax;
+        LatticeExprNode LEN = max( fscalesub );
+        planeMax =  LEN.getFloat();
+        if(planeMax !=0) {
+          fscalesub.copyData( (LatticeExpr<Float>) (fscalesub/planeMax));
 
-                }
-            }
         }
-        filledFluxScale_p=true;
+      }
     }
+    filledFluxScale_p=true;
+  }
 
 
-    return fluxScale_p;
+  return fluxScale_p;
 
 }
 

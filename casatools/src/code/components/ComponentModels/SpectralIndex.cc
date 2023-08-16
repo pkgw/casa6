@@ -26,21 +26,21 @@
 //# $Id: SpectralIndex.cc 21292 2012-11-28 14:58:19Z gervandiepen $
 
 #include <components/ComponentModels/SpectralIndex.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Containers/RecordInterface.h>
-#include <casa/Exceptions/Error.h>
-#include <casa/Arrays/IPosition.h>
-#include <casa/Logging/LogIO.h>
-#include <casa/Logging/LogOrigin.h>
-#include <casa/BasicMath/Math.h>
-#include <measures/Measures/MFrequency.h>
-#include <measures/Measures/MCFrequency.h>
-#include <measures/Measures/MeasConvert.h>
-#include <casa/Quanta/MVFrequency.h>
-#include <casa/Quanta/Quantum.h>
-#include <casa/Utilities/Assert.h>
-#include <casa/Utilities/DataType.h>
-#include <casa/BasicSL/String.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Containers/RecordInterface.h>
+#include <casacore/casa/Exceptions/Error.h>
+#include <casacore/casa/Arrays/IPosition.h>
+#include <casacore/casa/Logging/LogIO.h>
+#include <casacore/casa/Logging/LogOrigin.h>
+#include <casacore/casa/BasicMath/Math.h>
+#include <casacore/measures/Measures/MFrequency.h>
+#include <casacore/measures/Measures/MCFrequency.h>
+#include <casacore/measures/Measures/MeasConvert.h>
+#include <casacore/casa/Quanta/MVFrequency.h>
+#include <casacore/casa/Quanta/Quantum.h>
+#include <casacore/casa/Utilities/Assert.h>
+#include <casacore/casa/Utilities/DataType.h>
+#include <casacore/casa/BasicSL/String.h>
 
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
@@ -391,25 +391,17 @@ Bool SpectralIndex::convertUnit(String& errorMessage,
 }
 
 Bool SpectralIndex::ok() const {
-  if (!SpectralModel::ok()) return false;
-  if (refFrequency().getValue().getValue() <= 0.0) {
-    LogIO logErr(LogOrigin("SpectralIndex", "ok()"));
-    logErr << LogIO::SEVERE << "The reference frequency is zero or negative!" 
-           << LogIO::POST;
-    return false;
-  }
-  if (abs(itsIndex) > 100) {
-    LogIO logErr(LogOrigin("SpectralIndex", "ok()"));
-    logErr << LogIO::SEVERE << "The spectral index is greater than 100!" 
-           << LogIO::POST;
-    return false;
-  }
-  return true;
+    if (!SpectralModel::ok()) return false;
+    ThrowIf(
+        refFrequency().getValue().getValue() <= 0.0,
+        "The reference frequency is zero or negative!"
+    ); 
+    ThrowIf(abs(
+        itsIndex) > 100,
+        "The absolute value of the spectral index is greater than 100!"
+    ); 
+    return true;
 }
 
-// Local Variables: 
-// compile-command: "gmake SpectralIndex"
-// End: 
-
-} //# NAMESPACE CASA - END
+}
 
