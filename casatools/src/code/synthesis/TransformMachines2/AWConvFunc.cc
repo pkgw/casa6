@@ -2123,20 +2123,27 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 		throw(AipsError("Programmer Error: AWConvFunc has to be constructed with a EVLAAperture"));
 	String bandname=EVLAAperture::getVLABandName(freqlist[int(freqlist.nelements()/2)], "EVLA");
 	std::tie(cell,convnx)=getBeamCellSize(bandname);
-	cerr << "@@@cell " << cell <<  " npix " <<  convnx << endl;
+//	cerr << "@@@cell " << cell <<  " npix " <<  convnx << endl;
 	csys_p=csys;
 	Vector<String> units=csys_p.worldAxisUnits();
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
 	incr[0]=cell.get(units[0]).getValue();
 	incr[1]=cell.get(units[1]).getValue();
-	cerr <<  "###inp fov" <<  inpFov <<  " conv fov " <<  fabs(incr[0]*Double(convnx)) <<  endl;
-	if(inpFov < fabs(incr[0]*Double(convnx))){
-		incr = csys_p.increment();
+	//cerr <<  "###inp fov" <<  inpFov <<  " conv fov " << fabs(incr[0]*Double(convnx)) <<  endl;
+	Double pbFov= fabs(incr[0]*Double(convnx));
+	/*if(inpFov < fabs(incr[0]*Double(convnx))){
+		//incr = csys_p.increment();
+		npix=int(std::ceil(incr[0]*Double(convnx)/inpFov/2.0))*2;
 		//npix remains the same and csys used for beam calc stays
 	}
 	else{
 	 npix = convnx;                                            // return the npix used to calc beam
+	}*/
+	npix=convnx;
+	if((inpFov/pbFov) < 1.0){
+		npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
+		//cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
 	}
 	Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};
 	StokesCoordinate stokesCoords(stoks);
@@ -2145,12 +2152,12 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	CoordinateSystem csysA=csys_p;
 	csysA.setIncrement(incr);
 	Vector<Double> refpix=csysA.referencePixel();
-	refpix[0]=refpix[1]=Double(npix)/2.0;
+	refpix[0]=refpix[1]=Double(convnx)/2.0;
 	csysA.setReferencePixel(refpix);
 	csysA.replaceCoordinate(stokesCoords, 1);
 	csysA.replaceCoordinate(specCoord,2);
 	csys=csysA; //return the coordinate used for doing the beam
-	IPosition shp(4, npix, npix, 4,1);
+	IPosition shp(4, convnx, convnx, 4,1);
 	Int support=0;
     //aa.cacheVBInfo("EVLA", 25.0);
 	IPosition blc(4,0,0,0,0);
@@ -2158,6 +2165,7 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	FFT2D ftm;
 	Bool isCopy, isWtCopy;
 	uInt nchans=freqlist.nelements();
+	MathUtils m;
 	for (uInt k=0; k < nchans; ++k){
 		//higest freq will have largest supp ..so going through freqlist backwards
 		Quantum<Vector<Double> > lefreq(Vector<Double>(1, freqlist[nchans-k-1]), "Hz");
@@ -2170,7 +2178,13 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 			atermMaker_p->applyDiagSkyJones(pbim, pa);
 		else
 			atermMaker_p->applyAvgSkyJones(pbim);
-		Array<Complex> arr=pbim.getSlice(IPosition(4,0), IPosition(4, npix, npix, 4,1), False);
+		Array<Complex> arr;
+		if(inpFov >= pbFov){
+			arr=pbim.getSlice(IPosition(4,0), IPosition(4, convnx, convnx, 4,1), False);
+		}
+		else{
+			arr=pbim.getSlice(IPosition(4,(convnx-npix)/2, (convnx-npix)/2, 0, 0), IPosition(4, npix, npix, 4,1), False);
+		}
 		//cerr << "MAX arr "<< max(arr) << " min "<< min(arr) << endl;
 		Array<Complex> wtArr=arr*conj(arr);
 		Complex * arrptr=arr.getStorage(isCopy);
@@ -2181,10 +2195,27 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 			ftm.c2cFFT(arrplane, npix, npix, True);
 			ftm.c2cFFT(wtarrplane, npix, npix, True);
 		}
+		
 		arr.putStorage(arrptr, isCopy);
 		
 		wtArr.putStorage(wtarrptr, isWtCopy);
-		cerr << "Post FT MAX arr "<< max(wtArr) << " min "<< min(wtArr) << endl;
+		/*if(inpFov < pbFov){
+			Double fac= (inpFov/pbFov);
+			incr[0]/=fac;
+			incr[1]/=fac;
+			csys.setIncrement(incr);
+			Array<Complex>newArr= m.resampleViaFFT(arr, fac, fac);
+			arr.set(0.0);
+			cerr << "@@@neArr shape "<< newArr.shape() << endl;
+			m.putMiddle(arr, newArr);
+			newArr.resize();
+			newArr=m.resampleViaFFT(wtArr, fac, fac);
+			wtArr.set(0.0);
+			m.putMiddle(wtArr, newArr);
+			
+			
+		}*/
+		//cerr << "Post FT MAX arr "<< max(wtArr) << " min "<< min(wtArr) << endl;
 		supportAndNormalizeAFunc(support, arr, wtArr);
 		//cerr << "Post Norm MAX arr "<< max(arr) << " min "<< min(arr) << endl;
 		if(k==0){
@@ -2211,7 +2242,8 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 		wtConvFunc(blcChanplane, trcChanplane)=wtArr(blc, trc);
 		
 	}
-	cerr << "Post Slicing MAX arr "<< max(wtConvFunc) << " min "<< min(wtConvFunc) << endl;
+	//cerr << "Post Slicing MAX arr "<< max(wtConvFunc) << " min "<< min(wtConvFunc) << endl;
+	//cerr << "@@@support " << max(asupport) << endl;
 }
 
 void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc, 
@@ -2225,7 +2257,7 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
 	Array<Complex> pbWFT;
 	Vector<Int> aTsup;
 	makeAConvFunc(pbFT, pbWFT, csys, aTsup, npix, freqlist, dosquint, pa);
-	cerr << "In AW wtConv "<< max(pbWFT) << " min "<< min(pbWFT) << endl;
+	//cerr << "In AW wtConv "<< max(pbWFT) << " min "<< min(pbWFT) << endl;
 	/////TESTOO
 	//{
 	//	cerr << "ATSUP " << aTsup << endl;
@@ -2239,7 +2271,7 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
 	Int nfreq=freqlist.nelements();
 	Int nw=wVals.nelements();
 	wpc.makeWConvFuncs(wCon, wTsup, csys, npix, wVals);
-	cerr << "AWC wcon shape "<< wCon.shape() << " pbFT " << pbFT.shape() << endl; 
+	//cerr << "AWC wcon shape "<< wCon.shape() << " pbFT " << pbFT.shape() << endl; 
 	Int newNx=max(wCon.shape()[0], pbFT.shape()[0]);
 // Let's start with this size..we can reduce this later
 	convFunc.resize(IPosition(5, newNx, newNx, 4, nfreq, nw));
@@ -2294,7 +2326,7 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
 		/////
 		itOut.next();
 	}
-	cerr << "BEFORE convshape "<< convFunc.shape() << endl;
+	//cerr << "BEFORE convshape "<< convFunc.shape() << endl;
 	supportResizeAWConv(awsupport, convFunc,  aTsup);
 	//For now we will copy the weightConvFunc to all W's just to keep indexing the same
 	wtconv.resize(convFunc.shape());
@@ -2306,12 +2338,12 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
 	IPosition blcw(4, (newNx-nx)/2, (newNx-nx)/2, 0, 0);
 	IPosition trcw(4, (newNx+nx)/2-1, (newNx+nx)/2-1, 3, nfreq-1);
 	for (int k=0; k < nw; ++k){
-		cerr <<  "@@@ w " <<  k <<  " shape " << itw.array()(blcw,trcw).shape() <<  "  " << pbWFT.shape() <<  endl; 
+		//cerr <<  "@@@ w " <<  k <<  " shape " << itw.array()(blcw,trcw).shape() <<  "  " << pbWFT.shape() <<  endl; 
 		itw.array()(blcw,trcw)=pbWFT;
 		itw.next();
 	}
-	cerr << "AFTER convshape "<< convFunc.shape() << endl;
-	cerr <<  "wtconv " <<  max(wtconv) <<  "   " << min(wtconv) <<  endl;
+	//cerr << "AFTER convshape "<< convFunc.shape() << endl;
+	//cerr <<  "wtconv " <<  max(wtconv) <<  "   " << min(wtconv) <<  endl;
 	////TESTOO
 	/*{
 		Vector<Double>pixW(wVals.nelements());
@@ -2324,7 +2356,7 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
 	
 	}*/
 	////
-	cerr << "aWSup " << awsupport << endl;
+	//cerr << "aWSup " << awsupport << endl;
 	//cerr << "aTsup " << aTsup << endl;
 	
 }
@@ -2366,13 +2398,13 @@ Bool AWConvFunc::supportResizeAWConv(Matrix<Int>& sup, Array<Complex>& conv, con
 				sup(chan,w)=5;
 			}
 			if(sup(chan, w) < ATsup(chan)){
-				cerr << chan << " w " << w << "sup " << sup(chan,w) << " ATsup " << ATsup(chan) << endl;
+				//cerr << chan << " w " << w << "sup " << sup(chan,w) << " ATsup " << ATsup(chan) << endl;
 				sup(chan,w)=ATsup(chan);
 			}
 			if(w==0){
 				IPosition blc(2,-sup(chan,0)+convSize/2, -sup(chan,0)+convSize/2);
 				IPosition trc(2, sup(chan,0)+convSize/2-1, sup(chan, 0)+convSize/2-1);
-				cerr << "chan " << chan << " blc " << blc << " trc " << trc << "  sup "<< sup(chan,0) << endl;
+				//cerr << "chan " << chan << " blc " << blc << " trc " << trc << "  sup "<< sup(chan,0) << endl;
 				sumUnder(chan)=real(sum(convPlane(blc,trc)));
 			
 			}

@@ -3523,17 +3523,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	mType="default";
 	if(gridder=="ft" || gridder=="gridft" || gridder=="standard" )
 	  { ftmachine="gridft"; }
-	if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
+	else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
 	  { ftmachine="wprojectft";}
 
-	if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
+	else if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
 	  { ftmachine="mosaicft"; }
-	if(gridder=="imagemosaic") {
+	else if(gridder=="imagemosaic") {
 	    mType="imagemosaic";
 	    if (wprojplanes>1 || wprojplanes==-1){ ftmachine="wprojectft"; }
 	  }
-	if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
+	else if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
 	  {ftmachine="awprojectft";}
+        else{
+          ftmachine=gridder;
+          ftmachine.downcase();
+
+        }
 	if(gridder=="singledish") {
 	  ftmachine="sd";
 	}
@@ -3616,7 +3621,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     if( imageName=="" ) {err += "Please supply an image name\n";}
 
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
-	(ftmachine != "mosaicft") && (ftmachine != "awprojectft") && 
+	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
 	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
 	(ftmachine != "sd"))
       { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft'";   }

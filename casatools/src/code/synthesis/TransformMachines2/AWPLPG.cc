@@ -63,7 +63,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   if(convSampling <4) 
     convSampling=4;
  // TESTOO
-  convSampling = 1;
+  //convSampling = 1;
   // TESTOO
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
@@ -72,7 +72,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     vi::VisibilityIterator2 *vi= const_cast<VisibilityIterator2 *>(vb.getVi());
     
     if(pbConvFunc_p.null())
-    pbConvFunc_p=new HetArrayConvFunc();
+      pbConvFunc_p=new HetArrayConvFunc();
     if(sj_p)
       pbConvFunc_p->setSkyJones(sj_p.get());
       
@@ -86,7 +86,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     std::vector<Double> pAs;
     Double maxW=0.0;
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
-          //for (vi->origin(); vi->more(); vi->next()) {
+          for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
               pbConvFunc_p->findUsefulChannels(chunkfreq, vb);
               cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
@@ -95,7 +95,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
                 pAs.push_back(getPA(vb));
               if(nw_p > 1)
                 	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
-          //}
+          }
     }
     
     //return vi to origin
@@ -113,6 +113,8 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     }
     
     cerr <<  "Freqs " <<  freqs <<  endl;
+    if (nw_p == 0)
+      nw_p = 1;
     Vector<Double> wVals(nw_p,0);
     if(nw_p >1){
       Double st=maxW/(Double(nw_p-1)*Double(nw_p-1));
@@ -130,6 +132,26 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   // pbConvFunc_p.phasegradient
     convFunc.resize();
     convFunc.assign(awConvs_p->getConvFunc());
+    /* { 
+      ////TESTOO
+      IPosition elshp = convFunc.shape().getFirst(4);
+      IPosition elblc(5, 0);
+      
+      IPosition eltrc = convFunc.shape()-1;
+      elblc[4] = eltrc[4];
+      CoordinateSystem csysA = iimage.coordinates();
+      Vector<Int> stoks(4);
+      stoks(0) = Stokes::RR;
+      stoks(1) = Stokes::RL;
+      stoks(2) = Stokes::LR;
+      stoks(3) = Stokes::LL;
+      StokesCoordinate stokey(stoks);
+      csysA.replaceCoordinate(stokey, 1);
+      PagedImage<Complex> lastplane(elshp,  csysA,  "NOOBOO");
+      lastplane.put(convFunc(elblc,  eltrc).nonDegenerate());
+    
+    //////
+    } */  
     weightConvFunc_p.resize();
     weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
     convSizePlanes_p.resize();
@@ -137,6 +159,8 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
     awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb);
+    //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << endl;
+    
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);

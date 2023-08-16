@@ -1478,7 +1478,7 @@ namespace casa{
   }
   Array<Complex> MathUtils::resample(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
 
-    if(factorX <= 1.0 && factorY<=1.0)
+    if(factorX == 1.0 && factorY==1.0)
       return inarray;
     Double nx=Double(inarray.shape()(0));
     Double ny=Double(inarray.shape()(1));
@@ -1598,7 +1598,8 @@ namespace casa{
      inIt.origin();
      outIt.origin();
      while(!inIt.pastEnd()){
-       outIt.array()=inIt.array()(blc,  trc);
+       //cerr << "Shapes in getM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+       outIt.array().assign(inIt.array()(blc,  trc));
        inIt.next();
        outIt.next();
        
@@ -1611,18 +1612,38 @@ namespace casa{
     void MathUtils::putMiddle(Array<Complex>& outArr, const Array<Complex>& inArr) {
      Int nx = inArr.shape()[0];
      Int ny = inArr.shape()[1];
-     IPosition blc(2,  (outArr.shape()[0]-nx)/2,  (outArr.shape()[1]-ny)/2);
-     IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
-     ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
-     ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
-     inIt.origin();
-     outIt.origin();
+     if(nx < outArr.shape()[0] && ny < outArr.shape()[1]){
+       IPosition blc(2,  (outArr.shape()[0]-nx)/2,  (outArr.shape()[1]-ny)/2);
+       IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
+       ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+       ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+       inIt.origin();
+       outIt.origin();
        outIt.array()(blc, trc)=inIt.array();
        inIt.next();
        outIt.next();
-       
-       
      }
+     else if(outArr.shape()[0] < nx && outArr.shape()[1] < ny){// take the inner of inArray
+        IPosition blc(2,  (nx-outArr.shape()[0])/2,  (ny-outArr.shape()[1])/2);
+        IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
+        ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+        ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+        inIt.origin();
+        outIt.origin();
+        //cerr << "Shapes in putM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+        outIt.array()=inIt.array()(blc, trc);
+        inIt.next();
+        outIt.next();
+
+
+     }
+     else{
+       throw(AipsError("Programmer's error  cannot use PutMiddle"));
+
+     }
+       
+       
+    }
       
     Array<Complex> MathUtils::resampleViaFFT(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
 
@@ -1636,6 +1657,49 @@ namespace casa{
     shp(1)=Int(std::ceil(ny*factorY/8.0))*8;
     Int newNx=shp(0);
     Int newNy=shp(1);
+    /* cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));  
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    FFT2D ftsmall;
+    FFT2D ftlarge;
+    
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        Bool isCopy;
+        Complex * inmatptr=inmat.getStorage(isCopy);
+        ftsmall.c2cFFT(inmatptr, nx, ny, True);
+        inmat.putStorage(inmatptr,isCopy);
+        Matrix<Complex> outMat(outIt.array());
+        putMiddle(outMat, inmat);
+        Complex *intPtr=outMat.getStorage(isCopy);
+        ftlarge.c2cFFT(intPtr, newNx, newNy, False);
+        outMat.putStorage(intPtr, isCopy);
+        Float fac=Float(newNx)*Float(newNy)/Float(nx*ny);
+        outMat *= fac; 
+        inIt.next();
+        outIt.next();
+        
+    }*/
+  
+    return resampleViaFFT(inarray,  newNx,  newNy);
+    }
+    Array<Complex> MathUtils::resampleViaFFT(const Array<Complex>& inarray, const Int newNx, const Int newNy) {
+
+     
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    if (newNx == nx && newNy == ny)
+       return inarray;
+    IPosition shp=inarray.shape();
+    cerr <<  "shp " <<  shp <<  endl;
+    
+    shp(0) = newNx;
+    shp(1) = newNy;
      cerr << "SHP " << shp << endl;
     Array<Complex> out(shp, Complex(0.0));  
     ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);

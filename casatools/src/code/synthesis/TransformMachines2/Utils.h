@@ -184,6 +184,7 @@ namespace casa
       casacore::Float sinc(const casacore::Float x) ;
       casacore::Array<casacore::Complex> resample(const casacore::Array<casacore::Complex>& inarray, const casacore::Double factorX, const casacore::Double factorY);
       static casacore::Array<casacore::Complex> resampleViaFFT(const casacore::Array<casacore::Complex>& inarray, const casacore::Double factorX, const casacore::Double factorY);
+      static casacore::Array<casacore::Complex> resampleViaFFT(const casacore::Array<casacore::Complex>& inarray, const casacore::Int nX, const casacore::Int nY);
       //get the middle nx, ny of inArr ...obviously inArr fist 2 dim must be bigger or 
       //equal to nx ny 
       static casacore::Array<casacore::Complex> getMiddle(const casacore::Array<casacore::Complex>& inArr, const int nx, const int ny);

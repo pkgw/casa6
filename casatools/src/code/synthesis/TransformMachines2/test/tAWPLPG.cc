@@ -141,11 +141,11 @@ Int main(/*int argc, char **argv*/){
       PagedImage<Float> goo(im.shape(), cs, ftmachines[k]+".weight");
       ftm->getWeightImage(goo, weight);
       
-      cerr << "val at center " << im.getAt(IPosition(4, 1000, 1000, 0, 0)) << " max " << max(im.get()) << endl;
+      cerr << "val at center " << im.getAt(IPosition(4, im.shape()(0)/2, im.shape()(1)/2, 0, 0)) << " max " << max(im.get()) << endl;
       //AlwaysAssertExit(near(6.66e-2, real( im.getAt(IPosition(4, 50, 50, 0, 0))), 1.0e-2));
       ///Let us degrid now
       im.set(Complex(0.0));
-      im.putAt(Complex(999.0, 0.0),IPosition(4, 1000, 1000, 0, 0) );
+      im.putAt(Complex(999.0, 0.0),IPosition(4, im.shape()(0)/2, im.shape()(1)/2, 0, 0) );
       vi2.originChunks();
       vi2.origin();
       ftm->initializeToVis(im, *vb);

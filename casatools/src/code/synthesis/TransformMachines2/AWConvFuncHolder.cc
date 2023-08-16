@@ -344,25 +344,25 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
          
       }
   }
-  Double lamda = mean(vb.getFrequencies(0))/C::c;
+  Double invlamda = mean(vb.getFrequencies(0))/C::c;
   for (uint k = 0; k < vb.nRows();++k) {
     minDiff = 1e40;
     Int tmpWInd = -1;
-    Double w = vb.uvw().row(2)[k] *lamda;
+    Double w = vb.uvw().row(2)[k] *invlamda;
     for (uint j =0; j < wVals_p.nelements();++j ) {
       if (fabs(fabs(w)-wVals_p[j]) < minDiff) {
        minDiff = fabs(w-wVals_p[j]);
        tmpWInd = j;
       }
     }
-    wIndex[k] = tmpWInd;
+    wIndex[k] = (w > 0)? -tmpWInd : tmpWInd;
   }
   // Now lets search for combination of all 3
   rowMap.resize(vb.nRows());
   for (uint k = 0; k < vb.nRows();++k) {
     for (uint j = 0; j < rowAxisWVals_p.nelements(); ++j) {
-     if ( (wIndex[k] == rowAxisWVals_p[j]) && (paIndex[k] == rowAxisPAVals_p[j]) && (antPairIndex[k] == rowAxisAntennaPair_p[j]) ) {
-      rowMap[k] = j;
+     if ( (abs(wIndex[k]) == rowAxisWVals_p[j]) && (paIndex[k] == rowAxisPAVals_p[j]) && (antPairIndex[k] == rowAxisAntennaPair_p[j]) ) {
+      rowMap[k] = wIndex[k] > 0 ? j : -j;
      }
     }
     
