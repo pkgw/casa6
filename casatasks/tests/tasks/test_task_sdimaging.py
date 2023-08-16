@@ -3677,6 +3677,7 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         self.remove_corrected_data(self.infiles[1])
         self.assertFalse(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
         self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[1])
 
     def test_conform4(self):
         """test_conform4: CORRECTED_DATA column exists only for the second MS"""
@@ -3685,6 +3686,7 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         self.fill_corrected_data(self.infiles[1])
         self.assertTrue(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
         self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[0])
 
 
 """
