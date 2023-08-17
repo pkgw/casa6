@@ -246,17 +246,9 @@ def getname(testfile):
 def write_xml(name, runtime, testname, classname, fMessage, filename, result):
     e = datetime.datetime.now()
     timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
-    #string="""<?xml version='1.0' encoding='UTF-8'?>
-#<testsuites><testsuite name="'{}'" errors="0" failures="1" skipped="0" tests="1" time="{}" timestamp="{}" hostname="{}"><testcase classname="{}" name="{}" time="0.001"><failure message="{}"</failure></testcase></testsuite></testsuites>""".format(name, runtime, timestamp,socket.gethostname(), testname, classname, fMessage)
-
-    #f = open(filename, "w")
-    #f.write(string)
-    #f.close()
 
     data = ET.Element('testsuites')
- 
-    # Adding a subtag named `Opening`
-    # inside our root tag
+
     element1 = ET.SubElement(data, 'testsuite')
     element1.set('name', "'{}'".format(name))
     element1.set('errors', "0")
@@ -268,47 +260,25 @@ def write_xml(name, runtime, testname, classname, fMessage, filename, result):
     element1.set('hostname', socket.gethostname())
 
     s_elem1 = ET.SubElement(element1, 'testcase')
-    s_elem1.set('classname', "{}.class".format(name))
+    s_elem1.set('classname', "{}.SomeClass".format(name))
     s_elem1.set('name', "{}".format(name))
     s_elem1.set('time', "0.01")
 
     ss_elem1 = ET.SubElement(s_elem1, 'failure')
     ss_elem1.set('message', fMessage)
     ss_elem1.text = fMessage
-    """
-    # Adding subtags under the `Opening`
-    # subtag
-    s_elem1 = ET.SubElement(element1, 'E4')
 
-    s_elem2 = ET.SubElement(element1, 'D4')
-     
-    # Adding attributes to the tags under
-    # `items`
-    s_elem1.set('type', 'Accepted')
-    s_elem2.set('type', 'Declined')
-     
-    # Adding text between the `E4` and `D5`
-    # subtag
-    s_elem1.text = "King's Gambit Accepted"
-    s_elem2.text = "Queen's Gambit Declined"
-    """
-    # Converting the xml data to byte object,
-    # for allowing flushing data to file
-    # stream
     b_xml = ET.tostring(data)
-     
-    # Opening a file under the name `items2.xml`,
-    # with operation mode `wb` (write + binary)
+
     with open(filename, "wb") as f:
         f.write(b_xml)
-
 
 def update_xml(filename, result, name="", runtime="", testname="", classname="", fMessage=""):
 
     if not os.path.isfile(filename):
         try: fMessage = signal.strsignal(abs(result.returncode))
         except: fMessage = signal.Signals(abs(result.returncode)).name
-        print("Nose File Not Generated. Generating.")
+        print("Nose File Not Generated. Generating: {}".format(filename))
         write_xml(name, runtime, testname, classname, fMessage, filename, result)
 
     xmlTree = ET.parse(filename)
