@@ -749,7 +749,7 @@ FlagAgentSummary::getResultCore(Record &result)
                 }
 
                 *logger_p 	<< LogIO::NORMAL
-                        << " Spw:" << key1.first << " Correlation:" << key2.first
+                        << " Spw:" << key1.first << " Scan:" << key2.first
                         << " flagged: " <<  (Double) currentSummary->accumAntScanflags[key1.first][key2.first]
                                          << " total: " <<  (Double) key2.second
                                          << percentage.str()
