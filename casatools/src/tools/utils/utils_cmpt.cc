@@ -208,22 +208,6 @@ void bogusHandler (int, siginfo_t *, void *)
 }
 
 string
-utils::_crash_reporter_initialize (const string & crashDirectory,
-                                   const string & crashPosterApplication,
-                                   const string & crashPostingUrl,
-				   const string & logFile)
-{
-#ifdef WITH_CRASH_REPORTER
-    // *NOTE*: Not intended for casual use!
-
-    string status = casa::CrashReporter::initialize(crashDirectory, crashPosterApplication,
-                                                    crashPostingUrl, logFile);
-
-    return status;
-#else
-    return "no-op";
-#endif
-}
 
 bool
 utils::_trigger_segfault (long faultType)

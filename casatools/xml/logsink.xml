@@ -21,14 +21,6 @@
       <description>logfile name</description>
       <value>casa.log</value>
     </param>
-	<param name="enable_telemetry" type="bool">
-      <description>Allow telemetry data to be written.</description>
-      <value>false</value>
-    </param>
-	<param name="telemetry_logfile" type="string">
-      <description>Logfile for telemetry data.</description>
-      <value>false</value>
-    </param>
   </input>
   <example/>
 </method>
@@ -121,22 +113,7 @@
   <returns type="bool"/>
 </method>
 
-  <method name="poststat" direction="in" type="function">
-    <shortdescription>Post a message</shortdescription>
-    <description>Write telemetry data</description>
-    <input>
-      <param name="message" direction="in" type="string">
-      <description>Message to be posted</description>
-      </param>
-      <param name="origin" direction="in" type="string">
-      <description>Origin of message to be posted</description>
-      <value/>
-      </param>
-    </input>
-
-  <returns type="bool"/>
-</method>
-<method name="postLocally" type="function">
+ <method name="postLocally" type="function">
 
   <shortdescription>Post locally</shortdescription>
 
