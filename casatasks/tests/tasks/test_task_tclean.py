@@ -490,7 +490,7 @@ class test_onefield(testref_base):
           self.assertTrue(self.check_final(pstr=report))
 
      def test_onefield_twoMS_weightSpectrum(self):
-          """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column  and one without the weight spectrum column  (CAS-11876 bug fix) """
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column and one without the weight spectrum column  (CAS-11876 bug fix) """
           ms1 = 'refim_point_onespw0_withWtSpec.ms'
           ms2 = 'refim_point_onespw1_noWtSpec.ms'
           self.prepData(ms1)
@@ -502,7 +502,7 @@ class test_onefield(testref_base):
           self.check_final(pstr=report)
 
      def test_onefield_twoMS_weightSpectrum2(self):
-          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data  and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
           ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
           ms2 = 'refim_point_onespw1_withWtSpec.ms'
           self.prepData(ms1)
