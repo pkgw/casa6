@@ -412,7 +412,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
                     print("\tCheckout from build.conf")
                     branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                     print("\tTag: " + branchtag)
-                    cmd = ("git checkout origin/{}".format(branchtag)).split()
+                    cmd = ("git checkout {}".format(branchtag)).split()
                 else:
                     print("No casa6/build.conf found. Defaulting to master")
                     cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
@@ -425,7 +425,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
             if os.path.isfile(source_dir+"/casa6/build.conf"):
                 branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                 print("\tTag: " + branchtag)
-                cmd = ("git checkout origin/{}".format(branchtag)).split()
+                cmd = ("git checkout {}".format(branchtag)).split()
             else:
                 # Check If Feature Branch Exists
                 if is_in_remote(branch,repo_path, repo):
