@@ -170,7 +170,8 @@ def defintent(vis='', intent='', mode='',
             intents = list(tb.getcol('OBS_MODE'))
             intents[-1] = intent
             if numIntents == 0:
-                intents[0] = 'UNSPECIFIED'
+                print("No intents present. filling unselected with UNSPECIFIED(DEFINTENT)")
+                intents[0] = 'UNSPECIFIED(DEFINTENT)'
             intents = np.asarray(intents)
             tb.putcol('OBS_MODE', intents)
             newState = len(intents) - 1
@@ -199,7 +200,7 @@ def defintent(vis='', intent='', mode='',
             tb.open(statetb, nomodify=False)
             intents = tb.getcol('OBS_MODE')
             # Add a row with old intent + new, if it was UNSPECIFIED just do the new intent (?)
-            if intents[i] == 'UNSPECIFIED':
+            if intents[i] == 'UNSPECIFIED(DEFINTENT)':
                 newIntent = intent
             else:
                 newIntent = intents[i] + ',' + intent
