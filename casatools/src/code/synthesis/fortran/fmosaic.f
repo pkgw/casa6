@@ -485,7 +485,8 @@ C
       real ::  wt
 
       logical :: onmosgrid
-
+      logical :: doconj
+      
       integer :: iloc(2)
       integer :: iiloc(2)
       integer, intent(in) ::  rbeg, rend
@@ -499,7 +500,8 @@ C
 
 
       do irow=rbeg, rend
-         aconvplane=convplanemap(irow)+1
+         aconvplane=abs(convplanemap(irow))+1
+         doconj = (convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then 
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -533,7 +535,9 @@ C     write(*,*)off
                                        xind2=sampling*ix+(convsize)/2+1
                                        yind2=sampling*iy+(convsize)/2+1
                                        cwt=convweight(xind2, 
-     $                        yind2, aconvpol, aconvchan, aconvplane)
+     $                                      yind2, aconvpol,
+     $                                  aconvchan, aconvplane)
+                                       
                                        iiloc(1)=nx/2+1+ix
                                        iiloc(2)=ny/2+1+iy
                                        weightgrid(iiloc(1),iiloc(2),
