@@ -157,14 +157,6 @@
   <example>casalog.version()</example>
 </method>
 
-<method name="getstatslogfile" type="function">
-	<shortdescription>String representation of statistics logfile path </shortdescription>
-	<description>String representation of statistics logfile path</description>
-  <input>
-  </input>
-  <returns type="string"/>
-  <example>casalog.getstatslogfile()</example>
-</method>
 
 <method name="id" type="function">
 
@@ -192,16 +184,6 @@
 	<returns type="bool"/>
 </method>
 <method name="setlogfile" type="function">
-	<shortdescription>Set the name of file for logger output</shortdescription>
-	<input>
-		<param name="filename" direction="in" type="string">
-			<description>filename for logger</description>
-			<value>casapy.log</value>
-	        </param>
-        </input>
-	<returns type="bool"/>
-</method>
-<method name="setstatslogfile" type="function">
 	<shortdescription>Set the name of file for logger output</shortdescription>
 	<input>
 		<param name="filename" direction="in" type="string">
