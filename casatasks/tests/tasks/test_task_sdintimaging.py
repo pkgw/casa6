@@ -98,6 +98,9 @@
 #19. Single pointing test : cube : with nmajor
 #testname: test_singlepointing_cube_nmajor
 #
+#20. Single-plane test SD+INT with sdpsf="": mtmfs
+#testname: test_singleplane_sdint_autopsf_multiterm
+#
 ###########################################################################
 import os
 import sys
@@ -108,7 +111,7 @@ import numpy as np
 import inspect
 
 from casatools import ctsys
-from casatasks import casalog, sdintimaging, flagdata, tclean
+from casatasks import casalog, sdintimaging, flagdata, tclean, imsubimage
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 from casatestutils.imagerhelpers import TestHelpers
@@ -176,6 +179,12 @@ class testref_base(unittest.TestCase):
                 if (os.path.exists(self.sdimage)):
                     os.system('rm -rf ' + self.sdimage)
                 shutil.copytree(os.path.join(imdatapath,self.sdimage), self.sdimage)
+            if 'sdimage-singleplane' in inputdata and 'sdimage' in inputdata:
+                self.sdimage=inputdata['sdimage-singleplane']
+                if (os.path.exists(inputdata['sdimage'])):
+                    os.system('rm -rf ' + inputdata['sdimage'])
+                shutil.copytree(os.path.join(imdatapath,inputdata['sdimage']), inputdata['sdimage'])
+                imsubimage(inputdata['sdimage'], outfile=self.sdimage, chans='0') # construct single-plane SD image
             if 'sdpsf' in inputdata:
                 self.sdpsf=inputdata['sdpsf']
                 if (os.path.exists(self.sdpsf)):
@@ -930,6 +939,41 @@ class test_mosaic(testref_base):
                                    (outimg+'.image', 17.129, [650,720,0,1]) ])      # extended emission with alpha=0
         self.checkfinal(pstr=report)
 
+    #Test 20
+    def test_singleplane_sdint_autopsf_multiterm(self):
+        """ [singleplane] test_singleplane_sdint_autopsf_multiterm """
+        ######################################################################################
+        # Test mosaic imaging for sdint - mfs with a single channel (plane)
+        # main parameters to be tested: specmode='mfs', usedata='sdint', gridder='mosaic'
+        # with the default weighting (='natural')
+        ######################################################################################
+        # inputdata: set of the data to be copied from the data repos or else where during setup. 
+        inputdata={'msname':'papersky_mosaic.ms',
+                   'sdimage':'papersky_mosaic.sdimage',
+                   'sdimage-singleplane':'papersky_mosaic.sdimage.singleplane',
+                   'mask':'papersky_mosaic.true.im.masklist'}
+        # data specific parameters 
+        # imsize, cell, phasecenter, reffreq, nchan, scales 
+        # set to the default values for sdgain (1.0)
+        #
+        # Other secondary non-default parameters: 
+        deconvolver='mtmfs'
+        # iterations may need to be shorten for the final version of test
+        self.prepData(inputdata=inputdata)
+        os.system('rm -rf '+inputdata['sdimage']) # not needed
+        imname=self.img+'.mos_mfs_sdint_singleplane'
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf="", vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=1, reffreq=self.reffreq, pblimit=self.pblimit, deconvolver=deconvolver, niter=self.niter, nterms=1, cycleniter=self.cycleniter, mask='circle[[300pix,395pix],90pix]', pbmask=0.2, dishdia=100.)
+
+        outimg = imname+'.joint.multiterm'
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
+                                     outimg+'.residual.tt0', outimg+'.image.tt0', 
+                                     outimg+'.sumwt.tt0'], 
+                           imgval=[(outimg+'.image.tt0', 0.806087, [665,693,0,0]),   # extended emission
+                                   (outimg+'.image.tt0', 1.43183, [700,783,0,0]),    # point source 
+                                   (outimg+'.psf.tt0', 0.114760, [764,750,0,0])])    # off-axis value    
+
+        self.checkfinal(pstr=report)
+
 
 ######################################
 ##### Compare with tclean
@@ -995,5 +1039,7 @@ class test_compare_sdint_tclean(testref_base):
                                    (imname2+'.alpha', -1.06, [100,100,0,0]) ])
         self.checkfinal(pstr=report)
 
+
+        
 if __name__ == '__main__':
     unittest.main() 
