@@ -44,7 +44,7 @@
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <iostream>
-
+#include <array>
 
 namespace casa
 {

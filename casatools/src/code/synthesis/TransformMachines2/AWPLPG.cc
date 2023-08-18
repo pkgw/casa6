@@ -52,7 +52,27 @@ using namespace casa::refim;
 
 
   }
+  AWPLPG::AWPLPG(const AWPLPG& other) : MosaicFTNew(other)
+  {
+    operator=(other);
+  }
 
+ AWPLPG& AWPLPG::operator=(const AWPLPG& other) {
+  if(this!=&other) {
+
+    //Do the base parameters
+    MosaicFTNew::operator=(other);
+    awConvs_p = other.awConvs_p;
+    doSquint_p = other.doSquint_p;
+    paInc_p = other.paInc_p;
+    nw_p = other.nw_p;
+    }
+    return *this;
+    
+  }
+  refim::FTMachine* AWPLPG::cloneFTM(){
+      return new AWPLPG(*this);
+  }
 void AWPLPG::init(const vi::VisBuffer2& vb){
  MosaicFTNew::init(vb);
   
@@ -89,7 +109,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
               pbConvFunc_p->findUsefulChannels(chunkfreq, vb);
-              cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
+              //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
               std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
               if(doSquint_p)
                 pAs.push_back(getPA(vb));
@@ -112,7 +132,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         paInc=fabs(pAs[0]-pAs[1]);
     }
     
-    cerr <<  "Freqs " <<  freqs <<  endl;
+    //cerr <<  "Freqs " <<  freqs <<  endl;
     if (nw_p == 0)
       nw_p = 1;
     Vector<Double> wVals(nw_p,0);
