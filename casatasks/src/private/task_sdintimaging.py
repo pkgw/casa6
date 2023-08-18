@@ -668,14 +668,13 @@ def sdintimaging(
                                         nterms=nterms, reffreq=inpparams['reffreq'], dopsf=False)
 
             #print("Fit for multiterm")
-            #if(deconvolver=='mtmfs'):
-            #    # work around file naming issue
-            #    os.system('rm -rf '+joint_multiterm+'tmp.psf')
-            #    os.system('ln -sf '+joint_multiterm+'.psf.tt0 '+joint_multiterm+'tmp.psf')
-            #    synu.fitPsfBeam(joint_multiterm+'tmp',nterms=nterms)
-            #    os.system('rm -rf '+joint_multiterm+'tmp.psf')
-            #else:
-            synu.fitPsfBeam(joint_multiterm,nterms=nterms)
+            if(deconvolver=='mtmfs' and nterms==1): # work around file naming issue
+                os.system('rm -rf '+joint_multiterm+'tmp.psf')
+                os.system('ln -sf '+joint_multiterm+'.psf.tt0 '+joint_multiterm+'tmp.psf')
+                synu.fitPsfBeam(joint_multiterm+'tmp',nterms=nterms)
+                os.system('rm -rf '+joint_multiterm+'tmp.psf')
+            else:
+                synu.fitPsfBeam(joint_multiterm,nterms=nterms)
 
         if niter>0 :
             isit = deconvolvertool.hasConverged()
