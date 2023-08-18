@@ -207,8 +207,6 @@ void bogusHandler (int, siginfo_t *, void *)
     // Do nothing
 }
 
-string
-
 bool
 utils::_trigger_segfault (long faultType)
 {
