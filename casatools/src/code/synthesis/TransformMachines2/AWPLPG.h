@@ -50,8 +50,9 @@ public:
  
 
   AWPLPG(SkyJones* sj, const casacore::Int nw,  const casacore::Bool dosquint, const casacore::Double painc, casacore::MPosition mloc, casacore::String stokes,  const casacore::Bool usezero=true, const casacore::Bool useDoublePrec=true,  const casacore::Bool usePointing=false);
-
-  
+  AWPLPG(const AWPLPG &other);
+  AWPLPG& operator=(const AWPLPG& other);
+  virtual refim::FTMachine* cloneFTM();
   
 protected:     
   

@@ -95,6 +95,16 @@ using namespace casa::refim;
 {
   
 }
+MosaicFTNew& MosaicFTNew::operator=(const MosaicFTNew& other) {
+  if(this!=&other) {
+
+    //Do the base parameters
+    MosaicFT::operator=(other);
+   
+    }
+    return *this;
+    
+  }
 // Finalize the FFT to the Sky. Here we actually do the FFT and
 // return the resulting image
 ImageInterface<Complex>& MosaicFTNew::getImage(Matrix<Float>& weights,

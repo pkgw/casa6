@@ -52,7 +52,27 @@ using namespace casa::refim;
 
 
   }
+  AWPLPG::AWPLPG(const AWPLPG& other) : MosaicFTNew(other)
+  {
+    operator=(other);
+  }
 
+ AWPLPG& AWPLPG::operator=(const AWPLPG& other) {
+  if(this!=&other) {
+
+    //Do the base parameters
+    MosaicFTNew::operator=(other);
+    awConvs_p = other.awConvs_p;
+    doSquint_p = other.doSquint_p;
+    paInc_p = other.paInc_p;
+    nw_p = other.nw_p;
+    }
+    return *this;
+    
+  }
+  refim::FTMachine* AWPLPG::cloneFTM(){
+      return new AWPLPG(*this);
+  }
 void AWPLPG::init(const vi::VisBuffer2& vb){
  MosaicFTNew::init(vb);
   
