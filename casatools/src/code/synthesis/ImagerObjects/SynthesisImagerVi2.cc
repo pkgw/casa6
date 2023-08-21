@@ -708,7 +708,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
   }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
 			   const SynthesisParamsGrid& gridpars){
-	
+
+  gridpars_p=gridpars;
 	Int id=itsMappers.nMappers();
     CoordinateSystem csys =imstor->getCSys();
     IPosition imshape=imstor->getShape();
@@ -2717,7 +2718,7 @@ void SynthesisImagerVi2::unlockMSs()
     dosquint = False;
     ///////
     
-     cerr <<  "Doing AWPLPG" <<  endl;
+    cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
      theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
