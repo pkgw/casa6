@@ -179,11 +179,11 @@ public:
   void finalizeToSky();
 
   // Get actual coherence from grid by degridding
-  void get(vi::VisBuffer2& vb, casacore::Int row=-1);
+  virtual void get(vi::VisBuffer2& vb, casacore::Int row=-1);
 
 
   // Put coherence to grid by gridding.
-  void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
+  virtual void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
 	   FTMachine::Type type=FTMachine::OBSERVED);
 
   virtual void gridImgWeights(const vi::VisBuffer2& vb);
