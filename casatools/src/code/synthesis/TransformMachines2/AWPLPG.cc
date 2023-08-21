@@ -47,9 +47,9 @@ using namespace casa;
 using namespace casa::refim;
 
   
-  AWPLPG::AWPLPG(SkyJones* sj, const Int nw,  Bool dosquint, const Double painc, MPosition mloc, String stokes,  const Bool usezero, const Bool useDoublePrec,  const casacore::Bool usePointing): MosaicFTNew(sj, mloc, stokes, Long(1000000), 16, usezero, useDoublePrec, False, usePointing), doSquint_p(dosquint), paInc_p(painc), nw_p(nw) {
+  AWPLPG::AWPLPG(SkyJones* sj, const Int nw,  Bool dosquint, const Double painc, MPosition mloc, String stokes,  const Bool usezero, const Bool useDoublePrec,  const casacore::Bool usePointing): MosaicFTNew(sj, mloc, stokes, Long(1000000), 16, usezero, True, False, usePointing), doSquint_p(dosquint), paInc_p(painc), nw_p(nw) {
 
-
+    useDoubleGrid_p=True; //We'll always use double prec for this grid
 
   }
   AWPLPG::AWPLPG(const AWPLPG& other) : MosaicFTNew(other)
@@ -179,13 +179,14 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
     awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb);
-    //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << endl;
+    cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << endl;
     
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
    
  }
+ 
 
 
   } // REFIM ends
