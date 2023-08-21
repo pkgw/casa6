@@ -707,7 +707,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
   }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
 			   const SynthesisParamsGrid& gridpars){
-	
+
+  gridpars_p=gridpars; // some parameters are used in createftmachine
 	Int id=itsMappers.nMappers();
     CoordinateSystem csys =imstor->getCSys();
     IPosition imshape=imstor->getShape();
