@@ -107,6 +107,7 @@ Current antenna-based gencal options (caltype) are:
          <value>tsys</value>
          <value>evlagain</value>
          <value>swpow</value>
+         <value>swpowwts</value>
          <value>rq</value>
          <value>swp/rq</value>
          <value>opac</value>
