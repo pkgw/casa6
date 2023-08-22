@@ -2714,12 +2714,12 @@ void SynthesisImagerVi2::unlockMSs()
      cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
      bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  
     //  TESTOO
-    dosquint = False;
+    //dosquint = False;
     ///////
     
      cerr <<  "Doing AWPLPG" <<  endl;
-     theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
-     theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
       static_cast<refim::AWPLPG &>(*theFT).setConvFunc(mospb);
       static_cast<refim::AWPLPG &>(*theIFT).setConvFunc(mospb);

@@ -123,16 +123,20 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     std::sort(freqs.begin(),  freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
-    Double paInc=0.0;
+    Double paMax=0.0;
     if(pAs.size()>1){
       std::sort(pAs.begin(), pAs.end());
       last=std::unique(pAs.begin(), pAs.end());
       pAs.erase(last, pAs.end());
-      if(pAs.size() >1)
-        paInc=fabs(pAs[0]-pAs[1]);
+      if(pAs.size()==1)
+	paMax=pAs[0];
+      if(pAs.size() >1){
+	auto [minpa, maxpa]=std::minmax_element(begin(pAs), end(pAs));
+        paMax=max(abs(*minpa), *maxpa);
+      }
     }
     
-    //cerr <<  "Freqs " <<  freqs <<  endl;
+    cerr <<  "PAMax in data " <<  paMax <<  endl;
     if (nw_p == 0)
       nw_p = 1;
     Vector<Double> wVals(nw_p,0);
@@ -141,7 +145,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       for (int k=0; k <nw_p; ++k)
         wVals[k]=Double(k*k)*st;
     }
-    (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, paInc);
+    (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, paMax);
     
   }
   

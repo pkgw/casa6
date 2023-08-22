@@ -44,7 +44,8 @@ class AWConvFuncHolder{
   AWConvFuncHolder& operator=(const AWConvFuncHolder& other);
   bool loadConvFromFile();
   bool saveConvToFile(const casacore::String& filename);
-  bool addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& painc);
+  //paMAxRange is the maximum -ve and +ve value that pa range 
+  bool addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& paMaxRange);
   //Get the convFunctions and indexing from a given vb
   casacore::Array<casacore::Complex>& getConvFunc();
   casacore::Array<casacore::Complex>& getWeightConvFunc();

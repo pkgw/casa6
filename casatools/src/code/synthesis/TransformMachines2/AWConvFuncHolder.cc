@@ -106,7 +106,7 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
   }
   return *this;
 }
-bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& painc) {
+bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& paMax) {
   
   Vector<Double> freqsToCalc;
  if (freqVals_p.nelements() == 0) {
@@ -131,10 +131,10 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
    paVals_p[0] = 0.0;
  }
  else{
-  Vector<Double> pavals(int(std::floor(2.0*C::pi/painc)));
+  Vector<Double> pavals(int(std::floor(2*paMax/painc_p)));
+  //setting pavals from -paMax to paMax
   for (uint k = 0; k < pavals.nelements(); ++k )
-    pavals[k] = double(k) *painc;
-  painc_p = painc;
+    pavals[k] = double(k) *painc_p-paMax;
   if (paVals_p.nelements() == 0)
     paVals_p = pavals;
   else if ((paVals_p.nelements()) !=  pavals.nelements())
