@@ -2407,11 +2407,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                 }
                 // SPW not found in spwids0, so add it in
                 if (std::find(spwids0.begin(), spwids0.end(), spwids(ii)) == spwids0.end()) {
-                    spwids0[ii] = spwids(ii);
+                    spwids0[ii] = spwids[ii];
                 }
               }
 
-              spwids0=spwids;
               vi2.originChunks();
               vi2.origin();
               while(vb->msId() != j && vi2.moreChunks() ){
