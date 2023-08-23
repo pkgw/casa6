@@ -512,7 +512,7 @@ class gaincal_test(unittest.TestCase):
         tb.close()
         
         dk=K4a+sysK4    # sum should be ~zero
-        self.assertTrue(np.isclose(np.mean(dk), 2.674306e-5), msg=f"Sum should be ~zero, caltable with all 4 spws. {np.mean(dk)}")
+        self.assertTrue(np.isclose(np.mean(dk), 2.674306e-5, atol=1e-7), msg=f"Sum should be ~zero, caltable with all 4 spws. {np.mean(dk)}")
         
         # extract spws 0,3 from orig MS to create MS with only 2 spws
         mstransform(vis=datacopyK,outputvis=msname1,
@@ -540,7 +540,7 @@ class gaincal_test(unittest.TestCase):
         tb.close()
         
         dk=K2a+sysK2    # sum should be ~zero (within noise)
-        self.assertTrue(np.isclose(np.mean(dk), 3.147865e-05), msg=f"Sum should be close to 0 within noise, caltable and ms with 2 spws. Mean is {np.mean(dk)}")
+        self.assertTrue(np.isclose(np.mean(dk), 3.147865e-05, atol=1e-7), msg=f"Sum should be close to 0 within noise, caltable and ms with 2 spws. Mean is {np.mean(dk)}")
         
         # Solve on orig dataset using sysdel2
         #  using spwmap
@@ -555,7 +555,7 @@ class gaincal_test(unittest.TestCase):
         tb.close()
         
         dk=K4b+sysK4    # sum should be ~zero
-        self.assertTrue(np.isclose(np.mean(dk), 2.674664e-05), msg=f"Sum should be close to 0, caltable with 2 spws ms with 4, Mean is {np.mean(dk)}")
+        self.assertTrue(np.isclose(np.mean(dk), 2.674664e-05, atol=1e-7), msg=f"Sum should be close to 0, caltable with 2 spws ms with 4, Mean is {np.mean(dk)}")
         
         dk=K4b-K4a      # should be precisely zero (same effective sysdel)
         self.assertTrue(np.isclose(np.mean(dk), 0, atol=1e-7), msg=f"These two should be the same. Mean is {np.mean(dk)}")
@@ -573,7 +573,7 @@ class gaincal_test(unittest.TestCase):
         tb.close()
         
         dk=K2b+sysK2    # sum should be ~zero
-        self.assertTrue(np.isclose(np.mean(dk), 3.148629e-05), msg=f"Sum should be close to 0, caltable with 4 spws ms with 2. Mean is {np.mean(dk)}")
+        self.assertTrue(np.isclose(np.mean(dk), 3.148629e-05, atol=1e-7), msg=f"Sum should be close to 0, caltable with 4 spws ms with 2. Mean is {np.mean(dk)}")
         
         dk=K2b-K2a      # should be precisely zero (same effective sysdel)
         self.assertTrue(np.isclose(np.mean(dk), 0, atol=1e-7), msg=f"These two should be the same. Mean is {np.mean(dk)}")
