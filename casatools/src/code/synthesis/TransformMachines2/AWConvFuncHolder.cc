@@ -131,7 +131,8 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
    paVals_p[0] = 0.0;
  }
  else{
-  Vector<Double> pavals(int(std::floor(2*paMax/painc_p)));
+  cerr << "paMax " << paMax << " painc " << painc_p << endl;
+  Vector<Double> pavals(int(std::ceil(2*paMax/painc_p)));
   //setting pavals from -paMax to paMax
   for (uint k = 0; k < pavals.nelements(); ++k )
     pavals[k] = double(k) *painc_p-paMax;
