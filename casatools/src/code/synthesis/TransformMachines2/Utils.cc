@@ -1472,7 +1472,7 @@ namespace casa{
 /////===========
    MathUtils::MathUtils(){
      //Timer tim;
-    tim.mark();
+     //tim.mark();
     initSincCache();
     //tim.show("Calculating 16000 sines");
   }
