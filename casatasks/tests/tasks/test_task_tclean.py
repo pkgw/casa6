@@ -261,7 +261,7 @@ class test_onefield(testref_base):
           self.assertTrue(self.check_final(pstr=report))
           
      ## Add tests for CAS-940 here, for asp using sim_data_VLA_jet.ms which contains 5 chans.
-     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
+#     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
      def test_onefield_asp(self):
           """ [onefield] Test_Onefield_asp : mfs with asp minor cycle """
           #import pdb
@@ -285,13 +285,13 @@ class test_onefield(testref_base):
           pt_loc_0=[256,209,0,0]    # Channel 0
           pt_loc_4=[256,209,0,4]    # Channel 4
           ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
-          ext_true_0 = 5.2  
-          ext_true_4 = 1.0
+          ext_true_0 = 5.1  
           ext_loc_0=[275,330,0,0]
+          ext_true_4 = 1.0
           ext_loc_4=[275,330,0,4]
 
           ## case 1: default settings
-          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=0.8,parallel=self.parallel)
+          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=0.5,parallel=self.parallel)
           #report1=self.th.checkall(ret=ret1, peakres=0.3803, modflux=145.524, imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], imgval=[(self.img+'1.psf',1.0,[256,256,0,0])])
           report1=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], 
@@ -299,10 +299,10 @@ class test_onefield(testref_base):
                                            (self.img+'1.image',pt_true,pt_loc_0),
                                            (self.img+'1.image',pt_true,pt_loc_4),
                                            (self.img+'1.image',ext_true_0,ext_loc_0),
-                                           (self.img+'1.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'1.image',ext_true_4,ext_loc_4) ], epsilon=0.1)
 
           ## case 2: using fusedthreshold to trigger the switch to hogbom
-          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
+          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=0.5,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
 #          report2=self.th.checkall(ret=ret2, peakres=0.8205, modflux=203.016, imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], imgval=[(self.img+'2.psf',1.0,[256,256,0,0])])
           report2=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], 
@@ -310,10 +310,10 @@ class test_onefield(testref_base):
                                            (self.img+'2.image',pt_true,pt_loc_0),
                                            (self.img+'2.image',pt_true,pt_loc_4),
                                            (self.img+'2.image',ext_true_0,ext_loc_0),
-                                           (self.img+'2.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'2.image',ext_true_4,ext_loc_4) ], epsilon=0.1)
 
           ## case 3: using the largestscale limit
-          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
+          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=0.5,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
 #          report3=self.th.checkall(ret=ret3, peakres=0.5804, modflux=107.407, imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], imgval=[(self.img+'3.psf',1.0,[256,256,0,0])])
           report3=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], 
@@ -321,11 +321,11 @@ class test_onefield(testref_base):
                                            (self.img+'3.image',pt_true,pt_loc_0),
                                            (self.img+'3.image',pt_true,pt_loc_4),
                                            (self.img+'3.image',ext_true_0,ext_loc_0),
-                                           (self.img+'3.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'3.image',ext_true_4,ext_loc_4) ], epsilon=0.1)
          
 
           ## case 4: using both the fusedthreshold and largestscale
-          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
+          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=0.5,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
 #          report4=self.th.checkall(ret=ret4, peakres=0.5804, modflux=107.407, imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], imgval=[(self.img+'4.psf',1.0,[256,256,0,0])])
           report4=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], 
@@ -333,7 +333,7 @@ class test_onefield(testref_base):
                                            (self.img+'4.image',pt_true,pt_loc_0),
                                            (self.img+'4.image',pt_true,pt_loc_4),
                                            (self.img+'4.image',ext_true_0,ext_loc_0),
-                                           (self.img+'4.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'4.image',ext_true_4,ext_loc_4) ], epsilon=0.1)
 
           
           self.assertTrue(self.check_final(report1+report2+report3+report4))
