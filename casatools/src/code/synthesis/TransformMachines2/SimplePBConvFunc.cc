@@ -290,7 +290,9 @@ SimplePBConvFunc::SimplePBConvFunc(): nchan_p(-1),
   
   void SimplePBConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
 					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
-					  Array<Complex>& weightConvFunc,const MVDirection& extraShift, const Bool useExtraShift){
+					  Array<Complex>& weightConvFunc,const std::vector<casacore::Int>& pmap, 
+                                 const std::vector<casacore::Int>& cmap, 
+                                 const std::vector<casacore::Int>& rmap, const MVDirection& extraShift, const Bool useExtraShift){
     /*storeImageParams(iimage,vb);
      toPix(vb, extraShift, useExtraShift);
     Vector<Double> pixFieldDir(2);

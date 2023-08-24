@@ -176,6 +176,8 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     
     //////
     } */  
+    Timer tim;
+    tim.mark();
     weightConvFunc_p.resize();
     weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
     convSizePlanes_p.resize();
@@ -184,11 +186,29 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     convSupportPlanes_p = awConvs_p->getConvSupports();
     awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb);
     cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << endl;
-    
-    pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
+    std::vector<Int> pmapused=convPolMap_p.tovector();
+    {
+      std::sort(pmapused.begin(),  pmapused.end());
+      auto last = std::unique(pmapused.begin(),  pmapused.end());
+      pmapused.erase(last,  pmapused.end());
+    }
+     std::vector<Int> cmapused=convChanMap_p.tovector();
+    {
+      std::sort(cmapused.begin(),  cmapused.end());
+      auto last = std::unique(cmapused.begin(),  cmapused.end());
+      cmapused.erase(last,  cmapused.end());
+    }
+     std::vector<Int> rmapused=abs(convRowMap_p).tovector();
+    {
+      std::sort(rmapused.begin(),  rmapused.end());
+      auto last = std::unique(rmapused.begin(),  rmapused.end());
+      rmapused.erase(last,  rmapused.end());
+    }
+    pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
    
+    tim.show("after findConv");
  }
  
   /////==============================================

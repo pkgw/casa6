@@ -100,12 +100,17 @@ namespace casa {
     //Spply phase gradient to convfuncs 5 dim convfuncs expected X,Y, pol, chan, row
     virtual void rephaseConvFunc(const casacore::ImageInterface<casacore::Complex>& iimage, 
                                  const vi::VisBuffer2& vb,const casacore::Int& convSampling, casacore::Array<casacore::Complex>& convFunc, 
-                                 casacore::Array<casacore::Complex>& weightConvFunc,const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
+                                 casacore::Array<casacore::Complex>& weightConvFunc,const std::vector<casacore::Int>& pmap, const std::vector<casacore::Int>& cmap, const std::vector<casacore::Int>& rmap, const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
 
     private:
    void applyGradientToYLine(const casacore::Int iy, casacore::Complex*& convFunctions, 
 			     casacore::Complex*& convWeights, const casacore::Double pixXdir, const casacore::Double pixYdir, 
 			     casacore::Int convSize, const casacore::Int ndishpair, const casacore::Int nchan, const casacore::Int nPol);
+   //same as above except apply phasegradient on selected planes as defined by
+   //pmap, cmap and rmap
+   void applyGradientToYLine(const casacore::Int iy, casacore::Complex*& convFunctions, 
+			     casacore::Complex*& convWeights, const casacore::Double pixXdir, const casacore::Double pixYdir, 
+			     casacore::Int convSize, const casacore::Int ndishpair, const casacore::Int nchan, const casacore::Int nPol, const std::vector<casacore::Int>& pmap, const std::vector<casacore::Int>& cmap, const std::vector<casacore::Int>& rmap);
    void fillConjConvFunc(const casacore::Vector<casacore::Double>& beamFreqs);
    casacore::Int conjSupport(const casacore::Vector<casacore::Double>& beamFreqs);
       casacore::Int factorial(casacore::Int n);

@@ -206,15 +206,15 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   /// uvgrid
   Float factorX=fabs(calcCsys_p.increment()(0)/outcsys_p.increment()(0));
   Float factorY=fabs(calcCsys_p.increment()(1)/outcsys_p.increment()(1));
-  cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
+  //cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
-  cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p <<  endl;
+  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p <<  endl;
   MathUtils m;
   Array<Complex>newAWConv = m.resampleViaFFT(awConv,  factorX,  factorY);
   Array<Complex> newWtConv = m.resampleViaFFT(aWwtConv,  factorX,  factorY);
   Float correcfac = float(awConv.shape()(0) *awConv.shape()(1) *oversamp_p*oversamp_p)/float(newAWConv.shape()(0) *newAWConv.shape()(1));
-  cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
+  //cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
   newAWConv *= correcfac;
   newWtConv *= correcfac;
   /*{ 
@@ -352,7 +352,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
     Double w = vb.uvw().row(2)[k] *invlamda;
     for (uint j =0; j < wVals_p.nelements();++j ) {
       if (fabs(fabs(w)-wVals_p[j]) < minDiff) {
-       minDiff = fabs(w-wVals_p[j]);
+       minDiff = fabs(fabs(w)-wVals_p[j]);
        tmpWInd = j;
       }
     }

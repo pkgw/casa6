@@ -947,7 +947,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 }
   void HetArrayConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
 					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
-					  Array<Complex>& weightConvFunc,const MVDirection& extraShift, const Bool useExtraShift){
+					 Array<Complex>& weightConvFunc, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap, const MVDirection& extraShift, const Bool useExtraShift){
     storeImageParams(iimage,vb);
      toPix(vb, extraShift, useExtraShift);
     Vector<Double> pixFieldDir(2);
@@ -966,12 +966,15 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
     Double dirY=pixFieldDir(1);
     Complex *convstor=convFunc.getStorage(delc);
     Complex *weightstor=weightConvFunc.getStorage(delw);
-    #pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol)
+    //Vector<Int> pmap(polmap);
+    //Vector<Int> cmap(chanmap);
+    //Vector<Int> rmap(rowmap);
+#pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol) shared(polmap, chanmap, rowmap)
     {
       
         #pragma omp for
         for(Int iy=0; iy<convsize; ++iy) {
-            applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol);
+	  applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol, polmap, chanmap, rowmap);
 
         }
     }///End of pragma
@@ -1005,6 +1008,33 @@ void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunction
 
     }
 }
+void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunctions, Complex*& convWeights, const Double pixXdir, const Double pixYdir, Int convSize, const Int ndishpair, const Int nChan, const Int nPol, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap ) {
+    Double cy, sy;
+
+    SINCOS(Double(iy-convSize/2)*pixYdir, sy, cy);
+    Complex phy(cy,sy) ;
+    for (Int ix=0; ix<convSize; ix++) {
+        Double cx, sx;
+        SINCOS(Double(ix-convSize/2)*pixXdir, sx, cx);
+        Complex phx(cx,sx) ;
+        for (uint pol=0; pol< polmap.size(); ++pol) {
+	  Int ipol=polmap[pol];
+            //Int poloffset=ipol*nChan*ndishpair*convSize*convSize;
+	  for (uint chan=0; chan < chanmap.size(); ++chan) {
+	    Int ichan=chanmap[chan];
+                //Int chanoffset=ichan*ndishpair*convSize*convSize;
+	    for (uint z=0; z < rowmap.size(); ++z) {
+	      Int iz=rowmap[z];
+                    ooLong index=((ooLong(iz*nChan+ichan)*nPol+ipol)*ooLong(convSize)+ooLong(iy))*ooLong(convSize)+ooLong(ix);
+                    convFunctions[index]= convFunctions[index]*phx*phy;
+                    convWeights[index]= convWeights[index]*phx*phy;
+                }
+            }
+        }
+
+    }
+}
+
 Int  HetArrayConvFunc::conjSupport(const casacore::Vector<casacore::Double>& freqs){
   Double centerFreq=SpectralImageUtil::worldFreq(csys_p, 0.0);
   Double maxRatio=-1.0;
