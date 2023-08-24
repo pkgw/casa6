@@ -146,8 +146,12 @@ namespace refim{ //namespace for imaging refactor
       //Spply phase gradient to convfuncs 5 dim convfuncs expected X,Y, pol, chan, row
       virtual void rephaseConvFunc(const casacore::ImageInterface<casacore::Complex>& iimage, 
                                  const vi::VisBuffer2& vb,const casacore::Int& convSampling, casacore::Array<casacore::Complex>& convFunc, 
-                                 casacore::Array<casacore::Complex>& weightConvFunc,const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
-   
+                                 casacore::Array<casacore::Complex>& weightConvFunc,
+                                 const std::vector<casacore::Int>& pmap, 
+                                 const std::vector<casacore::Int>& cmap, 
+                                 const std::vector<casacore::Int>& rmap, 
+                                 const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
+     
 
     protected:
       SkyJones* sj_p;

@@ -1471,10 +1471,10 @@ namespace casa{
 
 /////===========
    MathUtils::MathUtils(){
-    Timer tim;
+     //Timer tim;
     tim.mark();
     initSincCache();
-    tim.show("Calculating 16000 sines");
+    //tim.show("Calculating 16000 sines");
   }
   Array<Complex> MathUtils::resample(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
 
@@ -1483,12 +1483,12 @@ namespace casa{
     Double nx=Double(inarray.shape()(0));
     Double ny=Double(inarray.shape()(1));
     IPosition shp=inarray.shape();
-    cerr <<  "shp " <<  shp <<  endl;
+    //cerr <<  "shp " <<  shp <<  endl;
     shp(0)=Int(nx*factorX/8.0)*8;
     shp(1)=Int(ny*factorY/8.0)*8;
     Int newNx=shp(0);
     Int newNy=shp(1);
-     cerr << "SHP " << shp << endl;
+    // cerr << "SHP " << shp << endl;
     Array<Complex> out(shp, Complex(0.0));
    
    /*IPosition incursor=IPosition(inarray.shape().nelements(),1);
@@ -1652,7 +1652,7 @@ namespace casa{
     Double nx=Double(inarray.shape()(0));
     Double ny=Double(inarray.shape()(1));
     IPosition shp=inarray.shape();
-    cerr <<  "shp " <<  shp <<  endl;
+    //cerr <<  "shp " <<  shp <<  endl;
     shp(0)=Int(std::ceil(nx*factorX/8.0))*8;
     shp(1)=Int(std::ceil(ny*factorY/8.0))*8;
     Int newNx=shp(0);

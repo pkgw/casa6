@@ -106,7 +106,7 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
   }
   return *this;
 }
-bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& painc) {
+bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& paMax) {
   
   Vector<Double> freqsToCalc;
  if (freqVals_p.nelements() == 0) {
@@ -131,10 +131,11 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
    paVals_p[0] = 0.0;
  }
  else{
-  Vector<Double> pavals(int(std::floor(2.0*C::pi/painc)));
+  cerr << "paMax " << paMax << " painc " << painc_p << endl;
+  Vector<Double> pavals(int(std::ceil(2*paMax/painc_p)));
+  //setting pavals from -paMax to paMax
   for (uint k = 0; k < pavals.nelements(); ++k )
-    pavals[k] = double(k) *painc;
-  painc_p = painc;
+    pavals[k] = double(k) *painc_p-paMax;
   if (paVals_p.nelements() == 0)
     paVals_p = pavals;
   else if ((paVals_p.nelements()) !=  pavals.nelements())
@@ -147,7 +148,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   Matrix<Int> awSupport;
   calcCsys_p = outcsys_p;
   calcNpix_p = min(nx_p,  ny_p);
-  //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
+  cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
     
@@ -351,7 +352,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
     Double w = vb.uvw().row(2)[k] *invlamda;
     for (uint j =0; j < wVals_p.nelements();++j ) {
       if (fabs(fabs(w)-wVals_p[j]) < minDiff) {
-       minDiff = fabs(w-wVals_p[j]);
+       minDiff = fabs(fabs(w)-wVals_p[j]);
        tmpWInd = j;
       }
     }

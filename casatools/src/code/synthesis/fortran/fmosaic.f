@@ -598,9 +598,8 @@ C same as gmoswgtd except with varying support
 
       real :: norm
       real ::  wt
-
+      complex :: cfunc(convsize, convsize)
       logical :: onmosgrid
-      logical :: doconj
       
       integer :: iloc(2)
       integer :: iiloc(2)
@@ -617,7 +616,6 @@ C same as gmoswgtd except with varying support
       do irow=rbeg, rend
          aconvplane=abs(convplanemap(irow))+1
          support=supports(aconvplane)
-         doconj = (convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then 
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -645,14 +643,14 @@ C     at the phase center. We will want to normalize
 C     the final image by this term.
                            norm=0.0
 C     write(*,*)off
+               cfunc=convweight(:,:,aconvpol, aconvchan, aconvplane)
                            do iy=msupporty, psupporty
                                  do ix=msupportx, psupportx
                                    
                                        xind2=sampling*ix+(convsize)/2+1
                                        yind2=sampling*iy+(convsize)/2+1
-                                       cwt=convweight(xind2, 
-     $                                      yind2, aconvpol,
-     $                                  aconvchan, aconvplane)
+                                       cwt=cfunc(xind2, 
+     $                                      yind2)
                                        
                                        iiloc(1)=nx/2+1+ix
                                        iiloc(2)=ny/2+1+iy
@@ -1067,7 +1065,7 @@ C   Same as sectgmosd2 except for varrying support across rows
      $     nconvchan,  nconvplane)
       integer, intent(in) :: supports(nconvplane)
       complex :: cwt
-      
+      complex :: cfunc(convsize, convsize)
       integer :: support
       real :: norm
       real ::  wt
@@ -1090,6 +1088,7 @@ C   Same as sectgmosd2 except for varrying support across rows
 C     sign of convplanemap determines if to use conjg
          aconvplane=abs(convplanemap(irow))+1
          support=supports(aconvplane)
+C         write(*,*) 'support', support, 'acpl', aconvplane, convsize
          doconj = (convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then 
             do ichan=1, nvischan
@@ -1114,7 +1113,7 @@ C     rotate but we do want to reproject uvw
      $                  (values(ipol,ichan,irow)*phasor(ichan, irow))
                            end if
                           
-                           
+                 cfunc=convfunc(:,:, aconvpol, aconvchan, aconvplane)
 C     norm will be the value we would get for the peak
 C     at the phase center. We will want to normalize 
 C     the final image by this term.
@@ -1127,8 +1126,7 @@ C     the final image by this term.
                                     iloc(1)=(sampling*ix)+
      $                                   off(1, ichan, irow)
                                     xind=iloc(1)+(convsize)/2+1
-                                    cwt=convfunc(xind, yind, 
-     $                                aconvpol, aconvchan, aconvplane)
+                                    cwt=cfunc(xind, yind)
                                     if(doconj) cwt=conjg(cwt)
 C                          write(*,*) support, iloc
 C      write(*,*) loc(1, ichan, irow)+ix,loc(2, ichan, irow)+iy,xind,yind
@@ -1906,7 +1904,7 @@ C same as sectdmos2 except with varying support
       
 C      complex sconv(-(support+1)*sampling:(support+1)*sampling, 
 C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
-
+      complex cfunc(convsize, convsize)
       real :: norm, phase
       integer :: support
       logical :: omos
@@ -1945,7 +1943,7 @@ C      write(*,*) 'convcm,', convchanmap
 C          write(*,*) 'aindices', aconvplane, aconvchan, aconvpol
                            nvalue=0.0
                            norm=0.0
-                          
+                    cfunc=convfunc(:,:,aconvpol, aconvchan, aconvplane)      
                               do iy=-support,support
                                  iloc(2)=sampling*iy+off(2, ichan, irow)
                                  yind=iloc(2)+(convsize)/2+1
@@ -1955,8 +1953,7 @@ C        write(*,*) 'iloc(2)', iloc(2), off(2), yind
      $                                   +off(1, ichan, irow)
                                     xind=iloc(1)+(convsize)/2+1
 C        write(*,*) 'iloc(1)', iloc(1), off(1), xind
-                                    cwt=convfunc(xind, yind, aconvpol,
-     $                                   aconvchan,aconvplane)
+                                    cwt=cfunc(xind, yind)
                                     if(doconj) cwt=conjg(cwt)
                                     nvalue=nvalue+cwt*
      $                                   grid(loc(1, ichan, irow)+ix,
