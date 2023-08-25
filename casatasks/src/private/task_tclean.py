@@ -23,6 +23,7 @@ if is_CASA6:
     from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
     from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
     from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+    from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
     from .cleanhelper import write_tclean_history, get_func_params
     from casatools import table
     from casatools import image
@@ -50,209 +51,6 @@ try:
 except ImportError:
     mpi_available = False
 
-
-
-def imageDimensions(residname):
-    """
-    Given the input image, uses the ia tool to query for the number of Stokes
-    planes and frequency channels.
-
-    Inputs:
-    residname       Name of the residual image on disk
-
-    Returns:
-    nstokes         Number of Stokes planes in the image
-    nfreq           Number of frequency channels in the image
-    """
-    ia = image()
-
-    # At this point we've already checked residname exists
-    ia.open(residname)
-    csys = ia.coordsys()
-
-    shape = ia.shape()
-
-    #  Figure out which axis is which
-    stokes_axis = csys.findaxisbyname('Stokes')
-    freq_axis = csys.findaxisbyname('Frequency')
-
-    nstokes = shape[stokes_axis]
-    nfreq = shape[freq_axis]
-
-    ia.close()
-
-    return nstokes, nfreq, stokes_axis, freq_axis
-
-
-def fillSummaryMinor(residname, modelname, channo, stokes, stokes_axis, freq_axis, fullsummary):
-    """
-    Given the input image name, and the corresponding field, channel number, and
-    Stokes plane, extract the relevant information from the image to generate a
-    summaryminor dict as defined
-    https://casadocs.readthedocs.io/en/stable/notebooks/synthesis_imaging.html#Minor-Cycle-Summary-Dictionary
-
-    Inputs:
-    residname       Name of the input residual image, str
-    modelname       Name of the input model image, str
-    channo          Channel number to query in the image, int
-    stokes          Stokes plane to query in the image, int
-    stokes_axis     The axis to index for Stokes, int
-    freq_axis       The axis to index for frequency, int
-    fullsummary     Construct a full summary, or only a subset, bool
-
-    Returns:
-    summaryminor     Dict containing the necessary (key:value) pairs
-    """
-
-    ia = image()
-
-
-    ia.open(residname)
-    shape = ia.shape()
-
-    casalog.post("Stokes axis is %d and Freq axis is %d" % (stokes_axis, freq_axis), "INFO3", "task_tclean")
-
-    if stokes_axis == 2 and freq_axis == 3:
-        blc = [0, 0, stokes, channo]
-        trc = [shape[0], shape[1], stokes, channo]
-    elif stokes_axis == 3 and freq_axis == 2:
-        blc = [0, 0, channo, stokes]
-        trc = [shape[0], shape[1], channo, stokes]
-
-    data = ia.getchunk(blc, trc, dropdeg=True)
-    mask = ia.getchunk(blc, trc, dropdeg=True, getmask=True)
-    ia.close()
-
-    # If model image exists, calc model flux, else set to 0
-    model_sum = 0
-    if os.path.exists(modelname):
-        ia.open(modelname)
-        model_data = ia.getchunk(blc, trc, dropdeg=True)
-        model_sum = np.sum(model_data)
-        ia.close()
-
-    peak_resid = numpy.amax(data*mask)
-    if fullsummary:
-        peak_resid_NM = numpy.amax(data)
-        mask_sum = numpy.sum(mask)
-
-    summaryminor = dict()
-    # This entire function is only invoked in the special case of niter=0
-    summaryminor['iterDone'] = [0.0,]
-    summaryminor['peakRes'] = [peak_resid,]
-    # model flux has to be zero because no iterations were performed
-    summaryminor['modelFlux'] = [model_sum,]
-    # No threshold because no deconvolution done
-    summaryminor['cycleThresh'] = [0.0,]
-
-    if fullsummary:
-        summaryminor['cycleStartIters'] = [0.0,]
-        summaryminor['startIterDone'] = [0.0,]
-        summaryminor['startPeakRes'] = [peak_resid,]
-        summaryminor['startModelFlux'] = [model_sum,]
-        summaryminor['startPeakResNM'] = [peak_resid_NM,]
-        summaryminor['peakResNM'] = [peak_resid_NM,]
-        summaryminor['masksum'] = [mask_sum,]
-        summaryminor['mpiServer'] = [0.0,]
-        summaryminor['stopCode'] = [3,]
-
-
-    return summaryminor
-
-
-def constructSummaryMinor(paramList):
-    """
-    Constructs and populates a nested dictionary containing the summaryMinor()
-    information required by tclean.
-
-    This is a duplicate of the existing summaryMinor() class in C++, but is
-    being re-written here to avoid issues with modifying iterControl.
-
-    Inputs:
-    paramList        Object that contains all imaging parameters
-
-    Returns:
-    summaryMinor    Nested dictionary with the summaryMinor keys, dict
-    """
-
-    impars = paramList.allimpars
-    decpars = paramList.alldecpars
-
-    # Each field is stored as a different key in impars
-    nfields = len(impars.keys())
-    casalog.post("Number of input fields in IMPARS is %d" % nfields, "INFO3", "task_tclean")
-
-    summaryminor = dict()
-    for ff in range(nfields):
-        residname=impars[str(ff)]['imagename']+'.residual.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.residual.tt0')) else impars[str(ff)]['imagename']+'.residual'
-        modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
-
-        casalog.post("Residname %s " % residname, "INFO3", "task_tclean")
-        fullsummary = decpars[str(ff)]['fullsummary']
-        nstokes, nfreq, stokes_axis, freq_axis = imageDimensions(residname)
-
-        summaryminor[ff] = dict()
-
-        for cc in range(nfreq):
-            summaryminor[ff][cc] = dict()
-            for ss in range(nstokes):
-                summaryminor[ff][cc][ss] = fillSummaryMinor(residname, modelname, cc, ss, stokes_axis, freq_axis, fullsummary)
-
-    return summaryminor
-
-
-
-def constructResidualDict(paramList):
-    """
-    Construct the residual dictionary given the input image name and associated parameters. This residual dictionary is meant to
-    duplicate that generated by imager.getSummary(fullsummary) for the special
-    case of niter = 0 to avoid initializing the deconvolver.
-
-    Inputs:
-    paramList   The tclean inputs, defaults where not specified. dict
-
-    Returns:
-    retrec      The return dictionary with imaging statistics. dict
-    """
-
-    retrec = dict()
-
-    imagename = paramList.allimpars['0']['imagename']
-
-    residname= imagename+'.residual.tt0' if(os.path.exists(imagename +'.residual.tt0')) else imagename +'.residual'
-    if not os.path.exists(residname):
-        raise FileNotFoundError(f'{residname} does not exist on disk. Cannot construct tclean return dictionary.')
-
-    # Initialize the values that don't need to inspect any images
-    retrec['cleanstate'] = 'running'
-    retrec['cyclefactor'] = paramList.getAllPars()['cyclefactor']
-    retrec['cycleiterdone'] = 0
-    retrec['cycleniter'] = 0
-    retrec['cyclethreshold'] = 0
-    retrec['interactiveiterdone'] = 0
-    retrec['interactivemode'] = paramList.alldecpars['0']['interactive']
-    retrec['interactiveniter'] = 0
-    retrec['interactivethreshold'] = 0
-
-    retrec['iterdone'] = 0
-    retrec['loopgain'] = 0
-    retrec['maxpsffraction'] = 0
-    retrec['maxpsfsidelobe'] = 0
-    retrec['minpsffraction'] = 0
-
-    retrec['niter'] = 0
-    retrec['nmajordone'] = 1
-    retrec['nsigma'] = 0.0
-    # stopcode 3 --> Zero iterations performed
-    retrec['stopcode'] = 3
-
-    retrec['summarymajor'] = numpy.array([0,])
-    retrec['summaryminor'] = constructSummaryMinor(paramList)
-    retrec['threshold'] = 0.0
-    retrec['stopDescription'] = 'Zero iterations performed'
-
-
-    return retrec
 
 #if you want to save tclean.last.* from python call of tclean uncomment the decorator   
 #@saveparams2last(multibackup=True) 
@@ -648,7 +446,8 @@ def tclean(
 
             # Residual image needs to be computed for this to work
             if niter==0 and calcres==True:
-                retrec = constructResidualDict(paramList)
+                rd = ReturnDictionary()
+                retrec = rd.constructResidualDict(paramList)
 
             ## Do deconvolution and iterations
             if niter>0 :
