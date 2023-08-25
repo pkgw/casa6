@@ -39,7 +39,6 @@ else:
     from cleanhelper import write_tclean_history, get_func_params
     table=casac.table
     synthesisimager=casac.synthesisimager
-    image=casac.image
 try:
     if is_CASA6:
         from casampi.MPIEnvironment import MPIEnvironment
@@ -85,7 +84,7 @@ def imageDimensions(residname):
     return nstokes, nfreq, stokes_axis, freq_axis
 
 
-def fillSummaryMinor(residname, channo, stokes, stokes_axis, freq_axis, fullsummary):
+def fillSummaryMinor(residname, modelname, channo, stokes, stokes_axis, freq_axis, fullsummary):
     """
     Given the input image name, and the corresponding field, channel number, and
     Stokes plane, extract the relevant information from the image to generate a
@@ -94,6 +93,7 @@ def fillSummaryMinor(residname, channo, stokes, stokes_axis, freq_axis, fullsumm
 
     Inputs:
     residname       Name of the input residual image, str
+    modelname       Name of the input model image, str
     channo          Channel number to query in the image, int
     stokes          Stokes plane to query in the image, int
     stokes_axis     The axis to index for Stokes, int
@@ -105,6 +105,7 @@ def fillSummaryMinor(residname, channo, stokes, stokes_axis, freq_axis, fullsumm
     """
 
     ia = image()
+
 
     ia.open(residname)
     shape = ia.shape()
@@ -122,6 +123,14 @@ def fillSummaryMinor(residname, channo, stokes, stokes_axis, freq_axis, fullsumm
     mask = ia.getchunk(blc, trc, dropdeg=True, getmask=True)
     ia.close()
 
+    # If model image exists, calc model flux, else set to 0
+    model_sum = 0
+    if os.path.exists(modelname):
+        ia.open(modelname)
+        model_data = ia.getchunk(blc, trc, dropdeg=True)
+        model_sum = np.sum(model_data)
+        ia.close()
+
     peak_resid = numpy.amax(data*mask)
     if fullsummary:
         peak_resid_NM = numpy.amax(data)
@@ -132,7 +141,7 @@ def fillSummaryMinor(residname, channo, stokes, stokes_axis, freq_axis, fullsumm
     summaryminor['iterDone'] = [0.0,]
     summaryminor['peakRes'] = [peak_resid,]
     # model flux has to be zero because no iterations were performed
-    summaryminor['modelFlux'] = [0.0,]
+    summaryminor['modelFlux'] = [model_sum,]
     # No threshold because no deconvolution done
     summaryminor['cycleThresh'] = [0.0,]
 
@@ -140,7 +149,7 @@ def fillSummaryMinor(residname, channo, stokes, stokes_axis, freq_axis, fullsumm
         summaryminor['cycleStartIters'] = [0.0,]
         summaryminor['startIterDone'] = [0.0,]
         summaryminor['startPeakRes'] = [peak_resid,]
-        summaryminor['startModelFlux'] = [0.0,]
+        summaryminor['startModelFlux'] = [model_sum,]
         summaryminor['startPeakResNM'] = [peak_resid_NM,]
         summaryminor['peakResNM'] = [peak_resid_NM,]
         summaryminor['masksum'] = [mask_sum,]
@@ -176,6 +185,8 @@ def constructSummaryMinor(paramList):
     summaryminor = dict()
     for ff in range(nfields):
         residname=impars[str(ff)]['imagename']+'.residual.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.residual.tt0')) else impars[str(ff)]['imagename']+'.residual'
+        modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
+
         casalog.post("Residname %s " % residname, "INFO3", "task_tclean")
         fullsummary = decpars[str(ff)]['fullsummary']
         nstokes, nfreq, stokes_axis, freq_axis = imageDimensions(residname)
@@ -185,7 +196,7 @@ def constructSummaryMinor(paramList):
         for cc in range(nfreq):
             summaryminor[ff][cc] = dict()
             for ss in range(nstokes):
-                summaryminor[ff][cc][ss] = fillSummaryMinor(residname, cc, ss, stokes_axis, freq_axis, fullsummary)
+                summaryminor[ff][cc][ss] = fillSummaryMinor(residname, modelname, cc, ss, stokes_axis, freq_axis, fullsummary)
 
     return summaryminor
 
@@ -198,7 +209,7 @@ def constructResidualDict(paramList):
     case of niter = 0 to avoid initializing the deconvolver.
 
     Inputs:
-    bparm       The tclean inputs, defaults where not specified. dict
+    paramList   The tclean inputs, defaults where not specified. dict
 
     Returns:
     retrec      The return dictionary with imaging statistics. dict
@@ -340,8 +351,8 @@ def tclean(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
-    fullsummary,#=False,
     nmajor,#=-1,
+    fullsummary,#=False,
 
     ##### (new) Mask parameters
     usemask,#='user',
