@@ -15,31 +15,20 @@ import filecmp
 import time
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
+from casatasks import casalog
 
-    from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import saveparams2last
-    from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
-    from .cleanhelper import write_tclean_history, get_func_params
-    from casatools import table
-    from casatools import image
-    from casatools import synthesisutils
-    from casatools import synthesisimager
-else:
-    from taskinit import *
+from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import saveparams2last
+from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
+from .cleanhelper import write_tclean_history, get_func_params
+from casatools import table
+from casatools import image
+from casatools import synthesisutils
+from casatools import synthesisimager
 
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from imagerhelpers.input_parameters import ImagerParameters
-    from imagerhelpers.input_parameters import saveparams2last
-    from cleanhelper import write_tclean_history, get_func_params
-    table=casac.table
-    synthesisimager=casac.synthesisimager
 try:
     if is_CASA6:
         from casampi.MPIEnvironment import MPIEnvironment
