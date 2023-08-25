@@ -467,6 +467,46 @@ def sdintimaging(
     sdparms['sdpsf']=inpparams['sdpsf']
     sdparms['sdgain']=inpparams['sdgain']
 
+    if usedata!='int': # check sd parameters
+        
+        _myia = image()
+
+        if not os.path.exists(sdparms['sdimage']):
+            casalog.post( "Input image sdimage = '"+str(sdparms['sdimage'])+"' does not exist.", "WARN", "task_sdintimaging" )
+            return
+        else:
+            try:
+                _myia.open(sdparms['sdimage'])
+                _myia.close()
+            except Exception as instance:
+                casalog.post( "Input image sdimage = '"+str(sdparms['sdimage'])+"' cannot be opened.", "WARN", "task_sdintimaging" )
+                casalog.post( str(instance), "WARN", "task_sdintimaging" )
+                return
+            
+        if sdparms['sdpsf']!='':
+            if not os.path.exists(sdparms['sdpsf']):
+                casalog.post( "Input image sdpsf = '"+str(sdparms['sdpsf'])+"' does not exist.", "WARN", "task_sdintimaging" )
+                return
+            else:
+                try:
+                    _myia.open(sdparms['sdpsf'])
+                    _myia.close()
+                except Exception as instance:
+                    casalog.post( "Input image sdpsf = '"+str(sdparms['sdpsf'])+"' cannot be opened.", "WARN", "task_sdintimaging" )
+                    casalog.post( str(instance), "WARN", "task_sdintimaging" )
+                    return
+
+        if (sdparms['sdgain']*0!=0 or sdparms['sdgain']<=0):
+            casalog.post('Invalid sdgain: '+str(sdparms['sdgain']), 'WARN')
+            casalog.post("The sdgain parameter needs to be chosen as a number > 0 which represents the weight of the SD contribution relative to the INT contribution to the joint image.", "WARN", "task_sdintimaging")
+            return
+
+        if (dishdia*0!=0 or dishdia<=0): 
+            casalog.post('Invalid dishdia: '+str(dishdia), 'WARN')
+            casalog.post("The dishdia parameter needs to provide the diameter (meters) of the SD telescope which produced the SD image.", "WARN", "task_sdintimaging")
+            return
+
+
     if specmode=='cont':
         specmode='mfs'
         inpparams['specmode']='mfs'
@@ -496,13 +536,6 @@ def sdintimaging(
     if (nmajor < -1):
         casalog.post("Negative values less than -1 for nmajor are reserved for possible future implementation", "WARN", "task_sdintimaging")
         return
-
-    
-    if ((type(dishdia) != float and type(dishdia) != int) or dishdia <= 0):
-        casalog.post('Invalid dishdia: '+str(dishdia), 'WARN')
-        casalog.post("The dishdia parameter needs to provide the diameter (meters) of the SD telescope which produced the SD image.", "WARN", "task_sdintimaging")
-        return
-    
 
 #    if parallel==True:
 #        casalog.post("Cube parallelization (all major cycles) is currently not supported via task_sdintimaging. This will be enabled after a cube parallelization rework.")
@@ -562,6 +595,9 @@ def sdintimaging(
         ###ignore chanchunk
         bparm['chanchunks']=1
 
+    #################################################
+    #### start of more computing-intensive work #####
+    #################################################
     
     retrec={}
 
@@ -589,7 +625,6 @@ def sdintimaging(
             deconvolvertool=setup_deconvolver(decname, specmode, bparm )
             #imager.initializeDeconvolvers()
             t1=time.time();
-            #casalog.post("***Time for initializing deconvolver(s): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
             casalog.post("***Time for seting up deconvolver(s): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_sdintimaging");
 
         if usedata!='int':
