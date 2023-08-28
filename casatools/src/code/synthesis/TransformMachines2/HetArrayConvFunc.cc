@@ -1021,14 +1021,18 @@ void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunction
         Double cx, sx;
         SINCOS(Double(ix-convSize/2)*pixXdir, sx, cx);
         Complex phx(cx,sx) ;
-        for (uint pol=0; pol< polmap.size(); ++pol) {
-	  Int ipol=polmap[pol];
-            //Int poloffset=ipol*nChan*ndishpair*convSize*convSize;
-	  for (uint chan=0; chan < chanmap.size(); ++chan) {
-	    Int ichan=chanmap[chan];
-                //Int chanoffset=ichan*ndishpair*convSize*convSize;
-	    for (uint z=0; z < rowmap.size(); ++z) {
-	      Int iz=rowmap[z];
+        for (uint p=0; p< polmap.size(); ++p) {
+        //for (uint p=0; p < nPol; ++p) {
+            Int ipol=polmap[p];
+            //Int ipol=p;
+            for (uint c=0; c < chanmap.size(); ++c) {
+            //for (uint c=0; c < nChan; ++c) {
+                Int ichan=chanmap[c];
+                //Int ichan=c;
+                for (uint z=0; z < rowmap.size(); ++z) {
+                //for (uint z=0; z < ndishpair; ++z) {
+                    Int iz=rowmap[z];
+                    //Int iz=z;
                     ooLong index=((ooLong(iz*nChan+ichan)*nPol+ipol)*ooLong(convSize)+ooLong(iy))*ooLong(convSize)+ooLong(ix);
                     convFunctions[index]= convFunctions[index]*phx*phy;
                     convWeights[index]= convWeights[index]*phx*phy;

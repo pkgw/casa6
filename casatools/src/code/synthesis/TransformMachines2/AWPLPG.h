@@ -54,14 +54,13 @@ public:
   AWPLPG& operator=(const AWPLPG& other);
   virtual refim::FTMachine* cloneFTM();
     // Get actual coherence from grid by degridding
-  virtual void get(vi::VisBuffer2& vb, casacore::Int row=-1);
+  //virtual void get(vi::VisBuffer2& vb, casacore::Int row=-1);
 
 
   // Put coherence to grid by gridding.
-  virtual void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
-	   FTMachine::Type type=FTMachine::OBSERVED);
+  //virtual void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, FTMachine::Type type=FTMachine::OBSERVED);
 
-  virtual void gridImgWeights(const vi::VisBuffer2& vb);
+  //virtual void gridImgWeights(const vi::VisBuffer2& vb);
   
   
 protected:     

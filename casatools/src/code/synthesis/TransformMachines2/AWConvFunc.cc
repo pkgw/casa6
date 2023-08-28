@@ -2166,6 +2166,9 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	Bool isCopy, isWtCopy;
 	uInt nchans=freqlist.nelements();
 	MathUtils m;
+	Record miscInfo;
+	miscInfo.define("bandname", bandname);
+	//cerr << "MISCINFO " << miscInfo << endl;
 	for (uInt k=0; k < nchans; ++k){
 		//higest freq will have largest supp ..so going through freqlist backwards
 		Quantum<Vector<Double> > lefreq(Vector<Double>(1, freqlist[nchans-k-1]), "Hz");
@@ -2173,6 +2176,7 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 		CoordinateSystem csysPlane=csysA;
 		csysPlane.replaceCoordinate(specplane,2);
 		TempImage<Complex> pbim(shp, csysPlane);
+		pbim.setMiscInfo(miscInfo);
 		pbim.set(1.0);
 		if(doSquint)
 			atermMaker_p->applyDiagSkyJones(pbim, pa);
