@@ -1061,7 +1061,14 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   refocus(uvw, vb.antenna1(), vb.antenna2(), dphase, vb);
   // This needs to be after the interp to get the interpolated channels
   //Also has to be after rotateuvw in case tracking is on
-  findConvFunction(*image, vb);
+  //cerr << "orig " << vb.uvw().row(2) << endl;
+  vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
+  vbRotuvw.setUvw(uvw);
+
+  // cerr << "rot  " << vbRotuvw.uvw().row(2) << endl;
+
+  findConvFunction(*image, vbRotuvw);
+  
   //cerr << "Put convsup " << convSupport << " max min convFunc " << max(convFunc) << "   " << min(convFunc) << "  "  << max(weightConvFunc_p) << min(weightConvFunc_p)  << "SHP " << convFunc.shape() << "   " << weightConvFunc_p.shape() << endl;
   //cerr << "convRowMap " << convRowMap_p  << " " << convChanMap_p << "  " << convPolMap_p << endl; 
   //nothing to grid here as the pointing resulted in a zero support convfunc
