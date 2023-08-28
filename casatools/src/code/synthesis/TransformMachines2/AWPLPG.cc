@@ -176,8 +176,6 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     
     //////
     } */  
-    Timer tim;
-    tim.mark();
     weightConvFunc_p.resize();
     weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
     convSizePlanes_p.resize();
@@ -204,11 +202,12 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
+    //cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
    
-    tim.show("after findConv");
+    
  }
  
   /////==============================================
@@ -290,7 +289,7 @@ extern "C" {
 
 
   //===================================================
-  void AWPLPG::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
+/*  void AWPLPG::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
 		   FTMachine::Type type)
 {
 
@@ -392,21 +391,7 @@ extern "C" {
 
   //cerr << "convSamp " << convSampling << " convsupp " << convSupport << " consize " << convSize << " convFunc " << convFunc.shape() << endl;
   //TESTOO
-  /*{
-    ArrayIterator<Complex> itC(convFunc, IPosition(2,0,1));
-    ArrayIterator<Complex> itW(weightConvFunc_p, IPosition(2,0,1));
-    itC.origin();
-    itW.origin();
-    Int k=0;
-    while(!itC.pastEnd()){
-      cerr << k << "sum conv plane " << sum(itC.array()) << "  wt " << sum(itW.array()) << endl;
 
-      itC.next();
-      itW.next();
-      ++k;
-    }
-
-    }*/
   //TESTOO
   
   //Tell the gridder to grid the weights too ...need to do that once only
@@ -433,7 +418,7 @@ extern "C" {
   Int nChanConv=convFunc.shape()[3];
   Int nConvFunc=convFunc.shape()(4);
   Bool weightcopy;
-  ////////**************************
+  ////////
   Cube<Int> loc(2, nvc, nRow);
   Cube<Int> off(2, nvc, nRow);
   Matrix<Complex> phasor(nvc, nRow);
@@ -463,9 +448,7 @@ extern "C" {
 {
 #pragma omp for
   for (irow=startRow; irow<=endRow;irow++){
-    /*locateuvw(uvwstor,dpstor, visfreqstor, nvc, scalestor, offsetstor, csamp, 
-	      locstor, 
-	      offstor, phasorstor, irow, false);*/
+ 
     locuvw(uvwstor, dpstor, visfreqstor, &nvc, scalestor, offsetstor, &csamp, locstor, offstor, phasorstor, &irow, &dow, &cinv);
   }  
 
@@ -477,9 +460,9 @@ extern "C" {
  Int  ixsub, iysub, icounter;
  ixsub=1;
  iysub=1;
-  //////***********************DEBUGGING
+  //////@@@@@@@@@@@@@DEBUGGING
   //nth=1;
-  ////////***************
+  ////////@@@@@@@@@@@@@
   if (nth >3){
     ixsub=8;
     iysub=8; 
@@ -532,14 +515,14 @@ extern "C" {
   ///
 
   
-  ////////***************************
+  ////////
   tim.mark(); 
 
   //  if(useDoubleGrid_p) { //always using double prec here 
   {
     DComplex *gridstor=griddedData2.getStorage(gridcopy);
     
-#pragma omp parallel default(none) private(icounter, del) firstprivate(idopsf, /*doWeightGridding,*/ datStorage, wgtStorage, flagstor, rowflagstor, convstor, wconvstor, pmapstor, cmapstor, gridstor,  convsupportstor, nxp, nyp, np, nc,ixsub, iysub, rend, rbeg, csamp, csize, nvp, nvc, nvisrow, phasorstor, locstor, offstor, convrowmapstor, convchanmapstor, convpolmapstor, nPolConv, nChanConv, nConvFunc,xsect, ysect, nxsect, nysect) shared(swgtptr) 
+#pragma omp parallel default(none) private(icounter, del) firstprivate(idopsf,  datStorage, wgtStorage, flagstor, rowflagstor, convstor, wconvstor, pmapstor, cmapstor, gridstor,  convsupportstor, nxp, nyp, np, nc,ixsub, iysub, rend, rbeg, csamp, csize, nvp, nvc, nvisrow, phasorstor, locstor, offstor, convrowmapstor, convchanmapstor, convpolmapstor, nPolConv, nChanConv, nConvFunc,xsect, ysect, nxsect, nysect) shared(swgtptr) 
     {   
 #pragma omp for schedule(dynamic)      
     for(icounter=0; icounter < ixsub*iysub; ++icounter){
@@ -620,7 +603,10 @@ extern "C" {
 
 
 }
+*/
 
+
+/*
 void AWPLPG::gridImgWeights(const vi::VisBuffer2& vb){
 
   if(doneWeightImage_p)
@@ -725,7 +711,7 @@ void AWPLPG::gridImgWeights(const vi::VisBuffer2& vb){
   Int nChanConv=convFunc.shape()[3];
   Int nConvFunc=convFunc.shape()(4);
   Bool weightcopy;
-  ////////**************************
+  ////////@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   Cube<Int> loc(2, nvc, vb.nRows());
   Cube<Int> off(2, nvc, vb.nRows());
   Matrix<Complex> phasor(nvc, vb.nRows());
@@ -758,9 +744,7 @@ void AWPLPG::gridImgWeights(const vi::VisBuffer2& vb){
 {
 #pragma omp for
   for (irow=startRow; irow<=endRow;irow++){
-    /*locateuvw(uvwstor,dpstor, visfreqstor, nvc, scalestor, offsetstor, csamp, 
-	      locstor, 
-	      offstor, phasorstor, irow, false);*/
+    
     locuvw(uvwstor, dpstor, visfreqstor, &nvc, scalestor, offsetstor, &csamp, locstor, offstor, phasorstor, &irow, &dow, &cinv);
   }  
 
@@ -793,7 +777,8 @@ void AWPLPG::gridImgWeights(const vi::VisBuffer2& vb){
   elWeight.freeStorage(wgtStorage,iswgtCopy);
     
 }
-
+*/
+/*
 void AWPLPG::get(vi::VisBuffer2& vb, Int row)
 {
   
@@ -872,7 +857,7 @@ void AWPLPG::get(vi::VisBuffer2& vb, Int row)
   Int nPolConv=convFunc.shape()[2];
   Int nChanConv=convFunc.shape()[3];
   Int nConvFunc=convFunc.shape()(4);
-  ////////**************************
+  ////////@@@@@@@@@
   Cube<Int> loc(2, nvc, nRow);
   Cube<Int> off(2, nvc, nRow);
   Matrix<Complex> phasor(nvc, nRow);
@@ -893,7 +878,7 @@ void AWPLPG::get(vi::VisBuffer2& vb, Int row)
   const Int *convchanmapstor=convChanMap_p.getStorage(del);
   const Int *convpolmapstor=convPolMap_p.getStorage(del);
   const Int *convsupportstor=convSupportPlanes_p.getStorage(del);
-  ////////***************************
+  ////////@@@@@@@@@@@@@@@@@@@@@
 
   Int irow;
   Int nth=1;
@@ -916,7 +901,7 @@ void AWPLPG::get(vi::VisBuffer2& vb, Int row)
 {
 #pragma omp for
   for (irow=startRow; irow<=endRow;irow++){
-    /////////////////*locateuvw(uvwstor,dpstor, visfreqstor, nvc, scalestor, offsetstor, csamp, 
+    /////////////////locateuvw(uvwstor,dpstor, visfreqstor, nvc, scalestor, offsetstor, csamp, 
     //    locstor, 
 		///////////	      offstor, phasorstor, irow, false);
     //using the fortran version which is significantly faster ...this can account for 10% less overall degridding time
@@ -981,7 +966,7 @@ void AWPLPG::get(vi::VisBuffer2& vb, Int row)
 
   interpolateFrequencyFromgrid(vb, data, FTMachine::MODEL);
 }
-
+*/
 
   } // REFIM ends
 } //# NAMESPACE CASA - END

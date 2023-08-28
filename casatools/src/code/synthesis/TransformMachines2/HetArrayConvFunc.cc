@@ -438,6 +438,10 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         return;
 
     }
+    /////TESTOO elkey
+    String elkey=String::toString(vb.msId())+String("_")+String::toString(vb.spectralWindows()[0])+String("_")+String::toString(visFreq.nelements());
+
+    /////////////////
     actualConvIndex_p=convIndex(vb, visFreq.nelements());
     //cerr << "actual conv index " << actualConvIndex_p << " doneMainconv " << doneMainConv_p << endl;
     if(doneMainConv_p.shape()[0] < (actualConvIndex_p+1)) {
@@ -457,7 +461,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
     ////Trap for cases when the selection seem to have changed
     if(doneMainConv_p[actualConvIndex_p]){
-      if(nBeamChans != (*convFunctions_p[actualConvIndex_p]).shape()[3])
+      if(nBeamChans > (*convFunctions_p[actualConvIndex_p]).shape()[3])
 	doneMainConv_p[actualConvIndex_p]=False;
       
     }
@@ -799,7 +803,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         Int lattSize=convFuncTemp.shape()(0);
         (*convSupportBlock_p[actualConvIndex_p])=convSupport_p;
         LogIO os(LogOrigin("HetArrConvFunc", "findConvFunction", WHERE));
-        os << "convolution function support: " << convSupport_p  << LogIO::POST;
+        os << "convolution function support: " << convSupport_p<< "ELKEY " << elkey  << " actualConvInd "<< actualConvIndex_p <<  " pointer " << this << LogIO::POST;
 
         if(newConvSize < lattSize) {
             IPosition blc(5, (lattSize/2)-(newConvSize/2),
@@ -1017,14 +1021,18 @@ void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunction
         Double cx, sx;
         SINCOS(Double(ix-convSize/2)*pixXdir, sx, cx);
         Complex phx(cx,sx) ;
-        for (uint pol=0; pol< polmap.size(); ++pol) {
-	  Int ipol=polmap[pol];
-            //Int poloffset=ipol*nChan*ndishpair*convSize*convSize;
-	  for (uint chan=0; chan < chanmap.size(); ++chan) {
-	    Int ichan=chanmap[chan];
-                //Int chanoffset=ichan*ndishpair*convSize*convSize;
-	    for (uint z=0; z < rowmap.size(); ++z) {
-	      Int iz=rowmap[z];
+        for (uint p=0; p< polmap.size(); ++p) {
+        //for (uint p=0; p < nPol; ++p) {
+            Int ipol=polmap[p];
+            //Int ipol=p;
+            for (uint c=0; c < chanmap.size(); ++c) {
+            //for (uint c=0; c < nChan; ++c) {
+                Int ichan=chanmap[c];
+                //Int ichan=c;
+                for (uint z=0; z < rowmap.size(); ++z) {
+                //for (uint z=0; z < ndishpair; ++z) {
+                    Int iz=rowmap[z];
+                    //Int iz=z;
                     ooLong index=((ooLong(iz*nChan+ichan)*nPol+ipol)*ooLong(convSize)+ooLong(iy))*ooLong(convSize)+ooLong(ix);
                     convFunctions[index]= convFunctions[index]*phx*phy;
                     convWeights[index]= convWeights[index]*phx*phy;

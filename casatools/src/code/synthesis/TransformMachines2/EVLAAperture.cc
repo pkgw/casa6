@@ -253,9 +253,12 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
   }
   return bandName;
 }
-Int EVLAAperture::getBandID(const Double &freq) {
+Int EVLAAperture::getBandID(const Double &freq, const String& bandName) {
   Int bandID = 0;
-  bandName_p = getVLABandName(freq,  telescopeName_p);
+  if(bandName=="")
+    bandName_p = getVLABandName(freq,  telescopeName_p);
+  else
+    bandName_p=bandName;
 
   if (!isNoOp()) {
     // First #-separated token in bandName_p is the name of the band used
@@ -396,6 +399,7 @@ void EVLAAperture::makeFullJones(ImageInterface<Complex> &pbImage,
 
 void EVLAAperture::applyAvgSkyJones(ImageInterface<Complex> &outImage) {
   TempImage<Complex> temp(outImage.shape(), outImage.coordinates());
+  temp.setMiscInfo(outImage.miscInfo());
   temp.set(1.0);
   applyDiagSkyJones(temp, 0.0);
   // Taking the RL beam
@@ -421,6 +425,11 @@ void EVLAAperture::applyDiagSkyJones(ImageInterface<Complex> &outImage,
   ApertureCalcParams ap;
   Long memtot=HostInfo::memoryFree();
   Double memtobeused= Double(memtot)*1024.0;
+  String bandname="";
+  //cerr << "diagMisc " << outImage.miscInfo() << endl;
+  if(outImage.miscInfo().isDefined("bandname"))
+    outImage.miscInfo().get("bandname", bandname);
+  //cerr << "diagSky BANDNAME " << bandname << endl;
 
   ap.apertureptr = make_shared< TempImage<Complex> >(outImage.shape(),  outImage.coordinates(), memtobeused/10.0);  
   ap.aperture = ap.apertureptr.get();
@@ -430,7 +439,8 @@ void EVLAAperture::applyDiagSkyJones(ImageInterface<Complex> &outImage,
   Double freqVal = 0.0;
   csys.spectralCoordinate(index).toWorld(freqVal, 0.0);
   //cerr <<  "####FREQVAL " <<  freqVal <<  endl;
-  Int bandID = getBandID(freqVal);
+  Int bandID = getBandID(freqVal, bandname);
+  //cerr << "bandid " << bandID << endl;
   CoordinateSystem uvCoords = refim::VLACalcIlluminationConvFunc::makeUVCoords(
       csys, outImage.shape(), freqVal);
   index = uvCoords.findCoordinate(Coordinate::LINEAR);

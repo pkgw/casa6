@@ -92,10 +92,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // you have to call the following to set between VLA and EVLA (otherwise default is EVLA)
     void cacheVBInfo(const casacore::String& telescopeName, const casacore::Float& diameter);
     void cacheVBInfo(const VisBuffer2& vb);
-    casacore::Int getBandID(const casacore::Double& freq, const casacore::String& telescopeName, const casacore::String& bandName="");
+    casacore::Int getBandID(const casacore::Double& freq, const casacore::String& telescopeName, const casacore::String& bandName);
     //As this is a specialization for VLA or EVLA
     static casacore::String getVLABandName(const casacore::Double& freq, const casacore::String& tel="EVLA");
-    casacore::Int getBandID(const casacore::Double& freq);
+    casacore::Int getBandID(const casacore::Double& freq, const casacore::String& bandname="");
     virtual casacore::Vector<casacore::Int> vbRow2CFKeyMap(const VisBuffer2& vb, casacore::Int& nUnique)
     {casacore::Vector<casacore::Int> tmp; tmp.resize(vb.nRows()); tmp=0; nUnique=1; return tmp;}
 
