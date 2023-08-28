@@ -2322,8 +2322,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    nChannels[k]=(it->second)[0];
 	    firstChannels[k]=(it->second)[1];
 	  }
-	  if(j==0)
+	  if(j==0) {
+      spwids0.resize();
 	    spwids0=spwids;
+    }
 	  // std::tie (spwids, nChannels, firstChannels, channelIncrement)=(static_cast<vi::VisibilityIteratorImpl2 * >(vi2.getImpl()))->getChannelInformation(false);
 	  
 	  //cerr << "SPWIDS "<< spwids <<  "  nchan " << nChannels << " firstchan " << firstChannels << endl;
@@ -2396,21 +2398,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  if(imStartFreq > 0.0 && imStartFreq >= freqmin && imStartFreq <= freqmax){
             if(mode != "cubesource"){
               minfmsid=j;
-
-              // CAS-13902 - If multiple MSs are passed in, we need to only keep the
-              // new SPWs for every additional MS.
-              // Figure out which SPWs need to be pushed in and only push those in.
-              for(auto ii = 0; ii < spwids.size(); ii++) {
-                if (ii >= spwids0.size()) { // If spwids0 is too small
-                  auto n = spwids0.size();
-                  spwids0.resize(n+1, True);
-                }
-                // SPW not found in spwids0, so add it in
-                if (std::find(spwids0.begin(), spwids0.end(), spwids(ii)) == spwids0.end()) {
-                    spwids0[ii] = spwids[ii];
-                }
-              }
-
+              spwids0.resize();
+              spwids0=spwids;
               vi2.originChunks();
               vi2.origin();
               while(vb->msId() != j && vi2.moreChunks() ){
