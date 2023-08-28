@@ -60,7 +60,7 @@ class calmod_test(unittest.TestCase):
     def setUpClass(cls):
 
         server = os.sep.join([casatestutils.__path__[0],
-            'calmod_helpers', 'vlafluxcal.py'])
+            'calmod_helpers', 'vla_mock_server.py'])
         casalog.post(f'server is {server}', 'INFO')
         cls.web_server = subprocess.Popen(
             [sys.executable, server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
