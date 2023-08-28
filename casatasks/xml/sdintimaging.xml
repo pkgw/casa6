@@ -1537,6 +1537,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                       This method approximately minimizes rms sidelobes
                                                       for an east-west synthesis array.
 
+                       weighting='briggsbwtaper' : A modified version of Briggs weighting for cubes where an inverse uv taper,
+                                                         which is proportional to the fractional bandwidth of the entire cube,
+                                                         is applied per channel. The objective is to modify cube (perchanweightdensity = True)
+                                                         imaging weights to have a similar density to that of the continuum imaging weights.
+                                                         This is currently an experimental weighting scheme being developed for ALMA.
+
+						      
                For more details on weighting please see Chapter3
                of Dan Briggs' thesis (http://www.aoc.nrao.edu/dissertations/dbriggs)
 
@@ -1549,6 +1556,7 @@ to use the correct direction in which the antenna is pointing with respect to th
         <value>briggsabs</value>
         <value>radial</value>
         <value>superuniform</value>
+        <value>briggsbwtaper</value>
       </allowed>
 
     </param>
