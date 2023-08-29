@@ -227,7 +227,7 @@ class SDINT_helper:
         _ia.close()
 
         if(freqaxis_index!=3):
-            casalog.post('The Frequency axis index of '+inpcube+' is '+freqaxis_index+' but this code requires index 3.', 'SEVERE')
+            casalog.post('The Frequency axis index of '+inpcube+' is '+str(freqaxis_index)+' but modify_with_pb requires index 3.', 'SEVERE')
         
         ##############
         ### Calculate a reference Primary Beam
@@ -387,7 +387,7 @@ class SDINT_helper:
         _ia.close()
 
         if(freqaxis_index!=3):
-            casalog.post('The Frequency axis index of '+cubename+' is '+freqaxis_index+' but this code requires index 3.', 'SEVERE')
+            casalog.post('The Frequency axis index of '+cubename+' is '+str(freqaxis_index)+' but cube_to_taylor_sum requires index 3.', 'SEVERE')
         
         _ia.open(cubewt)
         cwt = _ia.getchunk()[0,0,0,:]
@@ -493,7 +493,7 @@ class SDINT_helper:
         _ia.close()
 
         if(freqaxis_index!=3):
-            casalog.post('The Frequency axis index of '+origcube+' is '+freqaxis_index+' but this code requires index 3.', 'SEVERE')
+            casalog.post('The Frequency axis index of '+origcube+' is '+str(freqaxis_index)+' but calc_sd_residual requires index 3.', 'SEVERE')
         
         for i in range(0,len(freqlist)):
 

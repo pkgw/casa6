@@ -477,11 +477,27 @@ def sdintimaging(
         else:
             try:
                 _myia.open(sdparms['sdimage'])
-                _myia.close()
             except Exception as instance:
                 casalog.post( "Input image sdimage = '"+str(sdparms['sdimage'])+"' cannot be opened.", "WARN", "task_sdintimaging" )
                 casalog.post( str(instance), "WARN", "task_sdintimaging" )
                 return
+            
+            mysummary = _myia.summary(list=False)
+            _myia.close()
+
+            try:
+                freqaxis_index = list(mysummary['axisnames']).index('Frequency')
+            except(ValueError):
+                casalog.post('The image '+sdparms['sdimage']+' has no frequency axis. Try adding one with ia.adddegaxis() .',
+                             'WARN', 'task_sdintimaging')
+                return
+                
+            if freqaxis_index != 3:
+                casalog.post('The image '+sdparms['sdimage']+' has its frequency axis on position '+str(freqaxis_index)+
+                             ' whereas it should be in position 3 (counting from 0). Use task imtrans() with order=["r", "d", "s", "f"] to fix this.',
+                             'WARN', 'task_sdintimaging')
+                return
+                    
             
         if sdparms['sdpsf']!='':
             if not os.path.exists(sdparms['sdpsf']):
