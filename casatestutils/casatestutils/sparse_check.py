@@ -11,6 +11,14 @@ import sys
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
+def check_for_git_lfs():
+    import subprocess
+    git_string = subprocess.check_output(["git","lfs","version"])
+    if ("is not a git command" in git_string) or ("command not found" in git_string):
+        print("ERROR git-lfs is not installed. Please Check Configuration")
+        print(git_string)
+        raise Exception("git-lfs not installed")
+
 def download_data(testfiles: list):
     """
     Usage 
@@ -19,7 +27,7 @@ def download_data(testfiles: list):
         sparse_check.download_data(["ngc5921.ms"])
         sparse_check.download_data(["gaincaltest2.ms"])
     """
-
+    check_for_git_lfs()
     paths = []
 
     sh_filename = "checkout_unit_dir.sh"
@@ -31,9 +39,11 @@ def download_data(testfiles: list):
     print("cd ..",file = bashFile)
     print("rm -rf casatestdata",file = bashFile)
     bashFile.close()
-
+    local_shell = os.environ['SHELL']
+    os.environ['SHELL'] = "/bin/bash"
     cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
     subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.environ['SHELL'] = local_shell
     os.remove(sh_filename)
     
     datafile = open("datafile_list.txt","r")
@@ -99,14 +109,18 @@ def download_data(testfiles: list):
     print("rm -rf casatestdata",file = bashFile)
     bashFile.close()
     print("Fetching ", *testfiles)
+    local_shell = os.environ['SHELL']
+    os.environ['SHELL'] = "/bin/bash"
     cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
     subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.environ['SHELL'] = local_shell
     os.remove(sh_filename)
     os.remove("datafile_list.txt")
 
     return
 
 def fetch_data_dir(directory):
+    check_for_git_lfs()
     sh_filename = "checkout_unit_dir.sh"
     bashFile = open(sh_filename, 'w')
     print("git clone --depth 1 --no-checkout https://open-bitbucket.nrao.edu/scm/casa/casatestdata.git",file = bashFile)
@@ -116,9 +130,11 @@ def fetch_data_dir(directory):
     print("cd ..",file = bashFile)
     print("rm -rf casatestdata",file = bashFile)
     bashFile.close()
-
+    local_shell = os.environ['SHELL']
+    os.environ['SHELL'] = "/bin/bash"
     cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
     subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.environ['SHELL'] = local_shell
     os.remove(sh_filename)
     
     datafile = open("datafile_list.txt","r")
@@ -127,7 +143,7 @@ def fetch_data_dir(directory):
     return gitpaths
 
 def build_checkout(testnames, directory):
-
+    check_for_git_lfs()
     testdata_dir = fetch_data_dir(directory)
 
     datasets = []
@@ -164,9 +180,11 @@ def build_checkout(testnames, directory):
     print("git checkout master",file = bashFile)
     print("cd ..",file = bashFile)
     bashFile.close()
-
+    local_shell = os.environ['SHELL']
+    os.environ['SHELL'] = "/bin/bash"
     cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
     subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.environ['SHELL'] = local_shell
     os.remove("checkout_unit_dir.sh")
 
     for x_path in paths:
