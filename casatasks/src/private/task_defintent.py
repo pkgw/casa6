@@ -4,7 +4,7 @@ import numpy as np
 import shutil
 import casatools
 
-def defintent(vis='', intent='', mode='',
+def defintent(vis='', intent='', mode='append',
               outputvis='', scan='', field='',
               obsid=''):
     """
@@ -144,7 +144,6 @@ def defintent(vis='', intent='', mode='',
     tb.close()
                 
     print("Number of matching rows found: ", len(selectedRows))
-    print(mode.lower())
     
     # for Set if intent not in state table
     # then add a new row to the state table and change index (STATE_ID) in main table
@@ -180,9 +179,6 @@ def defintent(vis='', intent='', mode='',
             # For all selected rows replace with new state_id
             tb.open(outputvis, nomodify=False)
             stateCol = tb.getcol('STATE_ID')
-            # If there were no intents set to 0 (empty intent?)
-            for row in range(tb.nrows()):
-                stateCol[row] = 0
             
             for row in selectedRows:
                 stateCol[row] = newState
