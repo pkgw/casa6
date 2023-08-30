@@ -85,6 +85,9 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
  // TESTOO
   //convSampling = 1;
   // TESTOO
+  
+  
+  
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
     awConvs_p=std::make_shared<AWConvFuncHolder>((*image).coordinates(), nx, ny, 
@@ -120,9 +123,11 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     
     //return vi to origin
     vi->originChunks(); vi->origin();
+    
     std::sort(freqs.begin(),  freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
+    
     Double paMax=0.0;
     if(pAs.size()>1){
       std::sort(pAs.begin(), pAs.end());
@@ -151,12 +156,15 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   
 }
   
- void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb ){
+ void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
   //
   // pbConvFunc_p.phasegradient
     convFunc.resize();
     convFunc.assign(awConvs_p->getConvFunc());
-    /* { 
+ 
+    weightConvFunc_p.resize();
+    weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
+    /*{ 
       ////TESTOO
       IPosition elshp = convFunc.shape().getFirst(4);
       IPosition elblc(5, 0);
@@ -171,19 +179,18 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       stoks(3) = Stokes::LL;
       StokesCoordinate stokey(stoks);
       csysA.replaceCoordinate(stokey, 1);
-      PagedImage<Complex> lastplane(elshp,  csysA,  "NOOBOO");
+      PagedImage<Complex> lastplane(elshp,  csysA,  "COOBOO");
       lastplane.put(convFunc(elblc,  eltrc).nonDegenerate());
-    
+      PagedImage<Complex> lastplaneW(elshp,  csysA,  "WOOBOO");
+      lastplaneW.put(weightConvFunc_p(elblc,  eltrc).nonDegenerate());
     //////
     } */  
-    weightConvFunc_p.resize();
-    weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
     convSizePlanes_p.resize();
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
-    awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb);
-    //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << endl;
+    awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
+    //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
     std::vector<Int> pmapused=convPolMap_p.tovector();
     {
       std::sort(pmapused.begin(),  pmapused.end());
