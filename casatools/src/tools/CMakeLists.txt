@@ -148,6 +148,7 @@ set(casatools_all_components
   vlafiller
   functional
   ms
+  msuvbinner
   imager
   synthesisdeconvolver
   msmetadata
