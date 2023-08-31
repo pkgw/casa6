@@ -67,10 +67,10 @@ EVLASwPow::SPType EVLASwPow::sptype(const String name) {
   if (utype.contains("RQ"))
     return EVLASwPow::RQ;
   if (utype.contains("SWPOWWTS"))
-    return EVLASwPow::SWPOWWTS;
+    return EVLASwPow::SWPWTS;
 
   // Only get here if name unrecognized
-  throw(AipsError(name+" is not among recognized EVLA Switched Power types ('swpow','evlagain','rq','swp/rq', 'swpowwts')"));
+  throw(AipsError(name+" is not among recognized EVLA Switched Power types ('swpow','evlagain','rq','swp/rq', 'swpwts')"));
 
   // Should never reach here, but this is accurate (and avoids compiler warning)
   return EVLASwPow::NONE;
@@ -91,8 +91,8 @@ String EVLASwPow::sptype(EVLASwPow::SPType sptype) {
     return String("swpow/rq");
     break;
   }
-  case EVLASwPow::SWPOWWTS: {
-    return String("swpowwts");
+  case EVLASwPow::SWPWTS: {
+    return String("swpwts");
     break;
   }
   case EVLASwPow::NONE:
@@ -376,7 +376,7 @@ void EVLASwPow::specify(const Record& specify) {
 	good=allGT(currrq,FLT_EPSILON);
 	break;
       }
-      case EVLASwPow::SWPOWWTS: {
+      case EVLASwPow::SWPWTS: {
     good = allGT(currpsum, FLT_EPSILON);
     break;
       }
@@ -423,7 +423,7 @@ void EVLASwPow::specify(const Record& specify) {
 	  tsys=(currtcal*currpsum/currpdif/2.0);  // 'tsys'
 	  break;
 	}
-    case EVLASwPow::SWPOWWTS:{
+    case EVLASwPow::SWPWTS:{
       gain=1.0;
       tsys = currpsum/2.0;
       break;
