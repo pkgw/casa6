@@ -22,10 +22,10 @@
 #
 ##########################################################################
 import glob
+import http.server
 import numpy as np
 import os
 import shutil
-import subprocess
 import sys
 import threading
 from time import sleep
@@ -42,49 +42,30 @@ from casatasks import calmod
 
 import casatestutils
 
+
+class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+    """HTTPServer mock request handler"""
+
+    def do_GET(self):
+        """Handle GET requests"""
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        myfile = os.sep.join([
+            casatestutils.__path__[0], 'calmod_helpers', 'query1.json'
+        ])
+        with open(myfile, 'r') as f:
+            file_contents = f.read()
+        self.wfile.write(str.encode(file_contents))
+
+    def log_request(self, code=None, size=None):
+        """Don't log anything"""
+
+
 class calmod_test(unittest.TestCase):
 
 
     hostname = 'http://127.0.0.1:8080'
-
-
-    @classmethod
-    def capture_output(cls, subprocess):
-        stdout, stderr = cls.web_server.communicate()
-        casalog.post(f'stdout: {stdout.decode("utf-8")}', 'INFO')
-        casalog.post(f'stderr: {stderr.decode("utf-8")}', 'WARN')
-
-
-
-    @classmethod
-    def setUpClass(cls):
-
-        server = os.sep.join([casatestutils.__path__[0],
-            'calmod_helpers', 'vla_mock_server.py'])
-        casalog.post(f'server is {server}', 'INFO')
-        cls.web_server = subprocess.Popen(
-            [sys.executable, server], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        url = 'http://127.0.0.1:8080'
-        req = request.Request(url)
-        i = 0
-        started = False
-        while not started:
-            try:
-                with request.urlopen(req) as response:
-                    pass
-            except (ConnectionRefusedError, URLError) as e:
-                started = str(e) == 'HTTP Error 400: BAD REQUEST'
-                if i == 19:
-                    raise RuntimeError('Unable to start web server within 10 seconds')
-            i += 1
-            sleep(0.5)
-            if started:
-                break
-        casalog.post(
-            f'Web server successfully started between {0.5*(i-1)} and {0.5*i} seconds',
-            'INFO'
-        )
 
 
     def setUp(self):
@@ -98,17 +79,6 @@ class calmod_test(unittest.TestCase):
         if os.path.exists(self.clname):
             shutil.rmtree(self.clname)
 
-    
-    @classmethod
-    def tearDownClass(cls):
-        output_thread = threading.Thread(
-            target=cls.capture_output, args=(cls.web_server,)
-        )
-        output_thread.start()
-        sleep(2)
-        cls.web_server.terminate()
-        output_thread.join()
-
 
     def exception_verification(self, cm, expected_msg):
         exc = cm.exception
@@ -116,6 +86,18 @@ class calmod_test(unittest.TestCase):
         self.assertNotEqual(
             pos, -1, msg=f'Unexpected exception was thrown: {exc}'
         )
+
+
+    def query_server(self, method):
+        server = http.server.ThreadingHTTPServer(
+            ('127.0.0.1', 8080), MockHTTPRequestHandler
+        )
+        with server:
+            server_thread = threading.Thread(target=server.serve_forever)
+            server_thread.daemon = True
+            server_thread.start()
+            method()
+            server.shutdown()
 
 
     def test_inputs(self):
@@ -166,19 +148,27 @@ class calmod_test(unittest.TestCase):
     def test_component_list_writing(self):
         """Test successful writing of a component list"""
         hosts = [self.hostname]
-        calmod(self.clname, '3C48', band='Q',obsdate=50000, hosts=hosts)
+        self.query_server(
+            lambda: calmod(
+                self.clname, '3C48', band='Q',obsdate=50000, hosts=hosts
+            )
+        )
         self.cl.open(self.clname)
         self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
         ws = self.cl.getkeyword('web_service')
         self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
         self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
-        
-    
+
+       
     def test_direction(self):
         """Test direction input"""
         hosts = [self.hostname]
         direction = 'J2000 01:37:41.1 33.09.32'
-        calmod(self.clname, direction=direction, band='Q',obsdate=50000, hosts=hosts)
+        self.query_server(
+            lambda: calmod(
+                self.clname, direction=direction, band='Q',obsdate=50000, hosts=hosts
+            )
+        )
         self.cl.open(self.clname)
         self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
         ws = self.cl.getkeyword('web_service')
