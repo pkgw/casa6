@@ -425,16 +425,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
 
     // Get the sumwt spectrum.
-    //Array<Float> lsumwt;
-    //cube_imstore->sumwt()->get(lsumwt, False);
+    Array<Float> lsumwt;
+    cube_imstore->sumwt()->get(lsumwt, False);
 
     // Sum the weights ( or just use accumulate...) 
-    //LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
-    //Float wtsum = msum.getFloat();
+    LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
+    Float wtsum = msum.getFloat();
 
     //cout << "lsumwt : " << lsumwt << endl;
 
-    Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
+    //Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
 
     //For each pol, do the Cube-To-Taylor calculation.    
     for(Int pol=0; pol<cube_shp[2]; pol++)
@@ -469,7 +469,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    for(Int tt=0;tt<out_nterms;tt++)
 	      {
 		Double fac = pow(wt,tt);
-		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + (fac) * (*cube_subim) ); // * lsumwt(pos) ) ;
+		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + (fac) * (*cube_subim) )* lsumwt(pos)  ;
 		mt_subims[tt]->copyData(eachterm);
 	      }
 	    
