@@ -1,25 +1,16 @@
 import os
 import logging
 
-try:
-    # CASA 6
-    logging.debug("Importing CASAtools")
-    import casatools
-    tb = casatools.table()
-    casa6 = True
-
-except ImportError:
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying CASA5...")
-    from taskinit import tbtool
-    tb = tbtool()
-    casa5 = True
+logging.debug("Importing CASAtools")
+import casatools
+tb = casatools.table()
 
 class Weblog():
     def __init__(self, taskname, localdict):
         self.localdict = localdict
         self.taskname = taskname
         self.test_counter = 1
+        self.total_runtime = 0
         self.all_passed = True
         #self.html = open("test_{}_weblog.html".format(self.taskname.lower()), 'w')
 
@@ -64,6 +55,7 @@ class Weblog():
             self.html.write('  overflow: auto; /* Enable scroll if needed */' + '\n')
             self.html.write('  background-color: rgb(0,0,0); /* Fallback color */' + '\n')
             self.html.write('  background-color: rgba(0,0,0,0.9); /* Black w/ opacity */' + '\n')
+            self.html.write('  word-wrap: break-word; /* Wrap Text */' + '\n')
             self.html.write('}' + '\n')
             self.html.write('/* Modal Content (Image) */' + '\n')
             self.html.write('.modal-content {' + '\n')
@@ -125,8 +117,8 @@ class Weblog():
             self.html.write('.content {padding: 0 18px;display: none;overflow: hidden;background-color: #f1f1f1;}' + '\n')
             self.html.write(".boxed { border: 1px solid green ;padding: 0 5px 0 5px;margin: 50px}" + '\n')
             self.html.write('.tg  {border-collapse:collapse;border-spacing:0;}' + '\n')
-            self.html.write('.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}' + '\n')
-            self.html.write('.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;}' + '\n')
+            self.html.write('.tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;word-wrap:break-word;}' + '\n')
+            self.html.write('.tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;overflow:hidden;word-break:normal;border-color:black;word-wrap:break-word;}' + '\n')
             self.html.write('.tg .tg-0lax{text-align:left;vertical-align:top}' + '\n')
             self.html.write('.tg .tg-ck9b{background-color:#009901;color:#32cb00;text-align:left;vertical-align:top}' + '\n')
             self.html.write('.tg .tg-r50r{background-color:#cb0000;text-align:left;vertical-align:top}' + '\n')
@@ -205,7 +197,10 @@ class Weblog():
                     continue
             self.all_passed = False
             Weblog(self.taskname, self.localdict).generate_table_row(str(self.test_counter), str(key), dictionary[key]['description'],  dictionary[key]['runtime'], "tg-ck9b" if dictionary[key]['status'] == True else "tg-r50r" )
+            self.total_runtime += dictionary[key]['runtime']
             self.test_counter += 1
+        Weblog(self.taskname, self.localdict).generate_table_row(str(self.test_counter),'Total', 'Total test runtime', self.total_runtime, "tg-ck9b")
+        
         with open("test_{}_weblog.html".format(self.taskname.lower()), 'a+') as self.html:
             if self.all_passed:
                 self.html.write("<tr>" + "\n")

@@ -92,6 +92,12 @@
 #17. Single pointing test with INT-only data from refim_point.ms : Compare with tclean mtmfs
 #testname: test_intonly_mfs_compare_with_tclean
 #
+#18 : Mosaic pointing test with cube : tclean vs sdint, using awproject gridder. For CAS-13581
+# testname: test_intonly_awproject_cube_compare_with_tclean
+#
+#19 : Mosaic pointing test with mtmfs : tclean vs sdint, using awproject gridder. For CAS-13581
+# testname: test_intonly_awproject_mtmfs_compare_with_tclean
+#
 ###########################################################################
 
 ####    Imports     ####
@@ -174,9 +180,9 @@ class testref_base(unittest.TestCase):
 
     def tearDown(self):
         # Default: delete all (input and output data)
-        #self.delData()
+        self.delData()
         # leave for input and output (e.g. for debugging)
-        self.delData(delinput=False, deloutput=False)
+        # self.delData(delinput=False, deloutput=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -231,6 +237,7 @@ class testref_base(unittest.TestCase):
         if delinput:
             if hasattr(self,'msfile') and self.msfile!='':
                 os.system('rm -rf ' + self.msfile)
+                os.system('rm -rf ' + self.msfile + '.flagversions')
             if hasattr(self,'refmsfile') and self.refmsfile!='':
                 os.system('rm -rf ' + self.refmsfile)
             if hasattr(self,'sdimage') and self.sdimage!='':
@@ -244,13 +251,7 @@ class testref_base(unittest.TestCase):
 
 
     def checkfinal(self,pstr=""):
-        th.check_final(pstr)
-
-#          pstr += "["+inspect.stack()[1][3]+"] : To re-run this test :  runUnitTest.main(['test_req_task_sdintimaging["+ inspect.stack()[1][3] +"]'])"
-#          casalog.post(pstr,'INFO')
-#          if( pstr.count("( Fail") > 0 ):
-#              print(pstr)
-#              self.fail("\n"+pstr)
+        self.assertTrue(th.check_final(pstr))
 
 ### functional tests for sdintimaging start here ####
 
@@ -318,6 +319,7 @@ class test_singlepointing(testref_base):
                                    (outimg+'.alpha', -0.954, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.195, [300,400,0,0]) ])      # extended emission with alpha=0
         
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
     #Test 2
@@ -356,6 +358,7 @@ class test_singlepointing(testref_base):
                                    (outimg+'.alpha', -0.996, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', -2.35, [300,400,0,0]) ])      # extended emission with alpha=0 ( will be steep for intonly)
         ## Since this is int_only, the values will be wrong.
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -388,12 +391,14 @@ class test_singlepointing(testref_base):
         outimg = imname+'.joint.multiterm'
         report=th.checkall(imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
-                                     outimg+'.image.tt1',outimg+'.alpha'], 
+                                     outimg+'.image.tt1',outimg+'.alpha'],
+                                     check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
                            imgval=[(outimg+'.psf.tt0', 1.0, [400,400,0,0]),
                                    (outimg+'.image.tt0', 7.91, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.image.tt0', 15.3, [300,400,0,0]),        # extended emission with alpha=0
                                    (outimg+'.alpha', -0.137, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.018, [300,400,0,0]) ])      # extended emission with alpha=0
+        ##self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -433,6 +438,7 @@ class test_singlepointing(testref_base):
                                    (outimg+'.image', 1.091, [350,433,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 0.216, [300,400,0,1]) ])      # extended emission with alpha=0
         ## Check multiple channels. point source flux is same, extended emission will be different because of resolution change.
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -472,11 +478,11 @@ class test_singlepointing(testref_base):
                                    (outimg+'.image', 0.347, [300,400,0,0]),        # extended emission with alpha=0
                                    (outimg+'.image', 0.9607, [350,433,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 0.0025, [300,400,0,1]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
-
     #Test6
-    #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
+    # @unittest.skip("Skip test. check_keywords is failing")
     def test_singlepointing_cube_sdonly(self):
         # Equivalent to onetest(runtype='SinglePointing', specmode='cube', usedata='sd')
         """ [singlePointing] Test_singlepointing_cube_sdonly """
@@ -504,13 +510,15 @@ class test_singlepointing(testref_base):
 
         outimg = imname+'.joint.cube'
         report=th.checkall(imgexist=[outimg+'.psf', 
-                                     outimg+'.residual', outimg+'.image'], 
+                                     outimg+'.residual', outimg+'.image'],
+                                     check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
                            imgval=[(outimg+'.psf', 1.0, [400,400,0,0]),
                                    (outimg+'.psf', 1.0, [400,400,0,1]),
                                    (outimg+'.image', 18.65, [350,433,0,0]),    # point source of 1 Jy
                                    (outimg+'.image', 33.15, [300,400,0,0]),        # extended emission with alpha=0
                                    (outimg+'.image', 8.234, [350,433,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 16.149, [300,400,0,1]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
     # Test 13
@@ -553,6 +561,7 @@ class test_singlepointing(testref_base):
                                    (outimg+'.alpha', -1.29, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.101, [300,400,0,0]) ])      # extended emission with alpha=0
         
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
     #Test 14
@@ -595,6 +604,7 @@ class test_singlepointing(testref_base):
                                    (outimg+'.image', 0, [350,433,0,2]),    # point source of 1 Jy
                                    (outimg+'.image', 0, [300,400,0,2]) ])      # extended emission with alpha=0
         ## Check multiple channels. point source flux is same, extended emission will be different because of resolution change.
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
     #Test 15 
@@ -634,6 +644,7 @@ class test_singlepointing(testref_base):
                                    (outimg+'.alpha', -0.939, [350,433,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.0736, [300,400,0,0]) ])      # extended emission with alpha=0
         
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -694,6 +705,7 @@ class test_mosaic(testref_base):
                                    (outimg+'.image.tt0', 0.268, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.alpha', -0.95, [700,783,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.248, [650,720,0,0]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -732,6 +744,7 @@ class test_mosaic(testref_base):
                                    (outimg+'.image.tt0', 0.147, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.alpha', -1.016, [700,783,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', -0.78, [650,720,0,0]) ])      # extended emission with alpha=0 (steep with intonly)
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -763,12 +776,14 @@ class test_mosaic(testref_base):
         outimg = imname+'.joint.multiterm'
         report=th.checkall(imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
-                                     outimg+'.image.tt1',outimg+'.alpha'], 
+                                     outimg+'.image.tt1',outimg+'.alpha'],
+                                     check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
                            imgval=[(outimg+'.psf.tt0', 1.0, [750,750,0,0]),
                                    (outimg+'.image.tt0', 7.756, [700,783,0,0]),    # point source with alpha=-1
                                    (outimg+'.image.tt0', 15.68, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.alpha', -0.12, [700,783,0,0]),    # point source with alpha=-1
                                    (outimg+'.alpha', 0.013, [650,720,0,0]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -806,6 +821,7 @@ class test_mosaic(testref_base):
                                    (outimg+'.image', 0.485, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.image', 1.043, [700,783,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 0.227, [650,720,0,1]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
@@ -844,11 +860,12 @@ class test_mosaic(testref_base):
                                    (outimg+'.image', 0.41, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.image', 0.966, [700,783,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 0.114, [650,720,0,1]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
 
     #Test12
-  #  @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
+    # @unittest.skip("Skip test. check_keywords is failing")
     def test_mosaic_cube_sdonly(self):
         # Equivalent to onetest(runtype='Mosaic', specmode='cube', usedata='sd')
         """ [Mosaic] Test_mosaic_cube_sdonly """
@@ -874,15 +891,16 @@ class test_mosaic(testref_base):
         ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, interactive=0,pbmask=0.2)
         outimg = imname+'.joint.cube'
         report=th.checkall(imgexist=[outimg+'.psf', 
-                                     outimg+'.residual', outimg+'.image'], 
+                                     outimg+'.residual', outimg+'.image'],
+                                     check_keywords_misc=False, # sdonly images don't go through the vivb2 and don't need the keywords from CAS-12204
                            imgval=[(outimg+'.psf', 1.0, [750,750,0,0]),
                                    (outimg+'.psf', 1.0, [750,750,0,1]),
                                    (outimg+'.image', 18.17, [700,783,0,0]),    # point source of 1 Jy
                                    (outimg+'.image', 33.16, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.image', 8.244, [700,783,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 17.129, [650,720,0,1]) ])      # extended emission with alpha=0
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
-
 
 ######################################
 ##### Compare with tclean
@@ -911,7 +929,7 @@ class test_compare_sdint_tclean(testref_base):
         outimname1 = imname1+'.joint.cube'
 
         report=th.checkall(imgexist=[outimname1+'.psf', outimname1+'.image',
-                                     imname2+'.psf', imname2+'.image'], 
+                                     imname2+'.psf', imname2+'.image'],
                            imgval=[(outimname1+'.psf', 1.0, [100,100,0,0]),
                                    (imname2+'.psf', 1.0, [100,100,0,0]),
                                    (outimname1+'.residual', 0.809179, [100,100,0,0]),  ## End of minor cycle : 0.818269. Changes to 0.809179 after major cycle. 
@@ -920,6 +938,7 @@ class test_compare_sdint_tclean(testref_base):
                                    (imname2+'.image', 1.3766, [100,100,0,0]),
                                    (outimname1+'.image', 1.3561, [100,100,0,1]),
                                    (imname2+'.image', 1.3561, [100,100,0,1]) ])
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
     #Test17
@@ -946,8 +965,133 @@ class test_compare_sdint_tclean(testref_base):
                                    (imname2+'.image.tt0', 1.04, [100,100,0,0]),
                                    (outimname1+'.alpha', -1.06, [100,100,0,0]),
                                    (imname2+'.alpha', -1.06, [100,100,0,0]) ])
+        #self.assertTrue(self.checkfinal(pstr=report))
         self.checkfinal(pstr=report)
 
+
+    #Test18
+    def test_intonly_awproject_cube_compare_with_tclean(self):
+        """ [Mosaic] Test_intonly_mosaic_cube_compare_with_tclean """
+        #################################################
+        # inputdata: set of the data to be copied from the data repos or else where during setup. 
+        inputdata={'refmsname':'refim_oneshiftpoint.mosaic.ms'}
+ 
+        # iterations may need to be shorten for the final version of test
+        self.prepData(inputdata=inputdata)
+
+        imname1=self.img+'.sdint'
+        ret1 = sdintimaging(vis=self.refmsfile, 
+                            imagename=imname1,
+                            usedata='int',
+                            imsize=1024, 
+                            cell='10.0arcsec',
+                            phasecenter='',
+                            specmode='cube',
+                            nchan=3,
+                            interpolation='nearest',
+                            gridder='awproject',
+                            perchanweightdensity=True,
+                            deconvolver='hogbom',
+                            weighting='natural',
+                            niter=30,
+                            cycleniter=5) # Ensure there is one model predict step as well and two minor cycle sets
+        
+        imname2=self.img+'.tclean'
+        ret2 = tclean(vis=self.refmsfile, 
+                      imagename=imname2,
+                      imsize=1024, 
+                      cell='10.0arcsec',
+                      phasecenter='',
+                      specmode='cube',
+                      nchan=3,
+                      interpolation='nearest',
+                      gridder='awproject',
+                      conjbeams=False,
+                      perchanweightdensity=True,
+                      deconvolver='hogbom',
+                      weighting='natural',
+                      niter=30,
+                      cycleniter=5)# Ensure there is one model predict step as well and two minor cycle sets
+        outimname1 = imname1+'.joint.cube'
+
+        report=th.checkall(imgexist=[outimname1+'.psf', outimname1+'.image',outimname1+'.pb',
+                                     imname2+'.psf', imname2+'.image', imname2+'.pb'], 
+                           imgval=[(outimname1+'.psf', 1.0, [512,512,0,1]),
+                                   (imname2+'.psf', 1.0, [512,512,0,1]),
+                                   (outimname1+'.pb', 0.849057, [512,575,0,2]),
+                                   (imname2+'.pb', 0.849057, [512,575,0,2]), 
+                                   (outimname1+'.image', 1.11073, [512,596,0,0]),
+                                   (imname2+'.image', 1.11073, [512,596,0,0]) ])
+        #self.assertTrue(self.checkfinal(pstr=report))
+        self.checkfinal(pstr=report)
+
+
+    #Test19
+    def test_intonly_awproject_mtmfs_compare_with_tclean(self):
+        """ [Mosaic] Test_intonly_awproject_mtmfs_compare_with_tclean 
+              The conjbeams implementation is different between sdintimaging and tclean.
+              => We expect slight differences in the PSF, PB and image outputs
+              To check for equivalence of the major cycle with tclean, use the "cube" test above. 
+        """
+        #################################################
+        inputdata={'refmsname':'refim_oneshiftpoint.mosaic.ms'}
+        self.prepData(inputdata=inputdata)
+
+        ## sdintimaging : Cube major cycles, MT minor cycles.  
+        ## Conjeams is always True : Implemented in the image domain. No parameter. 
+        ## Need to specify cube settings as well. For AWP, bin each SPW into a single channel.
+        imname1=self.img+'.sdint'
+        ret1 = sdintimaging(vis=self.refmsfile, 
+                            imagename=imname1,
+                            usedata='int',                         # Use interferometer data only
+                            imsize=1024, 
+                            cell='10.0arcsec',
+                            phasecenter='',
+                            specmode='mfs',
+                            deconvolver='mtmfs',            # Multiterm parameters (for min cycle)
+                            reffreq='1.5GHz',
+                            nterms=2,
+                            nchan=3,                                  # Cube parameters (for maj cycle)
+                            interpolation='nearest',
+                            gridder='awproject',
+                            perchanweightdensity=True,
+                            weighting='natural',
+                            niter=10,                                   # Two sets of minor cycles, with model prediction in between
+                            cycleniter=5)
+
+        ## tclean : MT major and minor cycles
+        ## Set conjbeams=True to enable wideband pbcor during gridding.
+        imname2=self.img+'.tclean'
+        ret2 = tclean(vis=self.refmsfile, 
+                      imagename=imname2,
+                      imsize=1024, 
+                      cell='10.0arcsec',
+                      phasecenter='',
+                      specmode='mfs',
+                      deconvolver='mtmfs',               # Multiterm parameters (for min and maj cycles)
+                      reffreq='1.5GHz',
+                      nterms=2,
+                      gridder='awproject',
+                      conjbeams=True,                        # Turn on wideband PB correction
+                      weighting='natural',
+                      niter=10,
+                      cycleniter=5)
+        outimname1 = imname1+'.joint.multiterm'
+
+        report=th.checkall(imgexist=[outimname1+'.psf.tt0', outimname1+'.image.tt0',
+                                     imname2+'.psf.tt0', imname2+'.image.tt0'], 
+                           imgval=[(outimname1+'.psf.tt0', 1.0, [512,512,0,0]),    ## PSF tt0 at center
+                                   (imname2+'.psf.tt0', 1.0, [512,512,0,0]),
+                                   (outimname1+'.psf.tt1', -0.0012, [512,512,0,0]),         ## PSF tt1 at center
+                                   (imname2+'.psf.tt1', -0.0015, [512,512,0,0]),
+                                   (outimname1+'.image.tt0', 0.9631, [512,596,0,0]),    ## Intensity at Source Location
+                                   (imname2+'.image.tt0', 0.9813, [512,596,0,0]),
+                                   (outimname1+'.pb.tt0', 0.961563, [512,575,0,0]),  ## PB in between the pointings.
+                                   (imname2+'.pb.tt0', 0.9637, [512,575,0,0]), 
+                                   (outimname1+'.alpha', -0.558, [512,596,0,0]),            ## Alpha at Source Location
+                                   (imname2+'.alpha', -0.535, [512,596,0,0]) ])
+        #self.assertTrue(self.checkfinal(pstr=report))
+        self.checkfinal(pstr=report)
 
 
 def suite():

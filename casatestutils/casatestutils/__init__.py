@@ -1,7 +1,5 @@
-from .weblog import Weblog
-from .check import Check
-from .compare import *
-from .testhelper import *
+#from .compare import *
+#from .testhelper import *
 #from .extractcasascript import main
 #from .testhelpers import TestHelpers
 #import imagehelpers.imagetesthelpers
@@ -12,7 +10,6 @@ import sys
 import time
 from functools import wraps
 import fnmatch
-import logging
 import filecmp
 import unittest
 import pickle
@@ -20,10 +17,8 @@ import numbers
 import operator
 import subprocess
 import numpy
-import six
 
-_casa5 = False
-_casa6 = False
+_casa6 = True
 _importmpi = False
 __bypass_parallel_processing = 0
 
@@ -33,17 +28,8 @@ try:
 except NameError:
     ModuleNotFoundError = ImportError
 
-try:
-    # CASA 6
-    logging.debug("Importing CASAtools")
+def import_casamods():
     import casatools
-    logging.debug("Importing CASAtasks")
-    try:
-        import casatasks
-        from casatasks import casalog
-    except (ImportError, ModuleNotFoundError):
-        pass
-
     try:
         from casampi.MPIEnvironment import MPIEnvironment
         _importmpi = True
@@ -53,29 +39,6 @@ try:
         print("MPIEnvironment not Enabled")
 
     _casa6 = True
-
-except (ImportError, ModuleNotFoundError):
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying casa5...")
-    from __main__ import default
-    from taskinit import tbtool, mstool, iatool
-    from taskinit import *
-    from casa_stack_manip import stack_find, find_casa
-
-    try:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        _importmpi = True
-        if not MPIEnvironment.is_mpi_enabled:
-            __bypass_parallel_processing = 1
-    except ImportError:
-        print("MPIEnvironment not Enabled")
-
-    casa = find_casa()
-    if casa.has_key('state') and casa['state'].has_key('init_version') and casa['state']['init_version'] > 0:
-        casaglobals=True
-        casac = stack_find("casac")
-        casalog = stack_find("casalog")
-    _casa5 = True
 
 _casa6tools = set([
     "agentflagger", "atcafiller", "atmosphere", "calanalysis", "calibrater", "coercetype", "componentlist", "config", "constants", "coordsys", "ctuser", "functional", "image",
@@ -90,9 +53,17 @@ _casa6tasks = set([
     "gencal", "hanningsmooth", "imcollapse", "imcontsub", "imdev", "imfit", "imhead", "imhistory", "immath", "immoments", "impbcor", "importasap", "importasdm",
     "importatca", "importfits", "importfitsidi", "importgmrt", "importmiriad", "importnro", "importuvfits", "importvla", "impv", "imrebin", "imreframe",
     "imregrid", "imsmooth", "imstat", "imsubimage", "imtrans", "imval", "initweights", "listcal", "listfits", "listhistory", "listobs", "listpartition",
-    "listsdm", "listvis", "makemask", "mstransform", "partition", "polcal", 'polfromgain', "predictcomp", "rerefant", "rmfit", "rmtables", "sdbaseline", "sdcal",
+    "listsdm", "listvis", "makemask", "mstransform", "partition", "polcal", "polfromgain", "predictcomp", "rerefant", "rmfit", "rmtables", "sdbaseline", "sdcal",
     "sdfit", "sdfixscan", "sdgaincal", "sdimaging", "sdsmooth", "setjy", "simalma", "simanalyze", "simobserve", "slsearch", "smoothcal", "specfit",
-    "specflux", "specsmooth", "splattotable", "split", "spxfit", "statwt", "tclean", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat", "vishead", "visstat", "widebandpbcor","deconvolve"])
+    "specflux", "specsmooth", "splattotable", "split", "spxfit", "statwt", "tclean", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat", "vishead", "visstat", "widebandpbcor", "deconvolve"])
+
+# tasks that take a measurement set as the first input
+_vistasks = set([
+    "accor", "apparentsens", "applycal", "bandpass", "blcal", "clearcal", "concat", "conjugatevis", "cvel2", "cvel", "delmod", "exportasdm", "exportuvfits", "fixplanets", "fixvis", "flagcmd",
+    "flagdata", "flagmanager", "fluxscale", "fringefit", "ft", "gaincal", "gencal", "hanningsmooth", "importasdm", "importatca", "importfitsidi", "importgmrt", "importmiriad", "importuvfits",
+    "importvla", "initweights", "listcal", "listhistory", "listobs", "listpartition", "listvis", "mstransform", "partition", "phaseshift", "plotants", "plotbandpass", "plotweather", "polcal",
+    "polfromgain", "rerefant", "sdintimaging", "setjy", "simanalyze", "smoothcal", "split", "statwt", "tclean", "testconcat", "uvcontsub3", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat",
+    "vishead", "visstat", "widebandpbcor", "nrobeamaverage", "sdatmcor", "sdbaseline", "sdcal", "sdfit", "sdgaincal", "sdpolaverage", "sdsmooth", "sdtimeaverage", "sdimaging", "tsdimaging"])
 
 _miscellaneous_tasks = set(['wvrgcal','plotms'])
 
@@ -106,6 +77,7 @@ def getNumberOfServers( __bypass_parallel_processing ):
     """
     Return the number of engines (iPython cluster) or the number of servers (MPI cluster)
     """
+    import_casamods()
     if (__bypass_parallel_processing == 0) and (_importmpi):
         return len(MPIEnvironment.mpi_server_rank_list()) 
     else:
@@ -160,15 +132,24 @@ def add_to_dict(self, output=None, dataset="TestData", status=False, **kwargs):
                 if current_case == test_case:
                     if "{}(".format(task) in line:
                         #print(line)
-                        taskname = line.split("(")[0]
+                        taskname, parvals = line.split("(", 1)
+                        is_vistask = False
+                        for vistaskname in _vistasks:
+                            if vistaskname in taskname:
+                                is_vistask = True
+                                break
+
                         ## Optional: Can print first index of casa function call but does not print the string name if it's an assigned object
                         ## Attempt to Get Dataset from casa task call
                         if dataset== "TestData":
                             import re
-                            dataset = re.search('(?<=\().+?(?=\,)',line).group()
+                            dataset = re.search('(?<=\().+?(?=\,)',parvals).group()
                             if len(dataset) == 0 or dataset is None:
                                 dataset = "TestData"
-                        params = line.split(',')[1::]
+
+                        params = parvals.split(',')
+                        if is_vistask:
+                            params = params[1:]
                         #print(params)
                         while ')' not in list(line):
                             line = next(file)
@@ -176,7 +157,11 @@ def add_to_dict(self, output=None, dataset="TestData", status=False, **kwargs):
                             for i in new_line:
                                 params.append(i)
                             params = list(filter(lambda a: a != '', params))
-                        call = "{}({},{}".format(taskname, dataset, ','.join(params))
+
+                        if is_vistask:
+                            call = "{}({},{}".format(taskname, dataset, ','.join(params))
+                        else:
+                            call = "{}({}".format(taskname, ','.join(params))
                         #print(call)
                         func_calls.append(call)
                         #print(func_calls)
@@ -219,7 +204,7 @@ def to_pickle(input_dict, picklefile):
     pickle_dict = pickle.load(pickle_read)
     # Make sure that the pickle file contains a dictionary
     if type(pickle_dict) != type({}):
-        logging.warning('The pickle file is not a dictionary')
+        print('The pickle file is not a dictionary')
     # Add to the dictionary in the pickle file
     for item in list(input_dict.keys()):
         pickle_dict[item] = input_dict[item]
@@ -232,7 +217,8 @@ def generate_weblog(task,dictionary,show_passed = True):
     Example:
         generate_weblog("taskname", dictionary, show_passed)
     """
-
+    import_casamods()
+    from .weblog import Weblog
     Weblog(task, dictionary).generate_weblog(show_passed = show_passed)
 
 ############################################################################################
@@ -273,6 +259,7 @@ def skipIfMissingModule(required_module, strict=False):
 #import casatestutils
 #@casatestutils.time_execution
 def time_execution(out_dict):
+    import_casamods()
     def time_decorator(function):
         '''
         Decorator: time execution of test
@@ -295,13 +282,13 @@ def time_execution(out_dict):
                 failed = True
                 t1 = time.time()
                 out_dict[function.__name__]['runtime'] = t1-t0
-                casalog.post("Total time running {}: {} seconds".format(function.__name__, str(t1-t0)))
+                #casalog.post("Total time running {}: {} seconds".format(function.__name__, str(t1-t0)))
                 out_dict[function.__name__]['status'] = False
                 out_dict[function.__name__]['Failure Message'] = e
                 raise
             t1 = time.time()
             #print ("Total time running %s: %s seconds" % (function.__name__, str(t1-t0)))
-            casalog.post("Total time running {}: {} seconds".format(function.__name__, str(t1-t0)))
+            #casalog.post("Total time running {}: {} seconds".format(function.__name__, str(t1-t0)))
             #print('======================================================')
             #print(function.__name__)
             out_dict[function.__name__]['runtime'] = t1-t0
@@ -408,3 +395,4 @@ def stats_dict(out_dict):
             return function(*args, **kwargs)
         return all_wrapped
     return stats_decorator
+

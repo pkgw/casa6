@@ -13,7 +13,6 @@ target/
 .updated.vlafillertask
 autom4te.cache
 casatools.egg-info
-setup.py
 **/__pycache__/
 scripts/java
 sakura-source

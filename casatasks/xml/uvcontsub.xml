@@ -1,0 +1,270 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd                              file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
+
+  <task category="manipulation" name="uvcontsub" type="function">
+    <shortdescription>continuum subtraction in the uv domain</shortdescription>
+    <description/>
+
+    
+    <input>
+      <param mustexist="true" type="path" name="vis">
+        <shortdescription>Name of input visibility file (MeasurementSet)</shortdescription>
+        <description>Name of input visibility file.
+                     Default: '', must be specified
+
+                     Example: vis='ngc5921.ms'
+        </description>
+        <value/>
+      </param>
+
+      <param type="string" name="outputvis">
+        <shortdescription>Name of output MeasurementSet (visibility file)</shortdescription>
+        <description>Name of output visibility file
+                     Default: '', must be specified
+
+                     Example: outputvis='ngc5921_contsub.ms'
+
+                     If an MS with the output name already exists, it
+                     will not be overwritten and the task stops with
+                     an error.
+        </description>
+        <value/>
+      </param>
+
+      <param type="string" name="field">
+        <shortdescription>Select field using field id(s) or field name(s)</shortdescription>
+        <description>Select field using field id(s) or field name(s)
+                     Default: '' (all fields)
+
+                     Use 'listobs' to obtain the list of id's or
+                     names. If field string is a non-negative integer,
+                     it is assumed a field index,  otherwise, it is
+                     assumed a field name.
+
+                     Examples:
+                     field='0~2'; field ids 0,1,2
+                     field='0,4,5~7'; field ids 0,4,5,6,7
+                     field='3C286,3C295'; field named 3C286 and
+                           3C295
+                     field = '3,4C*'; field id 3, all names
+                     starting with 4C
+        </description>
+        <value/>
+      </param>
+
+      <param type="string" name="spw">
+        <shortdescription>Select spectral window/channels</shortdescription>
+        <description>Select spectral window/channels
+                     Default: '' (meaning all spectral windows and channels)
+           
+                     Examples:
+                     spw='0~2,4'; spectral windows 0,1,2,4 (all channels)
+                     spw='&lt;2';  spectral windows less than 2 (i.e. 0,1)
+                     spw='0:5~61'; spw 0, channels 5 to 61
+                     spw='0,10,3:3~45'; spw 0,10 all channels, spw
+                         3 - chans 3 to 45.
+                     spw='0~2:2~6'; spw 0,1,2 with channels 2
+                         through 6 in each.
+                     spw = '*:3~64'  channels 3 through 64 for all sp id's
+                     spw = ' :3~64' will NOT work.
+        </description>
+        <value/>
+      </param>
+    
+      <param type="string" name="scan">
+        <shortdescription>Select scans by scan numbers</shortdescription>
+        <description>Select scans by scan numbers
+                     Default: '' = all
+
+                     Examples:
+                     scan='3'
+                     scan='2~23'
+                     scan=''4,7,9,12'
+        </description>
+        <value/>
+      </param>
+
+      <param type="string" name="intent">
+        <shortdescription>Select observing intent</shortdescription>
+        <description>Select observing intent
+                     Default: '' (no selection by intent)
+
+                     Example: intent='*BANDPASS*'  (selects data
+                              labelled with BANDPASS intent)
+        </description>
+        <value/>
+      </param>
+    
+      <param type="string" name="array">
+        <shortdescription>Select (sub)array(s) by array ID number</shortdescription>
+        <description>Select (sub)array(s) by array ID number
+                     Default: '' (all)
+        </description>
+        <value/>
+      </param>
+
+      <param type="string" name="observation">
+        <shortdescription>Select by observation ID(s)</shortdescription>
+        <description>Select by observation ID(s)
+                     Default: '' = all
+
+                     Example: observation='0~2,4'
+        </description>
+        <value/>
+      </param>
+
+      <param ignorecase="True" type="string" name="datacolumn">
+        <shortdescription>Which data column to process</shortdescription>
+        <description>Which data column to use for processing
+                     (case-insensitive).
+                     Default: 'data'
+                     Options: 'data', 'model', 'corrected',
+                     'float_data', 'lag_data',
+
+                     Example: datacolumn='corrected'
+        </description>
+        <value>data</value>
+        <allowed ignorecase="True" kind="enum">
+          <value>data</value>
+          <value>model</value>
+          <value>corrected</value>
+          <value>float_data</value>
+          <value>lag_data</value>
+        </allowed>
+      </param>
+      
+      <param type="any" name="fitspec">
+        <shortdescription>Specification of polynomial order and spectral window:channel for fitting</shortdescription>
+        <description>Specification of fit, which can be general or
+        specific for every field and SPW. The continuum will be fitted
+        using a polynomial shape and using as input data points the
+        channels given, which can be considered the line-free
+        channels. fitspec can be a simple string or a dictionary. If
+        it is a simple string, it gives an spw:channel specification in
+        MSSelection syntax, and that same spw:channel specification is
+        used for all fields. In that case, the polynomial order for
+        all fields and SPWs is defined by the fitorder parameter.
+
+        If it is a dictionary, its entries can define a different
+        specification of fit order and channels for every field and
+        for every SPW. The dictionary can have up to as many entries
+        as fields are present in the MeasurementSet, and within each
+        field entry, as many entries as SPWs are present. Each SPW
+        entry specifies the polynomial order (in a 'fitorder' entry)
+        and the line-free channels (in a 'chan' entry).
+
+        If a field or SPW is not included, the default is assumed (all
+        channels, and polynomial order given in the global fitorder
+        parameter).
+
+           Default: '' (all channels for all SPWs for all fields)
+           Examples:
+           '17:100~500;600~910;1215~1678;1810~1903,19:7~100'
+           (The ranges of channels given for SPW 17 and 19
+            are used for all the fields present in the
+            MeasurementSet.)
+
+           Dictionary to use different channels and polynomial
+           orders for different fields and SPWs, assuming:
+                4 SPWs, with IDs 17, 19, 21, 23
+                6 fields, with IDs 0, 1, 4, 5, 6, 7
+           {'0': {'17,19,21,23': {'chan': '', 'fitorder': 1}},
+            '1': {'17': {'chan': '8~120', 'fitorder': 0},
+                  '19': {'chan': '7~100', 'fitorder': 1},
+                  '21': {'chan': '21:2~119', 'fitorder': 1},
+                  '23': {'chan': '', 'fitorder': 0}},
+            '4,5,6': {'19': {'chan': '7~115', 'fitorder': 1},
+                      '21': {'chan': '', 'fitorder': 1},
+                      '23': {'chan': '', 'fitorder': 2}},
+            '7': 'NONE'}
+
+           (Field 0: fit all SPWs and channels (same as not giving it),
+            but using polynomial order 1 for all SPWs.
+            Field 1: fit only some channel ranges (all for SPW 23), with
+            different polynomial orders.
+            Fields 4,5,6: fit only some channel ranges in SPW 19, all
+            channels for SPWs 21 and 23, and don't fit SPWs 17),
+            also using different polynomial orders.
+            Field 7: do not subtract continuum)
+           (The dictionary fields 'chan' can be given in channel
+            numbers, as in the example above, or in frequencies, using
+            the MSSelection syntax)
+
+        In the example, the empty string given for field 0 and all its
+        SPWs means that all the channels are fitted (and subtracted)
+        in all those SPWs. For the corner case where for a given field
+        no channels should be fitted in any SPW, the field entry can
+        be given as a string set to 'NONE'.
+
+        This specification of SPWs and channels uses a syntax similar
+        to the spw parameter. But in contrast to the spw parameter,
+        the SPWs and channels given in fitspec are not used to select
+        data but as a mask applied on the input data only for fitting
+        purposes. The channels that are not included in the
+        specification are masked out and not used as input by the
+        polynomial fitting algorithm. This is different from the spw
+        parameter, which selects the data that will be included in the
+        output. All channels present in the output are
+        continuum-subtracted, regardless of whether they were
+        specified as inputs to the fitting in fitspec
+        </description>
+        <type>string</type><type>record</type>
+        <value type="string"/>
+      </param>
+
+      <param ignorecase="True" type="string" name="fitmethod">
+        <shortdescription>Choose fitting method</shortdescription>
+        <description>Choose fitting methods
+                     Default: 'gsl'
+                     Options: 'gsl', 'casacore'
+
+                     Example: fitmethod='gsl'
+        </description>
+        <value>gsl</value>
+        <allowed ignorecase="True" kind="enum">
+          <value>gsl</value>
+          <value>casacore</value>
+        </allowed>
+      </param>
+
+      <param type="int" name="fitorder">
+        <shortdescription>Polynomial order for the fits</shortdescription>
+        <description>Polynomial order for the fits
+                     Default: 0
+
+                     Values of fitorder > 1 should be used with
+                     care. Higher order polynomials are more flexible,
+                     and may overfit and absorb line emission. They
+                     also tend to go wild at the edges of the range of
+                     channels used for fitting.
+        </description>
+        <value>0</value>
+      </param>
+    
+      <param type="bool" name="writemodel">
+        <shortdescription>Write fitted model into the MODEL column of the output MS</shortdescription>
+        <description>Write fitted model into the MODEL column of the
+        output MeasurementSet.
+
+                     Default: False
+                     Options: True|False
+
+                     By default the task creates an MS with the
+                     continuum subtracted data in the DATA column. If
+                     this option is enabled, the task will also write
+                     the fitted model data into the MODEL column of the
+                     output MS.
+        </description>
+        <value>False</value>
+      </param>
+
+      
+      <constraints>          
+      </constraints>
+    </input>
+
+    <example>
+      For more information, see the task pages of uvcontsub in CASA Docs:
+      https://casadocs.readthedocs.io
+    </example> 
+  <returns>void</returns></task>
+</casaxml>

@@ -87,7 +87,7 @@ class ImagerParameters():
                  conjbeams = True,
                  computepastep =360.0,
                  rotatepastep =360.0,
-                 pointingoffsetsigdev =[30.0,30.0],
+                 pointingoffsetsigdev = [30.0,30.0],
                  
                  pblimit=0.01,
                  normtype='flatnoise',
@@ -139,7 +139,9 @@ class ImagerParameters():
                  dogrowprune=True,
                  minpercentchange=0.0,
                  verbose=False,
-                 fastnoise=False,
+                 fastnoise=True,
+                 fusedthreshold=0.0,
+                 largestscale=-1,
 
 #                 usescratch=True,
 #                 readonly=True,
@@ -163,8 +165,8 @@ class ImagerParameters():
                  ):
         self.allparameters=dict(locals())
         ############TESTOO for debugging Felipe's crash
-        ##params_str=pprint.pformat(self.allparameters)
-        ##casalog.post('ALLPARAMS : ' + params_str, 'WARN', 'CAS-9386-DEBUG')
+        #params_str=pprint.pformat(self.allparameters)
+        #casalog.post('ALLPARAMS : ' + params_str, 'WARN', 'CAS-9386-DEBUG')
         ################################################
         del self.allparameters['self']
         self.defaultKey="0";
@@ -232,6 +234,7 @@ class ImagerParameters():
                                     #'maskresolution':maskresolution, 'nmask':nmask,'autoadjust':autoadjust,
                                     'sidelobethreshold':sidelobethreshold, 'noisethreshold':noisethreshold,
                                     'lownoisethreshold':lownoisethreshold, 'negativethreshold':negativethreshold,'smoothfactor':smoothfactor,
+                                    'fusedthreshold':fusedthreshold, 'specmode':specmode,'largestscale':largestscale,
 
                                     'minbeamfrac':minbeamfrac, 'cutthreshold':cutthreshold, 'growiterations':growiterations, 
                                      'dogrowprune':dogrowprune, 'minpercentchange':minpercentchange, 'verbose':verbose, 'fastnoise':fastnoise,
@@ -247,6 +250,8 @@ class ImagerParameters():
         ######### CFCache params. 
         self.cfcachepars = {'cflist': cflist}
 
+        ######### parameters that may be internally modified for savemodel behavior
+        self.inpars = {'savemodel':savemodel, 'interactive':interactive, 'nsigma':nsigma, 'usemask':usemask}
 
         #self.reusename=reuse
 
@@ -266,6 +271,23 @@ class ImagerParameters():
             casalog.post('Found errors in input parameters. Please check.', 'WARN')
 
         self.printParameters()
+
+    def resetParameters(self):
+        """ reset parameters to the original settting for interactive, nsigma, auto-multithresh when savemodel!='none' """
+        if self.inpars['savemodel']!='none' and (self.inpars['interactive']==True or self.inpars['usemask']=='auto-multithresh' or \
+             self.inpars['nsigma']>0.0 ):
+           #in checkAndFixIterationPars(), when saving model is on, the internal params, readonly and usescrath are set to True and False, 
+           #respectively. So this needs to be undone before calling predictModel.
+           self.iterpars['savemodel']=self.inpars['savemodel'] 
+           if self.inpars['savemodel']=='modelcolumn':
+               for key in self.allselpars:  # for all MSes
+                   self.allselpars[key]['readonly']=False
+                   self.allselpars[key]['usescratch']=True
+              
+           elif self.inpars['savemodel']=='virtual':
+               for key in self.allselpars:  # for all MSes
+                      self.allselpars[key]['readonly']=False
+                      self.allselpars[key]['usescratch']=False
 
     def getAllPars(self):
         """Return the state of all parameters"""
@@ -316,33 +338,44 @@ class ImagerParameters():
         casalog.post('Verifying Input Parameters')
         # Init the error-string
         errs = "" 
-        errs += self.checkAndFixSelectionPars()
-        errs += self.makeImagingParamLists(parallel)
-        errs += self.checkAndFixIterationPars()
-        errs += self.checkAndFixNormPars()
+        try:
+            errs += self.checkAndFixSelectionPars()
+            errs += self.makeImagingParamLists(parallel)
+            errs += self.checkAndFixIterationPars()
+            errs += self.checkAndFixNormPars()
 
-        for mss in sorted( self.allselpars.keys() ):
-            if(self.allimpars['0']['specmode']=='cubedata'):
-                self.allselpars[mss]['outframe']='Undefined'
-            if(self.allimpars['0']['specmode']=='cubesource'):
-                 self.allselpars[mss]['outframe']='REST'
-        ### MOVE this segment of code to the constructor so that it's clear which parameters go where ! 
-        ### Copy them from 'impars' to 'normpars' and 'decpars'
-        self.iterpars['allimages']={}
-        for immod in self.allimpars.keys() :
-            self.allnormpars[immod]['imagename'] = self.allimpars[immod]['imagename']
-            self.alldecpars[immod]['imagename'] = self.allimpars[immod]['imagename']
-            self.allgridpars[immod]['imagename'] = self.allimpars[immod]['imagename']
-            self.iterpars['allimages'][immod] = { 'imagename':self.allimpars[immod]['imagename'] , 'multiterm': (self.alldecpars[immod]['deconvolver']=='mtmfs') }
+            for mss in sorted( self.allselpars.keys() ):
+                if(self.allimpars['0']['specmode']=='cubedata'):
+                    self.allselpars[mss]['outframe']='Undefined'
+                if(self.allimpars['0']['specmode']=='cubesource'):
+                     self.allselpars[mss]['outframe']='REST'
+            ### MOVE this segment of code to the constructor so that it's clear which parameters go where ! 
+            ### Copy them from 'impars' to 'normpars' and 'decpars'
+            self.iterpars['allimages']={}
+            for immod in self.allimpars.keys() :
+                self.allnormpars[immod]['imagename'] = self.allimpars[immod]['imagename']
+                self.alldecpars[immod]['imagename'] = self.allimpars[immod]['imagename']
+                self.allgridpars[immod]['imagename'] = self.allimpars[immod]['imagename']
+                self.iterpars['allimages'][immod] = { 'imagename':self.allimpars[immod]['imagename'] , 'multiterm': (self.alldecpars[immod]['deconvolver']=='mtmfs') }
 
-        ## Integers need to be NOT numpy versions.
-        self.fixIntParam(self.allimpars, 'imsize')
-        self.fixIntParam(self.allimpars, 'nchan')
-        self.fixIntParam(self.allimpars,'nterms')
-        self.fixIntParam(self.allnormpars,'nterms')
-        self.fixIntParam(self.alldecpars,'nterms')
-        self.fixIntParam(self.allgridpars,'facets')
-        self.fixIntParam(self.allgridpars,'chanchunks')
+            ## Integers need to be NOT numpy versions.
+            self.fixIntParam(self.allimpars, 'imsize')
+            self.fixIntParam(self.allimpars, 'nchan')
+            self.fixIntParam(self.allimpars,'nterms')
+            self.fixIntParam(self.allnormpars,'nterms')
+            self.fixIntParam(self.alldecpars,'nterms')
+            self.fixIntParam(self.allgridpars,'facets')
+            self.fixIntParam(self.allgridpars,'chanchunks')
+        except Exception as exc:
+            if len(errs) > 0:
+                # errs string indicates that maybe this exception was our fault, indicate as such and provide the errs string to the user
+                if is_CASA6:
+                    raise Exception("Parameter Errors : \n{}\nThese errors may have caused the '{}'".format(errs, type(exc)))
+                else:
+                    raise Exception("Parameter Errors : \n{}".format(errs))
+            else:
+                # something unforseen happened, just re-throw the exception
+                raise
  
         ## If there are errors, print a message and exit.
         if len(errs) > 0:
@@ -511,6 +544,14 @@ class ImagerParameters():
                     self.iterpars['cycleniter'] = self.iterpars['niter']
                 else:
                     self.iterpars['cycleniter'] = min(self.iterpars['niter'] , 100)
+
+            # saving model is done separately outside of iter. control for interactive clean and or automasking cases
+            if self.iterpars['savemodel']!='none':
+                if self.iterpars['interactive']==True or self.alldecpars['0']['usemask']=='auto-multithresh' or \
+                  self.alldecpars['0']['nsigma']>0.0:
+                    self.iterpars['savemodel']='none' 
+                    self.allselpars['ms0']['readonly']=True
+                    self.allselpars['ms0']['usescratch']=False
 
         return errs
 
