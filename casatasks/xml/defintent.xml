@@ -27,7 +27,7 @@ Allows the user to manually set scan intents
         <param name="mode" type="string">
 <shortdescription>Set mode</shortdescription>
 <description>
-    set append mode
+    Intent modification mode (set/append)
 </description>
                 <value/>
         </param>
