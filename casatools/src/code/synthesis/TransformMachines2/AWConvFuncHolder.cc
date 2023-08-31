@@ -206,10 +206,10 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   /// uvgrid
   Float factorX=fabs(calcCsys_p.increment()(0)/outcsys_p.increment()(0));
   Float factorY=fabs(calcCsys_p.increment()(1)/outcsys_p.increment()(1));
-  //cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
+//  cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
-  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p <<  endl;
+//  cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
   Array<Complex>newAWConv = m.resampleViaFFT(awConv,  factorX,  factorY);
   Array<Complex> newWtConv = m.resampleViaFFT(aWwtConv,  factorX,  factorY);
@@ -232,9 +232,24 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    
-    convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
-    wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
+    //cerr << "npix " << npix << " " << 2*max(awsupport)*oversamp_p << endl;
+    if(npix <= 2*max(awsupport)*oversamp_p){
+      npix=2*(max(awsupport)+1)*oversamp_p;
+      cerr << "aft npix " << npix << endl;
+      IPosition elshp=newAWConv.shape();
+      elshp[0]=npix;
+      elshp[1]=npix;
+      convFunc_p=Array<Complex>(elshp,Complex(0.0));
+      wgtConvFunc_p=Array<Complex>(elshp,Complex(0.0));
+      MathUtils::putMiddle(convFunc_p, newAWConv);
+      MathUtils::putMiddle(wgtConvFunc_p, newWtConv);
+      
+      
+    }
+    else{
+      convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
+      wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
+    }
     convSizes_p.resize(trc[0]+1);
     convSizes_p.set(npix);
     convSupport_p.resize(trc[0]+1);
@@ -284,7 +299,7 @@ Vector<Int> AWConvFuncHolder::getConvSupports() {
   
  return convSupport_p; 
 }
-void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb) {
+void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
   polMap.resize(visPolMap.nelements());
@@ -349,7 +364,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   for (uint k = 0; k < vb.nRows();++k) {
     minDiff = 1e40;
     Int tmpWInd = -1;
-    Double w = vb.uvw().row(2)[k] *invlamda;
+    Double w = rotuvw.row(2)[k] *invlamda;
     for (uint j =0; j < wVals_p.nelements();++j ) {
       if (fabs(fabs(w)-wVals_p[j]) < minDiff) {
        minDiff = fabs(fabs(w)-wVals_p[j]);

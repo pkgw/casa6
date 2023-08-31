@@ -895,6 +895,9 @@ void SimplePBConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
          Double topFreq=max(spwfreq);
          Double bottomFreq=min(spwfreq);
          uint nchan=std::round(topFreq-bottomFreq)/tol;
+        if(nchan==0)
+          nchan=1;
+          
          freqs.resize(nchan);
          for (uint k = 0; k < nchan; ++k){
            freqs[k]=k*tol+bottomFreq;

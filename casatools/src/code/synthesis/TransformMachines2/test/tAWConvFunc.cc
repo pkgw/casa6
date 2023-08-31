@@ -460,7 +460,7 @@ int main(){
        Vector<Int> convRowMap;
         for (vi2.originChunks(); vi2.moreChunks(); vi2.nextChunk()) {
           for (vi2.origin(); vi2.more(); vi2.next()) {
-              awh.getConvIndices(convPolMap, convChanMap, convRowMap,*vb);
+            awh.getConvIndices(convPolMap, convChanMap, convRowMap,*vb, vb->uvw());
               cerr << "pol " << convPolMap << endl;
               cerr << "chan " << convChanMap << endl;
               cerr << "rowMap " << convRowMap << endl;

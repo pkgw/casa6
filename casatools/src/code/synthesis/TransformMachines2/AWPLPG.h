@@ -66,7 +66,7 @@ public:
 protected:     
   
   virtual void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
-			const vi::VisBuffer2& vb);
+			const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
   virtual void init(const vi::VisBuffer2& vb);
   
   std::shared_ptr<AWConvFuncHolder> awConvs_p;

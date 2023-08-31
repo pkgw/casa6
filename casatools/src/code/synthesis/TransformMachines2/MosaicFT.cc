@@ -270,7 +270,7 @@ CountedPtr<SimplePBConvFunc>& MosaicFT::getConvFunc(){
 }
 
 void MosaicFT::findConvFunction(const ImageInterface<Complex>& iimage,
-				const vi::VisBuffer2& vb) {
+				const vi::VisBuffer2& vb, const Matrix<Double>& /*rotateduvw*/) {
   
   
   //oversample if image is small
@@ -332,7 +332,7 @@ void MosaicFT::initializeToVis(ImageInterface<Complex>& iimage,
   lastFieldId_p=-1;
   phaseShifter_p=new UVWMachine(*uvwMachine_p);
   //This is needed here as we need to know the grid correction before FFTing 
-  findConvFunction(*image, vb);
+  findConvFunction(*image, vb, vb.uvw());
   
   prepGridForDegrid();
 
@@ -1062,12 +1062,12 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   // This needs to be after the interp to get the interpolated channels
   //Also has to be after rotateuvw in case tracking is on
   //cerr << "orig " << vb.uvw().row(2) << endl;
-  vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
-  vbRotuvw.setUvw(uvw);
+  //vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
+  //vbRotuvw.setUvw(uvw);
 
   // cerr << "rot  " << vbRotuvw.uvw().row(2) << endl;
 
-  findConvFunction(*image, vbRotuvw);
+  findConvFunction(*image, vb, uvw);
   
   //cerr << "Put convsup " << convSupport << " max min convFunc " << max(convFunc) << "   " << min(convFunc) << "  "  << max(weightConvFunc_p) << min(weightConvFunc_p)  << "SHP " << convFunc.shape() << "   " << weightConvFunc_p.shape() << endl;
   //cerr << "convRowMap " << convRowMap_p  << " " << convChanMap_p << "  " << convPolMap_p << endl; 
@@ -1471,10 +1471,10 @@ void MosaicFT::gridImgWeights(const vi::VisBuffer2& vb){
   refocus(uvw, vb.antenna1(), vb.antenna2(), dphase, vb);
   // This needs to be after the interp to get the interpolated channels
   //Also has to be after rotateuvw in case tracking is on
-  vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
-  vbRotuvw.setUvw(uvw);
+  //vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
+  //vbRotuvw.setUvw(uvw);
 
-  findConvFunction(*image, vbRotuvw);
+  findConvFunction(*image, vb, uvw);
   //nothing to grid here as the pointing resulted in a zero support convfunc
   if(convSupport <= 0)
     return;
@@ -1651,11 +1651,11 @@ void MosaicFT::get(vi::VisBuffer2& vb, Int row)
   Cube<Int> flags;
   getInterpolateArrays(vb, data, flags);
 
-  vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
-  vbRotuvw.setUvw(uvw);
+  //vi::VisBuffer2& vbRotuvw=const_cast<vi::VisBuffer2&>(vb);
+  //vbRotuvw.setUvw(uvw);
 
   //Need to get interpolated freqs
-  findConvFunction(*image, vbRotuvw);
+  findConvFunction(*image, vb, uvw);
 
   // no valid pointing in this buffer
   if(convSupport <= 0)

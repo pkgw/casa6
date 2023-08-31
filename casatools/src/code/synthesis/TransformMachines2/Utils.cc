@@ -1471,10 +1471,10 @@ namespace casa{
 
 /////===========
    MathUtils::MathUtils(){
-    Timer tim;
-    tim.mark();
+     //Timer tim;
+     //tim.mark();
     initSincCache();
-    tim.show("Calculating 16000 sines");
+    //tim.show("Calculating 16000 sines");
   }
   Array<Complex> MathUtils::resample(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
 
@@ -1619,9 +1619,13 @@ namespace casa{
        ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
        inIt.origin();
        outIt.origin();
-       outIt.array()(blc, trc)=inIt.array();
-       inIt.next();
-       outIt.next();
+       while(!inIt.pastEnd() && !inIt.pastEnd()){
+      
+        (outIt.array())(blc, trc).assign(inIt.array());
+       
+        inIt.next();
+        outIt.next();
+       }
      }
      else if(outArr.shape()[0] < nx && outArr.shape()[1] < ny){// take the inner of inArray
         IPosition blc(2,  (nx-outArr.shape()[0])/2,  (ny-outArr.shape()[1])/2);
@@ -1630,10 +1634,12 @@ namespace casa{
         ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
         inIt.origin();
         outIt.origin();
-        //cerr << "Shapes in putM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
-        outIt.array()=inIt.array()(blc, trc);
-        inIt.next();
-        outIt.next();
+        while(!inIt.pastEnd() && !inIt.pastEnd()){
+          //cerr << "Shapes in putM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+          outIt.array()=inIt.array()(blc, trc);
+          inIt.next();
+          outIt.next();
+        }
 
 
      }
@@ -1652,7 +1658,7 @@ namespace casa{
     Double nx=Double(inarray.shape()(0));
     Double ny=Double(inarray.shape()(1));
     IPosition shp=inarray.shape();
-    cerr <<  "shp " <<  shp <<  endl;
+    //cerr <<  "shp " <<  shp <<  endl;
     shp(0)=Int(std::ceil(nx*factorX/8.0))*8;
     shp(1)=Int(std::ceil(ny*factorY/8.0))*8;
     Int newNx=shp(0);

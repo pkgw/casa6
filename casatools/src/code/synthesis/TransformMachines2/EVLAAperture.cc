@@ -211,7 +211,8 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
   
   String bandName = "EVLA_L";
   if (telescopeName == "VLA") {
-    if ((freq >= 1.34E9) && (freq <= 1.73E9))
+//    if ((freq >= 1.34E9) && (freq <= 1.73E9))
+    if((freq >= 9E8) && (freq <= 1.73E9))
       bandName = "VLA_L";
     else if ((freq >= 4.5E9) && (freq <= 5.0E9))
       bandName = "VLA_C";
@@ -227,7 +228,7 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
       bandName = "VLA_4";
     else
       throw(
-          AipsError("Don't know band for frequency=" + String::toString(freq)));
+          AipsError("Don't know VLA band for frequency=" + String::toString(freq)));
   } else if (telescopeName == "EVLA") {
     if (freq > 9e8 && freq <= 2.0e9)
       bandName = "EVLA_L";
@@ -247,7 +248,7 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
       bandName = "EVLA_Q";
     else
       throw(
-          AipsError("Don't know band for frequency=" + String::toString(freq)));
+          AipsError("Don't know EVLA band for frequency=" + String::toString(freq)));
   } else {
     throw(AipsError("Don't know telescope " + telescopeName));
   }

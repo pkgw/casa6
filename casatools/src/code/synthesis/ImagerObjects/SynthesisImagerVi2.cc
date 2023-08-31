@@ -99,6 +99,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iomanip>
+#include <thread>
 #include <synthesis/Parallel/Applicator.h>
 
 using namespace std;
@@ -153,8 +154,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      
 	      String mes=x.getMesg();
 	      if(mes.contains("FilebufIO::readBlock") || mes.contains("SOURCE")){
-		sleep(0.05);
-		os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
 	      }
 	      else
 		throw(AipsError("Error in selectdata: "+mes));

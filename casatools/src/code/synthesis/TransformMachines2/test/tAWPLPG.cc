@@ -68,7 +68,8 @@ refim::FTMachine* makeFTM(String ftmachine, MPosition loc, MDirection dir){
     static_cast<refim::MosaicFTNew &>(*outftm).setConvFunc(mospb);
   }
   if(ftmachine=="AWPLPG"){
-    outftm = new refim::AWPLPG(sj , 1, false, 2*C::pi, loc, "I", false, true, false);
+    
+    outftm = new refim::AWPLPG(sj , 16, true, 5.0/180.0*C::pi, loc, "I", false, true, false);
     static_cast<refim::AWPLPG &>(*outftm).setConvFunc(mospb);
   }
   
