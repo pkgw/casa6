@@ -85,8 +85,8 @@ public:
     if(set_traits::maxset<set_traits::count)bits.reset();
     unsigned int nmax=setting.size();
     if(nmax>set_traits::maxset)nmax=set_traits::maxset;
-  for(unsigned int n=0; n<nmax; n++)
-    bits.set(to_bit(setting[n]), value);
+    for(unsigned int n=0; n<nmax; n++)
+      bits.set(to_bit(setting[n]), value);
     return *this;
   }
 
