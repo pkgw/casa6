@@ -66,7 +66,7 @@ EVLASwPow::SPType EVLASwPow::sptype(const String name) {
     return EVLASwPow::SWPOW;
   if (utype.contains("RQ"))
     return EVLASwPow::RQ;
-  if (utype.contains("SWPOWWTS"))
+  if (utype.contains("SWPWTS"))
     return EVLASwPow::SWPWTS;
 
   // Only get here if name unrecognized
