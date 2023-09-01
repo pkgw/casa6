@@ -1187,16 +1187,23 @@ class simutil:
                 self.msg("Number of antennas has not been set.",priority="error")
                 return False
 
-            known=False
+            known, found_match, found_partial_match = False, False, False
             # check if telescope is known to measures tool
             # ensure case insensitivity - CAS-12753
             obslist_lower = [obs.lower() for obs in me.obslist()]
-            if self.telescope.lower() in obslist_lower:
-                t = self.telescope
+            if telescope.lower() in obslist_lower:
+                found_match = True
+            else:
+                # e.g., aca.tp.cfg, where a substring of a known obsname (ALMASD) is known
+                for obsname in obslist_lower:
+                    if obsname in telescope.lower():
+                        found_partial_match = True
+
+            if found_match == True or found_partial_match == True:
                 known = True
-                        
+
             if known == True:
-                posobs = me.measure(me.observatory(t), 'WGS84')
+                posobs = me.measure(me.observatory(telescope), 'WGS84')
             else:
                 self.msg("Unknown telescope and no antenna list.",
                          priority="error")
@@ -1678,10 +1685,18 @@ class simutil:
             self.msg("Using observatory= %s" % self.telescopename,
                      origin="readantenna")
 
-        known = False
+        known, found_match, found_partial_match = False, False, False
         # case insensitive check if telescopename is known
         obslist_lower = [obs.lower() for obs in me.obslist()]
-        if self.telescopename.lower() in obslist_lower: 
+        if self.telescopename.lower() in obslist_lower:
+            found_match = True
+        else:
+            # e.g., aca.tp.cfg, where a substring of a known obsname (ALMASD) is known
+            for obsname in obslist_lower:
+                if obsname in self.telescopename.lower():
+                    found_partial_match = True
+
+        if found_match == True or found_partial_match == True:
             t = self.telescopename
             known = True
             posobs=me.measure(me.observatory(t),'WGS84')
