@@ -13,7 +13,7 @@ _tb = table( )
 _qa = quanta( )
 
 ######################################################################
-def correct_ant_posns_evla (vis_name, print_offsets=False):
+def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
     '''
     Given an input visibility MS name (vis_name), find the antenna
     position offsets that should be applied.  This application should
@@ -177,6 +177,13 @@ def correct_ant_posns_evla (vis_name, print_offsets=False):
                 ant_num_stas[ant_ind][3] += Bx
                 ant_num_stas[ant_ind][4] += By
                 ant_num_stas[ant_ind][5] += Bz
+                
+                # insert time_limit here
+                if time_limit <= 0 or ( put_time - obs_time < time_limit ):
+                    #print("put time MJD, antenna, pad, offsets = %f  %d  %s  %f %f %f" % (put_time_MJD,ant_num_stas[ant_ind][0],ant_num_stas[ant_ind][2],Bx,By,Bz))
+                    ant_num_stas[ant_ind][3] += Bx
+                    ant_num_stas[ant_ind][4] += By
+                    ant_num_stas[ant_ind][5] += Bz
 
     ants = []
     parms = []

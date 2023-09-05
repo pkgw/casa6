@@ -165,6 +165,16 @@ Current antenna-based gencal options (caltype) are:
       </description>
       <value>5</value>
    </param>
+   
+   <param subparam="true" name="ant_pos_time_limit" type="int">
+      <shortdescription>Days beyond the observation to include correction in offset</shortdescription>
+      <description>Maximum number of days beyond the observation for which a
+          correction should be included in the final offset
+                     Subparameter of caltype='antpos'
+                     Default: 0
+      </description>
+      <value>0</value>
+   </param>
 
    <param name="spw" type="string">
       <shortdescription>Select spectral window/channels</shortdescription>
