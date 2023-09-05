@@ -17,11 +17,14 @@ except ImportError:
     myme=metool()
     mymd=msmdtool()
 
-def polfromgain(vis,tablein,caltable,paoffset):
+def polfromgain(vis,tablein,caltable,paoffset,minpacov):
 
     casalog.origin('polfromgain')
 
     casalog.post("Deriving calibrator linear polarization from gain ratios.")
+
+    casalog.post("Requiring at least "+str(minpacov)+" deg of parallactic angle coverage for each antenna solution.")
+    minpacovR=minpacov*pi/180.0
 
     try:
 
@@ -133,7 +136,14 @@ def polfromgain(vis,tablein,caltable,paoffset):
 
                         parang+=rang[iant,ispw]
                         parang+=(paoffset*pi/180.)       # manual feed pa offset
-                    
+
+                        # Check parang coverage
+                        dparang=abs(parang[~flags].max()-parang[~flags].min())  # rad
+                        if dparang<minpacovR:
+                            antok[iant]=False
+                            casalog.post('Fld='+fldnames[ifld]+' Spw='+str(ispw)+' Ant='+str(iant)+' has insuffiencient parallactic angle coverage: '+str(dparang*180/pi)+' < '+str(minpacov),'WARN')
+                            continue
+
                         # indep var matrix
                         A=mypl.ones((nrows,3))
                         A[:,1]=mypl.cos(2*parang)
@@ -146,7 +156,7 @@ def polfromgain(vis,tablein,caltable,paoffset):
                         gratio2=mypl.square(amps[0,0,:]/amps[1,0,:])
                         gratio2[flags]=0.0  # zero flagged samples
                 
-                        fit=mypl.lstsq(A,gratio2)
+                        fit=mypl.lstsq(A,gratio2,rcond=None)
 
                         r[iant]=fit[0][0]
                         q[iant]=fit[0][1]/r[iant]/2.0

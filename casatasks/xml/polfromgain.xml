@@ -26,6 +26,12 @@
                         <value>0.0</value>
                 </param>
 
+                <param type="double"
+		       name="minpacov"><shortdescription>Minimum parallactic angle coverage (deg)</shortdescription><description>Minimum parallactic angle coverage required for a solution (per antenna)</description>
+                        
+                        <value>30.0</value>
+                </param>
+
         </input>
 <returns type="void"/>
 
