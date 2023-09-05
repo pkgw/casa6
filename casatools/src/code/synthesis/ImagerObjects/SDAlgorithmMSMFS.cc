@@ -333,14 +333,25 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Calculate restored image and alpha using modified residuals
     SDAlgorithmBase::restore( itsImages );
 
+
     // Put back original unmodified residuals.o
     for(uInt tix=0; tix<itsNTerms; tix++)
       {
 	(itsImages->residual(tix))->copyData( LatticeExpr<Float>( tempResOrig(tix) ) );
       }
-
       } // for polid loop
     }// for chanid loop
+
+
+    // CAS-13401 : Copy over the beam info from the subimage to the full image.
+    // This fixes the issue of a full Stokes image not having a restoring beam.
+    ImageInfo iminf = itsImages->image(0)->imageInfo();
+    GaussianBeam beam = iminf.getBeamSet().getBeam(0,0);
+
+    iminf.setAllBeams(nSubChans, nSubPols, beam);
+
+    imagestore->image(0)->setImageInfo(iminf);
+    iminf = imagestore->image(0)->imageInfo();
 
     // This log message is important. This call of imagestore->image(...) is the first call if there is
     // a multi-channel or multi-pol image. This is what will set the units correctly. Ref. CAS-13153
