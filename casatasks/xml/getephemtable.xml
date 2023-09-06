@@ -1,0 +1,101 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd       file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
+<task category="import/export" name="getephemtable" type="function">
+<shortdescription>Query the JPL-Horizons database for ephemeris data and create a CASA table</shortdescription>
+<description>
+This task retrieves the ephemeris data of a specific ephemeris object by sending
+a query to JPL's Horizons system and creates the ephemeris data stored in a CASA table
+format.
+
+</description>
+  <input>
+          
+    <param type="string" name="objectname">
+<shortdescription>Name of ephemeris object</shortdescription>
+<description>Name of ephemeris object. The common name of major bodies such as
+             planets will be converted into the (NAIF/SPK) ID. If the parameter, asis
+             is set to True, no such check or conversion will be performed before sending
+             a query to the database.
+                     Default: none
+
+                        Example: 
+                        objectname='Titan'
+                        objectname='606'
+</description>
+      <value type="string"/>
+    </param>
+
+    <param type="bool" name="asis">
+<shortdescription>A toggle for objectnamne check to be done or not</shortdescription>
+<description>A toggle for objectname check to be done or not. asis=True will override
+             any checks on objectname and the name has to be recongnized by the JPL-Horzions system.
+
+                     Default: False 
+                     
+                     Set asis=True to specify an ojbect such as a comet by a designated name 
+
+</description>
+      <value type="bool">False</value>
+    </param>
+
+    <param type="string" name="timerange">
+<shortdescription>time range of ephemeris data to be queried</shortdescription>
+<description>Time range of ephemeris data to be queried.
+                     Default: none
+
+                     Standard CASA timerange specification(‘T0~T1’),YY/MM/DD/hh:mm,
+                     or by Modified Julian date or Juliandate if the string isi prefixedi byi ‘MJD’or‘JD’.
+
+                        Examples:
+                        timerange = '2023/09/01/20:45~2023/09/02/04:00'
+                        (Note: Both start and end times need to be fully specified starting with YYYY 
+                         but hours or minutes can be omitted  as long as the
+                         start and stop times are distinguishable. The omitted hours or minutes are translated as '00')
+                        timerange = ‘MJD 60175.1~60176.1'
+
+</description>
+                  <value type="string"/>
+                </param>
+
+                <param type="string" name="interval">
+<shortdescription>Interval or step size of ephemeris data</shortdescription>
+<description>Interval or step size of ephemeris data
+                     Default: '1d' 
+
+                        Example:
+
+                        interval='1h'
+                        interval='15m'
+</description>
+                  <value type="string"/>
+                </param>
+
+                <param type="string" name="outfile">
+<shortdescription>Name of output CASA table</shortdescription>
+<description>Output CASA table name
+                     Default: none 
+
+                        Example: 
+                        outfile = 'Titan_MJD60175.1-60176.1.tab'
+
+</description>
+                  <value type="string"/>
+                </param>
+    
+                <param type="string" name="rawdatafile">
+<shortdescription>Name of raw ephemeris data file</shortdescription>
+<description>Name of raw ephemeris data file before converting into a CASA table (optinal)
+                     Default: '' = No raw ephemeris dta is saved 
+
+                         Example: rawdatafile='Titan-jplhorizons.dat'
+</description>
+                  <value type="string"/>
+                </param>
+
+
+  </input>
+
+ <returns type="void"/>      
+<example>
+</example>
+</task>
+</casaxml>
