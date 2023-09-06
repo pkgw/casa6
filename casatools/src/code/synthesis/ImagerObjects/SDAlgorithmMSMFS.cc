@@ -266,7 +266,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     // Loop over polarization planes here, as MTC knows only about Matrices.
     Int nSubChans, nSubPols;
+    
     queryDesiredShape(nSubChans, nSubPols, imagestore->getShape());
+    
+    // CAS-13401 : Store restoring beam per plane, so it can be set in the final restored image.
+    ImageBeamSet restoringBeams;
+    restoringBeams.resize(nSubChans, nSubPols);
+
     for( Int chanid=0; chanid<nSubChans;chanid++) // redundant since only 1 chan
     {
 
@@ -332,26 +338,18 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     // Calculate restored image and alpha using modified residuals
     SDAlgorithmBase::restore( itsImages );
-
+    
+    // This is required because imageInfo() only contains the beam for this chan/pol.
+    GaussianBeam thisBeam = itsImages->image(0)->imageInfo().getBeamSet().getBeam(chanid, polid);
+    restoringBeams.setBeam(chanid, polid, thisBeam);
 
     // Put back original unmodified residuals.o
-    for(uInt tix=0; tix<itsNTerms; tix++)
-      {
-	(itsImages->residual(tix))->copyData( LatticeExpr<Float>( tempResOrig(tix) ) );
+    for(uInt tix=0; tix<itsNTerms; tix++) {
+      (itsImages->residual(tix))->copyData( LatticeExpr<Float>( tempResOrig(tix) ) );
       }
       } // for polid loop
     }// for chanid loop
 
-
-    // CAS-13401 : Copy over the beam info from the subimage to the full image.
-    // This fixes the issue of a full Stokes image not having a restoring beam.
-    ImageInfo iminf = itsImages->image(0)->imageInfo();
-    GaussianBeam beam = iminf.getBeamSet().getBeam(0,0);
-
-    iminf.setAllBeams(nSubChans, nSubPols, beam);
-
-    imagestore->image(0)->setImageInfo(iminf);
-    iminf = imagestore->image(0)->imageInfo();
 
     // This log message is important. This call of imagestore->image(...) is the first call if there is
     // a multi-channel or multi-pol image. This is what will set the units correctly. Ref. CAS-13153
@@ -359,6 +357,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     for(uInt tix=0; tix<itsNTerms; tix++)
       {
 	os << LogIO::POST << imagestore->image(tix)->name() << "  (model=" << imagestore->model(tix)->name() << ") " ;
+
+      // CAS-13401 : Set the per-chan per-pol beam info for the restored image.
+      ImageInfo iminf = imagestore->image(tix)->imageInfo();
+      iminf.setBeams(restoringBeams);
+      imagestore->image(tix)->setImageInfo(iminf);
+
       }
     os << LogIO::POST << endl;
 
