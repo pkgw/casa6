@@ -34,7 +34,7 @@ import unittest
 import numpy
 
 from casatasks import casalog, flagdata
-from casatasks import split as split_ms
+from casatasks import split
 from casatasks import tsdimaging
 from casatasks.private.sdutil import is_ms, table_manager, tool_manager
 from casatestutils import restfreqtool, selection_syntax
@@ -1540,7 +1540,7 @@ class TestTimeRangeHelper:
             else:
                 os.remove(sel_ms_name)
         try:
-            split_ms(vis=input_ms, outputvis=sel_ms_name, timerange=params['timerange'])
+            split(vis=input_ms, outputvis=sel_ms_name, timerange=params['timerange'])
             # ---- 1.2 Restore original POINTING table
             org_pointing = os.path.join(input_ms, 'POINTING')
             ref_pointing = os.path.join(sel_ms_name, 'POINTING')
