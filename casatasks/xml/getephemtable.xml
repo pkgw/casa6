@@ -66,10 +66,10 @@ format.
                         interval='1h'
                         interval='15m'
 </description>
-                  <value type="string"/>
+                  <value type="string">1d</value>
                 </param>
 
-                <param type="string" name="outfile">
+                <param type="path" name="outfile">
 <shortdescription>Name of output CASA table</shortdescription>
 <description>Output CASA table name
                      Default: none 
@@ -82,7 +82,7 @@ format.
                 </param>
     
                 <param type="string" name="rawdatafile">
-<shortdescription>Name of raw ephemeris data file</shortdescription>
+<shortdescription>Name of raw ephemeris data file (optional)</shortdescription>
 <description>Name of raw ephemeris data file before converting into a CASA table (optinal)
                      Default: '' = No raw ephemeris dta is saved 
 
