@@ -566,7 +566,7 @@ class PySynthesisImager:
     #############################################
     def makeSdImage(self):
         self.makeSdImageCore()
-        for immod in range(0,self.NF):
+        for immod in range(0, self.NF):
             self.PStools[immod].gatherresidual()
             self.PStools[immod].divideresidualbyweight(singledish=True)
 
