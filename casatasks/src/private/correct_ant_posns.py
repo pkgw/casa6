@@ -19,7 +19,7 @@ else:
     # for getting a single tool in gentools
     (_tb,) = gentools(['tb'])
 
-def correct_ant_posns(vis_name, print_offsets=False, time_limit):
+def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
     """
     Given an input visibility MS name (vis_name), find the antenna
     position offsets that should be applied.  This application should
