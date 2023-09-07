@@ -174,9 +174,9 @@ def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
                     ant_num_stas[ant_ind][5] = 0.0
             if put_time > obs_time and not ant_num_stas[ant_ind][6] and pad == ant_num_stas[ant_ind][2]:
 # it's the right antenna/pad; add the offsets to those already accumulated
-                ant_num_stas[ant_ind][3] += Bx
-                ant_num_stas[ant_ind][4] += By
-                ant_num_stas[ant_ind][5] += Bz
+                #ant_num_stas[ant_ind][3] += Bx
+                #ant_num_stas[ant_ind][4] += By
+                #ant_num_stas[ant_ind][5] += Bz
                 
                 # insert time_limit here
                 if time_limit <= 0 or ( put_time - obs_time < time_limit ):
