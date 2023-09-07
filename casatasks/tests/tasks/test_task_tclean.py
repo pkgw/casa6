@@ -5429,6 +5429,40 @@ class test_mtmfsviacube(testref_base):
           casalog.post(report, "SEVERE")
           self.assertTrue(self.check_final(pstr=report))
 
+     ## Tests for mtmfs_via_cube : AWProject gridder
+     def test_mtmfsviacube_awp2(self):
+          """ test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          ###########################################
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152', 
+                       imsize=512,    
+                       cell='10.0arcsec', 
+                       specmode='mtmfs_via_cube', 
+                       gridder='awp2',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=100, 
+                       pbcor=True)
+
+          report=self.th.checkall(
+               imgexist=['tst.psf.tt0',
+                         'tst.residual.tt0',
+                         'tst.image.tt0',
+                         'tst.image.tt1',
+                         'tst.alpha'], 
+               imgval=[('tst.psf.tt0', 1.0, [256,256,0,0]),
+                       ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
+                       ('tst.alpha', -0.5, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
+                       ('tst.image.tt0.pbcor', 1.05, [256,256,0,0]), # Sky : point source with alpha=-0.5
+               ]
+          )  
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
+
 
      ## Tests for mtmfs_via_cube : Compare with 'mfs' for a point source at the phase center, where PB does not matter.
      def test_mtmfsviacube_compare_with_mfs(self):

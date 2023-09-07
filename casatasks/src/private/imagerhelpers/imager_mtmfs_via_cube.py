@@ -71,8 +71,11 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
         nchan = self.allimpars["0"]["nchan"]
         freqbeg, freqwidth = self.determineFreqRange()
-        if nchan > 0:
-            freqwidth = freqwidth / nchan
+        if nchan < 1 :
+            nchan=int((freqbeg+freqwidth)/20)   #1/20 of peak freq
+            if nchan < 4:
+                nchan=4
+        freqwidth = freqwidth / nchan
         print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
         # - specmode to cube so that we run a cube major cycle
@@ -253,7 +256,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=True)
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=False)
-            if SW==False:
+            if  SW==False:
                 self.removePBSpectralIndex(inpcube, pbcube, pbcube + ".tt0", np.fabs(pblimit))
             else:
                 imname = self.get_dec_pars_for_immod(immod)['imagename']
@@ -273,15 +276,17 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         time0 = time.time()
         super().makePSFCore()
         time1 = time.time()
+        #####have to ensure the pb is made
+        super().makePB()
+        pblimit = self.allnormpars['0']["pblimit"]
+        cubewt = self.get_image_name(0, "sumwt")
+        pbcube = self.get_image_name(0, "pb")
+        self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
         suffixes = ["psf", "sumwt", "weight"]
         for immod in range(0, self.NF):
             self.cube2tt(immod, suffixes=suffixes)
-        pbcube = self.get_image_name(immod, "pb")
-        pblimit = self.allnormpars[str(immod)]["pblimit"]
-        cubewt = self.get_image_name(immod, "sumwt")
-        #####have to ensure the pb is made
-        super().makePB()
-        self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
+       
+       
         for immod in range(0, self.NF):
             self.mfsImager.PStools[immod].gatherpsfweight()
             self.mfsImager.PStools[immod].dividepsfbyweight()
@@ -322,7 +327,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pblimit = self.allnormpars[str(immod)]["pblimit"]
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=False)
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=True)
-
             if SW==False:
                 self.modify_cubemodel_with_pb(
                     modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
@@ -433,7 +437,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             reffreq = self.allimpars[str(immod)]["reffreq"]
             dopsf = suffix == "psf" or suffix == "sumwt"
             chwgt = None if suffix != "weight" else chanweight
-            
             if SW==False:
                 self.cube_to_taylor_sum(
                     cubename=basename,

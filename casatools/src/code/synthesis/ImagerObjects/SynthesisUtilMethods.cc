@@ -335,14 +335,26 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       {
 	throw( AipsError("cubeToTaylorSum currently only supports 'psf','residual','pb', 'sumwt' options"));
       }
-
+    
     // Set up imstores
     CountedPtr<SIImageStore> cube_imstore;
     cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
 
     CountedPtr<SIImageStoreMultiTerm> mt_imstore;
     mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, nterms, true, true )); 
-
+    //For psf   avg pb has to be done already
+    // doing residual too for sensitivity  this is independent of beam spectral index removal
+    Float maxPB=1.0;
+    if(imtype < 2){
+      LatticeExprNode elnod( max( *(mt_imstore->pb(0)) ) );
+      maxPB=elnod.getFloat();
+      if(maxPB == 0.0){
+       throw(AipsError("Programmers error: should do tt psf images after making average PB")); 
+        
+      }
+     
+    }
+    cerr << "imtype " << imtype << " MAX PB " << maxPB << endl;
     // If dopsf=True, calculate 2n-1 terms.
     Int out_nterms=nterms; // for residual
     if(imtype==0 || imtype==3){out_nterms=2 * nterms - 1;} // the psfs fill the upper triangle of the Hessian with 2 nterms-1 elements. Also sumwt.
@@ -432,7 +444,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
     Float wtsum = msum.getFloat();
 
-    //cout << "lsumwt : " << lsumwt << endl;
+    cerr << "perchansumwt : shape "<< lsumwt.shape() << "  "  << lsumwt << " sumwt "<< wtsum << endl;
 
     //Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
 
@@ -461,6 +473,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 										     chan, cube_shp[3],
 										     pol, cube_shp[2], 
 										     *use_cube);
+        if(imtype < 2){
+          CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *(cube_imstore->pb()));
+          CountedPtr<ImageInterface<Float> > tmplat = new TempImage<Float>(cube_subim->shape(), cube_subim->coordinates());
+          tmplat->copyData(LatticeExpr<Float>((*pb_subim) *(*cube_subim)));
+          cube_subim = tmplat;
+          
+        }
 
 	    IPosition pos(4,0,0,pol,chan);
 	    
@@ -469,8 +491,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    for(Int tt=0;tt<out_nterms;tt++)
 	      {
 		Double fac = pow(wt,tt);
-		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + (fac) * (*cube_subim) )* lsumwt(pos)  ;
+		//cerr <<  "BEF " <<  max(mt_subims[tt]->get()) <<  endl;
+		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + ((fac) * (*cube_subim) * lsumwt(pos)))  ;
 		mt_subims[tt]->copyData(eachterm);
+		//cerr <<" chan " <<  chan  <<  " tt " <<  tt <<  " fac " <<  " lsumwt " <<  lsumwt(pos) <<  " pos " << pos << fac << " max " <<  max(mt_subims[tt]->get()) <<  endl;
 	      }
 	    
 
@@ -480,7 +504,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	// Divide by sum of weights.
 	for(Int tt=0;tt<out_nterms;tt++)
 	  {
-	    LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+	    LatticeExpr<Float> eachterm;
+	    if (imtype < 2) {
+          //cerr << "bef tt " <<  tt <<  max(mt_subims[tt]->get()) << endl; 
+          eachterm = LatticeExpr<Float>( iif( (*(mt_imstore->pb(0))) > 0.01 , (*mt_subims[tt]) / wtsum/(*(mt_imstore->pb(0))),  0.0));
+          //cerr << "aft " <<  max(mt_subims[tt]->get()) <<  endl;
+        }
+        else{
+          eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+        }
 	    mt_subims[tt]->copyData(eachterm);
 	  }
 	
