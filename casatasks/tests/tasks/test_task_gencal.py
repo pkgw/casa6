@@ -42,12 +42,15 @@ datapath = ctsys.resolve('/unittest/gencal/')
 # input data
 evndata = 'n08c1.ms'
 vlbadata = 'ba123a.ms'
+swpowdata = '3C286_syspower_CAS-11860.ms'
+
 vlbacal = os.path.join(datapath, 'ba123a.gc')
 evncal = os.path.join(datapath, 'n08c1.tsys')
 
 caltab = 'cal.A'
 evncopy = 'evn_copy.ms'
 vlbacopy = 'vlba_copy.ms'
+swpowcopy = 'swpow_copy.ms'
 
 '''
 Unit tests for gencal
@@ -806,6 +809,27 @@ class TestJyPerK(unittest.TestCase):
                            uniform=False)
 
         self.assertEqual(cm.exception.args[0], 'The infile argument should be str or None.')
+        
+class TestSwPow(unittest.TestCase):
+
+    testcal = 'swpow.cal'
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath,swpowdata), swpowcopy)
+        
+    def tearDown(self):
+        if os.path.exists(swpowcopy):
+            shutil.rmtree(swpowcopy)
+        if os.path.exists(self.testcal):
+            shutil.rmtree(self.testcal)
+        
+    def test_switched_power_weights_caltype(self):
+        gencal(vis=swpowcopy, caltable=self.testcal, caltype='swpwts')
+        
+        tb.open(self.testcal)
+        res = tb.getcol('FPARAM')
+        tb.close()
+        
+        self.assertTrue(np.all(res[0:1,:,:]==1))
 
 if __name__ == '__main__':
     unittest.main()
