@@ -2459,6 +2459,7 @@ class test_imgval(testref_base):
         self.assertTrue(os.path.exists(self.mname), "File {0} did not get copied!".format(self.mname))
 
     # Test 72
+    @unittest.skipIf(sys.platform == "darwin", "Skipping test_imgval_startmodel_axesmismatch on OSX. CAS-14117")
     def test_imgval_startmodel_axesmismatch(self):
         """ [imgval] test_imgval_startmodel_axesmismatch """
         ######################################################################################

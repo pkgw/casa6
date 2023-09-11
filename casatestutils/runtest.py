@@ -5,6 +5,9 @@
 import os, sys, re, json, unittest, shlex
 import argparse, subprocess, traceback
 import shutil, datetime, platform
+import socket
+import xml.etree.ElementTree as ET
+import signal
 
 default_timeout = 1800
 sys.path.insert(0,'')
@@ -240,9 +243,46 @@ def getname(testfile):
     if n0 != -1:
         return testfile[:n0]
 
-def update_xml(filename):
-    import xml.etree.ElementTree as ET
+def write_xml(name, runtime, testname, classname, fMessage, filename, result):
+    e = datetime.datetime.now()
+    timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+    data = ET.Element('testsuites')
+
+    element1 = ET.SubElement(data, 'testsuite')
+    element1.set('name', "'{}'".format(name))
+    element1.set('errors', "0")
+    element1.set('failures', "1")
+    element1.set('skipped', "0")
+    element1.set('tests', "1")
+    element1.set('time', "0.01")
+    element1.set('timestamp', timestamp)
+    element1.set('hostname', socket.gethostname())
+
+    s_elem1 = ET.SubElement(element1, 'testcase')
+    s_elem1.set('classname', "{}.SomeClass".format(name))
+    s_elem1.set('name', "{}".format(name))
+    s_elem1.set('time', "0.01")
+
+    ss_elem1 = ET.SubElement(s_elem1, 'failure')
+    ss_elem1.set('message', fMessage)
+    ss_elem1.text = fMessage
+
+    b_xml = ET.tostring(data)
+
+    with open(filename, "wb") as f:
+        f.write(b_xml)
+
+def update_xml(filename, result, name="", runtime="", testname="", classname="", fMessage=""):
+
+    if not os.path.isfile(filename):
+        try: fMessage = signal.strsignal(abs(result.returncode))
+        except: fMessage = signal.Signals(abs(result.returncode)).name
+        print("Nose File Not Generated. Generating: {}".format(filename))
+        write_xml(name, runtime, testname, classname, fMessage, filename, result)
+
     xmlTree = ET.parse(filename)
+
     rootElement = xmlTree.getroot()
     for element in rootElement.iter():
         if element.tag == 'testcase':
@@ -253,6 +293,7 @@ def update_xml(filename):
             element.set("classname",testscript)
             element.set("name",'.'.join([testclass,testname]))
     xmlTree.write(filename,encoding='UTF-8',xml_declaration=True)
+
 
 class casa_test:
     def __init__(self,
@@ -523,9 +564,11 @@ def run_cmd(cmd):
         if MPIEnvironment.is_mpi_enabled:
             pytest.main(cmd)
         else:
-            subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd , env={**os.environ})
+            result = subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd , env={**os.environ})
     except:
-        subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd, env={**os.environ})
+        result = subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd, env={**os.environ})
+
+    return result
 
 def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
     # https://docs.pytest.org/en/stable/usage.html
@@ -548,8 +591,8 @@ def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
         print("Running Command: pytest " + " ".join(str(x) for x in cmd))
         write_pytestini(os.path.join(os.getcwd(),"pytest.ini"),dirname)
         write_conftest(os.path.join(os.getcwd(),"conftest.py"))
-        run_cmd(cmd)
-        update_xml(xmlfile)
+        result = run_cmd(cmd)
+        update_xml(xmlfile, result, name= os.getcwd().split("/")[-1])
         os.remove(os.path.join(os.getcwd(),"conftest.py"))
         os.remove(os.path.join(os.getcwd(),"pytest.ini"))
         os.chdir(myworkdir)
