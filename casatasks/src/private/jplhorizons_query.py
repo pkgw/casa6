@@ -87,7 +87,7 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     ephemdata = queryhorizons(target, start_time, stop_time, step_size, quantities, ang_format, rawdatafile)
     # return ephemdata
     if ephemdata and 'result' in ephemdata:
-        print('converting ephemeris data to a CASA table')
+        casalog.post('converting ephemeris data to a CASA table')
         tocasatb(ephemdata, outtable)
 
 def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format, rawdatafile=''):
@@ -266,11 +266,10 @@ def tocasatb(indata, outtable):
                 # JPL-Horizons data should contain this line at the beginning
                 if re.search(r'JPL/HORIZONS', line):
                     # jplhorizondataIdFound = True
-                    print("Looks like JPL-Horizons data")
+                    casalog.post("Looks like JPL-Horizons data","INFO2")
                 elif re.search(r'^\s*Ephemeris\s+', line):  # date the data file was retrieved and  created
                     #m = re.search(r'(API_USER\S+\s+(\S+)\s+([0-9]+)\s+(\S+)\s+(\S+)')
                     (_, _, _, wday, mon, day, tm, year, _) = re.split(' +', line, 8)
-                    #print('date for vs_create=', line.split(" ",9))
                     # date info in 3-7th items
 
                     try:
@@ -282,8 +281,6 @@ def tocasatb(indata, outtable):
                     day2 = f"{int(day):02d}"
                     headerdict['VS_CREATE'] = year + '/' + nmon + '/' + day2 + '/' + tm[0:5]
                     # VS_DATE - use the current time to indicate the time CASA table is created
-                    #print(time.strftime('%Y/%m/%d/%H:%M', time.gmtime())
-                    headerdict['VS_DATE'] = time.strftime('%Y/%m/%d/%H:%M',time.gmtime() )
                     headerdict['VS_TYPE'] = 'Table of comet/planetary positions'
                     # VERSION stored in the output table may be incremented in the future.
                     # For now, it is fixed, but it may be incremented from 0003 to 0004 to indiate
@@ -356,10 +353,6 @@ def tocasatb(indata, outtable):
                             print("Unexpected number or matches for Target radii:{} (expected 2)".format(m.groups))
                 #rotational period (few pattens seem to exist)
                 elif re.search(r'rot. period|Rotational period', line):
-                    #print("Found rot. period!! ",line)
-                 #   m = re.search(r'rot. period\s+\S*=\s*([0-9.]+)(?:\s*\+-[0-9.]+)?\s*(\w+)|'
-                 #   m = re.search(r'rot. period\s+\S*=\s*([0-9.]+h\s*[0-9.]+m\s*[0-9.]+\s*s|'
-                  #                '([0-9.]+)(?:\s*\+-[0-9.]+)?\s*([dh]))|'
                     m = re.search(r'rot. period\s+\S*=\s*([0-9.]+h\s*[0-9.]+m\s*[0-9.]+\s*s)|'
                                     'rot. period\s+\S*=\s*([0-9.]+)(?:\s*\+-[0-9.]+)?\s*([dh])|'
                     'Rotational period\s*=\s+Synchronous', line)
@@ -385,14 +378,11 @@ def tocasatb(indata, outtable):
                         headerdict['rot_per'] = {'unit': 'h', 'value': float(m[1])}
                 elif re.search(r'orbit period|orb per|orb. per.|orbital period', line.lower()) \
                         and not foundorbper:
-                    #print("Found orbital period!!!")
                     m = re.search(r'Orbital period\s*[=~]\s*([-0-9.]+)\s*(\w+)\s*|'
                                   'orb. per., (\w)\s+=\s+([0-9.]+)\s+|'
                                   'orb per\s+=\s+([0-9.]+)\s+(\w+)\s+|'
                                   'orbit period\s+=\s+([0-9.]+)\s+(\w+)\s+', line)
                     if m:
-                        #print('Found orb per ===r', m[0])
-                        #print('m.groups ', m.groups())
                         if m[0].find('Orbital period') != -1:
                             headerdict['orb_per'] = {'unit': m[2], 'value': float(m[1])}
                         elif m[0].find('orb. per.') != -1:
@@ -408,7 +398,6 @@ def tocasatb(indata, outtable):
                     if m:
                         headerdict['T_mean'] = {'unit':'K', 'value':float(m[1])}
                 # start reading data
-                # elif line.find('Date') !=-1  and line.find('R.A.') and line.find('DEC'):
                 elif re.search(r'\s*Date__\(UT\)', line):
                     incolnames = line.split()
                 elif re.search(r'\$\$SOE', line):
@@ -426,8 +415,8 @@ def tocasatb(indata, outtable):
                 radiival = headerdict['radii']['value']
                 meanrad = _mean_radius(radiival[0], radiival[1], radiival[2])
                 headerdict['meanrad'] = {'unit': 'km', 'value': meanrad}
-            print("Total data lines=", datalines)
-            print("Total number of lines in the file=", lcnt)
+            casalog.post("Number of data lines=", datalines)
+            casalog.post("Number of all lines in the file=", lcnt)
             #print("headerdict=", headerdict)
         # output to a casa table
 
@@ -449,7 +438,7 @@ def tocasatb(indata, outtable):
                             foundncols += 1
                             indexoffset = 1
                     if 'index' not in cols[outcolname]:
-                        print("Cannot find the Date column")
+                        casalog.post("Cannot find the Date column", "WARN")
                 elif outcolname == 'RA':
                     for incol in incolnames:
                         if re.search(inheadername + '.+(ICRF).+', incol):
@@ -457,7 +446,7 @@ def tocasatb(indata, outtable):
                             foundncols += 1
 
                     if 'index' not in cols[outcolname]:
-                        print("Cannot find the astrometric RA and Dec column")
+                        casalog.post("Cannot find the astrometric RA and Dec column", "WARN")
                 elif outcolname == 'DEC':
                     if 'index' in cols['RA']:
                         # Dec data col is next to RA data col
@@ -470,14 +459,14 @@ def tocasatb(indata, outtable):
                         cols[outcolname]['index'] = incolnames.index(inheadername) + indexoffset
                         foundncols += 1
                     else:
-                        print("Cannot find ", inheadername)
+                        casalog.post(f"Cannot find {ihheadername}", "WARN")
 
             #print(cols)
-            print("expected n cols = ", len(cols))
-            print("foundncols=", foundncols)
+            casalog.post(f"expected n cols = {len(cols)) ")
+            casalog.post(f"foundncols = {foundncols}")
             if foundncols == len(cols):
                 # Format the data to comply with measure/setjy
-                print("Found all the required columns")
+                casalog.post("Found all the required columns")
                 with open(tempconvfname, 'w') as outf, open(tempfname, 'r') as inf:
                     ndata = 0
                     earliestmjd = None
@@ -501,7 +490,6 @@ def tocasatb(indata, outtable):
                         # geocentric range rate (RadVel)
                         valinkmps = tempdata[cols['RadVel']['index']]
                         deldot = _qa.convert(_qa.quantity(valinkmps+'km/s'), 'AU/d' )['value']
-                        #print("valinkms={}, delot={}".format(valinkmps, deldot))
                         outline += str(deldot) + sep
                         # NP_ang & NP_dist
                         npang = tempdata[cols['NP_ang']['index']]
@@ -532,7 +520,8 @@ def tocasatb(indata, outtable):
                     headerdict['latest'] = _me.epoch('UTC', mjd)
 
             else:
-                print("Missing ", len(cols) - foundncols)
+                missingcols = len(cols) - foundncols
+                casalog.post(r"Missing {missingcols}")
 
             # final step: convert to a CASA table
             dtypes = np.array(['D' for _ in range(len(cols))])
@@ -542,7 +531,7 @@ def tocasatb(indata, outtable):
             # fill keyword values in the ephem table
             if os.path.exists(outtable):
                 _fill_keywords_from_dict(headerdict, colkeys, outtable)
-                print("Output is written to a CASA table, {}".format(outtable))
+                casalog.post(f"Output is written to a CASA table, {outtable}")
             else:
                 raise Exception("Error occured. The output table, " + outtable + "is not generated")
     except RuntimeError:
@@ -650,7 +639,7 @@ def _fill_keywords_from_dict(keydict, colkeys, tablename):
         _tb.flush()
         _tb.done()
     except RuntimeError:
-        print('Cannot add the data in keywords')
+        casalog.post('Internal error: Cannot add the data in keywords', "WARN")
 
 def _clean_up(filelist):
     """
@@ -659,4 +648,3 @@ def _clean_up(filelist):
     for f in filelist:
         if os.path.exists(f): 
             os.remove(f) 
-            #print("Deleting ", f)
