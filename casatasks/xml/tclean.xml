@@ -442,17 +442,20 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         There is no internal software Doppler tracking so
                                                         a spectral line observed over an extended time range
                                                         may be smeared out in frequency. There is strictly
-                                                        no valid spectral frame with which to label the output
-                                                        images, but they will list the frame defined in the MS.
+                                                        no valid spectral frame with which to associate with the
+                                                        output images, thus the image spectral  frame will
+                                                        be labelled  &quot;Undefined&quot;.
 
-                                                        mode='cubesource': Spectral line imaging while
+                                                        
+                        mode='cubesource': Spectral line imaging while
                                                         tracking moving source (near field or solar system
                                                         objects). The velocity of the source is accounted
                                                         and the frequency reported is in the source frame.
-                                                        As there is not SOURCE frame defined,
-                                                        the frame reported will be REST (as it may not be
-                                                        in the rest frame emission region may be
-                                                        moving w.r.t the systemic velocity frame)
+                                                        As there is no &quot;SOURCE&quot; frame defined in CASA,
+                                                        the frame in the image will be labelled &quot;REST&quot; (but do note the
+                                                        velocity of a given line reported may be different from the rest frame
+                                                        velocity if the emission region is moving w.r.t the systemic
+                                                        velocity frame of the source)
 
 
 </description>
