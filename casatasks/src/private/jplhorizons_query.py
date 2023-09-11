@@ -415,8 +415,8 @@ def tocasatb(indata, outtable):
                 radiival = headerdict['radii']['value']
                 meanrad = _mean_radius(radiival[0], radiival[1], radiival[2])
                 headerdict['meanrad'] = {'unit': 'km', 'value': meanrad}
-            casalog.post("Number of data lines=", datalines)
-            casalog.post("Number of all lines in the file=", lcnt)
+            casalog.post(f"Number of data lines={datalines}")
+            casalog.post(f"Number of all lines in the file={lcnt}")
             #print("headerdict=", headerdict)
         # output to a casa table
 
@@ -462,7 +462,7 @@ def tocasatb(indata, outtable):
                         casalog.post(f"Cannot find {ihheadername}", "WARN")
 
             #print(cols)
-            casalog.post(f"expected n cols = {len(cols)) ")
+            casalog.post(f"expected n cols = {len(cols)} ")
             casalog.post(f"foundncols = {foundncols}")
             if foundncols == len(cols):
                 # Format the data to comply with measure/setjy
