@@ -451,6 +451,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_getephemtable".
+            "testType":"casatasks",
+            "maintainer":"Tak Tsutsumi",
+            "maintainerEmail":"ttsutsum@nrao.edu",
+            "testOptions":[],
+            "testGroup":["getephemtable"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_hanningsmooth",
             "testType":"casatasks",
             "maintainer":"Enrique Garcia",
