@@ -1595,6 +1595,10 @@ class test_stokes(testref_base):
                report = report + "(Pass : Units are Jy/beam in the restored image)\n"
           else:
                report = report + "(Fail : Units are not Jy/beam in the restored image)\n"
+          if len(_ia.restoringbeam()) > 0:
+               report = report + "(Pass : Restoring beam is present in the restored image)\n"
+          else:
+               report = report + "(Fail : Restoring beam is not present in the restored image)\n"
           _ia.close()
           self.assertTrue(self.check_final(report))
 
