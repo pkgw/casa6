@@ -433,8 +433,10 @@ def tclean(
                 if savemodel != "none":
                     imager.predictModel()
 
-            # Residual image needs to be computed for this to work
-            if niter==0 and calcres==True:
+            # CAS-13960 : Construct return dict for niter=0 case
+            # If residual image does not exist, summaryminor will not be
+            # populated.
+            if niter==0:
                 rd = ReturnDictionary()
                 retrec = rd.constructResidualDict(paramList)
 

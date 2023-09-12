@@ -216,8 +216,11 @@ class ReturnDictionary():
         imagename = paramList.allimpars['0']['imagename']
 
         self.residname = imagename+'.residual.tt0' if(os.path.exists(imagename +'.residual.tt0')) else imagename +'.residual'
+        do_summary_minor = True
+        # Only fill summaryminor if the residual image exists
         if not os.path.exists(self.residname):
-            raise FileNotFoundError(f'{residname} does not exist on disk. Cannot construct tclean return dictionary.')
+            do_summary_minor = False
+            #raise FileNotFoundError(f'{residname} does not exist on disk. Cannot construct tclean return dictionary.')
 
         # Initialize the values that don't need to inspect any images
         self.retrec['cleanstate'] = 'running'
@@ -243,7 +246,12 @@ class ReturnDictionary():
         self.retrec['stopcode'] = 3
 
         self.retrec['summarymajor'] = np.array([0,])
-        self.retrec['summaryminor'] = self.constructSummaryMinor(paramList)
+
+        if do_summary_minor:
+            self.retrec['summaryminor'] = self.constructSummaryMinor(paramList)
+        else:
+            self.retrec['summaryminor'] = {}
+
         self.retrec['threshold'] = 0.0
         self.retrec['stopDescription'] = 'Zero iterations performed'
 
