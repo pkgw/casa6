@@ -518,12 +518,16 @@ class test_onefield(testref_base):
           ## Only psf
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=True,calcres=False,deconvolver='clark',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.psf'], imgexistnot=[self.img+'.residual', self.img+'.image'],nmajordone=1)
+          # CAS-13960: No residual image on disk, ret summaryminor should have length 0
+          self.assertTrue(len(ret['summaryminor']) == 0)
 
           ## Only residual
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,fullsummary=True,parallel=self.parallel)
           report1=self.th.checkall(imgexist=[self.img+'.psf', self.img+'.residual'], imgexistnot=[self.img+'.image'],nmajordone=1)
           dict_check1 = self.th.check_ret_structure(ret)
           report_dict = self.th.checkall(ret=ret, peakres=1.1250, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+          # CAS-13960: Residual image created, len(summaryminor) > 0
+          self.assertTrue(len(ret['summaryminor']) > 0)
 
           ## Start directly with minor cycle and do only the last major cycle.
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,calcpsf=False,calcres=False,deconvolver='clark',parallel=self.parallel)
