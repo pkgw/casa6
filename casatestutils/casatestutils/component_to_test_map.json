@@ -451,7 +451,7 @@
             "comment":""
         },
         {
-            "testScript":"test_task_getephemtable".
+            "testScript":"test_task_getephemtable",
             "testType":"casatasks",
             "maintainer":"Tak Tsutsumi",
             "maintainerEmail":"ttsutsum@nrao.edu",
