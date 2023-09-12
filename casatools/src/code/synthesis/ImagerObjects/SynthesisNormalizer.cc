@@ -310,6 +310,21 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
   }
   
+  void SynthesisNormalizer::divideResidualByWeightSD()
+  {
+    LogIO os( LogOrigin("SynthesisNormalizer", "divideResidualByWeightSD",WHERE) );
+
+    if( itsNFacets==1) {
+      itsImages->divideResidualByWeightSD( itsPBLimit );
+    }
+    else {
+      for ( uInt facet=0; facet<itsNFacets*itsNFacets; facet++ )
+        { itsFacetImageStores[facet]->divideResidualByWeightSD( itsPBLimit ); }
+    }
+    itsImages->releaseLocks();
+
+  }
+
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );
