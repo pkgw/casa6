@@ -931,7 +931,6 @@ class test_onefield(testref_base):
         self.checkfinal(pstr=report)
 
     # Test 4
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_onefield_mtmfs(self):
         """ [onefield] test_onefield_mtmfs """
         ######################################################################################
@@ -1143,7 +1142,6 @@ class test_stokes(testref_base):
         self.checkfinal(report)
 
     # Test 12
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_stokes_mtmfs_IQUV(self):
         """ [stokes] test_stokes_mtmfs_IQUV """
         ######################################################################################
@@ -2058,7 +2056,6 @@ class test_multirun(testref_base):
             test_multirun.staticClearCacheDir()
 
     # Test 52
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_multirun_mtmfsmtmfs(self):
         """" [multirun] test_multirun_mtmfsmtmfs """
         ######################################################################################
@@ -2086,33 +2083,46 @@ class test_multirun(testref_base):
         finally:
             test_multirun.staticClearCacheDir()
 
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_multirun_mtmfs3x(self):
         """" [multirun] test_multirun_mtmfs3 """
         ######################################################################################
         # Test running mtmfs three times in a row and show that it gets the same value as one run with three times the iterations.
         ######################################################################################
-        vis = '/export/home/riya/rurvashi/CASADATA/casatestdata/unittest/tclean/refim_eptwochan.ms'
-        scales=[10,20,40]
+        tca={'imsize':100, 'cell':'8.0arcsec','deconvolver':'mtmfs','scales':[10,20,40]}
+        self.prepData('refim_eptwochan.ms', tclean_args=tca)
+        scales = [10,20,40]
 
-        ## First, do tclean with 6 iterations. Same result, with or without cycleniter, but using it shows exact correspondence with deconvolve after the fix.
-        os.system('rm -rf try1*')
-        tclean(vis=vis, imagename='try1', cell='8.0arcsec', imsize=100, specmode='mfs', deconvolver='mtmfs', nterms=2, niter=6,gain=0.5,scales=scales,cycleniter=2)
+        try:
+            ## First, do tclean with 6 iterations. Same result, with or without cycleniter, but using it shows exact correspondence with deconvolve after the fix.
+            os.system('rm -rf try1*')
+            results1 = tclean(vis=self.msfile, imagename='try1', cell='8.0arcsec', imsize=100, specmode='mfs', deconvolver='mtmfs', nterms=2, niter=6,gain=0.5,scales=scales,cycleniter=2)
+            report1  = th.checkall( ret=results1, iterdone=6, imgexist=['try1'+'.psf.tt0', 'try1'+'.psf.tt1', 'try1'+'.psf.tt2', 'try1'+'.residual.tt0', 'try1'+'.residual.tt1', 'try1'+'.image.tt0', 'try1'+'.image.tt1'])
+            peakres, modflux, imgval0, imgval1 = th.get_peak_res(results1), th.get_mod_flux(results1), th.get_pix('try1'+'.model.tt0',[50,50,0,0]), th.get_pix('try1'+'.model.tt1',[50,50,0,0])
 
-        ## Deconvolve in one go, with niter=6. Same as tclean.
-        os.system('rm -rf try2*')
-        tclean(vis=vis, imagename='try2', cell='8.0arcsec', imsize=100, specmode='mfs', deconvolver='mtmfs', nterms=2, niter=0,restoration=False,scales=scales)
-        deconvolve(imagename='try2', deconvolver='mtmfs', nterms=2, niter=6,gain=0.5,scales=scales)
+            ## Deconvolve in one go, with niter=6. Same as tclean.
+            os.system('rm -rf try2*')
+            tclean(vis=self.msfile, imagename='try2', cell='8.0arcsec', imsize=100, specmode='mfs', deconvolver='mtmfs', nterms=2, niter=0,restoration=False,scales=scales)
+            results2 = deconvolve(imagename='try2', deconvolver='mtmfs', nterms=2, niter=6,gain=0.5,scales=scales)
+            report2  = th.checkall( ret=results2, peakres=peakres, modflux=modflux, iterdone=2,
+                                    imgexist=['try2'+'.psf.tt0', 'try2'+'.psf.tt1', 'try2'+'.psf.tt2', 'try2'+'.residual.tt0', 'try2'+'.residual.tt1', 'try2'+'.image.tt0', 'try2'+'.image.tt1'],
+                                    imgval=[('try2'+'.model.tt0',imgval0,[50,50,0,0]), ('try2'+'.model.tt1',imgval1,[50,50,0,0])] )
 
-        ## Deconvolve in three steps.  Before CAS-13872, this clearly shows the problem.   After the change it matches the tclean (even with the cycleniter=2 peak residual values before/after major cycle).
-        os.system('rm -rf try3*')
-        tclean(vis=vis, imagename='try3', cell='8.0arcsec', imsize=100, specmode='mfs', deconvolver='mtmfs', nterms=2, niter=0,restoration=False,scales=scales)
-        deconvolve(imagename='try3', deconvolver='mtmfs', nterms=2, niter=2,gain=0.5,scales=scales)
-        deconvolve(imagename='try3', deconvolver='mtmfs', nterms=2, niter=2,gain=0.5,scales=scales)
-        deconvolve(imagename='try3', deconvolver='mtmfs', nterms=2, niter=2,gain=0.5,scales=scales)
+            ## Deconvolve in three steps.  Before CAS-13872, this clearly shows the problem.   After the change it matches the tclean (even with the cycleniter=2 peak residual values before/after major cycle).
+            os.system('rm -rf try3*')
+            tclean(vis=self.msfile, imagename='try3', cell='8.0arcsec', imsize=100, specmode='mfs', deconvolver='mtmfs', nterms=2, niter=0,restoration=False,scales=scales)
+            deconvolve(imagename='try3', deconvolver='mtmfs', nterms=2, niter=2,gain=0.5,scales=scales)
+            deconvolve(imagename='try3', deconvolver='mtmfs', nterms=2, niter=2,gain=0.5,scales=scales)
+            results3 = deconvolve(imagename='try3', deconvolver='mtmfs', nterms=2, niter=2,gain=0.5,scales=scales)
+            report3  = th.checkall( ret=results3, peakres=peakres, modflux=modflux, iterdone=2,
+                                    imgexist=['try3'+'.psf.tt0', 'try3'+'.psf.tt1', 'try3'+'.psf.tt2', 'try3'+'.residual.tt0', 'try3'+'.residual.tt1', 'try3'+'.image.tt0', 'try3'+'.image.tt1'],
+                                    imgval=[('try3'+'.model.tt0',imgval0,[50,50,0,0]), ('try3'+'.model.tt1',imgval1,[50,50,0,0])] )
 
-        # TODO implement metrics (up to this point this test has been getting developed via the logs)
-        self.fail("Need to implement metrics")
+            os.system('rm -rf try1*')
+            os.system('rm -rf try2*')
+            os.system('rm -rf try3*')
+
+        finally:
+            test_multirun.staticClearCacheDir()
 
     # Test 53
     @unittest.skip("ASP deconvolver currently does not follow the same logic for deconvolve as it does for tclean by the most basic measure, iterdone. To be fixed in CAS-13570")
@@ -2625,7 +2635,6 @@ class test_mtmfsimgval(testref_base):
             deconvolve(imagename=self.img, niter=10, deconvolver='mtmfs', **deconvolve_args)
 
     # Test 75
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_missingimgs_residual(self):
         """ [mtmfsimgval] test_mtmfsimgval_missingimgs_residual """
         ######################################################################################
@@ -2634,7 +2643,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_missingimgs(".residual")
 
     # Test 76
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_missingimgs_psf(self):
         """ [mtmfsimgval] test_mtmfsimgval_missingimgs_psf """
         ######################################################################################
@@ -2644,7 +2652,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_missingimgs(".psf")
 
     # Test 77
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_missingimgs_model(self):
         """ [mtmfsimgval] test_mtmfsimgval_missingimgs_model """
         ######################################################################################
@@ -2658,7 +2665,6 @@ class test_mtmfsimgval(testref_base):
         deconvolve(imagename=self.img, niter=10, deconvolver='mtmfs')
 
     # Test 78
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_missingimgs_sumwt(self):
         """ [mtmfsimgval] test_mtmfsimgval_missingimgs_sumwt """
         ######################################################################################
@@ -2672,7 +2678,6 @@ class test_mtmfsimgval(testref_base):
         deconvolve(imagename=self.img, niter=10, deconvolver='mtmfs')
 
     # Test 79
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_axesmismatch_residual(self):
         """ [mtmfsimgval] test_mtmfsimgval_axesmismatch_residual """
         ######################################################################################
@@ -2681,7 +2686,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_axesmismatch(".residual")
 
     # Test 80
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_axesmismatch_psf(self):
         """ [mtmfsimgval] test_mtmfsimgval_axesmismatch_psf """
         ######################################################################################
@@ -2690,7 +2694,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_axesmismatch(".psf")
 
     # Test 81
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_axesmismatch_model(self):
         """ [mtmfsimgval] test_mtmfsimgval_axesmismatch_model """
         ######################################################################################
@@ -2699,7 +2702,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_axesmismatch(".model")
 
     # Test 82
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_axesmismatch_pb(self):
         """ [mtmfsimgval] test_mtmfsimgval_axesmismatch_pb """
         ######################################################################################
@@ -2708,7 +2710,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_axesmismatch(".pb", ttn=".tt0", deconvolve_args={'usemask':'pb', 'pbmask':0.2})
 
     # Test 83
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_shapemismatch_residual(self):
         """ [mtmfsimgval] test_mtmfsimgval_shapemismatch_residual """
         ######################################################################################
@@ -2717,7 +2718,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_shapemismatch(".residual")
 
     # Test 84
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_shapemismatch_psf(self):
         """ [mtmfsimgval] test_mtmfsimgval_shapemismatch_psf """
         ######################################################################################
@@ -2726,7 +2726,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_shapemismatch(".psf")
 
     # Test 85
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_shapemismatch_model(self):
         """ [mtmfsimgval] test_mtmfsimgval_shapemismatch_model """
         ######################################################################################
@@ -2735,7 +2734,6 @@ class test_mtmfsimgval(testref_base):
         self.helper_mtmfsimgval_shapemismatch(".model")
 
     # Test 86
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_shapemismatch_pb(self):
         """ [mtmfsimgval] test_mtmfsimgval_shapemismatch_pb """
         ######################################################################################
@@ -2745,7 +2743,6 @@ class test_mtmfsimgval(testref_base):
     
     # TODO figure out why running the startmodel_axesmismatch test immediately before this test causes an exception to be thrown
     # Test 87
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     @unittest.skip("if test_mtmfsimgval_startmodel_axesmismatch executes immediately before this test then this test fails")
     def test_mtmfsimgval_startmodel_empty(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_empty """
@@ -2768,7 +2765,6 @@ class test_mtmfsimgval(testref_base):
         deconvolve(imagename=self.img, niter=10, startmodel=['', '', self.mname2, '', ''], deconvolver='mtmfs')
 
     # Test 88
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_startmodel_dne(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_dne """
         ######################################################################################
@@ -2780,7 +2776,6 @@ class test_mtmfsimgval(testref_base):
             deconvolve(imagename=self.img, niter=10, startmodel='doesnotexists.model', deconvolver='mtmfs')
 
     # Test 89
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_startmodel_model_exists(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_model_exists """
         ######################################################################################
@@ -2796,7 +2791,6 @@ class test_mtmfsimgval(testref_base):
 
     # TODO figure out why running the startmodel_axesmismatch test immediately before this test causes an exception to be thrown
     # Test 90
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     @unittest.skip("if test_mtmfsimgval_startmodel_axesmismatch executes immediately before this test then this test fails")
     def test_mtmfsimgval_startmodel_basic_copy(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_basic_copy """
@@ -2813,7 +2807,6 @@ class test_mtmfsimgval(testref_base):
         self.assertTrue(os.path.exists(self.mname), "File {0} did not get copied!".format(self.mname))
 
     # Test 91
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_startmodel_axesmismatch(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_axesmismatch """
         ######################################################################################
@@ -2830,7 +2823,6 @@ class test_mtmfsimgval(testref_base):
             deconvolve(imagename=self.img, niter=10, startmodel=self.mname2, deconvolver='mtmfs')
 
     # Test 92
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_startmodel_csysmismatch(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_csysmismatch """
         ######################################################################################
@@ -2857,7 +2849,6 @@ class test_mtmfsimgval(testref_base):
         self.assertAlmostEqual(regridpnt, oldpnt, "Image {0} did not get its csys.direction0.crval[0] value regridded properly from {1} to {2}! (actual value is {3})".format(self.mname2, newpnt, oldpnt, regridpnt))
 
     # Test 93
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_mtmfsimgval_startmodel_shapemismatch(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_shapemismatch """
         ######################################################################################
@@ -2997,7 +2988,6 @@ class test_residual_update(testref_base):
         self.helper_residual_update('multiscale')
 
     # Test 98
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_residual_update_mtmfs(self):
         """ [residual_update] test_residual_update_mtmfs """
         ######################################################################################
@@ -3260,7 +3250,6 @@ class test_minimages(testref_base):
         report=th.checkall(imgexist=[self.img+'.image'], imgval=[(self.img+'.image',0.482,[50,49,0,0])] )
 
     # Test 113
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_minimages_deconvolver_mtmfs(self):
         """ [minimages] test_minimages_deconvolver_mtmfs """
         ######################################################################################
@@ -3354,7 +3343,6 @@ class test_minimages(testref_base):
             deconvolve(imagename=self.img, niter=10, nsigma=1.5)#=0.0
 
     # Test 122
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_minimages_nsigma_mtmfs(self):
         """ [minimages] test_minimages_nsigma """
         ######################################################################################
@@ -3367,7 +3355,6 @@ class test_minimages(testref_base):
         report=th.checkall(imgexist=[self.img+'.image.tt0'])
 
     # Test 123
-    @unittest.skip("MTMFS is skipped until test_multirun_mtmfs3x passes. To be fixed in CAS-13570.")
     def test_minimages_nsigma_nopb_mtmfs(self):
         """ [minimages] test_minimages_nsigma """
         ######################################################################################

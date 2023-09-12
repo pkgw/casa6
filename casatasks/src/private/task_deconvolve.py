@@ -139,8 +139,7 @@ def deconvolve(
     ####### Deconvolution parameters
     deconvolver,#='hogbom',
     scales,#=[],
-    # TODO in CAS-13570: uncomment once test_multirun_mtmfs3x passes
-    # nterms,#=1,
+    nterms,#=1,
     smallscalebias,#=0.0
     # TODO in CAS-13570: uncomment once asp is working
     # fusedthreshold,#=0.0
@@ -198,9 +197,6 @@ def deconvolve(
         # TODO in CAS-13570: fix asp description and allow asp value once asp is working
         if deconvolver.lower() == "asp":
             raise RuntimeError("The "+deconvolver+" deconvolver currently has incorrect end-of-minor-cycle residual calculations and is therefore disabled. Please choose a different deconvolver.")
-        # TODO in CAS-13570: fix mtmfs description and allow mtmfs value once test_multirun_mtmfs3x passes
-        if deconvolver.lower() == "mtmfs":
-            raise RuntimeError("The "+deconvolver+" deconvolver currently has issues with the deconvolve task and is therefore disabled. Please choose a different deconvolver.")
 
         #####################################################
         #### Construct ImagerParameters

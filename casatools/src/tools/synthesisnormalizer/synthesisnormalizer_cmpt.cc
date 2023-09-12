@@ -167,11 +167,15 @@ bool synthesisnormalizer::gatherresidual()
   return rstat;
 }
 
-  bool synthesisnormalizer::divideresidualbyweight()
+  bool synthesisnormalizer::divideresidualbyweight(bool singledish)
 {
   Bool rstat(false);
   try {
+    if (singledish) {
+        itsNormalizer->divideResidualByWeightSD();
+    } else {
 	itsNormalizer->divideResidualByWeight( );
+    }
 	rstat=true;
   } catch  (AipsError x) {
     RETHROW(x);
