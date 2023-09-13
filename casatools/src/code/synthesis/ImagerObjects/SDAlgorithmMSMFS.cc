@@ -45,6 +45,7 @@
 #include <casacore/casa/Utilities/Assert.h>
 #include <casacore/casa/OS/Directory.h>
 #include <casacore/tables/Tables/TableLock.h>
+#include <imageanalysis/ImageAnalysis/CasaImageBeamSet.h>
 
 #include<synthesis/ImagerObjects/SIMinorCycleController.h>
 
@@ -254,13 +255,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
   }
 
-  void SDAlgorithmMSMFS::restore(std::shared_ptr<SIImageStore> imagestore )
+  void SDAlgorithmMSMFS::restore(std::shared_ptr<SIImageStore> imagestore)
   {
 
     LogIO os( LogOrigin("SDAlgorithmMSMFS","restore",WHERE) );
 
     if( ! imagestore->hasResidualImage() ) return;
-
+    
     // Compute principal solution ( if it hasn't already been done to this ImageStore......  )
     //////  Put some image misc info in here, to say if it has been done or not.
 
@@ -360,7 +361,20 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       // CAS-13401 : Set the per-chan per-pol beam info for the restored image.
       ImageInfo iminf = imagestore->image(tix)->imageInfo();
-      iminf.setBeams(restoringBeams);
+      
+      iminf.removeRestoringBeam();
+
+      // If restoringbeam="common", then calculate and only set one beam
+      if (itsRestoringBeam.isNull() && itsUseBeam == "common"){
+        GaussianBeam cbeam = CasaImageBeamSet(restoringBeams).getCommonBeam();
+        iminf.setRestoringBeam(cbeam);
+      }
+      else if (! itsRestoringBeam.isNull()) {
+        iminf.setRestoringBeam(itsRestoringBeam);
+      }
+      else {
+        iminf.setBeams(restoringBeams);
+      }
       imagestore->image(tix)->setImageInfo(iminf);
 
       }
