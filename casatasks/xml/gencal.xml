@@ -167,7 +167,7 @@ Current antenna-based gencal options (caltype) are:
    </param>
    
    <param subparam="true" name="ant_pos_time_limit" type="int">
-      <shortdescription>Days beyond the observation to include correction in offset</shortdescription>
+      <shortdescription>Days after observation to include correction in offset</shortdescription>
       <description>Maximum number of days beyond the observation for which a
           correction should be included in the final offset
                      Subparameter of caltype='antpos'
@@ -292,6 +292,9 @@ Current antenna-based gencal options (caltype) are:
             <default param="retry_wait_time">
                <value type="int">5</value>
             </default>
+         </equals>
+         <equals value="antpos">
+            <default param="ant_pos_time_limit"><value type="int">0</value></default>
          </equals>
       </when>
    </constraints>
