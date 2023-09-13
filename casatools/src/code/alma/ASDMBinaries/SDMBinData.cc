@@ -2120,7 +2120,7 @@ namespace sdmbin {
   }
 
   MSData* SDMBinData::getData( unsigned int na, unsigned int nfe,
-			       unsigned int ndd, unsigned int nbin) throw (Error)
+			       unsigned int ndd, unsigned int nbin)
   {
     if (verbose_) cout << "SDMBinData::getData : entering" << endl;
     unsigned int numBin = baselinesSet_->numBin(ndd);                  if(verbose_)cout << "numBin=" << numBin << endl;
@@ -2225,7 +2225,7 @@ namespace sdmbin {
 
   MSData* SDMBinData::getCalibratedData( unsigned int na, unsigned int nfe,
 					 unsigned int ndd, unsigned int nbin,
-					 pair<bool,vector<vector<float> > > p_tsys) throw (Error)
+					 pair<bool,vector<vector<float> > > p_tsys)
   {
     bool coutest=false;
     unsigned int numBin = baselinesSet_->numBin(ndd);                  if(coutest)cout << "numBin=" << numBin << endl;

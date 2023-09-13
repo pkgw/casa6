@@ -4051,6 +4051,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                           for f in fieldIndicesToPlot:
                             if (len(uniqueTimesPerFieldPerSpw[ispwInCalTable][f]) > 0):
                               if ((uniqueTimes[mytime] < uniqueTimesPerFieldPerSpw[ispwInCalTable][f][-1]-solutionTimeThresholdSeconds) and
+                                  scansForUniqueTimes[mytime] != scansForUniqueTimes[-1]  and            # fix for CAS-14096
                                   (uniqueTimes[mytime] < timerangeListTimes[-1])):
                                   if (debug):
                                       print("-----------Not done because %.0f < %.0f-%d for fieldIndex=%d and <%.0f" % (uniqueTimes[mytime], uniqueTimesPerFieldPerSpw[ispwInCalTable][f][-1], solutionTimeThresholdSeconds, f, timerangeListTimes[-1]))
@@ -4857,6 +4858,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                           doneOverlayTime = True # assumed until proven otherwise in the 'for' loop
                           for f in fieldIndicesToPlot:
                               if (uniqueTimes[mytime] < uniqueTimesPerFieldPerSpw[ispwInCalTable][f][-1]-solutionTimeThresholdSeconds and
+                                  scansForUniqueTimes[mytime] != scansForUniqueTimes[-1]  and            # fix for CAS-14096
                                   uniqueTimes[mytime] < timerangeListTimes[-1]):
                                   doneOverlayTime = False
                           if (doneOverlayTime):

@@ -1,10 +1,8 @@
 #include <alma/ASDMBinaries/SDMDataObjectReader.h>
 
-#include <string.h>
 #include <iostream>
 #include <iomanip>
 #include <unistd.h>
-#include <string.h>                       // for strerror
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <fcntl.h>
