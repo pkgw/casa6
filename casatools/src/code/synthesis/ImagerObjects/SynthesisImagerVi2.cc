@@ -600,8 +600,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	
 
 	os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
-    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
-    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+	//    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
+	//    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
 	csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
 	//use the location defined for coordinates frame;
 	mLocation_p=impars_p.obslocation;
@@ -2389,7 +2389,7 @@ void SynthesisImagerVi2::unlockMSs()
 
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
-    cerr <<  "####FTNAME " <<  ftname <<  endl;
+    //    cerr <<  "####FTNAME " <<  ftname <<  endl;
     if(ftname=="gridft"){
       if(facets >1){
 	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
@@ -2710,7 +2710,7 @@ void SynthesisImagerVi2::unlockMSs()
 
    refim::VPSkyJones* vps= nullptr;
    //cerr << "rec " << rec << " kpb " << kpb << endl;
-   cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
+   //cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
    if (!gridpars_p.ftmachine.contains("mos")) {
      cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
      bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  

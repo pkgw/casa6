@@ -366,13 +366,14 @@ synthesisutils::~synthesisutils()
 					      const string& mtname,
 					      const long nterms, 
 					   const string& reffreq,
-					   const long imtype)
+					   const long imtype,
+					   const float pblimit)
 {
    int rstat(false);
 
   try
     {
-      rstat = SynthesisUtilMethods::cubeToTaylorSum(cubename, mtname, nterms, reffreq,imtype);
+      rstat = SynthesisUtilMethods::cubeToTaylorSum(cubename, mtname, nterms, reffreq,imtype,pblimit);
     }
   catch  (AipsError x)
     {

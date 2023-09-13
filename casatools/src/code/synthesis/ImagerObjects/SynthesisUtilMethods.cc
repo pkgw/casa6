@@ -326,7 +326,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   // imtype=1 : residual with nterms terms
   // imtype=2 : pb with 1 term
   // imtype=3 : sumwt with 2nterms-1 terms
-  Bool SynthesisUtilMethods::cubeToTaylorSum(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq, const Int imtype)
+  Bool SynthesisUtilMethods::cubeToTaylorSum(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq, const Int imtype, const Float pblimit)
   {
     LogIO os(LogOrigin("SynthesisUtilMethods", "cubeToTaylorSum"));
 
@@ -354,7 +354,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
      
     }
-    cerr << "imtype " << imtype << " MAX PB " << maxPB << endl;
+    //    cerr << "imtype " << imtype << " MAX PB " << maxPB << endl;
     // If dopsf=True, calculate 2n-1 terms.
     Int out_nterms=nterms; // for residual
     if(imtype==0 || imtype==3){out_nterms=2 * nterms - 1;} // the psfs fill the upper triangle of the Hessian with 2 nterms-1 elements. Also sumwt.
@@ -444,7 +444,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
     Float wtsum = msum.getFloat();
 
-    cerr << "perchansumwt : shape "<< lsumwt.shape() << "  "  << lsumwt << " sumwt "<< wtsum << endl;
+    //cerr << "perchansumwt : shape "<< lsumwt.shape() << "  "  << lsumwt << " sumwt "<< wtsum << endl;
 
     //Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
 
@@ -491,10 +491,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    for(Int tt=0;tt<out_nterms;tt++)
 	      {
 		Double fac = pow(wt,tt);
-		//cerr <<  "BEF " <<  max(mt_subims[tt]->get()) <<  endl;
+		//cerr <<  "BEF accum " <<  max(mt_subims[tt]->get()) << " for imtype " << imtype <<  endl;
 		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + ((fac) * (*cube_subim) * lsumwt(pos)))  ;
 		mt_subims[tt]->copyData(eachterm);
-		//cerr <<" chan " <<  chan  <<  " tt " <<  tt <<  " fac " <<  " lsumwt " <<  lsumwt(pos) <<  " pos " << pos << fac << " max " <<  max(mt_subims[tt]->get()) <<  endl;
+		//cerr <<" AFT accum :  chan " <<  chan  <<  " tt " <<  tt <<  " fac " << fac <<  " lsumwt " <<  lsumwt(pos) <<  " pos " << pos << " max " <<  max(mt_subims[tt]->get()) <<  endl;
 	      }
 	    
 
@@ -504,20 +504,36 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	// Divide by sum of weights.
 	for(Int tt=0;tt<out_nterms;tt++)
 	  {
+	    //cerr << "bef div : tt " <<  tt << " : " <<   max(mt_subims[tt]->get()) << " for imtype " << imtype << endl; 
+	    
 	    LatticeExpr<Float> eachterm;
 	    if (imtype < 2) {
-          //cerr << "bef tt " <<  tt <<  max(mt_subims[tt]->get()) << endl; 
-          eachterm = LatticeExpr<Float>( iif( (*(mt_imstore->pb(0))) > 0.01 , (*mt_subims[tt]) / wtsum/(*(mt_imstore->pb(0))),  0.0));
-          //cerr << "aft " <<  max(mt_subims[tt]->get()) <<  endl;
-        }
-        else{
-          eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
-        }
+	      eachterm = LatticeExpr<Float>( iif( (*(mt_imstore->pb(0))) > pblimit , (*mt_subims[tt]) / wtsum/(*(mt_imstore->pb(0))),  0.0));
+	    }
+	    else{
+	      eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+	    }
 	    mt_subims[tt]->copyData(eachterm);
+	    //cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
 	  }
 	
       }// for pol
 
+
+    // Set the T/F mask, for PB images. Without this, the PB is fully masked, for aproj /mosaic gridders.
+    if( imtype==2 )
+      {
+	mt_imstore->removeMask( mt_imstore->pb(0) );
+	{
+	  //MSK//	
+	  LatticeExpr<Bool> pbmask( iif( *mt_imstore->pb(0) > fabs(pblimit) , True , False ) );
+	  //MSK// 
+	  mt_imstore->createMask( pbmask, mt_imstore->pb(0) );
+	  mt_imstore->pb(0)->pixelMask().unlock();
+	}
+	
+      }
+    
     return True;
 
   }//end of func

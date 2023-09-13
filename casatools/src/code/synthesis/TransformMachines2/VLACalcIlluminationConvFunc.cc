@@ -247,7 +247,7 @@ namespace casa{
     ap.nx = skyShape(0);           ap.ny = skyShape(1);
     ap.dx = abs(uvIncr(0)*Lambda); ap.dy = abs(uvIncr(1)*Lambda);
     ap.x0 = -(ap.nx/2)*ap.dx;      ap.y0 = -(ap.ny/2)*ap.dy;
-    cerr << "pa= " << ap.pa << " band " << ap.band << " freq " << ap.freq << " nx ny " << ap.nx << "  " << ap.ny << " dx dy " << ap.dx << "  " << ap.dy << endl;
+    //cerr << "pa= " << ap.pa << " band " << ap.band << " freq " << ap.freq << " nx ny " << ap.nx << "  " << ap.ny << " dx dy " << ap.dx << "  " << ap.dy << endl;
     //
     // If cross-hand pols. are requested, we need to compute both
     // the parallel-hand aperture illuminations.
@@ -255,7 +255,7 @@ namespace casa{
       //if ((inStokes == Stokes::RL) || (inStokes == Stokes::LR))
       {
 	IPosition apShape(ap.aperture->shape());
-    cerr << "APshape " << apShape << endl;
+	//cerr << "APshape " << apShape << endl;
 	apShape(3)=4;
 	ap.aperture->resize(apShape);
       }
@@ -268,7 +268,7 @@ namespace casa{
   {
     IPosition apertureShape(ap.aperture->shape());
     apertureShape(0) = ap.nx;  apertureShape(1) = ap.ny;
-    cerr << "new aperture shape " << apertureShape << " old " << (ap.aperture->shape())<< endl;
+    //cerr << "new aperture shape " << apertureShape << " old " << (ap.aperture->shape())<< endl;
     ap.aperture->resize(apertureShape);
     ap.aperture->set(0.0);
     //BeamCalc::Instance()->calculateAperture(&ap,inStokes);
@@ -338,7 +338,7 @@ namespace casa{
     //Double Lambda = C::c/freqHi;
     
     index = uvCoords.findCoordinate(Coordinate::STOKES);
-    cerr << "STOKES index " << index << endl;
+    //cerr << "STOKES index " << index << endl;
     Int inStokes = uvCoords.stokesCoordinate(index).stokes()(0);
     
     //Vector<Int> intSkyShape=skyShape.asVector();
@@ -542,10 +542,10 @@ namespace casa{
     SpectralCoordinate spectralCoord(MFrequency::TOPO,Freq,1.0,0.0);
     //    uvCoords.addCoordinate(dirCoord);
     index = uvCoords.findCoordinate(Coordinate::STOKES);
-    cerr << "STOKES index " << index << endl;
+    //cerr << "STOKES index " << index << endl;
     uvCoords.replaceCoordinate(polnCoord,index);
     index = uvCoords.findCoordinate(Coordinate::SPECTRAL);
-    cerr << "Spectral index " << index << endl;
+    //cerr << "Spectral index " << index << endl;
     uvCoords.replaceCoordinate(spectralCoord,index);
     
     ap.aperture->setCoordinateInfo(uvCoords);
@@ -840,7 +840,7 @@ namespace casa{
   void VLACalcIlluminationConvFunc::skyMuller(ImageInterface<Complex>& skyJones, Int muellerTerm)
   {
     Int index = skyJones.coordinates().findCoordinate(Coordinate::STOKES);
-    cerr << "STOKES index in skymuller " << index << " shape " << skyJones.shape() << endl;
+    //cerr << "STOKES index in skymuller " << index << " shape " << skyJones.shape() << endl;
     Int inStokes = skyJones.coordinates().stokesCoordinate(index).stokes()(0);
     //PagedImage<Complex> lala(skyJones.shape(), skyJones.coordinates(), "BEFORESKYMULL.im");
     //lala.copyData(skyJones);

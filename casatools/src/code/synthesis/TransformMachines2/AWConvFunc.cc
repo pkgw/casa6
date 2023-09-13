@@ -1685,7 +1685,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		    miscInfo.freqValue,miscInfo.wValue, //The address of CFCell as physical co-ords
 		    miscInfo.muellerElement);
 	  
-	  cerr << "FCFB2: frq "  << miscInfo.freqValue << " cs_l " << cs_l.toWorld(IPosition(4, 0,0,0,0)) << endl;
+      //cerr << "FCFB2: frq "  << miscInfo.freqValue << " cs_l " << cs_l.toWorld(IPosition(4, 0,0,0,0)) << endl;
       aTerm.setBandName(bandName);
       //
       // Cache the A-Term for this polarization and frequency
@@ -1708,13 +1708,13 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       // 	//      	csList = ftATermSq_l.coordinates().list(log_l,MDoppler::RADIO,dummy,dummy);
 
        	csList = cs_l.list(log_l,MDoppler::RADIO,dummy,dummy);
-		cerr << csList << endl;
+	//cerr << csList << endl;
       // 	csList = conjPolCS_l.list(log_l,MDoppler::RADIO,dummy,dummy);
       // 	cout << csList << endl;
       }
 
       //if (!isDryRun)
-    cerr <<"applying ATERM for " << freq_l << endl;
+	  //cerr <<"applying ATERM for " << freq_l << endl;
 	//TESTOO
 	CoordinateSystem lalacs=cs_l;
 	//

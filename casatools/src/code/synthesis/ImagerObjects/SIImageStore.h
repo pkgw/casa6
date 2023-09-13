@@ -239,6 +239,7 @@ class SIImageStore
   ///Make an existing PagedImage complex the same shape as this imagestore
   ///coordsys and shape...effectively copies intersecting region data 
   casacore::Bool intersectComplexImage(const casacore::String& inputImage);
+  static casacore::Bool createMask(casacore::LatticeExpr<casacore::Bool> &lemask, casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >outimage);
   static casacore::Bool copyMask(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >inimage, casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >outimage);
   static void removeMask(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >im);
 
@@ -281,7 +282,6 @@ protected:
   casacore::Double getPbMax();
   casacore::Double getPbMax(casacore::Int pol, casacore::Int chan);
 
-  casacore::Bool createMask(casacore::LatticeExpr<casacore::Bool> &lemask, casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >outimage);
   //casacore::Bool copyMask(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >inimage, casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >outimage);
 
   

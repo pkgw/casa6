@@ -681,7 +681,7 @@ namespace casa{
     freq = ap->freq;
     if(freq <= 0.0) freq = geom->reffreq;
 
-    cerr << "BEam CAlc freq "<< freq << " reffreq " << geom->reffreq << endl; 
+    //cerr << "BEam CAlc freq "<< freq << " reffreq " << geom->reffreq << endl; 
 
     
     df = freq-geom->reffreq;
