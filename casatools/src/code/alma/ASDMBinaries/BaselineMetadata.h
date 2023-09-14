@@ -70,7 +70,7 @@ namespace sdmbin {
      * @note Use the method numAutoPolProduct(int) to get the antenna-based number of product
      * \f$ N_{pp}^{o}\f$ if correlationMode=1. 
      */
-    int                  numPolProduct(int basebandNum) throw (Error);
+    int                  numPolProduct(int basebandNum);
 
     /** Accessor to the number of polarization products.
      * The constraint is that all spectral windows in a baseband are associated with a common 
@@ -86,7 +86,7 @@ namespace sdmbin {
      * @return The number of bins
      * @exception Error the method returns -1 in lax mode 
      */  
-    int                  numBin(int basebandNum) throw (Error);
+    int                  numBin(int basebandNum);
 
     /** Accessor to the number of bins (steps or phases in scwitching cycles) for each baseband
      * @return A vector of number of bins, one number per baseband.
@@ -108,7 +108,7 @@ namespace sdmbin {
      * @return The number of products for that baseband number
      * @exception Error the method returns -1 in lax mode 
      */  
-    int                  numAutoPolProduct(int basebandNum) throw (Error);
+    int                  numAutoPolProduct(int basebandNum);
 
     /** Accessor to the (derived) number of polarization products for the zero baselines for all the basebands
      * @return The number of products for each of the basebands in the configuration
@@ -129,7 +129,7 @@ namespace sdmbin {
      * @return The baseline number
      * @exception Error the indices anti and/or antj exceed the limit for the number of baselines. 
      */
-    int                  baselineNum(int anti, int antj) throw(Error);
+    int                  baselineNum(int anti, int antj);
 
     /** Index in a container of baseline-based metadata given a node specified by a full set of indices of the parameter space
      *  @param npp  polarization product index

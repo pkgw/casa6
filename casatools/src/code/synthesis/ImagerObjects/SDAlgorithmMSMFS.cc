@@ -228,10 +228,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //peakresidual = itsPeakResidual;
 
     peakresidual = itsMTCleaner.getpeakresidual();
+    // cout << "Peak res from matR : " << peakresidual << endl; // Uncomment for debugging
 
-    modelflux = sum( itsMatModels[0] ); // Performance hog ?
 
-    /* // Enable in CAS-13872
     // Retrieve residual to be saved to the .residual file in finalizeDeconvolver
     for(uInt tix=0; tix<itsNTerms; tix++)
     {
@@ -239,7 +238,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       itsMTCleaner.getresidual(tix, tmp); // possible room for optimization here -> get residual without extra tmp copy? maybe change getResidual to accept an array?
       itsMatResiduals[tix] = tmp;
     }
-    */
+
+    peakresidual = max(abs(itsMatResiduals[0]*itsMatMask));
+    // cout << "Peak res from new math : " << peakresidual << endl; // Uncomment for debugging
+    modelflux = sum( itsMatModels[0] ); // Performance hog ?
+
   }	    
 
   void SDAlgorithmMSMFS::finalizeDeconvolver()
