@@ -90,7 +90,7 @@ namespace casa{
     if (dirIndex >= 0) return FTCoords; 
 
     dirIndex=FTCoords.findCoordinate(Coordinate::DIRECTION);
-    cerr << "DIRIndex " << dirIndex << " shape " << shape << endl;
+    //cerr << "DIRIndex " << dirIndex << " shape " << shape << endl;
     DirectionCoordinate dc=imageCoordSys.directionCoordinate(dirIndex);
     Vector<Bool> axes(2); axes=true;
     Vector<Int> dirShape(2); dirShape(0)=shape(0);dirShape(1)=shape(1);
