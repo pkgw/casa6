@@ -5261,7 +5261,7 @@ class test_mtmfsviacube(testref_base):
 
      ## Tests for mtmfs_via_cube : Standard Gridder -- single tclean call
      def test_mtmfsviacube_standard(self):
-         """ [cube] Tests specmode='mtmfs_via_cube' """
+         """ [mtmfsviacube] Tests specmode='mtmfs_via_cube' """
          ######################################################################################
          # Test specmode='mtmfs_via_cube' for completion.
          ######################################################################################
@@ -5305,7 +5305,7 @@ class test_mtmfsviacube(testref_base):
 
      ## Tests for mtmfs_via_cube : Standard Gridder -- Use of startmodel, to check correct "startmodel" scaling.
      def test_mtmfsviacube_standard_startmodel(self):
-         """ [cube] Tests specmode='mtmfs_via_cube',startmodel='try.model' """
+         """ [mtmfsviacube] Tests specmode='mtmfs_via_cube',startmodel='try.model' """
          ######################################################################################
          # Test specmode='mtmfs_via_cube',startmodel='try.model' for completion.
          ######################################################################################
@@ -5363,7 +5363,7 @@ class test_mtmfsviacube(testref_base):
          
      ## Tests for mtmfs_via_cube : Mosaic gridder
      def test_mtmfsviacube_mosaic(self):
-          """ test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          """[mtmfsviacube]  test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
           ################################## ##
           self.prepData('refim_oneshiftpoint.mosaic.ms')
           ret = tclean(vis='refim_oneshiftpoint.mosaic.ms', imagename='tst', field='0',
@@ -5397,7 +5397,7 @@ class test_mtmfsviacube(testref_base):
 
      ## Tests for mtmfs_via_cube : AWProject gridder
      def test_mtmfsviacube_awproject(self):
-          """ test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          """ [mtmfsviacube] test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
           ###########################################
           self.prepData('refim_oneshiftpoint.mosaic.ms')
           ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
@@ -5430,8 +5430,9 @@ class test_mtmfsviacube(testref_base):
           self.assertTrue(self.check_final(pstr=report))
 
      ## Tests for mtmfs_via_cube : AWProject gridder
+     @unittest.skip('Skip test of "awp2" gridder until it comes in via CAS-14146.')
      def test_mtmfsviacube_awp2(self):
-          """ test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          """ [mtmfsviacube] test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
           ###########################################
           self.prepData('refim_oneshiftpoint.mosaic.ms')
           ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
@@ -5464,9 +5465,53 @@ class test_mtmfsviacube(testref_base):
           self.assertTrue(self.check_final(pstr=report))
 
 
+               ## Tests for mtmfs_via_cube : Standard Gridder -- single tclean call
+     def test_mtmfsviacube_wproject(self):
+         """ [mtmfsviacube] Tests specmode='mtmfs_via_cube' """
+
+         self.prepData('refim_oneshiftpoint.mosaic.ms')
+         ret = tclean(vis=self.msfile,
+                      imagename=self.img,
+                      imsize=512,
+                      cell='10.0arcsec',
+                      niter=10,
+                      gain=0.1,
+                      cycleniter=5,
+                      specmode='mtmfs_via_cube',
+                      nchan=3,
+                      deconvolver='mtmfs',
+                      scales=[0],
+                      threshold="0.1mJy",
+                      nterms=2,
+                      interactive=False,
+                      field='0',
+                      reffreq='1.5GHz',
+                      pblimit=-0.1,
+                      gridder='wproject',
+                      wprojplanes=4,
+                      phasecenter='J2000 19h59m28.523 +40d54m01.152',
+                      parallel=self.parallel)
+         # major/minor cycle inputs/outputs
+         maj_outputs = [self.img+'.psf',
+                        self.img+'.residual',
+                        self.img+'.pb']
+         min_inputs  = [self.img+'.psf.tt0', self.img+'.psf.tt1', self.img+'.psf.tt2',
+                        self.img+'.residual.tt0', self.img+'.residual.tt1',
+                        self.img+'.pb.tt0',
+                        self.img+'.model.tt0', self.img+'.model.tt1']
+         min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
+         maj_inputs  = [self.img+'.model']
+         src=256
+         report=self.th.checkall(ret=ret, peakres=0.172, modflux=0.32, iterdone=10,
+                                 imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs,
+                                 imgval=[(self.img+'.psf.tt0',1.0,[src,src,0,0]),(self.img+'.psf.tt1',0.0,[src,src,0,0]),(self.img+'.image.tt0',0.5,[src,src,0,0]),(self.img+'.alpha',-0.52,[src,src,0,0])  ])
+         casalog.post(report,"SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+
      ## Tests for mtmfs_via_cube : Compare with 'mfs' for a point source at the phase center, where PB does not matter.
      def test_mtmfsviacube_compare_with_mfs(self):
-         """ test_mtmfs_via_cube_compare_with_mfs: tests mfs via cube with 
+         """ [mtmfsviacube] test_mtmfs_via_cube_compare_with_mfs: tests mfs via cube with 
          classical mfs nterms=2. With mpicasa, one will use the cube-parallelization, and the other will use continuum parallelization. 
          """
          self.prepData('refim_point.ms')
