@@ -13,7 +13,7 @@ _qa = quanta()
 _me = measures()
 
 # debug
-debug = True
+debug = False
 
 def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False, rawdatafile=''):
     """

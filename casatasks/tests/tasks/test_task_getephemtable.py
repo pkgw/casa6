@@ -24,15 +24,17 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest.mock import Mock
 from unittest.mock import patch
-import uuid
+from urllib.error import URLError, HTTPError
 import certifi
-
+import pytest
 import numpy as np
 
 from casatestutils import testhelper as th
 
 from casatasks import getephemtable 
+from casatasks.private import jplhorizons_query
 from casatools import ctsys, table
 
 _tb = table()
@@ -93,6 +95,17 @@ class getephemtable_test(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, r'must contains integer value and unit'):
             getephemtable(objectname='Titan', timerange=self.mjdtimerange, interval='15', outfile=self.outfile)
+
+    @patch('casatasks.private.jplhorizons_query.queryhorizons')
+    def test_webservice_errors(self, mock_query):
+        with self.assertRaisesRegex(HTTPError, r'Not Found'):
+            mock_query.side_effect = HTTPError(url='127.0.0.1', code=404, hdrs={}, fp=None, msg='Not Found')
+            getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
+
+        with self.assertRaisesRegex(URLError, r'Unknown host'):
+            mock_query.side_effect = URLError('Unknown host')
+            getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
+
 
 
     @unittest.skipIf(isDatabaseURLreachable(), "JPL-Horizons data server is not reachable")

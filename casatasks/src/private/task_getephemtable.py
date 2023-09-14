@@ -44,7 +44,6 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
                       starttime = 'JD'+str(float(starttime.strip('MJD')) + 2400000.5) 
                   except:
                       raise ValueError("Error translating start time of timerange specified in MJD.")
-                  print("stoptime=",stoptime)
                   if not stoptime.startswith('JD'):
                       if stoptime.startswith('MJD'):
                           stoptime = stoptime.strip('MJD')
@@ -55,7 +54,7 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
                else:
                   matchstart = re.match(r'(\s*)([0-9][0-9][0-9][0-9])\/([0-9][0-9])\/([0-9][0-9])([/:0-9]*)',starttime)
                   matchstop = re.match(r'(\s*)([0-9][0-9][0-9][0-9])\/([0-9][0-9])\/([0-9][0-9])([/:0-9]*)',stoptime)
-                  print(f'startime={starttime}, stoptime={stoptime}, matchstart={matchstart}, matchstop={matchstop}')
+                  #print(f'startime={starttime}, stoptime={stoptime}, matchstart={matchstart}, matchstop={matchstop}')
                   if matchstart is None or matchstop is None:
                       raise ValueError("Error in timerange format. Use YYYY/MM/DD/hh:mm or Julian date with a prefix 'JD' Modified Julian date with a prefix 'MJD'")
            else:
