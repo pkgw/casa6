@@ -458,6 +458,11 @@ class BuildCasa(build):
         mkpath(xmldir)
         for x in xml_files:
             copy2(x,xmldir)
+            
+        os.makedirs(os.path.join(moduledir, 'tests'))
+        f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
+        f.close()
+        copy2('tests/test_casatasks.py',os.path.join(moduledir, 'tests'))
 
 class TestCasa(Command):
     user_options = []
@@ -634,7 +639,8 @@ setup( name=module_name,version=casatasks_version,
                   "%s.__xml__" % module_name,
                   "%s.private" % module_name,
                   "%s.private.parallel" % module_name,
-                  "%s.private.imagerhelpers" % module_name ],
+                  "%s.private.imagerhelpers" % module_name,
+                  "%s.tests" % module_name ],
        classifiers=[ 'Programming Language :: Python :: %s' % pyversion ],
        description="the CASA tasks",
        long_description="The CASAtasks are a collection of (mostly) stateless functions for\nthe analysis of radio astronomy observations.",
