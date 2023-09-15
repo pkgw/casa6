@@ -187,7 +187,38 @@ class gencal_antpostest(unittest.TestCase):
         except URLError as err:
             print("Cannot access %s , skip this test" % evlabslncorrURL)
             self.res = True
-
+            
+    def test_antpos_manual_time_limit_evla(self):
+        """
+        gencal: test if time limit sets cutoff date for antpos corrections
+        """
+        # Mechanical test if time limit functions as expected, very short limit
+        gencal(vis=self.msfile2,
+               caltable=self.caltable,
+               caltype='antpos',
+               ant_pos_time_limit=400)
+        
+        _tb.open(self.caltable)
+        res = np.mean(_tb.getcol('FPARAM'))
+        _tb.close()
+        
+        self.assertTrue(np.isclose(res, 0.0, atol=1e-6))
+        
+        shutil.rmtree(self.caltable)
+               
+        # Test again with no time limit/ ant_pos_time_limit = 0
+        gencal(vis=self.msfile2,
+               caltable=self.caltable,
+               caltype='antpos',
+               ant_pos_time_limit=0)
+               
+        _tb.open(self.caltable)
+        res = np.mean(_tb.getcol('FPARAM'))
+        _tb.close()
+        
+        self.assertTrue(np.isclose(res, -5.185e-5, atol=1e-6))
+        
+        
 
 class test_gencal_antpos_alma(unittest.TestCase):
     """Tests the automatic generation of antenna position corrections for ALMA.
