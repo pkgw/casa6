@@ -188,6 +188,7 @@ class variant {
 	void push(std::vector<long long>, bool conform = true);
 	void push(std::complex<double>, bool conform = true);
 	void push(const std::string&, bool conform = true);
+	void push(const char*, bool conform = true);
 
 	void place(bool, unsigned int index, bool conform = true);
 	void place(long, unsigned int index, bool conform = true);
@@ -197,6 +198,7 @@ class variant {
 	void place(std::vector<long long>, unsigned int index, bool conform = true);
 	void place(std::complex<double>, unsigned int index, bool conform = true);
 	void place(const std::string&, unsigned int index, bool conform = true);
+	void place(const char*, unsigned int index, bool conform = true);
 
 	ssize_t size( ) const { return typev >= BOOLVEC ? vec_size() : 1; }
 	void resize( ssize_t size );

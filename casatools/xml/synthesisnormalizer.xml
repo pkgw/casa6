@@ -132,7 +132,12 @@ This is used to construct {\tt synthesisnormalizer} tool.
 
    <method name="divideresidualbyweight" type="function">
    <shortdescription>Divide residual by weight</shortdescription>
-
+   <input>
+     <param type="bool" name="singledish">
+       <shortdescription>True if the method tries to handle single dish images.</shortdescription>
+       <value>false</value>
+     </param>
+   </input>
 <description>
 </description>
 <input/>

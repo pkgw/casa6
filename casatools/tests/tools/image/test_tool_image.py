@@ -23,7 +23,7 @@
 # deconvolvefrombeam, fft, findsources, fromarray, fromcomplist, fromfits, fromimage, fromrecord, fromshape,
 # getregion, hanning, histograms, imageconcat, insert, isconform, makecomplex, maskhandler, modify,
 # newfromimage, pad, putchunk, getchunk, putregion, replacemaskedpixels, restoringbeam, rotate, sepconvolve, set,
-# setbrightnessunit, setcoordsys, setmiscinfo, summary, tofits, twopointcorrelation
+# setbrightnessunit, setcoordsys, setmiscinfo, summary, tofits, twopointcorrelation, fitsheader
 ##########################################################################
 import shutil
 import pytest
@@ -4838,6 +4838,73 @@ class ia_twopointcorrelation_test(ImageBase):
         myia.done()
         self.assertTrue("ia.twopointcorrelation" in msgs[-2])
         self.assertTrue("ia.twopointcorrelation" in msgs[-1])
+
+class ia_fitsheader_test(ImageBase):
+
+    def compare_dicts( self, dict1, dict2, exclude_keys=[ ] ):
+        def isnumarray( ary ):
+            ### check if array is numeric
+            return np.issubdtype(ary.dtype, np.number)
+
+        diff = { }
+
+        for k, v in dict1.items( ):
+            ###
+            ###  more conditions would be needed to compare nested dictionaries
+            ###
+            if k in exclude_keys:
+                ### skip excluded keys
+                continue
+            if isinstance(dict1[k], np.ndarray) and isinstance(dict2[k], np.ndarray):
+                ### compare arrays
+                if isnumarray(dict1[k]) and isnumarray(dict2[k]):
+                    # numeric array compare
+                    if not np.allclose(dict1[k],dict2[k]):
+                        diff[k] = ( dict1[k], dict2[k] )
+                elif not isnumarray(dict1[k]) and not isnumarray(dict2[k]):
+                    # string array compare
+                    if not np.array_equal(dict1[k],dict2[k]):
+                        diff[k] = ( dict1[k], dict2[k] )
+                else:
+                    # different sorts of arrays
+                    diff[k] = ( dict1[k], dict2[k] )
+                continue
+            if isinstance(dict1[k], np.ndarray) or isinstance(dict2[k], np.ndarray):
+                ### one array and one non-array is a difference
+                diff[k] = ( dict1[k], dict2[k] )
+                continue
+            if dict1[k] != dict2[k]:
+                ### compare singleton values
+                diff[k] = ( dict1[k], dict2[k] )
+
+        return diff
+
+    def test_fitsheader(self):
+        """test creation of FITS header"""
+        myia = self._myia
+        myia.maketestimage()
+        expected_header = { 'BITPIX': -32, 'BMAJ': 0.014861112, 'BMIN': 0.0094999997, 'BPA': 6.0, 'BSCALE': 1.0,
+                            'BTYPE': 'Intensity', 'BUNIT': 'Jy/beam ', 'BZERO': 0.0,
+                            'CDELT': np.array([-0.00222222,  0.00333333]), 'CRPIX': np.array([56., 38.]),
+                            'CRVAL': np.array([0., 0.]), 'CTYPE': np.array(['RA---SIN', 'DEC--SIN'], dtype='<U8'),
+                            'CUNIT1': 'deg     ', 'CUNIT2': 'deg     ', 'DATE': '2023-07-31T17:55:28.349375',
+                            'END': '', 'EQUINOX': 2000.0, 'EXTEND': True,
+                            'HISTORY': np.array([ "  File modified by user 'dbarnes' with fv  on 1999-07-28T14:19:41",
+                                                  "  File modified by user 'dbarnes' with fv  on 1999-07-28T14:21:43",
+                                                  'CASA START LOGTABLE',
+                                                  "2023-07-31T17:55:28 INFO SRCCODE='::image::maketestimage'",
+                                                  'Ran ia.maketestimage',
+                                                  "2023-07-31T17:55:28 INFO SRCCODE='::image::maketestimage'",
+                                                  'ia.maketestimage(outfile="", overwrite=false)',
+                                                  'CASA END LOGTABLE'], dtype='<U65'),
+                            'IMAGENME': 'Temporary_Image', 'LATPOLE': 0.0, 'LONPOLE': 180.0,
+                            'NAXIS': np.array([  2, 113,  76]), 'OBJECT': '        ',
+                            'ORIGIN': 'casacore-@PROJECT_VERSION@', 'PC1_1': 1.0, 'PC1_2': 0.0, 'PC2_1': -0.0,
+                            'PC2_2': 1.0, 'PV2_1': 0.0, 'PV2_2': 0.0, 'RADESYS': 'FK5     ',
+                            'SIMPLE': True, 'TIMESYS': 'UTC     ' }
+
+        difference = self.compare_dicts(expected_header, myia.fitsheader( ),['HISTORY','DATE','ORIGIN'])
+        self.assertEqual( len(difference), 0, f'''expected no differences between reference and created fits headers, but found: {repr(difference)}''' )
 
 if __name__ == '__main__':
     unittest.main()

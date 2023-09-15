@@ -142,6 +142,7 @@ class SIImageStore
   virtual void dividePSFByWeight(const casacore::Float pblimit=casacore::C::minfloat);
   virtual void normalizePrimaryBeam(const casacore::Float pblimit=casacore::C::minfloat);
   virtual void divideResidualByWeight(const casacore::Float pblimit=casacore::C::minfloat, const casacore::String normtype="flatnoise");
+  virtual void divideResidualByWeightSD(const casacore::Float pblimit=casacore::C::minfloat);
   virtual void divideModelByWeight(const casacore::Float pblimit=casacore::C::minfloat, const casacore::String normtype="flatnoise");
   virtual void multiplyModelByWeight(const casacore::Float pblimit=casacore::C::minfloat, const casacore::String normtype="flatnoise");
 
