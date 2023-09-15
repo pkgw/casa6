@@ -13,7 +13,7 @@ _qa = quanta()
 _me = measures()
 
 # debug
-debug = False
+_debug = False
 
 def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False, rawdatafile=''):
     """
@@ -92,7 +92,7 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     except ValueError as e:
         casalog.post(e)
    
-    if debug:
+    if _debug:
         print("target=",target)
         print(f"start_time={start_time}, stop_time={stop_time}, step_size={step_size}")
         print(f"quantities={quantities}, ang_format={ang_format}")
