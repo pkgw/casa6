@@ -18,6 +18,18 @@ debug = False
 def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False, rawdatafile=''):
     """
     Main driver function for ephemeris data query from JPL-Horizons
+    
+    arguments:
+        objectname: ephemeris object name (case insensitive). Try to convert 
+                    a common name to ID if asis = False.
+        starttime: start time of the ephemeris data (expects YYYY/MM/DD/HH:MM 
+                   format
+        stoptime: stop (end) time of the ephemeris data in the same format as
+                  starttime
+        incr: time increment (interval) of the ephemeris data
+        outtable: output CASA table name
+        asis: a toggle for additinal check to resolve object name 
+        rawdatafile: raw query result file name (optional)
     """
 
     # commented ones are not currently supported in setjy
@@ -34,15 +46,15 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
                          'moon': '301',
                          'mars': '499',
                          'jupiter': '599',
-                         'io': 501,
-                         'europa': 502,
-                         'ganymede': 503,
-                         'callisto': 504,
-                         'saturn': 699,
-                         'titan': 606,
-                         'uranus': 799,
-                         'neptune': 899,
-                         'pluto': 999}
+                         'io': '501',
+                         'europa': '502',
+                         'ganymede': '503',
+                         'callisto': '504',
+                         'saturn': '699',
+                         'titan': '606',
+                         'uranus': '799',
+                         'neptune': '899',
+                         'pluto': '999'}
     known_objects = planets_and_moons
     known_objects.update(asteroids)
     # default quantities (required by setjy) for CASA
@@ -59,7 +71,7 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     step_size = None
     if not asis:
         if not objectname.lower() in known_objects:
-            raise Exception(
+            raise ValueError(
                 "%s is not in the known object list for CASA. To skip this check set asis=True" % objectname)
         else:
             target = known_objects[objectname.lower()]
@@ -72,13 +84,13 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
         else:
             start_time = _qa.time(starttime, form='ymd')
             stop_time = _qa.time(stoptime, form='ymd')
-    except Exception as e:
-        print(e)
+    except ValueError as e:
+        casalog.post(e)
 
     try:
         step_size = incr.replace(' ', '')
-    except Exception as e:
-        print(e)
+    except ValueError as e:
+        casalog.post(e)
    
     if debug:
         print("target=",target)
@@ -167,7 +179,7 @@ def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format,
                 else:
                     casalog.post("ERROR: No data found. Ephemeris data file not generated", 'WARN')
         else:
-            raise Exception('Could not retrieve the data. Error code:{}:{}'.format(status, response.msg))
+            raise RuntimeError('Could not retrieve the data. Error code:{}:{}'.format(status, response.msg))
     else:
         data = None
     return data
@@ -296,7 +308,8 @@ def tocasatb(indata, outtable):
                     m = re.match(r'^[>\s]*Start time\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\w+)', line)
                     if m:
                         startmjd = _qa.totime(m[1] + '/' + m[2])
-                # end time (of the requested time range)
+   #--This info will not be used but left here since it might be useful fo debugging.
+   #             # end time (of the requested time range)
    #             elif re.search(r'End time', line):
    #                 m = re.match(r'^[>\s]*End time\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\w+)', line)
    #                 if m:
@@ -314,7 +327,7 @@ def tocasatb(indata, outtable):
                         elif unit == 'days':
                             theunit = 'd'
                         else:
-                            raise Exception('Unit of Step-size, %s is unrecognized' % unit)
+                            raise RuntimeError('Unit of Step-size, %s is unrecognized' % unit)
                         if theunit == 'd':
                             dmjd = m[1]
                         else:
@@ -350,7 +363,7 @@ def tocasatb(indata, outtable):
                                 radiiarr = np.array([m[2],m[2],m[2]], dtype=np.float64)
                             headerdict['radii'] = {'unit': 'km', 'value': radiiarr}
                         else:
-                            print("Unexpected number or matches for Target radii:{} (expected 2)".format(m.groups))
+                            casaloog.post("Unexpected number or matches for Target radii:{} (expected 2)".format(m.groups), 'WARN')
                 #rotational period (few pattens seem to exist)
                 elif re.search(r'rot. period|Rotational period', line):
                     m = re.search(r'rot. period\s+\S*=\s*([0-9.]+h\s*[0-9.]+m\s*[0-9.]+\s*s)|'
@@ -533,7 +546,7 @@ def tocasatb(indata, outtable):
                 _fill_keywords_from_dict(headerdict, colkeys, outtable)
                 casalog.post(f"Output is written to a CASA table, {outtable}")
             else:
-                raise Exception("Error occured. The output table, " + outtable + "is not generated")
+                raise RuntimeError("Error occured. The output table, " + outtable + "is not generated")
     except RuntimeError:
         raise Exception("Error occurred")
     finally:

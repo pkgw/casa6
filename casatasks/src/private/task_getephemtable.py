@@ -58,7 +58,7 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
                   if matchstart is None or matchstop is None:
                       raise ValueError("Error in timerange format. Use YYYY/MM/DD/hh:mm or Julian date with a prefix 'JD' Modified Julian date with a prefix 'MJD'")
            else:
-               raise ValueError("timerange needs to be specified with starttime and stoptime connected by ~ .")
+               raise ValueError("timerange needs to be specified with starttime and stoptime delimited by ~ .")
  
 
        # check for interval
