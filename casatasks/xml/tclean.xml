@@ -2015,35 +2015,6 @@ to use the correct direction in which the antenna is pointing with respect to th
       <value type="bool">False</value>
     </param>
 
-    <param type="bool" name="fullsummary" subparam="true">
-      <shortdescription>Return dictionary with complete convergence history</shortdescription>
-      <description>Return dictionary with complete convergence history 
-
-                         fullsummary=True: A full version of the summary dictionary is returned.
-                         Keys include 'iterDone','peakRes','modelFlux','cycleThresh' that record the
-                         convergence state at the end of each set of minor cycle iterations
-                         separately for each image plane (i.e. channel/stokes) being
-                         deconvolved. Additional keys report the convergence state at the 
-                         start of minor cycle iterations, stopping criteria that triggered major 
-                         cycles, and a processor ID per channel, for parallel cube runs.
-
-                         fullsummary=False (default): A shorten version of the summary dictionary is returned
-                         with only 'iterDone','peakRes','modelFlux', and 'cycleThresh'.
-
-
-                         Detailed  information about the return dictionary fields may be found 
-                         at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary. 
-                         
-                         Note : With some parallel cube imaging runs that have a large number of channels
-                         and iterations per cube partition in a parallel run, an MPI message passing limit may
-                         be reached due to the size of the return dictionaries being passed around, causing
-                         CASA to crash (with fullsummary=True). The limit has been estimated to be reached
-                         only when nchan_per_chunk x iterdone_per_minorcycleset > 8e+6. The option to set
-                         fullsummary=False should be used to guard against this.                           
-       </description>
-       <value type='bool'>False</value>
-    </param>
-    
     <param type="int" name="nmajor">
       <shortdescription>Maximum number of major cycles to evaluate</shortdescription>
       <description>The nmajor parameter limits the number of minor and major cycle sets
@@ -2082,6 +2053,34 @@ to use the correct direction in which the antenna is pointing with respect to th
     </param>
 
 
+    <param type="bool" name="fullsummary">
+      <shortdescription>Return dictionary with complete convergence history</shortdescription>
+      <description>Return dictionary with complete convergence history
+
+                         fullsummary=True: A full version of the summary dictionary is returned.
+                         Keys include 'iterDone','peakRes','modelFlux','cycleThresh' that record the
+                         convergence state at the end of each set of minor cycle iterations
+                         separately for each image plane (i.e. channel/stokes) being
+                         deconvolved. Additional keys report the convergence state at the
+                         start of minor cycle iterations, stopping criteria that triggered major
+                         cycles, and a processor ID per channel, for parallel cube runs.
+
+                         fullsummary=False (default): A shorten version of the summary dictionary is returned
+                         with only 'iterDone','peakRes','modelFlux', and 'cycleThresh'.
+
+
+                         Detailed  information about the return dictionary fields may be found
+                         at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary.
+
+                         Note : With some parallel cube imaging runs that have a large number of channels
+                         and iterations per cube partition in a parallel run, an MPI message passing limit may
+                         be reached due to the size of the return dictionaries being passed around, causing
+                         CASA to crash (with fullsummary=True). The limit has been estimated to be reached
+                         only when nchan_per_chunk x iterdone_per_minorcycleset > 8e+6. The option to set
+                         fullsummary=False should be used to guard against this.
+       </description>
+       <value type='bool'>False</value>
+    </param>
 
 
     
@@ -2765,7 +2764,7 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="minpsffraction"><value>0.05</value></default>
          <default param="maxpsffraction"><value>0.8</value></default>
          <default param="interactive"><value>False</value></default>
-         <default param="fullsummary"><value>False</value></default>
+         <!-- <default param="fullsummary"><value>False</value></default> -->
        </notequals>
 
      </when>

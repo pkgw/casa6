@@ -14,26 +14,17 @@ except:
     from sys import version_info
     is_python3 = version_info > (3,)
     is_CASA6 = is_python3
-if is_CASA6:
-    from casatasks import casalog
 
-    from casatools import image
-    from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from .cleanhelper import write_tclean_history, get_func_params
-    from casatools import synthesisimager
-    ia = image( )
-else:
-    from taskinit import *
+from casatasks import casalog
 
-    from imagerhelpers.imager_deconvolver import PyDeconvolver
-    from imagerhelpers.input_parameters import ImagerParameters
-    from imregrid import imregrid
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from cleanhelper import write_tclean_history, get_func_params
-    synthesisimager=casac.synthesisimager
-    ia = iatool( )
+from casatools import image
+from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+from .cleanhelper import write_tclean_history, get_func_params
+from casatools import synthesisimager
+ia = image( )
 
 try:
     if is_CASA6:
@@ -289,6 +280,12 @@ def deconvolve(
             t1=time.time();
             casalog.post("***Time for minor cycle: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_deconvolve");
             isit = decon.hasConverged() # get the convergence state, to report back to the calling code
+
+
+        # Residual image needs to be computed for this to work
+        if niter==0:
+            rd = ReturnDictionary()
+            retrec = rd.constructResidualDict(paramList)
 
         ## Get summary from iterbot
         #if type(interactive) != bool and niter>0:
