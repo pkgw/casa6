@@ -8,6 +8,185 @@ from casatools import image
 ia = image()
 
 
+class ImagingDict():
+    """
+    Keeps track of tclean + deconvolve return dictionaries
+    """
+    
+    def __init__(self) -> None:
+        self._returndict = {}
+        self._summaryminor = {}
+        
+    def __str__(self) -> str:
+        """
+        Pretty print the return dictionary.
+        """
+        
+        retstr = ''
+        for key, val in self._returndict.items():
+            if key == 'summaryminor':
+                retstr += 'summaryminor:\n'
+                for field in val.keys():
+                    for freq in val[field].keys():
+                        for stokes in val[field][freq].keys():
+                            for key2, val2 in val[field][freq][stokes].items():
+                                retstr += f'\t Field: {field: 3d}, Chan: {freq: 3d}, Stokes: {stokes :2d}, {key2}, {val2}\n'
+            else:
+                retstr += f'{key}: {val}\n'
+        return retstr
+        
+    @property
+    def returndict(self) -> dict:
+        return self._returndict
+    
+    @returndict.setter
+    def returndict(self, inpdict: dict) -> None:
+        self._returndict = inpdict
+        
+    @returndict.deleter
+    def returndict(self) -> None:
+        del self._returndict
+
+
+    def initialize_dict(self) -> None:
+        """
+        Initialize the return dictionary with dummy values. This sets up the
+        dictionary structure and keys to expect, and will be filled in with
+        real values when running tclean or deconvolve.
+        """
+        
+        # Initialize the values that don't need to inspect any images
+        self._returndict['cleanstate'] = ''
+        self._returndict['cyclefactor'] = 1.0
+        self._returndict['cycleiterdone'] = 0
+        self._returndict['cycleniter'] = 0
+        self._returndict['cyclethreshold'] = 0
+        self._returndict['interactiveiterdone'] = 0
+        self._returndict['interactivemode'] = False
+        self._returndict['interactiveniter'] = 0
+        self._returndict['interactivethreshold'] = 0
+
+        self._returndict['iterdone'] = 0
+        self._returndict['loopgain'] = 0
+        self._returndict['maxpsffraction'] = 0
+        self._returndict['maxpsfsidelobe'] = 0
+        self._returndict['minpsffraction'] = 0
+
+        self._returndict['niter'] = 0
+        self._returndict['nmajordone'] = 0
+        self._returndict['nsigma'] = 0.0
+        self._returndict['stopcode'] = 0
+
+        self._returndict['summarymajor'] = np.array([])
+        # Summary minor is nested as {field{freq{stokes}}
+        self._returndict['summaryminor'] = {}
+        self._returndict['summaryminor'][0] = {}
+        self._returndict['summaryminor'][0][0] = {}
+        self._returndict['summaryminor'][0][0][0] = self.initialize_summary_minor()
+
+        self._returndict['threshold'] = 0.0
+        self._returndict['stopDescription'] = 'Zero iterations performed'
+                                      
+
+    def initialize_summary_minor(self) -> dict:
+        """
+        Initialize the summary minor dictionary with dummy values. This sets up the
+        dictionary structure and keys to expect, and will be filled in with
+        real values when running tclean or deconvolve.
+        """
+
+        self._summaryminor['iterDone'] = []
+        self._summaryminor['peakRes'] = []
+        self._summaryminor['modelFlux'] = []
+        self._summaryminor['cycleThresh'] = []
+        self._summaryminor['cycleStartIters'] = []
+        self._summaryminor['startIterDone'] = []
+        self._summaryminor['startPeakRes'] = []
+        self._summaryminor['startModelFlux'] = []
+        self._summaryminor['startPeakResNM'] = []
+        self._summaryminor['peakResNM'] = []
+        self._summaryminor['masksum'] = []
+        self._summaryminor['mpiServer'] = []
+        self._summaryminor['stopCode'] = []
+                                      
+        return self._summaryminor
+                                      
+
+
+    def get_key(self, key:str, field:int=0, chan:int=0, stokes:int=0) -> list:
+        """
+        Return the list of values for the specified key. If requesting a key
+        within "summaryminor", also specify the field, channel and stokes plane.
+                                      
+        Inputs:
+        key         The key to return. str
+        field       The field to return. int
+        chan        The channel to return. int
+        stokes      The stokes plane to return. int
+
+        Returns:
+        The list of values for the specified key. list
+        """
+                                      
+        summaryminor_keys = ['iterDone', 'peakRes', 'modelFlux', 'cycleThresh',
+                             'cycleStartIters', 'startIterDone',
+                             'startPeakRes', 'startModelFlux',
+                             'startPeakResNM', 'peakResNM', 'masksum',
+                             'mpiServer', 'stopCode']
+        
+        try:
+            if key in summaryminor_keys:
+                return self._returndict['summaryminor'][field][chan][stokes][key]
+            else:
+                return self._returndict[key]
+        except KeyError:
+            print('WARNING : Key not found in return dictionary.')
+            return []
+                                      
+
+    def append_dict(self, inpdict:dict) -> None:
+        """
+        Append the input dictionary to the return dictionary. This is used to
+        merge dictionaries from multiple tclean/deconvolve calls.
+        
+        The input dictionary must be a fully formed return dictionary from
+        either `tclean` or `deconvolve`.
+                                      
+        The returndict attribute is modified in place.
+        
+        Inputs:
+        inpdict     The input dictionary to append. dict
+                                      
+        Returns:
+        None
+        """
+                                      
+        # Only append these keys, replace the rest
+        append_keys = ['summarymajor', 'summaryminor']
+        # Accumulate these keys, incrementing with every append
+        accum_keys = ['cycleniter', 'cycleiterdone', 'interactiveiterdone', 'interactiveniter', 'iterdone', 'nmajordone', 'niter']
+        
+        try:
+            for key, val in inpdict.items():
+                if key in append_keys:
+                    if key == 'summarymajor':
+                        self.returndict[key] = np.append(self.returndict[key], val)
+                    elif key == 'summaryminor':
+                        # Iterate through the dict and append individual values
+                        for field in val.keys():
+                            for freq in val[field].keys():
+                                for stokes in val[field][freq].keys():
+                                    for key2, val2 in val[field][freq][stokes].items():
+                                        self._returndict[key][field][freq][stokes][key2] = np.append(self._returndict[key][field][freq][stokes][key2], val2)
+                elif key in accum_keys:
+                    self._returndict[key] += val
+                else:
+                    self._returndict[key] = val
+        except KeyError:
+            print('Input dictionary does not have expected keys.')
+            raise
+
+
 class ReturnDictionary():
     """
     Class that constructs the tclean return dictionary - implemented
