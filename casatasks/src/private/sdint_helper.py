@@ -30,6 +30,16 @@ class SDINT_helper:
 #      casalog.post('Init Helper')
 
 ################################################
+    def getFreqAxisIndex(self):
+        try:
+            mysummary = _ia.summary(list=False)
+            freqaxis_index = list(mysummary['axisnames']).index('Frequency')
+        except(ValueError):
+            _ia.close()
+            casalog.post('The image '+_ia.name()+' has no frequency axis. Try adding one with ia.adddegaxis() .', 'SEVERE')
+
+        return freqaxis_index
+            
     def getFreqList(self,imname=''):
       """ Get the list of frequencies for the given image, one for each channel.
 
@@ -40,15 +50,16 @@ class SDINT_helper:
       _ia.open(imname)
       csys =_ia.coordsys()
       shp = _ia.shape()
+      freqaxis_index = self.getFreqAxisIndex()
       _ia.close()
 
-      if(csys.axiscoordinatetypes()[3] == 'Spectral'):
-           restfreq = csys.referencevalue()['numeric'][3]#/1.0e+09; # convert more generally..
-           freqincrement = csys.increment()['numeric'][3]# /1.0e+09;
+      if(csys.axiscoordinatetypes()[freqaxis_index] == 'Spectral'):
+           restfreq = csys.referencevalue()['numeric'][freqaxis_index]#/1.0e+09; # convert more generally..
+           freqincrement = csys.increment()['numeric'][freqaxis_index]# /1.0e+09;
            freqlist = [];
-           for chan in range(0,shp[3]):
+           for chan in range(0,shp[freqaxis_index]):
                  freqlist.append(restfreq + chan * freqincrement);
-      elif(csys.axiscoordinatetypes()[3] == 'Tabular'):
+      elif(csys.axiscoordinatetypes()[freqaxis_index] == 'Tabular'):
            freqlist = (csys.torecord()['tabular2']['worldvalues']) # /1.0e+09;
       else:
            casalog.post('Unknown frequency axis. Exiting.','SEVERE');
@@ -60,9 +71,7 @@ class SDINT_helper:
 ################################################
 
     def copy_restoringbeam(self,fromthis='',tothis=''):
-#        _ib = image()
-#        ia.open(fromthis);
-#        ib.open(tothis)
+
         freqlist = self.getFreqList(fromthis)
         # casalog.post(freqlist)
         for i in range(len(freqlist)):
@@ -76,8 +85,7 @@ class SDINT_helper:
         
 ################################################
 
-    def feather_int_sd(self,sdcube='', intcube='', jointcube='',sdgain=1.0,dishdia=100.0, usedata='sdint', chanwt=''): 
-#, pbcube='',applypb=False, pblimit=0.2):
+    def feather_int_sd(self, sdcube='', intcube='', jointcube='',sdgain=1.0, dishdia=-1, usedata='sdint', chanwt=''): 
         """
         Run the feather task to combine the SD and INT Cubes. 
         
@@ -103,9 +111,12 @@ class SDINT_helper:
             
             _ia.open(jointcube)
             _ia.set(0.0) ## Initialize this to zero for all planes
-           
+
             for i in range(len(freqlist)):	
                 if chanwt[i] != 0.0 : ## process only the nonzero channels
+                    if(dishdia <=0):
+                        casalog.post('Parameter dishdia (SD dish diameter in meters) must be > 0.', 'SEVERE')
+
                     freqdishdia = dishdia ## * (freqlist[0] / freqlist[i]) # * 0.5
                 
                     os.system('rm -rf tmp_*')
@@ -156,13 +167,14 @@ class SDINT_helper:
         _ia.open(jointname+'.sumwt')
         vals = _ia.getchunk()
         shp = _ia.shape()
+        freqaxis_index = self.getFreqAxisIndex()
         _ia.close()
 
         if shp[0]>1:
             casalog.post("WARNING : Cannot use this task with faceting", 'WARN')
 
         _ia.open(jointname+'.psf')
-        for i in range(0, shp[3]):
+        for i in range(0, shp[freqaxis_index]):
             onepsf = _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
             vals[0,0,0,i] = np.max(onepsf)
         _ia.close()
@@ -182,13 +194,14 @@ class SDINT_helper:
         """
         _ia.open(sumwtname)
         shp = _ia.shape()
+        freqaxis_index = self.getFreqAxisIndex()
         vals = _ia.getchunk()   ## This is one pixel per channel.
         _ia.close()
         
         casalog.post("********************Re-norm with "+str(vals))
 
         _ia.open(imname)
-        for i in range(0, shp[3]):
+        for i in range(0, shp[freqaxis_index]):
             oneplane = _ia.getchunk(blc=[0,0,0,i],trc=[shp[0],shp[1],0,i])
             if vals[0,0,0,i]>0.0:
                 normplane = oneplane/vals[0,0,0,i]
@@ -221,8 +234,12 @@ class SDINT_helper:
 
         _ia.open(inpcube)
         shp=_ia.shape()
+        freqaxis_index = self.getFreqAxisIndex()
         _ia.close()
 
+        if(freqaxis_index!=3):
+            casalog.post('The Frequency axis index of '+inpcube+' is '+str(freqaxis_index)+' but modify_with_pb requires index 3.', 'SEVERE')
+        
         ##############
         ### Calculate a reference Primary Beam
         ### Weighted sum of pb cube
@@ -388,8 +405,12 @@ class SDINT_helper:
 
         _ia.open(cubename)
         shp = _ia.shape()
+        freqaxis_index = self.getFreqAxisIndex()
         _ia.close()
 
+        if(freqaxis_index!=3):
+            casalog.post('The Frequency axis index of '+cubename+' is '+str(freqaxis_index)+' but cube_to_taylor_sum requires index 3.', 'SEVERE')
+        
         _ia.open(cubewt)
         cwt = _ia.getchunk()[0,0,0,:]
         _ia.close()
@@ -490,8 +511,12 @@ class SDINT_helper:
         
         _ia.open(origcube)
         shp = _ia.shape()
+        freqaxis_index = self.getFreqAxisIndex()
         _ia.close()
 
+        if(freqaxis_index!=3):
+            casalog.post('The Frequency axis index of '+origcube+' is '+str(freqaxis_index)+' but calc_sd_residual requires index 3.', 'SEVERE')
+        
         for i in range(0,len(freqlist)):
 
             _ia.open(origcube)
@@ -675,14 +700,16 @@ class SDINT_helper:
         else:
             casalog.post(" The center of psf coincides with int psf: (diffRA,diffDec)=( %s, %s)" % (diff_ra, diff_dec))            
 
-        #### Add a check for frequency axis
+        #### check for frequency axis
         _ia.open(inpsf)
         sdshape = _ia.shape()
+        freqaxis_index1 = self.getFreqAxisIndex()
         _ia.close()
         _ia.open(refpsf)
         tshape = _ia.shape()
+        freqaxis_index2 = self.getFreqAxisIndex()
         _ia.close()
-        if sdshape[3] != tshape[3]:
+        if freqaxis_index1 != freqaxis_index2 or sdshape[freqaxis_index1] != tshape[freqaxis_index1]:
             raise Exception("The frequency axis of the input SD image and the interferometer template do not match and cannot be regridded. This is because when there are per-plane restoring beams, a regrid along the frequency axis cannot be defined at optimal accuracy. Please re-evaluate the SD image and psf onto a frequency grid that matches the interferometer frequency grid, and then retry.")
 
         #return modpsf 
@@ -708,26 +735,50 @@ class SDINT_helper:
         _ia.open(sdimage)
         restbeams = _ia.restoringbeam()
         shp = _ia.shape()
+        try:
+            mysummary = _ia.summary(list=False)
+            freqaxis_index = list(mysummary['axisnames']).index('Frequency')
+        except(ValueError):
+            _ia.close()
+            casalog.post('The SD image has no frequency axis. Try adding one with ia.adddegaxis() .', 'SEVERE') 
+        try:
+            stokesaxis_index = list(mysummary['axisnames']).index('Stokes')
+            nstokes = shp[stokesaxis_index]
+        except(ValueError):
+            casalog.post('The SD image has no Stokes axis.', 'WARN') 
+            nstokes = 1
+            
         csys = _ia.coordsys()
         _ia.close()
 
-        ## If no restoring beam, or if global restoringbeam, return with error.
-        ## Also return if the number of beams doesn't match nchan...
-        ###if not restbeams.has_key('nChannels') or restbeams['nChannels'] != shp[3]:
-        if not 'nChannels' in restbeams or restbeams['nChannels'] != shp[3]:
-            raise(Exception("The input SD cube must have per plane restoring beams"))
-    
+        # Handle images without per-plane restoring beams
+        if not 'nChannels' in restbeams or restbeams['nChannels'] != shp[freqaxis_index]:
+            casalog.post("The input SD image does not have per-plane-restoring beams. Working around that ...", 'WARN')
+
+            if shp[freqaxis_index] == 1: # If there is only one channel, just use the one beam we have
+                mybeams = {'beams': {'*0': {'*0': restbeams.copy()}}, 'nChannels':1, 'nStokes': nstokes}
+                restbeams = mybeams
+            elif shp[freqaxis_index] > 1: # create a copy of the SD image with per-plane restoring beams
+                casalog.post("Constructing per-plane restoring beams based on "+sdimage, 'WARN')
+                _ia.open(sdimage)
+                _ia.setrestoringbeam(remove=True)
+                _ia.setrestoringbeam(beam=restbeams, channel=0, polarization=-1)
+                restbeams =  _ia.restoringbeam()
+                _ia.close()
+            else:
+                casalog.post('The SD image has a frequency axis of length < 1. Cannot proceed.', 'SEVERE')
+                
         cdir = csys.torecord()['direction0']
         compdir = [cdir['system'] , str(cdir['crval'][0])+cdir['units'][0] , str(cdir['crval'][1])+cdir['units'][1] ]
 
         ## Make empty SD psf cube from SD image cube
         os.system('rm -rf '+sdpsfname)
-        os.system('cp -r '+ sdimage + ' ' + sdpsfname)
+        os.system('cp -R '+sdimage+' '+sdpsfname)
         
         ## Iterate through PSF cube and replace pixels with Gaussians matched to restoringbeam info
 
         _ia.open(sdpsfname)
-        for ch in range(0,shp[3]):
+        for ch in range(0,shp[freqaxis_index]):
             os.system('rm -rf tmp_sdplane')
             rbeam = restbeams['beams']['*'+str(ch)]['*0']
             
@@ -798,16 +849,19 @@ class SDINT_helper:
             else:
                 refval = _qa.convert(_qa.quantity( pars['reffreq'] ), 'Hz') ['value']
                 if refval < freqlist[0] or refval >  freqlist[ len(freqlist)-1 ] :
-                    casalog.post('The specified reffreq for MFS imaging is outside the frequency range of the specified Cube image for the major cycle. Please specify a reffreq within the cube frequency range or leave it as an empty string to auto-calculate the middle of the range.','WARN', "task_sdintimaging")
-                    validity=False
-        
+                    if len(freqlist)>1:
+                        casalog.post('The specified reffreq for MFS imaging ('+str(refval)+' Hz) is outside the frequency range of the specified Cube image for the major cycle ('+str(freqlist[0])+' Hz - '+str(freqlist[ len(freqlist)-1 ])+' Hz).\n Please specify a reffreq within the cube frequency range or leave it as an empty string to auto-calculate the middle of the range.','WARN', "task_sdintimaging")
+                        validity=False
+                    else:
+                        casalog.post('The specified reffreq for MFS imaging ('+str(refval)+' Hz) is not exactly the same as the frequency of the selected interferometric data for the major cycle ('+str(freqlist[0])+' Hz).\n We will ignore this for now.', 'WARN')
+                        
 
             #(2.1)# Too many channels
             if len(freqlist) > 50:
                 casalog.post('The cube for major cycles has '+str(len(freqlist))+' channels.  For wideband continuum imaging, it may be possible to reduce the number of channels to (say) one per spectral window to preserve frequency dependent intensity and weight information but also minimize the number of channels in the image cubes. MFS imaging will be performed within each channel. This will reduce the sizes of the image cubes as well as the compute time used for feathering each plane separately. Note that a minimum of nterms=' + str(pars['nterms']) + ' channels is required for an accurate polynomial fit, but where possible at least 5 to 10 channels that span the frequency range are prefered in order to properly encode frequency dependent intensity and weights.', "WARN", "task_sdintimaging")
 
             #(2.2)# Too few channels        
-            if len(freqlist) < 5:
+            if len(freqlist) < 5 and pars['nterms'] > 1 :
                 casalog.post('The cube for the major cycle has only '+str(len(freqlist))+' channels. A minimum of nterms = ' + str(pars['nterms']) + ' channels is required for an accurate polynomial fit, but where possible at least 5 to 10 channels that span the frequency range are prefered in order to properly encode frequency dependent intensity and weights.','WARN', "task_sdintimaging")
                 if len(freqlist) < pars['nterms']:
                     validity=False
@@ -882,6 +936,9 @@ class SDINT_helper:
         _ia.close()
         return {'nchan':nchan, 'start':start, 'width':width}
 
+
+
+    
 ### Using Old Imager. Does not work for cubes ? 
 #    def fit_psf_beam(self,msname = '', psfname =''):
 #        _im.open(msname)  

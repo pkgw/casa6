@@ -66,11 +66,10 @@ A factor or gain to adjust single dish flux scale (to use in feather stage)
     </param>
 
     <param name="dishdia" type="double" subparam="true">
-     <shortdescription>Effective dish diameter</shortdescription>
+     <shortdescription>Effective dish diameter (meters)</shortdescription>
 <description>
-(Optional) effective dish diameter (if sdpsf is given as a dish diameter this will be ignored)
+Effective dish diameter of the SD telescope (meters)
 </description>
-      <value type="double">100.0</value>
     </param>
 
  
@@ -259,9 +258,6 @@ A factor or gain to adjust single dish flux scale (to use in feather stage)
 </description>
       <value type="string">corrected</value>
     </param>
-
-
-
 
 
 
@@ -1541,6 +1537,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                       This method approximately minimizes rms sidelobes
                                                       for an east-west synthesis array.
 
+                       weighting='briggsbwtaper' : A modified version of Briggs weighting for cubes where an inverse uv taper,
+                                                         which is proportional to the fractional bandwidth of the entire cube,
+                                                         is applied per channel. The objective is to modify cube (perchanweightdensity = True)
+                                                         imaging weights to have a similar density to that of the continuum imaging weights.
+                                                         This is currently an experimental weighting scheme being developed for ALMA.
+
+						      
                For more details on weighting please see Chapter3
                of Dan Briggs' thesis (http://www.aoc.nrao.edu/dissertations/dbriggs)
 
@@ -1553,6 +1556,7 @@ to use the correct direction in which the antenna is pointing with respect to th
         <value>briggsabs</value>
         <value>radial</value>
         <value>superuniform</value>
+        <value>briggsbwtaper</value>
       </allowed>
 
     </param>
@@ -2303,13 +2307,11 @@ to use the correct direction in which the antenna is pointing with respect to th
         <default param="sdimage"><value>&quot;&quot;</value></default>
         <default param="sdpsf"><value>&quot;&quot;</value></default>
         <default param="sdgain"><value>1.0</value></default>
-        <default param="dishdia"><value>100.0</value></default>
       </equals>
       <equals type="string" value="sdint">
         <default param="sdimage"><value>&quot;&quot;</value></default>
         <default param="sdpsf"><value>&quot;&quot;</value></default>
         <default param="sdgain"><value>1.0</value></default>
-        <default param="dishdia"><value>100.0</value></default>
       </equals>
       </when>
 

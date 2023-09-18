@@ -1,0 +1,80 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd       file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
+
+<task category="calibration" name="defintent" type="function">
+        <shortdescription>Manually set scan intents</shortdescription>
+<description>
+Allows the user to manually set scan intents
+</description>
+<input>
+        <param mustexist="true" name="vis" type="path">
+<shortdescription>Name of input visibility file (MS)</shortdescription>
+<description>Name of input visibility file (MS)
+                     Default: none
+
+                        Example: vis='ngc5921.ms'
+</description>
+                <value/>
+        </param>
+        
+        <param name="intent" type="string">
+<shortdescription>String to add to intents</shortdescription>
+<description>
+    select intent to add
+</description>
+                <value/>
+        </param>
+        
+        <param name="mode" type="string">
+<shortdescription>Set mode</shortdescription>
+<description>
+    Intent modification mode (set/append)
+</description>
+                <value/>
+        </param>
+        
+        <param name="outputvis" type="string">
+<shortdescription>Makes a copy of the ms to edit</shortdescription>
+<description>
+    Creates an output ms with all the changes from the task leaving the original vis untouched.
+</description>
+                <value/>
+        </param>
+        
+        <param name="scan" type="string">
+<shortdescription>Select Scan</shortdescription>
+<description>
+    Select Scan to apply the new intents to
+</description>
+                <value/>
+        </param>
+
+        
+        <param name="field" type="string">
+<shortdescription>Select field using field id(s) or field name(s)</shortdescription>
+<description>
+    Select field using field id(s) or field name(s)
+</description>
+                <value/>
+        </param>
+
+        <param name="obsid" type="string">
+<shortdescription>Select ObsId</shortdescription>
+<description>
+    Select ObsId
+</description>
+                <value/>
+        </param>
+        
+        </input>
+
+<returns type="void"/>
+
+<example>
+
+For more information, see the task pages of clearcal in CASA Docs:
+
+https://casa.nrao.edu/casadocs/
+
+ </example>
+ </task>
+ </casaxml>

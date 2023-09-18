@@ -311,6 +311,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_defintent",
+            "testType":"casatasks",
+            "maintainer":"Neal Schweighart",
+            "maintainerEmail":"nschweig@nrao.edu",
+            "testOptions":[],
+            "testGroup":["defintent","Calibration"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_delmod",
             "testType":"casatasks",
             "maintainer":"Neal Schweighart",
@@ -1248,6 +1258,16 @@
             "testOptions":["mpi"],
             "testGroup":["Imaging","tclean"],
             "timeout":20000,
+            "comment":""
+        },
+        {
+            "testScript":"test_task_testconcat",
+            "testType":"casatasks",
+            "maintainer":"Dirk Petry",
+            "maintainerEmail":"dpetry@eso.org",
+            "testOptions":[],
+            "testGroup":["concat"],
+            "timeout":0,
             "comment":""
         },
         {
