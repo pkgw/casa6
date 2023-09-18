@@ -192,7 +192,7 @@ std::ostream& operator<<(std::ostream &os, const ChronoStat &c) {
   return os;
 }
 
-StartStop::StartStop(ChronoStat &c) 
+StartStop::StartStop(ChronoStat &c)
   : c_ {c} {
     c_.start();
 }
@@ -518,7 +518,7 @@ void SDGrid::init() {
                 //r = Double(i) / (Double(hwhm)*Double(convSampling));
                 grdjinc1(&c, &x, &normalize, &val2);
                 if (val2 <= 0.0) {
-                    logIO() << LogIO::DEBUG1 
+                    logIO() << LogIO::DEBUG1
                         << "convFunc is automatically truncated at radius "
                         << x << LogIO::POST;
                     break;
@@ -1140,7 +1140,7 @@ void SDGrid::put(const VisBuffer& vb, Int row, Bool dopsf,
         for (Int rownr=startRow; rownr<=endRow; rownr++) {
             if (getXYPos(vb, rownr)) {
                 xyPositions(0, rownr) = xyPos(0);
-                xyPositions(1, rownr) = xyPos(1); 
+                xyPositions(1, rownr) = xyPos(1);
             }
         }
         {
@@ -1182,7 +1182,7 @@ void SDGrid::put(const VisBuffer& vb, Int row, Bool dopsf,
                     polMap.getStorage(del),
                     sumWeight.getStorage(del));
 
-            } 
+            }
             else {
                 Bool gminCopy;
                 Complex *gminStor = gmin_.getStorage(gminCopy);
@@ -1408,10 +1408,10 @@ void setupVisBufferForFTMachineType(FTMachine::Type type, VisBuffer& vb) {
 inline
 void getParamsForFTMachineType(const ROVisibilityIterator& vi, FTMachine::Type in_type,
           casacore::Bool& out_dopsf, FTMachine::Type& out_type) {
-    
+
     // Tune input type of FTMachine
     auto haveCorrectedData = not (vi.msColumns().correctedData().isNull());
-    auto tunedType = 
+    auto tunedType =
             ((in_type == FTMachine::CORRECTED) && (not haveCorrectedData)) ?
             FTMachine::OBSERVED : in_type;
 
@@ -1482,7 +1482,7 @@ void abortOnPolFrameChange(const StokesImageUtil::PolRep refPolRep, const String
 void SDGrid::nextChunk(ROVisibilityIterator &vi) {
 #if defined(SDGRID_PERFS)
     StartStop trigger(cNextChunk);
-#endif 
+#endif
     vi.nextChunk();
 }
 
@@ -1782,7 +1782,7 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
             foundPointing = (pointingIndex >= 0);
         }
 
-        // Making the implicit type conversion explicit. 
+        // Making the implicit type conversion explicit.
         // Conversion is safe because it occurs only when pointingIndex >= 0.
         const auto foundValidPointing = (foundPointing and (static_cast<rownr_t>(pointingIndex) < nPointings));
 
@@ -1799,7 +1799,7 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
 
     // 2. At this stage we have a valid pointingIndex.
     //    Decide now if we need to interpolate antenna's pointing direction
-    //    at data-taking time: 
+    //    at data-taking time:
     //    we'll do so when data is sampled faster than pointings are recorded
     const auto pointingInterval = act_mspc.interval()(pointingIndex);
     const auto needInterpolation = (rowTimeInterval < pointingInterval);
@@ -1809,7 +1809,7 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     if (havePointings && needInterpolation) {
         dointerp = true;
         // Known points are the directions of the specified
-        // POINTING table column, 
+        // POINTING table column,
         // relative to the reference frame of the POINTING table
         if (not isSplineInterpolationReady) {
             #if defined(SDGRID_PERFS)
@@ -1830,9 +1830,10 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
     // 4. If it does not already exist, create the machine to convert pointings directions
     if (not pointingToImage) {
         // Set the frame
-        const auto & rowAntenna1Position = 
+        const auto & rowAntenna1Position =
                 vb.msColumns().antenna().positionMeas()(rowAntenna1);
-        const MEpoch dummyEpoch(Quantity(0, "s"));
+        // set dummy time stamp 1 day before rowTime
+        const MEpoch dummyEpoch(Quantity(rowTime - 86400.0, "s"));
         mFrame_p = MeasFrame(dummyEpoch, rowAntenna1Position);
 
         // Remember antenna id for next call,
@@ -1858,7 +1859,7 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
         // Perform 1 dummy direction conversion to clear values
         // cached in static variables of casacore functions like MeasTable::dUT1
         MDirection _dir_tmp = (*pointingToImage)();
-    } 
+    }
 
     // 5. Update the frame holding the measurements for this row
     const MEpoch rowEpoch(Quantity(rowTime, "s"));
@@ -1965,12 +1966,12 @@ Bool SDGrid::getXYPos(const VisBuffer& vb, Int row) {
         Vector<Double> actPix;
         directionCoord.toPixel(actPix, actSourceDir);
 
-        //cout << row << " scan " << vb.scan()(row) << "xyPos " << xyPos 
+        //cout << row << " scan " << vb.scan()(row) << "xyPos " << xyPos
         //     << " xyposmovorig " << xyPosMovingOrig_p << " actPix " << actPix << endl;
 
         xyPos = xyPos + xyPosMovingOrig_p - actPix;
     }
-    
+
     return rowPixel.isValid;
 }
 
@@ -2204,7 +2205,7 @@ SDGrid::MaskedPixelRef::MaskedPixelRef(Vector<Double>& xyIn, Bool isValidIn)
     isValid {isValidIn}
 {}
 
-SDGrid::MaskedPixelRef& 
+SDGrid::MaskedPixelRef&
 SDGrid::MaskedPixelRef::operator=(const SDGrid::MaskedPixelRef &other) {
   xy = other.xy;
   isValid = other.isValid;
@@ -2241,7 +2242,7 @@ const casacore::String& SDGrid::Cache::className() {
     // inputPixel = sdgrid.rowPixel;
     inputPixel.xy = sdgrid.rowPixel.xy;
     //inputPixel.isValid = sdgrid.rowPixel.isValid;
-    // <=> 
+    // <=>
     msPixels = nullptr;
     outputPixel = other.outputPixel;
     msCacheReadIterator =  MsCaches::const_iterator();
@@ -2357,7 +2358,7 @@ SDGrid::Cache::newMS(const MeasurementSet& ms) {
         const auto & pixelsToLoad = msCacheReadIterator->pixels;
         if (pixelsToLoad.size() != ms.nrow()) {
             os << "BUG! Cached data size mismatch for: " << msPath
-               << " : nRows: " << ms.nrow() 
+               << " : nRows: " << ms.nrow()
                << " nCachedRows: " << pixelsToLoad.size() << LogIO::EXCEPTION;
         }
         if (  msCacheReadIterator->msTableName != ms.tableName()) {
