@@ -17,7 +17,7 @@ import pdb
 
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
-
+from casatasks import casalog
 
 from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
 from casatasks.private.imagerhelpers.input_parameters import saveparams2last
