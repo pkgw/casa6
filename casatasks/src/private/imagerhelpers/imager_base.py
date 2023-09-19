@@ -21,21 +21,13 @@ if is_CASA6:
     from casatasks import casalog
     from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 
-from casatools import (
-    synthesisimager,
-    synthesisdeconvolver,
-    synthesisnormalizer,
-    iterbotsink,
-    ctsys,
-    table,
-    image,
-)
-from casatasks import casalog
-from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-
-ctsys_hostinfo = ctsys.hostinfo
-_tb = table()
-_ia = image()
+    ctsys_hostinfo = ctsys.hostinfo
+    _tb = table()
+    _ia = image()
+else:
+    from taskinit import *
+    from imagerhelpers.summary_minor import SummaryMinor
+    
     synthesisimager = casac.synthesisimager
     synthesisdeconvolver = casac.synthesisdeconvolver
     synthesisnormalizer = casac.synthesisnormalizer
@@ -134,7 +126,7 @@ class PySynthesisImager:
 
         cfCacheName=''
         exists=False
-        if(self.allgridpars['0']['gridder'].startswith('awp')):
+        if(self.allgridpars['0']['gridder'].startswith('awpr') or self.allgridpars['0']['gridder'].startswith('awph') ):
             cfCacheName=self.allgridpars['0']['cfcache'];
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
@@ -589,7 +581,7 @@ class PySynthesisImager:
         self.makeSdImageCore()
         for immod in range(0, self.NF):
             self.PStools[immod].gatherresidual()
-            self.PStools[immod].divideresidualbyweight()
+            self.PStools[immod].divideresidualbyweight(singledish=True)
 
     #############################################
     def makeSdPSF(self):

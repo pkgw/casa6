@@ -61,8 +61,8 @@ namespace casa{
     void loadFromImage(casacore::String &fileName);
     void getIdealConvFunc(casacore::Array<casacore::Complex>& buf);
     //void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid, casacore::Bool makeMueller);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid, casacore::Int makeMuerller=0);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid, casacore::Bool makeMueller);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid, casacore::Int makeMuerller=0);
     void ftAperture() {ftAperture(convFunc_p); pbRead_p=true;};
     void storePB(casacore::String& fileName);
 

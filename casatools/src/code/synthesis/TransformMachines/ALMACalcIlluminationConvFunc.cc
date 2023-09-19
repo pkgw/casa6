@@ -333,7 +333,7 @@ namespace casa{
 	  }
 	tmpAperture += *(ap.aperture);
       }
-    *(ap.aperture) = tmpAperture;
+    (ap.aperture)->copyData( tmpAperture);
     tmpAperture.resize(IPosition(1,1));//Release temp. store.
 
     StokesCoordinate polnCoord(poln);
@@ -636,7 +636,7 @@ namespace casa{
       }
   }
   
-  void ALMACalcIlluminationConvFunc::ftAperture(TempImage<Complex>& uvgrid)
+  void ALMACalcIlluminationConvFunc::ftAperture(ImageInterface<Complex>& uvgrid)
   {
     //
     // Make SkyJones

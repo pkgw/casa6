@@ -528,6 +528,10 @@ siu.cubedatapartition(selprs=pars, npart=20, fstart=&quot;1.412787GHz&quot;, fen
      <description>0 : Collapse the PSF cube to 2nterms-1 images. 1 : Collapse the residual cube to nterms images. 2 : Collapse the pb cube to a single .tt0 image</description>
      <value>0</value>
      </param>
+     <param name="pblimit" type="float">
+     <description>pblimit</description>
+     <value>0.2</value>
+     </param>
 
 </input>
 <returns type="bool"/>

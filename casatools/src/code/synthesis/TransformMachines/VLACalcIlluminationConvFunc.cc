@@ -517,7 +517,7 @@ namespace casa{
 	  }
 	tmpAperture += *(ap.aperture);
       }
-    *(ap.aperture) = tmpAperture;
+    (ap.aperture)->copyData(tmpAperture);
     tmpAperture.resize(IPosition(1,1));//Release temp. store.
     Vector<Int> poln(4);
     poln(0) = Stokes::RR;
@@ -697,7 +697,7 @@ namespace casa{
   */
   
 //  void VLACalcIlluminationConvFunc::ftAperture(TempImage<Complex>& uvgrid, Bool makeMueller)
-  void VLACalcIlluminationConvFunc::ftAperture(TempImage<Complex>& uvgrid, Int muellerTerm)
+  void VLACalcIlluminationConvFunc::ftAperture(ImageInterface<Complex>& uvgrid, Int muellerTerm)
   {
     //
     // Make SkyJones
