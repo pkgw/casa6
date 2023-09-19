@@ -266,6 +266,25 @@ def tclean(
         )
         return
 
+    ## CAS-13814
+    if (specmode == "mtmfs_via_cube" and gridder == 'awproject' and (conjbeams==True or wbawp==False) ):
+        casalog.post(
+            "specmode='mtmfs_via_cube' requires frequency-dependent primary beams to be used during cube gridding. Please set conjbeams=False and wbawp=True for the awproject gridder.",
+            "WARN",
+            "task_tclean",
+        )
+        return
+
+        #CAS-13814
+    if (specmode == "mtmfs_via_cube" and gridder == 'mosaic' and conjbeams==True):
+        casalog.post(
+            "specmode='mtmfs_via_cube' requires frequency-dependent primary beams to be used during cube gridding. Please set conjbeams=False with the mosaic gridder.",
+            "WARN",
+            "task_tclean",
+        )
+        return
+
+    
     #####################################################
     #### Construct ImagerParameters object
     #####################################################
@@ -365,8 +384,11 @@ def tclean(
             "task_tclean",
         )
         return False
-    # casalog.post('parameters {}'.format(bparm))
-    paramList = ImagerParameters(**bparm)
+
+
+    #casalog.post('parameters {}'.format(bparm))    
+    paramList=ImagerParameters(**bparm)
+
     ## Setup Imager objects, for different parallelization schemes.
     imagerInst = PySynthesisImager
     if specmode == "mtmfs_via_cube":
@@ -549,8 +571,10 @@ def tclean(
                 retrec = rd.constructResidualDict(paramList)
 
             ## Do deconvolution and iterations
+
             if niter > 0:
                 t0 = time.time()
+
                 isit = imager.hasConverged()
                 imager.updateMask()
                 # if((type(usemask)==str) and ('auto' in usemask)):

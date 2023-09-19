@@ -142,6 +142,17 @@ namespace refim{ //namespace for imaging refactor
       virtual void reset();
       virtual casacore::String name() {return casacore::String("SimplePBConvFunc");};
       void setUsePointing(casacore::Bool usepointing){usePointingTable_p=usepointing;};
+      void findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb);
+      //Spply phase gradient to convfuncs 5 dim convfuncs expected X,Y, pol, chan, row
+      virtual void rephaseConvFunc(const casacore::ImageInterface<casacore::Complex>& iimage, 
+                                 const vi::VisBuffer2& vb,const casacore::Int& convSampling, casacore::Array<casacore::Complex>& convFunc, 
+                                 casacore::Array<casacore::Complex>& weightConvFunc,
+                                 const std::vector<casacore::Int>& pmap, 
+                                 const std::vector<casacore::Int>& cmap, 
+                                 const std::vector<casacore::Int>& rmap, 
+                                 const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
+     
+
     protected:
       SkyJones* sj_p;
       casacore::TempImage<casacore::Float> fluxScale_p;

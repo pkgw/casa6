@@ -46,7 +46,7 @@ namespace casa{
     if (userValue != cachedOverSampling_p)
       {
 	cachedOverSampling_p = userValue;
-	//	cerr << "Oversampling set to " << cachedOverSampling_p << endl;
+		cerr << "Oversampling set to " << cachedOverSampling_p << endl;
       }
 
 

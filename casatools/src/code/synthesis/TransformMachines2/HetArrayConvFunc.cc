@@ -949,6 +949,43 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
 
 }
+  void HetArrayConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
+					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
+					 Array<Complex>& weightConvFunc, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap, const MVDirection& extraShift, const Bool useExtraShift){
+    storeImageParams(iimage,vb);
+     toPix(vb, extraShift, useExtraShift);
+    Vector<Double> pixFieldDir(2);
+    pixFieldDir=thePix_p;
+     pixFieldDir(0)=pixFieldDir(0)- Double(nx_p / 2);
+    pixFieldDir(1)=pixFieldDir(1)- Double(ny_p / 2);
+    pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx_p)/Double(convSampling);
+    pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny_p)/Double(convSampling);
+    Int nconvrow=convFunc.shape()(4);
+    Int nconvchan=convFunc.shape()(3);
+    Int nconvpol=convFunc.shape()(2);
+    Int convsize=convFunc.shape()(0);
+    Bool delc;
+    Bool delw;
+    Double dirX=pixFieldDir(0);
+    Double dirY=pixFieldDir(1);
+    Complex *convstor=convFunc.getStorage(delc);
+    Complex *weightstor=weightConvFunc.getStorage(delw);
+    //Vector<Int> pmap(polmap);
+    //Vector<Int> cmap(chanmap);
+    //Vector<Int> rmap(rowmap);
+#pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol) shared(polmap, chanmap, rowmap)
+    {
+      
+        #pragma omp for
+        for(Int iy=0; iy<convsize; ++iy) {
+	  applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol, polmap, chanmap, rowmap);
+
+        }
+    }///End of pragma
+    convFunc.putStorage(convstor, delc);
+    weightConvFunc.putStorage(weightstor, delw);
+    
+  }
 
 typedef unsigned long long ooLong;
 
@@ -975,6 +1012,37 @@ void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunction
 
     }
 }
+void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunctions, Complex*& convWeights, const Double pixXdir, const Double pixYdir, Int convSize, const Int ndishpair, const Int nChan, const Int nPol, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap ) {
+    Double cy, sy;
+
+    SINCOS(Double(iy-convSize/2)*pixYdir, sy, cy);
+    Complex phy(cy,sy) ;
+    for (Int ix=0; ix<convSize; ix++) {
+        Double cx, sx;
+        SINCOS(Double(ix-convSize/2)*pixXdir, sx, cx);
+        Complex phx(cx,sx) ;
+        for (uint p=0; p< polmap.size(); ++p) {
+        //for (uint p=0; p < nPol; ++p) {
+            Int ipol=polmap[p];
+            //Int ipol=p;
+            for (uint c=0; c < chanmap.size(); ++c) {
+            //for (uint c=0; c < nChan; ++c) {
+                Int ichan=chanmap[c];
+                //Int ichan=c;
+                for (uint z=0; z < rowmap.size(); ++z) {
+                //for (uint z=0; z < ndishpair; ++z) {
+                    Int iz=rowmap[z];
+                    //Int iz=z;
+                    ooLong index=((ooLong(iz*nChan+ichan)*nPol+ipol)*ooLong(convSize)+ooLong(iy))*ooLong(convSize)+ooLong(ix);
+                    convFunctions[index]= convFunctions[index]*phx*phy;
+                    convWeights[index]= convWeights[index]*phx*phy;
+                }
+            }
+        }
+
+    }
+}
+
 Int  HetArrayConvFunc::conjSupport(const casacore::Vector<casacore::Double>& freqs){
   Double centerFreq=SpectralImageUtil::worldFreq(csys_p, 0.0);
   Double maxRatio=-1.0;
@@ -1383,7 +1451,7 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
     String pointingid=String::toString(pixdepoint(0))+"_"+String::toString(pixdepoint(1));
     String msid=vb.msName(true);
 
-
+   
     if(convFunctionMap_p.nelements() == 0) {
         convFunctionMap_p.resize(nx_p*ny_p);
         convFunctionMap_p.set(-1);
@@ -1579,7 +1647,6 @@ Float HetArrayConvFunc::interpLanczos( const Double& x , const Double& y, const 
 }
 
 ImageInterface<Float>&  HetArrayConvFunc::getFluxScaleImage() {
-
   if(!calcFluxScale_p)
     throw(AipsError("Programmer Error: flux image cannot be retrieved"));
   if(!filledFluxScale_p) {

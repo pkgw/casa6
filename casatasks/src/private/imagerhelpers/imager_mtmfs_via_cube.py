@@ -5,6 +5,7 @@ import time
 import copy
 import numpy as np
 import functools
+
 from casatools import image as _image, table as _table
 from casatools import quanta, ms
 from casatasks import casalog
@@ -19,6 +20,8 @@ _qa = quanta()
 _ms = ms()
 _su = su()
 
+SW=True
+
 #############################################
 def time_func(func):
     @functools.wraps(func)
@@ -26,7 +29,7 @@ def time_func(func):
         t0 = time.time()
         result = func(*args, **kwargs)
         t1 = time.time()
-        print(f'#######Function {func.__name__!r} took {(t1-t0)}s')
+        ####print(f'#######Function {func.__name__!r} took {(t1-t0)}s')
         return result
     return wrap_time
 
@@ -38,7 +41,6 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     """
     @time_func
     def __init__(self, params: ImagerParameters) -> None:
-
         # Set up the mfs part for deconv
         mfsparams = copy.deepcopy(params)
         mfsparams.allimpars["0"]["specmode"] = "mfs"
@@ -61,7 +63,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         self.mfsImager = PySynthesisImager(mfsparams)
         #################################
         super().__init__(params)
-        # print(f'self all impars {self.allimpars}, \n allvars={vars(self)}')
+        ## print(f'self all impars {self.allimpars}, \n allvars={vars(self)}')
         if self.allimpars["0"]["specmode"] != "mtmfs_via_cube":
             raise RuntimeError(
                 f"Can't use specmode {self.allimpars['0']['specmode']} with imager helper {self.__class__.__name__}!"
@@ -69,9 +71,12 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
 
         nchan = self.allimpars["0"]["nchan"]
         freqbeg, freqwidth = self.determineFreqRange()
-        if nchan > 0:
-            freqwidth = freqwidth / nchan
-        print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
+        if nchan < 1 :
+            nchan=int((freqbeg+freqwidth)/20)   #1/20 of peak freq
+            if nchan < 4:
+                nchan=4
+        freqwidth = freqwidth / nchan
+        #print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
         # - specmode to cube so that we run a cube major cycle
         # - deconvolver to hogbom so that major cycle doesn't get confused TODO is this necessary?
@@ -195,9 +200,17 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         inpcube = self.get_image_name(0, "model")
         pbcube = self.get_image_name(0, "pb")
         pblimit = normpars["pblimit"]
-        self.modify_cubemodel_with_pb(
-            modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
-        )
+        if SW==False:
+            self.modify_cubemodel_with_pb(
+                modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
+            )
+        else:
+            imname = self.get_dec_pars_for_immod(0)['imagename']
+            t0 = time.time()
+            _su.apply_freq_dep_pb(cubename=imname,mtname=imname,pblimit=np.fabs(pblimit))
+            t1 = time.time()
+            #print(f'#######---- Function apply_freq_dep_pb  took {(t1-t0)}s')
+
         del self.alldecpars
         del self.allimpars
 
@@ -234,16 +247,28 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         #time0 = time.time()
         super().runMajorCycle(isCleanCycle)
         time1 = time.time()
-        suffixes = ["residual", "sumwt"]
+        suffixes = ["residual"] #, "sumwt"]
         for immod in range(0, self.NF):
             inpcube = self.get_image_name(immod, "residual")
             pbcube = self.get_image_name(immod, "pb")
             cubewt = self.get_image_name(immod, "sumwt")
             pblimit = self.allnormpars[str(immod)]["pblimit"]
-            self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
+
+            ##print("USING PB2TTPB from runMajor")
+            ##self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
+            ##self.cube2tt(immod, suffixes=["pb"])
+
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=True)
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=False)
-            self.removePBSpectralIndex(inpcube, pbcube, pbcube + ".tt0", np.fabs(pblimit))
+            if  SW==False:
+                self.removePBSpectralIndex(inpcube, pbcube, pbcube + ".tt0", np.fabs(pblimit))
+            else:
+                imname = self.get_dec_pars_for_immod(immod)['imagename']
+                t0 = time.time()
+                _su.remove_freq_dep_pb(cubename=imname,mtname=imname,pblimit=np.fabs(pblimit))
+                t1 = time.time()
+                #print(f'#######---- Function remove_freq_dep_pb  took {(t1-t0)}s')
+
             self.cube2tt(immod, suffixes=suffixes)
         #time2 = time.time()
         #print(f"MAKE RESidual time, core={time1-time0} s, cube2tt={time2-time1}")
@@ -255,15 +280,20 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         time0 = time.time()
         super().makePSFCore()
         time1 = time.time()
-        suffixes = ["psf", "sumwt", "weight"]
-        for immod in range(0, self.NF):
-            self.cube2tt(immod, suffixes=suffixes)
-        pbcube = self.get_image_name(immod, "pb")
-        pblimit = self.allnormpars[str(immod)]["pblimit"]
-        cubewt = self.get_image_name(immod, "sumwt")
         #####have to ensure the pb is made
         super().makePB()
-        self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
+        pblimit = self.allnormpars['0']["pblimit"]
+        cubewt = self.get_image_name(0, "sumwt")
+        pbcube = self.get_image_name(0, "pb")
+
+        #print("USING PB2TTPB from makePSF")
+        #self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
+        #suffixes = ["psf", "sumwt", "weight"]
+
+        suffixes = ["pb","psf", "sumwt", "weight"]
+        for immod in range(0, self.NF):
+            self.cube2tt(immod, suffixes=suffixes)
+       
         for immod in range(0, self.NF):
             self.mfsImager.PStools[immod].gatherpsfweight()
             self.mfsImager.PStools[immod].dividepsfbyweight()
@@ -304,11 +334,19 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pblimit = self.allnormpars[str(immod)]["pblimit"]
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='div', pblimit=pblimit, freqdep=False)
             # self.modify_with_pb(inpcube=inpcube, pbcube=pbcube, cubewt=cubewt, action='mult', pblimit=pblimit, freqdep=True)
-            self.modify_cubemodel_with_pb(
-                modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
-            )
+            if SW==False:
+                self.modify_cubemodel_with_pb(
+                    modcube=inpcube, pbcube=pbcube, pbtt0=pbcube + ".tt0", pblimit=np.fabs(pblimit)
+                )
+            else:
+                imname = self.get_dec_pars_for_immod(immod)['imagename']
+                t0 = time.time()
+                _su.apply_freq_dep_pb(cubename=imname,mtname=imname,pblimit=np.fabs(pblimit))
+                t1 = time.time()
+                #print(f'#######---- Function apply_freq_dep_pb  took {(t1-t0)}s')
+
         time2 = time.time()
-        print(f"Minorcycle time, minor={time1-time0} s, tt2cube={time2-time1}")
+        #print(f"Minorcycle time, minor={time1-time0} s, tt2cube={time2-time1}")
         return ret
 
     #############################################################
@@ -347,12 +385,13 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         If incompatible images already exist with the same name, replace them."""
         time0 = time.time()
         if suffixes is None:
-            suffixes = ["residual", "psf", "sumwt"]
+            suffixes = ["pb", "residual", "psf", "sumwt"]
         decpars = self.get_dec_pars_for_immod(immod)
         nterms = decpars["nterms"]
         pblimit = self.allnormpars[str(immod)]["pblimit"]
         # determine which images are being converted
         imgs = [
+            ("pb",1),
             ("residual", nterms),
             ("psf", nterms * 2 - 1),
             ("sumwt", nterms * 2 - 1),
@@ -406,15 +445,33 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             reffreq = self.allimpars[str(immod)]["reffreq"]
             dopsf = suffix == "psf" or suffix == "sumwt"
             chwgt = None if suffix != "weight" else chanweight
-            self.cube_to_taylor_sum(
-                cubename=basename,
-                cubewt=cubewt,
-                chanwt=chwgt,
-                mtname=basename,
-                reffreq=reffreq,
-                nterms=nterms,
-                dopsf=dopsf,
-            )
+            if SW==False:
+                self.cube_to_taylor_sum(
+                    cubename=basename,
+                    cubewt=cubewt,
+                    chanwt=chwgt,
+                    mtname=basename,
+                    reffreq=reffreq,
+                    nterms=nterms,
+                    dopsf=dopsf,
+                )
+            else:
+                imname = self.get_dec_pars_for_immod(immod)['imagename']
+                if suffix == "psf" or suffix == "sumwt" or suffix == "weight":
+                    imtype=0   ## num_terms should be 2*nterms-1
+                if suffix == "residual":
+                    imtype=1   ## num_terms should be nterms
+                if suffix == 'pb':   ## may not be used..... 
+                    imtype=2   ## num_terms is 1 (for now)
+                if suffix == "sumwt":
+                    imtype=3
+                t0=time.time()
+                _su.cube_to_taylor_sum(cubename=imname,mtname=imname,nterms=nterms,reffreq=reffreq,imtype=imtype,pblimit=np.fabs(pblimit))
+                #print(f"Imname : {imname} , suffix : {suffix} and type : {imtype} with pblimit : {pblimit}")
+                t1 = time.time()
+                #print(f'#######---- Function cube_to_taylor_sum  took {(t1-t0)}s')
+
+                
             if not dopsf and pblimit>0.0:
                 for theTerm in range(num_terms):
                     ttname = self.get_image_name(immod, suffix, ttN=theTerm)
@@ -450,9 +507,16 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         reffreq = self.allimpars[str(immod)]["reffreq"]
 
         # run the conversion
-        self.taylor_model_to_cube(
-            cubename=imagename, mtname=imagename, reffreq=reffreq, nterms=nterms
-        )
+        if SW==False:
+            self.taylor_model_to_cube(
+                cubename=imagename, mtname=imagename, reffreq=reffreq, nterms=nterms
+            )
+        else:
+            t0=time.time()
+            _su.taylor_coeffs_to_cube(cubename=imagename,mtname=imagename,reffreq=reffreq,nterms=nterms)
+            t1 = time.time()
+            #print(f'#######---- Function taylor_coeffs_to_cube  took {(t1-t0)}s')
+
         time1 = time.time()
         #print(f"Time taken in tt2cube {time1-time0}")
 
@@ -631,7 +695,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             _ia.calcmask(mask="'" + ttPB + "' > " + str(pblimit))
             _ia.done()
             time1 = time.time()
-            print(f"Time taken in cubePB2ttPB={time1-time0}")
+            #print(f"Time taken in cubePB2ttPB={time1-time0}")
 
     ################################################
     @time_func

@@ -325,26 +325,39 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   // imtype=0 : PSF with 2nterms-1 terms
   // imtype=1 : residual with nterms terms
   // imtype=2 : pb with 1 term
-  Bool SynthesisUtilMethods::cubeToTaylorSum(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq, const Int imtype)
+  // imtype=3 : sumwt with 2nterms-1 terms
+  Bool SynthesisUtilMethods::cubeToTaylorSum(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq, const Int imtype, const Float pblimit)
   {
     LogIO os(LogOrigin("SynthesisUtilMethods", "cubeToTaylorSum"));
 
     //cout << "imtype : " << imtype << endl;
-    if(imtype <0 || imtype >2)
+    if(imtype <0 || imtype >3)
       {
-	throw( AipsError("cubeToTaylorSum currently only supports 'psf','residual','pb' options"));
+	throw( AipsError("cubeToTaylorSum currently only supports 'psf','residual','pb', 'sumwt' options"));
       }
-
+    
     // Set up imstores
     CountedPtr<SIImageStore> cube_imstore;
     cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
 
     CountedPtr<SIImageStoreMultiTerm> mt_imstore;
     mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, nterms, true, true )); 
-
+    //For psf   avg pb has to be done already
+    // doing residual too for sensitivity  this is independent of beam spectral index removal
+    Float maxPB=1.0;
+    if(imtype < 2){
+      LatticeExprNode elnod( max( *(mt_imstore->pb(0)) ) );
+      maxPB=elnod.getFloat();
+      if(maxPB == 0.0){
+       throw(AipsError("Programmers error: should do tt psf images after making average PB")); 
+        
+      }
+     
+    }
+    //    cerr << "imtype " << imtype << " MAX PB " << maxPB << endl;
     // If dopsf=True, calculate 2n-1 terms.
     Int out_nterms=nterms; // for residual
-    if(imtype==0){out_nterms=2 * nterms - 1;} // the psfs fill the upper triangle of the Hessian with 2 nterms-1 elements
+    if(imtype==0 || imtype==3){out_nterms=2 * nterms - 1;} // the psfs fill the upper triangle of the Hessian with 2 nterms-1 elements. Also sumwt.
     if(imtype==2){out_nterms=1;} // For the PB, for mtmfs_via_cube, we need only tt0.  Later, if we need all terms to calculate PB alpha, then change this to nterms, and add the invHesian math (elsewhere) to later convert the RHS vector into the coefficients. 
 
     CountedPtr <ImageInterface<Float> > use_cube, use_mt;
@@ -353,8 +366,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       switch(imtype)
 	{
 	case 0: use_cube=cube_imstore->psf();break; 
-	case 1:use_cube=cube_imstore->residual();break;
-	case 2:use_cube=cube_imstore->pb();break; 
+	case 1: use_cube=cube_imstore->residual();break;
+	case 2: use_cube=cube_imstore->pb();break;
+	case 3: use_cube=cube_imstore->sumwt();break;
 	}
       cube_imstore->sumwt();
       for(Int i=0;i<out_nterms;i++)
@@ -363,7 +377,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    {
 	    case 0:mt_imstore->psf(i);break; 
 	    case 1:mt_imstore->residual(i);break;
-	    case 2:mt_imstore->pb(i);break; 
+	    case 2:mt_imstore->pb(i);break;
+	    case 3:mt_imstore->sumwt(i);break;
 	    }
 	}
     }
@@ -417,20 +432,21 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  case 0:mt_imstore->psf(i)->set(0.0);break;
 	  case 1:mt_imstore->residual(i)->set(0.0);break;
 	  case 2:mt_imstore->pb(i)->set(0.0);break;
+	  case 3:mt_imstore->sumwt(i)->set(0.0);break;
 	  }
       }
 
     // Get the sumwt spectrum.
-    //Array<Float> lsumwt;
-    //cube_imstore->sumwt()->get(lsumwt, False);
+    Array<Float> lsumwt;
+    cube_imstore->sumwt()->get(lsumwt, False);
 
     // Sum the weights ( or just use accumulate...) 
-    //LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
-    //Float wtsum = msum.getFloat();
+    LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
+    Float wtsum = msum.getFloat();
 
-    //cout << "lsumwt : " << lsumwt << endl;
+    //cerr << "perchansumwt : shape "<< lsumwt.shape() << "  "  << lsumwt << " sumwt "<< wtsum << endl;
 
-    Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
+    //Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
 
     //For each pol, do the Cube-To-Taylor calculation.    
     for(Int pol=0; pol<cube_shp[2]; pol++)
@@ -442,7 +458,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    {
 	    case 0:use_mt=mt_imstore->psf(i);break; 
 	    case 1:use_mt=mt_imstore->residual(i);break;
-	    case 2:use_mt=mt_imstore->pb(i);break; 
+	    case 2:use_mt=mt_imstore->pb(i);break;
+	    case 3:use_mt=mt_imstore->sumwt(i);break;
 	    }
 	    	    mt_subims[i] = mt_imstore->makeSubImage(0,1, 
 	    					    0, cube_shp[3],
@@ -456,6 +473,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 										     chan, cube_shp[3],
 										     pol, cube_shp[2], 
 										     *use_cube);
+        if(imtype < 2){
+          CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *(cube_imstore->pb()));
+          CountedPtr<ImageInterface<Float> > tmplat = new TempImage<Float>(cube_subim->shape(), cube_subim->coordinates());
+          tmplat->copyData(LatticeExpr<Float>((*pb_subim) *(*cube_subim)));
+          cube_subim = tmplat;
+          
+        }
 
 	    IPosition pos(4,0,0,pol,chan);
 	    
@@ -464,8 +491,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    for(Int tt=0;tt<out_nterms;tt++)
 	      {
 		Double fac = pow(wt,tt);
-		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + (fac) * (*cube_subim) ); // * lsumwt(pos) ) ;
+		//cerr <<  "BEF accum " <<  max(mt_subims[tt]->get()) << " for imtype " << imtype <<  endl;
+		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + ((fac) * (*cube_subim) * lsumwt(pos)))  ;
 		mt_subims[tt]->copyData(eachterm);
+		//cerr <<" AFT accum :  chan " <<  chan  <<  " tt " <<  tt <<  " fac " << fac <<  " lsumwt " <<  lsumwt(pos) <<  " pos " << pos << " max " <<  max(mt_subims[tt]->get()) <<  endl;
 	      }
 	    
 
@@ -475,12 +504,36 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	// Divide by sum of weights.
 	for(Int tt=0;tt<out_nterms;tt++)
 	  {
-	    LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+	    //cerr << "bef div : tt " <<  tt << " : " <<   max(mt_subims[tt]->get()) << " for imtype " << imtype << endl; 
+	    
+	    LatticeExpr<Float> eachterm;
+	    if (imtype < 2) {
+	      eachterm = LatticeExpr<Float>( iif( (*(mt_imstore->pb(0))) > pblimit , (*mt_subims[tt]) / wtsum/(*(mt_imstore->pb(0))),  0.0));
+	    }
+	    else{
+	      eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+	    }
 	    mt_subims[tt]->copyData(eachterm);
+	    //cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
 	  }
 	
       }// for pol
 
+
+    // Set the T/F mask, for PB images. Without this, the PB is fully masked, for aproj /mosaic gridders.
+    if( imtype==2 )
+      {
+	mt_imstore->removeMask( mt_imstore->pb(0) );
+	{
+	  //MSK//	
+	  LatticeExpr<Bool> pbmask( iif( *mt_imstore->pb(0) > fabs(pblimit) , True , False ) );
+	  //MSK// 
+	  mt_imstore->createMask( pbmask, mt_imstore->pb(0) );
+	  mt_imstore->pb(0)->pixelMask().unlock();
+	}
+	
+      }
+    
     return True;
 
   }//end of func
@@ -3947,17 +4000,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	mType="default";
 	if(gridder=="ft" || gridder=="gridft" || gridder=="standard" )
 	  { ftmachine="gridft"; }
-	if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
+	else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
 	  { ftmachine="wprojectft";}
 
-	if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
+	else if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
 	  { ftmachine="mosaicft"; }
-	if(gridder=="imagemosaic") {
+	else if(gridder=="imagemosaic") {
 	    mType="imagemosaic";
 	    if (wprojplanes>1 || wprojplanes==-1){ ftmachine="wprojectft"; }
 	  }
-	if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
+	else if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
 	  {ftmachine="awprojectft";}
+        else{
+          ftmachine=gridder;
+          ftmachine.downcase();
+
+        }        
 	if (gridder=="awphpg")
 	  {ftmachine="awphpg";}
 	  
@@ -4043,8 +4101,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     if( imageName=="" ) {err += "Please supply an image name\n";}
 
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
-	(ftmachine != "mosaicft") && (ftmachine != "awprojectft") && 
-	(ftmachine != "mawprojectft") && (ftmachine != "awphpg") &&
+	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
+	(ftmachine != "mawprojectft")  &&
 	(ftmachine != "sd"))
       { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft'";   }
 

@@ -455,8 +455,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         velocity if the emission region is moving w.r.t the systemic
                                                         velocity frame of the source)
 
-
-                        mode='mtmfs_via_cube' : Multiterm continuum imaging with cube major cycles. 
+                        specmode='mtmfs_via_cube' : Multiterm continuum imaging with cube major cycles. 
                                                               This mode requires deconvolver='mtmfs' with nterms>1 
                                                               and user-set choices of 'reffreq' and 'nchan'. 
 
@@ -852,6 +851,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
               <value>awproject</value>
               <value>awprojectft</value>
                <value>awphpg</value>
+               <value>awp2</value>  
       </allowed>
     </param>
 
@@ -2749,6 +2749,15 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="conjbeams"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals>
+<!--       <equals type="string" value="awp2">
+         <default param="wprojplanes"><value>1</value></default>
+	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
+	 <default param="computepastep"><value>360.0</value></default>
+	 <default param="mosweight"><value>False</value></default>
+	 <default param="usepointing"><value>False</value></default>
+       </equals> 
+-->
+
      </when>
 
      <when param="weighting">

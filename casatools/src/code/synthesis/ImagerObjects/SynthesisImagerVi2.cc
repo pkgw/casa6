@@ -81,6 +81,7 @@
 #include <synthesis/TransformMachines2/AWProjectFT.h>
 #include <synthesis/TransformMachines2/HetArrayConvFunc.h>
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
+#include <synthesis/TransformMachines2/AWPLPG.h>
 #include <synthesis/TransformMachines2/MultiTermFTNew.h>
 #include <synthesis/TransformMachines2/AWProjectFT.h>
 #include <synthesis/TransformMachines2/AWProjectWBFTHPG.h>
@@ -604,7 +605,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	
 
 	os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
-
+	//    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
+	//    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
 	csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
 	//use the location defined for coordinates frame;
 	mLocation_p=impars_p.obslocation;
@@ -658,6 +660,7 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	os << "Set Gridding options for [" << impars_p.imageName << "] with ftmachine : " << gridpars.ftmachine << LogIO::POST;
 
 	itsVpTable=gridpars.vpTable;
+
 	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
                      (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
        
@@ -706,14 +709,15 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	//For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
 	//if(gridparsVec_p[0].ftmachine.contains("awproject"))
 	 //  setCubeGridding(False);
-	itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
+    itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
                      (gridparsVec_p[0].ftmachine.at(0,3)=="awp") )?False:True;
 
     return true;
   }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
 			   const SynthesisParamsGrid& gridpars){
-	
+
+  gridpars_p=gridpars;
 	Int id=itsMappers.nMappers();
     CoordinateSystem csys =imstor->getCSys();
     IPosition imshape=imstor->getShape();
@@ -2432,7 +2436,7 @@ void SynthesisImagerVi2::unlockMSs()
 
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
-
+    //    cerr <<  "####FTNAME " <<  ftname <<  endl;
     if(ftname=="gridft"){
       if(facets >1){
 	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
@@ -2466,6 +2470,11 @@ void SynthesisImagerVi2::unlockMSs()
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
     static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
+
+    else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT" || ftname == "awp2"){
+
+      createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
+    } 
     else if ((ftname.at(0,3)=="awp") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
 			 padding, useAutocorr, useDoublePrec, gridFunction,
@@ -2473,10 +2482,7 @@ void SynthesisImagerVi2::unlockMSs()
 			 usePointing, pointingOffsetSigDev, doPBCorr, conjBeams, computePAStep,
 			 rotatePAStep, cache,tile,imageNamePrefix);
     }
-    else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT"){
-
-      createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
-    } else if (ftname == "sd") {
+    else if (ftname == "sd") {
       createSDFTMachine(theFT, theIFT, pointingDirCol, skyPosThreshold, doPBCorr, rotatePAStep,
           gridFunction, convSupport, truncateSize, gwidth, jwidth,
           minWeight, clipMinMax, cache, tile, stokes);
@@ -2774,8 +2780,25 @@ void SynthesisImagerVi2::unlockMSs()
     vpman->getvp(rec, telescop);
     */
 
-   refim::VPSkyJones* vps=NULL;
+   refim::VPSkyJones* vps= nullptr;
    //cerr << "rec " << rec << " kpb " << kpb << endl;
+   //cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
+   if (!gridpars_p.ftmachine.contains("mos")) {
+     cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+     bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  
+    //  TESTOO
+    dosquint = False;
+    ///////
+    
+    cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
+     theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
+      static_cast<refim::AWPLPG &>(*theFT).setConvFunc(mospb);
+      static_cast<refim::AWPLPG &>(*theIFT).setConvFunc(mospb);
+      
+   }
+   else{
     if(rec.asString("name")=="COMMONPB" && kpb !=PBMath::UNKNOWN ){
       vps= new refim::VPSkyJones(msc, true, Quantity(rotatePAStep, "deg"), BeamSquint::GOFIGURE, Quantity(360.0, "deg"));
       /////Don't know which parameter has pb threshold cutoff that the user want 
@@ -2805,8 +2828,7 @@ void SynthesisImagerVi2::unlockMSs()
     }
     ///////////////////make sure both FTMachine share the same conv functions.
     theIFT= new refim::MosaicFTNew(static_cast<refim::MosaicFTNew &>(*theFT));
-
-    
+   }
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
