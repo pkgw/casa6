@@ -168,6 +168,10 @@ private:
  
   // I_M : Model Images [nx,ny,ntaylor]
   casacore::Block<casacore::Matrix<casacore::Float> > vecModel_p; 
+
+  // Previous I_M : Model images at the start of mtclean(). Used for residual calculations. 
+  casacore::Block<casacore::Matrix<casacore::Float> > vecInitialModel_p; 
+
   //  casacore::Block <casacore::Matrix<casacore::Float> > vecScaleModel_p;
  
   // A_{smn} = B_{sm} * B{sn} [nx,ny,ntaylor,ntaylor,nscales,nscales]

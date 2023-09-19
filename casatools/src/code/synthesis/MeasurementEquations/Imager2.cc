@@ -2425,7 +2425,10 @@ Bool Imager::createFTMachine()
     }
     ft_p->setPointingDirColumn(pointingDirCol_p);
     auto * sdgrid = dynamic_cast<SDGrid *>(ft_p);
-    if (sdgrid) sdgrid->setEnableCache(enablecache_p);
+    if (sdgrid) {
+      sdgrid->setEnableCache(enablecache_p);
+      sdgrid->setConvertFirst(convertfirst_p);
+    }
 
     ROVisIter& vi(*rvi_p);
     // Get bigger chunks o'data: this should be tuned some time

@@ -2743,8 +2743,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    nChannels[k]=(it->second)[0];
 	    firstChannels[k]=(it->second)[1];
 	  }
-	  if(j==0)
+	  if(j==0) {
+      spwids0.resize();
 	    spwids0=spwids;
+    }
 	  // std::tie (spwids, nChannels, firstChannels, channelIncrement)=(static_cast<vi::VisibilityIteratorImpl2 * >(vi2.getImpl()))->getChannelInformation(false);
 	  
 	  //cerr << "SPWIDS "<< spwids <<  "  nchan " << nChannels << " firstchan " << firstChannels << endl;
@@ -2817,6 +2819,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  if(imStartFreq > 0.0 && imStartFreq >= freqmin && imStartFreq <= freqmax){
             if(mode != "cubesource"){
               minfmsid=j;
+              spwids0.resize();
               spwids0=spwids;
               vi2.originChunks();
               vi2.origin();
