@@ -17,20 +17,23 @@ import pdb
 
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-    
-    from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import saveparams2last
-    from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import PyMtmfsViaCubeSynthesisImager
 
-    from .cleanhelper import write_tclean_history, get_func_params
-    from casatools import table
-    from casatools import synthesisutils
-    from casatools import synthesisimager
+
+from casatasks import casalog
+
+from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import saveparams2last
+from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import PyMtmfsViaCubeSynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
+from .cleanhelper import write_tclean_history, get_func_params
+from casatools import table
+from casatools import image
+from casatools import synthesisutils
+from casatools import synthesisimager
+
 
 try:
     from casampi.MPIEnvironment import MPIEnvironment
@@ -42,6 +45,7 @@ except ImportError:
 
 # if you want to save tclean.last.* from python call of tclean uncomment the decorator
 @saveparams2last(multibackup=True)
+
 def tclean(
     ####### Data Selection
     vis,  # ='',
@@ -126,8 +130,8 @@ def tclean(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
-    fullsummary,#=False,
     nmajor,#=-1,
+    fullsummary,#=False,
 
     ##### (new) Mask parameters
     usemask,  # ='user',
@@ -374,8 +378,10 @@ def tclean(
             "task_tclean",
         )
         return False
-    # casalog.post('parameters {}'.format(bparm))
-    paramList = ImagerParameters(**bparm)
+
+    #casalog.post('parameters {}'.format(bparm))    
+    paramList=ImagerParameters(**bparm)
+
     ## Setup Imager objects, for different parallelization schemes.
     imagerInst = PySynthesisImager
     if specmode == "mtmfs_via_cube":
@@ -545,10 +551,17 @@ def tclean(
             if niter == 0 and calcres == False:
                 if savemodel != "none":
                     imager.predictModel()
-            ## Do deconvolution and iterations
-            if niter > 0:
 
-                t0 = time.time()
+            # CAS-13960 : Construct return dict for niter=0 case
+            # If residual image does not exist, summaryminor will not be
+            # populated.
+            if niter==0:
+                rd = ReturnDictionary()
+                retrec = rd.constructResidualDict(paramList)
+
+            ## Do deconvolution and iterations
+            if niter>0 :
+                t0=time.time();
                 isit = imager.hasConverged()
                 imager.updateMask()
                 # if((type(usemask)==str) and ('auto' in usemask)):

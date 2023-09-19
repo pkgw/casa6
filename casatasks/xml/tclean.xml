@@ -438,23 +438,27 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                                
 
+
                         specmode='cubedata' : Spectral line imaging with one or more channels
-                                                                There is no internal software Doppler tracking so
-                                                                a spectral line observed over an extended time range
-                                                                may be smeared out in frequency. There is strictly
-                                                                no valid spectral frame with which to label the output
-                                                                images, but they will list the frame defined in the MS.
+                                                        There is no internal software Doppler tracking so
+                                                        a spectral line observed over an extended time range
+                                                        may be smeared out in frequency. There is strictly
+                                                        no valid spectral frame with which to associate with the
+                                                        output images, thus the image spectral  frame will
+                                                        be labelled  &quot;Undefined&quot;.
 
-                                                               mode='cubesource': Spectral line imaging while
-                                                               tracking moving source (near field or solar system
-                                                               objects). The velocity of the source is accounted
-                                                               and the frequency reported is in the source frame.
-                                                               As there is not SOURCE frame defined,
-                                                               the frame reported will be REST (as it may not be
-                                                               in the rest frame emission region may be
-                                                               moving w.r.t the systemic velocity frame)
+                                                        
+                        specmode='cubesource': Spectral line imaging while
+                                                        tracking moving source (near field or solar system
+                                                        objects). The velocity of the source is accounted
+                                                        and the frequency reported is in the source frame.
+                                                        As there is no &quot;SOURCE&quot; frame defined in CASA,
+                                                        the frame in the image will be labelled &quot;REST&quot; (but do note the
+                                                        velocity of a given line reported may be different from the rest frame
+                                                        velocity if the emission region is moving w.r.t the systemic
+                                                        velocity frame of the source)
 
-                        mode='mtmfs_via_cube' : Multiterm continuum imaging with cube major cycles. 
+                        specmode='mtmfs_via_cube' : Multiterm continuum imaging with cube major cycles. 
                                                               This mode requires deconvolver='mtmfs' with nterms>1 
                                                               and user-set choices of 'reffreq' and 'nchan'. 
 
@@ -2048,35 +2052,6 @@ to use the correct direction in which the antenna is pointing with respect to th
       <value type="bool">False</value>
     </param>
 
-    <param type="bool" name="fullsummary" subparam="true">
-      <shortdescription>Return dictionary with complete convergence history</shortdescription>
-      <description>Return dictionary with complete convergence history 
-
-                         fullsummary=True: A full version of the summary dictionary is returned.
-                         Keys include 'iterDone','peakRes','modelFlux','cycleThresh' that record the
-                         convergence state at the end of each set of minor cycle iterations
-                         separately for each image plane (i.e. channel/stokes) being
-                         deconvolved. Additional keys report the convergence state at the 
-                         start of minor cycle iterations, stopping criteria that triggered major 
-                         cycles, and a processor ID per channel, for parallel cube runs.
-
-                         fullsummary=False (default): A shorten version of the summary dictionary is returned
-                         with only 'iterDone','peakRes','modelFlux', and 'cycleThresh'.
-
-
-                         Detailed  information about the return dictionary fields may be found 
-                         at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary. 
-                         
-                         Note : With some parallel cube imaging runs that have a large number of channels
-                         and iterations per cube partition in a parallel run, an MPI message passing limit may
-                         be reached due to the size of the return dictionaries being passed around, causing
-                         CASA to crash (with fullsummary=True). The limit has been estimated to be reached
-                         only when nchan_per_chunk x iterdone_per_minorcycleset > 8e+6. The option to set
-                         fullsummary=False should be used to guard against this.                           
-       </description>
-       <value type='bool'>False</value>
-    </param>
-    
     <param type="int" name="nmajor">
       <shortdescription>Maximum number of major cycles to evaluate</shortdescription>
       <description>The nmajor parameter limits the number of minor and major cycle sets
@@ -2115,6 +2090,34 @@ to use the correct direction in which the antenna is pointing with respect to th
     </param>
 
 
+    <param type="bool" name="fullsummary">
+      <shortdescription>Return dictionary with complete convergence history</shortdescription>
+      <description>Return dictionary with complete convergence history
+
+                         fullsummary=True: A full version of the summary dictionary is returned.
+                         Keys include 'iterDone','peakRes','modelFlux','cycleThresh' that record the
+                         convergence state at the end of each set of minor cycle iterations
+                         separately for each image plane (i.e. channel/stokes) being
+                         deconvolved. Additional keys report the convergence state at the
+                         start of minor cycle iterations, stopping criteria that triggered major
+                         cycles, and a processor ID per channel, for parallel cube runs.
+
+                         fullsummary=False (default): A shorten version of the summary dictionary is returned
+                         with only 'iterDone','peakRes','modelFlux', and 'cycleThresh'.
+
+
+                         Detailed  information about the return dictionary fields may be found
+                         at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary.
+
+                         Note : With some parallel cube imaging runs that have a large number of channels
+                         and iterations per cube partition in a parallel run, an MPI message passing limit may
+                         be reached due to the size of the return dictionaries being passed around, causing
+                         CASA to crash (with fullsummary=True). The limit has been estimated to be reached
+                         only when nchan_per_chunk x iterdone_per_minorcycleset > 8e+6. The option to set
+                         fullsummary=False should be used to guard against this.
+       </description>
+       <value type='bool'>False</value>
+    </param>
 
 
     
@@ -2811,7 +2814,7 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="minpsffraction"><value>0.05</value></default>
          <default param="maxpsffraction"><value>0.8</value></default>
          <default param="interactive"><value>False</value></default>
-         <default param="fullsummary"><value>False</value></default>
+         <!-- <default param="fullsummary"><value>False</value></default> -->
        </notequals>
 
      </when>

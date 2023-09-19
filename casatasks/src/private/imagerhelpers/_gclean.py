@@ -30,6 +30,10 @@ import asyncio
 from functools import reduce
 import copy
 
+_GCV001 = True
+_GCV002 = True
+_GCV003 = True
+
 # from casatasks.private.imagerhelpers._gclean import gclean
 class gclean:
     '''gclean(...) creates a stream of convergence records which indicate
@@ -58,23 +62,42 @@ class gclean:
     '''
 
     def _tclean( self, *args, **kwargs ):
+        """ Calls tclean records the arguments in the local history of tclean calls.
+
+        The full tclean history for this instance can be retrieved via the cmds() method."""
         from casatasks import tclean
         arg_s = ', '.join( map( lambda a: self._history_filter(len(self._exe_cmds), None, repr(a)), args ) )
         kw_s = ', '.join( map( lambda kv: self._history_filter(len(self._exe_cmds), kv[0], "%s=%s" % (kv[0],repr(kv[1]))), kwargs.items()) )
-        if len(arg_s) > 0 and len(ks_s) > 0:
+        if len(arg_s) > 0 and len(kw_s) > 0:
             parameters = arg_s + ", " + kw_s
         else:
             parameters = arg_s + kw_s
         self._exe_cmds.append( "tclean( %s )" % parameters )
         return tclean( *args, **kwargs )
 
+    def _deconvolve( self, *args, **kwargs ):
+        """ Calls deconvolve records the arguments in the local history of deconvolve calls.
+
+        The full deconvolve history for this instance can be retrieved via the cmds() method."""
+        from casatasks import deconvolve
+        arg_s = ', '.join( map( lambda a: self._history_filter(len(self._exe_cmds), None, repr(a)), args ) )
+        kw_s = ', '.join( map( lambda kv: self._history_filter(len(self._exe_cmds), kv[0], "%s=%s" % (kv[0],repr(kv[1]))), kwargs.items()) )
+        if len(arg_s) > 0 and len(kw_s) > 0:
+            parameters = arg_s + ", " + kw_s
+        else:
+            parameters = arg_s + kw_s
+        self._exe_cmds.append( "deconvolve( %s )" % parameters )
+        return deconvolve( *args, **kwargs )
+
     def cmds( self ):
+        """ Returns the history of all tclean calls for this instance. """
         return self._exe_cmds
 
     def update( self, msg ):
         """ Interactive clean parameters update.
 
-        msg: dict with possible keys 'niter', 'cycleniter', 'threshold', 'cyclefactor' and 'mask'
+        Args:
+            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' and 'mask'
         """
         if 'niter' in msg:
             try:
@@ -84,11 +107,6 @@ class gclean:
         if 'cycleniter' in msg:
             try:
                 self._cycleniter = int(msg['cycleniter'])
-            except ValueError:
-                pass
-        if 'nmajor' in msg:
-            try:
-                self._nmajor = int(msg['nmajor'])
             except ValueError:
                 pass
         if 'threshold' in msg:
@@ -101,36 +119,88 @@ class gclean:
         if 'mask' in msg:
             self._mask = msg['mask']
 
-    def __init__( self, vis, imagename, imsize=[100], cell="1arcsec", specmode='cube', nchan=-1, start='',
-                  width='', interpolation='linear', gridder='standard', pblimit=0.2, deconvolver='hogbom',
-                  niter=0, threshold='0.1Jy', cycleniter=-1, nmajor=1, cyclefactor=1.0, scales=[],
+    def __init__( self, vis, imagename, field='', spw='', timerange='', uvrange='', antenna='', scan='', observation='', intent='', datacolumn='corrected',
+                  imsize=[100], cell=[ ], phasecenter='', stokes='I', startmodel='', specmode='cube', reffreq='', nchan=-1, start='', width='', outframe='LSRK',
+                  restfreq='', interpolation='linear', perchanweightdensity=True, gridder='standard', wprojplanes=int(1), mosweight=True, psterm=False, wbawp=True,
+                  conjbeams=False, usepointing=False, pointingoffsetsigdev=[  ], pblimit=0.2, deconvolver='hogbom', niter=0, threshold='0.1Jy', nsigma=0.0,
+                  cycleniter=-1, nmajor=1, cyclefactor=1.0, scales=[], restoringbeam='', pbcor=False, nterms=int(2), weighting='natural', robust=float(0.5),
+                  npixels=0, gain=float(0.1), sidelobethreshold=3.0, noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3,
+                  growiterations=75, dogrowprune=True, minpercentchange=-1.0, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False,
                   history_filter=lambda index, arg, history_value: history_value ):
         self._vis = vis
         self._imagename = imagename
         self._imsize = imsize
         self._cell = cell
+        self._phasecenter = phasecenter
+        self._stokes = stokes
+        self._startmodel = startmodel
         self._specmode = specmode
+        self._reffreq = reffreq
         self._nchan = nchan
         self._start = start
         self._width = width
+        self._outframe = outframe
         self._interpolation = interpolation
+        self._restfreq = restfreq
+        self._perchanweightdensity = perchanweightdensity
         self._gridder = gridder
+        self._wprojplanes = wprojplanes
+        self._mosweight = mosweight
+        self._psterm = psterm
+        self._wbawp = wbawp
+        self._conjbeams = conjbeams
+        self._usepointing = usepointing
+        self._pointingoffsetsigdev = pointingoffsetsigdev
         self._pblimit = pblimit
         self._deconvolver = deconvolver
         self._niter = niter
         self._threshold = threshold
         self._cycleniter = cycleniter
+        self._nsigma = nsigma
         self._nmajor = nmajor
         self._cyclefactor = cyclefactor
-        self._mask = ''
         self._scales = scales
+        self._restoringbeam = restoringbeam
+        self._pbcor = pbcor
+        self._nterms = nterms
         self._exe_cmds = [ ]
         self._history_filter = history_filter
+        self._finalized = False
+        self._field = field
+        self._spw = spw
+        self._timerange = timerange
+        self._uvrange = uvrange
+        self._antenna = antenna
+        self._scan = scan
+        self._observation = observation
+        self._intent = intent
+        self._datacolumn = datacolumn
+        self._weighting = weighting
+        self._robust = robust
+        self._npixels = npixels
+        self._gain = gain
+        self._sidelobethreshold = sidelobethreshold
+        self._noisethreshold = noisethreshold
+        self._lownoisethreshold = lownoisethreshold
+        self._negativethreshold = negativethreshold
+        self._minbeamfrac = minbeamfrac
+        self._growiterations = growiterations
+        self._dogrowprune = dogrowprune
+        self._minpercentchange = minpercentchange
+        self._fastnoise = fastnoise
+        self._savemodel = savemodel
+        self._parallel = parallel
+        self._usemask = usemask
+        self._mask = mask
 
-        if len(list(filter(lambda f: os.path.isdir(f) and f.startswith(self._imagename + '.'), os.listdir( os.curdir )))) > 0:
-            raise RuntimeError("image files already exist")
-        self._convergence_result = (None,None)
-
+        self._major_done = 0
+        self._convergence_result = (None,None,None,{ 'chan': None, 'major': None })
+        #                           ^^^^ ^^^^ ^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->>> convergence info
+        #                              |    | |
+        #                              |    | +---------------->>> major cycles done for current run
+        #                              |    +------------------>>> tclean stopcode
+        #                              +----------------------->>> error message
+    @staticmethod
     def __filter_convergence( raw ):
         ###
         ### this function filters out the pieces of the `raw` tclean 'summaryminor'
@@ -139,7 +209,7 @@ class gclean:
         ### the first index in the `raw` dictionary is the channel axis
         ### each channel may have a number of polarity dictionaries
         ###
-        keep_keys = [ 'modelFlux', 'iterDone', 'peakRes' ]
+        keep_keys = [ 'modelFlux', 'iterDone', 'peakRes', 'stopCode', 'cycleThresh' ]
         ret = {}
         for channel_k,channel_v in raw[0].items( ): # 0: main field in multifield imaging TODO worry about other fields
             ret[channel_k] = {}
@@ -149,6 +219,17 @@ class gclean:
                     ret[channel_k][stokes_k][summary_k] = copy.deepcopy(stokes_v[summary_k])
         return ret
 
+    def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
+        '''Add meta-data about the whole major cycle, including 'cyclethreshold'
+        '''
+        if 'cyclethreshold' in tclean_ret:
+            return dict( major=dict( cyclethreshold=[tclean_ret['cyclethreshold']] if major_ret is None else (major_ret['cyclethreshold'] + [tclean_ret['cyclethreshold']]) ),
+                         chan=chan_ret )
+        else:
+            return dict( major=dict( cyclethreshold=major_ret['cyclethreshold'].append(tclean_ret['cyclethreshold']) ),
+                         chan=chan_ret )
+
+    @staticmethod
     def __update_convergence( cumm_sm, new_sm ):
         """Accumulates the per-channel/stokes subimage 'summaryminor' records from new_sm to cumm_sm.
         param cumm_sm: cummulative summary minor records : { chan: { stoke: { key: [values] } } }
@@ -207,31 +288,76 @@ class gclean:
 
         See also: gclean.__update_convergence(...)
         """
-        if self._niter < 1:
-            print("warning, nothing to run, niter == %s" % self._niter)
+        if self._finalized:
+            self._convergence_result = ( f'iteration terminated',
+                                         self._convergence_result[1],
+                                         self._major_done,
+                                         self._convergence_result[3] )
+            raise StopIteration
+        #                                                                             ensure that at least the initial tclean run
+        #                      vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv------------>>> is done to produce an initial dirty image
+        if self._niter < 1 and self._convergence_result[2] is not None:
+            self._convergence_result = ( f'nothing to run, niter == {self._niter}',
+                                         self._convergence_result[1],
+                                         self._major_done,
+                                         self._convergence_result[3] )
             return self._convergence_result
         else:
-            if self._convergence_result[0] is None:
+            ###
+            ### CALL SEQUENCE:
+            ###       tclean(niter=0),deconvolve(niter=0),tclean(niter=100),deconvolve(niter=0),tclean(niter=100),tclean(niter=0,restoration=True)
+            ###
+            if self._convergence_result[1] is None:
                 # initial call to tclean(...) creates the initial dirty image with niter=0
-                tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
-                                           specmode=self._specmode, interpolation=self._interpolation, nchan=self._nchan,
-                                           start=self._start, width=self._width, pblimit=self._pblimit, deconvolver=self._deconvolver,
-                                           cyclefactor=self._cyclefactor, scales=self._scales, interactive=False, 
-
-                                           niter=1, gain=0.000001 )
+                tclean_ret = self._tclean( vis=self._vis, mask=self._mask, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                                           phasecenter=self._phasecenter, stokes=self._stokes, startmodel=self._startmodel, specmode=self._specmode,
+                                           reffreq=self._reffreq, gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight,
+                                           psterm=self._psterm, wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing,
+                                           interpolation=self._interpolation, restfreq=self._restfreq, perchanweightdensity=self._perchanweightdensity,
+                                           nchan=self._nchan, start=self._start, width=self._width, outframe=self._outframe,
+                                           pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit, deconvolver=self._deconvolver,
+                                           cyclefactor=self._cyclefactor, scales=self._scales, restoringbeam=self._restoringbeam, pbcor=self._pbcor,
+                                           nterms=self._nterms, field=self._field, spw=self._spw, timerange=self._timerange, uvrange=self._uvrange,
+                                           antenna=self._antenna, scan=self._scan, observation=self._observation, intent=self._intent,
+                                           datacolumn=self._datacolumn, weighting=self._weighting, robust=self._robust, npixels=self._npixels,
+                                           interactive=False, niter=0, gain=0.000001, calcres=True, restoration=False, parallel=self._parallel, fullsummary=True )
+                self._deconvolve( imagename=self._imagename, niter=0, usemask=self._usemask, restoration=False, deconvolver=self._deconvolver )
+                self._major_done = 0
             else:
-                tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
-                                           specmode=self._specmode, interpolation=self._interpolation, nchan=self._nchan,
-                                           start=self._start, width=self._width, pblimit=self._pblimit, deconvolver=self._deconvolver,
-                                           cyclefactor=self._cyclefactor, scales=self._scales, interactive=False,
+                tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell, phasecenter=self._phasecenter,
+                                           stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
+                                           gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
+                                           wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
+                                           restfreq=self._restfreq, perchanweightdensity=self._perchanweightdensity, nchan=self._nchan, start=self._start,
+                                           width=self._width, outframe=self._outframe, pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit,
+                                           deconvolver=self._deconvolver, cyclefactor=self._cyclefactor, scales=self._scales, restoringbeam=self._restoringbeam,
+                                           pbcor=self._pbcor, nterms=self._nterms, field=self._field, spw=self._spw, timerange=self._timerange,
+                                           uvrange=self._uvrange, antenna=self._antenna, scan=self._scan, observation=self._observation, intent=self._intent,
+                                           datacolumn=self._datacolumn, weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False,
+                                           niter=self._niter, restart=True, calcpsf=False, calcres=False, restoration=False, threshold=self._threshold,
+                                           nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=self._nmajor, gain=self._gain,
+                                           sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
+                                           lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
+                                           minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
+                                           minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=1,
+                                           minpsffraction=0, parallel=self._parallel, fullsummary=True )
+                self._deconvolve( imagename=self._imagename, niter=0, usemask=self._usemask, restoration=False, deconvolver=self._deconvolver )
+                self._major_done = tclean_ret['nmajordone'] if 'nmajordone' in tclean_ret else 0
 
-                                           niter=self._niter, restart=True, calcpsf=False, calcres=False,
-                                           threshold=self._threshold, cycleniter=self._cycleniter, nmajor=self._nmajor,
-                                           maxpsffraction=1, minpsffraction=0, mask=self._mask )
-
-            new_summaryminor_rec = gclean.__filter_convergence(tclean_ret['summaryminor'])
-            self._convergence_result = ( tclean_ret['stopcode'] if 'stopcode' in tclean_ret else 0,
-                                         gclean.__update_convergence(self._convergence_result[1],new_summaryminor_rec) )
+            if len(tclean_ret) > 0 and 'summaryminor' in tclean_ret and sum(map(len,tclean_ret['summaryminor'].values())) > 0:
+                new_summaryminor_rec = gclean.__filter_convergence(tclean_ret['summaryminor'])
+                self._convergence_result = ( None,
+                                             tclean_ret['stopcode'] if 'stopcode' in tclean_ret else 0,
+                                             self._major_done,
+                                             self.__add_per_major_items( tclean_ret,
+                                                                         self._convergence_result[3]['major'],
+                                                                         gclean.__update_convergence( self._convergence_result[3]['chan'],
+                                                                                                      new_summaryminor_rec ) ) )
+            else:
+                self._convergence_result = ( f'tclean returned an empty result',
+                                             self._convergence_result[1],
+                                             self._major_done,
+                                             self._convergence_result[3] )
             return self._convergence_result
 
     def __reflect_stop( self ):
@@ -242,11 +368,47 @@ class gclean:
             raise StopAsyncIteration
 
     async def __anext__( self ):
+        ### asyncio.run cannot be used here because this is called
+        ### within an asyncio loop...
         loop = asyncio.get_event_loop( )
-        return await loop.run_in_executor( None, self.__reflect_stop )
+        result = await loop.run_in_executor( None, self.__reflect_stop )
+        return result
 
     def __iter__( self ):
         return self
 
     def __aiter__( self ):
         return self
+
+    def reset(self):
+        #if not self._finalized:
+        #    raise RuntimeError('attempt to reset a gclean run that has not been finalized')
+        self._finalized = False
+        self._convergence_result = ( None,
+                                     self._convergence_result[1],
+                                     self._major_done,
+                                     self._convergence_result[3] )
+
+    def restore(self):
+        """ Restores the final image, and returns a path to the restored image. """
+        tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                                   phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode,
+                                   reffreq=self._reffreq, gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight,
+                                   psterm=self._psterm, wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing,
+                                   interpolation=self._interpolation, restfreq=self._restfreq, perchanweightdensity=self._perchanweightdensity, nchan=self._nchan,
+                                   start=self._start, width=self._width, outframe=self._outframe, pointingoffsetsigdev=self._pointingoffsetsigdev,
+                                   pblimit=self._pblimit, deconvolver=self._deconvolver, cyclefactor=self._cyclefactor, scales=self._scales,
+                                   restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms, field=self._field, spw=self._spw,
+                                   timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna, scan=self._scan,
+                                   observation=self._observation, intent=self._intent, datacolumn=self._datacolumn, weighting=self._weighting,
+                                   robust=self._robust, npixels=self._npixels, gain=self._gain, sidelobethreshold=self._sidelobethreshold,
+                                   noisethreshold=self._noisethreshold, lownoisethreshold=self._lownoisethreshold,
+                                   negativethreshold=self._negativethreshold, minbeamfrac=self._minbeamfrac, growiterations=self._growiterations,
+                                   dogrowprune=self._dogrowprune, minpercentchange=self._minpercentchange, fastnoise=self._fastnoise,
+                                   savemodel=self._savemodel, nsigma=self._nsigma, interactive=False,
+                                   niter=0, restart=True, calcpsf=False, calcres=False, restoration=True,
+                                   parallel=self._parallel )
+        return { "image": f"{self._imagename}.image" }
+
+    def has_next(self):
+        return not self._finalized
