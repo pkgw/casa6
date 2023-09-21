@@ -985,6 +985,7 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
 		     //cerr << msfc.phaseDirMeas(fieldId[origindx[uniqIndx[k]]], t[uniqIndx[k]]) << endl;
 		     //cerr << "size " <<  cachedPhaseCenter_p[oldPCMSId_p].size() << endl;
                      String ephemIfAny=msfc.ephemPath(fieldId[origindx[uniqIndx[k]]]);
+                     cerr<<"ephemIfAny == "<<ephemIfAny <<endl;
                      if(ephemIfAny=="" || !Table::isReadable(ephemIfAny, False)){
 		       (cachedPhaseCenter_p[oldPCMSId_p])[t[uniqIndx[k]]]=msfc.phaseDirMeas(fieldId[origindx[uniqIndx[k]]], t[uniqIndx[k]]);
                      }
@@ -1035,6 +1036,9 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
 
 
   MDirection VisBufferUtil::getEphemBasedPhaseDir(const vi::VisBuffer2& vb, const String& ephemPath, const MDirection&refDir,  const Double t){
+   
+    cerr<<"ephemPath=="<<ephemPath<<endl; 
+    cerr<<"msid=="<<vb.msId()<<endl;
     MEpoch ep(Quantity(t, "s"), vb.getVi()->getImpl()->getEpoch().getRef());
     mframe_.resetEpoch(ep);
     if(!Table::isReadable(ephemPath, False))

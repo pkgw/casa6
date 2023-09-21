@@ -2360,6 +2360,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    if(movingSource=="TRACKFIELD"){
 	      Int fieldID=MSColumns(*mss[j]).fieldId()(0);
 	      ephemtab=Path(MSColumns(*mss[j]).field().ephemPath(fieldID)).absoluteName();
+              cerr << "Buildcoordsys  ---- j="<<j<<" ephemtab = " << ephemtab <<endl;
 	    }
 	    MEpoch refep=MSColumns(*mss[j]).timeMeas()(0);
 	    Quantity refsysvel;
@@ -2678,6 +2679,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     String specmode;
 
     if(mode=="cubesource"){
+      cerr<<"sysvelvalue = "<<String::toString(sysvelvalue)<<endl;
       MDoppler mdop(sysvelvalue, MDoppler::RELATIVISTIC);
       dataChanFreq=mdop.shiftFrequency(dataChanFreq);
       dataChanWidth=mdop.shiftFrequency(dataChanWidth);
@@ -3107,6 +3109,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ephemtab=Path(MSColumns(ms).field().ephemPath(fieldID)).absoluteName();
     }
     casacore::MDirection::Types planetType=MDirection::castType(trackDir.getRef().getType());
+    cerr<<"ephemtab="<<ephemtab<<endl;
     if( (! Table::isReadable(ephemtab)) &&   ( (planetType <= MDirection::N_Types) || (planetType >= MDirection::COMET)))
       throw(AipsError("Does not have a valid ephemeris table or major solar system object defined"));
     MeasFrame mframe(refEp, obsposition);
