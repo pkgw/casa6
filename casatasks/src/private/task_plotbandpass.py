@@ -5602,11 +5602,13 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
     else:
         airmass = 1.0/math.cos((90-conditions['elevation'])*math.pi/180.)
 
+    # get the elevation of the antenna
     geodetic_elevation = 5059
-    with sdutil.table_manager(os.path.join(vis, 'ANTENNA')) as tb:
-        _X, _Y, _Z = (float(i) for i in tb.getcell('POSITION', antenna))
-        _pos = simutil.simutil().xyz2long(_X, _Y, _Z, 'WGS84')
-        geodetic_elevation = _pos[2]
+    if os.path.exists(os.path.join(vis, 'ANTENNA')):
+        with sdutil.table_manager(os.path.join(vis, 'ANTENNA')) as tb:
+            _X, _Y, _Z = (float(i) for i in tb.getcell('POSITION', antenna))
+            _pos = simutil.simutil().xyz2long(_X, _Y, _Z, 'WGS84')
+            geodetic_elevation = _pos[2]
 
     tropical = 1
     midLatitudeSummer = 2
