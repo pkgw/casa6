@@ -1021,7 +1021,7 @@ class test_shadow(test_base):
             os.system('rm -rf shadowtest_part.ms*')
         if os.path.exists('shadowAPP.ms'):
             os.system('rm -rf shadowAPP.ms*')
-        if os.path.exists('shadowAPP.ms'):
+        if os.path.exists('sim.alma.cycle0.compact.noisy.ms'):
             os.system('rm -rf sim.alma.cycle0.compact.noisy.ms*')
         if os.path.exists('cas2399.txt'):
             os.system('rm -rf cas2399.txt*')

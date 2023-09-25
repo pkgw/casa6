@@ -55,7 +55,15 @@ _casa6tasks = set([
     "imregrid", "imsmooth", "imstat", "imsubimage", "imtrans", "imval", "initweights", "listcal", "listfits", "listhistory", "listobs", "listpartition",
     "listsdm", "listvis", "makemask", "mstransform", "partition", "polcal", "polfromgain", "predictcomp", "rerefant", "rmfit", "rmtables", "sdbaseline", "sdcal",
     "sdfit", "sdfixscan", "sdgaincal", "sdimaging", "sdsmooth", "setjy", "simalma", "simanalyze", "simobserve", "slsearch", "smoothcal", "specfit",
-    "specflux", "specsmooth", "splattotable", "split", "spxfit", "statwt", "tclean", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat", "vishead", "visstat", "widebandpbcor","deconvolve"])
+    "specflux", "specsmooth", "splattotable", "split", "spxfit", "statwt", "tclean", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat", "vishead", "visstat", "widebandpbcor", "deconvolve"])
+
+# tasks that take a measurement set as the first input
+_vistasks = set([
+    "accor", "apparentsens", "applycal", "bandpass", "blcal", "clearcal", "concat", "conjugatevis", "cvel2", "cvel", "delmod", "exportasdm", "exportuvfits", "fixplanets", "fixvis", "flagcmd",
+    "flagdata", "flagmanager", "fluxscale", "fringefit", "ft", "gaincal", "gencal", "hanningsmooth", "importasdm", "importatca", "importfitsidi", "importgmrt", "importmiriad", "importuvfits",
+    "importvla", "initweights", "listcal", "listhistory", "listobs", "listpartition", "listvis", "mstransform", "partition", "phaseshift", "plotants", "plotbandpass", "plotweather", "polcal",
+    "polfromgain", "rerefant", "sdintimaging", "setjy", "simanalyze", "smoothcal", "split", "statwt", "tclean", "testconcat", "uvcontsub3", "uvcontsub", "uvmodelfit", "uvsub", "virtualconcat",
+    "vishead", "visstat", "widebandpbcor", "nrobeamaverage", "sdatmcor", "sdbaseline", "sdcal", "sdfit", "sdgaincal", "sdpolaverage", "sdsmooth", "sdtimeaverage", "sdimaging", "tsdimaging"])
 
 _miscellaneous_tasks = set(['wvrgcal','plotms'])
 
@@ -124,15 +132,24 @@ def add_to_dict(self, output=None, dataset="TestData", status=False, **kwargs):
                 if current_case == test_case:
                     if "{}(".format(task) in line:
                         #print(line)
-                        taskname = line.split("(")[0]
+                        taskname, parvals = line.split("(", 1)
+                        is_vistask = False
+                        for vistaskname in _vistasks:
+                            if vistaskname in taskname:
+                                is_vistask = True
+                                break
+
                         ## Optional: Can print first index of casa function call but does not print the string name if it's an assigned object
                         ## Attempt to Get Dataset from casa task call
                         if dataset== "TestData":
                             import re
-                            dataset = re.search('(?<=\().+?(?=\,)',line).group()
+                            dataset = re.search('(?<=\().+?(?=\,)',parvals).group()
                             if len(dataset) == 0 or dataset is None:
                                 dataset = "TestData"
-                        params = line.split(',')[1::]
+
+                        params = parvals.split(',')
+                        if is_vistask:
+                            params = params[1:]
                         #print(params)
                         while ')' not in list(line):
                             line = next(file)
@@ -140,7 +157,11 @@ def add_to_dict(self, output=None, dataset="TestData", status=False, **kwargs):
                             for i in new_line:
                                 params.append(i)
                             params = list(filter(lambda a: a != '', params))
-                        call = "{}({},{}".format(taskname, dataset, ','.join(params))
+
+                        if is_vistask:
+                            call = "{}({},{}".format(taskname, dataset, ','.join(params))
+                        else:
+                            call = "{}({}".format(taskname, ','.join(params))
                         #print(call)
                         func_calls.append(call)
                         #print(func_calls)
@@ -374,3 +395,4 @@ def stats_dict(out_dict):
             return function(*args, **kwargs)
         return all_wrapped
     return stats_decorator
+
