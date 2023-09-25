@@ -3981,6 +3981,15 @@ is multiplied by this factor.
      <value>false</value>
      </param>
 
+     <param name="convertfirst" type="string">
+    <description>Interpolation-Conversion scheme to use: convert pointingcolumntouse before performing interpolation at data-taking time</description>
+    <value>NEVER</value>
+    <allowed kind="enum">
+        <value>NEVER</value>
+        <value>ALWAYS</value>
+        <value>AUTO</value>
+    </allowed>
+    </param>
 </input>
 <returns type="bool"/>
 <example>
