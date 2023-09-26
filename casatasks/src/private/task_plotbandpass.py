@@ -7043,7 +7043,7 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
         indices = np.argsort(mjdsec)
         mjd = mjdsec/86400.
         pressure = mytb.getcol('PRESSURE')
-        conditions['pressure_unit'] = mytb.getcolkeyword('PRESSURE', 'QuantumUnits')[0]
+        conditions['pressure_unit'] = mytb.getcolkeywords('PRESSURE').get('QuantumUnits', ['mbar'])[0]
         relativeHumidity = mytb.getcol('REL_HUMIDITY')
         temperature = mytb.getcol('TEMPERATURE')
         if (np.median(temperature) > 100):
