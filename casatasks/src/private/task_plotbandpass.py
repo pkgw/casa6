@@ -5527,7 +5527,7 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
     # default values in case we can't find them below
     myqa = quanta()
     airmass = 1.5
-    P = myqa.quantity(563.0, 'mbar')
+    P = 563.0
     H = 20.0
     T = 273.0
     roundedScanTimes = []
@@ -5561,11 +5561,14 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
         if (verbose): print("Calling getWeather()")
         [conditions,myTimes] = getWeather(vis,bestscan,antenna,verbose,mymsmd)
         if (verbose): print("Done getWeather()")
-        P = myqa.quantity(conditions['pressure'], conditions['pressure_unit'])
+
+        # convert pressure with unit to the value in mbar
+        P = myqa.convert(myqa.quantity(conditions['pressure'], conditions['pressure_unit']), 'mbar')['value']
+
         H = conditions['humidity']
         T = conditions['temperature']+273.15
-        if (P['value'] <= 0.0):
-            P = myqa.quantity(563, 'mbar')
+        if (P <= 0.0):
+            P = 563
         if (H <= 0.0):
             H = 20
     else:
@@ -5595,7 +5598,7 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
         bestscan = -1
     if (verbose):
           print("CalcAtm: found elevation=%f (airmass=%.3f) for scan: %s" % (conditions['elevation'],1/np.sin(conditions['elevation']*np.pi/180.), str(bestscan)))
-          print("P,H,T = %f,%f,%f" % (P['value'],H,T))
+          print("P,H,T = %f,%f,%f" % (P,H,T))
     if (conditions['elevation'] <= 3):
         print("Using 45 deg elevation instead")
         airmass = 1.0/math.cos(45*math.pi/180.)
@@ -5607,8 +5610,7 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
     if os.path.exists(os.path.join(vis, 'ANTENNA')):
         with sdutil.table_manager(os.path.join(vis, 'ANTENNA')) as tb:
             _X, _Y, _Z = (float(i) for i in tb.getcell('POSITION', antenna))
-            _pos = simutil.simutil().xyz2long(_X, _Y, _Z, 'WGS84')
-            geodetic_elevation = _pos[2]
+            geodetic_elevation = simutil.simutil().xyz2long(_X, _Y, _Z, 'WGS84')[2]
 
     tropical = 1
     midLatitudeSummer = 2
@@ -5632,7 +5634,7 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
     fWidth = myqa.quantity(numchan*chansep,'GHz')
     myat.initAtmProfile(humidity=H, temperature=myqa.quantity(T, "K"),
                         altitude=myqa.quantity(geodetic_elevation, "m"),
-                        pressure=myqa.convert(P, 'mbar'), atmType=midLatitudeWinter)
+                        pressure=myqa.quantity(P, 'mbar'), atmType=midLatitudeWinter)
     myat.initSpectralWindow(nbands,fCenter,fWidth,fResolution)
     myat.setUserWH2O(myqa.quantity(pwvmean,'mm'))
 
