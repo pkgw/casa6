@@ -23,14 +23,20 @@ $File::Fetch::BLACKLIST = [qw|lwp httptiny httplite|];
 $exe = abs_path($0);
 $path = abs_path(dirname($exe));
 chop($java=`which java`);
-$jarfile_name = "mod-closure-assembly-1.11.jar";
+$jarfile_name = "mod-closure-assembly-1.8.jar";
 @java_version = ( );
 open(JAVAVER, "$java -version 2>&1 |");
 foreach ( <JAVAVER> ) {
+    print("$_\n");
     if ( m|version "?(\d+)\.(\d+)|i ) {
         @java_version = ($1,$2);
-        #print "found java version ", join('.',@java_version), "\n";
+        print "found java version ", join('.',@java_version), "\n";
     }
+    elsif ( m|version "?(\d+)|i ) {
+        @java_version = ($1);
+        print "found java version ", join('.',@java_version), "\n";
+    }
+    
 }
 close(JAVAVER);
 die "cannot run $java" unless scalar(@java_version) > 0;
@@ -38,7 +44,6 @@ die "java version 1.8 or greater is required\n" unless ($java_version[0] == 1 &&
 
 ### install path
 $distro_jarfile = $jarfile = "$path/java/$jarfile_name";
-
 if ( ! -e $jarfile ) {
     $jarfile = $distro_jarfile;
     ### pull from download url
