@@ -347,7 +347,12 @@ def run_shell_command(cmd, run_directory):
 
 def is_in_remote(branch,repo_path, repo):
     if branch != 'master':
-        cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("([^\/]+$)",branch )[0])
+        if branch.startswith("origin"):
+             cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("\/(.*)",branch )[0])
+       
+        else:
+            cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, branch)
+
         #print("\tRunning: ", cmd)
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell = True)
         out = proc.stdout.read()
@@ -357,6 +362,34 @@ def is_in_remote(branch,repo_path, repo):
             return True
     else:
         return True
+        
+def check_branch_path(branch):
+    if branch.startswith("origin"):
+        if "release" in branch:
+            cmd = ("git checkout {}".format(branch)).split()
+        else:
+            cmd = ("git checkout origin/{}".format( re.findall("\/(.*)",branch)[0])).split()
+    else:
+        if "release" in branch:
+            cmd = ("git checkout {}".format(branch)).split()
+        else:
+            cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+
+    return cmd
+    
+def check_branch_path_merge(branch):
+    if branch.startswith("origin"):
+        if "release" in branch:
+            cmd = ("git merge --no-edit --verbose {}".format(branch)).split()
+        else:
+            cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("\/(.*)",branch)[0])).split()
+    else:
+        if "release" in branch:
+            cmd = ("git merge --no-edit --verbose {}".format(branch)).split()
+        else:
+            cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+
+    return cmd
 
 def fetch_tests(work_dir, branch, merge_target=None):
 
@@ -393,15 +426,13 @@ def fetch_tests(work_dir, branch, merge_target=None):
     run_shell_command(cmd, source_dir)
 
     if merge_target is not None:
-        
-        cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
+        cmd = check_branch_path(merge_target)
         print("\tRunning: ", " ".join(str(x) for x in cmd))
         run_shell_command(cmd, source_dir + "/" + repo)
 
         if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
             print("\tMerging {} into {}".format(branch, merge_target))
-
-            cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch )[0]).split()
+            cmd = check_branch_path_merge(branch)
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
             print(out.decode("utf-8"))
@@ -412,7 +443,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
         else:
             print("\t{} not in Remote Repository {}".format(branch,repo))
     else:
-        cmd = ("git checkout origin/{}".format(re.findall("([^\/]+$)",branch )[0])).split()
+        cmd = check_branch_path(branch)
         if is_in_remote(branch,repo_path, repo):
             print("\tRunning: ", " ".join(str(x) for x in cmd))
         else:
@@ -433,13 +464,13 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
         if merge_target is not None:
 
-            cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
+            cmd = check_branch_path(branch)
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
 
             if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
                 print("\tMerging {} into {}".format(branch, merge_target))
-                cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch)[0]).split()
+                cmd = check_branch_path_merge(branch)
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
                 out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
                 print(out.decode("utf-8"))
@@ -456,7 +487,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
                     cmd = ("git checkout {}".format(branchtag)).split()
                 else:
                     print("No casa6/build.conf found. Defaulting to master")
-                    cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
+                    cmd = check_branch_path(merge_target)
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
                 run_shell_command(cmd, source_dir + "/" + repo)
 
@@ -470,7 +501,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
             else:
                 # Check If Feature Branch Exists
                 if is_in_remote(branch,repo_path, repo):
-                    cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+                    cmd = check_branch_path(branch)
                 else:
                     print("\t{} not in Remote Repository {} Defaulting to master.".format(branch,repo))
                     cmd = ("git checkout origin/master").split()
