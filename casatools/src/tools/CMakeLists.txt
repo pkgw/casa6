@@ -59,6 +59,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ## Set definitions global to the whole project
 add_definitions(-DCASACORE_NEEDS_RETHROW)
 add_definitions(-DAIPS_DEBUG)
+add_definitions(-DCMAKE_OSX_ARCHITECTURES=arm64)
 
 ## Check for dependencies
 
