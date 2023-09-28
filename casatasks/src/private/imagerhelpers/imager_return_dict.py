@@ -16,6 +16,8 @@ class ImagingDict():
     def __init__(self) -> None:
         self._returndict = {}
         self._summaryminor = {}
+
+        self._initialize()
         
     def __str__(self) -> str:
         """
@@ -48,7 +50,7 @@ class ImagingDict():
         del self._returndict
 
 
-    def initialize_dict(self) -> None:
+    def _initialize(self) -> None:
         """
         Initialize the return dictionary with dummy values. This sets up the
         dictionary structure and keys to expect, and will be filled in with
@@ -82,13 +84,13 @@ class ImagingDict():
         self._returndict['summaryminor'] = {}
         self._returndict['summaryminor'][0] = {}
         self._returndict['summaryminor'][0][0] = {}
-        self._returndict['summaryminor'][0][0][0] = self.initialize_summary_minor()
+        self._returndict['summaryminor'][0][0][0] = self._initialize_summary_minor()
 
         self._returndict['threshold'] = 0.0
         self._returndict['stopDescription'] = 'Zero iterations performed'
                                       
 
-    def initialize_summary_minor(self) -> dict:
+    def _initialize_summary_minor(self) -> dict:
         """
         Initialize the summary minor dictionary with dummy values. This sets up the
         dictionary structure and keys to expect, and will be filled in with
@@ -144,7 +146,7 @@ class ImagingDict():
             return []
                                       
 
-    def append_dict(self, inpdict:dict) -> None:
+    def append(self, inpdict:dict) -> None:
         """
         Append the input dictionary to the return dictionary. This is used to
         merge dictionaries from multiple tclean/deconvolve calls.
