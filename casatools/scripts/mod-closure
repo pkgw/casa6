@@ -57,5 +57,5 @@ die "configuration error, cannot find jar file ($jarfile_name)" unless -e $jarfi
 if ( $^O ne "linux" ) {
     unshift( @ARGV, 'exclude=/usr/lib' );
 }
-unshift( @ARGV, basename($java), '-jar', $jarfile );
-exec {  'arch -arm64 $java' } @ARGV;
+unshift( @ARGV, 'arch','-arm64',basename($java), '-jar', $jarfile );
+exec { $java } @ARGV;
