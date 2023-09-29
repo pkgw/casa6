@@ -293,6 +293,7 @@ def tocasatb(indata, outtable):
                     day2 = f"{int(day):02d}"
                     headerdict['VS_CREATE'] = year + '/' + nmon + '/' + day2 + '/' + tm[0:5]
                     # VS_DATE - use the current time to indicate the time CASA table is created
+                    headerdict['VS_DATE'] = time.strftime('%Y/%m/%d/%H:%M',time.gmtime() )
                     headerdict['VS_TYPE'] = 'Table of comet/planetary positions'
                     # VERSION stored in the output table may be incremented in the future.
                     # For now, it is fixed, but it may be incremented from 0003 to 0004 to indiate

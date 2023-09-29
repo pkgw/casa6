@@ -35,9 +35,10 @@ from casatestutils import testhelper as th
 
 from casatasks import getephemtable 
 from casatasks.private import jplhorizons_query
-from casatools import ctsys, table
+from casatools import ctsys, table, measures
 
 _tb = table()
+_me = measures()
 
 datapath = ctsys.resolve('/unittest/getephemtable/')
 
@@ -50,7 +51,8 @@ class getephemtable_test(unittest.TestCase):
         self.mjdtimerange = 'MJD60188.83333~60189.38542'
 
     def tearDown(self):
-        pass
+        if os.path.exists(self.outfile):
+            shutil.rmtree(self.outfile) 
 
     def isDatabaseURLreachable():
         from urllib.request import urlopen
@@ -114,12 +116,16 @@ class getephemtable_test(unittest.TestCase):
         getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
 
         self.assertTrue(os.path.exists(self.outfile))
+        # make sure the table is readable by measures
+        self.assertTrue(_me.framecomet(self.outfile))
 
     @unittest.skipIf(isDatabaseURLreachable(), "JPL-Horizons data server is not reachable")
     def test_saverawdata(self):
         """Test raw query result saving"""
         getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile, rawdatafile='saved_rawqueryresult.txt')
         self.assertTrue(os.path.exists(self.outfile))
+        # make sure the table is readable by measures
+        self.assertTrue(_me.framecomet(self.outfile))
 
 
 
