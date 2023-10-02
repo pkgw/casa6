@@ -6010,8 +6010,8 @@ def sloppyUnique(t, thresholdSeconds):
     sloppyList = [t[0]]
     for i in range(1,len(t)):
         keepit = True
-        for j in range(0,i):
-            if (abs(t[i]-t[j]) < thresholdSeconds):
+        for uniqueValue in sloppyList:
+            if (abs(t[i] - uniqueValue) < thresholdSeconds):
                 keepit = False
         if (keepit):
             sloppyList.append(t[i])
