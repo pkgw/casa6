@@ -38,7 +38,7 @@ int         BaselineMetadata::numBaseband(){
   return v_numBin_.size();
 }
 
-int         BaselineMetadata::numPolProduct(int basebandNum) throw (Error){ 
+int         BaselineMetadata::numPolProduct(int basebandNum) {
   if(wrongBasebandNum(basebandNum))
     return -1; 
   else return v_numPolProduct_[basebandNum-1];
@@ -48,7 +48,7 @@ vector<int> BaselineMetadata::numPolProduct(){
   return v_numPolProduct_;
 }
 
-int         BaselineMetadata::numBin(int basebandNum) throw (Error){ 
+int         BaselineMetadata::numBin(int basebandNum) {
   if(wrongBasebandNum(basebandNum))
     return -1; 
   else 
@@ -71,7 +71,7 @@ vector<int> BaselineMetadata::numAutoPolProduct(){
   return v_numAutoPolProduct_;
 }
 
-int         BaselineMetadata::numAutoPolProduct(int basebandNum) throw (Error){
+int         BaselineMetadata::numAutoPolProduct(int basebandNum) {
   if(wrongBasebandNum(basebandNum))return -1; 
   else 
     return v_numAutoPolProduct_[basebandNum-1];
@@ -230,7 +230,7 @@ int BaselineMetadata::numValue(){
 }
 
 
-int BaselineMetadata::baselineNum( int na1, int na2) throw(Error){
+int BaselineMetadata::baselineNum( int na1, int na2) {
   if(na1==na2){
     return numBaseline_+na1+1;
   }else{

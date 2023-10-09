@@ -1447,9 +1447,21 @@ class plotbandpass_badSpwFilename_test(unittest.TestCase):
     @unittest.skip("N/A")
     def test_badSpwFilename_regression113(self):
         '''test_plotbandpass: test_badSpwFilename_regression113'''
-        plotbandpass(subplot=11, antenna='DA58', overlay='time', caltable='uid___A002_Xa2ce2e_X7bd.ms.tsys', 
+        plotbandpass(subplot=11, antenna='DA58', overlay='time', caltable='uid___A002_Xa2ce2e_X7bd.ms.tsys',
                figfile=figdir+'regression113', buildpdf=True,
                showatm=True, yaxis='amp', xaxis='freq', interactive=False)
+
+
+class plotbandpass_private_test(unittest.TestCase):
+    def test_sloppyUnique(self):
+        """test sloppyUnique"""
+        import casatasks.private.task_plotbandpass as _plotbandpass
+
+        time_list = [1,  30,  59,  88, 117, 146, 175]
+        time_threshold = 30  # sec
+        unique_time_list = list(_plotbandpass.sloppyUnique(time_list, 30))
+        self.assertEqual(unique_time_list, [1, 59, 117, 175])
+
 
 if __name__ == '__main__':
     unittest.main()
