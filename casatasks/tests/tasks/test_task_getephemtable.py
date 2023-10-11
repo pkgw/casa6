@@ -54,7 +54,7 @@ class getephemtable_test(unittest.TestCase):
         if os.path.exists(self.outfile):
             shutil.rmtree(self.outfile) 
 
-    def isDatabaseURLreachable():
+    def isDatabaseURLunreachable():
         from urllib.request import urlopen
         from urllib.error import URLError
         import certifi
@@ -63,11 +63,11 @@ class getephemtable_test(unittest.TestCase):
         try: 
             urlaccess = urlopen(self.hostname,context=context, timeout=60.0)
             if urlacess.getcode() == 200:
-                return True
-            else:
                 return False
+            else:
+                return True
         except:
-            return False
+            return True
 
     def test_invalid_inputs(self):
         """Test task inputs"""
@@ -110,8 +110,8 @@ class getephemtable_test(unittest.TestCase):
 
 
 
-    @unittest.skipIf(isDatabaseURLreachable(), "JPL-Horizons data server is not reachable")
-    def test_tablegeneration(self):
+    @unittest.skipIf(isDatabaseURLunreachable(), "JPL-Horizons data server is not reachable")
+    def test_table_generation(self):
         """Test ephem table generation"""
         getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
 
@@ -119,8 +119,8 @@ class getephemtable_test(unittest.TestCase):
         # make sure the table is readable by measures
         self.assertTrue(_me.framecomet(self.outfile))
 
-    @unittest.skipIf(isDatabaseURLreachable(), "JPL-Horizons data server is not reachable")
-    def test_saverawdata(self):
+    @unittest.skipIf(isDatabaseURLunreachable(), "JPL-Horizons data server is not reachable")
+    def test_save_rawdata(self):
         """Test raw query result saving"""
         getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile, rawdatafile='saved_rawqueryresult.txt')
         self.assertTrue(os.path.exists(self.outfile))
