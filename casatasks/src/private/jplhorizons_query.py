@@ -541,7 +541,7 @@ def tocasatb(indata, outtable):
             dtypes = np.array(['D' for _ in range(len(cols))])
             _tb.fromascii(outtable, tempconvfname, sep=' ', columnnames=list(cols.keys()),
                           datatypes=dtypes.tolist())
-
+            _tb.done()
             # fill keyword values in the ephem table
             if os.path.exists(outtable):
                 _fill_keywords_from_dict(headerdict, colkeys, outtable)

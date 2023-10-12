@@ -37,38 +37,72 @@ from casatasks import getephemtable
 from casatasks.private import jplhorizons_query
 from casatools import ctsys, table, measures
 
-_tb = table()
 _me = measures()
+_tb = table()
 
-datapath = ctsys.resolve('/unittest/getephemtable/')
+datapath = ctsys.resolve('unittest/getephemtable/')
+#datapath = '/export/home/murasame/casamodular/cas13705-2/test/utest/'
+hostname = 'https://ssd.jpl.nasa.gov/api/horizons.api'
+
+def isDatabaseURLunreachable(hostname):
+    from urllib.request import urlopen
+    from urllib.error import URLError
+    import certifi
+    import ssl
+    context = ssl.create_default_context(cafile=certifi.where())
+    try: 
+        urlaccess = urlopen(hostname,context=context, timeout=60.0)
+        print('urlaccess=',urlaccess.getcode())
+        if urlaccess.getcode() == 200:
+            print("code 200")
+            return False
+        else:
+            print("not 200")
+            return True
+    except Exception:
+        return True
+
 
 class getephemtable_test(unittest.TestCase):
     def setUp(self):
-        self.hostname = 'https://ssd.jpl.nasa.gov/api/horizons.api'
+        #self.hostname = 'https://ssd.jpl.nasa.gov/api/horizons.api'
         self.outfile = 'testephem.tab'
         self.caltimerange = '2023/09/01/20:00~2023/09/04/20:00'
         self.jdtimerange = 'JD2460189.33333~2460189.88542'
         self.mjdtimerange = 'MJD60188.83333~60189.38542'
+        self.reftable = datapath+'titan_jplhorizons_eph_ref.tab'
 
     def tearDown(self):
         if os.path.exists(self.outfile):
             shutil.rmtree(self.outfile) 
 
-    def isDatabaseURLunreachable():
-        from urllib.request import urlopen
-        from urllib.error import URLError
-        import certifi
-        import ssl
-        context = ssl.create_default_context(cafile=certifi.where())
+    def checkEphemTableContent(self, intab, reftab):
+        retval = True
         try: 
-            urlaccess = urlopen(self.hostname,context=context, timeout=60.0)
-            if urlacess.getcode() == 200:
-                return False
-            else:
-                return True
-        except:
-            return True
+            _tb.open(intab)
+            intabcols = _tb.colnames()
+            intabnrows = _tb.nrows()
+            _tb.close()
+            _tb.open(reftab)
+            reftabcols = _tb.colnames()
+            reftabnrows = _tb.nrows()
+            _tb.close()
+            if intabnrows != reftabnrows:
+               print(f'Nrows of {intab} differs from that of {reftab}: {intabnrows} != {reftabnrows}')
+               retval = False
+            missingcols = []
+            for refc in reftabcols:
+                if refc not in intabcols:
+                    missingcols.append(refc)
+            if missingcols != []:
+                print(f'Missing column(s) in {intab}: {missingcols}')
+                retval = False   
+        except Exception:
+            print(f'Error occurred in checking content of {intab}') 
+            retval = False
 
+        return retval
+      
     def test_invalid_inputs(self):
         """Test task inputs"""
         with self.assertRaisesRegex(ValueError, r'objectname must be specified'):
@@ -109,8 +143,7 @@ class getephemtable_test(unittest.TestCase):
             getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
 
 
-
-    @unittest.skipIf(isDatabaseURLunreachable(), "JPL-Horizons data server is not reachable")
+    @unittest.skipIf(isDatabaseURLunreachable(hostname), "JPL-Horizons data server is not reachable")
     def test_table_generation(self):
         """Test ephem table generation"""
         getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
@@ -118,16 +151,21 @@ class getephemtable_test(unittest.TestCase):
         self.assertTrue(os.path.exists(self.outfile))
         # make sure the table is readable by measures
         self.assertTrue(_me.framecomet(self.outfile))
+        # further check if all the required columns exist 
+        self.assertTrue(self.checkEphemTableContent(self.outfile, self.reftable))
+        
 
-    @unittest.skipIf(isDatabaseURLunreachable(), "JPL-Horizons data server is not reachable")
+    @unittest.skipIf(isDatabaseURLunreachable(hostname), "JPL-Horizons data server is not reachable")
     def test_save_rawdata(self):
         """Test raw query result saving"""
         getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile, rawdatafile='saved_rawqueryresult.txt')
         self.assertTrue(os.path.exists(self.outfile))
         # make sure the table is readable by measures
         self.assertTrue(_me.framecomet(self.outfile))
+        # further check if all the required columns exist 
+        self.assertTrue(self.checkEphemTableContent(self.outfile, self.reftable))
+        self.assertTrue(os.path.exists('saved_rawqueryresult.txt'))
 
-
-
+        
 if __name__ == '__main__':
     unittest.main()
