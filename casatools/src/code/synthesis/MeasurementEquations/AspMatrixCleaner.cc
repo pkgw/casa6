@@ -800,7 +800,7 @@ float AspMatrixCleaner::getPsfGaussianWidth(ImageInterface<Float>& psf)
   cs.setWorldAxisUnits(unitas);
 
   os << "major width " << beam.getMajor("arcsec") << " in " << cs.worldAxisUnits()(0) << LogIO::POST;
-  os << "minor width " << beam.getMinor("arcsec") << LogIO::POST;
+  os << "minor width " << beam.getMinor("arcsec") << " in " << cs.worldAxisUnits()(0) << LogIO::POST;
   os << " pixel sizes are " << abs(cs.increment()(0)) << " and ";
   os << abs(cs.increment()(1)) << LogIO::POST;
   const auto xpixels = beam.getMajor("arcsec") / abs(cs.increment()(0));
