@@ -943,7 +943,7 @@ class test_onefield(testref_base):
         self.checkfinal(pstr=report)
 
     # Test 5
-    @unittest.skip("ASP deconvolver currently does not follow the same logic for deconvolve as it does for tclean by the most basic measure, iterdone. To be fixed in CAS-13570")
+    #@unittest.skip("ASP deconvolver currently does not follow the same logic for deconvolve as it does for tclean by the most basic measure, iterdone. To be fixed in CAS-13570")
     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "ASP deconvolver currently has issues when running with MPI. To be unskipped in CAS-13874.")
     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures. To be fixed in CAS-13791.")
     def test_onefield_asp(self):

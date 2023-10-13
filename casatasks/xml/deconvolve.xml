@@ -97,9 +97,9 @@
 
     <!-- TODO in CAS-13570: fix asp description and allow asp value once asp is working -->
     <param type="string" name="deconvolver">
-      <shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mem,clarkstokes)</shortdescription>
-      <!-- <shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mtmfs,mem,clarkstokes,asp)</shortdescription> -->
-      <description>Name of minor cycle algorithm (hogbom,clark,multiscale,mem,clarkstokes)
+      <!-- ><shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mem,clarkstokes)</shortdescription> -->
+      <shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mtmfs,mem,clarkstokes,asp)</shortdescription>
+      <description>Name of minor cycle algorithm (hogbom,clark,multiscale,mem,clarkstokes,asp)
 
                         Each of the following algorithms operate on residual images and psfs
                         from the gridder and produce output model and restored images.
@@ -181,7 +181,7 @@
         <value>multiscale</value>
         <value>mtmfs</value>
         <value>mem</value>
-        <!-- <value>asp</value> -->
+        <value>asp</value>
 
       </allowed>
     </param>
@@ -275,7 +275,7 @@
     </param>
 
     <!-- TODO in CAS-13570: uncomment once asp is working -->
-    <!-- <param type="double" name="fusedthreshold" subparam="true">
+    <param type="double" name="fusedthreshold" subparam="true">
      <shortdescription>Threshold for triggering Hogbom Clean </shortdescription>
      <description> Threshold for triggering Hogbom Clean (number in units of Jy)
 
@@ -296,10 +296,10 @@
 
       </description>
       <value type="double">0.0</value>
-    </param> -->
+    </param>
 
     <!-- TODO in CAS-13570: uncomment once asp is working -->
-    <!-- <param type="int" name="largestscale" subparam="true">
+    <param type="int" name="largestscale" subparam="true">
      <shortdescription>Largest scale allowed for the Asp Clean deconvolver</shortdescription>
      <description> Largest scale (in pixels) allowed for the initial guess for the Asp Clean deconvolver.
 
@@ -317,7 +317,7 @@
 
       </description>
       <value type="int">-1</value>
-    </param> -->
+    </param>
 
 
     <param type="bool" name="restoration">
@@ -765,10 +765,10 @@
           <default param="smallscalebias"><value>0.0</value></default>
         </equals>
         <!-- TODO in CAS-13570: uncomment once asp is working -->
-        <!-- <equals type="string" value="asp">
+        <equals type="string" value="asp">
           <default param="fusedthreshold"><value>0.0</value></default>
           <default param="largestscale"><value>-1</value></default>
-        </equals> -->
+        </equals>
       </when>
 
       <when param="restoration">
