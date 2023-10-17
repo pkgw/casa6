@@ -295,11 +295,13 @@ To ease the instructions, define the variables CASAINSTALL, CASASRC and CASATEST
 ```
 
 To install libsakura:
+
+1. Get the sources
 ```
     $ cd $CASABUILD
     $ curl -L https://github.com/tnakazato/sakura/archive/refs/tags/libsakura-5.1.3.tar.gz | gunzip | tar -xvf -
 ```
-Compile and install with cmake (you might change the build directory or the make options).
+1. Compile and install with cmake (you might change the build directory or the make options).
 ```
     $ cd sakura-libsakura*/libsakura
     $ mkdir build
@@ -314,6 +316,8 @@ Compile and install with cmake (you might change the build directory or the make
          ..
     $ make install -j `getconf _NPROCESSORS_ONLN`
 ```
+
+1. This will install libraries under ` $CASAINSTALL/lib ` and header files under ` $CASAINSTALL/include `
 
 To install casacore:
 
@@ -389,6 +393,8 @@ Compile and install with cmake (you might change the build directory or the make
     $ make install -j `getconf _NPROCESSORS_ONLN`
 ```
 
+1. This will install libraries under ` $CASAINSTALL/lib ` which are named like `libcasa_*` and header files under ` $CASAINSTALL/include `
+
 >    NOTE: here we use a build of type "RelWithDebInfo" (with code optimization and debug line info. Other alternatives include Debug, Release, etc.
 
 >    NOTE: The modular system allows to install casacore from other repository which is not the git submodule configured in casatools. This adds flexibility to get a customized casacore if needed. However, it is up to the developer to ensure that the version installed is the one that needs to be used for the subsequent casa C++ build. For instance, one could use a single casacore installation for several casa branches if that's practical or desired.
@@ -428,6 +434,8 @@ Compile and install with cmake (you might change the build directory or the make
 
     $ make install -j `getconf _NPROCESSORS_ONLN`
 ```
+
+1. This will install libraries under ` $CASAINSTALL/lib ` which are named like `libcasacpp_*` and header files under ` $CASAINSTALL/include `
 
 >    NOTE: In the macOS cmake command line we have to add '-DCMAKE_CXX_FLAGS="-isystem /opt/local/include"' as a temporary workaround to give the include path of wcslib, until a fix can be used from casacore. This will no longer be needed once the pointer to casacore is updated to include the fix in casa (). Alternatively, before running the casacore cmake one would need to  modify the following line inside $CASASRC/casatools/casacore/casacore.pc.in.
 
@@ -477,6 +485,10 @@ Compile and install with cmake (you might change the build directory or the make
     $ pip install --upgrade setuptools
     $ pip install --upgrade wheel
 ```
+1.    Remove the output directory to avoid confussion with old created wheels:
+```
+    $ rm -rf $CASAINSTALL/dist
+```
 1.    Create casatools wheel. Note that this assumes that the virtual environement in previous step is still active.
 ```
     PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist $CASASRC/casatools
@@ -491,7 +503,7 @@ Compile and install with cmake (you might change the build directory or the make
     # Macos
     PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist -C="--build-option=--mod-closure" $CASASRC/casatools
 ```
-The output wheel will be created inside the $CASAINSTALL/dist directory
+1. This will create an output wheel inside the `$CASAINSTALL/dist` directory. That wheel depends on the libraries installed under `$CASAINSTALL/lib`.
 
 1. Optional: Convert Casatools wheel to ManyLinux compatible format
 ```
@@ -530,10 +542,17 @@ The casatasks wheel creation and installation has not changed int he modular bui
 ```
     $ cd $CASASRC/casatasks
 ```
+1.    Remove the output directory to avoid confussion with old created wheels:
+```
+    $ rm -rf dist
+```
 1. Create casatasks wheel. The resulting wheel file is stored under $CASASRC/casatasks/dist. Requires the Python wheel module (question)
 ```
     $ ./setup.py bdist_wheel
 ```
+
+1. This creates a casatasks wheel under `$CASASRC/casatasks/dist`. The current status of the casatasks setup.py is not fully PEP-517 compatible, that's why it is not possible to get the wheel under `$CASAINSTALL/dist` like the casatools case.
+
 #### Test casatasks (Optional)
 
 It is assumed that the steps to test casatools (see above) have already been performed.
@@ -602,6 +621,8 @@ The Makefile allows to have a first installation of a branch of CASA with the fo
 ```
 
  It is also possible to run individual steps with the `make` targets `libsakura, casacore, casacpp, casatools, casatasks, casashell`. Those steps will depend on each other, so running `make casashell` will actually run all the other ones, which might be suboptimal. There are also individual make targets that do not depend on each other: `libsakura, casacore-configure, casacore-build, casacpp-configure, casacpp-build, casatools-wheel, casatasks-wheel, casashell-wheel`, Note that all these targets are there for convenience and they are not substitute of the modular steps, which use standard off-the-shelf technologies like cmake, make and python build tools.
+
+ The target `make clean` will clean all the working and output directories and can be used to start clean from scratch.
 
 ## Testing with Viewer and PlotMS in a development environment
 

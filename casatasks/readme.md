@@ -4,7 +4,7 @@ CASAtasks is a self-contained python module that provides the tasks from the [CA
 
 ## Building CASAtasks
 
-Please refer to the toplevel [readme](readme.md)
+Please refer to the toplevel [readme](../readme.md)
 
 ## Available Tasks
 
