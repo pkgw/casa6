@@ -158,7 +158,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
             // forced to False always.  The side-effect of this is that
             // multi-plane MFS images will be slightly slowed down.
 
-            isSingle = false;
+            bool isSingle = false;
             itsDeconvolver.reset(new SDAlgorithmAAspClean(decpars.fusedThreshold, isSingle, decpars.largestscale));
 	  }
 	else
