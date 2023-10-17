@@ -32,6 +32,7 @@
 #include <synthesis/TransformMachines2/CFStore.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <synthesis/TransformMachines2/VBStore.h>
+#include <synthesis/TransformMachines2/AWConvFuncHolder.h>
 #include <synthesis/TransformMachines2/VisibilityResamplerBase.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <casacore/casa/Arrays/Array.h>
@@ -100,6 +101,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     {
       convFuncStore_p = cfs;
     };
+    virtual void setConvFunc(std::shared_ptr<AWConvFuncHolder>& awh)
+    {awConvHolder_p=awh;};
+    
     virtual void setCFMaps(const casacore::Vector<casacore::Int>& cfMap, const casacore::Vector<casacore::Int>& conjCFMap) {(void)cfMap;(void)conjCFMap;};
     virtual void setPATolerance(const double& dPA) {paTolerance_p = dPA;};
     //
@@ -166,7 +170,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     template <class T>
     void DataToGridImpl_p(casacore::Array<T>& griddedData, VBStore& vb,  
 			  const casacore::Bool& dopsf, casacore::Matrix<casacore::Double>& sumwt,casacore::Bool useConjFreqCF=false);
-
+    
+    
+    std::shared_ptr<AWConvFuncHolder> awConvHolder_p;
     // void sgrid(casacore::Vector<casacore::Double>& pos, casacore::Vector<casacore::Int>& loc, casacore::Vector<casacore::Int>& off, 
     // 	       casacore::Complex& phasor, const casacore::Int& irow, const casacore::Matrix<casacore::Double>& uvw, 
     // 	       const casacore::Double& dphase, const casacore::Double& freq, 

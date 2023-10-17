@@ -50,6 +50,9 @@ using sumofweight_fp = std::vector<std::vector<double>>;
 namespace casa { //# NAMESPACE CASA - BEGIN
   using namespace vi;
   namespace refim{
+  //forward decl  
+  class AWConvFuncHolder;  
+    
   class VisibilityResamplerBase
   {
   public: 
@@ -92,6 +95,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     virtual void setConvFunc(const CFStore& cfs) = 0;
     virtual void setPATolerance(const double& dPA) = 0;
+    
+    virtual void setConvFunc(std::shared_ptr<AWConvFuncHolder>& awh) = 0;
     //
     //------------------------------------------------------------------------------
     //

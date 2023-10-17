@@ -30,6 +30,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Vector.h>
+#include <casacore/measures/Measures/MeasTable.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
@@ -149,7 +150,8 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   Matrix<Int> awSupport;
   calcCsys_p = outcsys_p;
   calcNpix_p = min(nx_p,  ny_p);
-  cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
+  //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
+  //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
     
@@ -386,6 +388,65 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   }
   // A little dab will d'ya
   
+}
+Vector<Double> AWConvFuncHolder::getPointingPhaseShift(const vi::VisBuffer2& vb, bool usePointingTable){
+  Bool hasValidPointing=False;
+  if(vbutil_p.use_count()==0)
+    vbutil_p= std::make_shared<VisBufferUtil>(vb);
+  MDirection ant1PointVal;
+    if(Table::isReadable(vb.ms().pointingTableName())){
+      hasValidPointing=usePointingTable &&  (vb.ms().pointing().nrow() >0);
+    }
+    DirectionCoordinate dc=outcsys_p.directionCoordinate(0);
+   
+    if(hasValidPointing){
+      //ant1PointingCache_p[val]=vb.direction1()[0];
+      ant1PointVal=vbutil_p->getPointingDir(vb, vb.antenna1()(0), 0, dc.directionType());
+    }
+    else
+      ant1PointVal=vbutil_p->getPhaseCenter(vb);
+    MSColumns mscol(vb.ms());
+    String tel;
+    if (vb.subtableColumns().observation().nrow() > 0) {
+      tel =vb.subtableColumns().observation().telescopeName()(mscol.observationId()(0));
+      }
+    MEpoch::Types timeMType;
+    casacore::Unit timeUnit;
+    timeMType=MEpoch::castType(mscol.timeMeas()(0).getRef().getType());
+    timeUnit=Unit(mscol.timeMeas().measDesc().getUnits()(0).getName());
+    MPosition pos;
+    MDirection dirOnImage;
+    MeasTable::Observatory(pos,tel);
+    //need to conver antpoint frame to image frame
+    if(dc.directionType() !=  MDirection::castType(ant1PointVal.getRef().getType())){
+    	
+      MEpoch timenow(Quantity(vb.time()(0), timeUnit), timeMType);
+      MeasFrame pointFrame(timenow, pos);
+      MDirection::Ref elRef(dc.directionType(), pointFrame);
+      dirOnImage=MDirection::Convert(ant1PointVal, elRef)();
+      
+    }
+    else{
+      dirOnImage=ant1PointVal;
+    
+    }
+    
+    Vector<Double> thePix(2);
+    dc.toPixel(thePix, dirOnImage);
+    //shift from center
+    thePix(0) = thePix(0) - Double(nx_p / 2);
+    thePix(1) = thePix(1) - Double(ny_p / 2);
+
+    //phase gradient per pixel to apply
+    thePix(0) = -thePix(0)*2.0*C::pi/Double(nx_p)/Double(oversamp_p);
+    thePix(1) = -thePix(1)*2.0*C::pi/Double(ny_p)/Double(oversamp_p);
+    
+    return thePix;
+
+    
+    
+    
+    
 }
   }//# namespace refim ends
 }//namespace CASA ends

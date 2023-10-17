@@ -29,6 +29,7 @@
 #ifdef USE_HPG
 #include <synthesis/TransformMachines/SynthesisError.h>
 #include <synthesis/TransformMachines2/AWVisResamplerHPG.h>
+#include <synthesis/TransformMachines2/AWConvFuncHolder.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <synthesis/TransformMachines/SynthesisMath.h>
 #include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
@@ -60,7 +61,144 @@ namespace casa{
 
   //
   // Global functions
-  // --------------------------------------------------------------------------------------
+  //
+  // ---------------
+  
+  template <unsigned N> std::vector<hpg::VisData<N>>
+makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
+		 const casa::refim::VBStore& casaVBS,
+		 AWConvFuncHolder& awh,
+		 const unsigned nGridPol, const unsigned nGridChan,
+		 unsigned startRow,  unsigned endRow,
+		 const unsigned startChan, const unsigned endChan,
+		 const casacore::Vector<casacore::Int>& chanMap,
+		 const casacore::Vector<casacore::Int>& polMap,
+		 const casacore::Vector<double>& dphase,
+		 const hpg::CFSimpleIndexer& cfsi
+		 )
+{
+	unsigned nVisChan=endChan - startChan + 1;
+	unsigned nVisRow=endRow - startRow + 1;
+	unsigned targetIMChan, targetIMPol;
+	const casa::VisBuffer2& vb = *(casaVBS.vb_p);
+	IPosition dataShape = vb.visCube().shape();
+	unsigned nDataPol=dataShape(0);
+	vector<int> unique_pol = polMap.tovector();
+	std::sort(unique_pol.begin(),  unique_pol.end());
+	auto last = std::unique(unique_pol.begin(),  unique_pol.end());
+	unique_pol.erase(last,  unique_pol.end());
+	uint nVisPol = unique_pol.size();
+	
+	
+	std::vector<hpg::VisData<N>> hpgVB=create_blank_vis_data_vector<N>(nVisPol,nVisChan,nVisRow);
+	std::array<std::complex<hpg::visibility_fp>, N> vis;
+	std::array<hpg::vis_weight_fp, N> wt;
+	
+	const casacore::Matrix<double> UVW=casaVBS.uvw_p;
+	
+	std::array<hpg::vis_uvw_fp, 3> hpgUVW;
+	hpg::vis_phase_fp              dphaseHPG;
+	unsigned                       grid_cube=0; // For now, grid on the same plane.
+	// Need to pass the beam offsets phase grad
+	Vector<Double> pointingOffsets = awh.getPointingPhaseShift(vb);
+	hpg::cf_phase_gradient_t       cf_phase_gradient = {(hpg::cf_phase_gradient_fp)pointingOffsets[0],
+					 (hpg::cf_phase_gradient_fp)pointingOffsets[1]};
+	   
+	
+	std::array<unsigned, 2>        cf_index;
+	Vector<Double>freq = vb.getFrequencies(0);
+	Int vbSpw = vb.spectralWindows()(0);
+	unsigned hpgIRow=0;
+	// Lets get convindices
+	Vector<Int> convpolmap;
+	Vector<Int> convchanmap;
+	Vector<Int> convrowmap;
+	awh.getConvIndices(convpolmap,  convchanmap,  convrowmap,  vb,  UVW);
+	
+	uint nconvchan = awh.getFreqVals().nelements();
+	
+	//cerr <<  "vb.spec" << vb.spectralWindows()(0) <<  "convchanmap" <<  convchanmap <<  " nconvchan " << nconvchan << " convrow " << convrowmap <<   endl;
+	for(unsigned irow=startRow; irow< endRow; irow++) 
+	 {
+	  if (casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT)
+		{
+			  hpgUVW={0.0, 0.0, 0.0};
+		}
+		else{
+		  hpgUVW={UVW(0,irow),
+				  UVW(1,irow),
+				  UVW(2,irow)};
+		}
+		
+	   if(!casaVBS.rowFlag_p(irow) )
+		{
+		 for(unsigned ichan=startChan; ichan< endChan; ichan++)
+	    {
+		 if(((chanMap[ichan]>=0) && (chanMap[ichan]<nGridChan))) 
+			{
+			for(unsigned ipol=0; ipol< nDataPol; ipol++) 
+			{
+			      
+				if ((polMap(ipol)>=0) && (polMap(ipol)<nGridPol)) 
+				{
+				      int visVecElement= polMap[ipol];
+				      if (vb.flagCube()(ipol,ichan,irow)==false)
+					{
+					  if ((casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT)||
+					      (casaVBS.ftmType_p==casa::refim::FTMachine::PSF))
+					    {
+					      vis[visVecElement] = std::complex<double>(1.0,0.0);
+					    }
+					  else
+					    {
+					      vis[visVecElement] = casaVBS.visCube_p(ipol,ichan,irow);
+					    }
+
+					  wt[visVecElement]=casaVBS.imagingWeight_p(ichan,irow);
+					}
+				      else
+					{
+					  vis[visVecElement] = 0.0;
+					  wt[visVecElement]  = 0.0;
+					}
+				
+				  sumwt(polMap[ipol],chanMap[ichan]) += vb.imagingWeight()(ichan, irow);
+				}
+				// if polmap
+			    
+			}
+			//ipol
+			hpg::vis_frequency_fp frequency=freq[ichan];
+			if (casaVBS.ftmType_p==casa::refim::FTMachine::PSF || casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT ) {
+				dphaseHPG=0.0;
+			}
+			else{
+				dphaseHPG=-2.0*C::pi*dphase[irow]*frequency/C::c;
+			}
+			uint cindex = convrowmap[irow]*nconvchan+convchanmap[ichan];
+			cf_index = {0,cindex};
+			// cfindex is rowindex*nconvchan+ convchanmap
+			hpgVB[hpgIRow++] = hpg::VisData<N>(vis,wt,frequency,dphaseHPG,hpgUVW,grid_cube,cf_index
+							 ,cf_phase_gradient
+							 );
+			}
+		// if chnamap
+		}
+		// ichan
+  }													                                            // if flag
+	}                                                          // irow
+  hpgVB.resize(hpgIRow);
+  return hpgVB;
+}
+
+  
+  
+  
+  
+  
+  
+  
+ //----------------------------------------------------------------------------------//----
   template <unsigned N>
   void makeMuellerIndexes(const PolMapType& mNdx,
 			  const PolMapType& mValues,
@@ -176,7 +314,78 @@ namespace casa{
     return;
   }
   //
- 
+  //-------------------------------------------------------------------------
+  std::tuple<hpg::opt_t<hpg::Error>, hpg::CFSimpleIndexer> 
+    AWVisResamplerHPG::loadCF(VBStore& vbs, AWConvFuncHolder& awh, 
+			  bool send_to_device) {
+      
+      LogIO log_l(LogOrigin("AWVisResamplerHPG","loadCF"));
+      Int ndatapol = vbs.vb().nCorrelations();
+      Int ndataChan = vbs.vb().nChannels();
+      Array<Complex> cFunc;
+      if (vbs.ftmType_p !=  casa::refim::FTMachine::WEIGHT) {
+		cFunc = awh.getConvFunc();
+	  }
+	   else{		
+		cFunc = awh.getWeightConvFunc();
+	   }
+      IPosition cshape = cFunc.shape();
+      uint convSize = cshape[0];
+      uInt nConvPol = cshape[2];
+      Vector<Double> cFreqs = awh.getFreqVals();
+      Vector<Double> cWVals = awh.getWVals();
+      uint nPol = 2;                                         // we'll try only the RR
+      uint nchan = cFreqs.nelements();
+      uint nw = cWVals.nelements();
+      int sampling = awh.getOverSampling();
+      uint nCF = nchan * nw;
+       //                               nBLType, nTime/PA, nW, nFreq, nPol
+      hpg::CFSimpleIndexer cfsi({1,false},{1,false},{nw,true},{nchan,true}, nPol);
+
+      if (cfArray.oversampling()==0) {
+        
+        log_l << "Setting cfArray size: " << "nCF: " << nCF << " x " << nPol << " sampling: " << sampling << LogIO::POST;
+        cfArray.setSize((unsigned)(nCF),(unsigned)sampling);
+        
+      }
+      Bool isCopy;
+      Complex *cfuncPtr = cFunc.getStorage(isCopy);
+      unsigned iGrp=0; // HPG Group index
+      for(uint iFreq=0; iFreq < cFreqs.nelements(); ++iFreq) // CASA CF Freq-index
+      {
+        for(uint iW=0; iW < cWVals.nelements(); ++iW)       // CASA CF W-index
+        {
+          for(uint ipol=0; ipol < nPol; ++ipol)  // CASA CF Pol-index
+          {
+            Complex* convptr=NULL;
+            uint ptroffset =  ((iW*nchan+iFreq)*nConvPol+ipol)*convSize*convSize;
+            convptr = (cfuncPtr+ptroffset);
+            hpg::CFCellIndex cfCellidx(0,0,iW,iFreq,ipol);
+            std::array<unsigned, 3> index = cfsi.cf_index(cfCellidx);
+            cfArray.resize(iGrp, convSize,  convSize);
+            if (send_to_device) {
+			//cerr << "send iFreq " << iFreq <<  " igrp " <<  iGrp << " indices " <<  index[0] <<  "," <<  index[1] <<  "," <<  index[2] << endl;  
+             cfArray.setValues(convptr,  iGrp,  convSize,  convSize,  index[0],  index[1]);
+            }
+          }                                                 // pol
+        }                                                   // iW
+        ++iGrp;
+      }
+      
+      hpg::opt_t<hpg::Error> err;
+      if (send_to_device) {
+        	err=hpgGridder_p->set_convolution_function(hpg::Device::OpenMP, std::move(cfArray));
+      }
+      std::tuple<hpg::opt_t<hpg::Error>, hpg::CFSimpleIndexer> retval = std::make_tuple(err, cfsi);
+      return retval;
+      
+      
+        
+  }
+      
+      
+      
+      
   //--------------------------------------------------------------------------
   //  
   // This is a global method, used in AWVRHPG::DataToGrid_impl().
@@ -216,7 +425,7 @@ namespace casa{
 
 	  //size_t max_visibilities_batch_size = 351*2*1000;
 	  size_t max_visibilities_batch_size = (nAntenna*(nAntenna-1)/2)*2*nChannel;
-	  hpg::rval_t<Gridder> g;
+	  hpg::rval_t<hpg::Gridder> g;
 
 	  cerr << "M: " << endl;
 	  for(unsigned ir=0;ir<mueller_indexes.size();ir++)
@@ -224,7 +433,7 @@ namespace casa{
 	      for(unsigned ic=0;ic<mueller_indexes[ir].size();ic++)
 		{	
 		  //		  mueller_indexes[ir][ic] = 1;
-		  cerr << mueller_indexes[ir][ic] << " ";
+		  cerr << "ir ic " <<  ir <<  " " <<  ic <<  "  " << mueller_indexes[ir][ic] << " ";
 		}
 	      cerr << endl;
 	    }
@@ -234,16 +443,16 @@ namespace casa{
 	      for(unsigned ic=0;ic<conjugate_mueller_indexes[ir].size();ic++)
 		{
 		  //		  conjugate_mueller_indexes[ir][ic] = 0;
-		  cerr << conjugate_mueller_indexes[ir][ic] << " ";
+		  cerr <<  "ir ic " <<  ir <<  " " <<  ic <<  "  " << conjugate_mueller_indexes[ir][ic] << " ";
 		}
 	      cerr << endl;
 	    }
 
     // 	  mueller_indexes.resize(N);  conjugate_mueller_indexes.resize(N);
 
-	  //	  cerr << "Mueller index shape: " << mueller_indexes.size() << "X" << HPGNPOL << endl;
+	  	  cerr << "Mueller index shape: " << mueller_indexes.size() << "X" << HPGNPOL << endl;
 	  //	  if (hpgDevice=="serial") Device=hpg::Device::Serial;
-	  g = Gridder::create<N>(HPGDevice_l, NProcs, max_visibilities_batch_size,
+	  g = hpg::Gridder::create<N>(HPGDevice_l, NProcs, max_visibilities_batch_size,
 				 cfArray_ptr, grid_size, grid_scale, mueller_indexes,
 				 conjugate_mueller_indexes);
 	  //hpgGridder_p = new hpg::Gridder(hpg::get_value(std::move(g)));
@@ -251,6 +460,55 @@ namespace casa{
 	  return new hpg::Gridder(hpg::get_value(std::move(g)));
 	}
     };
+    
+   // This is a global method, used in AWVRHPG::DataToGrid_impl().
+  template <unsigned N>
+  hpg::Gridder* AWVisResamplerHPG::initGridder3(const hpg::Device HPGDevice_l,
+			     const uInt& NProcs,
+			     const hpg::CFArray* cfArray_ptr,
+			     const std::array<unsigned, 4>& grid_size,
+			     const std::array<double, 2>& grid_scale,
+			     const int& nAntenna,
+			     const int& nChannel
+			     )
+    {
+      //
+      // FYI:  gridSize{(uInt)nx,(uInt)ny,(uInt)nGridPol,(uInt)nGridChan};
+      //
+      LogIO log_l(LogOrigin("AWVRHPG", "initGridder3"));
+
+      log_l << "grid_size: " << grid_size[0] << " " << grid_size[1] << " "  << grid_size[2] << " "  << grid_size[3] << " " << LogIO::POST;
+      log_l << "Per VB:  nAnt: " << nAntenna << ", nChannel: " << nChannel << LogIO::POST;
+
+      if (!hpg::is_initialized()) hpg::initialize();
+
+
+	{
+	  
+
+	  //size_t max_visibilities_batch_size = 351*2*1000;
+	  size_t max_visibilities_batch_size = (nAntenna*(nAntenna-1)/2)*2*nChannel;
+	  hpg::rval_t<hpg::Gridder> g;
+
+	  
+	  std::vector<std::array<int, N> > mueller_indexes,  mueller_conj_indexes;
+	  if (N == 2) {
+			mueller_indexes.push_back({0, 1});
+			mueller_conj_indexes.push_back({1, 0});
+	   
+		}
+	  else{
+		throw(AipsError("HPG does not deal with "+String::toString(N) + " pol "));
+	}
+   
+	  g = hpg::Gridder::create<N>(HPGDevice_l, NProcs, max_visibilities_batch_size,
+				 cfArray_ptr, grid_size, grid_scale, mueller_indexes,
+				 mueller_indexes);
+	  //hpgGridder_p = new hpg::Gridder(hpg::get_value(std::move(g)));
+
+	  return new hpg::Gridder(hpg::get_value(std::move(g)));
+	}
+    };  
   //#include "HPGLoadCF.cc"
 #include "HPGLoadCFNew.inc"
   //
@@ -590,7 +848,7 @@ namespace casa{
 
 	      // makeMuellerIndexes<HPGNPOL>(mNdx, mVals, (uInt)nGridPol, mueller_indexes);
 	      // makeMuellerIndexes<HPGNPOL>(conjMNdx, conjMVals, (uInt)nGridPol, conjugate_mueller_indexes);
-
+          cerr << "####calling INIT " << " mNdx,mVals,conjMNdx,conjMVals,nVBAntenna, nVBChannels " <<  mNdx << " " << mVals << " " << conjMNdx << " " << conjMVals << " " << nVBAntenna << " " << nVBChannels << endl;
 	      hpgGridder_p = initGridder2<HPGNPOL>(HPGDevice_p,1,&cfArray, gridSize, gridScale,mNdx,mVals,conjMNdx,conjMVals,
 						   nVBAntenna, nVBChannels);
 						   //mueller_indexes,conjugate_mueller_indexes);
@@ -657,7 +915,7 @@ namespace casa{
 
      
       casacore::Vector<casacore::Vector<casacore::Double> > pointingOffsets= cfb->getPointingOffset();
-      //cerr << "SHAPE of PTING off "<<  pointingOffsets.shape() << endl;
+      //cerr << "SHAPE of PTING off "<<  pointingOffsets.shape() <<  " max " << pointingOffsets[0] << endl;
       // rbeg=19;
       // rend=20; //For a single-vis test
       //startChan=32; endChan=33;
@@ -665,7 +923,7 @@ namespace casa{
 
       //cerr << "Pointing offsets: " << pointingOffsets << " " << rbeg << " " << rend << " " << startChan << " " << endChan << " " << max(vbs.vb_p->visCube()) << endl;
       std::vector<hpg::VisData<HPGNPOL> >
-	hpgVB = makeHPGVisBuffer<HPGNPOL>(sumwt,
+	hpgVB =                                                       makeHPGVisBuffer<HPGNPOL>(sumwt,
 					  vbs,
 					  vb2CFBMap_p,
 					  nGridPol, nGridChan, nVisPol,
@@ -675,6 +933,156 @@ namespace casa{
 					  dphase_p,pointingOffsets,
 					  cfsi_p);
 
+      // Add to the list only if the hpgVB holds any data. This guard
+      // is required since in the loop below we also count the number
+      // visibilities gridded (the nVisGridded_p).
+      if (hpgVB.size() > 0) hpgVBList_p.push_back(hpgVB);
+      //
+      // If the vbsList_p is full, send the VBs loaded in vbsList_p for gridding, and empty vbsList_p.
+      // std::move() empties the storage of its argument.
+      //
+      timer_p.mark();
+      cerr << "hpgVBList_p.size  " <<  hpgVBList_p.size() << " maxVBList " <<  maxVBList_p << endl;
+      if (hpgVBList_p.size() >= maxVBList_p)
+	{
+	  for(unsigned i=0;i<hpgVBList_p.size();i++)
+	    {
+	      nVisGridded_p += hpgVBList_p[i].size()*HPGNPOL;
+	      hpg::opt_t<hpg::Error> err;
+	      if (do_degrid)
+		err = hpgGridder_p->degrid_grid_visibilities(
+							     hpg::Device::OpenMP,
+							     std::move(hpgVBList_p[i])
+							     );
+	      else
+		err = hpgGridder_p->grid_visibilities(
+						      hpg::Device::OpenMP,
+						      std::move(hpgVBList_p[i])
+						      );
+
+	      if (err)
+		{
+		  LogIO log_l(LogOrigin("AWVisResamplerHPG","DataToGrid_impl"));
+		  log_l << "Failed hpg::" << ((do_degrid)?"degrid_grid_visibilities()":"grid_visibilities()") << " Error type: " << static_cast<int>(err->type()) << LogIO::SEVERE;
+		}
+	    }
+	  hpgVBList_p.resize(0);
+	}
+      griddingTime += timer_p.real();
+      return;
+  }
+  //
+  //-----------------------------------------------------------------------------------
+  //
+  template <class T>
+  void AWVisResamplerHPG::DataToGridImpl2_p(Array<T>& grid,  VBStore& vbs,
+                    AWConvFuncHolder& awh, 
+					Matrix<Double>& sumwt,const Bool& dopsf)
+  {
+    Int nDataChan, nDataPol, nGridPol, nGridChan, nx, ny, nW;//, nCFFreq;
+    Int targetIMPol, rbeg, rend;//, PolnPlane, ConjPlane;
+    Int startChan, endChan;
+    
+
+      rbeg = 0;       rend = vbs.nRow_p;
+      //cerr << "NROWS " << vbs.nRow_p << endl;
+      if(rend==0)
+        return;
+      rbeg = vbs.beginRow_p;
+      rend = vbs.endRow_p;
+    
+      nx = grid.shape()[0]; ny = grid.shape()[1]; 
+      nGridPol = grid.shape()[2]; nGridChan = grid.shape()[3];
+
+      nDataPol  = vbs.flagCube_p.shape()[0];
+      nDataChan = vbs.flagCube_p.shape()[1];
+
+      // timer.mark();
+      startChan = 0;
+      endChan = nDataChan;
+
+      Int vbSpw = (vbs.vb_p)->spectralWindows()(0);
+      uInt nVisPol=0;// nRows=rend-rbeg+1, nVisChan=endChan - startChan+1;
+      for(Int ipol=0; ipol< nDataPol; ipol++)
+	{
+	  targetIMPol=polMap_p(ipol);
+	  if ((targetIMPol>=0) && (targetIMPol<nGridPol)) 
+	    nVisPol++;
+	}
+      //
+   
+      bool reloadCFs=(hpgGridder_p==NULL) || (cachedVBSpw_p != vbSpw);
+      //TESTOOO
+      //reloadCFs=True;
+      //////////////////
+      //cerr <<  "vbspw" <<  vbSpw <<  "  cached " <<  cachedVBSpw_p <<  endl;
+      
+      double spwRefFreq = vbs.vb_p->subtableColumns().spectralWindow().refFrequency()(vbSpw);
+      int nVBAntenna = vbs.vb_p->nAntennas();
+      int nVBChannels = vbs.vb_p->nChannels();
+      bool do_degrid=(HPGModelImageName_p != "") || modelImage_p;
+      Vector<Int> wNdxList, spwNdxList;
+      if (cachedVBSpw_p != vbSpw)
+	{
+	  cachedVBSpw_p = vbSpw;
+	  // LogIO log_l(LogOrigin("AWVisResamplerHPG","DataToGrid_impl"));
+	  // log_l << "SPW: " << vbSpw << " " << "Field: " << (vbs.vb_p)->fieldId()(0) << LogIO::POST; 
+	  // Set the flag to re-load and re-send the CFs.
+	  if (hpgGridder_p==NULL)
+	    {
+	      // The grid is always a 4D array: NX x NY x NPol x NChan
+	      const std::array<unsigned, 4> gridSize{(uInt)nx,(uInt)ny,(uInt)nGridPol,(uInt)nGridChan};
+	      //const std::array<float, 2> gridScale{(float)uvwScale_p(0), (float)uvwScale_p(1)};
+	      const std::array<double, 2> gridScale{uvwScale_p(0), uvwScale_p(1)};
+		      // std::vector<std::array<int, HPGNPOL> > mueller_indexes,conjugate_mueller_indexes;
+
+	      // makeMuellerIndexes<HPGNPOL>(mNdx, mVals, (uInt)nGridPol, mueller_indexes);
+	      // makeMuellerIndexes<HPGNPOL>(conjMNdx, conjMVals, (uInt)nGridPol, conjugate_mueller_indexes);
+          //cerr << "####calling INIT3 " << " nVBAntenna, nVBChannels " << " " << nVBAntenna << " " << nVBChannels << endl;
+	      hpgGridder_p = initGridder3<HPGNPOL>(HPGDevice_p,1,&cfArray, gridSize, gridScale,nVBAntenna, nVBChannels);
+						   //mueller_indexes,conjugate_mueller_indexes);
+	      do_degrid = sendModelImage(gridSize);
+	      if (do_degrid)
+		{
+		  LogIO log_l(LogOrigin("AWVisResamplerHPG","DataToGrid_impl"));
+		  log_l << "Running degrid_grid GPU kernel" << LogIO::POST;
+		}
+		
+	    }
+
+	  if (reloadCFs)
+	    {
+	      
+
+
+
+	      
+	      auto ret= loadCF(vbs, awh, true);
+	      //auto ret= loadCF(cfb,vbs, nGridPol, nDataPol,wNdxList,spwNdxList,true);
+	      cfsi_p=std::get<1>(ret);
+	      if (std::get<0>(ret))
+		{
+		  LogIO log_l(LogOrigin("AWVisResamplerHPG","DataToGrid_impl"));
+		  log_l << "HPGError in calling set_convolution_function(): "  
+			<< " " << static_cast<int>(std::get<0>(ret)->type()) << LogIO::EXCEPTION;
+		}
+	    }
+	}
+      
+      //cerr << "FIELD ID: " << (vbs.vb_p)->fieldId()[0] << " ";
+
+
+     
+      //casacore::Vector<casacore::Vector<casacore::Double> > pointingOffsets(1);
+      //cerr << "SHAPE of PTING off "<<  pointingOffsets.shape() <<  " max " << pointingOffsets[0] << endl;
+      // rbeg=19;
+      // rend=20; //For a single-vis test
+      //startChan=32; endChan=33;
+      //      cerr << chanMap_p << endl;
+
+      //cerr << "Pointing offsets: " << pointingOffsets << " " << rbeg << " " << rend << " " << startChan << " " << endChan << " " << max(vbs.vb_p->visCube()) << endl;
+      std::vector<hpg::VisData<HPGNPOL> > hpgVB = 
+		makeHPGVisBuffer2<HPGNPOL>(sumwt, vbs,awh,nGridPol, nGridChan, rbeg, rend,startChan, endChan,chanMap_p,polMap_p, dphase_p,cfsi_p);
       // Add to the list only if the hpgVB holds any data. This guard
       // is required since in the loop below we also count the number
       // visibilities gridded (the nVisGridded_p).
@@ -714,9 +1122,14 @@ namespace casa{
       return;
   }
   //
+  template
+  void AWVisResamplerHPG::DataToGridImpl2_p(Array<DComplex>& grid, VBStore& vbs, AWConvFuncHolder& awh, 
+  					Matrix<Double>& sumwt,const Bool& dopsf); 
+  template
+  void AWVisResamplerHPG::DataToGridImpl2_p(Array<Complex>& grid, VBStore& vbs, AWConvFuncHolder& awh, 
+					Matrix<Double>& sumwt,const Bool& dopsf); 
   //-----------------------------------------------------------------------------------
   //
-
   std::shared_ptr<std::complex<double>> AWVisResamplerHPG::getGridPtr(size_t& size) const
   {
     if (hpgGridder_p)

@@ -544,6 +544,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
     //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
+    ////TESTOO need to oveload this init in HPG
     if(!avgPBReady_p)
       avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
@@ -582,6 +583,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO log_l(LogOrigin("AWProjectWBFT2", "finalizeToSky[R&D]"));
     AWProjectFT::finalizeToSky();
 
+    
+    if(name()=="AWProjectWBFTHPG")
+      return;
+    ////
     if(!visResamplerWt_p)
       return;
 
@@ -591,8 +596,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // method in the AWProjectWBFTHPG class making the NoOp obvious
     // for that class, and easily extendable & maintainable.
     //
-    if(name()=="AWProjectWBFTHPG")
-      return;
+   
 
      if (!avgPBReady_p) 
       {

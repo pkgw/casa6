@@ -55,7 +55,8 @@
 namespace casa { //# NAMESPACE CASA - BEGIN
   namespace refim{
 
-
+  //forward Dec 
+    class AWConvFuncHolder;
   class AWVisResamplerHPG: public AWVisResampler
   {
 
@@ -122,11 +123,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     virtual void DataToGrid(casacore::Array<casacore::DComplex>& griddedData, VBStore& vbs, casacore::Matrix<casacore::Double>& sumwt,
     			    const casacore::Bool& dopsf,casacore::Bool useConjFreqCF=false)
-    {DataToGridImpl_p(griddedData, vbs, sumwt,dopsf,useConjFreqCF);}
+    {DataToGridImpl2_p(griddedData, vbs, *awConvHolder_p, sumwt, dopsf);};
+   // {DataToGridImpl_p(griddedData, vbs, sumwt,dopsf,useConjFreqCF);}
 
     virtual void DataToGrid(casacore::Array<casacore::Complex>& griddedData, VBStore& vbs, casacore::Matrix<casacore::Double>& sumwt,
 			    const casacore::Bool& dopsf,casacore::Bool useConjFreqCF=false)
-    {DataToGridImpl_p(griddedData, vbs, sumwt,dopsf,useConjFreqCF);}
+    {DataToGridImpl2_p(griddedData, vbs, *awConvHolder_p,  sumwt, dopsf);};
+  //  {DataToGridImpl_p(griddedData, vbs, sumwt,dopsf,useConjFreqCF);}
 
     //    virtual void setModelImage(const std::unique_ptr<hpg::GridValueArray> HPGModelImage) {HPGModelImage_p = HPGModelImage;}
     virtual void setModelImage(const std::string& HPGModelImageName) {HPGModelImageName_p = HPGModelImageName;}
@@ -170,7 +173,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			     // std::vector<std::array<int, N> > mueller_indexes,
 			     // std::vector<std::array<int, N> > conjugate_mueller_indexes
 			     );
-
+  template<unsigned N>
+  hpg::Gridder* initGridder3(const hpg::Device HPGDevice_l,
+			     const uInt& NProcs,
+			     const hpg::CFArray* cfArray_ptr,
+			     const std::array<unsigned, 4>& grid_size,
+			     const std::array<double, 2>& grid_scale,
+			     const int& nAntenna,
+			     const int& nChannel
+			     );
     //    hpg::CFSimpleIndexer loadCFOld(VBStore& vbs, Int& nGridPol, Int& nDataPol, bool send_to_device=false);
     //    hpg::CFSimpleIndexer loadCF(VBStore& vbs, Int& nGridPol, Int& nDataPol, bool send_to_device=false);
     std::tuple<hpg::opt_t<hpg::Error>, hpg::CFSimpleIndexer> loadCF(VBStore& vbs, Int& nGridPol, Int& nDataPol,
@@ -180,6 +191,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 								    VBStore& vbs, Int& nGridPol, Int& nDataPol,
 								    Vector<Int>& wNdxList, Vector<Int>& spwNdxList,
 								    bool send_to_device=false);
+    
+    std::tuple<hpg::opt_t<hpg::Error>, hpg::CFSimpleIndexer> 
+      loadCF(VBStore& vbs, AWConvFuncHolder& awh, 
+			  bool send_to_device=false);
 
     virtual std::shared_ptr<std::complex<double>> getGridPtr(size_t& size) const override;
     virtual std::shared_ptr<double> getSumWeightsPtr(size_t& size) const override;
@@ -195,7 +210,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     void DataToGridImpl_p(casacore::Array<T>& griddedData, VBStore& vb,
 			  casacore::Matrix<casacore::Double>& sumwt,const casacore::Bool& dopsf,
 			  casacore::Bool /*useConjFreqCF*/);
-
+    template <class T>
+    void DataToGridImpl2_p(casacore::Array<T>& griddedData, VBStore& vb, AWConvFuncHolder& awh,
+			  casacore::Matrix<casacore::Double>& sumwt,const casacore::Bool& dopsf);
     MyCFArray cfArray;
 
     std::vector<std::complex<hpg::visibility_fp>> vis;

@@ -33,7 +33,7 @@
 #define SYNTHESIS_TRANSFORM2_AWCONVFUNCHOLDER_H
 #include <casacore/coordinates/Coordinates/CoordinateSystem.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
-
+#include <msvis/MSVis/VisBufferUtil.h>
 namespace casa{ //# namespace casa
 namespace refim{ //#	 namespace for refactored imaging code with vi2/vb2
 class AWConvFuncHolder{
@@ -50,11 +50,18 @@ class AWConvFuncHolder{
   casacore::Array<casacore::Complex>& getWeightConvFunc();
   casacore::Vector<casacore::Int> getConvSizes();
   casacore::Vector<casacore::Int> getConvSupports();
+  casacore::Vector<Stokes::StokesTypes> getPolVals(){return polVals_p;};
+  casacore::Vector<Double> getFreqVals(){return freqVals_p;};
+  casacore::Vector<Double> getWVals(){return wVals_p;};
+  casacore::Vector<Double> getPAVals(){return paVals_p;};
+  int getOverSampling(){return oversamp_p;};
   //Rowmap will return the indices to match along the 5th axis of convFunc, polmap is for the 3rd axis, and chanmap is for the 4th axis.
   //Rowmap will map combination of pa, antennapair and w to give the 5th index that matches 
   //Rowmap will be the same nrow as vb.nrows , polmap will gave the same length of vb.ncorrelations and chanmap will be the length of vb.nchannelscasacore::Vector<casacore::Int>& rowMap
   void getConvIndices( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
-
+  //Function gives pointing direction w.r.t image center  in phase shift: used in putting a phase gradient in the UV domain
+  // Will be using for now only 1st row.
+  Vector<Double> getPointingPhaseShift(const vi::VisBuffer2& vb, const bool usepointing=False);
   
 
  private:
@@ -86,7 +93,7 @@ class AWConvFuncHolder{
   int calcNpix_p;
   int oversamp_p;
   std::shared_ptr<EVLAAperture> aterm_p;
-                   
+  std::shared_ptr<VisBufferUtil> vbutil_p;                 
   
 };
   

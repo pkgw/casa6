@@ -30,6 +30,7 @@
 #define SYNTHESIS_TRANSFORM2_AWPROJECTWBFTHPG_H
 #include <synthesis/TransformMachines2/FTMachine.h>
 #include <synthesis/TransformMachines2/AWProjectWBFT.h>
+#include <synthesis/TransformMachines2/AWConvFuncHolder.h>
 
 namespace casa
 { //# NAMESPACE CASA - BEGIN
@@ -94,6 +95,26 @@ namespace casa
       ///re implement the initializetoVis as there is no FFT needed for model on gpu
       virtual void initializeToVisNew(const vi::VisBuffer2& vb,
 					     casacore::CountedPtr<SIImageStore> imstore);
+	  
+	  virtual void initializeToSky(casacore::ImageInterface<casacore::Complex>& image,
+				 casacore::Matrix<casacore::Float>& weight,
+				 const VisBuffer2& vb);
+
+      
+    protected:
+      virtual void setupVBStore(VBStore& vbs,
+			      const vi::VisBuffer2& vb,
+			      const casacore::Matrix<casacore::Float>& imagingweight,
+			      const casacore::Cube<casacore::Complex>& visData,
+			      const casacore::Matrix<casacore::Double>& uvw,
+			      const casacore::Cube<casacore::Int>& flagCube,
+			      const casacore::Vector<casacore::Double>& dphase,
+			      const casacore::Bool& doPSF,
+			      const casacore::Vector<casacore::Int> &gridShape);
+	  virtual void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
+			  const vi::VisBuffer2& vb);
+      virtual void init(const vi::VisBuffer2& vb);
+      std::shared_ptr<AWConvFuncHolder> awConvs_p;
     private:
       
       Bool applyFFT_p;

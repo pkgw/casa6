@@ -33,7 +33,7 @@
 #include <synthesis/ImagerObjects/SimpleSIImageStore.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <synthesis/TransformMachines2/AWVisResampler.h>
-
+#include <synthesis/TransformMachines2/SimplePBConvFunc.h>
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/Slice.h>
@@ -265,10 +265,16 @@ void AWProjectWBFTHPG::resampleDataToGrid(Array<Complex> &griddedData_l,
     // Get a reference to the pixels of griddedWeights (a
     // TempImage!)
     //
-    Array<Complex> gwts;
-    Bool removeDegenerateAxis = false;
-    griddedWeights.get(gwts, removeDegenerateAxis);
-    resampleCFToGrid(gwts, vbs, vb);
+    //Array<Complex> gwts;
+    //Bool removeDegenerateAxis = false;
+    //griddedWeights.get(gwts, removeDegenerateAxis);
+    //resampleCFToGrid(gwts, vbs, vb);
+    vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;  
+    Int nDataChan = vbs.flagCube_p.shape()[1];
+    vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+    Bool locdopsf=true;
+     AWProjectFT::resampleDataToGrid(griddedData_l, vbs, vb, locdopsf);
+    
   }
 };
 //
@@ -286,10 +292,15 @@ void AWProjectWBFTHPG::resampleDataToGrid(Array<DComplex> &griddedData_l,
     // TempImage!)
     //
     
-    Array<DComplex> gwts;
-    Bool removeDegenerateAxis = false;
-    griddedWeights_D.get(gwts, removeDegenerateAxis);
-    resampleCFToGrid(gwts, vbs, vb);
+    //Array<DComplex> gwts;
+    //Bool removeDegenerateAxis = false;
+    //griddedWeights_D.get(gwts, removeDegenerateAxis);
+    //resampleCFToGrid(griddedData_l, vbs, vb);
+    vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;  
+    Int nDataChan = vbs.flagCube_p.shape()[1];
+    vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+    Bool locdopsf=true;
+    AWProjectFT::resampleDataToGrid(griddedData_l, vbs, vb, locdopsf);
   }
 };
 //
@@ -319,6 +330,253 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
   setFTMType(refim::FTMachine::RESIDUAL);
   visResampler_p->setModelImage((imstore->forwardGrid()));
 }
+//-------------------------------------------------------------------------
+  //  
+  void AWProjectWBFTHPG::setupVBStore(VBStore& vbs,
+				 const VisBuffer2& vb, 
+				 const Matrix<Float>& imagingweight,
+				 const Cube<Complex>& visData,
+				 const Matrix<Double>& uvw,
+				 const Cube<Int>& flagCube,
+				 const Vector<Double>& dphase,
+				 const Bool& dopsf,
+				 const Vector<Int>& /*gridShape*/)
+  {
+    vbs.vb_p = &vb;
+    vbs.wbAWP_p=wbAWP_p;
+    vbs.ftmType_p=ftmType_p;
+    vbs.nWPlanes_p = nWPlanes_p;
+    //cerr << "HPG setupvbstore " << endl;
 
+    visResampler_p->setParams(uvScale,uvOffset,dphase);
+    visResampler_p->setMaps(chanMap, polMap);
+    
+    //
+    // Set up VBStore object to point to the relavent info. of the VB.
+    //
+    vbs.imRefFreq_p = imRefFreq_p;
+    vbs.nRow_p = vb.nRows();
+    vbs.beginRow_p = 0;
+    vbs.endRow_p = vbs.nRow_p;
+    vbs.spwID_p = vb.spectralWindows()(0);
+    vbs.nDataPol_p  = flagCube.shape()[0];
+    vbs.nDataChan_p = flagCube.shape()[1];
+
+    vbs.antenna1_p.reference(vb.antenna1());
+    vbs.antenna2_p.reference(vb.antenna2());
+    //vbs.paQuant_p = Quantity(getPA(vb),"rad");
+
+    vbs.corrType_p.reference(vb.correlationTypes());
+
+    vbs.uvw_p=uvw;
+    vbs.imagingWeight_p.reference(imagingweight);
+    vbs.visCube_p.reference(visData);
+
+    vbs.freq_p.reference(vb.getFrequencies(0));
+
+    vbs.rowFlag_p.reference(vb.flagRow());
+    if(!usezero_p) 
+      for (Int rownr=0; rownr<vbs.nRow_p; rownr++) 
+	if(vb.antenna1()(rownr)==vb.antenna2()(rownr)) vbs.rowFlag_p(rownr)=true;
+
+    vbs.flagCube_p.resize(flagCube.shape());  vbs.flagCube_p = false; vbs.flagCube_p(flagCube!=0) = true;
+      
+    vbs.conjBeams_p=conjBeams_p;
+
+    
+    // The following code is required only for GPU or multi-threaded
+    //gridder.  Currently does not work without the rest of the
+    //GPU/multi-threaded infrastructure (though, I (SB) thought this
+    //was designed to be benign for normal gridding).
+    //
+    //visResampler_p->initializeDataBuffers(vbs);
+  }
+   void AWProjectWBFTHPG::init(const vi::VisBuffer2& vb) 
+  {
+    LogIO log_l(LogOrigin("AWProjectFT2", "init[R&D]"));
+
+    nx    = image->shape()(0);
+    ny    = image->shape()(1);
+    npol  = image->shape()(2);
+    nchan = image->shape()(3);
+    
+    
+    sumWeight.resize(npol, nchan);
+    sumCFWeight.resize(npol, nchan);
+    
+    wConvSize=max(1, nWPlanes_p);
+    
+    CoordinateSystem cs=image->coordinates();
+    uvScale.resize(3);
+    uvScale=0.0;
+    uvScale(0)=Float(nx)*cs.increment()(0); 
+    uvScale(1)=Float(ny)*cs.increment()(1); 
+    uvScale(2)=Float(wConvSize)*abs(cs.increment()(0));
+    
+    Int index= cs.findCoordinate(Coordinate::SPECTRAL);
+    SpectralCoordinate spCS = cs.spectralCoordinate(index);
+    imRefFreq_p = spCS.referenceValue()(0);
+    
+    uvOffset.resize(3);
+    uvOffset(0)=nx/2;
+    uvOffset(1)=ny/2;
+    uvOffset(2)=0;
+    
+    if(gridder) delete gridder;
+    gridder=0;
+    gridder = new ConvolveGridder<Double, Complex>(IPosition(2, nx, ny),
+						   uvScale, uvOffset,
+						   "SF");
+    makingPSF = false;
+    
+
+
+///We'll always use oversampling of 4 for GPU gridder
+    convSampling=4;
+
+  // we are not doing parallactiv angle here
+    Double painc=2*C::pi;
+  
+  if(awConvs_p.use_count()==0){
+     String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
+    awConvs_p=std::make_shared<AWConvFuncHolder>((*image).coordinates(), nx, ny, 
+                   False, painc, observatory, convSampling);
+    vi::VisibilityIterator2 *vi= const_cast<VisibilityIterator2 *>(vb.getVi());
+    
+    std::vector<Double> freqs;
+    std::vector<Double> pAs={0.0};
+    Double maxW=0.0;
+    for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
+          for (vi->origin(); vi->more(); vi->next()) {
+              std::vector<Double> chunkfreq;
+              SimplePBConvFunc::findUsefulChannels(chunkfreq, vb);
+              //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
+              std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
+              
+              if(nWPlanes_p > 1)
+                	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+          }
+    }
+    
+    //return vi to origin
+    vi->originChunks(); vi->origin();
+    
+    std::sort(freqs.begin(),  freqs.end());
+    auto last = std::unique(freqs.begin(),  freqs.end());
+    freqs.erase(last,  freqs.end());
+    
+   
+    
+    if (nWPlanes_p == 0)
+      nWPlanes_p = 1;
+    Vector<Double> wVals(nWPlanes_p,0);
+    if(nWPlanes_p >1){
+      Double st=maxW/(Double(nWPlanes_p-1)*Double(nWPlanes_p-1));
+      for (int k=0; k <nWPlanes_p; ++k)
+        wVals[k]=Double(k*k)*st;
+    }
+    (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, 0.0);
+    visResampler_p->setConvFunc(awConvs_p);
+  }
+}
+ void AWProjectWBFTHPG::initializeToSky(ImageInterface<Complex>& iimage,
+				   Matrix<Float>& weight,
+				   const VisBuffer2& vb)
+  {
+    LogIO log_l(LogOrigin("AWProjectWBFT2","initializeToSky[R&D]"));
+    AWProjectFT::initializeToSky(iimage,weight,vb);
+/*
+    if (resetPBs_p)
+      {
+	if (useDoubleGrid_p)
+	  {
+	    griddedWeights_D.resize(iimage.shape()); 
+	    griddedWeights_D.setCoordinateInfo(iimage.coordinates());
+	    griddedWeights_D.set(0.0);
+	    pbPeaks.resize(griddedWeights_D.shape()(2));
+	    pbPeaks.set(0.0);
+	  }
+	else
+	  {
+	    griddedWeights.resize(iimage.shape()); 
+	    griddedWeights.setCoordinateInfo(iimage.coordinates());
+	    griddedWeights.set(0.0);
+	    pbPeaks.resize(griddedWeights.shape()(2));
+	    pbPeaks.set(0.0);
+	  }
+
+	resetPBs_p=false;
+      }
+
+    std::tuple<int, double>cubeinfo(1,-1.0);    
+    double freqofBegChan;
+    spectralCoord_p.toWorld(freqofBegChan, 0.0);
+        
+    cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
+
+    ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
+    //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
+    ////TESTOO need to oveload this init in HPG
+    if(!avgPBReady_p)
+      avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivitysetPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+    
+    if(avgPBReady_p){
+        LatticeExprNode le( max( *avgPB_p ) );
+        Float avgPB_max=le.getFloat();
+        
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
+    }
+    // Need to grid the weighted Convolution Functions to make the sensitivity pattern.
+    if (!avgPBReady_p)
+      {
+    	// Make a copy of the re-sampler and set it up.
+    	if (visResamplerWt_p.null()) visResamplerWt_p = visResampler_p->clone();
+    	visResamplerWt_p = visResampler_p;
+    	visResamplerWt_p->setMaps(chanMap, polMap);
+    	if (useDoubleGrid_p)
+    	  {
+    	    Array<DComplex> gwts; Bool removeDegenerateAxis=false;
+    	    griddedWeights_D.get(gwts, removeDegenerateAxis);
+    	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
+    	  }
+    	else
+    	  {
+    	    Array<Complex> gwts; Bool removeDegenerateAxis=false;
+    	    griddedWeights.get(gwts, removeDegenerateAxis);
+    	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
+    	  }
+      }
+      */
+  init(vb);
+
+
+  }
+  void AWProjectWBFTHPG::findConvFunction(const ImageInterface<Complex>& image,
+				     const VisBuffer2& vb)
+  {
+ 
+ 
+  //  CoordinateSystem ftcoords;
+  //We have to make sure awh is loaded 
+    if(awConvs_p.use_count()==0)
+      throw(AipsError("Programmer's error:Convolution function has not been set"));
+/* 
+    if(avgPBReady_p){
+        LatticeExprNode le( max( *avgPB_p ) );
+        Float avgPB_max=le.getFloat();
+        
+        if(avgPB_max <= 0.0) avgPBReady_p = false;
+    }
+    
+    if(!avgPBReady_p) makeSensitivityImage(vb,image,*avgPB_p);
+
+	
+    
+    verifyShapes(avgPB_p->shape(), image.shape());
+*/
+    
+	
+      
+  }
 }; // namespace refim
 }; // namespace casa

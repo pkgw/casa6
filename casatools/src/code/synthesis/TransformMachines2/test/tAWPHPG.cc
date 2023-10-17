@@ -160,6 +160,7 @@ void createAWPFTMachine(const String ftmName,
 					   tile, computePAStep, pbLimit_l, true,conjBeams,
 					   useDoublePrec);
       theFT->setPBReady(true);
+      theIFT=theFT;
     }
     else
         {
@@ -170,7 +171,7 @@ void createAWPFTMachine(const String ftmName,
 				      tile, computePAStep, pbLimit_l, true,conjBeams,
 				      useDoublePrec);
     }
-  cfCacheObj = new refim::CFCache();
+  /*cfCacheObj = new refim::CFCache();
   cfCacheObj->setCacheDir(cfCache.data());                             /////TESTOO LAZY FILL ?
     cfCacheObj->setLazyFill(False);
 
@@ -178,14 +179,14 @@ void createAWPFTMachine(const String ftmName,
   cfCacheObj->initCache2();
   
   theFT->setCFCache(cfCacheObj);
-  
-  
+  */
+  /*
   Quantity rotateOTF(rotatePAStep,"deg");
   static_cast<refim::AWProjectWBFTNew &>(*theFT).setObservatoryLocation(observatoryLocation);
   static_cast<refim::AWProjectWBFTNew &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
   
   theIFT = new refim::AWProjectWBFTNew(static_cast<refim::AWProjectWBFTNew &>(*theFT));
-  
+  */
   //// Send in Freq info.
   // os << "Sending frequency selection information " <<  mssFreqSel_p  <<  " to AWP FTM." << LogIO::POST;
   // theFT->setSpwFreqSelection( mssFreqSel_p );
@@ -259,6 +260,7 @@ PagedImage<Complex> makeEmptySkyImage(VisibilityIterator2& vi2,
 
   int imNChan=1;
   if (mode=="mfs") imNChan=1;
+  if(mode=="cube") imNChan=3;
   // else if (mode=="pseudo") {}
   // else if (mode=="spectral") {imnchan=datanchan[0];imstart=datastart[0];imstep=datastep[0];}
   
@@ -276,6 +278,12 @@ PagedImage<Complex> makeEmptySkyImage(VisibilityIterator2& vi2,
   imageParams.mode=mode;
   imageParams.frame=String("LSRK");
   imageParams.veltype=String("radio");
+  if(mode=="cube"){
+   imageParams.start="1.2GHz"; 
+   imageParams.step="300MHz"; 
+   imageParams.freqStart=Quantity(1.2, "GHz");
+   imageParams.freqStep=Quantity(300, "MHz");
+  }
 
   //
   // There are two items related to ref. freq. "reffreq" (a String) and "refFreq" (a Quantity).
@@ -357,7 +365,7 @@ Int main(int argc, char **argv)
   string weighting="natural";
 
   float refFreq=3e09, freqBW=3e9;
-  float cellSize=4.84813681109536e-05;
+  float cellSize=10;
   int NX=512;
   Int NY=512;
   Int cfBufferSize=512;
@@ -378,7 +386,7 @@ Int main(int argc, char **argv)
   // -------------------------------------- End of UI -------------------------------------------------------------------
   //
   
-      cerr << "###Info: Pointing sigma dev = " << posigdev[0] << "," << posigdev[1] << endl;
+    //  cerr << "###Info: Pointing sigma dev = " << posigdev[0] << "," << //posigdev[1] << endl;
   //  restartUI=false;
   NY=NX;
   
@@ -410,6 +418,7 @@ Int main(int argc, char **argv)
       // MS and the MSSelection objects are modified.  The selected
       // list of SPW and FIELD IDs are returned as a std::tuple.
       //
+      hpg::initialize();
       MSSelection msSelection;
       MS theMS, selectedMS;
       {
@@ -451,6 +460,9 @@ Int main(int argc, char **argv)
       vi::VisBuffer2 *vb=vi2.getVisBuffer();
 
       //
+      
+      
+   
       //-------------------------------------------------------------------
       // Make the empty grid with the sky image coordinates
       //
@@ -465,12 +477,17 @@ Int main(int argc, char **argv)
       std::ostringstream oss;
       pc.print(oss);
       //      cerr << "PC = " << oss << endl;
-
+    ComponentList cl;
+    SkyComponent otherPoint(ComponentType::POINT);
+    otherPoint.flux() = Flux<Double>(6.66e-2, 0.0, 0.0, 0.00000);
+    otherPoint.shape().setRefDirection(pc);
+    cl.add(otherPoint);
       PagedImage<Complex> cgrid=makeEmptySkyImage(vi2, selectedMS, msSelection,
 					       cmplxGridName, startModelImageName,
 					       imSize, cellSize, phaseCenter,
 					       stokes, refFreqStr, mode);
       PagedImage<Float> skyImage(cgrid.shape(),cgrid.coordinates(), imageName);
+      PagedImage<Float> weightImage(cgrid.shape(),cgrid.coordinates(), imageName+".weight");
       if (cmplxGridName=="")
 	cgrid.table().markForDelete();
 
@@ -528,6 +545,37 @@ Int main(int argc, char **argv)
 	vi2.originChunks();
 	vi2.origin();
 	ftm->initializeToSky(cgrid, weight, *vb);
+        //drygridding
+      /*  {
+          cerr << "@@@@@DRY GRIDDING" << endl;
+          ftm->setDryRun(true);
+          for (vi2.originChunks();vi2.moreChunks(); vi2.nextChunk())
+            {
+              for (vi2.origin(); vi2.more(); vi2.next()){
+                ftm->put(*vb, -1, True, casa::refim::FTMachine::PSF);
+              }
+
+            }
+          Directory dir(cfCache);
+          Vector<String> cfList=dir.find(Regex(Regex::fromPattern("CFS*")));
+          cerr << "CFLIST " << cfList << endl;
+          Vector<String> wtCFList;
+	  wtCFList.resize(cfList.nelements());
+	  for (Int i=0; i<(Int)wtCFList.nelements(); i++) wtCFList[i]="WT"+cfList[i];
+          
+          auto cfc = ftm->getCFCache();
+          cfc->initCacheFromList2(cfCache, cfList, wtCFList,
+      					 360.0, 360.0,False);
+      					 
+          Vector<Double> uvScale, uvOffset;
+	  Matrix<Double> vbFreqSelection;
+	  CountedPtr<refim::CFStore2> cfs2 = CountedPtr<refim::CFStore2>(&cfc->memCache2_p[0],false);
+	  CountedPtr<refim::CFStore2> cfwts2 =  CountedPtr<refim::CFStore2>(&cfc->memCacheWt2_p[0],false);
+          casa::refim::AWConvFunc::makeConvFunction2(cfCache, uvScale, uvOffset, vbFreqSelection,
+					       *cfs2, *cfwts2, True, True, False);
+          ftm->setDryRun(false);
+        }
+        */
 	//	cerr << "image.shape: " << cgrid.shape() << endl;
 	refim::SimpleComponentFTMachine cft;
 	
@@ -555,8 +603,8 @@ Int main(int argc, char **argv)
 	      {
 		//tvi.mark();
 
-		// casacore::Cube<casacore::Complex> data(vb->visCube());
-		// vol+=data.shape().product()*sizeof(casacore::Complex);
+		 //casacore::Cube<casacore::Complex> data(vb->visCube());
+		 //vol+=data.shape().product()*sizeof(casacore::Complex);
 
 		//cft.get(*vb, cl);
 		//vb->setVisCube(vb->visCubeModel());
@@ -569,8 +617,8 @@ Int main(int argc, char **argv)
 		  vb->setVisCube(vb->visCubeCorrected());
 		else
 		  vb->setVisCube(vb->visCube());
-
-		ftm->put(*vb);	
+        ftm->setFTMType(dataCol);
+		ftm->put(*vb, -1, False, dataCol);	
 
 		vol+=vb->nRows();
 		pm.update(Double(vol));
@@ -591,8 +639,45 @@ Int main(int argc, char **argv)
 	// convert it from Feed basis to Stokes basis.
 	StokesImageUtil::To(skyImage, cgrid);
 	
-	//	cerr << "val at center " << cgrid.getAt(IPosition(4, NX/2, NY/2, 0, 0)) << endl;
+		cerr << "val at center " << cgrid.getAt(IPosition(4, NX/2, NY/2, 0, 0)) << " sumweight " << weight << endl;
+      
+      //Lets do the weight image
+      cgrid.set(Complex(0.0));
+	weight.resize();
+	vi2.originChunks();
+	vi2.origin();
+    vol=0;
+	ftm->initializeToSky(cgrid, weight, *vb);
+    for (vi2.originChunks();vi2.moreChunks(); vi2.nextChunk())
+	  {
+      for (vi2.origin(); vi2.more(); vi2.next())
+	      {
+		
+		
+        ftm->setFTMType(refim::FTMachine::WEIGHT);
+		ftm->put(*vb, -1, False);	
+
+		vol+=vb->nRows();
+		pm.update(Double(vol));
+		//n++;
+		// cerr << "Iter " << n << " " << tvi.real() << endl;
+		//		if (n > 0) break;
+	      }
+	    //	    if (n > 0) break;
+	  
       }
+      
+      ftm->finalizeToSky();
+	
+	// Get the weights.  Do nothing with them for now.
+	//Bool normalize=false;
+	ftm->getWeightImage(weightImage, weight);
+      StokesImageUtil::To(skyImage, cgrid);
+	
+		cerr << "val at center " << weightImage.getAt(IPosition(4, NX/2, NY/2, 0, 0)) << " sumweight " << weight << endl;
+      
+      }
+      ///////
       //detach the ms for cleaning up
       selectedMS=MeasurementSet();
     } 
@@ -610,6 +695,7 @@ Int main(int argc, char **argv)
       return(1);
     }
   cerr <<"OK" << endl;
+  hpg::finalize();
   exit(0);
 }
 

@@ -2693,7 +2693,7 @@ void SynthesisImagerVi2::unlockMSs()
 				       tile, computePAStep, pbLimit_l, true,conjBeams,
 				       useDoublePrec);
     }
-
+  if(ftmName != "awphpg"){
     cfCacheObj = new refim::CFCache();
     cfCacheObj->setCacheDir(cfCache.data());
     // Get the LAZYFILL setting from the user configuration.  If not
@@ -2710,11 +2710,13 @@ void SynthesisImagerVi2::unlockMSs()
     cfCacheObj->initCache2(CFC_VERBOSE);
 
     theFT->setCFCache(cfCacheObj);
-    
-
     Quantity rotateOTF(rotatePAStep,"deg");
-    static_cast<refim::AWProjectWBFT &>(*theFT).setObservatoryLocation(mLocation_p);
     static_cast<refim::AWProjectWBFT &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
+    static_cast<refim::AWProjectWBFT &>(*theFT).setObservatoryLocation(mLocation_p);
+  }
+
+   
+   
 
     // theIFT = new AWProjectWBFT(wprojPlane, cache/2, 
     // 			       cfCacheObj, awConvFunc, 
@@ -2728,7 +2730,7 @@ void SynthesisImagerVi2::unlockMSs()
     if(ftmName=="awphpg"){
       /// the gridder and degridder (for hpg) are the same except it needs to load the modelimage
       static_cast<refim::AWProjectWBFTHPG &>(*theFT).setObservatoryLocation(mLocation_p);
-      static_cast<refim::AWProjectWBFTHPG &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
+      //static_cast<refim::AWProjectWBFTHPG &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
       theIFT = theFT;
     }
     else
@@ -3319,7 +3321,7 @@ void SynthesisImagerVi2::unlockMSs()
     if(!itsMappers.getFTM2(0))
       return False;
     String ftmname=itsMappers.getFTM2(0)->name();
-
+    //cerr << "########Trying to load PB" << endl;
     if(ftmname.contains("Mosaic") || ftmname.contains("AWProjectWB")){
       //sumwt has been calcuated
       Bool donesumwt=(max(itsMappers.imageStore(0)->sumwt()->get()) > 0.0);

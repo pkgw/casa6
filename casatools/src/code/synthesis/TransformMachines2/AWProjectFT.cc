@@ -442,7 +442,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   //----------------------------------------------------------------------
   //
-  void AWProjectFT::init() 
+  void AWProjectFT::init(const vi::VisBuffer2& /*vb*/) 
   {
     LogIO log_l(LogOrigin("AWProjectFT2", "init[R&D]"));
 
@@ -1200,7 +1200,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     if(doPBCorrection) 
       {
 	// Make the sensitivity Image if applicable
-	init();
+	init(vb);
 	initMaps(vb);
 	findConvFunction(*(compImageVec[0]), vb); // Pure virtual -- call local version
 
@@ -1252,7 +1252,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     ok();
     
-    init();
+    init(vb);
     makingPSF = false;
     initMaps(vb);
     
@@ -1416,7 +1416,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // image always points to the image
     image=&iimage;
     
-    init();
+    init(vb);
     initMaps(vb);
     log_l << "Computed maps using FTMachine::initMaps. " << "polMap = " << polMap << LogIO::POST;
     visResampler_p->setMaps(chanMap, polMap);
@@ -1484,6 +1484,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     logIO() <<  LogIO::WARN << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
+   if(useDoubleGrid_p) 
+      visResampler_p->finalizeToSky(griddedData2, sumWeight);
+    else
+      visResampler_p->finalizeToSky(griddedData, sumWeight);
+    
+    
+    if(name()=="AWProjectWBFTHPG")
+      return;
     
     //
     // Now we flush the cache and report statistics For memory based,
@@ -2031,7 +2039,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	retval = (retval || image->fromRecord(error, imageAsRec));    
 	
 	// Might be changing the shape of sumWeight
-	init(); 
+	//init(vb); 
 	
 	if(isTiled) 
     	  lattice=CountedPtr<Lattice<Complex> > (image, false);
