@@ -45,6 +45,7 @@
 #include <casacore/casa/Utilities/Assert.h>
 #include <casacore/casa/OS/Directory.h>
 #include <casacore/tables/Tables/TableLock.h>
+#include <imageanalysis/ImageAnalysis/CasaImageBeamSet.h>
 
 #include<synthesis/ImagerObjects/SIMinorCycleController.h>
 
@@ -227,10 +228,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //peakresidual = itsPeakResidual;
 
     peakresidual = itsMTCleaner.getpeakresidual();
+    // cout << "Peak res from matR : " << peakresidual << endl; // Uncomment for debugging
 
-    modelflux = sum( itsMatModels[0] ); // Performance hog ?
 
-    /* // Enable in CAS-13872
     // Retrieve residual to be saved to the .residual file in finalizeDeconvolver
     for(uInt tix=0; tix<itsNTerms; tix++)
     {
@@ -238,7 +238,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       itsMTCleaner.getresidual(tix, tmp); // possible room for optimization here -> get residual without extra tmp copy? maybe change getResidual to accept an array?
       itsMatResiduals[tix] = tmp;
     }
-    */
+
+    peakresidual = max(abs(itsMatResiduals[0]*itsMatMask));
+    // cout << "Peak res from new math : " << peakresidual << endl; // Uncomment for debugging
+    modelflux = sum( itsMatModels[0] ); // Performance hog ?
+
   }	    
 
   void SDAlgorithmMSMFS::finalizeDeconvolver()
@@ -254,19 +258,25 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
   }
 
-  void SDAlgorithmMSMFS::restore(std::shared_ptr<SIImageStore> imagestore )
+  void SDAlgorithmMSMFS::restore(std::shared_ptr<SIImageStore> imagestore)
   {
 
     LogIO os( LogOrigin("SDAlgorithmMSMFS","restore",WHERE) );
 
     if( ! imagestore->hasResidualImage() ) return;
-
+    
     // Compute principal solution ( if it hasn't already been done to this ImageStore......  )
     //////  Put some image misc info in here, to say if it has been done or not.
 
     // Loop over polarization planes here, as MTC knows only about Matrices.
     Int nSubChans, nSubPols;
+    
     queryDesiredShape(nSubChans, nSubPols, imagestore->getShape());
+    
+    // CAS-13401 : Store restoring beam per plane, so it can be set in the final restored image.
+    ImageBeamSet restoringBeams;
+    restoringBeams.resize(nSubChans, nSubPols);
+
     for( Int chanid=0; chanid<nSubChans;chanid++) // redundant since only 1 chan
     {
 
@@ -332,15 +342,18 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     // Calculate restored image and alpha using modified residuals
     SDAlgorithmBase::restore( itsImages );
+    
+    // This is required because imageInfo() only contains the beam for this chan/pol.
+    GaussianBeam thisBeam = itsImages->image(0)->imageInfo().getBeamSet().getBeam(chanid, polid);
+    restoringBeams.setBeam(chanid, polid, thisBeam);
 
     // Put back original unmodified residuals.o
-    for(uInt tix=0; tix<itsNTerms; tix++)
-      {
-	(itsImages->residual(tix))->copyData( LatticeExpr<Float>( tempResOrig(tix) ) );
+    for(uInt tix=0; tix<itsNTerms; tix++) {
+      (itsImages->residual(tix))->copyData( LatticeExpr<Float>( tempResOrig(tix) ) );
       }
-
       } // for polid loop
     }// for chanid loop
+
 
     // This log message is important. This call of imagestore->image(...) is the first call if there is
     // a multi-channel or multi-pol image. This is what will set the units correctly. Ref. CAS-13153
@@ -348,6 +361,25 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     for(uInt tix=0; tix<itsNTerms; tix++)
       {
 	os << LogIO::POST << imagestore->image(tix)->name() << "  (model=" << imagestore->model(tix)->name() << ") " ;
+
+      // CAS-13401 : Set the per-chan per-pol beam info for the restored image.
+      ImageInfo iminf = imagestore->image(tix)->imageInfo();
+      
+      iminf.removeRestoringBeam();
+
+      // If restoringbeam="common", then calculate and only set one beam
+      if (itsRestoringBeam.isNull() && itsUseBeam == "common"){
+        GaussianBeam cbeam = CasaImageBeamSet(restoringBeams).getCommonBeam();
+        iminf.setRestoringBeam(cbeam);
+      }
+      else if (! itsRestoringBeam.isNull()) {
+        iminf.setRestoringBeam(itsRestoringBeam);
+      }
+      else {
+        iminf.setBeams(restoringBeams);
+      }
+      imagestore->image(tix)->setImageInfo(iminf);
+
       }
     os << LogIO::POST << endl;
 

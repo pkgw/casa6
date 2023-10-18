@@ -151,7 +151,7 @@
             "comment":""
         },
         {
-            "testScript":"test_stk_vlass_pipeline_imaging",
+            "testScript":"test_stk_vla_users_continuum_from_SDM",
             "testType":"stakeholder",
             "maintainer":"Sandra Castro",
             "maintainerEmail":"scastro@eso.org",
@@ -161,13 +161,23 @@
             "comment":""
         },
         {
-            "testScript":"test_stk_vlass_pipeline_imaging_v1.2",
+            "testScript":"test_stk_vlass_pipeline_imaging",
+            "testType":"stakeholder",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":["mpi"],
+            "testGroup":["stakeholder"],
+            "timeout":7200,
+            "comment":""
+        },
+        {
+            "testScript":"test_stk_vlass_pipeline_imaging_1v2",
             "testType":"stakeholder",
             "maintainer":"Tak Tsutsumi",
             "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":["mpi"],
             "testGroup":["stakeholder"],
-            "timeout":14400,
+            "timeout":64800,
             "comment":""
         },
         {
@@ -298,6 +308,16 @@
             "testOptions":["mpi"],
             "testGroup":["Imaging","deconvolve"],
             "timeout":3600,
+            "comment":""
+        },
+        {
+            "testScript":"test_task_defintent",
+            "testType":"casatasks",
+            "maintainer":"Neal Schweighart",
+            "maintainerEmail":"nschweig@nrao.edu",
+            "testOptions":[],
+            "testGroup":["defintent","Calibration"],
+            "timeout":0,
             "comment":""
         },
         {
@@ -1241,6 +1261,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_testconcat",
+            "testType":"casatasks",
+            "maintainer":"Dirk Petry",
+            "maintainerEmail":"dpetry@eso.org",
+            "testOptions":[],
+            "testGroup":["concat"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_tsdimaging",
             "testType":"casatasks",
             "maintainer":"Takeshi Nakazato",
@@ -1555,6 +1585,16 @@
             "testType":"casatools",
             "maintainer":"Dave Mehringer",
             "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["casatools"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_tool_msuvbinner",
+            "testType":"casatools",
+            "maintainer":"Kumar Golap",
+            "maintainerEmail":"kgolap@nrao.edu",
             "testOptions":[],
             "testGroup":["casatools"],
             "timeout":0,

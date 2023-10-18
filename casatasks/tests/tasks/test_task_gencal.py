@@ -18,9 +18,11 @@
 # https://casadocs.readthedocs.io/en/stable/api/tt/casatasks.calibration.gencal.html
 #
 ##########################################################################
+import contextlib
 import csv
 import os
 import shutil
+import tempfile
 import unittest
 from unittest.mock import patch
 import uuid
@@ -172,7 +174,7 @@ class gencal_antpostest(unittest.TestCase):
             self.assertTrue(th.compTables(self.caltable, reference, ['WEIGHT', 'OBSERVATION_ID', 'FPARAM']))
 
             # now just compare antennas 23 and 25 entries for FPARAM...
-            # row 21 (=ant 23) and 23 (= ant 25) 
+            # row 21 (=ant 23) and 23 (= ant 25)
             _tb.open(self.caltable)
             curfparam=_tb.getcol('FPARAM').transpose()
             _tb.close()
@@ -576,6 +578,31 @@ class TestJyPerK(unittest.TestCase):
             if not os.path.isdir(fuse_name):
                 return fuse_name
 
+    @classmethod
+    @contextlib.contextmanager
+    def _generate_jyperk_file_xxyy(cls, infile):
+        with open(infile, 'r') as f:
+            lines = map(lambda x: x.rstrip('\n'), f)
+            header = next(lines)
+            factors = list(filter(
+                lambda x: x.startswith(cls.vis),
+                lines
+            ))
+
+        with tempfile.NamedTemporaryFile() as f:
+            # editing file here
+            f.write(f'{header}\n'.encode())
+            for line in factors:
+                items = line.split(',')
+                factor_org = float(items[-1])
+                # factor for XX is original value while
+                # factor for YY is 4 times original value
+                for factor, pol in zip([factor_org, factor_org * 4], ['XX', 'YY']):
+                    _items = items[:-2] + [pol, str(factor)]
+                    f.write(f'{",".join(_items)}\n'.encode())
+            f.flush()
+            yield f.name
+
     def _read_cparam_as_real(self, name):
         tb = table()
         tb.open(name)
@@ -592,6 +619,32 @@ class TestJyPerK(unittest.TestCase):
             for row in reader:
                 responses[row[0]] = row[1]
         return responses
+
+    @patch('casatasks.private.jyperk.JyPerKDatabaseClient._try_to_get_response')
+    def test_jyperk_gencal_for_web_api_error(self, mock_retrieve):
+        """Test to check that the factors from the web API are applied to the caltable.
+
+        The following arguments are required for this test.
+        * caltype='jyperk'
+        * endpoint='asdm'
+        """
+        error_message = "expected error"
+
+        def get_response(url):
+            # return failed response
+            response = '{"success": false, "error": "%s"}' % (error_message)
+            return response
+
+        mock_retrieve.side_effect = get_response
+
+        with self.assertRaisesRegex(RuntimeError, f'Failed to get Jy/K factors from DB: {error_message}'):
+            gencal(vis=self.vis,
+                   caltable=self.caltable,
+                   caltype='jyperk',
+                   endpoint='asdm',
+                   uniform=False)
+
+        self.assertTrue(mock_retrieve.called)
 
     @patch('casatasks.private.jyperk.JyPerKDatabaseClient._try_to_get_response')
     def test_jyperk_gencal_for_asdm_web_api(self, mock_retrieve):
@@ -707,6 +760,49 @@ class TestJyPerK(unittest.TestCase):
 
         p1, p2 = self._read_cparam_as_real(self.caltable)
         self.assertTrue(np.allclose(reference, p1))
+        self.assertTrue(np.allclose(reference, p2))
+
+    def test_jyperk_gencal_for_factor_file_xxyy(self):
+        """Test to check that the factors in the csv file are applied to the caltable.
+
+        The following arguments are required for this test.
+        * caltype='jyperk'
+        * infile
+        """
+        with self._generate_jyperk_file_xxyy(self.jyperk_factor_csv) as temp_csv:
+            # temp_csv should contain pol-dependent Jy/K factors
+            # factors for XX is same as original factors for I while
+            # factors for YY is 4 times original factors so that
+            # CPARAM value becomes half of reference value
+            gencal(vis=self.vis,
+                   caltable=self.caltable,
+                   caltype='jyperk',
+                   infile=temp_csv,
+                   uniform=False)
+
+        self.assertTrue(os.path.exists(self.caltable))
+
+        reference_caltable = os.path.join(
+                datapath, 'jyperk_reference/factor_file.cal')
+        self.assertTrue(th.compTables(self.caltable, reference_caltable, ['WEIGHT', 'CPARAM']))
+
+        # reference_xx is same as "reference" in test_jyperk_gencal_for_factor_file
+        reference_xx = \
+            np.array([1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,
+                     1.,1.,1.,1.,1.,1., 1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,
+                     0.13882191479206085,0.13882191479206085,0.13882191479206085,
+                     1.,1.,1.,0.13728643953800201,0.13728643953800201,0.13728643953800201,
+                     1.,1.,1.,0.13593915104866028,0.13593915104866028,0.13593915104866028,
+                     1.,1.,1.,0.13782501220703125,0.13782501220703125,0.13782501220703125,
+                     1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.,1.])
+        # reference_yy is half of original reference value (except 1.0)
+        reference_yy = np.where(
+            reference_xx < 1.0, reference_xx / 2, 1.0
+        )
+
+        p1, p2 = self._read_cparam_as_real(self.caltable)
+        self.assertTrue(np.allclose(reference_xx, p1))
+        self.assertTrue(np.allclose(reference_yy, p2))
 
     def test_not_vis_name_in_factor_csv(self):
         """Test to check a caltable does not been generated when there are not vis name in the factor csv file.

@@ -5,6 +5,9 @@
 import os, sys, re, json, unittest, shlex
 import argparse, subprocess, traceback
 import shutil, datetime, platform
+import socket
+import xml.etree.ElementTree as ET
+import signal
 
 default_timeout = 1800
 sys.path.insert(0,'')
@@ -240,9 +243,46 @@ def getname(testfile):
     if n0 != -1:
         return testfile[:n0]
 
-def update_xml(filename):
-    import xml.etree.ElementTree as ET
+def write_xml(name, runtime, testname, classname, fMessage, filename, result):
+    e = datetime.datetime.now()
+    timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+    data = ET.Element('testsuites')
+
+    element1 = ET.SubElement(data, 'testsuite')
+    element1.set('name', "'{}'".format(name))
+    element1.set('errors', "0")
+    element1.set('failures', "1")
+    element1.set('skipped', "0")
+    element1.set('tests', "1")
+    element1.set('time', "0.01")
+    element1.set('timestamp', timestamp)
+    element1.set('hostname', socket.gethostname())
+
+    s_elem1 = ET.SubElement(element1, 'testcase')
+    s_elem1.set('classname', "{}.SomeClass".format(name))
+    s_elem1.set('name', "{}".format(name))
+    s_elem1.set('time', "0.01")
+
+    ss_elem1 = ET.SubElement(s_elem1, 'failure')
+    ss_elem1.set('message', fMessage)
+    ss_elem1.text = fMessage
+
+    b_xml = ET.tostring(data)
+
+    with open(filename, "wb") as f:
+        f.write(b_xml)
+
+def update_xml(filename, result, name="", runtime="", testname="", classname="", fMessage=""):
+
+    if not os.path.isfile(filename):
+        try: fMessage = signal.strsignal(abs(result.returncode))
+        except: fMessage = signal.Signals(abs(result.returncode)).name
+        print("Nose File Not Generated. Generating: {}".format(filename))
+        write_xml(name, runtime, testname, classname, fMessage, filename, result)
+
     xmlTree = ET.parse(filename)
+
     rootElement = xmlTree.getroot()
     for element in rootElement.iter():
         if element.tag == 'testcase':
@@ -253,6 +293,7 @@ def update_xml(filename):
             element.set("classname",testscript)
             element.set("name",'.'.join([testclass,testname]))
     xmlTree.write(filename,encoding='UTF-8',xml_declaration=True)
+
 
 class casa_test:
     def __init__(self,
@@ -306,13 +347,13 @@ def run_shell_command(cmd, run_directory):
 
 def is_in_remote(branch,repo_path, repo):
     if branch != 'master':
-        cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, branch )
+        cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("([^\/]+$)",branch )[0])
         #print("\tRunning: ", cmd)
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell = True)
         out = proc.stdout.read()
         if int(out)== 0: # If Feature Branch Exists Does Not exist, revert to master
             return False
-        else: 
+        else:
             return True
     else:
         return True
@@ -352,20 +393,26 @@ def fetch_tests(work_dir, branch, merge_target=None):
     run_shell_command(cmd, source_dir)
 
     if merge_target is not None:
-
-        cmd = ("git checkout origin/{}".format( merge_target)).split()
+        
+        cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
         print("\tRunning: ", " ".join(str(x) for x in cmd))
         run_shell_command(cmd, source_dir + "/" + repo)
 
         if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
             print("\tMerging {} into {}".format(branch, merge_target))
-            cmd = ("git merge " + branch).split()
+
+            cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch )[0]).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
-            run_shell_command(cmd, source_dir + "/" + repo)
+            out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+            print(out.decode("utf-8"))
+
+            print("\tRunning: git status")
+            out = subprocess.check_output(["git", "status"], cwd=source_dir + "/" + repo)
+            print(out.decode("utf-8"))
         else:
             print("\t{} not in Remote Repository {}".format(branch,repo))
     else:
-        cmd = ("git checkout origin/{}".format(branch)).split()
+        cmd = ("git checkout origin/{}".format(re.findall("([^\/]+$)",branch )[0])).split()
         if is_in_remote(branch,repo_path, repo):
             print("\tRunning: ", " ".join(str(x) for x in cmd))
         else:
@@ -386,25 +433,30 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
         if merge_target is not None:
 
-            cmd = ("git checkout origin/{}".format(merge_target)).split()
+            cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             run_shell_command(cmd, source_dir + "/" + repo)
 
             if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
                 print("\tMerging {} into {}".format(branch, merge_target))
-                cmd = ("git merge " + branch).split()
+                cmd = ("git merge --no-edit --verbose origin/" + re.findall("([^\/]+$)",branch)[0]).split()
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
-                run_shell_command(cmd, source_dir + "/" + repo)
+                out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+                print(out.decode("utf-8"))
+
+                print("\tRunning: git status")
+                out = subprocess.check_output(["git", "status"], cwd=source_dir + "/" + repo)
+                print(out.decode("utf-8"))
             else:
                 print("\t{} not in Remote Repository {}".format(branch,repo))
                 if os.path.isfile(source_dir+"/casa6/build.conf"):
                     print("\tCheckout from build.conf")
                     branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                     print("\tTag: " + branchtag)
-                    cmd = ("git checkout origin/{}".format(branchtag)).split()
+                    cmd = ("git checkout {}".format(branchtag)).split()
                 else:
                     print("No casa6/build.conf found. Defaulting to master")
-                    cmd = ("git checkout origin/{}".format(merge_target)).split()
+                    cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",merge_target)[0])).split()
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
                 run_shell_command(cmd, source_dir + "/" + repo)
 
@@ -414,12 +466,12 @@ def fetch_tests(work_dir, branch, merge_target=None):
             if os.path.isfile(source_dir+"/casa6/build.conf"):
                 branchtag = "tags/{}".format(read_conf(source_dir+"/casa6/build.conf")[repo])
                 print("\tTag: " + branchtag)
-                cmd = ("git checkout origin/{}".format(branchtag)).split()
+                cmd = ("git checkout {}".format(branchtag)).split()
             else:
                 # Check If Feature Branch Exists
-                if is_in_remote(branch,repo_path, repo): 
-                    cmd = ("git checkout origin/{}".format(branch)).split()
-                else: 
+                if is_in_remote(branch,repo_path, repo):
+                    cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+                else:
                     print("\t{} not in Remote Repository {} Defaulting to master.".format(branch,repo))
                     cmd = ("git checkout origin/master").split()
 
@@ -468,7 +520,7 @@ def unpack_tarball(pkg, outputdir):
         break
 
     if installpath is None:
-        raise  RuntimeError("Couldn't find a directory that looks like a Casa distribution. Expected directory name to start with 'casa-'")  
+        raise  RuntimeError("Couldn't find a directory that looks like a Casa distribution. Expected directory name to start with 'casa-'")
     return outputdir + "/" + installpath
 
 def get_casatestutils_exec_path(pkg_dir):
@@ -507,14 +559,16 @@ def write_conftest(conf_name):
         write_conftest_linux(conf_name)
 
 def run_cmd(cmd):
-    try: 
+    try:
         from casampi.MPIEnvironment import MPIEnvironment
         if MPIEnvironment.is_mpi_enabled:
             pytest.main(cmd)
         else:
-            subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd , env={**os.environ})
+            result = subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd , env={**os.environ})
     except:
-        subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd, env={**os.environ})
+        result = subprocess.run([sys.executable,"-m","pytest"] + pytest_args + cmd, env={**os.environ})
+
+    return result
 
 def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
     # https://docs.pytest.org/en/stable/usage.html
@@ -537,8 +591,8 @@ def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
         print("Running Command: pytest " + " ".join(str(x) for x in cmd))
         write_pytestini(os.path.join(os.getcwd(),"pytest.ini"),dirname)
         write_conftest(os.path.join(os.getcwd(),"conftest.py"))
-        run_cmd(cmd)
-        update_xml(xmlfile)
+        result = run_cmd(cmd)
+        update_xml(xmlfile, result, name= os.getcwd().split("/")[-1])
         os.remove(os.path.join(os.getcwd(),"conftest.py"))
         os.remove(os.path.join(os.getcwd(),"pytest.ini"))
         os.chdir(myworkdir)
@@ -831,7 +885,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
-            if pmode == 'both': 
+            if pmode == 'both':
                 cwd = work_dir + "/" + test.name + '_mpi'
 
             print("Running cmd " + str(cmd) + "in " + cwd)
@@ -1142,7 +1196,7 @@ if __name__ == "__main__":
                     for test_path in test_paths:
                         #print(test_path)
                         for test in testnames:
-                            if not test.endswith(".py"): 
+                            if not test.endswith(".py"):
                                 test = test + ".py"
                             #print(test)
                             for root, dirs, files in os.walk(test_path):

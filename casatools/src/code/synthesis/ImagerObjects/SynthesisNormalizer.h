@@ -55,7 +55,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 // <summary> Class that contains functions needed for imager </summary>
 
-class SynthesisNormalizer 
+class SynthesisNormalizer
 {
  public:
   // Default constructor
@@ -87,6 +87,7 @@ class SynthesisNormalizer
   void setImageStore( std::shared_ptr<SIImageStore>& imstore );
 
   void divideResidualByWeight();
+  void divideResidualByWeightSD();
   void dividePSFByWeight();
   void divideModelByWeight();
   void multiplyModelByWeight();
@@ -114,7 +115,7 @@ protected:
   casacore::Block<std::shared_ptr<SIImageStore> > itsFacetImageStores;
 
   casacore::IPosition itsImageShape;
-  
+
   casacore::String itsImageName;
   casacore::Vector<casacore::String> itsPartImageNames;
   casacore::String itsStartingModelName;
@@ -126,7 +127,7 @@ protected:
   casacore::String itsNormType;
 
   casacore::String itsUseBeam;
-    
+
   casacore::Float itsPsfcutoff;
 
 };
