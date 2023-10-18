@@ -600,15 +600,21 @@ If a new casatools wheel is created and needs to be tested using casatasks then 
 
 ### Installation using Makefile
 
-To streamline the installation of the different CASA modules a Makefile has been created that does everything in one go. The software prerequisites need to be still installed by the user beforehand.
+To streamline the installation of the different CASA modules a Makefile has been created that does everything in one go. If you use this Makefile you don't need to follow the different steps mentioned above, since they are basically encoded in the Makefile. However you still need to install the software prerequisites steps before attempting this, following the instructions outlines above.
 
 The Makefile allows to have a first installation of a branch of CASA with the following steps:
 
-1. Download the Makefile script
+1. Choose a root directory where the Makefile will be downloaded. If you don't modify the Makefile (see below), this directory will also be the root directory for cloning the git code, building and installing everything.
 ```
-    $ wget https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/raw/Makefile?at=refs%2Fheads%2Fmaster
+    $ mkdir my_casa_build
+    $ cd my_casa_build
 ```
-1. Edit the Makefile to suit your needs. In particular, the most important variable is the first one: `CASA_BRANCH`. The rest have reasonable defaults that can be however modified to suite your needs.
+1. Download the Makefile script. This script is actually of the CASA6 repository and lies at the top level. You can get the latest version with this command:
+```
+    $ wget "https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/raw/Makefile?at=refs%2Fheads%2Fmaster" -O Makefile
+```
+1. Edit the Makefile to suit your needs. In particular, the most important variable is the first one: `CASA_BRANCH`. The rest have reasonable defaults that can be however modified to suite your needs. Note that the Makefile variables CASASRC, CASAINSTALL, CASABUILD, CASATESTDIR play the same role as the environmental variables mentioned in the manual steps above. They do not need to be redefined as, just modify in the Makefile if so needed. Please refer to sections above for a description of those variables.
+
 1. Clone the git repository and build all CASA components casacore, casacpp, casatools, casatasks and casashell:
 
 ```
@@ -620,7 +626,7 @@ The Makefile allows to have a first installation of a branch of CASA with the fo
    $ pip install CASAINSTALL/dist
 ```
 
- It is also possible to run individual steps with the `make` targets `libsakura, casacore, casacpp, casatools, casatasks, casashell`. Those steps will depend on each other, so running `make casashell` will actually run all the other ones, which might be suboptimal. There are also individual make targets that do not depend on each other: `libsakura, casacore-configure, casacore-build, casacpp-configure, casacpp-build, casatools-wheel, casatasks-wheel, casashell-wheel`, Note that all these targets are there for convenience and they are not substitute of the modular steps, which use standard off-the-shelf technologies like cmake, make and python build tools.
+ It is also possible to run individual steps with the `make` targets `libsakura, casacore, casacpp, casatools, casatasks, casashell`. Those steps will depend on each other, so running `make casashell` will actually run all the other ones, which might be suboptimal. There are also individual make targets that do not depend on each other: `libsakura, casacore-configure, casacore-build, casacpp-configure, casacpp-build, casatools-wheel, casatasks-wheel, casashell-wheel`, Note that all these targets are there for convenience and they basically run the different modular steps, so sometimes it might be more convenient to use the standard commands used by the build system like `cmake`, `make` and `python -m build` tools. Note that once you have build everything with the `Makefile` you can use the individual steps mentioned in previous sections to rebuild casacpp, casatools, etc, as long as you set the environmental variables to the same values in the `Makefile`.
 
  The target `make clean` will clean all the working and output directories and can be used to start clean from scratch.
 
