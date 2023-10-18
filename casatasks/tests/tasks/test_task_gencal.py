@@ -823,13 +823,19 @@ class TestSwPow(unittest.TestCase):
             shutil.rmtree(self.testcal)
         
     def test_switched_power_weights_caltype(self):
+        """Check that resulting caltable has all 1's for gains and non-trivial values for weight adjustment
+        
+        The following arguments are required for this test.
+        * caltype='swpwts'
+        """
         gencal(vis=swpowcopy, caltable=self.testcal, caltype='swpwts')
         
         tb.open(self.testcal)
         res = tb.getcol('FPARAM')
         tb.close()
         
-        self.assertTrue(np.all(res[0:1,:,:]==1))
+        self.assertTrue(np.all(res[0:1,:,:] == 1))
+        self.assertTrue(np.mean(res[1,:,:]) != 1)
 
 if __name__ == '__main__':
     unittest.main()
