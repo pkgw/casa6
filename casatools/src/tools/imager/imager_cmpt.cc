@@ -1791,7 +1791,8 @@ imager::settaylorterms(const long ntaylorterms, const double reffreq)
 bool
 imager::setsdoptions(const double scale, const double weight, const long convsupport, const std::string& pointingcolumntouse,
     const ::casac::variant &truncate, const ::casac::variant &gwidth, const ::casac::variant &jwidth,
-    const double minweight, const bool clipminmax, const bool enablecache)
+    const double minweight, const bool clipminmax,
+    const bool enablecache, const std::string & convertfirst)
 {
 
    Bool rstat(false);
@@ -1807,7 +1808,8 @@ imager::setsdoptions(const double scale, const double weight, const long convsup
      rstat = itsImager->setsdoptions(scale, weight, convsupport, pcolToUse,
                                      qTruncate, qGWidth, qJWidth,
                                      Float(minweight), Bool(clipminmax),
-                                     Bool(enablecache));
+                                     Bool(enablecache),
+                                     String(convertfirst));
    } catch  (AipsError x) {
      //*itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;
      RETHROW(x);
