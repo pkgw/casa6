@@ -432,8 +432,13 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
 
 
 ///We'll always use oversampling of 4 for GPU gridder
-    convSampling=4;
-
+    //convSampling=4;
+  //TESTOO
+    
+    convSampling=2;
+  ///////
+    
+    
   // we are not doing parallactiv angle here
     Double painc=2*C::pi;
   

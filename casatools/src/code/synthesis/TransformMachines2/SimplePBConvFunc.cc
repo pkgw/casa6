@@ -888,7 +888,7 @@ void SimplePBConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 	//bandName_p=vb.subtableColumns().spectralWindow().name()(spw);
         Vector<Double> spwfreq=vb.subtableColumns().spectralWindow().chanFreq()(spw);
         
-        double tol=(max(spwfreq))*0.5/100;
+        double tol=(max(spwfreq))*2/100;
         Double spwfreqwidth=abs(Vector<Double>(vb.subtableColumns().spectralWindow().chanWidth()(spw))(0));
         if(tol < spwfreqwidth)
           tol=spwfreqwidth;

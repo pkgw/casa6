@@ -114,9 +114,9 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	Vector<Int> convchanmap;
 	Vector<Int> convrowmap;
 	awh.getConvIndices(convpolmap,  convchanmap,  convrowmap,  vb,  UVW);
-	
+	// convrowmap goes from -ve(nW-1) to nW-1
 	uint nconvchan = awh.getFreqVals().nelements();
-	
+	uint nconvwvals = awh.getWVals().nelements();
 	//cerr <<  "vb.spec" << vb.spectralWindows()(0) <<  "convchanmap" <<  convchanmap <<  " nconvchan " << nconvchan << " convrow " << convrowmap <<   endl;
 	for(unsigned irow=startRow; irow< endRow; irow++) 
 	 {
@@ -175,7 +175,7 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 			else{
 				dphaseHPG=-2.0*C::pi*dphase[irow]*frequency/C::c;
 			}
-			uint cindex = convrowmap[irow]*nconvchan+convchanmap[ichan];
+			uint cindex = (convrowmap[irow]+nconvwvals-1)*nconvchan+convchanmap[ichan];
 			cf_index = {0,cindex};
 			// cfindex is rowindex*nconvchan+ convchanmap
 			hpgVB[hpgIRow++] = hpg::VisData<N>(vis,wt,frequency,dphaseHPG,hpgUVW,grid_cube,cf_index
@@ -330,37 +330,53 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 		cFunc = awh.getWeightConvFunc();
 	   }
       IPosition cshape = cFunc.shape();
+      cerr <<  "convfunc shape" <<  cshape <<  " npix " <<  cshape.product() <<  endl;
       uint convSize = cshape[0];
       uInt nConvPol = cshape[2];
       Vector<Double> cFreqs = awh.getFreqVals();
       Vector<Double> cWVals = awh.getWVals();
-      uint nPol = 2;                                         // we'll try only the RR
+      uint nPol = HPGNPOL;                                         // we'll try only the RR
       uint nchan = cFreqs.nelements();
       uint nw = cWVals.nelements();
       int sampling = awh.getOverSampling();
-      uint nCF = nchan * nw;
+      uint nCF = nchan * (2*nw-1);
        //                               nBLType, nTime/PA, nW, nFreq, nPol
-      hpg::CFSimpleIndexer cfsi({1,false},{1,false},{nw,true},{nchan,true}, nPol);
+      hpg::CFSimpleIndexer cfsi({1,false},{1,false},{2*nw-1,true},{nchan,true}, nPol);
 
       if (cfArray.oversampling()==0) {
         
-        log_l << "Setting cfArray size: " << "nCF: " << nCF << " x " << nPol << " sampling: " << sampling << LogIO::POST;
+        log_l << "Setting cfArray size: " << "nCF: " << nCF << " x " << nPol << " sampling: " << sampling <<  " convsize " <<  convSize << LogIO::POST;
         cfArray.setSize((unsigned)(nCF),(unsigned)sampling);
         
       }
       Bool isCopy;
       Complex *cfuncPtr = cFunc.getStorage(isCopy);
+      Matrix<Complex> conjW(convSize,  convSize);
+      Bool isConjCopy;
+	  Complex *conjptr = conjW.getStorage(isConjCopy);
       unsigned iGrp=0; // HPG Group index
-      for(uint iFreq=0; iFreq < cFreqs.nelements(); ++iFreq) // CASA CF Freq-index
+      //cerr <<  "nchan " <<  nchan <<  " nw " <<  nw <<  endl;
+      for(uint iFreq=0; iFreq < nchan; ++iFreq) // CASA CF Freq-index
       {
-        for(uint iW=0; iW < cWVals.nelements(); ++iW)       // CASA CF W-index
+        // CASA CF W-index
+        for(Int iW=1-int(nw); iW < Int(nw); ++iW)
         {
+		  uint wcounter = 0;
           for(uint ipol=0; ipol < nPol; ++ipol)  // CASA CF Pol-index
           {
             Complex* convptr=NULL;
-            uint ptroffset =  ((iW*nchan+iFreq)*nConvPol+ipol)*convSize*convSize;
+            uint ptroffset =  ((abs(iW)*nchan+iFreq)*nConvPol+ipol)*convSize*convSize;
+            //cerr <<  "ptroffset " <<  ptroffset <<  endl;
             convptr = (cfuncPtr+ptroffset);
-            hpg::CFCellIndex cfCellidx(0,0,iW,iFreq,ipol);
+            if (iW < 0) {
+				
+				memcpy(conjptr, convptr, sizeof(Complex)*convSize*convSize);
+				conjW.putStorage(conjptr, isConjCopy);
+				conjW = conj(conjW);
+				conjptr = conjW.getStorage(isConjCopy);
+				convptr = conjptr;
+			}
+            hpg::CFCellIndex cfCellidx(0,0, wcounter,iFreq,ipol);
             std::array<unsigned, 3> index = cfsi.cf_index(cfCellidx);
             cfArray.resize(iGrp, convSize,  convSize);
             if (send_to_device) {
@@ -368,10 +384,13 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
              cfArray.setValues(convptr,  iGrp,  convSize,  convSize,  index[0],  index[1]);
             }
           }                                                 // pol
-        }                                                   // iW
-        ++iGrp;
-      }
-      
+		  ++iGrp;
+		  ++wcounter;
+		}// iW
+	   
+      }                                                     // ifreq
+      cFunc.putStorage(cfuncPtr,  isCopy);
+      conjW.putStorage(conjptr,  isConjCopy);
       hpg::opt_t<hpg::Error> err;
       if (send_to_device) {
         	err=hpgGridder_p->set_convolution_function(hpg::Device::OpenMP, std::move(cfArray));
@@ -1011,7 +1030,8 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	}
       //
    
-      bool reloadCFs=(hpgGridder_p==NULL) || (cachedVBSpw_p != vbSpw);
+      //bool reloadCFs=(hpgGridder_p==NULL) || (cachedVBSpw_p != vbSpw);
+      bool reloadCFs=(hpgGridder_p==NULL);
       //TESTOOO
       //reloadCFs=True;
       //////////////////
