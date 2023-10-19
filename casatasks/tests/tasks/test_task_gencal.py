@@ -831,7 +831,7 @@ class TestSwPow(unittest.TestCase):
         gencal(vis=swpowcopy, caltable=self.testcal, caltype='swpwts')
         
         _tb.open(self.testcal)
-        res = tb.getcol('FPARAM')
+        res = _tb.getcol('FPARAM')
         _tb.close()
         
         self.assertTrue(np.all(res[0:1,:,:] == 1))
