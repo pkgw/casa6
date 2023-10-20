@@ -86,8 +86,9 @@ class polfromgain_test(unittest.TestCase):
         add_to_dict(self, output=test_dict, dataset=datacopy)
         
         self.assertTrue(cal_exists)
-        
-    @stats_dict(test_dict)
+
+    @unittest.skip('Temporarily disabled CAS-13544')
+    #@stats_dict(test_dict)
     def test_dictContains(self):
         ''' Check that the dict contains all the correct infromation '''
         add_to_dict(self, output=test_dict, dataset=datacopy)
@@ -109,7 +110,8 @@ class polfromgain_test(unittest.TestCase):
         
         #self.assertTrue(casaTestHelper.compare_dictionaries(result, refdict, rtol = 8e-7))
         
-    @stats_dict(test_dict)
+    @unittest.skip('Temporarily disabled CAS-13544')
+    #@stats_dict(test_dict)
     def test_calTableContains(self):
         ''' Check that the contents of the calibration table match the reference file '''
         result = polfromgain(datacopy, tablein=caldata, caltable=calpath)

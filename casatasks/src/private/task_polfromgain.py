@@ -133,6 +133,11 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                     
                         parang=mypl.arctan2( (cos(latr)*mypl.sin(har)),
                                              (sin(latr)*cos(decr)-cos(latr)*sin(decr)*mypl.cos(har)) )
+                        # correct for cycle at +/-180.
+                        #   (makes values crossing +/-180 deg all positive, and thus continuous)
+                        #   (hmm, this will still fail at inferior circumpolar transit, but that is very rare)
+                        if (latr<decr):
+                            parang[parang<0.0]+=(2*pi)
 
                         parang+=rang[iant,ispw]
                         parang+=(paoffset*pi/180.)       # manual feed pa offset
@@ -161,7 +166,6 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                         r[iant]=fit[0][0]
                         q[iant]=fit[0][1]/r[iant]/2.0
                         u[iant]=fit[0][2]/r[iant]/2.0
-                        r[iant]=sqrt(r[iant])
                         p=sqrt(q[iant]**2+u[iant]**2)
                         x=0.5*atan2(u[iant],q[iant])*180/pi
                     
