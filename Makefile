@@ -140,15 +140,13 @@ casatools-wheel:
 
 	if [ -d ${CASABUILD}/casatools ]; then rm -rf ${CASABUILD}/casatools; fi
 	mkdir -p ${CASABUILD}/casatools
+	mkdir -p ${CASAINSTALL}/dist
 	cd ${CASABUILD}/casatools
 
 	pip install build
-	pip install --upgrade setuptools
-	pip install --upgrade wheel
-	pip install --upgrade pip
 	export CMAKE_BUILD_PARALLEL_LEVEL=${NCORES}
 
-	PKG_CONFIG_PATH=${CASAINSTALL}/lib/pkgconfig python3 -m build -n -o ${CASAINSTALL}/dist ${CASASRC}/casatools
+	PKG_CONFIG_PATH=${CASAINSTALL}/lib/pkgconfig python3 -m build -o ${CASAINSTALL}/dist ${CASASRC}/casatools
 
 	pip uninstall -y casatools
 	pip install ${CASAINSTALL}/dist/casatools*whl
