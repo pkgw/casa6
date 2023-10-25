@@ -132,7 +132,7 @@ venv-build:
 	python3 -m venv ${CASAVENVDIR}
 	source ${CASAVENVDIR}/bin/activate
 
-casatools: casacpp casatools_wheel
+casatools: casacpp casatools-wheel
 
 casatools-wheel:
 	deactivate # Disable any running virtual environments

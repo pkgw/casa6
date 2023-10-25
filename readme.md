@@ -239,7 +239,7 @@ When using any of the below commands, make sure that macports is in the PATH. Th
 Run as root or as a used with sudo rights the following commands:
 ```
     # Packages needed for casacore development 
-    $ sudo port install git cmake gcc11 +gfortran cfitsio wcslib 
+    $ sudo port install git cmake gcc12 +gfortran cfitsio wcslib 
 
     # Packages needed for libsakura development
     $ sudo port install fftw-3 fftw-3-single eigen3
