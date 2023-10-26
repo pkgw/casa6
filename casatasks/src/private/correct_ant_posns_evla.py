@@ -63,6 +63,15 @@ def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
 
 #
 # get start date+time of observation
+    def time_in_days(time):
+    
+        time_string = str(time)
+        years = int(time_string[:4])
+        months = int(time_string[4:6])
+        days = int(time_string[6:8])
+
+        return years * 365 + months * 30 + days
+        
 #
     observation = _tb.open(vis_name+'/OBSERVATION')
     time_range = _tb.getcol('TIME_RANGE')
@@ -174,12 +183,13 @@ def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
                     ant_num_stas[ant_ind][5] = 0.0
             if put_time > obs_time and not ant_num_stas[ant_ind][6] and pad == ant_num_stas[ant_ind][2]:
 # it's the right antenna/pad; add the offsets to those already accumulated
-                #ant_num_stas[ant_ind][3] += Bx
-                #ant_num_stas[ant_ind][4] += By
-                #ant_num_stas[ant_ind][5] += Bz
-                
-                # insert time_limit here
-                if time_limit <= 0 or ( put_time - obs_time < time_limit ):
+
+                # Time limit for antenna corrections in days
+                #put_time_days = int(str(put_time)[:4]) + int(str(put_time)[4:6]) + int(str(put_time)[6:8])
+                put_time_days = time_in_days(put_time)
+                obs_time_days =  time_in_days(obs_time)
+                if time_limit <= 0 or ( put_time_days - obs_time_days < time_limit ):
+                    #print("put seperated: " put_time % 10000, )
                     #print("put time MJD, antenna, pad, offsets = %f  %d  %s  %f %f %f" % (put_time_MJD,ant_num_stas[ant_ind][0],ant_num_stas[ant_ind][2],Bx,By,Bz))
                     ant_num_stas[ant_ind][3] += Bx
                     ant_num_stas[ant_ind][4] += By
