@@ -3672,6 +3672,57 @@ class test_mask(testref_base):
           print('report=',report)
           self.assertTrue(self.check_final(report))
 
+
+     def test_mask_preserve_input_zero_mask(self):
+          """
+          Test the fix for CAS-14203; If a user explicitly provides a
+          zero-filled input mask, it should be respected and not flipped.
+          """
+
+          self.prepData('refim_twochan.ms')
+          os.system('rm -rf '+self.img+'.*')
+          casalog.setlogfile(self.img+'.log')
+
+          ## Make initial residual and psf. No mask
+          tclean(vis=self.msfile,
+                    imsize=100,
+                    cell='10.0arcsec',
+                    imagename=self.img,
+                    specmode='mfs',
+                    deconvolver='hogbom',
+                    niter=1,
+                    gain=1e-6,
+                    restoration=False,
+                    calcres=True,
+                    calcpsf=True)
+
+          init_sum = self.th.check_mask(self.img + '.mask')
+          # Fill up with zeros
+          self.th.fill_mask(self.img+'.mask', 0.0)
+
+          if os.path.exists("new_mask.mask"):
+               os.system('rm -rf new_mask.mask')
+
+          os.rename(self.img+'.mask', 'new_mask.mask')
+
+          # Wipe images on disk
+          os.system('rm -rf '+self.img+'.*')
+
+          ret1 = tclean(vis=self.msfile,
+               imsize=100,
+               cell='10.0arcsec',
+               imagename=self.img,
+               specmode='mfs',
+               deconvolver='hogbom',
+               usemask = 'user',
+               mask='new_mask.mask',
+               niter=10)
+
+          final_sum = self.th.check_mask(self.img + '.mask')
+
+          self.assertTrue((init_sum == 10000) and (final_sum == 0))
+          self.assertTrue(ret1['stopcode'] == 7)
+
 ##############################################
 ##############################################
 ##############################################
