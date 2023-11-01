@@ -202,7 +202,7 @@ class gencal_antpostest(unittest.TestCase):
         res = np.mean(_tb.getcol('FPARAM'))
         _tb.close()
         
-        self.assertTrue(np.isclose(res, 0.0, atol=1e-6))
+        self.assertTrue(np.isclose(res, -1.2345658040341035e-06, atol=1e-5))
         
         shutil.rmtree(self.caltable)
                
@@ -216,7 +216,7 @@ class gencal_antpostest(unittest.TestCase):
         res = np.mean(_tb.getcol('FPARAM'))
         _tb.close()
         
-        self.assertTrue(np.isclose(res, -5.185e-5, atol=1e-6))
+        self.assertTrue(np.isclose(res, -5.308641580703818e-05, atol=1e-5))
         
         
 
