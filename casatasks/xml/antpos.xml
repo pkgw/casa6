@@ -56,7 +56,7 @@ Example: outfile='my_alma_antenna_positions.json'
       <description>Priority-ranked list of servers to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional servers will be queried.
         Example: servers=[&quot;server1.alma.cl&quot;, &quot;server2.alma.cl&quot;]
       </description>
-      <value type="stringVec><value>tbd1.alma.cl</value><value>tbd2.alma.cl</Value></value>
+      <value type="stringVec"><value>tbd1.alma.cl</value><value>tbd2.alma.cl</Value></value>
     </param>
   </input>
   <returns type="void"/>
