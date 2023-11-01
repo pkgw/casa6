@@ -59,7 +59,7 @@ Example: outfile='my_alma_antenna_positions.json'
       <value type="stringVec><value>tbd1.alma.cl</value><value>tbd2.alma.cl</Value></value>
     </param>
   </input>
+  <returns type="void"/>
 </task>
-<return>void</return>
 </casaxml>
 
