@@ -47,7 +47,7 @@ Example: outfile='my_alma_antenna_positions.json'
     <param name="search" type="string">
       <shortdescription>Search algorithm to use.</shortdescription>
       <description>Search algorithm to use. Supported values are &quot;both_latest&quot; and &quot;both_closest&quot;. For &quot;both_latest&quot;, the last updated position for each antenna within 30 days after the observation will be returned, taking into account snr if specified. If provided, tw will override the 30 day default value. For &quot;both_closest&quot;, the position of each antenna closest in time to the observation, within 30 days (before or after the observation) will be returned, subject to the value of snr if it is specified. If specified, the value of tw will override the default 30 days. The default algorithm to use will be &quot;both_latest&quot;.
-      Example: search=&quto;both_closest&quot;
+      Example: search=&quot;both_closest&quot;
       </description>
       <value>both_latest</value>
     </param>
