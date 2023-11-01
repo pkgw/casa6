@@ -64,6 +64,7 @@ Again, **substitute** the path to your build of [CASAtools](https://open-bitbuck
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | accor         | Normalize visibilities based on auto-correlations                                                                               |
 | accum         | Accumulate incremental calibration solutions into a calibration table                                                           |
+| antpos        | Retrieve antenna position information from ALMA web service                                                                     |
 | applycal      | Apply calibrations solutions(s) to data                                                                                         |
 | asdmsummary   | Summarized description of an ASDM dataset.                                                                                      |
 | bandpass      | Calculates a bandpass calibration solution                                                                                      |
