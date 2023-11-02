@@ -116,7 +116,7 @@ class XmlCMakeBuildExt(build_ext):
 
         # XML parsing and binding generation
         # The code is in a jar file with a given version in a well-known URL
-        xml_jar_file = 'xml-casa-assembly-1.81.jar'
+        xml_jar_file = 'xml-casa-assembly-1.83.jar'
         xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
         xml_jar_path = os.path.abspath(os.path.join( 'scripts', 'java', xml_jar_file))
 
