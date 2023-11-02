@@ -63,12 +63,15 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
 
        # check for interval
        if type(interval) == str:
-          match = re.match(r'([0-9]+)(\s*)([a-zA-Z]+)', interval)
+          match = re.match(r'(\d+(?:\.\d*)?)(\s*)([a-zA-Z]+)', interval)
           if match is not None:
-             (intstr, ws, unitstr) = list(match.groups())
-             intervalstr = intstr+unitstr
+             (valstr, ws, unitstr) = list(match.groups())
+             if unitstr != '':
+                 intervalstr = valstr+unitstr
+             elif not valstr.isdigit():
+                 raise ValueError("Unitless interval must be integer")
           else:
-             raise ValueError("interval must contains integer value and unit")
+             raise ValueError("interval must contains integer or float value and unit")
 
        # outfile and rawdatafile check
        if not outfile.strip():
