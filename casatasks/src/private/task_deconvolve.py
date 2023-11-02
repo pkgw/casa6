@@ -20,7 +20,7 @@ from casatasks import casalog
 from casatools import image
 from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
 from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
+from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from .cleanhelper import write_tclean_history, get_func_params
 from casatools import synthesisimager
@@ -284,8 +284,8 @@ def deconvolve(
 
         # Residual image needs to be computed for this to work
         if niter==0:
-            rd = ReturnDictionary()
-            retrec = rd.constructResidualDict(paramList)
+            id = ImagingDict()
+            retrec = id.constructResidualDict(paramList)
 
         ## Get summary from iterbot
         #if type(interactive) != bool and niter>0:
