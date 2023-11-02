@@ -416,7 +416,10 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     Int index= cs.findCoordinate(Coordinate::SPECTRAL);
     SpectralCoordinate spCS = cs.spectralCoordinate(index);
     imRefFreq_p = spCS.referenceValue()(0);
-    
+    double f1, f2;
+    spCS.toWorld(f1, double(-0.5));
+    spCS.toWorld(f2, double(nchan)-0.5);
+    auto frange=std::make_pair(f1, f2);
     uvOffset.resize(3);
     uvOffset(0)=nx/2;
     uvOffset(1)=ny/2;
@@ -448,15 +451,18 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
                    False, painc, observatory, convSampling);
     vi::VisibilityIterator2 *vi= const_cast<VisibilityIterator2 *>(vb.getVi());
     
+    
     std::vector<Double> freqs;
     std::vector<Double> pAs={0.0};
     Double maxW=0.0;
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
-              SimplePBConvFunc::findUsefulChannels(chunkfreq, vb);
-              //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
-              std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
+              
+              SimplePBConvFunc::findUsefulChannels(chunkfreq, vb, frange);
+              //cerr << "vbnchan " << vb.nChannels() <<  "chunkfreq " <<  chunkfreq <<  endl;
+              if(chunkfreq.size() >0)
+                std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
               
               if(nWPlanes_p > 1)
                 	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);

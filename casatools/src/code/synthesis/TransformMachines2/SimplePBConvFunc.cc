@@ -904,6 +904,28 @@ void SimplePBConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
          }
 
   }
+  
+   void SimplePBConvFunc::findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb, const std::pair<double, double>& frange){
+      
+     freqs.resize(0);
+     std::vector<double> freqsforvb;
+     findUsefulChannels(freqsforvb, vb);
+     double fmin,  fmax;
+     if (std::get<0>(frange) > std::get<1>(frange)) {
+      fmin = std::get<1>(frange);
+      fmax = std::get<0>(frange);
+     }
+     else{
+      fmin = std::get<0>(frange);
+      fmax = std::get<1>(frange);
+     } 
+     for (auto f :  freqsforvb) {
+       if (f >= fmin && f <= fmax)
+         freqs.push_back(f);
+     }
+     
+     
+   }
 
 
   

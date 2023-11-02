@@ -116,7 +116,7 @@ class PySynthesisImager:
 
         cfCacheName=''
         exists=False
-        if(self.allgridpars['0']['gridder'].startswith('awpr') or self.allgridpars['0']['gridder'].startswith('awph') ):
+        if(self.allgridpars['0']['gridder'].startswith('awpr') ):
             cfCacheName=self.allgridpars['0']['cfcache'];
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
