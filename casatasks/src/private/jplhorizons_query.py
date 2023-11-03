@@ -1,9 +1,11 @@
-# main module for retreiving JPL-Horizons ephemeris data and
-# convert it to CASA readable format (i.e. CASA table )
-import numpy as np
+'''
+ main module for retreiving JPL-Horizons ephemeris data and
+ convert it to CASA readable format (i.e. CASA table )
+'''
 import os
 import time
 from math import sqrt, sin, cos, log
+import numpy as np
 
 from casatools import table, quanta, measures
 from casatasks import casalog
@@ -33,7 +35,7 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     """
 
     # commented ones are not currently supported in setjy
-    # Juno's table is exist in the data repo but not supported in setjy 
+    # Juno's table is exist in the data repo but not supported in setjy
     asteroids = {'ceres': '1;',
                  'pallas': '2;',
                  'juno': '3;',  # large crater and temperature varies
@@ -72,7 +74,7 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     if not asis:
         if not objectname.lower() in known_objects:
             raise ValueError(
-                "%s is not in the known object list for CASA. To skip this check set asis=True" % objectname)
+                f"{objectname} is not in the known object list for CASA. To skip this check set asis=True")
         else:
             target = known_objects[objectname.lower()]
     else:
@@ -132,12 +134,12 @@ def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format,
     values = {'format': 'json',
               'EPHEM_TYPE': 'OBSERVER',
               'OBJ_DATA': 'YES',
-              'COMMAND': "'{}'".format(target),
+              'COMMAND': f"'{target}'",
               'START_TIME': starttime,
               'STOP_TIME': stoptime,
               'STEP_SIZE': stepsize,
               'CENTER': '500@399',
-              'QUANTITIES': "'{}'".format(quantities),
+              'QUANTITIES': f"'{quantities}'",
               'ANG_FORMAT': ang_format}
 
     pardata = urlencode(values, doseq=True, encoding='utf-8')
@@ -151,13 +153,13 @@ def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format,
             datastr = response.read().decode()
     except URLError as e:
         if hasattr(e, 'reason'):
-            msg = 'URLError: Failed to reach URL={0} (reason: {1})'.format(urlbase, e.reason)
+            msg = f'URLError: Failed to reach URL={urlbase} (reason: {e.reason})'
             casalog.post(msg, 'WARN')
         if hasattr(e, 'code'):
-            msg = 'URLError: Couldn\'t fullfill the request to {0} (code: {1})'.format(urlbase, e.code)
+            msg = f'URLError: Couldn\'t fullfill the request to {urlbase} (code: {e.code})'
             casalog.post(msg, 'WARN')
     except socket.timeout as e:
-        msg = 'Failed to reach URL={0}. Socket timeout {1}'.format(urlbase, e)
+        msg = f'Failed to reach URL={urlbase}. Socket timeout {e}'
         casalog.post(msg, 'WARN')
 
     status = response.getcode()
@@ -179,7 +181,7 @@ def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format,
                 else:
                     casalog.post("ERROR: No data found. Ephemeris data file not generated", 'WARN')
         else:
-            raise RuntimeError('Could not retrieve the data. Error code:{}:{}'.format(status, response.msg))
+            raise RuntimeError(f'Could not retrieve the data. Error code:{status}:{response.msg}')
     else:
         data = None
     return data
@@ -250,11 +252,12 @@ def tocasatb(indata, outtable):
     tempfname = 'temp_ephem_'+str(os.getpid())+'.dat'
     tempconvfname = 'temp_ephem_conv_'+str(os.getpid())+'.dat'
     try:
+        exeedthelinelimit=None
         # Scan the original data
-        if type(indata) == dict and 'result' in indata:
+        if isinstance(indata, dict) and 'result' in indata:
             #print("ephem data dict")
             ephemdata = indata['result']
-        elif type(indata) == str:
+        elif isinstance(indata, str):
             if os.path.exists(indata):
                 with open(indata, 'r') as infile:
                     ephemdata = infile.readlines()
@@ -268,6 +271,7 @@ def tocasatb(indata, outtable):
             datalines = 0
             readthedata = False
             startmjd = None
+            endmjd = None
             incolnames = None
             # multiple entries (in different units) may exit for orb. per.
             foundorbper = False
@@ -311,10 +315,10 @@ def tocasatb(indata, outtable):
                         startmjd = _qa.totime(m[1] + '/' + m[2])
    #--This info will not be used but left here since it might be useful fo debugging.
    #             # end time (of the requested time range)
-   #             elif re.search(r'End time', line):
-   #                 m = re.match(r'^[>\s]*End time\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\w+)', line)
-   #                 if m:
-   #                      endmjd = _qa.totime(m[1] + '/' + m[2])
+                elif re.search(r'Stop  time', line):
+                    m = re.match(r'^[>\s]*Stop  time\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\w+)', line)
+                    if m:
+                        endmjd = _qa.totime(m[1] + '/' + m[2])
                 # date increment
                 elif re.search(r'Step-size', line):
                     m = re.match(r'^[>\s]*Step-size\s+\S+\s+(\S+)\s+(\w+)', line)
@@ -327,16 +331,23 @@ def tocasatb(indata, outtable):
                             theunit = 'h'
                         elif unit == 'days':
                             theunit = 'd'
+                        elif unit == 'steps':
+                            theunit = 'steps'
+                        elif unit == 'calendar':
+                            raise RuntimeError('Unit of Step-size in calendar month or year is not supported.')
                         else:
-                            raise RuntimeError('Unit of Step-size, %s is unrecognized' % unit)
+                            raise RuntimeError(f'Unit of Step-size, {unit} is unrecognized')
                         if theunit == 'd':
                             dmjd = m[1]
+                        elif theunit == 'steps':
+                        #    print('endtime=',endmjd['value'])
+                            dmjd = (endmjd['value'] - startmjd['value'])/int(m[1])
                         else:
-                            dmjd = _qa.convert(_qa.totime(m[1] + theunit), 'd')
-                        headerdict['dMJD'] = dmjd['value']
+                            dmjd = _qa.convert(_qa.totime(m[1] + theunit), 'd')['value']
+                        headerdict['dMJD'] = dmjd
                         if startmjd is not None:  # start mjd should be available before step-size line
                             # MJD0 = firstMJD - dMJD (as defined casacore MeasComet documentation)
-                            headerdict['MJD0'] = startmjd['value'] - dmjd['value']
+                            headerdict['MJD0'] = startmjd['value'] - dmjd
                 elif re.search(r'Center geodetic', line):
                     m = re.match(r'^[>\s]*Center geodetic\s*: ([-+0-9.]+,\s*[-+0-9.]+,\s*[-+0-9.]+)', line)
                     if m:
@@ -364,7 +375,7 @@ def tocasatb(indata, outtable):
                                 radiiarr = np.array([m[2],m[2],m[2]], dtype=np.float64)
                             headerdict['radii'] = {'unit': 'km', 'value': radiiarr}
                         else:
-                            casaloog.post("Unexpected number or matches for Target radii:{} (expected 2)".format(m.groups), 'WARN')
+                            casalog.post(f"Unexpected number or matches for Target radii:{m.groups} (expected 2)", 'WARN')
                 #rotational period (few pattens seem to exist)
                 elif re.search(r'rot. period|Rotational period', line):
                     m = re.search(r'rot. period\s+\S*=\s*([0-9.]+h\s*[0-9.]+m\s*[0-9.]+\s*s)|'
@@ -417,11 +428,13 @@ def tocasatb(indata, outtable):
                 elif re.search(r'\$\$SOE', line):
                     readthedata = True
                 elif re.search(r'\$\$EOE', line):
-                    endofdata = True
                     readthedata = False
                 elif readthedata:
                     datalines += 1
                     outfile.write(line + '\n')
+                elif re.search(r'Projected output length', line):
+                    # this message occurs when requested data is too large
+                    exeedthelinelimit = line
                 else:
                     pass
                 lcnt += 1
@@ -429,7 +442,12 @@ def tocasatb(indata, outtable):
                 radiival = headerdict['radii']['value']
                 meanrad = _mean_radius(radiival[0], radiival[1], radiival[2])
                 headerdict['meanrad'] = {'unit': 'km', 'value': meanrad}
-            casalog.post(f"Number of data lines={datalines}")
+            if datalines == 0:
+                casalog.post("No ephemeris data was found", "WARN")
+                if exeedthelinelimit is not None:
+                    raise RuntimeError("Error occur at the query:"+exeedthelinelimit)
+            else:
+                casalog.post(f"Number of data lines={datalines}")
             casalog.post(f"Number of all lines in the file={lcnt}")
             #print("headerdict=", headerdict)
         # output to a casa table
@@ -473,7 +491,7 @@ def tocasatb(indata, outtable):
                         cols[outcolname]['index'] = incolnames.index(inheadername) + indexoffset
                         foundncols += 1
                     else:
-                        casalog.post(f"Cannot find {ihheadername}", "WARN")
+                        casalog.post(f"Cannot find {inheadername}", "WARN")
 
             #print(cols)
             casalog.post(f"expected n cols = {len(cols)} ")
@@ -542,14 +560,18 @@ def tocasatb(indata, outtable):
             _tb.fromascii(outtable, tempconvfname, sep=' ', columnnames=list(cols.keys()),
                           datatypes=dtypes.tolist())
             _tb.done()
+            
             # fill keyword values in the ephem table
             if os.path.exists(outtable):
                 _fill_keywords_from_dict(headerdict, colkeys, outtable)
                 casalog.post(f"Output is written to a CASA table, {outtable}")
             else:
                 raise RuntimeError("Error occured. The output table, " + outtable + "is not generated")
-    except RuntimeError:
-        raise Exception("Error occurred")
+        else: #incolnames is None
+            raise RuntimeError("No data header was found.")
+
+    except RuntimeError as e:
+        casalog.post(str(e),"SEVERE")
     finally:
         tempfiles = [tempfname, tempconvfname]
         _clean_up(tempfiles)
@@ -660,5 +682,5 @@ def _clean_up(filelist):
     Clean up the temporary files 
     """
     for f in filelist:
-        if os.path.exists(f): 
-            os.remove(f) 
+        if os.path.exists(f):
+            os.remove(f)

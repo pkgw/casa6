@@ -61,6 +61,9 @@ format.
 <description>Interval or step size of ephemeris data
                      Default: '1d' 
 
+                     A string with integer value and unit (minutes, hours, days) or
+                     a string with integer value without unit (= timerange/interval).
+                     The unit can be given as the first few characters, e.g. 'm', 'min', 'h', 'd'.
                         Example:
 
                         interval='1h'
