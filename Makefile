@@ -148,6 +148,7 @@ casatools-wheel: venv-build
 
 	if [ -d ${CASABUILD}/casatools ]; then rm -rf ${CASABUILD}/casatools; fi
 	mkdir -p ${CASABUILD}/casatools
+	if [ -d ${CASAINSTALL}/dist ]; then rm -rf ${CASAINSTALL}/dist; fi
 	mkdir -p ${CASAINSTALL}/dist
 	cd ${CASABUILD}/casatools
 
@@ -171,6 +172,7 @@ casatasks-wheel: venv-build
 	cd ${CASASRC}/casatasks
 
 	if [ -d ./dist ]; then rm -rf ./dist; fi
+	mkdir -p dist
 	if [ -d ./build ]; then rm -rf ./build; fi
 
 	./setup.py bdist_wheel

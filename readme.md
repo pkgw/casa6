@@ -488,9 +488,11 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 ```
     $ rm -rf $CASAINSTALL/dist
 ```
-1.    Create casatools wheel. Note that this assumes that the virtual environement in previous step is still active.
+1.    Create casatools wheel. Note that this assumes that the virtual environment in previous step (if required) is still active.
 ```
-    PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist $CASASRC/casatools
+    $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -o $CASAINSTALL/dist $CASASRC/casatools # Rocky Linux 8, Ubuntu 22.04 and MacOS with a venv
+
+    $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -o $CASAINSTALL/dist $CASASRC/casatools # Ubuntu and Fedora without a venv
 
     # WARNING: Add -C="--build-option=--mod-closure" to make wheels portable. This is required to build ManyLinux compatible wheels. However it will make the build slower and is not neccessary if you don't plan to distribute your wheel to someone else or install the wheel in a different computer than yours. The command line would then be:
     # PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist -C="--build-option=--mod-closure" $CASASRC/casatools
