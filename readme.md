@@ -228,7 +228,7 @@ Ensure that the PATH points to the relevant software:
 ```
 #### Installing prerequisites in macOS using macports (tested only on 11 and 12 Intel)
 
-As a prerequisite [XCode](https://developer.apple.com/xcode/) must be installed, as well as [macports](https://macports.org). It could be that the prerequisistes could be installed from Homebrew, but no attempt has been made to try it out.
+As a prerequisite [XCode](https://developer.apple.com/xcode/) must be installed, as well as [macports](https://macports.org). It could be that the prerequisites could be installed from Homebrew, but no attempt has been made to try it out.
 
 The XCode installation already fulfills the requirement of the compiler (point 2. in the list of requirements).
 
@@ -259,7 +259,7 @@ Run as root or as a used with sudo rights the following commands:
 
 ### Setting up ccache
 
-ccache significanty speeds up the compilation time for successive builds after the first build.
+ccache significantly speeds up the compilation time for successive builds after the first build.
 
 Depending on your OS the installation might be different. The recommended way is to have a link named after the compiler (like c++) that points to ccache. That link *must* be in the PATH before the proper compiler. For most Linux distributions one of the following commands should be enough:
 ```
@@ -289,7 +289,7 @@ To ease the instructions, define the variables CASAINSTALL, CASASRC and CASATEST
     $ setenv CASABUILD /temporary/build/path/ # (csh, tcsh)
 ```
 
-> Macos 13 /Ventura users: Add this to all of the CMake commands:
+> macOS 13 /Ventura users: Add this to all of the CMake commands:
 ```
     -DCMAKE_CXX_FLAGS="-Qunused-arguments -flat_namespace" \
 ```
@@ -484,7 +484,7 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
     $ . ./build_env/bin/activate
     $ pip install build setuptools wheel
 ```
-1.    Remove the output directory to avoid confussion with old created wheels:
+1.    Remove the output directory to avoid confusion with old created wheels:
 ```
     $ rm -rf $CASAINSTALL/dist
 ```
@@ -501,7 +501,7 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
     # manylinux2014 only!
     PKG_CONFIG_PATH=/data/install/lib/pkgconfig:/opt/casa/03/lib/pkgconfig python3.8 -m build -n -o /data/install/dist ..
 
-    # Macos
+    # macOS
     PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist -C="--build-option=--mod-closure" $CASASRC/casatools
 ```
 1. This will create an output wheel inside the `$CASAINSTALL/dist` directory. That wheel depends on the libraries installed under `$CASAINSTALL/lib`.
@@ -519,12 +519,12 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 ```
 #### Test casatools (Optional)
 
-1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly neccesary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sesions which is probably not what most of developers want. You can use the --system-site-packages option to venv, which will use the python packages from your environment as installed with the instructions mentioned above using your package manager (or by other method you have used). However, for some platforms, including RHEL 8 and macOS that won't work out of the box and therefore is not recommended.
+1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly necessary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sessions which is probably not what most of developers want. You can use the --system-site-packages option to venv, which will use the python packages from your environment as installed with the instructions mentioned above using your package manager (or by other method you have used). However, for some platforms, including RHEL 8 and macOS that won't work out of the box and therefore is not recommended.
 ```
     $ python3 -m venv $CASATESTDIR/test_env # You can use python3 -m venv --system-site-packages $CASATESTDIR/test_env in Ubuntu and Fedora  
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
-1. Install the casatools wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall commnad is harmless if this is the first time casatools is installed.
+1. Install the casatools wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatools is installed.
 ```
     $ pip uninstall casatools
     $ pip install $CASAINSTALL/dist/casatools*whl
@@ -543,7 +543,7 @@ The casatasks wheel creation and installation has not changed int he modular bui
 ```
     $ cd $CASASRC/casatasks
 ```
-1.    Remove the output directory to avoid confussion with old created wheels:
+1.    Remove the output directory to avoid confusion with old created wheels:
 ```
     $ rm -rf dist
 ```
@@ -562,7 +562,7 @@ It is assumed that the steps to test casatools (see above) have already been per
 ```
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
-1.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall commnad is harmless if this is the first time casatasks is installed.
+1.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
 ```
     $ cd $CASASRC/casatasks
     $ pip uninstall casatasks
@@ -585,7 +585,7 @@ The modular builds system uses standard cmake/make for building the casacore and
 ```     
 However, if the changes involve adding new files or directories then the cmake step needs to be re-run, using the cmake commands explained in the casacore or casaccpp section.
 
-If the change is in casacore, then it is recommended to also run `make` in casacpp and create a new casatools wheel. If the change is in casacpp it is enough to create a new casactools wheel. Strictly speaking, creating a new casatools is not necessary if the change involves _only_ modifications of the C++ .cc files. However it is required if interface with casatools is changed, either due to changes in .h header files or template .tcc files.
+If the change is in casacore, then it is recommended to also run `make` in casacpp and create a new casatools wheel. If the change is in casacpp it is enough to create a new casatools wheel. Strictly speaking, creating a new casatools is not necessary if the change involves _only_ modifications of the C++ .cc files. However it is required if interface with casatools is changed, either due to changes in .h header files or template .tcc files.
 
 If the casatools is created in a _portable_ way using the option `-C="--build-option=--mod-closure"` then the wheel itself contains a copy of the casacpp libraries and therefore the wheel needs to be recreated _always_ that there is a change in casacore or casacpp, even if the change involves only .cc files.
 
@@ -644,7 +644,7 @@ https://casa-pip.nrao.edu/repository/casa-test-wheel/packages/casaviewer/1.7.1/c
 https://casa-pip.nrao.edu/repository/casa-test-wheel/packages/casaplotms/1.9.1/casaplotms-1.9.1-py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 
 
-Macos version of PlotMS (Viewer is no longer built on Macs).
+macOS version of PlotMS (Viewer is no longer built on Macs).
 
 https://casa-pip.nrao.edu/repository/casa-test-wheel/packages/casaplotms/1.9.1/casaplotms-1.9.1-py3-none-macosx_12_0_x86_64.whl
 
@@ -728,7 +728,7 @@ and [casaplotms](https://open-bitbucket.nrao.edu/projects/CASA/repos/casaplotms/
 as separate modules. These allow the GUIs to be loaded and used.
 
 Some of the GUI tools available as part of CASA 5 are only available in the packaged tar-file based
-disribution of CASA 6. The GUIs that are currently only available in the monolithic vesion of
+distribution of CASA 6. The GUIs that are currently only available in the monolithic version of
 CASA 6 currently includes:
 
   1. casabrowser
