@@ -27,7 +27,7 @@ format.
     <param type="bool" name="asis">
 <shortdescription>A toggle for objectnamne check to be done or not</shortdescription>
 <description>A toggle for objectname check to be done or not. asis=True will override
-             any checks on objectname and the name has to be recongnized by the JPL-Horzions system.
+             any checks on objectname and the name has to be recognized by the JPL-Horzions system.
 
                      Default: False 
                      
