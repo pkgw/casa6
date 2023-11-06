@@ -63,15 +63,6 @@ def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
 
 #
 # get start date+time of observation
-    def time_in_days(time):
-    
-        time_string = str(time)
-        years = int(time_string[:4])
-        months = int(time_string[4:6])
-        days = int(time_string[6:8])
-
-        return years * 365 + months * 30 + days
-        
 #
     observation = _tb.open(vis_name+'/OBSERVATION')
     time_range = _tb.getcol('TIME_RANGE')
@@ -186,9 +177,15 @@ def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
 
                 # Time limit for antenna corrections in days
                 #put_time_days = int(str(put_time)[:4]) + int(str(put_time)[4:6]) + int(str(put_time)[6:8])
-                put_time_days = time_in_days(put_time)
-                obs_time_days =  time_in_days(obs_time)
-                if time_limit <= 0 or ( put_time_days - obs_time_days < time_limit ):
+                put_time_str = str(put_time)
+                put_time_str = put_time_str[:4]+'/'+put_time_str[4:6]+'/'+put_time_str[6:8]
+
+                obs_time_str = str(obs_time)
+                obs_time_str = obs_time_str[:4]+'/'+obs_time_str[4:6]+'/'+obs_time_str[6:8]
+
+                time_diff = _qa.quantity(put_time_str)['value']-_qa.quantity(obs_time_str)['value']
+
+                if time_limit <= 0 or ( time_diff < time_limit ):
                     #print("put seperated: " put_time % 10000, )
                     #print("put time MJD, antenna, pad, offsets = %f  %d  %s  %f %f %f" % (put_time_MJD,ant_num_stas[ant_ind][0],ant_num_stas[ant_ind][2],Bx,By,Bz))
                     ant_num_stas[ant_ind][3] += Bx
