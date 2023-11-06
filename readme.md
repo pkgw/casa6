@@ -340,11 +340,11 @@ Compile and install with cmake (you might change the build directory or the make
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DUSE_OPENMP=ON \
         -DUSE_THREADS=ON \
-        -DBUILD_FFTPACK_DEPRECATED=ON \ 
+        -DBUILD_FFTPACK_DEPRECATED=ON \
         -DBUILD_TESTING=ON \
         -DBUILD_PYTHON3=OFF \
         -DBUILD_DYSCO=ON \
-        -DPORTABLE=ON\
+        -DPORTABLE=ON \
         -DUSE_PCH=OFF \
         -DUseCcache=1 \
         $CASASRC/casatools/casacore
@@ -361,7 +361,7 @@ Compile and install with cmake (you might change the build directory or the make
         -DBUILD_TESTING=ON \
         -DBUILD_PYTHON3=OFF \
         -DBUILD_DYSCO=ON \
-        -DPORTABLE=ON\
+        -DPORTABLE=ON \
         -DUSE_PCH=OFF \
         -DUseCcache=1 \
         -DCMAKE_CXX_FLAGS="-I /opt/casa/03/include -L /opt/casa/03/lib/ -lgsl -lgslcblas" \
@@ -383,7 +383,7 @@ Compile and install with cmake (you might change the build directory or the make
         -DBUILD_TESTING=ON \
         -DBUILD_PYTHON3=OFF \
         -DBUILD_DYSCO=ON \
-        -DPORTABLE=ON\
+        -DPORTABLE=ON \
         -DUSE_PCH=OFF \
         -DUseCcache=1 \
         -DPRIVATE_LIBS="-framework Accelerate -lm -ldl -Wl,-rpath,/opt/local/lib/libgcc/" \
@@ -471,6 +471,7 @@ Compile and install with cmake (you might change the build directory or the make
 ```
 ### Create CASA casatools wheel
 
+Please note that this procedure might be affected by the PYTHONPATH variable. Consider unsetting it.
 1.    Create build directory
 ```
     $ mkdir $CASABUILD/casatools
@@ -479,11 +480,9 @@ Compile and install with cmake (you might change the build directory or the make
 1.    REQUIRED in Rocky Linux 8, Ubuntu 22.04 and MacOS ! OPTIONAL for other platforms. Create a virtual environment that has the needed packages:
 ```
     $ mkdir build_env
-    $ python3 -m venv --system-site-packages build_env
+    $ python3 -m venv build_env
     $ . ./build_env/bin/activate
-    $ pip install build
-    $ pip install --upgrade setuptools
-    $ pip install --upgrade wheel
+    $ pip install build setuptools wheel
 ```
 1.    Remove the output directory to avoid confussion with old created wheels:
 ```
@@ -518,9 +517,9 @@ Compile and install with cmake (you might change the build directory or the make
 ```
 #### Test casatools (Optional)
 
-1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly neccesary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sesions.
+1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly neccesary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sesions which is probably not what most of developers want. You can use the --system-site-packages option to venv, which will use the python packages from your environment as installed with the instructions mentioned above using your package manager (or by other method you have used). However, for some platforms, including RHEL 8 and macOS that won't work out of the box and therefore is not recommended.
 ```
-    $ python3 -m venv --system-site-packages $CASATESTDIR/test_env
+    $ python3 -m venv $CASATESTDIR/test_env # You can use python3 -m venv --system-site-packages $CASATESTDIR/test_env in Ubuntu and Fedora  
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
 1. Install the casatools wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall commnad is harmless if this is the first time casatools is installed.

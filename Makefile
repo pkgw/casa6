@@ -110,11 +110,17 @@ casacore-build : casacore-configure
 	make install -j ${NCORES}
 
 
-casacpp: libsakura casacore casacpp-configure casacpp-build
+casacpp: libsakura casacore casacpp-build
 
-casacpp-configure:
+casacpp-needs-configure: $(CASABUILD)/casacpp/Makefile
+
+casacpp-configure: clean_casacpp_build $(CASABUILD)/casacpp/Makefile
+
+clean-casacpp-build:
+	rm -rf $(CASABUILD)/casacpp
+
+$(CASABUILD)/casacpp/Makefile:
 	if [ -d ${CASABUILD}/casacpp ]; then rm -rf ${CASABUILD}/casacpp; fi
-
 	mkdir -p ${CASABUILD}/casacpp
 	cd ${CASABUILD}/casacpp
 	PATH=/usr/lib64/openmpi/bin/:${PATH}
@@ -124,18 +130,20 @@ casacpp-configure:
 		-DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
 		${CASASRC}/casatools/src/code
 
-casacpp-build : casacpp-configure
+casacpp-build : casacpp-needs-configure
 	cd ${CASABUILD}/casacpp
 	make install -j ${NCORES}
 
-venv-build:
+venv-build: ${CASAVENVDIR}/bin/activate
+
+${CASAVENVDIR}/bin/activate:
 	python3 -m venv ${CASAVENVDIR}
 	source ${CASAVENVDIR}/bin/activate
 
 casatools: casacpp casatools-wheel
 
-casatools-wheel:
-	deactivate # Disable any running virtual environments
+casatools-wheel: venv-build
+	-deactivate # Disable any running virtual environments
 	source ${CASAVENVDIR}/bin/activate
 
 	if [ -d ${CASABUILD}/casatools ]; then rm -rf ${CASABUILD}/casatools; fi
@@ -155,8 +163,8 @@ casatools-wheel:
 
 casatasks: casatools casatasks-wheel
 
-casatasks-wheel:
-	deactivate
+casatasks-wheel: venv-build
+	-deactivate
 	source ${CASAVENVDIR}/bin/activate
 	pip install --upgrade setuptools
 	pip install --upgrade wheel
@@ -173,8 +181,8 @@ casatasks-wheel:
 
 casashell: casatasks casashell-wheel
 
-casashell-wheel:
-	deactivate
+casashell-wheel: venv-build
+	-deactivate
 	source ${CASAVENVDIR}/bin/activate
 
 	cd ${SRCDIR}
