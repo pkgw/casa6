@@ -648,8 +648,8 @@ magnitude (interferometer only)
     </default>
     <default type="stringVec" param="mapsize">
       <value type="vector">
-        <value type="string">''</value>
-        <value type="string">''</value>
+        <value type="string"></value>
+        <value type="string"></value>
       </value>
     </default>
     <default type="string" param="maptype">
