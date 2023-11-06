@@ -61,6 +61,7 @@ Example: outfile='my_alma_antenna_positions.json'
     </param>
   </input>
   <returns type="void"/>
+  THIS TASK IS COMPLETELY DOCUMENTED ON ITS CASADOCS PAGE.
 </task>
 </casaxml>
 
