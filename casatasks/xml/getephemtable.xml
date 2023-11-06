@@ -15,7 +15,7 @@ format.
              planets will be converted into the (NAIF/SPK) ID. If the parameter, asis
              is set to True, no such check or conversion will be performed before sending
              a query to the database.
-                     Default: none
+                     Default: '' 
 
                         Example: 
                         objectname='Titan'
@@ -40,7 +40,7 @@ format.
     <param type="string" name="timerange">
 <shortdescription>time range of ephemeris data to be queried</shortdescription>
 <description>Time range of ephemeris data to be queried.
-                     Default: none
+                     Default: ''
 
                      Standard CASA timerange specification(‘T0~T1’),YY/MM/DD/hh:mm,
                      or by Modified Julian date or Julian date if the string is prefixed by ‘MJD’or‘JD’.
@@ -82,7 +82,7 @@ format.
                 <param type="path" name="outfile">
 <shortdescription>Name of output CASA table</shortdescription>
 <description>Output CASA table name
-                     Default: none 
+                     Default: '' 
 
                         Example: 
                         outfile = 'Titan_MJD60175.1-60176.1.tab'
@@ -93,8 +93,8 @@ format.
     
                 <param type="string" name="rawdatafile">
 <shortdescription>Name of raw ephemeris data file (optional)</shortdescription>
-<description>Name of raw ephemeris data file before converting into a CASA table (optinal)
-                     Default: '' = No raw ephemeris dta is saved 
+<description>Name of raw ephemeris data file before converting into a CASA table (optional)
+                     Default: '' = No raw ephemeris data is saved 
 
                          Example: rawdatafile='Titan-jplhorizons.dat'
 </description>
