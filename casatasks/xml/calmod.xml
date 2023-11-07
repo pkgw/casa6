@@ -52,7 +52,7 @@ downstream.
                 <value type="string"/>
             </param>
             <param name="obsdate" type="any">
-                <any type="variant"/>
+                <any type="variant" limittype="string double int"/>
                 <shortdescription>The observation date</shortdescription>
                 <description>
                     The date for which to obtain the calibrator information. If numeric,
@@ -64,7 +64,7 @@ downstream.
                 <value type="int">0</value>
             </param>
             <param name="refdate" type="any">
-                <any type="variant"/>
+                <any type="variant" limittype="string double int"/>
                 <shortdescription>The reference date after which new database entries will be ignored.</shortdescription>
                 <description>
                     The reference date after which new database entries will be ignored. If numeric,

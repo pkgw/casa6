@@ -43,6 +43,11 @@ from casatasks import calmod
 import casatestutils
 
 
+# NOTE be certain to specify the top-level casatestutils directory
+# in your PYTHONPATH so you load the casatestutils directory which
+# is a subdir of that
+
+
 class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     """HTTPServer mock request handler"""
 
@@ -127,8 +132,19 @@ class calmod_test(unittest.TestCase):
             calmod('my.cl', '3c48', band='m')
         self.exception_verification(cm, 'band m not supported')
         with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=[])
+        self.exception_verification(
+            cm,
+            'obsdate must either be a number or a string of the form YYYY-MM-DD'
+        )
+        with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=1)
         self.exception_verification(cm, 'obsdate must be <= 0 or >= 44239')
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate='hi')
+        self.exception_verification(
+            cm, 'If specified as a string, obsdate must be of the form YYYY-MM-DD'
+        )
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
         self.exception_verification(cm, 'refdate must be <= 0 or >= 44239')
@@ -143,6 +159,12 @@ class calmod_test(unittest.TestCase):
         with self.assertRaises(RuntimeError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
         self.exception_verification(cm, 'All URLs failed to return a component list')
+        with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', refdate=[])
+        self.exception_verification(
+            cm,
+            'refdate must either be a number or a string of the form YYYY-MM-DD'
+        )
 
 
     def test_component_list_writing(self):
