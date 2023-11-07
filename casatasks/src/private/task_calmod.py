@@ -205,22 +205,36 @@ Parameter Details
         raise ValueError('band must be specified')
     if band.upper() not in ["P", "L", "S", "C", "X", "U", "K", "A", "Q"]:
         raise ValueError(f'band {band} not supported')
-    print('*****', obsdate)
     if isinstance(obsdate, numbers.Number):
-    	if obsdate > 0 and obsdate < 44239:
-            raise ValueError('If specified as a number, obsdate must be <= 0 or >= 44239')
+        obsdate_is_number = True
+        mjd = obsdate
     elif isinstance(obsdate, str):
         pattern = '^\d{4}-\d{2}-\d{2}$'
-        if not re.match(pattern, obsdate):
+        if re.match(pattern, obsdate):
+            obsdate_is_number = False
+            qa = quanta()
+            mjd = int(qa.time(obsdate, form="mjd")[0][:5])
+            print('**** mjd', mjd)
+        else:
             raise ValueError(
                 'If specified as a string, obsdate must be of the form YYYY-MM-DD'
             )
-        else:
-            obsdate = int(obsdate[0][:obsdate[0].index('/')])
     else:
         raise ValueError(
             'obsdate must either be a number or a string of the form YYYY-MM-DD'
         )
+    upper = 48000
+    if mjd > 0 and mjd < upper:
+        if obsdate_is_number:
+            raise ValueError(
+                f'If specified as a number, obsdate must be <= 0 or >= {upper}'
+            )
+        else:
+            cutoff = qa.time(f'{upper*86400}s', form='fits')[0][:10]
+            raise ValueError(
+                'If specified as a string, obsdate must be later than '
+                + f'{cutoff}'
+            )
     if isinstance(refdate, numbers.Number):
         if refdate > 0 and refdate < 44239:
             raise ValueError('if number, refdate must be <= 0 or >= 44239')

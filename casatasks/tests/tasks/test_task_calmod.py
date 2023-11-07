@@ -139,15 +139,20 @@ class calmod_test(unittest.TestCase):
         )
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=1)
-        self.exception_verification(cm, 'obsdate must be <= 0 or >= 44239')
+        self.exception_verification(cm, 'obsdate must be <= 0 or >= ')
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate='hi')
         self.exception_verification(
             cm, 'If specified as a string, obsdate must be of the form YYYY-MM-DD'
         )
         with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate='1970-01-01')
+        self.exception_verification(
+            cm, 'If specified as a string, obsdate must be later than'
+        )
+        with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
-        self.exception_verification(cm, 'refdate must be <= 0 or >= 44239')
+        self.exception_verification(cm, 'refdate must be <= 0 or >= ')
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=[])
         self.exception_verification(cm, 'hosts must be specified')
