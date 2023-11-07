@@ -42,15 +42,15 @@ format.
 <description>Time range of ephemeris data to be queried.
                      Default: ''
 
-                     Standard CASA timerange specification(‘T0~T1’),YY/MM/DD/hh:mm,
-                     or by Modified Julian date or Julian date if the string is prefixed by ‘MJD’or‘JD’.
+                     Standard CASA timerange specification('T0~T1'),YY/MM/DD/hh:mm,
+                     or by Modified Julian date or Julian date if the string is prefixed by 'MJD' or 'JD'.
 
                         Examples:
                         timerange = '2023/09/01/20:45~2023/09/02/04:00'
                         (Note: Both start and end times need to be fully specified starting with YYYY 
                          but hours or minutes can be omitted  as long as the
                          start and stop times are distinguishable. The omitted hours or minutes are translated as '00')
-                        timerange = ‘MJD 60175.1~60176.1'
+                        timerange = 'MJD 60175.1~60176.1'
 
 </description>
                   <value type="string"/>
