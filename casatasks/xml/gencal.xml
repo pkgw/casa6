@@ -18,6 +18,7 @@ Current antenna-based gencal options (caltype) are:
     - 'antposvla' = VLA-centric antenna position corrections
     - 'tsys' = Tsys from the SYSCAL table (ALMA)
     - 'swpow' = EVLA switched-power gains (experimental)
+    - ‘swpwts’ = EVLA switched-power for weights only, no temperature rescaling
     - 'evlagain' (='swpow') (this syntax will deprecate)
     - 'rq' = EVLA requantizer gains _only_
     - 'swp/rq' = EVLA switched-power gains divided by requantizer gain
@@ -83,6 +84,7 @@ Current antenna-based gencal options (caltype) are:
                            specified in the old VLA-centric coordinate
                            system
                         - 'tsys' = Tsys from the SYSCAL table (ALMA)
+                        - ‘swpwts’ = EVLA switched-power weights
                         - 'evlagain' = EVLA switched-power gains
                            (experimental)
                         - 'opac' = Tropospheric opacity (1 real parameter
