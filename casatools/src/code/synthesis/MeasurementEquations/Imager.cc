@@ -1875,7 +1875,8 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
                           const Quantity truncate,
                           const Quantity gwidth, const Quantity jwidth,
                           const Float minweight, const Bool clipminmax,
-                          const Bool enablecache)
+                          const Bool enablecache,
+                          const String & convertfirst)
 {
   LogIO os(LogOrigin("imager", "setsdoptions()", WHERE));
   
@@ -1899,6 +1900,9 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
   minWeight_p = minweight;
   clipminmax_p = clipminmax;
   enablecache_p = enablecache;
+  convertfirst_p = convertfirst;
+  convertfirst_p.upcase();
+
 
   // Destroy the FTMachine
   if(ft_p) {delete ft_p; ft_p=0;}
