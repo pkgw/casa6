@@ -15,12 +15,26 @@ def __is_valid_url_host(url):
 
 
 def __query(url):
-    req = request.Request(url)
-    with request.urlopen(req) as response:
-        if response.status != 200:
-            return None
-        components = json.loads(response.read().decode('utf-8'))
+    components = None
+    response = None
+    try:
+        with request.urlopen(url) as response:
+            casalog.post('ac','INFO')
+            if response.status == 200:
+                casalog.post('ae','INFO')
+                components = json.loads(response.read().decode('utf-8'))
+                casalog.post('af','INFO')
+    except HTTPError as e:
+        casalog.post(
+            f'Caught HTTPError: {e.code} {e.reason}: {e.read().decode("utf-8")}',
+            'WARN'
+        )
+    except URLError as e:
+        casalog.post(f'Caught URLError: {str(e)}', 'WARN')
+    except Exception as e:
+        casalog.post(f'Caught Exception when trying to connect: {str(e)}', 'WARN')
     return components
+
 
 """
 def __current_mjd():
@@ -30,6 +44,43 @@ def __current_mjd():
     days_since_epoch = (today - epoch).total_seconds() / 86400
     return int(days_since_epoch)
 """
+
+
+def __getMJD(date_or_mjd, varname):
+    if isinstance(date_or_mjd, numbers.Number):
+        is_number = True
+        mjd = date_or_mjd
+    elif isinstance(date_or_mjd, str):
+        pattern = '^\d{4}-\d{2}-\d{2}$'
+        if re.match(pattern, date_or_mjd):
+            is_number = False
+            qa = quanta()
+            mjd = int(qa.time(date_or_mjd, form="mjd")[0][:5])
+        else:
+            raise ValueError(
+                f'If specified as a string, {varname} must be of the form '
+                + 'YYYY-MM-DD'
+            )
+    else:
+        raise ValueError(
+            f'{varname} must either be a number or a string of the form '
+            + 'YYYY-MM-DD'
+        )
+    upper = 48000
+    if mjd > 0 and mjd < upper:
+        if is_number:
+            raise ValueError(
+                f'If specified as a number, {varname} must be <= 0 or >= '
+                + '{upper}'
+            )
+        else:
+            cutoff = qa.time(f'{upper*86400}s', form='fits')[0][:10]
+            raise ValueError(
+                f'If specified as a string, {varname} must be later than '
+                + f'{cutoff}'
+            )
+    return mjd
+
 
 def calmod(
     outfile, source, direction, band, obsdate, refdate, hosts
@@ -194,8 +245,12 @@ Parameter Details
         raise ValueError('Exactly one of source or direction must be specified')
     if source and direction:
         raise ValueError('Both source and direction may not be simultaneously specified')
+    """
     if source and source.upper() not in ("3C48", "3C286", "3C138", "3C147"):
         raise ValueError(f'Unsupported calibrator {source}')
+    """
+    if source:
+        source = source.upper()
     if direction:
         dirstr = direction.split(' ')
         if not (len(dirstr) == 3 and measures().direction(dirstr[0], dirstr[1], dirstr[2])):
@@ -205,73 +260,23 @@ Parameter Details
         raise ValueError('band must be specified')
     if band.upper() not in ["P", "L", "S", "C", "X", "U", "K", "A", "Q"]:
         raise ValueError(f'band {band} not supported')
-    if isinstance(obsdate, numbers.Number):
-        obsdate_is_number = True
-        mjd = obsdate
-    elif isinstance(obsdate, str):
-        pattern = '^\d{4}-\d{2}-\d{2}$'
-        if re.match(pattern, obsdate):
-            obsdate_is_number = False
-            qa = quanta()
-            mjd = int(qa.time(obsdate, form="mjd")[0][:5])
-            print('**** mjd', mjd)
-        else:
-            raise ValueError(
-                'If specified as a string, obsdate must be of the form YYYY-MM-DD'
-            )
-    else:
-        raise ValueError(
-            'obsdate must either be a number or a string of the form YYYY-MM-DD'
-        )
-    upper = 48000
-    if mjd > 0 and mjd < upper:
-        if obsdate_is_number:
-            raise ValueError(
-                f'If specified as a number, obsdate must be <= 0 or >= {upper}'
-            )
-        else:
-            cutoff = qa.time(f'{upper*86400}s', form='fits')[0][:10]
-            raise ValueError(
-                'If specified as a string, obsdate must be later than '
-                + f'{cutoff}'
-            )
-    if isinstance(refdate, numbers.Number):
-        if refdate > 0 and refdate < 44239:
-            raise ValueError('if number, refdate must be <= 0 or >= 44239')
-    elif isinstance(refdate, str):
-        pattern = '^\d{4}-\d{2}-\d{2}$'
-        if not re.match(pattern, refdate):
-            raise ValueError(
-                'refdate must either be a number or a string of the form YYYY-MM-DD'
-            )
-        else:
-            refdate = int(refdate[0][:refdate[0].index('/')])
-    else:
-        raise ValueError(
-            'refdate must either be a number or a string of the form YYYY-MM-DD'
-        )
+    obsdate_mjd = __getMJD(obsdate, 'obsdate')
+    refdate_mjd = __getMJD(refdate, 'refdate')
     if not hosts:
         raise ValueError('hosts must be specified')
     wsid = 'type=setjy'
     wsid += f'&source={quote(source)}' if source else f'&position={quote(direction)}'
     wsid += f'&band={quote(band)}'
-    wsid += f'&obsdate={int(obsdate)}'
+    wsid += f'&obsdate={int(obsdate_mjd)}'
     if refdate > 0:
-        wsid += f'&refdate={int(refdate)}'
+        wsid += f'&refdate={int(refdate_mjd)}'
     components = None
     for h in hosts:
         if not __is_valid_url_host(h):
             raise ValueError(f'{h} is not a valid host expressed as a URL')
         url = f'{h}?{wsid}'
         casalog.post(f'Trying {url} ...', 'NORMAL')
-        try:
-            components = __query(url)
-        except HTTPError as e:
-            casalog.post(f'Caught HTTPError: {str(e)}', 'WARN')
-        except URLError as e:
-            casalog.post(f'Caught URLError: {str(e)}', 'WARN')
-        except Exception as e:
-            casalog.post(f'Caught Exception when trying to connect: {str(e)}', 'WARN')
+        components = __query(url)
         if components:
             break
     if not components:

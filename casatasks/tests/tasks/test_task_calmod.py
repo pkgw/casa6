@@ -25,14 +25,14 @@ import glob
 import http.server
 import numpy as np
 import os
+import re
 import shutil
 import sys
 import threading
-from time import sleep
 import unittest
 from urllib import request
 from urllib.error import URLError
-
+from urllib.parse import urlparse, parse_qs
 
 from casatasks import casalog
 
@@ -52,6 +52,15 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     """HTTPServer mock request handler"""
 
     def do_GET(self):
+        casalog.post('server path ' + self.path, 'WARN')
+        parms = parse_qs(urlparse(self.path).query)
+        casalog.post(f'server parms {parms}', 'INFO')
+        good_sources = ("3C48", "3C286", "3C138", "3C147")
+        if 'source' in parms and parms['source'][0].upper() not in good_sources:
+            explain = f'source must be one of {good_sources}'
+            self.send_error(400, message='Invalid input', explain=explain)
+            self.end_headers()
+            return
         """Handle GET requests"""
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -65,7 +74,6 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def log_request(self, code=None, size=None):
         """Don't log anything"""
-
 
 class calmod_test(unittest.TestCase):
 
@@ -116,9 +124,6 @@ class calmod_test(unittest.TestCase):
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', 'mysource', 'mydirection')
         self.exception_verification(cm, 'Both source and direction may not be simultaneously specified')
-        with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', 'mysource')
-        self.exception_verification(cm, 'Unsupported calibrator mysource')
         with self.assertRaises(ValueError) as cm:
             calmod('my.cl', direction='mydirection')
         self.exception_verification(cm, 'Illegal direction specification mydirection')
@@ -154,6 +159,12 @@ class calmod_test(unittest.TestCase):
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
         self.exception_verification(cm, 'refdate must be <= 0 or >= ')
         with self.assertRaises(ValueError) as cm: 
+            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate='123')
+        self.exception_verification(
+            cm, 'If specified as a string, refdate must be of the form '
+            + 'YYYY-MM-DD'
+        )
+        with self.assertRaises(ValueError) as cm: 
             calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=[])
         self.exception_verification(cm, 'hosts must be specified')
         hosts = ['zz']
@@ -178,6 +189,40 @@ class calmod_test(unittest.TestCase):
         self.query_server(
             lambda: calmod(
                 self.clname, '3C48', band='Q',obsdate=50000, hosts=hosts
+            )
+        )
+        self.cl.open(self.clname)
+        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
+        ws = self.cl.getkeyword('web_service')
+        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
+        self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
+
+
+    def test_bad_source_name(self):
+        hosts = [self.hostname]
+        with self.assertRaises(RuntimeError) as cm: 
+            self.query_server(
+                lambda: calmod(
+                    'my.cl', 'mysource', band='L', hosts=[self.hostname],
+                    obsdate=50000
+                )
+            )
+        self.exception_verification(cm, 'All URLs failed to return a component list')
+        found = False
+        pattern = "source must be one of \('3C48', '3C286', '3C138', '3C147'\)"
+        with open(casalog.logfile()) as logfile:
+            for line in logfile:
+                if re.search(pattern, line):
+                    found = True
+                    break
+        self.assertTrue(found)
+
+
+    def test_obsdate_as_string(self):
+        hosts = [self.hostname]
+        self.query_server(
+            lambda: calmod(
+                self.clname, '3C48', band='Q',obsdate='2002-04-20', hosts=hosts
             )
         )
         self.cl.open(self.clname)
