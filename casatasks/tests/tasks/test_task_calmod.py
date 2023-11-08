@@ -109,8 +109,10 @@ class calmod_test(unittest.TestCase):
             server_thread = threading.Thread(target=server.serve_forever)
             server_thread.daemon = True
             server_thread.start()
-            method()
-            server.shutdown()
+            try:
+                method()
+            finally:
+                server.shutdown()
 
 
     def test_inputs(self):
