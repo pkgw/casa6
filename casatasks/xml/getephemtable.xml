@@ -22,7 +22,7 @@ format.
                         objectname='Titan'
                         objectname='606' (should set asis=True in this case)
 </description>
-      </value>
+      <value/>
     </param>
 
     <param type="bool" name="asis">
@@ -59,7 +59,7 @@ format.
                         timerange = 'MJD 60175.1~60176.1'
 
 </description>
-                  </value>
+                  <value/>
                 </param>
 
                 <param type="string" name="interval">
@@ -97,7 +97,7 @@ format.
                         outfile = 'Titan_MJD60175.1-60176.1.tab'
 
 </description>
-                  </value>
+                  <value/>
                 </param>
     
                 <param type="string" name="rawdatafile">
@@ -109,7 +109,7 @@ format.
 
                          Example: rawdatafile='Titan-jplhorizons.dat'
 </description>
-                  </value>
+                  <value/>
                 </param>
 
 
