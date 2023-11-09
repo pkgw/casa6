@@ -26,13 +26,17 @@ format.
 
     <param type="bool" name="asis">
 <shortdescription>A toggle for objectnamne check to be done or not</shortdescription>
-<description>A toggle for objectname check to be done or not. asis=True will override
-             any checks on objectname and the name has to be recognized by the JPL-Horzions system.
-
+<description>A toggle for objectname check to be done or not before sending a query to the JPL-Horizons system. 
                      Default: False 
-                     
-                     Set asis=True to specify an ojbect such as a comet by a designated name 
 
+                     When asis=False, objectname is checked against the known objects (a list of the supported
+                     ephemeris sources in setjy task plus a few others) by CASA.
+                     Setting asis=True will skip this check and the name has to be uniquly recognized by 
+                     the JPL-Horzions system.
+                     For example, objectname='Jupiter' with asis=True result in the JPL-Horizons system to return 
+                     no ephemeris data as multiple objects matches with the name.
+
+                     
 </description>
       <value type="bool">False</value>
     </param>
@@ -59,7 +63,7 @@ format.
                 <param type="string" name="interval">
 <shortdescription>Interval or step size of ephemeris data</shortdescription>
 <description>Interval or step size of ephemeris data
-                     Default: '1d' 
+                     Default: '5m' 
 
                      A string with integer value and unit (minutes, hours, days) or
                      a string with integer value without unit (= timerange/interval).
@@ -73,10 +77,12 @@ format.
 
                         Example:
 
+                        interval='5min'
+                        interval='5minutes'
                         interval='1h'
-                        interval='15m'
+                        interval='1d'
 </description>
-                  <value type="string">1d</value>
+                  <value type="string">5m</value>
                 </param>
 
                 <param type="path" name="outfile">
@@ -95,6 +101,8 @@ format.
 <shortdescription>Name of raw ephemeris data file (optional)</shortdescription>
 <description>Name of raw ephemeris data file before converting into a CASA table (optional)
                      Default: '' = No raw ephemeris data is saved 
+
+                     Useful for debugging when errors occured or no output table is produced.
 
                          Example: rawdatafile='Titan-jplhorizons.dat'
 </description>

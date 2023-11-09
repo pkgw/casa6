@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import os
 import re
+import shutil
 from casatasks import casalog
 from casatasks.private.jplhorizons_query import gethorizonsephem
 
@@ -81,7 +82,7 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
         raise ValueError("outfile must be specified")
     elif os.path.exists(outfile):
         casalog.post(f'{outfile} exists, will be overwritten', 'WARN')
-
+        shutil.rmtree(outfile)
     if os.path.exists(rawdatafile):
         casalog.post(f'{rawdatafile} exists, will be overwritten', 'WARN')
 

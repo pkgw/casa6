@@ -103,6 +103,14 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     if ephemdata and 'result' in ephemdata:
         casalog.post('converting ephemeris data to a CASA table')
         tocasatb(ephemdata, outtable)
+    if not os.path.exists(outtable):
+        casalog.post('Failed to produce the CASA ephemeris table', 'WARN') 
+        if rawdatafile=='':
+            casalog.post('To find the detailed reason of the error, re-run it with specifying rawdatafile'+\
+                ' parameter and check the content of the output raw data file for the information.','WARN') 
+        else:
+            casalog.post(f'Please check the content of {rawdatafile} for the further information of the error','WARN')
+               
 
 def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format, rawdatafile=''):
     """
@@ -252,7 +260,9 @@ def tocasatb(indata, outtable):
     tempfname = 'temp_ephem_'+str(os.getpid())+'.dat'
     tempconvfname = 'temp_ephem_conv_'+str(os.getpid())+'.dat'
     try:
-        exeedthelinelimit=None
+        exceedthelinelimit = None
+        ambiguousname = None
+        queryerrmsg = ''
         # Scan the original data
         if isinstance(indata, dict) and 'result' in indata:
             #print("ephem data dict")
@@ -336,7 +346,7 @@ def tocasatb(indata, outtable):
                         elif unit == 'calendar':
                             raise RuntimeError('Unit of Step-size in calendar month or year is not supported.')
                         else:
-                            raise RuntimeError(f'Unit of Step-size, {unit} is unrecognized')
+                            raise RuntimeError(f'Unit of Step-size, {unit} is not recognized.')
                         if theunit == 'd':
                             dmjd = m[1]
                         elif theunit == 'steps':
@@ -434,7 +444,9 @@ def tocasatb(indata, outtable):
                     outfile.write(line + '\n')
                 elif re.search(r'Projected output length', line):
                     # this message occurs when requested data is too large
-                    exeedthelinelimit = line
+                    exceedthelinelimit = line
+                elif re.search(r'Multiple major-bodies match', line):
+                    ambiguousname = line
                 else:
                     pass
                 lcnt += 1
@@ -444,11 +456,15 @@ def tocasatb(indata, outtable):
                 headerdict['meanrad'] = {'unit': 'km', 'value': meanrad}
             if datalines == 0:
                 casalog.post("No ephemeris data was found", "WARN")
-                if exeedthelinelimit is not None:
-                    raise RuntimeError("Error occur at the query:"+exeedthelinelimit)
+                queryerrmsg = exceedthelinelimit if exceedthelinelimit != None else ambiguousname
+                
+                if queryerrmsg:
+                    raise RuntimeError(f'Error occurred at the query:{queryerrmsg}')
+                else:
+                    raise RuntimeError(f'Error occurred at the query')
             else:
-                casalog.post(f"Number of data lines={datalines}")
-            casalog.post(f"Number of all lines in the file={lcnt}")
+                casalog.post(f'Number of data lines={datalines}')
+            casalog.post(f'Number of all lines in the file={lcnt}')
             #print("headerdict=", headerdict)
         # output to a casa table
 
@@ -456,6 +472,7 @@ def tocasatb(indata, outtable):
         foundncols = 0
         indexoffset = 0
         colkeys = {}
+        print('incolnames=',incolnames)
         if incolnames is not None:
             for outcolname in cols:
                 # all colnames in cols should have unit defined.
@@ -572,6 +589,7 @@ def tocasatb(indata, outtable):
 
     except RuntimeError as e:
         casalog.post(str(e),"SEVERE")
+    
     finally:
         tempfiles = [tempfname, tempconvfname]
         _clean_up(tempfiles)
