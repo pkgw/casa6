@@ -1,6 +1,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayPartMath.h>
 #include <casacore/casa/BasicMath/Functors.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 #include <stdcasa/UtilJ.h>
 #include <msvis/MSVis/AveragingTvi2.h>
 #include <msvis/MSVis/AveragingVi2Factory.h>

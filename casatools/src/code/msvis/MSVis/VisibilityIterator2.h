@@ -37,6 +37,7 @@
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/VisBufferComponents2.h>
 #include <msvis/MSVis/ViiLayerFactory.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 
 #include <map>
 #include <set>
