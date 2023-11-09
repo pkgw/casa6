@@ -12,16 +12,17 @@ format.
     <param type="string" name="objectname">
 <shortdescription>Name of ephemeris object</shortdescription>
 <description>Name of ephemeris object. The common name of major bodies such as
-             planets will be converted into the (NAIF/SPK) ID. If the parameter, asis
-             is set to True, no such check or conversion will be performed before sending
-             a query to the database.
+             planets known in CASA will be converted into the (NAIF/SPK) ID. If the parameter, asis
+             is set to True, objectname is passed to the query as is to the JPL-Horizons system.
+             If the object ID is used asis must be set to True.
+            
                      Default: '' 
 
                         Example: 
                         objectname='Titan'
-                        objectname='606'
+                        objectname='606' (should set asis=True in this case)
 </description>
-      <value type="string"/>
+      </value>
     </param>
 
     <param type="bool" name="asis">
@@ -29,12 +30,13 @@ format.
 <description>A toggle for objectname check to be done or not before sending a query to the JPL-Horizons system. 
                      Default: False 
 
-                     When asis=False, objectname is checked against the known objects (a list of the supported
-                     ephemeris sources in setjy task plus a few others) by CASA.
-                     Setting asis=True will skip this check and the name has to be uniquly recognized by 
-                     the JPL-Horzions system.
-                     For example, objectname='Jupiter' with asis=True result in the JPL-Horizons system to return 
-                     no ephemeris data as multiple objects matches with the name.
+                     As described in objectname parameter description, when asis=False, objectname is checked 
+                     against the known objects (a list of the supported ephemeris sources in setjy task plus 
+                     a few others) in CASA (See Description in CASA Docs).
+                     Setting asis=True will skip this check/conversion thus objectname has to be uniquly 
+                     recognized by the JPL-Horzions system.
+                     For example, objectname='Jupiter' with asis=True results in the JPL-Horizons system 
+                     to return no ephemeris data as multiple objects matches with the name.
 
                      
 </description>
@@ -57,7 +59,7 @@ format.
                         timerange = 'MJD 60175.1~60176.1'
 
 </description>
-                  <value type="string"/>
+                  </value>
                 </param>
 
                 <param type="string" name="interval">
@@ -66,10 +68,11 @@ format.
                      Default: '5m' 
 
                      A string with integer value and unit (minutes, hours, days) or
-                     a string with integer value without unit (= timerange/interval).
-                     The unit can be given as the first few characters, e.g. 'm', 'min', 'h', 'd'.
+                     a string with integer value without unit (to produce equal time interval defined by
+                     timerange/interval).
+                     The unit can be given as the first few characters, e.g. 'm', 'min', 'h', or 'd'.
 
-                     The JPL-Horizons query allows the step size by calendar months or years however
+                     Note: The JPL-Horizons query allows the step size by calendar months or years however
                      the task will not convert such data to the CASA table as Measures requires the ephemeris
                      table data in equal time interval.  When the calendar months or years is specified 
                      for interval, the task execution will result in a SEVERE error. The raw query results
@@ -94,7 +97,7 @@ format.
                         outfile = 'Titan_MJD60175.1-60176.1.tab'
 
 </description>
-                  <value type="string"/>
+                  </value>
                 </param>
     
                 <param type="string" name="rawdatafile">
@@ -102,11 +105,11 @@ format.
 <description>Name of raw ephemeris data file before converting into a CASA table (optional)
                      Default: '' = No raw ephemeris data is saved 
 
-                     Useful for debugging when errors occured or no output table is produced.
+                     Useful for debugging when errors occured and/or no output table is produced.
 
                          Example: rawdatafile='Titan-jplhorizons.dat'
 </description>
-                  <value type="string"/>
+                  </value>
                 </param>
 
 
