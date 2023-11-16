@@ -10,7 +10,7 @@ class Xunit:
     results = []
     fail_total = 0
     def append_result (self,testname, runtime, returncode, testerr):
-        result =	{
+        result =    {
           "testname": testname,
           "runtime" : runtime,
           "returncode": returncode,
@@ -18,14 +18,13 @@ class Xunit:
         }
         self.results.append(result)
 
-
     def xml_escape(self, text):
         return "".join(self.xml_escape_table.get(c,c) for c in text)
 
     def test_result_to_xml (self,result):
         self.fail_total = self.fail_total + len(result['testerr'])
-        testxml = '<testcase classname="' + result['testname'].replace(".py", "") + '"' \
-              + ' name="Failed tests" time="' + result['runtime'] + '">'
+        testxml = '<testcase classname="' + result['testname'].replace(".py", "") + '.SomeClass"' \
+              + ' name="'+ result['testname'].replace(".py", "") + '" time="' + result['runtime'] + '">'
         if ( result['returncode'] != 0) :
             testxml = testxml + '<failure>' + str(result['testerr']) + '</failure>'
             if self.fail_total == 0:
@@ -34,14 +33,18 @@ class Xunit:
         return testxml
 
     def generateXml(self, testname):
+        import datetime, socket
+        e = datetime.datetime.now()
+        timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
         xmlResults = list(map(lambda result: self.test_result_to_xml(result), self.results))
 
         testHeader = '<?xml version="1.0" encoding="UTF-8"?>' + "\n" \
-                 + '<testsuite name="UnitTests" tests="' \
+                 + '<testsuites><testsuite name="runtest.bamboo" tests="' \
                  + str(len(self.results)) + '" errors="'+ str(self.fail_total) + '"' \
-                 + ' failures="' + str(self.fail_total) + '" skip="0">\n'
+                 + ' failures="' + str(self.fail_total) + '" skipped="0" timestamp="'+ timestamp \
+                 + '" hostname="' + socket.gethostname()+ '">\n'
         print("Results: " + str(self.results))
-        testFooter ="\n</testsuite>"
+        testFooter ="\n</testsuite></testsuites>"
 
         # Write xUnit.xml
         xUnit = open("xUnit-"+testname+".xml", "w+")

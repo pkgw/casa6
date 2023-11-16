@@ -30,13 +30,18 @@ DRY_RUN = False
 ########################################################################################################################
 ###########################################            Functions            ############################################
 ########################################################################################################################
-# At the moment, this needs to be a sep function due to repr and escape characters, try/ except for osx
-def write_conftest_osx(filepath):
+
+def write_conftest(filepath):
+    platform_os='Linux'
+    if platform.system() == 'Darwin':
+        platform_os = 'Darwin'
     string = """
 import pytest
 import inspect
 import os
-
+    """
+    if platform_os == 'Darwin':
+        string = string + """
 @pytest.mark.trylast
 def pytest_configure(config):
     terminal_reporter = config.pluginmanager.getplugin('terminalreporter')
@@ -45,77 +50,16 @@ def pytest_configure(config):
     except:
         pass
     config.pluginmanager.register(TestDescriptionPlugin(terminal_reporter), 'testdescription')
-
-class TestDescriptionPlugin:
-
-    def __init__(self, terminal_reporter):
-        self.terminal_reporter = terminal_reporter
-        self.desc = None
-        self.funcn = None
-
-    def pytest_runtest_protocol(self, item):
-        #from pprint import pprint
-        #d = item.__dict__
-        #pprint(d, indent=2)
-        self.desc = inspect.getdoc(item.obj)
-        #print(item._nodeid)
-        self.funcn = item._nodeid
-
-    @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-    def pytest_runtest_logstart(self, nodeid, location):
-        #print("Verbosity Level: {}".format(self.terminal_reporter.verbosity))
-        if self.terminal_reporter.verbosity == 0:
-            yield
-            self.terminal_reporter.write(f'\\n{self.funcn} \\n')
-        else:
-            self.terminal_reporter.write('\\n')
-            yield
-            if self.desc:
-                    self.terminal_reporter.write(f'\\n{self.desc} \\n')
-            else:
-                    self.terminal_reporter.write(f'\\n')
-
-    @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_makereport(item, call):
-        outcome = yield
-        report = outcome.get_result()
-        if report.when=='call':
-            filepath = os.path.join(os.getcwd(),'short_summary.log')
-            # write short summary to file
-            file_obj = open(filepath, 'a' if os.path.isfile(filepath) else 'w')
-            file_obj.write("{} {}\\n".format(report.outcome.upper(), report.nodeid))
-            file_obj.close()
-
-            # Write not pass to Textfile
-            if report.outcome != 'passed':
-                file_obj = open(filepath, 'a' if os.path.isfile(filepath) else 'w')
-                file_obj.write("\\tDuration: {}s\\n".format(round(report.duration,5)))
-                if report.outcome == 'failed':
-                    file_obj.write("\\tMessage : {}\\n".format(report.longrepr.reprcrash.message))
-                file_obj.close()
-                filepath = os.path.join(os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..')),'summary_of_failed.log')
-                file_obj = open(filepath, 'a' if os.path.isfile(filepath) else 'w')
-                file_obj.write("{} {}\\n".format(report.outcome.upper(), report.nodeid))
-                file_obj.write("\\tDuration: {}s\\n".format(round(report.duration,5)))
-                if report.outcome == 'failed':
-                    file_obj.write("\\tMessage : {}\\n".format(report.longrepr.reprcrash.message))
-                file_obj.close()
-    """
-    file_obj = open(filepath,'w')
-    file_obj.write(string)
-    file_obj.close()
-
-def write_conftest_linux(filepath):
-    string = """
-import pytest
-import inspect
-import os
-
+        """
+    if platform_os == 'Linux':
+        string = string + """
 @pytest.mark.trylast
 def pytest_configure(config):
     terminal_reporter = config.pluginmanager.getplugin('terminalreporter')
     config.pluginmanager.register(TestDescriptionPlugin(terminal_reporter), 'testdescription')
+        """
 
+    string = string + """
 class TestDescriptionPlugin:
 
     def __init__(self, terminal_reporter):
@@ -144,7 +88,9 @@ class TestDescriptionPlugin:
                     self.terminal_reporter.write(f'\\n{self.desc} \\n')
             else:
                     self.terminal_reporter.write(f'\\n')
-
+    """
+    if platform_os == 'Linux':
+        string = string + """
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(item, call):
         outcome = yield
@@ -158,7 +104,9 @@ class TestDescriptionPlugin:
             file_obj = open(filepath, 'a' if os.path.isfile(filepath) else 'w')
             file_obj.write("{} {}\\n".format(report.outcome.upper(), report.nodeid,))
             file_obj.close()
+        """
 
+    string = string + """
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(item, call):
         outcome = yield
@@ -188,6 +136,7 @@ class TestDescriptionPlugin:
     file_obj = open(filepath,'w')
     file_obj.write(string)
     file_obj.close()
+
 
 def write_pytestini(filepath, testname):
     string = """
@@ -349,7 +298,7 @@ def is_in_remote(branch,repo_path, repo):
     if branch != 'master':
         if branch.startswith("origin"):
              cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("\/(.*)",branch )[0])
-       
+
         else:
             cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, branch)
 
@@ -362,7 +311,7 @@ def is_in_remote(branch,repo_path, repo):
             return True
     else:
         return True
-        
+
 def check_branch_path(branch):
     if branch.startswith("origin"):
         if "release" in branch:
@@ -376,7 +325,7 @@ def check_branch_path(branch):
             cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
 
     return cmd
-    
+
 def check_branch_path_merge(branch):
     if branch.startswith("origin"):
         if "release" in branch:
@@ -426,12 +375,14 @@ def fetch_tests(work_dir, branch, merge_target=None):
     run_shell_command(cmd, source_dir)
 
     if merge_target is not None:
+
         cmd = check_branch_path(merge_target)
         print("\tRunning: ", " ".join(str(x) for x in cmd))
         run_shell_command(cmd, source_dir + "/" + repo)
 
         if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
             print("\tMerging {} into {}".format(branch, merge_target))
+
             cmd = check_branch_path_merge(branch)
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
@@ -514,81 +465,6 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
     return test_paths
 
-def unpack_dmg(pkg, work_dir, outputdir):
-    mountpoint = work_dir + "/mnt"
-    if not os.path.exists(mountpoint):
-        os.makedirs(mountpoint)
-
-    print ("Unpacking dmg: " + pkg + " to " +  outputdir)
-    cmd = ("hdiutil attach " + pkg + " -mountpoint " + mountpoint).split()
-    r = ShellRunner()
-    output = r.runshell(cmd, default_timeout, cwd=os.getcwd())
-    installpath = outputdir + "/CASA.app"
-    cmd = ("ditto " + mountpoint + "/CASA.app " + outputdir + "/CASA.app").split()
-    r = ShellRunner()
-    output = r.runshell(cmd, default_timeout, cwd=os.getcwd())
-    cmd = ("hdiutil detach " + mountpoint).split()
-    r = ShellRunner()
-    output = r.runshell(cmd, default_timeout, cwd=os.getcwd())
-    return installpath
-    
-def unpack_tarball(pkg, outputdir):
-    print ("Unpacking tarball: " + pkg + " to " +  outputdir)
-    cmd = ("tar -xf " + pkg + " -C " + outputdir).split()
-    print(cmd)
-    r = ShellRunner()
-    output = r.runshell(cmd, default_timeout, cwd=os.getcwd())
-
-    installpath = None
-
-    print("Outputdir contents:" + outputdir)
-    for root, dirs, files in os.walk(outputdir):
-        for d in dirs:
-            print(" " + d)
-            if d.startswith("casa-"):
-                installpath = d
-                print("installpath: " + installpath)
-        break
-
-    if installpath is None:
-        raise  RuntimeError("Couldn't find a directory that looks like a Casa distribution. Expected directory name to start with 'casa-'")
-    return outputdir + "/" + installpath
-
-def get_casatestutils_exec_path(pkg_dir):
-    # Since runtest is no longer part of casatestutils, this may be removed.
-    for currentpath, folders, files in os.walk(pkg_dir):
-        for file in files:
-            #print(">>>" + os.path.join(currentpath, file))
-            if currentpath.endswith('casatestutils') and file == 'runtest.py':
-                return(os.path.join(currentpath, file))
-    return "/dev/null/"
-
-def unpack_pkg(pkg, work_dir, outputdir):
-    if not os.path.exists(outputdir):
-        os.makedirs(outputdir)
-    if platform.system() == "Linux":
-        installpath = unpack_tarball(pkg, outputdir)
-        print ("Package root: " + installpath)
-        exec_path = installpath + "/bin"
-    elif platform.system() == "Darwin":
-        installpath = unpack_dmg(pkg,work_dir, outputdir)
-        print("Package root: " + installpath)
-        exec_path = installpath + "/Contents/MacOS"
-    else:
-        raise Exception("Unknown operating system")
-    if exec_path is None:
-        raise Exception ("Couldn't find casa executable path")
-    casatestutils_exec_path = get_casatestutils_exec_path(installpath)
-    if casatestutils_exec_path == None:
-        raise Exception("Couldn't find casatestutils")
-    return exec_path, casatestutils_exec_path
-
-def write_conftest(conf_name):
-    if platform.system() == 'Darwin':
-        write_conftest_osx(conf_name)
-    else:
-        write_conftest_linux(conf_name)
-
 def run_cmd(cmd):
     try:
         from casampi.MPIEnvironment import MPIEnvironment
@@ -624,7 +500,7 @@ def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
         write_conftest(os.path.join(os.getcwd(),"conftest.py"))
         result = run_cmd(cmd)
         update_xml(xmlfile, result, name= os.getcwd().split("/")[-1])
-        os.remove(os.path.join(os.getcwd(),"conftest.py"))
+        #os.remove(os.path.join(os.getcwd(),"conftest.py"))
         os.remove(os.path.join(os.getcwd(),"pytest.ini"))
         os.chdir(myworkdir)
 ########################################################################################################################
@@ -749,6 +625,17 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
         #build_xml(workpath + '/xml/xUnit.xml', workpath + '/xml/')
         os.chdir(cwd)
 
+def run_bamboo_test(r, cmd, timeout, cwd):
+    print("Running cmd " + str(cmd) + "in " + cwd)
+    if not os.path.exists(cwd):
+        os.makedirs(cwd)
+    starttime = datetime.datetime.now()
+    output = r.runshell(cmd, timeout,cwd)
+    endtime = datetime.datetime.now()
+    runtime = endtime - starttime
+
+    return output, runtime
+
 ########################################################################################################################
 #######################################            Run Bamboo Option            ########################################
 ########################################################################################################################
@@ -757,22 +644,21 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
 
     if test_list is not None:
         test_list = [x.strip() for x in test_list.split(',')]
-    if args.test_group is not None:
+    if test_group is not None:
         test_group = [x.strip() for x in test_group.split(',')]
 
-    # Unpack the distribution
-    print ("run_bamboo")
-    print ("Test list: " + str (test_list))
-    print ("Test group: " + str (test_group))
+    print ("---------------     run_bamboo     ---------------")
+    print ("Test list: {}\nTest group: {}".format(test_list,test_group))
 
     if pkg is None:
         raise Exception("Missing pkg")
     if work_dir is None:
         raise Exception("Missing work_dir")
-    exec_path, casatestutils_exec_path = unpack_pkg(pkg, work_dir, work_dir + "/pkg")
 
-    print("Executable path: " + exec_path)
-    print("casatestutils path: " + casatestutils_exec_path)
+    # Unpack the distribution
+    exec_path, casatestutils_exec_path = atlassian_helper.unpack_pkg(pkg, work_dir, work_dir + "/pkg", default_timeout)
+
+    print("Executable path: {}\nCasatestutils Path: {}".format(exec_path, casatestutils_exec_path))
 
     # Start Xvfb on Linux
     xvfb = xvfb_helper.XvfbHelper()
@@ -783,12 +669,11 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
         branch = "master"
 
     print ("run_bamboo fetch_tests branch" + branch)
-    
+
     # Clone a default set of repositories to if test paths are not provided from command line
     if len(test_paths) == 0 :
         test_paths = fetch_tests(str(work_dir), branch, merge_target)
 
-    test_config = None
     if test_config_path == None:
        test_config_path = work_dir + "/casasources/casa6/casatestutils/casatestutils/component_to_test_map.json"
     # Read the JSON configuration
@@ -893,8 +778,6 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
             print(t.name)
 
     # Run tests
-    print("")
-
     if tests_to_ignore is not None:
         print("\nTests to Ignore: ",tests_to_ignore )
         indices = []
@@ -906,8 +789,6 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
     for test in tests_to_run:
         r = ShellRunner()
         xunit = Xunit()
-
-        #pmodes: pmodes = ['serial','parallel','both']
         # Skip MPI on Darwin for now
         if "mpi" in test.options and sys.platform != "darwin" and ( pmode == 'parallel' or pmode == 'both'):
             print("Running test: {} in MPI mode".format(test.name))
@@ -918,14 +799,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
             cwd = work_dir + "/" + test.name
             if pmode == 'both':
                 cwd = work_dir + "/" + test.name + '_mpi'
-
-            print("Running cmd " + str(cmd) + "in " + cwd)
-            if not os.path.exists(cwd):
-                os.makedirs(cwd)
-            starttime = datetime.datetime.now()
-            output = r.runshell(cmd, test.timeout,cwd)
-            endtime = datetime.datetime.now()
-            runtime = endtime - starttime
+            output, runtime = run_bamboo_test(r, cmd, test.timeout, cwd)
             xunit.append_result(test.name, str(runtime), len(output), output)
             print("")
 
@@ -938,14 +812,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
                 assert (test != None)
                 cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
                 cwd = work_dir + "/" + test.name
-
-                print("Running cmd " + str(cmd) + "in " + cwd)
-                if not os.path.exists(cwd):
-                    os.makedirs(cwd)
-                starttime = datetime.datetime.now()
-                output = r.runshell(cmd, test.timeout,cwd)
-                endtime = datetime.datetime.now()
-                runtime = endtime - starttime
+                output, runtime = run_bamboo_test(r, cmd, test.timeout, cwd)
                 xunit.append_result(test.name, str(runtime), len(output), output)
                 print("")
 
@@ -957,14 +824,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
-
-            print("Running cmd " + str(cmd) + "in " + cwd)
-            if not os.path.exists(cwd):
-                os.makedirs(cwd)
-            starttime = datetime.datetime.now()
-            output = r.runshell(cmd, test.timeout,cwd)
-            endtime = datetime.datetime.now()
-            runtime = endtime - starttime
+            output, runtime = run_bamboo_test(r, cmd, test.timeout, cwd)
             xunit.append_result(test.name, str(runtime), len(output), output)
             print("")
 
@@ -977,14 +837,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
-
-            print("Running cmd " + str(cmd) + "in " + cwd)
-            if not os.path.exists(cwd):
-                os.makedirs(cwd)
-            starttime = datetime.datetime.now()
-            output = r.runshell(cmd, test.timeout,cwd)
-            endtime = datetime.datetime.now()
-            runtime = endtime - starttime
+            output, runtime = run_bamboo_test(r, cmd, test.timeout, cwd)
             xunit.append_result(test.name, str(runtime), len(output), output)
             print("")
 
@@ -1038,7 +891,6 @@ if __name__ == "__main__":
     parser.add_argument('-r','--rcdir',  help='Casa rcdir', required=False)
     parser.add_argument('--ignore_list',  help='map file of tests to ignore', required=False)
 
-
     args, unknownArgs = parser.parse_known_args()
 
     print(args)
@@ -1065,7 +917,7 @@ if __name__ == "__main__":
         components = [x.strip() for x in components.split(",")]
         print("Testing Components" + str(components))
         print("")
-        
+
         if not args.bamboo:
             if args.mapfile is not None:
                 component_to_test_map = json.load(args.mapfile)
@@ -1081,7 +933,6 @@ if __name__ == "__main__":
                 _isComponent = False
                 component = c.strip()
                 for myDict in component_to_test_map["testlist"]:
-                    #print(component, myDict["testGroup"])
                     if component in myDict["testGroup"] or component in myDict["testType"]:
                         _isComponent = True
                         if (myDict["testScript"] not in testnames):
@@ -1191,7 +1042,6 @@ if __name__ == "__main__":
                         testnames.append(test)
                 except:
                     traceback.print_exc()
-
     print("Arguments Sent Direct To Pytest : ",pytest_args)
 
     try:
@@ -1199,6 +1049,7 @@ if __name__ == "__main__":
             from testrunner.shell_runner import ShellRunner
             from testrunner import xvfb_helper
             from testrunner.xunit import Xunit
+            from testrunner import atlassian_helper
             if args.pkg:
                 print("Package: " + args.pkg)
             print("Test configuration file: " + str(args.test_config))
@@ -1213,7 +1064,6 @@ if __name__ == "__main__":
 
         else:
             #If no tests are given, no subet tag or --all option
-            #print("Testnames: {}".format(testnames))
             if args.test_paths is not None:
                 tests = []
                 test_paths = [x.strip() for x in args.test_paths.split(',')]
@@ -1225,17 +1075,14 @@ if __name__ == "__main__":
                                      tests.append(os.path.realpath(os.path.join(root, file)))
                 else:
                     for test_path in test_paths:
-                        #print(test_path)
                         for test in testnames:
                             if not test.endswith(".py"):
                                 test = test + ".py"
-                            #print(test)
                             for root, dirs, files in os.walk(test_path):
                                 for file in files:
                                     if file == test:
                                         tests.append(os.path.realpath(os.path.join(root, file)))
                 testnames = tests
-            # This section is duplicate. TO be removed with CAS-13820
             if tests_to_ignore is not None:
                 print("\nTests to Ignore: ",tests_to_ignore )
                 indices = []
