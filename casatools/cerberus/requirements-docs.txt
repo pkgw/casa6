@@ -1,3 +1,0 @@
-# requirements to build documentation
-Sphinx
-sphinxcontrib-issuetracker
