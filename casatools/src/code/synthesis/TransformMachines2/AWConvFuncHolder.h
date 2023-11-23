@@ -53,12 +53,22 @@ class AWConvFuncHolder{
   casacore::Vector<Stokes::StokesTypes> getPolVals(){return polVals_p;};
   casacore::Vector<Double> getFreqVals(){return freqVals_p;};
   casacore::Vector<Double> getWVals(){return wVals_p;};
-  casacore::Vector<Double> getPAVals(){return paVals_p;};
-  int getOverSampling(){return oversamp_p;};
+  casacore::Vector<Double> getPAVals() { return paVals_p; };
+  // For the HPG gridder we have to get some specialized version as it cannot load all frequencies and all
+  // w-vals in one go. So do it by spw in the vb
+  // call reset first then call to get the conv funcs and indices
+  void resetHPGConvFuncs(const vi::VisBuffer2& vb);
+  casacore::Array<casacore::Complex>& getConvFuncHPG();
+  casacore::Array<casacore::Complex>& getWeightConvFuncHPG();
+  casacore::Vector<Double> getFreqValsHPG() { return freqValsHPG_p; };
+  casacore::Vector<Double> getWValsHPG() { return wValsHPG_p; };
+  int getOverSampling() { return oversamp_p; };
   //Rowmap will return the indices to match along the 5th axis of convFunc, polmap is for the 3rd axis, and chanmap is for the 4th axis.
   //Rowmap will map combination of pa, antennapair and w to give the 5th index that matches 
   //Rowmap will be the same nrow as vb.nrows , polmap will gave the same length of vb.ncorrelations and chanmap will be the length of vb.nchannelscasacore::Vector<casacore::Int>& rowMap
   void getConvIndices( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
+  //This version is for HPG gridder only;  which uses subsets of the convfuncs
+  void getConvIndicesHPG( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
   //Function gives pointing direction w.r.t image center  in phase shift: used in putting a phase gradient in the UV domain
   // Will be using for now only 1st row.
   Vector<Double> getPointingPhaseShift(const vi::VisBuffer2& vb, const bool usepointing=False);
@@ -77,6 +87,11 @@ class AWConvFuncHolder{
   casacore::Vector<Double> wVals_p;
   casacore::Vector<Double> paVals_p;
   casacore::Vector<std::pair<int, int> > antpairVals_p;
+  /// The following are for HPG gridder which is a subset of convfuncs per spw
+  casacore::Array<casacore::Complex> convFuncHPG_p;
+  casacore::Array<casacore::Complex> wgtConvFuncHPG_p;
+  casacore::Vector<Double> freqValsHPG_p;
+  casacore::Vector<Double> wValsHPG_p;
   ///These 3 vectors will be the same length as the 5th axis pf convFunc
   // they will point to the index of wvals or paval or antpair vetcor value for which the convfunc is
   casacore::Vector<Int> rowAxisWVals_p;
@@ -84,6 +99,9 @@ class AWConvFuncHolder{
   casacore::Vector<Int > rowAxisAntennaPair_p;
   casacore::Vector<Int> convSizes_p;
   casacore::Vector<Int> convSupport_p;
+  // HPG versions
+  casacore::Vector<Int> convSizesHPG_p;
+  casacore::Vector<Int> convSupportHPG_p;
   //Image parameters that the convfunc will map to (for now the direction
   //increment is what matters for the csys_p
   casacore::CoordinateSystem outcsys_p;

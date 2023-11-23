@@ -27,10 +27,10 @@ AWVisResamplerHPG::loadCF(VBStore& vbs, Int& nGridPol, Int& nDataPol,
 
     CountedPtr<CFBuffer> cfb = (*vb2CFBMap_p)[irow];
     cfb->getCoordList(fVals,wVals,mNdx, mVals, conjMNdx, conjMVals, fIncr, wIncr);
-
+    cerr << "####FVALS " << fVals << " wVals " << wVals  << endl;
     nWCF = wNdxList.nelements();
     nFreqCF = spwNdxList.nelements();
-
+    cerr << "@@@LoadCF wndxls " << wNdxList << " spwNdxls " << spwNdxList << endl;
     // Get the oversampling parameter.
     {
       Float s;
@@ -114,7 +114,7 @@ AWVisResamplerHPG::loadCF(VBStore& vbs, Int& nGridPol, Int& nDataPol,
 			{
 			  int fNdx=spwNdxList[iFreq];
 			  int wNdx=wNdxList[iW];
-			  //cerr << "F:" << fNdx << " W:" << wNdx << " m:" << mCols << " ip:" << ipol << " Fr:" << iFreq << endl;
+			  cerr << "F:" << fNdx << " W:" << wNdx << " m:" << mCols << " ip:" << ipol << " Fr:" << iFreq << endl;
 			  convFuncV=getConvFunc_p(vbPA,cfShape, support,muellerElement,
 						  cfb, dataWVal,
 						  fNdx, wNdx,
@@ -128,6 +128,7 @@ AWVisResamplerHPG::loadCF(VBStore& vbs, Int& nGridPol, Int& nDataPol,
 			  // tt[1] ==> cube : should always be 0
 			  // tt[2] ==> group : linearized index from (BLType, PA, W, SPW)
 			  std::array<unsigned, 3> tt=cfsi.cf_index(cfCellNdx);
+                          cerr << "IGRP " << iGrp <<" TT* " << tt[0] << "  " << tt[1] << "  " << tt[2] << endl;
 			  cfArray.resize(iGrp,cfShape(0), cfShape(1));//This allocates internal buffers in CFArray.
 			  // SB: cfArray.setValues(convFuncV, iCF, cfShape(0), cfShape(1), mNdx[ipol][mCols], 0); 
 			

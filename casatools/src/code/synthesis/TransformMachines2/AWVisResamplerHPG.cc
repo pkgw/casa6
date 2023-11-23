@@ -79,7 +79,6 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 {
 	unsigned nVisChan=endChan - startChan + 1;
 	unsigned nVisRow=endRow - startRow + 1;
-	unsigned targetIMChan, targetIMPol;
 	const casa::VisBuffer2& vb = *(casaVBS.vb_p);
 	IPosition dataShape = vb.visCube().shape();
 	unsigned nDataPol=dataShape(0);
@@ -100,23 +99,24 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	hpg::vis_phase_fp              dphaseHPG;
 	unsigned                       grid_cube=0; // For now, grid on the same plane.
 	// Need to pass the beam offsets phase grad
-	Vector<Double> pointingOffsets = awh.getPointingPhaseShift(vb);
+	//setting to use pointing table for now
+	Vector<Double> pointingOffsets = awh.getPointingPhaseShift(vb, True);
 	hpg::cf_phase_gradient_t       cf_phase_gradient = {(hpg::cf_phase_gradient_fp)pointingOffsets[0],
 					 (hpg::cf_phase_gradient_fp)pointingOffsets[1]};
 	   
 	
 	std::array<unsigned, 2>        cf_index;
 	Vector<Double>freq = vb.getFrequencies(0);
-	Int vbSpw = vb.spectralWindows()(0);
+//	Int vbSpw = vb.spectralWindows()(0);
 	unsigned hpgIRow=0;
 	// Lets get convindices
 	Vector<Int> convpolmap;
 	Vector<Int> convchanmap;
 	Vector<Int> convrowmap;
-	awh.getConvIndices(convpolmap,  convchanmap,  convrowmap,  vb,  UVW);
-	// convrowmap goes from -ve(nW-1) to nW-1
-	uint nconvchan = awh.getFreqVals().nelements();
-	uint nconvwvals = awh.getWVals().nelements();
+	awh.getConvIndicesHPG(convpolmap,  convchanmap,  convrowmap,  vb,  UVW);
+	// convrowmap goes from 0 to nW-1 inclusive
+	uint nconvchan = awh.getFreqValsHPG().nelements();
+	uint nconvwvals = awh.getWValsHPG().nelements();
 	//cerr <<  "vb.spec" << vb.spectralWindows()(0) <<  "convchanmap" <<  convchanmap <<  " nconvchan " << nconvchan << " convrow " << convrowmap <<   endl;
 	for(unsigned irow=startRow; irow< endRow; irow++) 
 	 {
@@ -136,12 +136,14 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	    {
 		 if(((chanMap[ichan]>=0) && (chanMap[ichan]<nGridChan))) 
 			{
+				int polelem=0;  
 			for(unsigned ipol=0; ipol< nDataPol; ipol++) 
 			{
-			      
+			    
 				if ((polMap(ipol)>=0) && (polMap(ipol)<nGridPol)) 
 				{
-				      int visVecElement= polMap[ipol];
+				      //int visVecElement= polMap[ipol];
+					  int visVecElement=polelem;
 				      if (vb.flagCube()(ipol,ichan,irow)==false)
 					{
 					  if ((casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT)||
@@ -157,25 +159,32 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 					  wt[visVecElement]=casaVBS.imagingWeight_p(ichan,irow);
 					}
 				      else
-					{
+					  {
 					  vis[visVecElement] = 0.0;
 					  wt[visVecElement]  = 0.0;
 					}
-				
-				  sumwt(polMap[ipol],chanMap[ichan]) += vb.imagingWeight()(ichan, irow);
+					++polelem;
+				  	sumwt(polMap[ipol],chanMap[ichan]) += vb.imagingWeight()(ichan, irow);
 				}
 				// if polmap
 			    
 			}
 			//ipol
-			hpg::vis_frequency_fp frequency=freq[ichan];
-			if (casaVBS.ftmType_p==casa::refim::FTMachine::PSF || casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT ) {
-				dphaseHPG=0.0;
+			uint cindex=0;
+			hpg::vis_frequency_fp frequency = freq[ichan];
+			if (casaVBS.ftmType_p==casa::refim::FTMachine::PSF || casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT ) 
+			{
+				dphaseHPG = 0.0;
+				//cindex = (0 + nconvwvals - 1) * nconvchan + convchanmap[ichan];
+
 			}
 			else{
-				dphaseHPG=-2.0*C::pi*dphase[irow]*frequency/C::c;
+				dphaseHPG = -2.0 * C::pi * dphase[irow] * frequency / C::c;
+				//cindex = (convrowmap[irow] + nconvwvals - 1) * nconvchan + convchanmap[ichan];
 			}
-			uint cindex = (convrowmap[irow]+nconvwvals-1)*nconvchan+convchanmap[ichan];
+			//uint cindex = (convrowmap[irow]+nconvwvals-1)*nconvchan+convchanmap[ichan];
+			cindex = convchanmap[ichan] * (nconvwvals) + abs(convrowmap[irow]);
+
 			cf_index = {0,cindex};
 			// cfindex is rowindex*nconvchan+ convchanmap
 			hpgVB[hpgIRow++] = hpg::VisData<N>(vis,wt,frequency,dphaseHPG,hpgUVW,grid_cube,cf_index
@@ -322,26 +331,27 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
       LogIO log_l(LogOrigin("AWVisResamplerHPG","loadCF"));
       Int ndatapol = vbs.vb().nCorrelations();
       Int ndataChan = vbs.vb().nChannels();
+      awh.resetHPGConvFuncs(vbs.vb());
       Array<Complex> cFunc;
       if (vbs.ftmType_p !=  casa::refim::FTMachine::WEIGHT) {
-		cFunc = awh.getConvFunc();
+		cFunc = awh.getConvFuncHPG();
 	  }
 	   else{		
-		cFunc = awh.getWeightConvFunc();
+		cFunc = awh.getWeightConvFuncHPG();
 	   }
       IPosition cshape = cFunc.shape();
       cerr <<  "convfunc shape" <<  cshape <<  " npix " <<  cshape.product() <<  endl;
       uint convSize = cshape[0];
       uInt nConvPol = cshape[2];
-      Vector<Double> cFreqs = awh.getFreqVals();
-      Vector<Double> cWVals = awh.getWVals();
-      uint nPol = HPGNPOL;                                         // we'll try only the RR
+      Vector<Double> cFreqs = awh.getFreqValsHPG();
+      Vector<Double> cWVals = awh.getWValsHPG();
+      uint nPol = 2;                                         // we'll try only the RR
       uint nchan = cFreqs.nelements();
       uint nw = cWVals.nelements();
       int sampling = awh.getOverSampling();
-      uint nCF = nchan * (2*nw-1);
+      uint nCF = nchan * (nw);
        //                               nBLType, nTime/PA, nW, nFreq, nPol
-      hpg::CFSimpleIndexer cfsi({1,false},{1,false},{2*nw-1,true},{nchan,true}, nPol);
+      hpg::CFSimpleIndexer cfsi({1,false},{1,false},{nw,true},{nchan,true}, nPol);
 
       if (cfArray.oversampling()==0) {
         
@@ -351,37 +361,39 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
       }
       Bool isCopy;
       Complex *cfuncPtr = cFunc.getStorage(isCopy);
-      Matrix<Complex> conjW(convSize,  convSize);
-      Bool isConjCopy;
-	  Complex *conjptr = conjW.getStorage(isConjCopy);
+      //Matrix<Complex> conjW(convSize,  convSize);
+      //Bool isConjCopy;
+	  //Complex *conjptr = conjW.getStorage(isConjCopy);
       unsigned iGrp=0; // HPG Group index
-      //cerr <<  "nchan " <<  nchan <<  " nw " <<  nw <<  endl;
+      cerr <<  "@@@@@LoadCF nchan " <<  nchan <<  " nw " <<  nw <<  endl;
       for(uint iFreq=0; iFreq < nchan; ++iFreq) // CASA CF Freq-index
       {
-        // CASA CF W-index
-        for(Int iW=1-int(nw); iW < Int(nw); ++iW)
-        {
+		  // CASA CF W-index
 		  uint wcounter = 0;
+		  for (Int iW =0; iW < Int(nw); ++iW)
+        {
+		  
           for(uint ipol=0; ipol < nPol; ++ipol)  // CASA CF Pol-index
           {
             Complex* convptr=NULL;
-            uint ptroffset =  ((abs(iW)*nchan+iFreq)*nConvPol+ipol)*convSize*convSize;
-            //cerr <<  "ptroffset " <<  ptroffset <<  endl;
+			uint ptroffset =  ((abs(iW)*nchan+iFreq)*nConvPol+ipol)*convSize*convSize;
+			//uint ptroffset = ((iFreq * nw + iW) * nConvPol + ipol) * convSize * convSize;
+			//cerr <<  "ptroffset " <<  ptroffset <<  endl;
             convptr = (cfuncPtr+ptroffset);
-            if (iW < 0) {
+            /*if (iW < 0) {
 				
 				memcpy(conjptr, convptr, sizeof(Complex)*convSize*convSize);
 				conjW.putStorage(conjptr, isConjCopy);
-				conjW = conj(conjW);
+				//conjW = conj(conjW);
 				conjptr = conjW.getStorage(isConjCopy);
 				convptr = conjptr;
-			}
-            hpg::CFCellIndex cfCellidx(0,0, wcounter,iFreq,ipol);
-            std::array<unsigned, 3> index = cfsi.cf_index(cfCellidx);
-            cfArray.resize(iGrp, convSize,  convSize);
+			}*/
+            hpg::CFCellIndex cfCellidx(0,0, 0,iFreq,ipol);
+			std::array<unsigned, 3> index = cfsi.cf_index(cfCellidx);
+			cfArray.resize(iGrp, convSize, convSize);
             if (send_to_device) {
 			//cerr << "send iFreq " << iFreq <<  " igrp " <<  iGrp << " indices " <<  index[0] <<  "," <<  index[1] <<  "," <<  index[2] << endl;  
-             cfArray.setValues(convptr,  iGrp,  convSize,  convSize,  index[0],  index[1]);
+             cfArray.setValues(convptr,  iGrp,  convSize,  convSize,  ipol,  0);
             }
           }                                                 // pol
 		  ++iGrp;
@@ -390,7 +402,6 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	   
       }                                                     // ifreq
       cFunc.putStorage(cfuncPtr,  isCopy);
-      conjW.putStorage(conjptr,  isConjCopy);
       hpg::opt_t<hpg::Error> err;
       if (send_to_device) {
         	err=hpgGridder_p->set_convolution_function(hpg::Device::OpenMP, std::move(cfArray));
@@ -586,6 +597,9 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
     hpgGridder_p->shift_grid(ShiftDirection::BACKWARD);
 
     GatherGrids(griddedData,sumwt);
+	//	size_t size;
+	 //auto wgtptr = getSumWeightsPtr(size);
+   //cerr << "@@@SIZE " << size << " sumwt " << ((size >0) ? String::toString(wgtptr.get()[size - 1]) : "null") << endl;
 
     //      cerr << endl << "HPG::resetGridder()" << endl;
     hpgGridder_p->reset_grid();
@@ -597,6 +611,7 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 
     log_l << "...done finalizing gridding" << LogIO::POST;
   } 
+  ////====================================================================
   void AWVisResamplerHPG::GatherGrids(casacore::Array<casacore::DComplex>& griddedData, casacore::Matrix<casacore::Double>& sumwt) 
   {
       LogIO log_l(LogOrigin("AWVisResamplerHPG[R&D]","GatherGrids(DCompelx)"));
@@ -619,7 +634,7 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	    }
 	  cerr << endl;
 	  }
-	cerr << "Shapes: hpgSoW_p, sumwt: " << sumwt << endl;
+	cerr << "Before: hpgSoW_p, sumwt: " << sumwt << endl;
 	// hpgSoW_p is of type sumofweight_fp (vector<vector<double>>).  sumWeight is a Matrix.
 	// sow[i][*] is a Mueller row. i is the index for the polarization product.
 	// wt below is a sum of the weights of all the Mueller elements in a row.
@@ -636,7 +651,7 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 		  }
 	      }
 	  }
-
+	cerr << "After: hpgSoW_p, sumwt: " << sumwt << endl;
       	// for (size_t i = 0; i < 4; ++i)
       	//   cerr << gg->extent(i) << " ";
       	IPosition shp = griddedData.shape(),ndx(4);
@@ -1030,8 +1045,8 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 	}
       //
    
-      //bool reloadCFs=(hpgGridder_p==NULL) || (cachedVBSpw_p != vbSpw);
-      bool reloadCFs=(hpgGridder_p==NULL);
+      bool reloadCFs=(hpgGridder_p==NULL) || (cachedVBSpw_p != vbSpw);
+      //bool reloadCFs=(hpgGridder_p==NULL);
       //TESTOOO
       //reloadCFs=True;
       //////////////////

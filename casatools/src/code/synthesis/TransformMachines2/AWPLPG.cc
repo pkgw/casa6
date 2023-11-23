@@ -86,7 +86,15 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   //convSampling = 1;
   // TESTOO
   
+  CoordinateSystem cs=image->coordinates();
   
+    SpectralCoordinate spCS = cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+    double f1, f2;
+    nchan = image->shape()(3);
+    spCS.toWorld(f1, double(-0.5));
+    spCS.toWorld(f2, double(nchan)-0.5);
+    auto frange=std::make_pair(f1, f2);
+    
   
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
@@ -111,13 +119,21 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
-              pbConvFunc_p->findUsefulChannels(chunkfreq, vb);
+              pbConvFunc_p->findUsefulChannels(chunkfreq, vb, frange);
               //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
-              std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
-              if(doSquint_p)
+              if (chunkfreq.size() > 0) {
+                cerr << "SPW " << vb.spectralWindows()(0) << " freqs " << Vector<Double>(chunkfreq) << endl;
+                std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
+                double maxfreqused = *(std::max_element(chunkfreq.begin(), chunkfreq.end()));
+                if (nw_p > 1) {
+                  // 	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+                  maxW = max(maxW, max(abs(vb.uvw().row(2) * maxfreqused)) / C::c);
+                }
+              }
+              if (doSquint_p)
                 pAs.push_back(getPA(vb));
-              if(nw_p > 1)
-                	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+              //if(nw_p > 1)
+              //  	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
           }
     }
     

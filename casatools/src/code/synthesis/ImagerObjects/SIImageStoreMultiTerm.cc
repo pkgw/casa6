@@ -60,6 +60,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include "SIImageStoreMultiTerm.h"
 using namespace std;
 
 using namespace casacore;
@@ -850,13 +851,27 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	normPSF(tix);
 	
-	if ( itsUseWeight) {
-	  divideImageByWeightVal( *weight(tix) ); 
-	}
+	//if ( itsUseWeight) {
+	//  divideImageByWeightVal( *weight(tix) ); 
+	//}
 	
       }     
-   }
+  }
+  
+  void SIImageStoreMultiTerm::divideWeightBySumWt()
+  {
+    LogIO os(LogOrigin("SIImageStoreMultiTerm", "divideWeightByWeight", WHERE));
 
+    ////    for(uInt tix=0;tix<2*itsNTerms-1;tix++)
+    for (Int tix = 2 * itsNTerms - 1 - 1;tix > -1;tix--) // AAH go backwards so that zeroth term is normalized last..... sigh sigh sigh.
+    {
+
+      if ( itsUseWeight) {
+        divideImageByWeightVal( *weight(tix) ); 
+      }
+
+    }
+  }
  void SIImageStoreMultiTerm::normalizePrimaryBeam(const Float pblimit)
   {
     LogIO os( LogOrigin("SIImageStoreMultiTerm","normalizePrimaryBeam",WHERE) );

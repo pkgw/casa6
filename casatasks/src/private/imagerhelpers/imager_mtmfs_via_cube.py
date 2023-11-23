@@ -457,7 +457,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 )
             else:
                 imname = self.get_dec_pars_for_immod(immod)['imagename']
-                if suffix == "psf" or suffix == "sumwt" or suffix == "weight":
+                if suffix == "psf":
                     imtype=0   ## num_terms should be 2*nterms-1
                 if suffix == "residual":
                     imtype=1   ## num_terms should be nterms

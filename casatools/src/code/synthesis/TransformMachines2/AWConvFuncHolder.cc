@@ -36,6 +36,7 @@
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/EVLAAperture.h>
 #include <synthesis/TransformMachines2/AWConvFuncHolder.h>
+#include <iomanip>
 
 namespace casa {  //# CASA namespace
 namespace refim { //# namespace refactor imaging
@@ -59,6 +60,8 @@ AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, c
   rowAxisAntennaPair_p.resize();
   convSizes_p.resize();
   convSupport_p.resize();
+  convSizesHPG_p.resize();
+  convSupportHPG_p.resize();
   aterm_p = std::make_shared<refim::EVLAAperture>();
   aterm_p->cacheVBInfo(obs,  25.0);
   
@@ -97,14 +100,15 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
     rowAxisAntennaPair_p.resize();
     rowAxisAntennaPair_p = other.rowAxisAntennaPair_p;
     convSizes_p.resize();
+    convSizesHPG_p.resize();
     convSizes_p = other.convSizes_p;
+    convSizesHPG_p = other.convSizesHPG_p;
+
     convSupport_p.resize();
+    convSupportHPG_p.resize();
     convSupport_p = other.convSupport_p;
+    convSupportHPG_p = other.convSupportHPG_p;
     aterm_p = other.aterm_p;
-    
-    
-    
-    
   }
   return *this;
 }
@@ -154,7 +158,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
-    
+    cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
     //append arrays and indices  
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
@@ -302,6 +306,64 @@ Vector<Int> AWConvFuncHolder::getConvSupports() {
   
  return convSupport_p; 
 }
+Array<Complex> &AWConvFuncHolder::getConvFuncHPG() { return convFuncHPG_p; }
+Array<Complex> &AWConvFuncHolder::getWeightConvFuncHPG() { return wgtConvFuncHPG_p; }
+void AWConvFuncHolder::resetHPGConvFuncs(const vi::VisBuffer2 &vb){
+  // A given set for hph will hold all w's
+  wValsHPG_p.resize();
+  wValsHPG_p = wVals_p;
+  freqValsHPG_p.resize(freqVals_p.nelements(), False);
+  Double fmin = min(vb.getFrequencies(0));
+  Double fmax = max(vb.getFrequencies(0));
+  uint indx = 0;
+  vector<bool> usedfreq(freqVals_p.nelements());
+  std::fill(usedfreq.begin(), usedfreq.end(), false);
+  //cerr << "fmin " << fmin << " fmax " << fmax << "  freqs " << freqVals_p << "   " << (freqVals_p[0] >= fmin) << "   " <<(freqVals_p[0] <= fmax) << endl;
+  if(freqVals_p.nelements() >1){
+  for (uint k = 0; k < freqVals_p.nelements(); ++k) {
+    if(freqVals_p[k] >= fmin && freqVals_p[k] <= fmax){
+      freqValsHPG_p[indx] = freqVals_p[k];
+      usedfreq[k] = true;
+      ++indx;
+    }
+  }
+  }
+  else{
+    //only one freq so it has to match
+    usedfreq[0]=true;
+    indx=1;
+
+  }
+  freqValsHPG_p.resize(indx, True);
+  IPosition cshap = convFunc_p.shape();
+  cshap[3] = indx;
+  wgtConvFuncHPG_p.resize(cshap);
+  convFuncHPG_p.resize(cshap);
+  //cerr << "spw " << vb.spectralWindows()(0) << " CSHAP " << cshap << " orig " << convFunc_p.shape() << endl;
+  IPosition blcin(5, 0);
+  IPosition trcin = convFunc_p.shape() - 1;
+  IPosition blcout(5,  0);
+  IPosition trcout = cshap - 1;
+  indx = 0;
+  for (uint k = 0; k < freqVals_p.nelements(); ++k) {
+    if(usedfreq[k]){
+      blcin[3] = k;
+      trcin[3] = k;
+      blcout[3] = indx;
+      trcout[3] = indx;
+      for (uint j = 0; j < wVals_p.nelements(); ++j) {
+        blcin[4] = j;
+        trcin[4] = j;
+        blcout[4] = j;
+        trcout[4] = j;
+        //cerr << blcin << blcout << trcin << trcout << endl;
+        wgtConvFuncHPG_p(blcout, trcout) = wgtConvFunc_p(blcin, trcin);
+        convFuncHPG_p(blcout, trcout) = convFunc_p(blcin, trcin);
+      }
+      ++indx;
+    }
+  }
+}
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
@@ -386,14 +448,58 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
     }
     
   }
+
   // A little dab will d'ya
   
 }
-Vector<Double> AWConvFuncHolder::getPointingPhaseShift(const vi::VisBuffer2& vb, bool usePointingTable){
-  Bool hasValidPointing=False;
-  if(vbutil_p.use_count()==0)
-    vbutil_p= std::make_shared<VisBufferUtil>(vb);
-  MDirection ant1PointVal;
+
+void AWConvFuncHolder::getConvIndicesHPG(Vector<Int> &polMap, Vector<Int> &chanMap,
+                                     Vector<Int> &rowMap,
+                                     const vi::VisBuffer2 &vb,
+                                     const Matrix<Double> &rotuvw) {
+  Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
+  polMap.resize(visPolMap.nelements());
+  //HPG is doing I single plane gridding
+  polMap.set(0);
+  // Lets do chanMap 
+  chanMap.resize(vb.nChannels());
+  chanMap.set(-1);
+  Vector<Double> visFreq = vb.getFrequencies(0);
+  for (uint k = 0; k < chanMap.nelements(); ++k) {
+    Double minDiff = 1e40;
+    Int indexF = -1;
+    for (uint j = 0; j < freqValsHPG_p.nelements(); ++j) {
+      if (fabs(freqValsHPG_p[j] - visFreq[k]) < minDiff) {
+        minDiff = fabs(freqValsHPG_p[j] - visFreq[k]);
+        indexF = j;
+      }
+    }
+    chanMap[k] = indexF;
+  }
+  //As there is no PA or antenna pair to deal with HPG...windex should be rowMap
+  Vector<Int> wIndex(vb.nRows(), 0);
+  Double invlamda = mean(vb.getFrequencies(0)) / C::c;
+  for (uint k = 0; k < vb.nRows(); ++k) {
+    Double minDiff = 1e40;
+    Int tmpWInd = -1;
+    Double w = rotuvw.row(2)[k] * invlamda;
+    for (uint j = 0; j < wValsHPG_p.nelements(); ++j) {
+      if (fabs(fabs(w) - wValsHPG_p[j]) < minDiff) {
+        minDiff = fabs(fabs(w) - wValsHPG_p[j]);
+        tmpWInd = j;
+      }
+    }
+    wIndex[k] = tmpWInd;
+  }
+  rowMap.resize();
+  rowMap = wIndex;
+}
+  Vector<Double> AWConvFuncHolder::getPointingPhaseShift(
+      const vi::VisBuffer2 &vb, bool usePointingTable) {
+    Bool hasValidPointing = False;
+    if (vbutil_p.use_count() == 0)
+      vbutil_p = std::make_shared<VisBufferUtil>(vb);
+    MDirection ant1PointVal;
     if(Table::isReadable(vb.ms().pointingTableName())){
       hasValidPointing=usePointingTable &&  (vb.ms().pointing().nrow() >0);
     }
@@ -439,8 +545,9 @@ Vector<Double> AWConvFuncHolder::getPointingPhaseShift(const vi::VisBuffer2& vb,
 
     //phase gradient per pixel to apply
     thePix(0) = -thePix(0)*2.0*C::pi/Double(nx_p)/Double(oversamp_p);
-    thePix(1) = -thePix(1)*2.0*C::pi/Double(ny_p)/Double(oversamp_p);
-    
+    thePix(1) = -thePix(1) * 2.0 * C::pi / Double(ny_p) / Double(oversamp_p);
+    //cerr << std::setprecision(12) << "fid " << vb.fieldId()(0) << " POINT shift " << thePix << endl;
+
     return thePix;
 
     
@@ -448,7 +555,7 @@ Vector<Double> AWConvFuncHolder::getPointingPhaseShift(const vi::VisBuffer2& vb,
     
     
 }
-  }//# namespace refim ends
+} // # namespace refim ends
 }//namespace CASA ends
 
   

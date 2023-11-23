@@ -1449,24 +1449,19 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // point to the appropriate Lattice, either the ArrayLattice for
     // in memory gridding or to the image for to disk gridding.
     //
-    if(isTiled) 
-      {
-	imageCache->flush();
-	image->set(Complex(0.0));
-	lattice=CountedPtr<Lattice<Complex> > (image, false);
-      }
-    else 
-      {
+    
+  
 	IPosition gridShape(4, nx, ny, npol, nchan);
 	if(!useDoubleGrid_p){
-	griddedData.resize(gridShape);
-	griddedData=Complex(0.0); 
+	    griddedData.resize(gridShape);
+	  griddedData=Complex(0.0); 
 	}
-	else	  {
+	else	  
+  {
 	  griddedData2.resize(gridShape);
 	  griddedData2=DComplex(0.0);
 	}
-      }
+      
 
     //cerr << "initializeToSky for grid" << endl;
     if(useDoubleGrid_p) 
@@ -1474,6 +1469,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     else
       visResampler_p->initializeToSky(griddedData, sumWeight);
   }
+  
   //
   //---------------------------------------------------------------
   //
@@ -1484,12 +1480,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     logIO() <<  LogIO::WARN << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
+   Matrix<Double> tmpSumWgt(sumWeight.shape());
+   tmpSumWgt=0.0;
    if(useDoubleGrid_p) 
-      visResampler_p->finalizeToSky(griddedData2, sumWeight);
+      visResampler_p->finalizeToSky(griddedData2, tmpSumWgt);
     else
-      visResampler_p->finalizeToSky(griddedData, sumWeight);
-    
-    
+      visResampler_p->finalizeToSky(griddedData, tmpSumWgt);
+    sumWeight=tmpSumWgt;
+   
     if(name()=="AWProjectWBFTHPG")
       return;
     

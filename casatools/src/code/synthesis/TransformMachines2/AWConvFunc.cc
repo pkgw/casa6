@@ -2444,14 +2444,14 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
 		ArrayIterator<Complex> wtIt(wtconv,  IPosition(2, 0,1));
 		IPosition blc(2,-sup+convSize/2, -sup+convSize/2);
 		IPosition trc(2, sup+convSize/2, sup+convSize/2);
-                cerr << "blc, trc " << blc << " " << trc << endl;
+               // cerr << "blc, trc " << blc << " " << trc << endl;
                 
 		Double pbSum=0.0;
 		//Iterate of pol
 		while(!pbIt.pastEnd()){
 			Matrix<Complex> pbplane(pbIt.array());
 			Matrix<Complex> wtplane(wtIt.array());
-                        cerr << "shapes " << pbplane.shape() << "   " << wtplane.shape() << endl;
+                     //   cerr << "shapes " << pbplane.shape() << "   " << wtplane.shape() << endl;
                         
 			pbSum=real(sum(wtplane(blc, trc)));
 			//cerr << "pbSumWt "<< pbSum << endl;

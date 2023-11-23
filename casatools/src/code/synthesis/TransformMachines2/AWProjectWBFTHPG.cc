@@ -27,7 +27,6 @@
 //# $Id$
 
 #include <synthesis/TransformMachines2/AWProjectWBFTHPG.h>
-
 #include <casacore/coordinates/Coordinates/CoordinateSystem.h>
 #include <synthesis/ImagerObjects/SIImageStore.h>
 #include <synthesis/ImagerObjects/SimpleSIImageStore.h>
@@ -66,11 +65,11 @@ ImageInterface<Complex> &AWProjectWBFTHPG::getImage(Matrix<Float> &weights,
     log_l << "No useful data in " << name() << ".  Weights all zero"
           << LogIO::POST;
   else {
-    log_l << "Sum of weights: " << weights << " ";
+    /*log_l << "Sum of weights: " << weights << " ";
     if (griddedData2.nelements() > 0) {
       log_l << max(griddedData2) << " " << min(griddedData2);
     };
-    log_l << LogIO::POST;
+    log_l << LogIO::POST;*/
     cerr << "Sum of weights: " << setprecision(20) << weights << endl;
   }
 
@@ -138,8 +137,8 @@ ImageInterface<Complex> &AWProjectWBFTHPG::getImage(Matrix<Float> &weights,
       }
     }
 
-    // cerr << "min correction " << min(sincConvX) << "    " << min(sincConvY)
-    // << endl;
+     //cerr << "NORM " << normalize << " min correction " << min(sincConvX) << "    " << min(sincConvY) << endl;
+
     //  Do the Grid-correction
     IPosition cursorShape(4, inx, 1, 1, 1);
     IPosition axisPath(4, 0, 1, 2, 3);
@@ -194,6 +193,7 @@ ImageInterface<Complex> &AWProjectWBFTHPG::getImage(Matrix<Float> &weights,
     //
     // Do the copy
     //
+    //cerr << "blc" << blc << " trc " << trc << " min max " << min(griddedData) << "  max " << max(griddedData) << endl;
     image->put(griddedData(blc, trc));
 
     if (!lattice.null())
@@ -438,7 +438,7 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     //convSampling=4;
   //TESTOO
     
-    convSampling=2;
+    convSampling=4;
   ///////
     
     
@@ -454,6 +454,7 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     
     std::vector<Double> freqs;
     std::vector<Double> pAs={0.0};
+    //int validspw=-1;
     Double maxW=0.0;
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
@@ -461,13 +462,19 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
               
               SimplePBConvFunc::findUsefulChannels(chunkfreq, vb, frange);
               //cerr << "vbnchan " << vb.nChannels() <<  "chunkfreq " <<  chunkfreq <<  endl;
-              if(chunkfreq.size() >0)
+              if (chunkfreq.size() > 0) {
+                //validspw=vb.spectralWindows()(0);
+                //cerr << "SPW " << vb.spectralWindows()(0) << " freqs " << Vector<Double>(chunkfreq) << endl;
                 std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
-              
-              if(nWPlanes_p > 1)
-                	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+                double maxfreqused = *(std::max_element(chunkfreq.begin(), chunkfreq.end()));
+                if (nWPlanes_p > 1) {
+                  // 	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+                  maxW = max(maxW, max(abs(vb.uvw().row(2) * maxfreqused)) / C::c);
+                }
+              }
           }
     }
+  
     
     //return vi to origin
     vi->originChunks(); vi->origin();
@@ -486,7 +493,31 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
       for (int k=0; k <nWPlanes_p; ++k)
         wVals[k]=Double(k*k)*st;
     }
+    //cerr << "XXXXXINIT wVals " << wVals << endl;
+    //cerr << "XXXXXfreqs " << Vector<Double>(freqs) << endl; 
     (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, 0.0);
+    /////TESTOO
+   /*{
+		Vector<Double>pixW(wVals.nelements());
+		indgen(pixW);
+		CoordinateSystem fiveAxis=image->coordinates();
+    Vector<Int> stoks(4);
+    stoks(0) = Stokes::RR;
+    stoks(1) = Stokes::RL;
+    stoks(2) = Stokes::LR;
+    stoks(3) = Stokes::LL;
+    StokesCoordinate stokesCoords(stoks);
+    fiveAxis.replaceCoordinate(stokesCoords, 1);
+
+		TabularCoordinate tab(pixW, wVals, "m", "W");
+		fiveAxis.addCoordinate(tab);
+		PagedImage<Complex> noo((awConvs_p->getConvFunc()).shape(), fiveAxis, "AWConvVals_"+String::toString(validspw));
+		noo.put((awConvs_p->getConvFunc()));
+	
+	}*/
+
+
+    ///////////////////////////
     visResampler_p->setConvFunc(awConvs_p);
   }
 }

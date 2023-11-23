@@ -2541,7 +2541,9 @@ using namespace casa::vi;
           
           LatticeLocker lock1 (*(imstore->weight()), FileLocker::Write);
 	  getWeightImage( *(imstore->weight())  , sumWeights);
-          imstore->weight()->unlock();
+    imstore->weight()->unlock();
+    //cerr << "FTMachine getweight " << max(imstore->weight()->get()) << endl;
+    
 
 	  // Fill weight image only once, during PSF generation. Remember.... it is normalized only once
 	  // during PSF generation.

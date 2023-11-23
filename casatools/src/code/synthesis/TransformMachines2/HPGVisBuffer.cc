@@ -5,6 +5,7 @@
 #include <synthesis/TransformMachines2/CFDefs.h>
 #include <synthesis/TransformMachines2/FTMachine.h>
 
+#include <synthesis/TransformMachines2/AWConvFuncHolder.h>
 #include <hpg/hpg.hpp>
 #include <hpg/hpg_indexing.hpp>
 //#include "/export/home/gpuhost001/mpokorny/casa_hpg_debug/include/hpg/hpg.hpp"
@@ -136,7 +137,7 @@ unsigned mRow=0;
 				  for (uInt mc=0; mc<visElements[mRow].nelements(); mc++) 
 				    { 
 				      int visVecElement=visElements[mRow][mc];
-				      
+				      //cerr <<  "visVecElement " <<  visVecElement <<  " mrow " <<  mRow <<  " mc " <<  mc <<  endl;
 				      if (casaVBS.vb_p->flagCube()(ipol,ichan,irow)==false)
 					{
 					  if ((casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT)||
@@ -233,6 +234,132 @@ unsigned mRow=0;
   hpgVB.resize(hpgIRow);
   return hpgVB;
 }
+
+/*
+template <unsigned N> std::vector<hpg::VisData<N>>
+makeHPGVisBuffer(casacore::Matrix<double>& sumwt,
+		 const casa::refim::VBStore& casaVBS,
+		 AWConvFuncHolder& awh,
+		 const unsigned nGridPol, const unsigned nGridChan,
+		 unsigned startRow,  unsigned endRow,
+		 const unsigned startChan, const unsigned endChan,
+		 const casacore::Vector<casacore::Int>& chanMap,
+		 const casacore::Vector<casacore::Int>& polMap,
+		 const casacore::Vector<double>& dphase,
+		 const hpg::CFSimpleIndexer& cfsi
+		 )
+{
+	unsigned nVisChan=endChan - startChan + 1;
+	unsigned nVisRow=endRow - startRow + 1;
+	unsigned targetIMChan, targetIMPol;
+	const casa::VisBuffer2& vb = *(casaVBS.vb_p);
+	IPosition dataShape = vb.visCube().shape();
+	unsigned nDataPol=dataShape(0);
+	vector<int> unique_pol = polMap.tovector();
+	std::sort(unique_pol.begin(),  unique_pol.end());
+	auto last = std::unique(unique_pol.begin(),  unique_pol.end());
+	unique_pol.erase(last,  unique_pol.end());
+	uint nVisPol = unique_pol.size();
+	
+	
+	std::vector<hpg::VisData<N>> hpgVB=create_blank_vis_data_vector<N>(nVisPol,nVisChan,nVisRow);
+	std::array<std::complex<hpg::visibility_fp>, N> vis;
+	std::array<hpg::vis_weight_fp, N> wt;
+	
+	const casacore::Matrix<double> UVW=casaVBS.uvw_p;
+	
+	std::array<hpg::vis_uvw_fp, 3> hpgUVW;
+	hpg::vis_phase_fp              dphaseHPG;
+	unsigned                       grid_cube=0; // For now, grid on the same plane.
+	// Need to pass the beam offsets phase grad
+	Vector<Double> pointingOffsets(2, 0.0);
+	hpg::cf_phase_gradient_t       cf_phase_gradient = {(hpg::cf_phase_gradient_fp)pointingOffsets[0],
+					 (hpg::cf_phase_gradient_fp)pointingOffsets[1]};
+	   
+	
+	std::array<unsigned, 2>        cf_index;
+	Vector<Double>freq = vb.getFrequencies(0);
+	Int vbSpw = vb.spectralWindows()(0);
+	unsigned hpgIRow=0;
+	// Lets get convindices
+	Vector<Int> convpolmap;
+	Vector<Int> convchanmap;
+	Vector<Int> convrowmap;
+	awh.getConvIndices(convpolmap,  convchanmap,  convrowmap,  vb,  UVW);
+	uint nconvchan = awh.getFreqVals().nelements();
+	for(unsigned irow=startRow; irow< endRow; irow++) 
+	 {
+	  if (casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT)
+		{
+			  hpgUVW={0.0, 0.0, 0.0};
+		}
+		else{
+		  hpgUVW={UVW(0,irow),
+				  UVW(1,irow),
+				  UVW(2,irow)};
+		}
+		
+	   if(!casaVBS.rowFlag_p(irow) 
+		{
+		 for(unsigned ichan=startChan; ichan< endChan; ichan++)
+	    {
+		 if(((chanMap[ichan]>=0) && (chanMap[ichan]<nGridChan))) 
+			{
+			for(unsigned ipol=0; ipol< nDataPol; ipol++) 
+			{
+			      
+				if ((polMap(ipol)>=0) && (polMap(ipol)<nGridPol)) 
+				{
+				      int visVecElement= polMap[ipol];
+				      if (vb.flagCube()(ipol,ichan,irow)==false)
+					{
+					  if ((casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT)||
+					      (casaVBS.ftmType_p==casa::refim::FTMachine::PSF))
+					    {
+					      vis[visVecElement] = std::complex<double>(1.0,0.0);
+					    }
+					  else
+					    {
+					      vis[visVecElement] = casaVBS.visCube_p(ipol,ichan,irow);
+					    }
+
+					  wt[visVecElement]=casaVBS.imagingWeight_p(ichan,irow);
+					}
+				      else
+					{
+					  vis[visVecElement] = 0.0;
+					  wt[visVecElement]  = 0.0;
+					}
+				
+				  sumwt(polMap[ipol],chanMap[ichan]) += vb.imagingWeight()(ichan, irow);
+				}
+				// if polmap
+			    
+			}
+			//ipol
+			hpg::vis_frequency_fp frequency=freq[ichan];
+			if (casaVBS.ftmType_p==casa::refim::FTMachine::PSF || casaVBS.ftmType_p==casa::refim::FTMachine::WEIGHT ) {
+				dphaseHPG=0.0;
+			}
+			else{
+				dphaseHPG=-2.0*C::pi*dphase[irow]*frequency/C::c;
+			}
+			uint cindex = convrowmap[irow]*nconvchan+convchanmap[ichan];
+			cf_index = {0,cindex};
+			// cfindex is rowindex*nconvchan+ convchanmap
+			hpgVB[hpgIRow++] = hpg::VisData<N>(vis,wt,frequency,dphaseHPG,hpgUVW,grid_cube,cf_index
+							 ,cf_phase_gradient
+							 );
+			}
+		// if chnamap
+		}
+		// ichan
+  }													                                            // if flag
+	}                                                          // irow
+   hpgVB.resize(hpgIRow);
+  return hpgVB;
+}
+*/
 //
 // -------------------------------------------------------------------------------
 //
