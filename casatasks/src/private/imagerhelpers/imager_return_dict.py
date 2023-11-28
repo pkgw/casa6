@@ -51,6 +51,7 @@ class ReturnDictionary():
         """
         self.residname = ''
         self.modelname = ''
+        self.maskname = ''
         self.summaryminor = dict()
         self.retrec = dict()
 
@@ -121,8 +122,19 @@ class ReturnDictionary():
             trc = [shape[0], shape[1], channo, stokes]
 
         data = ia.getchunk(blc, trc, dropdeg=True)
-        mask = ia.getchunk(blc, trc, dropdeg=True, getmask=True)
         ia.close()
+
+        # Get the mask if it exists
+        if os.path.exists(self.maskname):
+            ia.open(self.maskname)
+            mask = ia.getchunk(blc, trc, dropdeg=True)
+            ia.close()
+
+            # If mask is all zeros, flip to all ones
+            if np.sum(mask) == 0:
+                mask = 1
+        else:
+            mask = 1 # No mask, so everything is unmasked
 
         # If model image exists, calc model flux, else set to 0
         model_sum = 0
@@ -185,6 +197,7 @@ class ReturnDictionary():
         for ff in range(nfields):
             self.residname=impars[str(ff)]['imagename']+'.residual.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.residual.tt0')) else impars[str(ff)]['imagename']+'.residual'
             self.modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
+            self.maskname=impars[str(ff)]['imagename']+'.mask' if(os.path.exists(impars[str(ff)]['imagename']+'.mask')) else ''
 
             fullsummary = decpars[str(ff)]['fullsummary']
             nstokes, nfreq, stokes_axis, freq_axis = self.imageDimensions()

@@ -438,7 +438,17 @@ def tclean(
             # populated.
             if niter==0:
                 rd = ReturnDictionary()
+
+                # Various combinations of parameters result in deconvolvers not being initialized
+                # at this point. If that is the case, initialize before creating the mask.
+                if len(imager.SDtools) == 0:
+                    imager.initializeDeconvolvers()
+                    imager.initializeIterationControl()
+
+                imager.hasConverged()
+                imager.updateMask()
                 retrec = rd.constructResidualDict(paramList)
+                #retrec=imager.getSummary(fullsummary);
 
             ## Do deconvolution and iterations
             if niter>0 :
