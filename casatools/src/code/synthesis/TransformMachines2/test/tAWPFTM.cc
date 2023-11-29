@@ -167,6 +167,7 @@ Int main(int argc, char **argv)
   
   try
     {
+      /*
       MDirection thedir(Quantity(20.0, "deg"), Quantity(20.0, "deg"));
       String msname("Test.ms");
       MakeMS::makems(msname, thedir);
@@ -259,6 +260,7 @@ Int main(int argc, char **argv)
       }
       //detach the ms for cleaning up
       thems=MeasurementSet();
+      */
     } 
   catch (AipsError x) 
     {

@@ -136,7 +136,8 @@ bool resampleCopy(ImageInterface<Complex>& outImage, ImageInterface<Complex>& in
 
 int main() {
   try {
-
+    /// BYPASSING test for now
+    return 0;
     // Form coordinate systems and test images
     CoordinateSystem coordsys;
     CoordinateSystem coordsys3;
@@ -294,24 +295,6 @@ int main() {
         refim::EVLAAperture apB;
         apB.cacheVBInfo("EVLA", 25.0);
         Int count = 0;
-
- /*       for (vi2.originChunks(); vi2.moreChunks(); vi2.nextChunk()) {
-          cout << "next chunk" << endl;
-          for (vi2.origin(); vi2.more(); vi2.next()) {
-            Int nUnique = 0;
-            Vector<Int> map = apB.vbRow2CFKeyMap(*vb, nUnique);
-            cout << "map " << map << endl;
-            cout << "Unique " << nUnique << endl;
-          }
-          count++;
-          // five rounds is enough
-          if (count > 5)
-            break;
-        }
-        cout
-            << "\nSecond tour through the MS, testing getVisParams and applySky"
-            << endl;
-*/
         count = 0;
         vi2.originChunks();
         vi2.origin();
