@@ -468,6 +468,6 @@ int main(){
           }
         }
         
-  
+  cerr <<"OK" << endl;
  return 0; 
 }
