@@ -20,16 +20,16 @@ Example: outfile='my_alma_antenna_positions.json'
 
     <param name="asdm" type="string">
       <shortdescription>The associated ASDM name. Must be specified</shortdescription>
-      <description>The associated ASDM name. Must be specified
+      <description>The associated ASDM name. Must be specified. The ASDM is not required to be on the file system; its value is simply passed to the web service.
                    default: ''
-                   Example:asdm='uid___A002_X10ac6bc_X896d 
+                   Example:asdm='uid://A002/X10ac6bc/X896d'
       </description>
       <value/>
     </param>
 
     <param name="tw" type="string">
-      <shortdescription>Optional time window to which to limit search for antenna positions.</shortdescription>
-      <description>Optional time window to which to limit search for antenna positions. Format is of the form begin_time,end_time, where times must be specified in YYYY-MM-DDThh:mm:ss.sss format and end_time must be later than begin time. Times should be UTC.
+      <shortdescription>Optional time window in which to consider baseline measurements in the database, when calculating the antenna positions.</shortdescription>
+      <description>Optional time window in which to consider baseline measurements in the database, when calculating the antenna positions. Format is of the form begin_time,end_time, where times must be specified in YYYY-MM-DDThh:mm:ss.sss format and end_time must be later than begin time. Times should be UTC.
       Example: tw='2023-03-14T00:40:20,2023-03-20T17:58:20'
 </description>
       <value/>
