@@ -22,11 +22,23 @@ class Xunit:
         return "".join(self.xml_escape_table.get(c,c) for c in text)
 
     def test_result_to_xml (self,result):
+        import signal
+        import datetime
+        import time
+        x = time.strptime(result['runtime'].split(',')[0],'%H:%M:%S.%f')
+        runtime = datetime.timedelta(
+                hours=x.tm_hour,
+                minutes=x.tm_min,
+                seconds=x.tm_sec).total_seconds()
+
         self.fail_total = self.fail_total + len(result['testerr'])
-        testxml = '<testcase classname="' + result['testname'].replace(".py", "") + '.SomeClass"' \
-              + ' name="'+ result['testname'].replace(".py", "") + '" time="' + result['runtime'] + '">'
+        testxml = '<testcase classname="' + result['testname'].replace(".py", "") + '.{}"'.format(result['testname'].replace(".py", "")) \
+              + ' name="'+ result['testname'].replace(".py", "") + '" time="' + str(runtime) + '">'
         if ( result['returncode'] != 0) :
-            testxml = testxml + '<failure>' + str(result['testerr']) + '</failure>'
+            fMessage = result['testerr']
+            try: fMessage = signal.strsignal(abs(result['returncode']))
+            except: fMessage = signal.Signals(abs(result['returncode'])).name
+            testxml = testxml + '<failure>' + str(fMessage) + '</failure>'
             if self.fail_total == 0:
                 self.fail_total=self.fail_total + 1
         testxml = testxml + '</testcase>\n'
