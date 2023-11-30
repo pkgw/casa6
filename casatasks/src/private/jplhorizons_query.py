@@ -15,7 +15,7 @@ _qa = quanta()
 _me = measures()
 
 # debug
-_debug = False
+_debug = False 
 
 def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False, rawdatafile=''):
     """
@@ -152,6 +152,7 @@ def queryhorizons(target, starttime, stoptime, stepsize, quantities, ang_format,
 
     pardata = urlencode(values, doseq=True, encoding='utf-8')
     params = pardata.encode('ascii')
+    # for debugging
     #print("params=", params)
 
     req = Request(urlbase, params)
@@ -472,12 +473,14 @@ def tocasatb(indata, outtable):
         foundncols = 0
         indexoffset = 0
         colkeys = {}
-        print('incolnames=',incolnames)
+        #print('incolnames=',incolnames)
         if incolnames is not None:
             for outcolname in cols:
                 # all colnames in cols should have unit defined.
                 if 'unit' in cols[outcolname]:
                     colkeys[outcolname] = np.array([cols[outcolname]['unit']])
+                else:
+                    raise KeyError(f'Missing unit for {outcolname}.')
                 inheadername = cols[outcolname]['header']
                 # expect date is in the first column (date and mm:hh seperated by spaces)
                 if outcolname == 'MJD':
@@ -520,6 +523,7 @@ def tocasatb(indata, outtable):
                     ndata = 0
                     earliestmjd = None
                     mjd = None
+                    prevmjd = None
                     for line in inf:
                         outline = ''
                         sep = ' '
@@ -528,6 +532,10 @@ def tocasatb(indata, outtable):
                         # construct mjd from col 1 (calendar date) + col 2 (time)
                         caldatestr = tempdata[0] + ' ' + tempdata[1]
                         mjd = _qa.totime(caldatestr)
+                        if mjd == prevmjd:
+                           raise RuntimeError(f'Duplicated timestamp, {mjd}, is detected. This may occur when '+
+                            'a time range is specified in MJD with a short time interval. If that is the case, '+
+                            'try calendar date+time string for the time range.') 
                         outline += str(mjd['value']) + sep
                         # position
                         rad = tempdata[cols['RA']['index']]
@@ -564,6 +572,7 @@ def tocasatb(indata, outtable):
                         ndata += 1
                         if ndata == 1:
                             earliestmjd = mjd
+                        prevmjd = mjd
                     # record first and last mjd in the data
                     headerdict['earliest'] = _me.epoch('UTC',earliestmjd)
                     headerdict['latest'] = _me.epoch('UTC', mjd)
