@@ -191,6 +191,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_antpos",
+            "testType":"casatasks",
+            "maintainer":"Dave Mehringer",
+            "maintainerEmail":"dmehringnrao.edu",
+            "testOptions":[],
+            "testGroup":["antpos"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_applycal",
             "testType":"casatasks",
             "maintainer":"George Moellenbrock",

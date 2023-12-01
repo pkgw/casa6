@@ -1,3 +1,5 @@
+from casatools import quanta
+
 def antpos(outfile='', asdm='', tw='', snr=0, search='both_latest', servers=['tbd1.alma.cl', 'tbd2.alma.cl']):
     r"""
 Retrieve antenna positions by querying ALMA web service.
@@ -122,4 +124,34 @@ Parameter Details
 
 
     """
-    pass
+    if not outfile:
+        raise ValueError("Parameter outfile must be specified")
+    if not servers:
+        raise ValueError("Parameter servers must be specified")
+    if isinstance(servers, list) and not servers[0]:
+        raise ValueError("The first element of the servers list must be specified")
+    _qa = quanta()
+    if tw:
+        z = tw.split(",")
+        if len(z) != 2:
+            raise ValueError(
+                "Parameter tw should contain exactly one comma that separates two times"
+            )
+        s0, s1 = z
+        msg = "The correct format is of the form YYYY-MM-DDThh:mm:ss."
+        try:
+            t_start = _qa.quantity(_qa.time(s0, form="fits")[0])
+        except Exception as e:
+            raise ValueError(f"Begin time {s0} does not appear to have a valid format. {msg}")
+        try:
+            t_end = _qa.quantity(_qa.time(s1, form="fits")[0])
+        except Exception as e:
+            raise ValueError(f"End time {s1} does not appear to have a valid format. {msg}")
+        if _qa.ge(t_start, t_end):
+            raise ValueError(
+                f"Parameter tw, start time ({z[0]}) must be less than end time ({z[1]})."
+            )
+    if snr < 0:
+        raise ValueError(f"Parameter snr ({snr}) must be non-negative.")
+    wsid = "uncertainties-service/uncertainties/versions/last/measurements/casa/?asdm=uid://A002/X10ac6bc/X896d&tw=2023-01-01T06:00:00.0,2023-07-31T06:00:00.0&snr=5.0"
+
