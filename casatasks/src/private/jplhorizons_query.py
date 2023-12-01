@@ -106,8 +106,8 @@ def gethorizonsephem(objectname, starttime, stoptime, incr, outtable, asis=False
     if not os.path.exists(outtable):
         casalog.post('Failed to produce the CASA ephemeris table', 'WARN') 
         if rawdatafile=='':
-            casalog.post('To find the detailed reason of the error, you may want to re-run the task by specifying rawdatafile'+\
-                ' parameter and check the content of the output raw data file for the information.','WARN') 
+            casalog.post('You may want to re-run the task with rawdatafile'+\
+                ' parameter specified and check the content of the output raw data file for the further information on the error.','WARN') 
         else:
             casalog.post(f'Please check the content of {rawdatafile} for the further information of the error','WARN')
                
