@@ -1,6 +1,6 @@
 from casatools import quanta
 
-def antpos(outfile='', asdm='', tw='', snr=0, search='both_latest', servers=['tbd1.alma.cl', 'tbd2.alma.cl']):
+def antpos(outfile='', asdm='', tw='', snr=0, search='both_latest', hosts=['tbd1.alma.cl', 'tbd2.alma.cl']):
     r"""
 Retrieve antenna positions by querying ALMA web service.
 
@@ -13,7 +13,7 @@ Parameters
    - tw_ (string='') - Optional time window to which to limit search for antenna positions.
    - snr_ (float=0) - Optional signal-to-noise.
    - search_ (string='both_latest') - Search algorithm to use.
-   - servers_ (stringVec=['tbd1.alma.cl', 'tbd2.alma.cl']) - Priority-ranked list of servers to query.
+   - hosts_ (stringVec=['tbd1.alma.cl', 'tbd2.alma.cl']) - Priority-ranked list of hosts to query.
 
 
 
@@ -55,10 +55,10 @@ or after the observation will be returned, subject to the value of snr if it
 is specified. If specified, the value of tw will override the default 30 days.
 The default algorithm used is 'both_latest'.
 
-servers is a required parameter. It is a list of servers to query, in order of
+hostss is a required parameter. It is a list of hosts to query, in order of
 priority, to obtain positions. The first server to respond with a valid result is
 the only one that is used. That response will be written and no additional
-servers will be queried.
+hostss will be queried.
 
 
 .. _Examples:
@@ -71,7 +71,7 @@ Examples
    
       antpos(
           outfile='my_ant_pos.json', asdm='valid ASDM name here', snr=5,
-          servers=['tbd1.alma.cl', 'tbd2.alma.cl']
+          hosts=['tbd1.alma.cl', 'tbd2.alma.cl']
      )
    
 
@@ -117,19 +117,19 @@ Parameter Details
 | ``search (string='both_latest')`` - Search algorithm to use. Supported values are "both_latest" and "both_closest". For "both_latest", the last updated position for each antenna within 30 days after the observation will be returned, taking into account snr if specified. If provided, tw will override the 30 day default value. For "both_closest", the position of each antenna closest in time to the observation, within 30 days (before or after the observation) will be returned, subject to the value of snr if it is specified. If specified, the value of tw will override the default 30 days. The default algorithm to use will be "both_latest".
 |          Example: search="both_closest"
 
-.. _servers:
+.. _hosts:
 
-| ``servers (stringVec=['tbd1.alma.cl', 'tbd2.alma.cl'])`` - Priority-ranked list of servers to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional servers will be queried.
-|            Example: servers=["server1.alma.cl", "server2.alma.cl"]
+| ``hosts (stringVec=['tbd1.alma.cl', 'tbd2.alma.cl'])`` - Priority-ranked list of hosts to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional hosts will be queried.
+|            Example: hosts=["server1.alma.cl", "server2.alma.cl"]
 
 
     """
     if not outfile:
         raise ValueError("Parameter outfile must be specified")
-    if not servers:
-        raise ValueError("Parameter servers must be specified")
-    if isinstance(servers, list) and not servers[0]:
-        raise ValueError("The first element of the servers list must be specified")
+    if not hosts:
+        raise ValueError("Parameter hosts must be specified")
+    if isinstance(hosts, list) and not hosts[0]:
+        raise ValueError("The first element of the hosts list must be specified")
     _qa = quanta()
     if tw:
         z = tw.split(",")

@@ -51,10 +51,10 @@ Example: outfile='my_alma_antenna_positions.json'
       </description>
       <value>both_latest</value>
     </param>
-    <param name="servers" type="stringVec">
-      <shortdescription>Priority-ranked list of servers to query.</shortdescription>
-      <description>Priority-ranked list of servers to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional servers will be queried.
-        Example: servers=[&quot;server1.alma.cl&quot;, &quot;server2.alma.cl&quot;]
+    <param name="hosts" type="stringVec">
+      <shortdescription>Priority-ranked list of hosts to query.</shortdescription>
+      <description>Priority-ranked list of hosts to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional hosts will be queried.
+        Example: hosts=[&quot;server1.alma.cl&quot;, &quot;server2.alma.cl&quot;]
       </description>
       <!-- <value type="stringVec"><value>tbd1.alma.cl</value><value>tbd2.alma.cl</value></value> -->
       <value type="stringVec"><value>tbd1.alma.cl</value><value>tbd2.alma.cl</value></value>
