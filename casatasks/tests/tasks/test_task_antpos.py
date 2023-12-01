@@ -1,5 +1,5 @@
 ##########################################################################
-# test_task_phaseshift.py
+# test_task_antpos.py
 #
 # Copyright (C) 2018
 # Associated Universities, Inc. Washington DC, USA.
@@ -81,7 +81,7 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
 
 """
 
-class calmod_test(unittest.TestCase):
+class antpos_test(unittest.TestCase):
     """
 
     hostname = 'http://127.0.0.1:8080'
@@ -174,6 +174,31 @@ class calmod_test(unittest.TestCase):
             )
         self.exception_verification(
             cm, "Parameter snr (-1.0) must be non-negative."
+        )
+        with self.assertRaises(ValueError) as cm: 
+            antpos(
+                outfile="myants.json", search="sr", hosts=["good.example.com"]
+            )
+        self.exception_verification(
+            cm,
+            "Parameter search (=sr) must have a value of either 'both_latest' "
+            "or 'both_closest'."
+        )
+        with self.assertRaises(ValueError) as cm: 
+            antpos(
+                outfile="myants.json", hosts=["bogus./12?.example.com"]
+            )
+        self.exception_verification(
+            cm,
+            "Parameter hosts: bogus./12?.example.com is not a valid host expressed as a URL."
+        )
+        with self.assertRaises(RuntimeError) as cm: 
+            antpos(
+                outfile="myants.json", hosts=["http://www.bogus.edu"]
+            )
+        self.exception_verification(
+            cm,
+            "All URLs failed to return an antenna position list."
         )
 
 

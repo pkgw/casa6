@@ -1,4 +1,31 @@
+from casatasks import casalog
 from casatools import quanta
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urlparse
+
+def _is_valid_url_host(url):
+    parsed = urlparse(url)
+    return bool(parsed.netloc)
+
+
+def _query(url):
+    myjson = None
+    response = None
+    try:
+        with request.urlopen(url) as response:
+            if response.status == 200:
+                myjson = response.read().decode('utf-8')
+    except HTTPError as e:
+        casalog.post(
+            f"Caught HTTPError: {e.code} {e.reason}: {e.read().decode('utf-8')}",
+            "WARN"
+        )
+    except URLError as e:
+        casalog.post(f"Caught URLError: {str(e)}", "WARN")
+    except Exception as e:
+        casalog.post(f"Caught Exception when trying to connect: {str(e)}", "WARN")
+    return myjson
+
 
 def antpos(outfile='', asdm='', tw='', snr=0, search='both_latest', hosts=['tbd1.alma.cl', 'tbd2.alma.cl']):
     r"""
@@ -131,6 +158,7 @@ Parameter Details
     if isinstance(hosts, list) and not hosts[0]:
         raise ValueError("The first element of the hosts list must be specified")
     _qa = quanta()
+    parms = {}
     if tw:
         z = tw.split(",")
         if len(z) != 2:
@@ -151,7 +179,32 @@ Parameter Details
             raise ValueError(
                 f"Parameter tw, start time ({z[0]}) must be less than end time ({z[1]})."
             )
+        parms["tw"] = tw
     if snr < 0:
         raise ValueError(f"Parameter snr ({snr}) must be non-negative.")
-    wsid = "uncertainties-service/uncertainties/versions/last/measurements/casa/?asdm=uid://A002/X10ac6bc/X896d&tw=2023-01-01T06:00:00.0,2023-07-31T06:00:00.0&snr=5.0"
+    elif snr > 0:
+        parms["snr"] = snr
+    if search:
+        if search in ["both_latest", "both_closest"]:
+            parms["search"] = search
+        else:
+            raise ValueError(
+                f"Parameter search (={search}) must have a value of either "
+                "'both_latest' or 'both_closest'."
+            )
+    wsid = (
+        "uncertainties-service/uncertainties/versions/last/measurements/casa/?"
+        f"{urlencode(parms)}"
+    )
+    myjson = None
+    for h in hosts:
+        if not _is_valid_url_host(h):
+            raise ValueError(f'Parameter hosts: {h} is not a valid host expressed as a URL.')
+        url = f"{h}?{wsid}"
+        casalog.post(f"Trying {url} ...", "NORMAL")
+        antpos = _query(url)
+        if antpos:
+            break
+    if not myjson:
+        raise RuntimeError('All URLs failed to return an antenna position list.')
 
