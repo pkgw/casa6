@@ -652,6 +652,32 @@ class TestJyPerK(unittest.TestCase):
         return responses
 
     @patch('casatasks.private.jyperk.JyPerKDatabaseClient._try_to_get_response')
+    def test_jyperk_gencal_for_web_api_error(self, mock_retrieve):
+        """Test to check that the factors from the web API are applied to the caltable.
+
+        The following arguments are required for this test.
+        * caltype='jyperk'
+        * endpoint='asdm'
+        """
+        error_message = "expected error"
+
+        def get_response(url):
+            # return failed response
+            response = '{"success": false, "error": "%s"}' % (error_message)
+            return response
+
+        mock_retrieve.side_effect = get_response
+
+        with self.assertRaisesRegex(RuntimeError, f'Failed to get Jy/K factors from DB: {error_message}'):
+            gencal(vis=self.vis,
+                   caltable=self.caltable,
+                   caltype='jyperk',
+                   endpoint='asdm',
+                   uniform=False)
+
+        self.assertTrue(mock_retrieve.called)
+
+    @patch('casatasks.private.jyperk.JyPerKDatabaseClient._try_to_get_response')
     def test_jyperk_gencal_for_asdm_web_api(self, mock_retrieve):
         """Test to check that the factors from the web API are applied to the caltable.
 

@@ -164,6 +164,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/bandpass.xml',
               'xml/blcal.xml',
               'xml/calstat.xml',
+              'xml/defintent.xml',
               'xml/concat.xml',
               'xml/split.xml',
               'xml/listobs.xml',
@@ -438,7 +439,7 @@ class BuildCasa(build):
             proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
                           stdout=subprocess.PIPE )
         else:
-            xml_jar_file = 'xml-casa-assembly-1.81.jar'
+            xml_jar_file = 'xml-casa-assembly-1.83.jar'
             xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
             xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
             self.xml_jar_fetch(xml_jar_path, xml_jar_url)
@@ -457,6 +458,11 @@ class BuildCasa(build):
         mkpath(xmldir)
         for x in xml_files:
             copy2(x,xmldir)
+            
+        os.makedirs(os.path.join(moduledir, 'tests'))
+        f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
+        f.close()
+        copy2('tests/test_casatasks.py',os.path.join(moduledir, 'tests'))
 
 class TestCasa(Command):
     user_options = []
@@ -633,7 +639,8 @@ setup( name=module_name,version=casatasks_version,
                   "%s.__xml__" % module_name,
                   "%s.private" % module_name,
                   "%s.private.parallel" % module_name,
-                  "%s.private.imagerhelpers" % module_name ],
+                  "%s.private.imagerhelpers" % module_name,
+                  "%s.tests" % module_name ],
        classifiers=[ 'Programming Language :: Python :: %s' % pyversion ],
        description="the CASA tasks",
        long_description="The CASAtasks are a collection of (mostly) stateless functions for\nthe analysis of radio astronomy observations.",
