@@ -1402,19 +1402,17 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
     
   }
 
-
   Double SIImageStore::getPbMax(Int pol,Int chan)
   {
 
     //// Normalize PB to 1 at the location of the maximum (per pol,chan)
     
-    CountedPtr<ImageInterface<Float> > subim=makeSubImage(0,1, 
+    CountedPtr<ImageInterface<Float> > subim=makeSubImage(0, 1,
 							  chan, itsImageShape[3],
-							  pol, itsImageShape[2], 
-							  *weight(0) );
+							  pol, itsImageShape[2],
+							  *weight(0));
 
-    LatticeExprNode le( sqrt(max( *subim )) );
-    return le.getFloat();
+    return sqrt(max(subim->get()));
   }
 
   void  SIImageStore::makePBFromWeight(const Float pblimit)
@@ -1687,114 +1685,135 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
    }
 
   // Make another for the PSF too.
-  void SIImageStore::divideResidualByWeight(Float pblimit,String normtype)
-  {
-    LogIO os( LogOrigin("SIImageStore","divideResidualByWeight",WHERE) );
-    LatticeLocker lock1 (*(residual()), FileLocker::Write);
+  void SIImageStore::divideResidualByWeight(Float pblimit, String normtype) {
+
+    LogIO os(LogOrigin("SIImageStore", "divideResidualByWeight", WHERE));
+    LatticeLocker lock1(*(residual()), FileLocker::Write);
+
+    auto logTemplate = [&](Int const &chan, Int const &pol, string const &normalizer, string const &result) {
+      os << LogIO::NORMAL1
+         << "[C" + String::toString(chan) + ":P" + String::toString(pol) + "] "
+         << "Dividing " << itsImageName + String(".residual") << " by "
+         << "[ " << normalizer << " ] "
+         << "to get " << result << "." << LogIO::POST;
+    };
 
     // Normalize by the sumwt, per plane. 
-    Bool didNorm = divideImageByWeightVal( *residual() );
-    if( itsUseWeight )
-      {
-	
-	for(Int pol=0; pol<itsImageShape[2]; pol++)
-	  {
-	    for(Int chan=0; chan<itsImageShape[3]; chan++)
-	      {
-		
-		itsPBScaleFactor = getPbMax(pol,chan);
-		//	cout << " pbscale : " << itsPBScaleFactor << endl;
-		if(itsPBScaleFactor<=0){os << LogIO::NORMAL1 << "Skipping normalization for C:" << chan << " P:" << pol << " because pb max is zero " << LogIO::POST;}
-		else {
+    Bool didNorm = divideImageByWeightVal(*residual());
 
-		CountedPtr<ImageInterface<Float> > wtsubim=makeSubImage(0,1, 
-								      chan, itsImageShape[3],
+    if (itsUseWeight) {
+      for (Int pol = 0; pol < itsImageShape[2]; pol++) {
+        for (Int chan = 0; chan < itsImageShape[3]; chan++) {
+	  itsPBScaleFactor = getPbMax(pol, chan);
+
+          if (itsPBScaleFactor <= 0) {
+            os << LogIO::NORMAL1 
+               << "Skipping normalization for C:" << chan << " P:" << pol 
+               << " because pb max is zero " << LogIO::POST;
+
+          } else {
+            CountedPtr<ImageInterface<Float> > wtsubim = makeSubImage(0, 1,
+                                                                      chan, itsImageShape[3],
 								      pol, itsImageShape[2], 
-								      *weight() );
-		CountedPtr<ImageInterface<Float> > ressubim=makeSubImage(0,1, 
-								      chan, itsImageShape[3],
-								      pol, itsImageShape[2], 
-								      *residual() );
+								      *weight());
+            CountedPtr<ImageInterface<Float> > ressubim = makeSubImage(0, 1,
+								       chan, itsImageShape[3],
+								       pol, itsImageShape[2], 
+								       *residual());
+            LatticeExpr<Float> ratio;
+            Float scalepb = 1.0;
 
-		
-		LatticeExpr<Float> ratio;
-		Float scalepb=1.0;
-		if( normtype=="flatnoise"){
-		  LatticeExpr<Float>deno = LatticeExpr<Float> ( sqrt( abs(*(wtsubim)) ) * itsPBScaleFactor );
-		  os << LogIO::NORMAL1 ;
-		  os <<  "[C" +String::toString(chan) + ":P" + String::toString(pol) + "] ";
-		  os << "Dividing " << itsImageName+String(".residual") ;
-		  os << " by [ sqrt(weightimage) * " << itsPBScaleFactor ;
-		  os << " ] to get flat noise with unit pb peak."<< LogIO::POST;
+            if (normtype == "flatnoise") {
+              logTemplate(chan, pol,
+                          "sqrt(weightimage) * " + String::toString(itsPBScaleFactor),
+                          "flat noise with unit pb peak");
 
-           
-          scalepb=fabs(pblimit)*itsPBScaleFactor*itsPBScaleFactor;
-		  LatticeExpr<Float> mask( iif( (deno) > scalepb , 1.0, 0.0 ) );
-		  LatticeExpr<Float> maskinv( iif( (deno) > scalepb , 0.0, 1.0 ) );
-		  ratio=( ( (*(ressubim)) * mask ) / ( deno + maskinv ) );
-		}
-		else if(normtype=="pbsquare"){
-		  Float deno =  itsPBScaleFactor*itsPBScaleFactor ;
-		  os << LogIO::NORMAL1 ;
-		  os <<  "[C" +String::toString(chan) + ":P" + String::toString(pol) + "] ";
-		  os << "Dividing " << itsImageName+String(".residual") ;
-		  os << itsPBScaleFactor ;
-		  os << " ] to get optimal noise with unit pb peak."<< LogIO::POST;
-		  scalepb=fabs(pblimit)*itsPBScaleFactor*itsPBScaleFactor;
-		  //LatticeExpr<Float> mask( iif( (deno) > scalepb , 1.0, 0.0 ) );
-		  //LatticeExpr<Float> maskinv( iif( (deno) > scalepb , 0.0, 1.0 ) );
-		  ratio=(  (*(ressubim)) / ( deno ) );
-		}
-		else if( normtype=="flatsky") {
+              LatticeExpr<Float> deno =  itsPBScaleFactor * sqrt(abs(LatticeExpr<Float>(*(wtsubim))));
+              scalepb = fabs(pblimit) * itsPBScaleFactor * itsPBScaleFactor;
+              ratio = iif(deno > scalepb, (*(ressubim) / deno), 0.0);
 
-		  LatticeExpr<Float> deno = LatticeExpr<Float> ( *(wtsubim) );
-		  os << LogIO::NORMAL1 ;
-		  os <<  "[C" +String::toString(chan) + ":P" + String::toString(pol) + "] ";
-		  os << "Dividing " << itsImageName+String(".residual") ;
-		  os << " by [ weight ] to get flat sky"<< LogIO::POST;
-		  scalepb=fabs(pblimit*pblimit)*itsPBScaleFactor*itsPBScaleFactor;
-		  LatticeExpr<Float> mask( iif( (deno) > scalepb , 1.0, 0.0 ) );
-		  LatticeExpr<Float> maskinv( iif( (deno) > scalepb , 0.0, 1.0 ) );
-		  ratio=( ( (*(ressubim)) * mask ) / ( deno + maskinv ) );
-		}
+            } else if (normtype == "pbsquare") {
+              logTemplate(chan, pol,
+                          String::toString(itsPBScaleFactor),
+                          "optimal noise with unit pb peak");
 
-		//		IPosition ip(4,itsImageShape[0]/2,itsImageShape[1]/2,0,0);
-		//Float resval = ressubim->getAt(ip);
+              Float deno = itsPBScaleFactor * itsPBScaleFactor;
+              ratio = (*(ressubim) / deno);
 
-		//LatticeExpr<Float> mask( iif( (deno) > scalepb , 1.0, 0.0 ) );
-		//LatticeExpr<Float> maskinv( iif( (deno) > scalepb , 0.0, 1.0 ) );
-		//LatticeExpr<Float> ratio( ( (*(ressubim)) * mask ) / ( deno + maskinv ) );
-		
-		//above blocks all sources outside minpb but visible with weight coverage
-		//which could be cleaned out...one could use below for that
-		//LatticeExpr<Float> ratio(iif( deno > scalepb, (*(ressubim))/ deno, *ressubim ) );
+            } else if (normtype == "flatsky") {
+              logTemplate(chan, pol, "weight", "flat sky");
 
-		ressubim->copyData(ratio);
+              LatticeExpr<Float> deno = LatticeExpr<Float>(*(wtsubim));
+              scalepb = fabs(pblimit * pblimit) * itsPBScaleFactor * itsPBScaleFactor;
+              ratio = iif(deno > scalepb, (*(ressubim) / deno), 0.0);
 
-		//cout << "Val of residual before|after normalizing at center for pol " << pol << " chan " << chan << " : " << resval << "|" << ressubim->getAt(ip) << " weight : " << wtsubim->getAt(ip) << endl;
-		}// if not zero
-	      }//chan
-	  }//pol
-	
-      }
+            }
+
+            //IPosition ip(4, itsImageShape[0] / 2, itsImageShape[1]/2, 0, 0);
+            //Float resval = ressubim->getAt(ip);
+            //LatticeExpr<Float> mask(iif((deno) > scalepb, 1.0, 0.0));
+            //LatticeExpr<Float> maskinv(iif((deno) > scalepb, 0.0, 1.0));
+            //LatticeExpr<Float> ratio(((*(ressubim)) * mask) / (deno + maskinv));
+
+            //above blocks all sources outside minpb but visible with weight coverage
+            //which could be cleaned out...one could use below for that
+            //LatticeExpr<Float> ratio(iif(deno > scalepb, (*(ressubim)) / deno, *ressubim));
+
+            ressubim->copyData(ratio);
+
+            //cout << "Val of residual before|after normalizing at center for pol " << pol << " chan " << chan << " : " << resval << "|" << ressubim->getAt(ip) << " weight : " << wtsubim->getAt(ip) << endl;
+          } // if not zero
+        } //chan
+      } //pol
+    }
     
     // If no normalization happened, print a warning. The user must check if it's right or not.
     // Or... later if we get a gridder that does pre-norms, this warning can go. 
-    if( (didNorm | itsUseWeight) != True ) 
+    if ((didNorm | itsUseWeight) != True) {
       os << LogIO::WARN << "No normalization done to residual" << LogIO::POST;
+    }
     
     ///// A T/F mask in the residual will confuse users looking at the interactive clean
     ///// window
-        if((residual()->getDefaultMask()=="") && hasPB()  &&  pblimit >=0.0 )
-       {copyMask(pb(),residual());}
+    if ((residual()->getDefaultMask() == "") && hasPB() && pblimit >=0.0) {
+      copyMask(pb(), residual());
+    }
 
-	if( pblimit <0.0 && (residual()->getDefaultMask()).matches("mask0") ) removeMask( residual() );
+    if ((pblimit < 0.0) && (residual()->getDefaultMask()).matches("mask0")) {
+      removeMask(residual());
+    }
 
-        residual()->unlock();
-
-
+    residual()->unlock();
   }
-  
+
+  void SIImageStore::divideResidualByWeightSD(Float pblimit) {
+
+    LogIO os(LogOrigin("SIImageStore", "divideResidualByWeightSD", WHERE));
+    LatticeLocker lock1(*(residual()), FileLocker::Write);
+
+    if (itsUseWeight) {
+      LatticeExpr<Float> deno = LatticeExpr<Float>(*weight());
+      LatticeExpr<Float> ratio = iif(deno > 0.0, *(residual()) / deno, 0.0);
+      residual()->copyData(ratio);
+    }
+    else {
+      // If no normalization happened, print a warning. The user must check if it's right or not.
+      // Or... later if we get a gridder that does pre-norms, this warning can go.
+      os << LogIO::WARN << "No normalization done to residual" << LogIO::POST;
+    }
+
+    ///// A T/F mask in the residual will confuse users looking at the interactive clean
+    ///// window
+    if ((residual()->getDefaultMask() == "") && hasPB() && pblimit >=0.0) {
+      copyMask(pb(), residual());
+    }
+
+    if ((pblimit < 0.0) && (residual()->getDefaultMask()).matches("mask0")) {
+      removeMask(residual());
+    }
+
+    residual()->unlock();
+  }
 
   void SIImageStore::divideModelByWeight(Float pblimit, const String normtype)
   {
