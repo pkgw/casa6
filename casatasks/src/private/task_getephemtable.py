@@ -6,7 +6,7 @@ from casatasks import casalog
 from casatasks.private.jplhorizons_query import gethorizonsephem
 
 
-def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
+def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile, overwrite):
     """Retrieve the ephemeris data of a specific ephemeris object by sending
     a query to JPL's Horizons system and creates the ephemeris data stored in a CASA table format.
     """
@@ -81,10 +81,16 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile):
     if not outfile.strip():
         raise ValueError("outfile must be specified")
     elif os.path.exists(outfile):
-        casalog.post(f'{outfile} exists, will be overwritten', 'WARN')
+        if not overwrite:
+            raise ValueError(f'{outfile} exsits and overwrite=False')
+        else:
+            casalog.post(f'{outfile} exists, will be overwritten', 'WARN')
         shutil.rmtree(outfile)
     if os.path.exists(rawdatafile):
-        casalog.post(f'{rawdatafile} exists, will be overwritten', 'WARN')
+        if not overwrite:
+            raise ValueError(f'{rawdatafile} exsits and overwrite=False')
+        else:
+            casalog.post(f'{rawdatafile} exists, will be overwritten', 'WARN')
 
     # call the JPL-Horizons query function
     gethorizonsephem(objectname, starttime, stoptime, intervalstr, outfile, asis, rawdatafile)

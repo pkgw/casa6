@@ -112,6 +112,15 @@ format.
                   <value/>
                 </param>
 
+                <param type="bool" name="overwrite">
+<shortdescription>Overwrite output files if aready exist</shortdescription>
+<description>If True, overwrite output files (outfile, rawdatafile), if already exist
+                     Default: False
+
+</description>
+                  <value type="bool">False</value>
+                </param>
+
 
   </input>
 
