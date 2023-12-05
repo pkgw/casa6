@@ -21,11 +21,12 @@
 #
 #
 ##########################################################################
-"""
-import glob
+# import glob
 import http.server
-import numpy as np
 import os
+from pathlib import Path
+"""
+import numpy as np
 import re
 import shutil
 import sys
@@ -100,8 +101,8 @@ class antpos_test(unittest.TestCase):
             pos, -1, msg=f'Unexpected exception was thrown: {exc}'
         )
 
-    """
-    def query_server(self, method):
+
+    def _query_server(self, method):
         server = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 8080), MockHTTPRequestHandler
         )
@@ -113,16 +114,30 @@ class antpos_test(unittest.TestCase):
                 method()
             finally:
                 server.shutdown()
-    """
+
 
     def test_inputs(self):
-        """Test inputs meet various constraints"""
+        """
+        Test inputs meet various constraints. All the exceptions are thrown
+        without having queried the server
+        """
         with self.assertRaises(ValueError) as cm: 
             antpos()
         self.exception_verification(cm, "Parameter outfile must be specified")
         with self.assertRaises(ValueError) as cm: 
             antpos(hosts=["good.example.com"])
         self.exception_verification(cm, "Parameter outfile must be specified")
+        outfile = "kyfjak.blah"
+        Path(outfile).touch()
+        with self.assertRaises(RuntimeError) as cm: 
+            antpos(outfile=outfile, overwrite=False, hosts=["http://good.example.com"])
+        self.exception_verification(
+            cm,
+            f"A file or directory named {outfile} already exists and overwrite "
+            "is False, so exiting. Either rename the existing file or directory, "
+            "change the value of overwrite to True, or both."
+        )
+        os.remove(outfile)
         with self.assertRaises(ValueError) as cm: 
             antpos(outfile="myants.json", hosts=[])
         self.exception_verification(cm, "Parameter hosts must be specified")
@@ -203,8 +218,8 @@ class antpos_test(unittest.TestCase):
 
 
     """
-    def test_component_list_writing(self):
-        """"Test successful writing of a component list""""
+    def test_json_file_writing(self):
+        """"Test successful writing of json file of antenna positions""""
         hosts = [self.hostname]
         self.query_server(
             lambda: calmod(
@@ -216,8 +231,8 @@ class antpos_test(unittest.TestCase):
         ws = self.cl.getkeyword('web_service')
         self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
         self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
-
-
+    """
+    """ 
     def test_bad_source_name(self):
         hosts = [self.hostname]
         with self.assertRaises(RuntimeError) as cm: 

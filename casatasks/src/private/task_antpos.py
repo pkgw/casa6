@@ -1,7 +1,9 @@
 from casatasks import casalog
 from casatools import quanta
+import json, os, shutil
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
+
 
 def _is_valid_url_host(url):
     parsed = urlparse(url)
@@ -27,7 +29,10 @@ def _query(url):
     return myjson
 
 
-def antpos(outfile='', asdm='', tw='', snr=0, search='both_latest', hosts=['tbd1.alma.cl', 'tbd2.alma.cl']):
+def antpos(
+    outfile='', overwrite=False, asdm='', tw='', snr=0, search='both_latest',
+    hosts=['tbd1.alma.cl', 'tbd2.alma.cl']
+):
     r"""
 Retrieve antenna positions by querying ALMA web service.
 
@@ -153,6 +158,12 @@ Parameter Details
     """
     if not outfile:
         raise ValueError("Parameter outfile must be specified")
+    if not overwrite and os.path.exists(outfile):
+        raise RuntimeError(
+            f"A file or directory named {outfile} already exists and overwrite "
+            "is False, so exiting. Either rename the existing file or directory, "
+            "change the value of overwrite to True, or both."
+        )
     if not hosts:
         raise ValueError("Parameter hosts must be specified")
     if isinstance(hosts, list) and not hosts[0]:
@@ -196,15 +207,30 @@ Parameter Details
         "uncertainties-service/uncertainties/versions/last/measurements/casa/?"
         f"{urlencode(parms)}"
     )
-    myjson = None
+    antpos = None
     for h in hosts:
         if not _is_valid_url_host(h):
-            raise ValueError(f'Parameter hosts: {h} is not a valid host expressed as a URL.')
+            raise ValueError(
+                f'Parameter hosts: {h} is not a valid host expressed as a URL.'
+            )
         url = f"{h}?{wsid}"
         casalog.post(f"Trying {url} ...", "NORMAL")
         antpos = _query(url)
         if antpos:
             break
-    if not myjson:
+    if not antpos:
         raise RuntimeError('All URLs failed to return an antenna position list.')
-
+    if os.path.exists(outfile):
+        if overwrite:
+            if os.path.isdir(outfile):
+                casalog.post(f"Removing existing directory {outfile}", "WARN")
+                shutil.rmtree(outfile)
+            else:
+                casalog.post(f"Removing existing file {outfile}", "WARN")
+                os.remove(outfile)
+        else:
+            raise RuntimeError(
+                "Logic Error: shouldn't have gotten too this point with overwrite=False"
+            )
+    with open(outfile, "w") as f:
+        json.dump(antpos, f)

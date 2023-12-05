@@ -17,7 +17,12 @@ Example: outfile='my_alma_antenna_positions.json'
       </description>
       <value/>
     </param>
-
+    <param name="overwrite" type="bool">
+        <shortdescription>Overwrite a file by the same name if it exists?</shortdescription>
+        <description> Overwrite a file by the same name if it exists? If False and a file
+            with the same name exists, and exception will be thrown.</description>
+        <value>False</value>
+    </param>
     <param name="asdm" type="string">
       <shortdescription>The associated ASDM name. Must be specified</shortdescription>
       <description>The associated ASDM name. Must be specified. The ASDM is not required to be on the file system; its value is simply passed to the web service.
