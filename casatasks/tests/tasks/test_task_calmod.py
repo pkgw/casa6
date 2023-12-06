@@ -25,6 +25,7 @@ import glob
 import http.server
 import numpy as np
 import os
+from pathlib import Path
 import re
 import shutil
 import sys
@@ -120,65 +121,76 @@ class calmod_test(unittest.TestCase):
         with self.assertRaises(ValueError) as cm: 
             calmod()
         self.exception_verification(cm, 'outfile must be specified')
+        outfile = "my.cl"
+        Path(outfile).touch()
+        with self.assertRaises(RuntimeError) as cm: 
+            calmod(outfile, False)
+        self.exception_verification(
+            cm,
+            "The overwrite parameter is False and a file or directory named "
+            f"{outfile} already exists. Either remove or rename it, or change "
+            "overwrite to True, or both."
+        )
+        os.remove(outfile)
         with self.assertRaises(ValueError) as cm: 
             calmod('my.cl')
         self.exception_verification(cm, 'Exactly one of source or direction must be specified')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', 'mysource', 'mydirection')
+            calmod('my.cl', True, 'mysource', 'mydirection')
         self.exception_verification(cm, 'Both source and direction may not be simultaneously specified')
         with self.assertRaises(ValueError) as cm:
-            calmod('my.cl', direction='mydirection')
+            calmod('my.cl', True, direction='mydirection')
         self.exception_verification(cm, 'Illegal direction specification mydirection')
         with self.assertRaises(ValueError) as cm:
-            calmod('my.cl', direction='1 2 3')
+            calmod('my.cl', True, direction='1 2 3')
         self.exception_verification(cm, 'Illegal direction specification 1 2 3')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48')
+            calmod('my.cl', True, '3c48')
         self.exception_verification(cm, 'band must be specified')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='m')
+            calmod('my.cl', True, '3c48', band='m')
         self.exception_verification(cm, 'band m not supported')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=[])
+            calmod('my.cl', True, '3c48', band='q', obsdate=[])
         self.exception_verification(
             cm,
             'obsdate must either be a number or a string of the form YYYY-MM-DD'
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=1)
+            calmod('my.cl', True, '3c48', band='q', obsdate=1)
         self.exception_verification(cm, 'obsdate must be <= 0 or >= ')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate='hi')
+            calmod('my.cl', True, '3c48', band='q', obsdate='hi')
         self.exception_verification(
             cm, 'If specified as a string, obsdate must be of the form YYYY-MM-DD'
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate='1970-01-01')
+            calmod('my.cl', True, '3c48', band='q', obsdate='1970-01-01')
         self.exception_verification(
             cm, 'If specified as a string, obsdate must be later than'
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=1)
+            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=1)
         self.exception_verification(cm, 'refdate must be <= 0 or >= ')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate='123')
+            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate='123')
         self.exception_verification(
             cm, 'If specified as a string, refdate must be of the form '
             + 'YYYY-MM-DD'
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=[])
+            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=0, hosts=[])
         self.exception_verification(cm, 'hosts must be specified')
         hosts = ['zz']
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
+            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
         self.exception_verification(cm, 'zz is not a valid host expressed as a URL')
         hosts = ['http://my.bogus.com:8080']
         with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
+            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
         self.exception_verification(cm, 'All URLs failed to return a component list')
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', '3c48', band='q', refdate=[])
+            calmod('my.cl', True, '3c48', band='q', refdate=[])
         self.exception_verification(
             cm,
             'refdate must either be a number or a string of the form YYYY-MM-DD'
@@ -190,7 +202,7 @@ class calmod_test(unittest.TestCase):
         hosts = [self.hostname]
         self.query_server(
             lambda: calmod(
-                self.clname, '3C48', band='Q',obsdate=50000, hosts=hosts
+                self.clname, True, '3C48', band='Q',obsdate=50000, hosts=hosts
             )
         )
         self.cl.open(self.clname)
@@ -205,7 +217,7 @@ class calmod_test(unittest.TestCase):
         with self.assertRaises(RuntimeError) as cm: 
             self.query_server(
                 lambda: calmod(
-                    'my.cl', 'mysource', band='L', hosts=[self.hostname],
+                    'my.cl', True, 'mysource', band='L', hosts=[self.hostname],
                     obsdate=50000
                 )
             )
@@ -224,7 +236,7 @@ class calmod_test(unittest.TestCase):
         hosts = [self.hostname]
         self.query_server(
             lambda: calmod(
-                self.clname, '3C48', band='Q',obsdate='2002-04-20', hosts=hosts
+                self.clname, True, '3C48', band='Q',obsdate='2002-04-20', hosts=hosts
             )
         )
         self.cl.open(self.clname)
@@ -240,7 +252,7 @@ class calmod_test(unittest.TestCase):
         direction = 'J2000 01:37:41.1 33.09.32'
         self.query_server(
             lambda: calmod(
-                self.clname, direction=direction, band='Q',obsdate=50000, hosts=hosts
+                self.clname, True, direction=direction, band='Q',obsdate=50000, hosts=hosts
             )
         )
         self.cl.open(self.clname)
