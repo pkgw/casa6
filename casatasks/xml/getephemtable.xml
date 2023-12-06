@@ -32,7 +32,7 @@ format.
 
                      As described in objectname parameter description, when asis=False, objectname is checked 
                      against the known objects (a list of the supported ephemeris sources in setjy task plus 
-                     a few others) in CASA (See Description in CASA Docs).
+                     a few others) in CASA (See the getephemtable Description section in CASA Docs).
                      Setting asis=True will skip this check/conversion thus objectname has to be uniquly 
                      recognized by the JPL-Horzions system.
                      For example, objectname='Jupiter' with asis=True results in the JPL-Horizons system 
@@ -51,7 +51,7 @@ format.
                      Standard CASA timerange specification('T0~T1'),YY/MM/DD/hh:mm,
                      or by Modified Julian date or Julian date if the string is prefixed by 'MJD' or 'JD'.
 
-                        Examples:
+                        Example:
                         timerange = '2023/09/01/20:45~2023/09/02/04:00'
                         (Note: Both start and end times need to be fully specified starting with YYYY 
                          but hours or minutes can be omitted  as long as the
