@@ -12,13 +12,14 @@ downstream.
                 <shortdescription>The name of the output component list to be written. Must be specified</shortdescription>
                 <description>The name of the output component list to be written. Must be specified
                      Default: none, must be specified
-                        Example: outfile='3c273.cl'
+                        Example: outfile=&quot;3c273.cl&quot;
                 </description>
                 <value/>
             </param>
             <param name="overwrite" type="bool">
                 <shortdescription>Overwrite a file or directory of the same name as outfile if it exists.</shortdescription>
                 <description>Overwrite a file or directory of the same name of outfile if it exists. If overwrite=False and a file or directory of the same name as outfile exists, an exception will be thrown.</description>
+                <value>False</value>
             </param>
             <param name="source" type="string">
                 <shortdescription>The calibrator name.</shortdescription>
@@ -33,13 +34,13 @@ downstream.
             <param name="direction" type="string">
                 <shortdescription>The direction of the calibrator</shortdescription>
                 <description>An alternative to source. It is the direction of the calibrator. The supported
-                    formats are of the form 'EPOCH LONGITUDE LATITUDE', eg
+                    formats are of the form &quot;EPOCH LONGITUDE LATITUDE&quot;, eg
                     
-                    'J2000 12:34:56 -12.34.56'.
-                    'J2000 19h53m50 40d06m00'
-                    'B1950 292.5deg -40.0deg'
-                    'ICRS 13:05:27.2780 -049.28.04.458'
-                    'GALACTIC 47.5rad -60.22rad'
+                    &quot;J2000 12:34:56 -12.34.56&quot;.
+                    &quot;J2000 19h53m50 40d06m00&quot;
+                    &quot;B1950 292.5deg -40.0deg&quot;
+                    &quot;ICRS 13:05:27.2780 -049.28.04.458&quot;
+                    &quot;GALACTIC 47.5rad -60.22rad&quot;
 
                     Only astronomical coordinate systems should be used; eg AZEL is right out. The web service
                     will attempt to locate a known calibrator near this direction, where "near" is defined by
@@ -90,7 +91,7 @@ downstream.
                 <value type="stringVec"><value type="string">http://something.nrao.edu</value></value>
             </param>
         </input>    
-        <returns type='void'/>
+        <returns type="void"/>
         <example>
             SEE TASK DESCRIPTION IN CASADOCS
         </example>

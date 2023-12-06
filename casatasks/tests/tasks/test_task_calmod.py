@@ -53,13 +53,13 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     """HTTPServer mock request handler"""
 
     def do_GET(self):
-        casalog.post('server path ' + self.path, 'WARN')
+        casalog.post("server path " + self.path, "WARN")
         parms = parse_qs(urlparse(self.path).query)
-        casalog.post(f'server parms {parms}', 'INFO')
+        casalog.post(f"server parms {parms}", "INFO")
         good_sources = ("3C48", "3C286", "3C138", "3C147")
-        if 'source' in parms and parms['source'][0].upper() not in good_sources:
-            explain = f'source must be one of {good_sources}'
-            self.send_error(400, message='Invalid input', explain=explain)
+        if "source" in parms and parms["source"][0].upper() not in good_sources:
+            explain = f"source must be one of {good_sources}"
+            self.send_error(400, message="Invalid input", explain=explain)
             self.end_headers()
             return
         """Handle GET requests"""
@@ -67,24 +67,24 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         myfile = os.sep.join([
-            casatestutils.__path__[0], 'calmod_helpers', 'query1.json'
+            casatestutils.__path__[0], "calmod_helpers", "query1.json"
         ])
-        with open(myfile, 'r') as f:
+        with open(myfile, "r") as f:
             file_contents = f.read()
         self.wfile.write(str.encode(file_contents))
 
     def log_request(self, code=None, size=None):
-        """Don't log anything"""
+        """Don"t log anything"""
 
 class calmod_test(unittest.TestCase):
 
 
-    hostname = 'http://127.0.0.1:8080'
+    hostname = "http://127.0.0.1:8080"
 
 
     def setUp(self):
         self.cl = componentlist()
-        self.clname = 'my.cl'
+        self.clname = "my.cl"
 
 
     def tearDown(self):
@@ -98,13 +98,13 @@ class calmod_test(unittest.TestCase):
         exc = cm.exception
         pos = str(exc).find(expected_msg)
         self.assertNotEqual(
-            pos, -1, msg=f'Unexpected exception was thrown: {exc}'
+            pos, -1, msg=f"Unexpected exception was thrown: {exc}"
         )
 
 
     def query_server(self, method):
         server = http.server.ThreadingHTTPServer(
-            ('127.0.0.1', 8080), MockHTTPRequestHandler
+            ("127.0.0.1", 8080), MockHTTPRequestHandler
         )
         with server:
             server_thread = threading.Thread(target=server.serve_forever)
@@ -120,7 +120,7 @@ class calmod_test(unittest.TestCase):
         """Test inputs meet various constraints"""
         with self.assertRaises(ValueError) as cm: 
             calmod()
-        self.exception_verification(cm, 'outfile must be specified')
+        self.exception_verification(cm, "outfile must be specified")
         outfile = "my.cl"
         Path(outfile).touch()
         with self.assertRaises(RuntimeError) as cm: 
@@ -133,67 +133,67 @@ class calmod_test(unittest.TestCase):
         )
         os.remove(outfile)
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl')
-        self.exception_verification(cm, 'Exactly one of source or direction must be specified')
+            calmod("my.cl")
+        self.exception_verification(cm, "Exactly one of source or direction must be specified")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, 'mysource', 'mydirection')
-        self.exception_verification(cm, 'Both source and direction may not be simultaneously specified')
+            calmod("my.cl", True, "mysource", "mydirection")
+        self.exception_verification(cm, "Both source and direction may not be simultaneously specified")
         with self.assertRaises(ValueError) as cm:
-            calmod('my.cl', True, direction='mydirection')
-        self.exception_verification(cm, 'Illegal direction specification mydirection')
+            calmod("my.cl", True, direction="mydirection")
+        self.exception_verification(cm, "Illegal direction specification mydirection")
         with self.assertRaises(ValueError) as cm:
-            calmod('my.cl', True, direction='1 2 3')
-        self.exception_verification(cm, 'Illegal direction specification 1 2 3')
+            calmod("my.cl", True, direction="1 2 3")
+        self.exception_verification(cm, "Illegal direction specification 1 2 3")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48')
-        self.exception_verification(cm, 'band must be specified')
+            calmod("my.cl", True, "3c48")
+        self.exception_verification(cm, "band must be specified")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='m')
-        self.exception_verification(cm, 'band m not supported')
+            calmod("my.cl", True, "3c48", band="m")
+        self.exception_verification(cm, "band m not supported")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=[])
+            calmod("my.cl", True, "3c48", band="q", obsdate=[])
         self.exception_verification(
             cm,
-            'obsdate must either be a number or a string of the form YYYY-MM-DD'
+            "obsdate must either be a number or a string of the form YYYY-MM-DD"
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=1)
-        self.exception_verification(cm, 'obsdate must be <= 0 or >= ')
+            calmod("my.cl", True, "3c48", band="q", obsdate=1)
+        self.exception_verification(cm, "obsdate must be <= 0 or >= ")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate='hi')
+            calmod("my.cl", True, "3c48", band="q", obsdate="hi")
         self.exception_verification(
-            cm, 'If specified as a string, obsdate must be of the form YYYY-MM-DD'
+            cm, "If specified as a string, obsdate must be of the form YYYY-MM-DD"
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate='1970-01-01')
+            calmod("my.cl", True, "3c48", band="q", obsdate="1970-01-01")
         self.exception_verification(
-            cm, 'If specified as a string, obsdate must be later than'
+            cm, "If specified as a string, obsdate must be later than"
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=1)
-        self.exception_verification(cm, 'refdate must be <= 0 or >= ')
+            calmod("my.cl", True, "3c48", band="q", obsdate=50000, refdate=1)
+        self.exception_verification(cm, "refdate must be <= 0 or >= ")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate='123')
+            calmod("my.cl", True, "3c48", band="q", obsdate=50000, refdate="123")
         self.exception_verification(
-            cm, 'If specified as a string, refdate must be of the form '
-            + 'YYYY-MM-DD'
+            cm, "If specified as a string, refdate must be of the form "
+            + "YYYY-MM-DD"
         )
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=0, hosts=[])
-        self.exception_verification(cm, 'hosts must be specified')
-        hosts = ['zz']
+            calmod("my.cl", True, "3c48", band="q", obsdate=50000, refdate=0, hosts=[])
+        self.exception_verification(cm, "hosts must be specified")
+        hosts = ["zz"]
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
-        self.exception_verification(cm, 'zz is not a valid host expressed as a URL')
-        hosts = ['http://my.bogus.com:8080']
+            calmod("my.cl", True, "3c48", band="q", obsdate=50000, refdate=0, hosts=hosts)
+        self.exception_verification(cm, "zz is not a valid host expressed as a URL")
+        hosts = ["http://my.bogus.com:8080"]
         with self.assertRaises(RuntimeError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', obsdate=50000, refdate=0, hosts=hosts)
-        self.exception_verification(cm, 'All URLs failed to return a component list')
+            calmod("my.cl", True, "3c48", band="q", obsdate=50000, refdate=0, hosts=hosts)
+        self.exception_verification(cm, "All URLs failed to return a component list")
         with self.assertRaises(ValueError) as cm: 
-            calmod('my.cl', True, '3c48', band='q', refdate=[])
+            calmod("my.cl", True, "3c48", band="q", refdate=[])
         self.exception_verification(
             cm,
-            'refdate must either be a number or a string of the form YYYY-MM-DD'
+            "refdate must either be a number or a string of the form YYYY-MM-DD"
         )
 
 
@@ -202,14 +202,14 @@ class calmod_test(unittest.TestCase):
         hosts = [self.hostname]
         self.query_server(
             lambda: calmod(
-                self.clname, True, '3C48', band='Q',obsdate=50000, hosts=hosts
+                self.clname, True, "3C48", band="Q",obsdate=50000, hosts=hosts
             )
         )
         self.cl.open(self.clname)
-        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
-        ws = self.cl.getkeyword('web_service')
-        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
-        self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
+        self.assertEqual(self.cl.length(), 385, "Incorrect number of components")
+        ws = self.cl.getkeyword("web_service")
+        self.assertEqual(ws["band"], "Q", "Incorrect band in web_service metadata")
+        self.assertEqual(ws["source"], "3C48", "Incorrect source in web_service metadata")
 
 
     def test_bad_source_name(self):
@@ -217,11 +217,11 @@ class calmod_test(unittest.TestCase):
         with self.assertRaises(RuntimeError) as cm: 
             self.query_server(
                 lambda: calmod(
-                    'my.cl', True, 'mysource', band='L', hosts=[self.hostname],
+                    "my.cl", True, "mysource", band="L", hosts=[self.hostname],
                     obsdate=50000
                 )
             )
-        self.exception_verification(cm, 'All URLs failed to return a component list')
+        self.exception_verification(cm, "All URLs failed to return a component list")
         found = False
         pattern = "source must be one of \('3C48', '3C286', '3C138', '3C147'\)"
         with open(casalog.logfile()) as logfile:
@@ -236,30 +236,30 @@ class calmod_test(unittest.TestCase):
         hosts = [self.hostname]
         self.query_server(
             lambda: calmod(
-                self.clname, True, '3C48', band='Q',obsdate='2002-04-20', hosts=hosts
+                self.clname, True, "3C48", band="Q",obsdate="2002-04-20", hosts=hosts
             )
         )
         self.cl.open(self.clname)
-        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
-        ws = self.cl.getkeyword('web_service')
-        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
-        self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
+        self.assertEqual(self.cl.length(), 385, "Incorrect number of components")
+        ws = self.cl.getkeyword("web_service")
+        self.assertEqual(ws["band"], "Q", "Incorrect band in web_service metadata")
+        self.assertEqual(ws["source"], "3C48", "Incorrect source in web_service metadata")
 
        
     def test_direction(self):
         """Test direction input"""
         hosts = [self.hostname]
-        direction = 'J2000 01:37:41.1 33.09.32'
+        direction = "J2000 01:37:41.1 33.09.32"
         self.query_server(
             lambda: calmod(
-                self.clname, True, direction=direction, band='Q',obsdate=50000, hosts=hosts
+                self.clname, True, direction=direction, band="Q",obsdate=50000, hosts=hosts
             )
         )
         self.cl.open(self.clname)
-        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
-        ws = self.cl.getkeyword('web_service')
-        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
+        self.assertEqual(self.cl.length(), 385, "Incorrect number of components")
+        ws = self.cl.getkeyword("web_service")
+        self.assertEqual(ws["band"], "Q", "Incorrect band in web_service metadata")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
      unittest.main()

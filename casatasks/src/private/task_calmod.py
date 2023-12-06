@@ -19,18 +19,17 @@ def __query(url):
     response = None
     try:
         with request.urlopen(url) as response:
-            casalog.post('ac','INFO')
             if response.status == 200:
                 components = json.loads(response.read().decode('utf-8'))
     except HTTPError as e:
         casalog.post(
-            f'Caught HTTPError: {e.code} {e.reason}: {e.read().decode("utf-8")}',
-            'WARN'
+            f"Caught HTTPError: {e.code} {e.reason}: {e.read().decode('utf-8')}",
+            "WARN"
         )
     except URLError as e:
-        casalog.post(f'Caught URLError: {str(e)}', 'WARN')
+        casalog.post(f"Caught URLError: {str(e)}", "WARN")
     except Exception as e:
-        casalog.post(f'Caught Exception when trying to connect: {str(e)}', 'WARN')
+        casalog.post(f"Caught Exception when trying to connect: {str(e)}", "WARN")
     return components
 
 
@@ -39,33 +38,33 @@ def __getMJD(date_or_mjd, varname):
         is_number = True
         mjd = date_or_mjd
     elif isinstance(date_or_mjd, str):
-        pattern = '^\d{4}-\d{2}-\d{2}$'
+        pattern = "^\d{4}-\d{2}-\d{2}$"
         if re.match(pattern, date_or_mjd):
             is_number = False
             qa = quanta()
             mjd = int(qa.time(date_or_mjd, form="mjd")[0][:5])
         else:
             raise ValueError(
-                f'If specified as a string, {varname} must be of the form '
-                + 'YYYY-MM-DD'
+                f"If specified as a string, {varname} must be of the form "
+                + "YYYY-MM-DD"
             )
     else:
         raise ValueError(
-            f'{varname} must either be a number or a string of the form '
-            + 'YYYY-MM-DD'
+            f"{varname} must either be a number or a string of the form "
+            + "YYYY-MM-DD"
         )
     upper = 48000
     if mjd > 0 and mjd < upper:
         if is_number:
             raise ValueError(
-                f'If specified as a number, {varname} must be <= 0 or >= '
-                + '{upper}'
+                f"If specified as a number, {varname} must be <= 0 or >= "
+                + "{upper}"
             )
         else:
-            cutoff = qa.time(f'{upper*86400}s', form='fits')[0][:10]
+            cutoff = qa.time(f"{upper*86400}s", form="fits")[0][:10]
             raise ValueError(
-                f'If specified as a string, {varname} must be later than '
-                + f'{cutoff}'
+                f"If specified as a string, {varname} must be later than "
+                + f"{cutoff}"
             )
     return mjd
 
@@ -80,13 +79,13 @@ Retrieve calibrator brightness distributions from telescope-specific web service
 
 
 Parameters
-   - outfile_ (path='') - The name of the output component list to be written. Must be specified
-   - source_ (string='') - The calibrator name.
-   - direction_ (string='') - The direction of the calibrator
-   - band_ (string='') - The receiver band for which the source structure is needed
-   - obsdate_ (variant='0') - The observation date
-   - refdate_ (variant='0') - The reference date after which new database entries will be ignored.
-   - hosts_ (stringVec=['http://something.nrao.edu']) - List of hostnames to use when querying the web service.
+   - outfile_ (path="") - The name of the output component list to be written. Must be specified
+   - source_ (string="") - The calibrator name.
+   - direction_ (string="") - The direction of the calibrator
+   - band_ (string="") - The receiver band for which the source structure is needed
+   - obsdate_ (variant="0") - The observation date
+   - refdate_ (variant="0") - The reference date after which new database entries will be ignored.
+   - hosts_ (stringVec=["http://something.nrao.edu"]) - List of hostnames to use when querying the web service.
 
 
 .. _Description:
@@ -99,18 +98,18 @@ Description
 
   The task currently supports only the VLA (since it is the only telescope that has
   such a web service). One of either a calibrator name or direction may be specified.
-  The names '3C48', '3C138', '3C147', and '3C286' are supported. A direction is specified
-  as 'FRAME LONGITUDE LATITUDE', so for example 'J2000 01:37:41.1 33.09.32' for 3C48. 
+  The names "3C48", "3C138", "3C147", and "3C286" are supported. A direction is specified
+  as "FRAME LONGITUDE LATITUDE", so for example "J2000 01:37:41.1 33.09.32" for 3C48. 
   Latitude and longitude may be specified in their familiar sexigesimal forms, or as
-  angular quantities which must include units (eg '33.15deg'). If a direction is specified,
+  angular quantities which must include units (eg "33.15deg"). If a direction is specified,
   the web service will attempt to find a supported calibrator near that position. If one
   cannot be found, an exception will be thrown.
 
-  The observing band must be specified. For the VLA, supported bands are 'P'. 'L', 'S',
-  'C', 'X', 'U', 'K', 'A', and 'Q'.
+  The observing band must be specified. For the VLA, supported bands are "P". "L", "S",
+  "C", "X", "U", "K", "A", and "Q".
 
   The observation date must be specified as either an MJD (assumed if the value is a number)
-  or a date of the form 'YYYY-MM-DD' (assumed if the value is specified as a string).
+  or a date of the form "YYYY-MM-DD" (assumed if the value is specified as a string).
   Specifying a time before or around 1980 will result in an exception being thrown as there
   are no data for such dates.
 
@@ -124,7 +123,7 @@ Description
   by the web service which represents the brightness distribution for the specified 
   calibrator for the specified band at the specified date (with the reference date applied
   if one is specified). This component list, being a CASA table, will have the table
-  keyword 'web_service'. The value of this keyword is a dictionary containing the inputs
+  keyword "web_service". The value of this keyword is a dictionary containing the inputs
   specified in the task, the response of the web service (usually a very long JSON string),
   the URL that was used to make the query, and other possibly useful metadata.  
 
@@ -137,22 +136,22 @@ Examples
 
        # get the intensity distribution of 3C48 at Q band on MJD 55000
        calmode(
-           outfile='3C48.cl', source='3C48', band='Q', obsdate=55000,
-           hosts=['http://some-host-that-works.nrao.edu']
+           outfile="3C48.cl", source="3C48", band="Q", obsdate=55000,
+           hosts=["http://some-host-that-works.nrao.edu"]
        )   
 
        # the same thing, but do not use any data or algorithms that were
        # created after MJD 56000
        calmode(
-           outfile='3C48.cl', source='3C48', band='Q', obsdate=55000,
-           refdate=56000, hosts=['http://some-host-that-works.nrao.edu']
+           outfile="3C48.cl", source="3C48", band="Q", obsdate=55000,
+           refdate=56000, hosts=["http://some-host-that-works.nrao.edu"]
        )   
 
-       # get the same information as the first query based on 3C48's direction,
+       # get the same information as the first query based on 3C48"s direction,
        # not its name
        calmode(
-           outfile='3C48.cl', direction='J2000 01h37m41.1s 33.155deg', band='Q',
-           obsdate=55000, hosts=['http://some-host-that-works.nrao.edu']
+           outfile="3C48.cl", direction="J2000 01h37m41.1s 33.155deg", band="Q",
+           obsdate=55000, hosts=["http://some-host-that-works.nrao.edu"]
        )   
 
 
@@ -173,46 +172,46 @@ Parameter Details
 
 .. _outfile:
 
-| ``outfile (path='')`` - The name of the output component list to be written. Must be specified
+| ``outfile (path="")`` - The name of the output component list to be written. Must be specified
 |                         Default: none, must be specified
-|                            Example: outfile='3c273.cl'
+|                            Example: outfile="3c273.cl"
 
 .. _source:
 
-| ``source (string='')`` - The calibrator name. The case-insensitive names
+| ``source (string="")`` - The calibrator name. The case-insensitive names
 |                        "3C48", "3C286", "3C138",
 |                        and "3C147" are supported. Exactly one of source
 |                        or direction must be specified.
 
 .. _direction:
 
-| ``direction (string='')`` - An alternative to source. It is the direction of the calibrator. The supported
-|                        formats are of the form 'EPOCH LONGITUDE LATITUDE', eg
+| ``direction (string="")`` - An alternative to source. It is the direction of the calibrator. The supported
+|                        formats are of the form "EPOCH LONGITUDE LATITUDE", eg
 |                        
-|                        'J2000 12:34:56 -12.34.56'.
-|                        'J2000 19h53m50 40d06m00'
-|                        'B1950 292.5deg -40.0deg'
-|                        'ICRS 13:05:27.2780 -049.28.04.458'
-|                        'GALACTIC 47.5rad -60.22rad'
+|                        "J2000 12:34:56 -12.34.56".
+|                        "J2000 19h53m50 40d06m00"
+|                        "B1950 292.5deg -40.0deg"
+|                        "ICRS 13:05:27.2780 -049.28.04.458"
+|                        "GALACTIC 47.5rad -60.22rad"
 |                        Only astronomical coordinate systems should be used; eg AZEL is right out. The web service
 |                        will attempt to locate a known calibrator near this direction, where "near" is defined by
 |                        the web service team. Exactly one of source or direction must be specified.
 
 .. _band:
 
-| ``band (string='')`` - A string representing the case-insensitive code of
+| ``band (string="")`` - A string representing the case-insensitive code of
 |                        the band for which the data are required. For the VLA,
 |                        supported codes are "P", "L", "S", "C", "X", "U", "K", "A", and "Q".
 
 .. _obsdate:
 
-| ``obsdate (variant='0')`` - The date for which to obtain the calibrator information. If numeric,
+| ``obsdate (variant="0")`` - The date for which to obtain the calibrator information. If numeric,
 |                        is assumed to be an MJD. If a string, is assumed to be a date and must
 |                        be of the form "YYYY-MM-DD".
 
 .. _refdate:
 
-| ``refdate (variant='0')`` - The reference date after which new database entries will be ignored. If numeric,
+| ``refdate (variant="0")`` - The reference date after which new database entries will be ignored. If numeric,
 |                        is assumed to be an MJD. If a string, is assumed to be a date and must
 |                        be of the form "YYYY-MM-DD". Used to support
 |                        historical reproducibility. A non-positive value will result in this parameter being ignored,
@@ -220,7 +219,7 @@ Parameter Details
 
 .. _hosts:
 
-| ``hosts (stringVec=['http://something.nrao.edu'])`` - List of hostnames to use when querying the web service. They will be queried in
+| ``hosts (stringVec=["http://something.nrao.edu"])`` - List of hostnames to use when querying the web service. They will be queried in
 |                        order until a successful response is received.
 
 
@@ -228,7 +227,7 @@ Parameter Details
 
 
     if not outfile.strip():
-        raise ValueError('outfile must be specified')
+        raise ValueError("outfile must be specified")
     if not overwrite and os.path.exists(outfile):
         raise RuntimeError(
             f"The overwrite parameter is False and a file or directory named {outfile} "
@@ -236,41 +235,41 @@ Parameter Details
             "or both."
         )
     if not (source.strip() or direction.strip()):
-        raise ValueError('Exactly one of source or direction must be specified')
+        raise ValueError("Exactly one of source or direction must be specified")
     if source and direction:
-        raise ValueError('Both source and direction may not be simultaneously specified')
+        raise ValueError("Both source and direction may not be simultaneously specified")
     if source:
         source = source.upper()
     if direction:
-        dirstr = direction.split(' ')
+        dirstr = direction.split(" ")
         if not (len(dirstr) == 3 and measures().direction(dirstr[0], dirstr[1], dirstr[2])):
-            raise ValueError(f'Illegal direction specification {direction}')
+            raise ValueError(f"Illegal direction specification {direction}")
     src_or_dir = source if source else direction
     if not band:
-        raise ValueError('band must be specified')
+        raise ValueError("band must be specified")
     if band.upper() not in ["P", "L", "S", "C", "X", "U", "K", "A", "Q"]:
-        raise ValueError(f'band {band} not supported')
-    obsdate_mjd = __getMJD(obsdate, 'obsdate')
-    refdate_mjd = __getMJD(refdate, 'refdate')
+        raise ValueError(f"band {band} not supported")
+    obsdate_mjd = __getMJD(obsdate, "obsdate")
+    refdate_mjd = __getMJD(refdate, "refdate")
     if not hosts:
-        raise ValueError('hosts must be specified')
-    wsid = 'type=setjy'
-    wsid += f'&source={quote(source)}' if source else f'&position={quote(direction)}'
-    wsid += f'&band={quote(band)}'
-    wsid += f'&obsdate={int(obsdate_mjd)}'
+        raise ValueError("hosts must be specified")
+    wsid = "type=setjy"
+    wsid += f"&source={quote(source)}" if source else f"&position={quote(direction)}"
+    wsid += f"&band={quote(band)}"
+    wsid += f"&obsdate={int(obsdate_mjd)}"
     if refdate > 0:
-        wsid += f'&refdate={int(refdate_mjd)}'
+        wsid += f"&refdate={int(refdate_mjd)}"
     components = None
     for h in hosts:
         if not __is_valid_url_host(h):
-            raise ValueError(f'{h} is not a valid host expressed as a URL')
-        url = f'{h}?{wsid}'
-        casalog.post(f'Trying {url} ...', 'NORMAL')
+            raise ValueError(f"{h} is not a valid host expressed as a URL")
+        url = f"{h}?{wsid}"
+        casalog.post(f"Trying {url} ...", "NORMAL")
         components = __query(url)
         if components:
             break
     if not components:
-        raise RuntimeError('All URLs failed to return a component list')
+        raise RuntimeError("All URLs failed to return a component list")
     cl = componentlist()
     cl.fromrecord(components)
     if os.path.exists(outfile):
@@ -286,25 +285,25 @@ Parameter Details
     cl.rename(outfile)
     web_service = {}
     if source:
-        web_service['source'] = source
+        web_service["source"] = source
     if direction:
-        web_service['direction'] = direction
+        web_service["direction"] = direction
     if obsdate:
-        web_service['obsdate'] = obsdate
+        web_service["obsdate"] = obsdate
     if refdate:
-        web_service['refdate'] = refdate
-    web_service['band'] = band
-    web_service['hosts'] = hosts
+        web_service["refdate"] = refdate
+    web_service["band"] = band
+    web_service["hosts"] = hosts
     qa = quanta()
-    web_service['run_mjd'] = int(
+    web_service["run_mjd"] = int(
         qa.time(
-            f'{datetime.today().strftime("%Y-%m-%d")} 00:00:00', form='mjd'
+            f"{datetime.today().strftime('%Y-%m-%d')} 00:00:00", form="mjd"
         )[0][:5]
     )
-    web_service['run_date'] = datetime.today().strftime('%Y-%m-%d')
-    web_service['url'] = url
-    web_service['response'] = components
-    cl.putkeyword('web_service', web_service)
-    casalog.post(f'component list {outfile} has been written', 'NORMAL')
+    web_service["run_date"] = datetime.today().strftime("%Y-%m-%d")
+    web_service["url"] = url
+    web_service["response"] = components
+    cl.putkeyword("web_service", web_service)
+    casalog.post(f"component list {outfile} has been written", "NORMAL")
     cl.done()
     
