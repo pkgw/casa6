@@ -16,6 +16,10 @@ downstream.
                 </description>
                 <value/>
             </param>
+            <param name="overwrite" type="bool">
+                <shortdescription>Overwrite a file or directory of the same name as outfile if it exists.</shortdescription>
+                <description>Overwrite a file or directory of the same name of outfile if it exists. If overwrite=False and a file or directory of the same name as outfile exists, an exception will be thrown.</description>
+            </param>
             <param name="source" type="string">
                 <shortdescription>The calibrator name.</shortdescription>
                 <description>

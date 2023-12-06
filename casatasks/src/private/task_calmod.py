@@ -21,9 +21,7 @@ def __query(url):
         with request.urlopen(url) as response:
             casalog.post('ac','INFO')
             if response.status == 200:
-                casalog.post('ae','INFO')
                 components = json.loads(response.read().decode('utf-8'))
-                casalog.post('af','INFO')
     except HTTPError as e:
         casalog.post(
             f'Caught HTTPError: {e.code} {e.reason}: {e.read().decode("utf-8")}',
