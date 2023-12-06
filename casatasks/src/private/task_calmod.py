@@ -3,7 +3,7 @@ from casatasks import casalog
 from datetime import datetime, timedelta
 import json
 import numbers
-import re
+import os, re, shutil
 from urllib import request
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlparse, quote
@@ -71,7 +71,7 @@ def __getMJD(date_or_mjd, varname):
 
 
 def calmod(
-    outfile, source, direction, band, obsdate, refdate, hosts
+    outfile, overwrite, source, direction, band, obsdate, refdate, hosts
 ):
     r"""
 Retrieve calibrator brightness distributions from telescope-specific web services.
@@ -229,6 +229,12 @@ Parameter Details
 
     if not outfile.strip():
         raise ValueError('outfile must be specified')
+    if not overwrite and os.path.exists(outfile):
+        raise RuntimeError(
+            f"The overwrite parameter is False and a file or directory named {outfile} "
+            "already exists. Either remove or rename it, or change overwrite to True, "
+            "or both."
+        )
     if not (source.strip() or direction.strip()):
         raise ValueError('Exactly one of source or direction must be specified')
     if source and direction:
@@ -267,6 +273,16 @@ Parameter Details
         raise RuntimeError('All URLs failed to return a component list')
     cl = componentlist()
     cl.fromrecord(components)
+    if os.path.exists(outfile):
+        if overwrite:
+            if os.path.isdir(outfile):
+                shutil.rmtree(outfile)
+            else:
+                os.remove(outfile)
+        else:
+            raise RuntimeError(
+                "Logic Error: Should not have gotten to this point with overwrite=False"
+            )
     cl.rename(outfile)
     web_service = {}
     if source:
