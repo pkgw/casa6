@@ -306,13 +306,15 @@ void CubeMajorCycleAlgorithm::task(){
                     norm.setupNormalizer(normpars);
                     norm.setImageStore(subImStorShared[k]);
                     norm.dividePSFByWeight();
-		    copyBeamSet(*(subImStorShared[k]->psf()), k);
+                    norm.divideWeightBySumWt();
+                    copyBeamSet(*(subImStorShared[k]->psf()), k);
                   }
                   else{
                     LatticeLocker lock1 (*(subImStor[k]->psf()), FileLocker::Write);
                     LatticeLocker lock2 (*(subImStor[k]->sumwt()), FileLocker::Read);
                     subImStor[k]->dividePSFByWeight();
-		    copyBeamSet(*(subImStor[k]->psf()), k);
+                    subImStor[k]->divideWeightBySumwt();
+                    copyBeamSet(*(subImStor[k]->psf()), k);
                     //subImStor[k]->psf()->flush();
                   }
 		}
