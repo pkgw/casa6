@@ -53,6 +53,7 @@ def __getMJD(date_or_mjd, varname):
             f"{varname} must either be a number or a string of the form "
             + "YYYY-MM-DD"
         )
+    """
     upper = 48000
     if mjd > 0 and mjd < upper:
         if is_number:
@@ -66,6 +67,7 @@ def __getMJD(date_or_mjd, varname):
                 f"If specified as a string, {varname} must be later than "
                 + f"{cutoff}"
             )
+    """
     return mjd
 
 
