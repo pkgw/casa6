@@ -282,12 +282,19 @@ class gclean:
         ###
         keep_keys = [ 'modelFlux', 'iterDone', 'peakRes', 'stopCode', 'cycleThresh' ]
         ret = {}
-        for channel_k,channel_v in raw[0].items( ): # 0: main field in multifield imaging TODO worry about other fields
-            ret[channel_k] = {}
-            for stokes_k,stokes_v in channel_v.items( ):
-                ret[channel_k][stokes_k] = {}
-                for summary_k in keep_keys:
-                    ret[channel_k][stokes_k][summary_k] = copy.deepcopy(stokes_v[summary_k])
+
+        nfield = raw.nfield
+        nchan = raw.nchan
+        nstokes = raw.nstokes
+
+        # Only assume single field for now - keeping with existing behaviour
+        for chan in range(nchan):
+            ret[chan] = {}
+            for stokes in range(nstokes):
+                ret[chan][stokes] = {}
+                for key in keep_keys:
+                    ret[chan][stokes][key] = raw.get_key(key, 0, chan, stokes)
+
         return ret
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
@@ -463,7 +470,7 @@ class gclean:
                 self._major_done = imdict.returndict['nmajordone'] if 'nmajordone' in imdict.returndict else 0
 
             if len(imdict.returndict) > 0 and 'summaryminor' in imdict.returndict and sum(map(len,imdict.returndict['summaryminor'].values())) > 0:
-                new_summaryminor_rec = gclean.__filter_convergence(imdict.returndict['summaryminor'])
+                new_summaryminor_rec = gclean.__filter_convergence(imdict.returndict)
                 self._convergence_result = ( None,
                                              imdict.returndict['stopcode'] if 'stopcode' in imdict.returndict else 0,
                                              self._major_done,

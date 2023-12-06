@@ -48,10 +48,23 @@ class ImagingDict():
         self._returndict = {}
         self._summaryminor = {}
 
+        # These three parameters cannot be assigned, only accessed.
+        # They reflect the values in the summaryminor key in the return dict.
+
+        self._nfield = 0
+        self._nstokes = 0
+        self._nchan = 0
+
         self.residname = ''
         self.modelname = ''
 
         self._initialize()
+
+        self._summaryminor_keys = ['iterDone', 'peakRes', 'modelFlux', 'cycleThresh',
+                                   'cycleStartIters', 'startIterDone',
+                                   'startPeakRes', 'startModelFlux',
+                                   'startPeakResNM', 'peakResNM', 'masksum',
+                                   'mpiServer', 'stopCode']
 
     def __str__(self) -> str:
         """
@@ -83,6 +96,41 @@ class ImagingDict():
     def returndict(self) -> None:
         del self._returndict
 
+    @property
+    def nfield(self) -> int:
+        self._nfield = self._returndict['summaryminor'].keys()
+        return self._nfield
+
+    @nfield.deleter
+    def nfield(self) -> None:
+        del self._nfield
+
+    @property
+    def nchan(self) -> int:
+        self._nchan = 0
+        for field in self._returndict['summaryminor'].keys():
+            for freq in self._returndict['summaryminor'][field].keys():
+                self._nchan += 1
+
+        return self._nchan
+
+    @nchan.deleter
+    def nchan(self) -> None:
+        del self._nchan
+
+    @property
+    def nstokes(self) -> int:
+        self._nstokes = 0
+        for field in self._returndict['summaryminor'].keys():
+            for freq in self._returndict['summaryminor'][field].keys():
+                for stokes in self._returndict['summaryminor'][field][freq].keys():
+                    self._nstokes += 1
+
+        return self._nstokes
+
+    @nstokes.deleter
+    def nstokes(self) -> None:
+        del self._nstokes
 
     def _initialize(self) -> None:
         """
@@ -115,6 +163,8 @@ class ImagingDict():
 
         self._returndict['summarymajor'] = np.array([])
         # Summary minor is nested as {field{freq{stokes}}
+        # TODO : Figure out a better way to initialize the empty summary minor
+        # without explicitly setting a field/stokes/channel number.
         self._returndict['summaryminor'] = {}
         self._returndict['summaryminor'][0] = {}
         self._returndict['summaryminor'][0][0] = {}
@@ -164,21 +214,49 @@ class ImagingDict():
         The list of values for the specified key. list
         """
                                       
-        summaryminor_keys = ['iterDone', 'peakRes', 'modelFlux', 'cycleThresh',
-                             'cycleStartIters', 'startIterDone',
-                             'startPeakRes', 'startModelFlux',
-                             'startPeakResNM', 'peakResNM', 'masksum',
-                             'mpiServer', 'stopCode']
-        
         try:
-            if key in summaryminor_keys:
+            if key in self._summaryminor_keys:
                 return self._returndict['summaryminor'][field][chan][stokes][key]
             else:
                 return self._returndict[key]
         except KeyError:
             print('WARNING : Key not found in return dictionary.')
             return []
-                                      
+
+
+
+    #def get_summaryminor_key_allplanes(self, key:str) -> dict:
+    #    """
+
+    #    Return a structured dictionary over all channels & stokes in the returndict.
+    #    This returns a dictionary in the form : 
+
+    #    keydict[nstokes][nchan]['keyname'] = [....]
+
+    #    If the key does not exist within 'summaryminor' and exception will be thrown.
+
+    #    Inputs:
+    #    key         The key to return. str
+
+    #    Returns:
+    #    keydict     Dictionary that contains the key value for every stokes/chan plane
+    #    """
+
+    #    if key not in self._summaryminorkeys:
+    #        raise KeyError(
+    #            f"Input key {key} not in summaryminor. Please use one of {self._summaryminorkeys}")
+
+    #    keydict = {}
+
+    #    smdict = self._returndict['summaryminor']
+
+    #    for field in smdict:
+    #        keydict[field] = {}
+    #        for chan in smdict[field]:
+    #            keydict[field][chan] = {}
+    #            for stokes in smdict[field][chan]:
+    #                keydict[field][chan][stokes] = self.get_key
+
 
     def append(self, inpdict:dict) -> None:
         """
