@@ -66,50 +66,51 @@ Retrieve calibrator brightness distributions from a VLA web service.
 
 
 Parameters
-   - outfile_ (path="") - The name of the output component list to be written. Must be specified
-   - source_ (string="") - The calibrator name.
-   - direction_ (string="") - The direction of the calibrator
-   - band_ (string="") - The receiver band for which the source structure is needed
-   - obsdate_ (variant="0") - The observation date
-   - refdate_ (variant="0") - The reference date after which new database entries will be ignored.
-   - hosts_ (stringVec=["http://something.nrao.edu"]) - List of hostnames to use when querying the web service.
+   - outfile_ (path='') - The name of the output component list to be written. Must be specified
+   - overwrite_ (bool=False) - Overwrite a file or directory of the same name as outfile if it exists.
+   - source_ (string='') - The calibrator name.
+   - direction_ (string='') - The direction of the calibrator
+   - band_ (string='') - The receiver band for which the source structure is needed
+   - obsdate_ (variant='0') - The observation date
+   - refdate_ (variant='0') - The reference date after which new database entries will be ignored.
+   - hosts_ (stringVec=['http://something.nrao.edu']) - List of hostnames to use when querying the web service.
 
 
 .. _Description:
 
 Description
 
-  This task retrieves calibrator information via a VLA-specific web service
+  This task retrieves VLA-specific calibrator information via a web service
   and writes this information as a component list so that it may be used by applications
   downstream.
 
   One of either a calibrator name or direction may be specified.
-  The names "3C48", "3C138", "3C147", and "3C286" are supported. A direction is specified
-  as "FRAME LONGITUDE LATITUDE", so for example "J2000 01:37:41.1 33.09.32" for 3C48. 
-  Latitude and longitude may be specified in their familiar sexigesimal forms, or as
-  angular quantities which must include units (eg "33.15deg"). If a direction is specified,
-  the web service will attempt to find a supported calibrator near that position. If one
-  cannot be found, an exception will be thrown.
+  The names '3C48', '3C138', '3C147', and '3C286' are currently supported by the web
+  service. A direction is specified as 'FRAME LONGITUDE LATITUDE', so for example
+  "J2000 01:37:41.1 33.09.32" for 3C48. Latitude and longitude may be specified in
+  their familiar sexigesimal forms, or as angular quantities which must include
+  units (eg '33.15deg'). If a direction is specified, the web service will attempt to
+  find a supported calibrator near (as defined by the web service) that position. If
+  one cannot be found, the web server will return an error code and the task will
+  throw an exception.
 
-  The observing band must be specified. For the VLA, supported bands are "P". "L", "S",
-  "C", "X", "U", "K", "A", and "Q".
+  The observing band must be specified. For the VLA, supported bands are 'P'. 'L', 'S',
+  'C', 'X', 'U', 'K', 'A', and 'Q'.
 
   The observation date must be specified as either an MJD (assumed if the value is a number)
   or a date of the form "YYYY-MM-DD" (assumed if the value is specified as a string).
-  Specifying a time before or around 1980 will result in an exception being thrown as there
-  are no data for such dates.
 
   A reference date may be specified. If so, the specification rules for the observation
   date also hold for this parameter, Specifying this parameter allows older versions of the data
-  and/or algorithms should be retrieved, thus allowing historical reproducibility even
+  and/or algorithms to be retrieved, thus allowing historical reproducibility even
   after data and algorithms may have been updated. This input represents the latest date
   for which versioned data and algorithms should be used.
 
   If successful, the task will write a component list generated from the data returned
   by the web service which represents the brightness distribution for the specified 
   calibrator for the specified band at the specified date (with the reference date applied
-  if one is specified). This component list, being a CASA table, will have the table
-  keyword "web_service". The value of this keyword is a dictionary containing the inputs
+  if one is specified). This component list, being a CASA table, will include the table
+  keyword "web_service". The value of this keyword will be a dictionary containing the inputs
   specified in the task, the response of the web service (usually a very long JSON string),
   the URL that was used to make the query, and other possibly useful metadata.  
 
@@ -122,22 +123,22 @@ Examples
 
        # get the intensity distribution of 3C48 at Q band on MJD 55000
        calmodevla(
-           outfile="3C48.cl", source="3C48", band="Q", obsdate=55000,
-           hosts=["http://some-host-that-works.nrao.edu"]
+           outfile='3C48.cl', source='3C48', band='Q', obsdate=55000,
+           hosts=['http://some-host-that-works.nrao.edu']
        )   
 
        # the same thing, but do not use any data or algorithms that were
        # created after MJD 56000
        calmodevla(
-           outfile="3C48.cl", source="3C48", band="Q", obsdate=55000,
-           refdate=56000, hosts=["http://some-host-that-works.nrao.edu"]
+           outfile='3C48.cl', source='3C48', band='Q', obsdate=55000,
+           refdate=56000, hosts=['http://some-host-that-works.nrao.edu']
        )   
 
-       # get the same information as the first query based on 3C48"s direction,
+       # get the same information as the first query based on 3C48's direction,
        # not its name
        calmodevla(
-           outfile="3C48.cl", direction="J2000 01h37m41.1s 33.155deg", band="Q",
-           obsdate=55000, hosts=["http://some-host-that-works.nrao.edu"]
+           outfile='3C48.cl', direction='J2000 01h37m41.1s 33.155deg', band='Q',
+           obsdate=55000, hosts=['http://some-host-that-works.nrao.edu']
        )   
 
 
@@ -158,20 +159,24 @@ Parameter Details
 
 .. _outfile:
 
-| ``outfile (path="")`` - The name of the output component list to be written. Must be specified
+| ``outfile (path='')`` - The name of the output component list to be written. Must be specified
 |                         Default: none, must be specified
 |                            Example: outfile="3c273.cl"
 
+.. _overwrite:
+
+| ``overwrite (bool=False)`` - Overwrite a file or directory of the same name of outfile if it exists. If overwrite=False and a file or directory of the same name as outfile exists, an exception will be thrown.
+
 .. _source:
 
-| ``source (string="")`` - The calibrator name. The case-insensitive names
+| ``source (string='')`` - The calibrator name. The case-insensitive names
 |                        "3C48", "3C286", "3C138",
 |                        and "3C147" are supported. Exactly one of source
 |                        or direction must be specified.
 
 .. _direction:
 
-| ``direction (string="")`` - An alternative to source. It is the direction of the calibrator. The supported
+| ``direction (string='')`` - An alternative to source. It is the direction of the calibrator. The supported
 |                        formats are of the form "EPOCH LONGITUDE LATITUDE", eg
 |                        
 |                        "J2000 12:34:56 -12.34.56".
@@ -185,19 +190,19 @@ Parameter Details
 
 .. _band:
 
-| ``band (string="")`` - A string representing the case-insensitive code of
+| ``band (string='')`` - A string representing the case-insensitive code of
 |                        the band for which the data are required. For the VLA,
 |                        supported codes are "P", "L", "S", "C", "X", "U", "K", "A", and "Q".
 
 .. _obsdate:
 
-| ``obsdate (variant="0")`` - The date for which to obtain the calibrator information. If numeric,
+| ``obsdate (variant='0')`` - The date for which to obtain the calibrator information. If numeric,
 |                        is assumed to be an MJD. If a string, is assumed to be a date and must
 |                        be of the form "YYYY-MM-DD".
 
 .. _refdate:
 
-| ``refdate (variant="0")`` - The reference date after which new database entries will be ignored. If numeric,
+| ``refdate (variant='0')`` - The reference date after which new database entries will be ignored. If numeric,
 |                        is assumed to be an MJD. If a string, is assumed to be a date and must
 |                        be of the form "YYYY-MM-DD". Used to support
 |                        historical reproducibility. A non-positive value will result in this parameter being ignored,
@@ -205,12 +210,11 @@ Parameter Details
 
 .. _hosts:
 
-| ``hosts (stringVec=["http://something.nrao.edu"])`` - List of hostnames to use when querying the web service. They will be queried in
+| ``hosts (stringVec=['http://something.nrao.edu'])`` - List of hostnames to use when querying the web service. They will be queried in
 |                        order until a successful response is received.
 
 
     """
-
 
     if not outfile.strip():
         raise ValueError("outfile must be specified")
