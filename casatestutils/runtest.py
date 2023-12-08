@@ -320,7 +320,7 @@ def check_branch_path(branch):
             cmd = ("git checkout origin/{}".format( re.findall("\/(.*)",branch)[0])).split()
     else:
         if "release" in branch:
-            cmd = ("git checkout {}".format(branch)).split()
+            cmd = ("git checkout origin/{}".format(branch)).split()
         else:
             cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
 
@@ -334,7 +334,7 @@ def check_branch_path_merge(branch):
             cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("\/(.*)",branch)[0])).split()
     else:
         if "release" in branch:
-            cmd = ("git merge --no-edit --verbose {}".format(branch)).split()
+            cmd = ("git merge --no-edit --verbose origin/{}".format(branch)).split()
         else:
             cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
 
@@ -383,6 +383,17 @@ def fetch_tests(work_dir, branch, merge_target=None):
         if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
             print("\tMerging {} into {}".format(branch, merge_target))
 
+            # Locally Checkout Branch
+            cmd = check_branch_path(branch)
+            out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+            print(out.decode("utf-8"))
+
+            # Locally Checkout Target
+            cmd = check_branch_path(merge_target)
+            out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+            print(out.decode("utf-8"))
+
+            # Merge Branch into Target
             cmd = check_branch_path_merge(branch)
             print("\tRunning: ", " ".join(str(x) for x in cmd))
             out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
@@ -420,6 +431,16 @@ def fetch_tests(work_dir, branch, merge_target=None):
             run_shell_command(cmd, source_dir + "/" + repo)
 
             if is_in_remote(branch,repo_path, repo): # Test if the branch is in the remote repository
+                # Locally Checkout Branch
+                cmd = check_branch_path(branch)
+                out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+                print(out.decode("utf-8"))
+
+                # Locally Checkout Target
+                cmd = check_branch_path(merge_target)
+                out = subprocess.check_output(cmd, cwd=source_dir + "/" + repo)
+                print(out.decode("utf-8"))
+                
                 print("\tMerging {} into {}".format(branch, merge_target))
                 cmd = check_branch_path_merge(branch)
                 print("\tRunning: ", " ".join(str(x) for x in cmd))
