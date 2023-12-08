@@ -1,9 +1,9 @@
 <casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd       file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
 
-<task category="calibration" name="calmod" type="function">
-    <shortdescription>Retrieve calibrator brightness distributions from telescope-specific web services.</shortdescription>
+<task category="calibration" name="calmodvla" type="function">
+    <shortdescription>Retrieve calibrator brightness distributions from a VLA web service.</shortdescription>
         <description>
-This application retrieves calibrator information via telescope-specific web services
+This application retrieves calibrator information via a VLA web service
 and writes this information as a componentlist so that it may be used by applications
 downstream.
         </description>

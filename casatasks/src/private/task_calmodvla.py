@@ -53,29 +53,14 @@ def __getMJD(date_or_mjd, varname):
             f"{varname} must either be a number or a string of the form "
             + "YYYY-MM-DD"
         )
-    """
-    upper = 48000
-    if mjd > 0 and mjd < upper:
-        if is_number:
-            raise ValueError(
-                f"If specified as a number, {varname} must be <= 0 or >= "
-                + "{upper}"
-            )
-        else:
-            cutoff = qa.time(f"{upper*86400}s", form="fits")[0][:10]
-            raise ValueError(
-                f"If specified as a string, {varname} must be later than "
-                + f"{cutoff}"
-            )
-    """
     return mjd
 
 
-def calmod(
+def calmodvla(
     outfile, overwrite, source, direction, band, obsdate, refdate, hosts
 ):
     r"""
-Retrieve calibrator brightness distributions from telescope-specific web services.
+Retrieve calibrator brightness distributions from a VLA web service.
 
 [`Description`_] [`Examples`_] [`Development`_] [`Details`_]
 
@@ -94,12 +79,11 @@ Parameters
 
 Description
 
-  This task retrieves calibrator information via telescope-specific web services
+  This task retrieves calibrator information via a VLA-specific web service
   and writes this information as a component list so that it may be used by applications
   downstream.
 
-  The task currently supports only the VLA (since it is the only telescope that has
-  such a web service). One of either a calibrator name or direction may be specified.
+  One of either a calibrator name or direction may be specified.
   The names "3C48", "3C138", "3C147", and "3C286" are supported. A direction is specified
   as "FRAME LONGITUDE LATITUDE", so for example "J2000 01:37:41.1 33.09.32" for 3C48. 
   Latitude and longitude may be specified in their familiar sexigesimal forms, or as
@@ -137,21 +121,21 @@ Examples
     ::
 
        # get the intensity distribution of 3C48 at Q band on MJD 55000
-       calmode(
+       calmodevla(
            outfile="3C48.cl", source="3C48", band="Q", obsdate=55000,
            hosts=["http://some-host-that-works.nrao.edu"]
        )   
 
        # the same thing, but do not use any data or algorithms that were
        # created after MJD 56000
-       calmode(
+       calmodevla(
            outfile="3C48.cl", source="3C48", band="Q", obsdate=55000,
            refdate=56000, hosts=["http://some-host-that-works.nrao.edu"]
        )   
 
        # get the same information as the first query based on 3C48"s direction,
        # not its name
-       calmode(
+       calmodevla(
            outfile="3C48.cl", direction="J2000 01h37m41.1s 33.155deg", band="Q",
            obsdate=55000, hosts=["http://some-host-that-works.nrao.edu"]
        )   
