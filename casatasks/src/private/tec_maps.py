@@ -455,6 +455,10 @@ def get_IGS_TEC(ymd_date):
 ## =============================================================================
     """
 
+    # GPS weeks measured from 1980Jan06 (==MJD 44244.0)
+    #  (used to set filename style on remote server)
+    gpsweek=(me.epoch('UTC',ymd_date)['m0']['value']-44244.0)/7
+    
     year = int(ymd_date.split('/')[0])
     month = int(ymd_date.split('/')[1])
     day = int(ymd_date.split('/')[2])
@@ -464,12 +468,6 @@ def get_IGS_TEC(ymd_date):
 
     ## Convert dayofyear to 3-digit string, padded with zeros for IONEX filename format
     dayofyear = str(dayofyear).zfill(3)
-
-    ## Outputing the name of the IONEX file you require.  
-    #igs_file = 'igsg'+str(dayofyear)+'0.'+str(list(str(year))[2])+''+str(list(str(year))[3])+'i'
-    igs_file = 'igsg'+str(dayofyear)+'0.'+str(year)[2:4]+'i'
-
-    print('\nFor '+ymd_date+', the required IGS file is called: '+igs_file)
 
     ## =========================================================================
     ##
@@ -485,45 +483,46 @@ def get_IGS_TEC(ymd_date):
     ## is not necessary, it is the most straightforward on Linux.
     ##
     ## =========================================================================
-    
-    curlcmd='curl -u anonymous:casa-feedback@nrao.edu --ftp-ssl '
-
-    does_exist = ''
-    does_exist = check_existence(igs_file)
 
     #CDDIS = 'ftp://cddis.gsfc.nasa.gov/gnss/products/ionex/'  # pre-2020Nov01 version
     CDDIS = 'ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/'  # new, more secure ftp-ssl server (2020Nov01)
     file_location = CDDIS+str(year)+'/'+str(dayofyear)+'/'
+    curlcmd='curl -u anonymous:casa-feedback@nrao.edu --ftp-ssl-reqd '
 
-    if does_exist == '':        
-        print('Attempting retrieval of IGS Final product file: '+str(igs_file))
-        get_file = file_location+igs_file+'.Z'
-        retrieve = test_IONEX_connection(get_file)
-        if retrieve == True:
-            os.system(curlcmd+get_file+' > '+workDir+igs_file+'.Z')
-            os.system('uncompress '+igs_file+'.Z')
+    ## The name of the IONEX file you require.  
+    igs_file='igsg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSFIN_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
+    get_file=igs_file + ('.Z' if gpsweek<2238 else '.gz')
+
+    print('\nFor '+ymd_date+', the required IGS file is called: '+igs_file)
+    
+    if len(glob.glob(igs_file))<1:     # file does not yet exist locally
+        print('Attempting retrieval of IGS Final product file: '+str(get_file))
+        get_path = file_location+get_file
+        if test_IONEX_connection(get_path):
+            os.system(curlcmd+get_path+' > '+workDir+get_file)
+            os.system('gunzip '+get_file)
         else:
-            igs_file = igs_file.replace('igs','igr')
-
-            does_exist = check_existence(igs_file)
-            if does_exist == '':
-                print('Attempting retrieval of IGS Rapid product file: '+str(igs_file))
-                get_file = file_location+igs_file+'.Z'
-                retrieve = test_IONEX_connection(get_file)
-                if retrieve == True:
-                    os.system(curlcmd+get_file+' > '+workDir+igs_file+'.Z')
-                    os.system('uncompress '+igs_file+'.Z')
+            # IGS final product file does not exist; try rapid product file
+            igs_file='igrg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
+            get_file=igs_file + ('.Z' if gpsweek<2238 else '.gz')
+            
+            if len(glob.glob(igs_file))<1:     # file does not yet exist
+                print('Attempting retrieval of IGS Rapid product file: '+str(get_file))
+                get_path = file_location+get_file
+                if test_IONEX_connection(get_path):
+                    os.system(curlcmd+get_path+' > '+workDir+get_file)
+                    os.system('gunzip '+get_file)
                 else:
-                    igs_file = igs_file.replace('igr','jpr')
-                    
-                    does_exist = check_existence(igs_file)
-                    if does_exist == '':
+                    #igs_file = igs_file.replace('igr','jpr')
+                    igs_file= 'jprg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if (gpsweek<2274.5) else 'JPL0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
+                    get_file=igs_file + ('.Z' if gpsweek<2274.5 else '.gz')
+
+                    if len(glob.glob(igs_file))<1:     # file does not yet exist
                         print('Attempting retrieval of JPL Rapid product file: '+str(igs_file))
-                        get_file = file_location+igs_file+'.Z'
-                        retrieve = test_IONEX_connection(get_file)
-                        if retrieve == True:
-                            os.system(curlcmd+get_file+' > '+workDir+igs_file+'.Z')
-                            os.system('uncompress '+igs_file+'.Z')
+                        get_path = file_location+get_file
+                        if test_IONEX_connection(get_path):
+                            os.system(curlcmd+get_path+' > '+workDir+get_file)
+                            os.system('gunzip '+get_file)
                         else:
                             print('\nNo data products available. You may try to manually'+\
                                   ' download the products at:\n'+\
@@ -536,12 +535,12 @@ def get_IGS_TEC(ymd_date):
     else:
         print('IGS Final product file: '+igs_file+' already available in current working directory.')
 
-    if igs_file.startswith('igs'):
+    if igs_file.startswith('igs') or igs_file.startswith('IGS0OPSFIN'):
         tec_type = 'IGS_Final_Product'
-    elif igs_file.startswith('igr'):
+    elif igs_file.startswith('igr') or igs_file.startswith('IGS0OPSRAP'):
         tec_type = 'IGS_Rapid_Product'
-    elif igs_file.startswith('jpr'):
-        tec_type = 'JPL_Rapid_Product'
+    elif igs_file.startswith('jpr') or igs_file.startswith('JPL0OPSRAP'):
+        tec_type = 'JPL_Rapid_Product'        
 
     ## =========================================================================
     ##
@@ -844,18 +843,18 @@ def ztec_value(my_long,my_lat,points_long,points_lat,ref_long,ref_lat,incr_long,
 
     if PLOT == True:
         ## Set axis label size for the plots
-        rc('xtick', labelsize=15)
-        rc('ytick', labelsize=15)
+        rc('xtick', labelsize=8)
+        rc('ytick', labelsize=8)
         plottimes = [x*incr_time for x in range(num_maps)]
         plt.interactive(False)
         plt.clf()
         plt.errorbar(plottimes,site_tec[0],site_tec[1])
         plt.axvspan(ref_start/60.0, ref_end/60.0, facecolor='r', alpha=0.5)
-        plt.xlabel(r'$\mathrm{Time}$ $\mathrm{(minutes)}$', fontsize=20)
-        plt.ylabel(r'$\mathrm{TEC}$ $\mathrm{(TECU)}$', fontsize=20)
+        plt.xlabel(r'$\mathrm{Time}$ $\mathrm{(minutes)}$', fontsize=10)
+        plt.ylabel(r'$\mathrm{TEC}$ $\mathrm{(TECU)}$', fontsize=10)
         plt.title(r'$\mathrm{TEC}$ $\mathrm{values}$ $\mathrm{for}$ $\mathrm{Long.}$ $\mathrm{=}$ '+\
                     '$\mathrm{'+str(my_long)+'}$ / $\mathrm{Lat.}$ $\mathrm{=}$ $\mathrm{'+str(my_lat)+'}$',\
-                    fontsize=20)
+                    fontsize=10)
         plt.axis([min(plottimes),max(plottimes),0,1.1*max(site_tec[0])])
 
         if len(PLOTNAME)>0:
@@ -886,7 +885,7 @@ def test_IONEX_connection(location):
 ## =============================================================================
     """
     try:
-        ok = os.system('curl -u anonymous:casa-feedback@nrao.edu --ftp-ssl -Isf -o/dev/null '+location)
+        ok = os.system('curl -u anonymous:casa-feedback@nrao.edu --ftp-ssl-reqd -Isf -o/dev/null '+location)
         if ok==0:
             return True
         else:

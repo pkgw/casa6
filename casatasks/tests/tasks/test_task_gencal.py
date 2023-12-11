@@ -405,6 +405,7 @@ class gencal_test_tec_vla(unittest.TestCase):
     tecfile = msfile+'.IGS_TEC.im'
     rmstecfile = msfile+'.IGS_RMS_TEC.im'
     caltable = msfile+'_tec.cal'
+    newigsfile='IGS0OPSFIN_20233350000_01D_02H_GIM.INX'
 
     # NEAL: Please check that these setUp and tearDown functions are ok
 
@@ -423,6 +424,10 @@ class gencal_test_tec_vla(unittest.TestCase):
         shutil.rmtree(self.rmstecfile, ignore_errors=True)
         shutil.rmtree(self.caltable, ignore_errors=True)
 
+        # this file is created by a successful test
+        if os.path.exists(self.newigsfile):
+            os.remove(self.newigsfile)
+        
     def test_tec_maps(self):
         """
         gencal: very basic test of tec_maps and gencal(caltype='tecim')
@@ -444,6 +449,13 @@ class gencal_test_tec_vla(unittest.TestCase):
             self.assertTrue(nrows == 1577)
             self.assertTrue(dtecu < 1e-3)
 
+            # Test new CDDIS filename convention
+            #  (file with correct name is retrieved and uncompressed)
+            #  (CAS-14219, CAS-14192)
+            #  (tec_maps.create0 above tests the old filename convention)
+            a=tec_maps.get_IGS_TEC('2023/12/01')
+            self.assertTrue(os.path.exists(self.newigsfile))
+            
         except:
             # should catch case of internet access failure?
             raise
