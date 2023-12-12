@@ -455,6 +455,7 @@ class gencal_test_tec_vla(unittest.TestCase):
             #  (tec_maps.create0 above tests the old filename convention)
             a=tec_maps.get_IGS_TEC('2023/12/01')
             self.assertTrue(os.path.exists(self.newigsfile))
+            self.assertTrue(a[9]=='IGS_Final_Product')
             
         except:
             # should catch case of internet access failure?

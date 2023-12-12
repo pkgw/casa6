@@ -456,7 +456,7 @@ def get_IGS_TEC(ymd_date):
     """
 
     # GPS weeks measured from 1980Jan06 (==MJD 44244.0)
-    #  (used to set filename style on remote server)
+    #  (used to set filenames on remote server)
     gpsweek=(me.epoch('UTC',ymd_date)['m0']['value']-44244.0)/7
     
     year = int(ymd_date.split('/')[0])
@@ -464,7 +464,7 @@ def get_IGS_TEC(ymd_date):
     day = int(ymd_date.split('/')[2])
 
     ## Gives the day of the year of any given year
-    dayofyear = datetime.datetime.strptime(''+str(year)+' '+str(month)+' '+str(day)+'', '%Y %m %d').timetuple().tm_yday
+    dayofyear = datetime.datetime(year,month,day).timetuple().tm_yday
 
     ## Convert dayofyear to 3-digit string, padded with zeros for IONEX filename format
     dayofyear = str(dayofyear).zfill(3)
