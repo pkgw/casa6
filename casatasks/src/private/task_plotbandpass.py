@@ -2328,9 +2328,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                         SetNewYLimits([plotrange[2],plotrange[3]])
                     xlim=pb.xlim()
                     ylim=pb.ylim()
-                    ResizeFonts(adesc,mysize)
-                    adesc.xaxis.grid(True,which='major')
-                    adesc.yaxis.grid(True,which='major')
+                    ResizeFontsSetGrid(adesc,mysize)
                     if (yaxis.lower().find('db')>=0):
                         pb.ylabel('Amplitude (dB)', size=mysize)
                     else:
@@ -2409,9 +2407,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                         pb.plot(frequenciesGHz[index], phaseSolutionX, '%s%s'%(xcolor,bpolymarkstyle),markeredgewidth=markeredgewidth)
                     else:
                         pb.plot(frequenciesGHz[index], phaseSolutionX, '%s%s'%(xcolor,bpolymarkstyle), frequenciesGHz[index], phaseSolutionY, '%s%s'%(ycolor,bpolymarkstyle),markeredgewidth=markeredgewidth)
-                    ResizeFonts(adesc,mysize)
-                    adesc.xaxis.grid(True,which='major')
-                    adesc.yaxis.grid(True,which='major')
+                    ResizeFontsSetGrid(adesc,mysize)
                     pb.ylabel('Phase (deg)', size=mysize)
                     pb.xlabel('Frequency (GHz)', size=mysize)
                     if (plotrange[0] != 0 or plotrange[1] != 0):
@@ -3318,7 +3314,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                               myUniqueTime = mytime
                               ctr += 1
                       if (ctr > len(fieldIndicesToPlot) and bOverlay==False):
-                          print("multi-field time overlay ***************  why are there 2 matches?")
+                          if (debug): print("multi-field time overlay ***************  why are there 2 matches?")
 # #     # #            if (ctr == 0):
 # #     # #                print("No match for %.1f in "%(t), uTPFPS)
 
@@ -4048,9 +4044,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
 
                       xlim = pb.xlim()
                       ylim = pb.ylim()
-                      ResizeFonts(adesc,mysize)
-                      adesc.xaxis.grid(True,which='major')
-                      adesc.yaxis.grid(True,which='major')
+                      ResizeFontsSetGrid(adesc,mysize)
                       pb.ylabel(yAmplitudeLabel, size=mysize)
                       pb.subplots_adjust(hspace=myhspace, wspace=mywspace)
                       myxrange = xlim[1]-xlim[0]
@@ -4821,9 +4815,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                           if (phase[0] != 0 or phase[1] != 0):
                               SetNewYLimits(phase)
                       (y0,y1) = pb.ylim()
-                      ResizeFonts(adesc,mysize)
-                      adesc.xaxis.grid(True,which='major')
-                      adesc.yaxis.grid(True,which='major')
+                      ResizeFontsSetGrid(adesc,mysize)
                       pb.ylabel(yPhaseLabel, size=mysize)
                       pb.subplots_adjust(hspace=myhspace, wspace=mywspace)
                       ylim = pb.ylim()
@@ -5538,13 +5530,16 @@ def calcChebyshev(coeff, validDomain, x):
 
     return(v)
 
-def ResizeFonts(adesc,fontsize):
-#    print("Called ResizeFonts()")
+def ResizeFontsSetGrid(adesc,fontsize):
+#    print("Called ResizeFontsSetGrid()")
     yFormat = ScalarFormatter(useOffset=False)
-    adesc.yaxis.set_major_formatter(yFormat)
-    adesc.xaxis.set_major_formatter(yFormat)
-    pb.setp(adesc.get_xticklabels(), fontsize=fontsize)
-    pb.setp(adesc.get_yticklabels(), fontsize=fontsize)
+    if adesc:
+        adesc.yaxis.set_major_formatter(yFormat)
+        adesc.xaxis.set_major_formatter(yFormat)
+        pb.setp(adesc.get_xticklabels(), fontsize=fontsize)
+        pb.setp(adesc.get_yticklabels(), fontsize=fontsize)
+        adesc.xaxis.grid(True,which='major')
+        adesc.yaxis.grid(True,which='major')
 
 def complexMeanRad(phases):
     # convert back to real and imaginary, take mean, then convert back to phase
@@ -6042,30 +6037,11 @@ def sloppyMatch(newvalue, mylist, threshold, mytime=None, scansToPlot=[],
     else:
         return(matched,mymatch)
 
-def sloppyUniqueOLD(t, thresholdSeconds):
-    """
-    Takes a list of numbers and returns a list of unique values, subject to a threshold difference.
-    """
-    # start with the first entry, and only add a new entry if it is more than the threshold from prior
-    sloppyList = [t[0]]
-    for i in range(1,len(t)):
-        keepit = True
-        for uniqueValue in sloppyList:
-            if (abs(t[i] - uniqueValue) < thresholdSeconds):
-                keepit = False
-        if (keepit):
-            sloppyList.append(t[i])
-#    print("sloppyUnique returns %d values from the original %d" % (len(sloppyList), len(t)))
-    return(sloppyList)
-
 def sloppyUnique(t, thresholdSeconds):
     """
     Takes a list of numbers and returns a list of unique values, subject to a threshold difference.
     """
     # start with the first entry, and only add a new entry if it is more than the threshold from prior
-    BANNER = f'''sloppyUnique( {repr(t)}, {thresholdSeconds} )'''
-    ORIG_t = copy.deepcopy(t)
-    ORIG_thresh = copy.deepcopy(thresholdSeconds)
     sloppyList = [t[0]]
     for i in range(1,len(t)):
         keepit = True
@@ -6075,7 +6051,6 @@ def sloppyUnique(t, thresholdSeconds):
         if (keepit):
             sloppyList.append(t[i])
 #    print("sloppyUnique returns %d values from the original %d" % (len(sloppyList), len(t)))
-    casalogPost( True, BANNER + f'''\n>>>>---->> NEW: {repr(sloppyList)}\nOLD: {repr(sloppyUniqueOLD(ORIG_t,ORIG_thresh))}''' )
     return(sloppyList)
 
 def SetLimits(plotrange, chanrange, newylimits, channels, frequencies, pfrequencies,
