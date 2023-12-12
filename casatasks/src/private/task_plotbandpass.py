@@ -19,6 +19,7 @@ import math
 import os
 import re  # used for testing if a string is a float
 import time
+import copy
 
 import matplotlib.transforms
 import numpy as np
@@ -842,7 +843,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
     debugSloppyMatch = debug
     doneOverlayTime = False  # changed from True on 08-nov-2012
     missingCalWVRErrorPrinted = False
-
+    adesc = None
     # initialize the arguments to DrawAtmosphereAndFDM()
     TebbSky = None
     TebbSkyImage = None
@@ -4045,13 +4046,13 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                       if (abs(plotrange[2]) > 0 or abs(plotrange[3]) > 0):
                           SetNewYLimits([plotrange[2],plotrange[3]])
 
+                      xlim = pb.xlim()
+                      ylim = pb.ylim()
                       ResizeFonts(adesc,mysize)
                       adesc.xaxis.grid(True,which='major')
                       adesc.yaxis.grid(True,which='major')
                       pb.ylabel(yAmplitudeLabel, size=mysize)
                       pb.subplots_adjust(hspace=myhspace, wspace=mywspace)
-                      xlim = pb.xlim()
-                      ylim = pb.ylim()
                       myxrange = xlim[1]-xlim[0]
                       yrange = ylim[1]-ylim[0]
                       if (debug): print(("amp: ylim, yrange = ",  ylim, yrange))
@@ -6041,11 +6042,30 @@ def sloppyMatch(newvalue, mylist, threshold, mytime=None, scansToPlot=[],
     else:
         return(matched,mymatch)
 
+def sloppyUniqueOLD(t, thresholdSeconds):
+    """
+    Takes a list of numbers and returns a list of unique values, subject to a threshold difference.
+    """
+    # start with the first entry, and only add a new entry if it is more than the threshold from prior
+    sloppyList = [t[0]]
+    for i in range(1,len(t)):
+        keepit = True
+        for uniqueValue in sloppyList:
+            if (abs(t[i] - uniqueValue) < thresholdSeconds):
+                keepit = False
+        if (keepit):
+            sloppyList.append(t[i])
+#    print("sloppyUnique returns %d values from the original %d" % (len(sloppyList), len(t)))
+    return(sloppyList)
+
 def sloppyUnique(t, thresholdSeconds):
     """
     Takes a list of numbers and returns a list of unique values, subject to a threshold difference.
     """
     # start with the first entry, and only add a new entry if it is more than the threshold from prior
+    BANNER = f'''sloppyUnique( {repr(t)}, {thresholdSeconds} )'''
+    ORIG_t = copy.deepcopy(t)
+    ORIG_thresh = copy.deepcopy(thresholdSeconds)
     sloppyList = [t[0]]
     for i in range(1,len(t)):
         keepit = True
@@ -6055,6 +6075,7 @@ def sloppyUnique(t, thresholdSeconds):
         if (keepit):
             sloppyList.append(t[i])
 #    print("sloppyUnique returns %d values from the original %d" % (len(sloppyList), len(t)))
+    casalogPost( True, BANNER + f'''\n>>>>---->> NEW: {repr(sloppyList)}\nOLD: {repr(sloppyUniqueOLD(ORIG_t,ORIG_thresh))}''' )
     return(sloppyList)
 
 def SetLimits(plotrange, chanrange, newylimits, channels, frequencies, pfrequencies,
