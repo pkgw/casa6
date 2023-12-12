@@ -38,6 +38,11 @@
 ##    Tested in CASA 4.3.0 and 4.2.1 on RHEL release 6.4 (Santiago)
 ##    Tested in CASA 4.3.0, 4.2.2, and 4.2.1 on Mac OS 10.8.5
 ##
+##    Modified by gmoellen     2023/12/12  v2.9 Updated to new CDDIS filename
+##                                              convention; use gunzip instead
+##                                              of uncompress; shrink labels
+##                                              in VLA-centric plot; misc.
+##                                              (incomplete) python cleanup
 ##
 ##
 ## The purpose of this python module is to retrieve vertical TEC/DTEC maps from
@@ -154,12 +159,13 @@ import matplotlib.pyplot as plt
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
-    from casatools import table, quanta, coordsys, image
+    from casatools import table, quanta, coordsys, image, measures
 
     tb = table()
     qa = quanta()
     cs = coordsys()
     ia = image()
+    me = measures()
 
 else:
     from casac import *
@@ -167,7 +173,7 @@ else:
     qa = casac.quanta()
     cs = casac.coordsys()
     ia = casac.image()
-
+    me = casac.measures()
 
 
 workDir = os.getcwd()+'/'
