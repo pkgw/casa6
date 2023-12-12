@@ -202,7 +202,9 @@ def setjy_core(vis=None, field=None, spw=None,
               #casalog.post(vis + " must be a valid MS unless listmodels is True.",
               #             "SEVERE")
                 raise Exception("%s is not a valid MS" % vis) 
-
+            if 'Butler-JPL-Horizons' in standard and usescratch == False:
+                raise Exception(f"usescratch={usescratch} and standard={standard}. "
+                  +"Virtual model can not be used for an ephemeris object calibrator. Use usescratch=True.") 
             myms = ms()
             myim = imager()
             if ismms==None: ismms=False

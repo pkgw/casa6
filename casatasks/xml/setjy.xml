@@ -493,7 +493,7 @@ variable sources (3C48,3C138,3C147).
     <param type="bool" name="usescratch">
 <shortdescription>Will create if necessary and use the MODEL_DATA </shortdescription>
 <description>Will create if necessary and use the MODEL_DATA
-                     Default: False
+                     Default: True 
                      Options: False|True
 
                      * If False: 'virtual' model is created. The model
@@ -533,7 +533,7 @@ variable sources (3C48,3C138,3C147).
                      virtual model column. Please use ephemerides source
                      models only with usescratch=True
 </description>
-      <value>False</value>
+      <value>True</value>
       </param>
 
     <param type="bool" name="ismms" subparam="true" visibility="hidden"><shortdescription>to be used internally for MMS</shortdescription><description>to be used internally for MMS</description>
