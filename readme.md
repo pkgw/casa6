@@ -93,7 +93,7 @@ Requirements for GPU build (development still in progress):
 
 To install these dependencies one can either install them manually using any native method (which might not be trivial) or use package managers. The later is way easier and we have collected the instructions for the following operating systems:
 
-- RHEL equivalent (tested on RockyLinux 8)
+- RHEL equivalent (tested on RockyLinux 8\)
 - Fedora (tested on 36)
 - Ubuntu (tested on 22.04)
 - Debian (tested on 11)
@@ -102,7 +102,7 @@ To install these dependencies one can either install them manually using any nat
 
 What follows is the detailed instructions to install the prerequisites for all these platforms.
 
-#### Installing prerequisites in RHEL equivalent  (tested only on RockyLinux 8)
+#### Installing prerequisites in RHEL equivalent (tested on RockyLinux 8 only)
 
 Note: on RHEL8.5 powertools is provided by: 
 
