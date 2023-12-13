@@ -42,6 +42,8 @@ _GCV002 = True
 _GCV003 = True
 _GCV004 = True
 
+print("USING THIS GCLEAN")
+
 # from casatasks.private.imagerhelpers._gclean import gclean
 class gclean:
     '''gclean(...) creates a stream of convergence records which indicate
@@ -264,6 +266,7 @@ class gclean:
             ###
             self._effective_mask = ''
 
+        self.imdict = ImagingDict()
         self._major_done = 0
         self._convergence_result = (None,None,None,{ 'chan': None, 'major': None })
         #                           ^^^^ ^^^^ ^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->>> convergence info
@@ -287,7 +290,7 @@ class gclean:
         nchan = raw.nchan
         nstokes = raw.nstokes
 
-        # Only assume single field for now - keeping with existing behaviour
+        # Only assume single field for now - don't iterate over field
         for chan in range(nchan):
             ret[chan] = {}
             for stokes in range(nstokes):
@@ -367,7 +370,6 @@ class gclean:
         See also: gclean.__update_convergence(...)
         """
 
-        imdict = ImagingDict()
 
         if self._finalized:
             self._convergence_result = ( f'iteration terminated',
@@ -390,6 +392,8 @@ class gclean:
             ###
             self._exe_cmds_per_iter.append(0)
             if self._convergence_result[1] is None:
+                this_imdict = ImagingDict()
+
                 # initial call to tclean(...) creates the initial dirty image with niter=0
                 tclean_ret = self._tclean( vis=self._vis, mask=self._effective_mask, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
                                            phasecenter=self._phasecenter, stokes=self._stokes, startmodel=self._startmodel, specmode=self._specmode,
@@ -403,14 +407,18 @@ class gclean:
                                            field=self._field, spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
                                            scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
                                            weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False, niter=0,
-                                           gain=0.1, calcres=True, restoration=False, parallel=self._parallel, fullsummary=True )
+                                           gain=self._gain, calcres=True, restoration=False, parallel=self._parallel, fullsummary=True )
 
-                deconv_ret = self._deconvolve( imagename=self._imagename, mask=self._effective_mask, startmodel=self._startmodel,
-                                               deconvolver=self._deconvolver, restoration=False, niter=0, usemask=self._usemask, mask=self._mask,
-                                               fullsummary=True)
 
-                imdict.append(tclean_ret)
-                imdict.append(deconv_ret)
+                deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
+                                              deconvolver=self._deconvolver, restoration=False,
+                                              threshold=self._threshold, niter=0, gain=self._gain,
+                                              nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
+                                              mask=self._effective_mask, noisethreshold=self._noisethreshold)
+
+                this_imdict.returndict = this_imdict.merge(deconv_ret, tclean_ret)
+                self.imdict.returndict = this_imdict.returndict
+                #self.imdict.append(this_imdict.returndict)
 
                 if self._mask == '':
                     ### first time through the tclean generated mask is preserved as <imagename>.$pid.mask
@@ -427,11 +435,29 @@ class gclean:
                 if self._mask == '':
                     self._remove_tree(self.__default_mask_name( ))
 
+                this_imdict = ImagingDict()
+
+                """
+                # From tclean XML : calculating cyclethreshold
+                psf_fraction = max_psf_sidelobe_level \* 'cyclefactor'
+                psf_fraction = max(psf_fraction, 'minpsffraction');
+                psf_fraction = min(psf_fraction, 'maxpsffraction');
+                cyclethreshold = peak_residual \* psf_fraction
+                cyclethreshold = max( cyclethreshold, 'threshold' )
+
+                If nsigma is set (&gt;0.0), the N-sigma threshold is calculated (see
+                the description under nsigma), then cyclethreshold is further modified as,
+
+                cyclethreshold = max( cyclethreshold, nsgima_threshold )
+                """
+
 
                 # Run the minor cycle
-                deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel, deconvolver=self._deconvolver,
-                                              restoration=False, niter=self._niter, gain=self._gain, threshold=self._threshold, nsigma=self._nsigma,
-                                              fullsummary=True)
+                deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
+                                              deconvolver=self._deconvolver, restoration=False,
+                                              threshold=self._threshold, niter=self._niter, gain=self._gain,
+                                              nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
+                                              mask=self._effective_mask, noisethreshold=self._noisethreshold)
 
                 # Run the major cycle
                 tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
@@ -454,27 +480,34 @@ class gclean:
                                            minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=1,
                                            minpsffraction=0, parallel=self._parallel, fullsummary=True )
 
+                ### tclean/deconvolve copies the user supplied mask
+                #if self._mask == '':
+                #    self._remove_tree(self.__default_mask_name( ))
+
+                this_imdict.returndict = this_imdict.merge(deconv_ret, tclean_ret)
+                self.imdict.returndict = self.imdict.concat(self.imdict.returndict, this_imdict.returndict)
+
+                #self.imdict.append(tclean_ret)
+                #self.imdict.append(deconv_ret)
+
+                print("------------------")
+                print("IMDICT")
+                print(self.imdict)
 
                 ### tclean/deconvolve copies the user supplied mask
                 #if self._mask == '':
                 #    self._remove_tree(self.__default_mask_name( ))
 
+                self._major_done = self.imdict.returndict['nmajordone'] if 'nmajordone' in self.imdict.returndict else 0
 
-                imdict.append(tclean_ret)
-                imdict.append(deconv_ret)
-
-                ### tclean/deconvolve copies the user supplied mask
-                #if self._mask == '':
-                #    self._remove_tree(self.__default_mask_name( ))
-
-                self._major_done = imdict.returndict['nmajordone'] if 'nmajordone' in imdict.returndict else 0
-
-            if len(imdict.returndict) > 0 and 'summaryminor' in imdict.returndict and sum(map(len,imdict.returndict['summaryminor'].values())) > 0:
-                new_summaryminor_rec = gclean.__filter_convergence(imdict.returndict)
+            if len(self.imdict.returndict) > 0 and 'summaryminor' in self.imdict.returndict and sum(map(len,self.imdict.returndict['summaryminor'].values())) > 0:
+                # this_imdict only contains the latest tclean/deconvolve results
+                # Passing in self.imdict will pull out the cumulative results everytime, breaking the convergence plot.
+                new_summaryminor_rec = gclean.__filter_convergence(this_imdict)
                 self._convergence_result = ( None,
-                                             imdict.returndict['stopcode'] if 'stopcode' in imdict.returndict else 0,
+                                             self.imdict.returndict['stopcode'] if 'stopcode' in self.imdict.returndict else 0,
                                              self._major_done,
-                                             self.__add_per_major_items( imdict.returndict,
+                                             self.__add_per_major_items( self.imdict.returndict,
                                                                          self._convergence_result[3]['major'],
                                                                          gclean.__update_convergence( self._convergence_result[3]['chan'],
                                                                                                       new_summaryminor_rec ) ) )
@@ -483,6 +516,7 @@ class gclean:
                                              self._convergence_result[1],
                                              self._major_done,
                                              self._convergence_result[3] )
+            print(self._convergence_result)
             return self._convergence_result
 
     def __reflect_stop( self ):
@@ -530,7 +564,11 @@ class gclean:
 
     def restore(self):
         """ Restores the final image, and returns a path to the restored image. """
-        deconv_ret = self._deconvolve(imagename=self._imagename, niter=0, restoration=True, deconvolver=self._deconvolver)
+        deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
+                                      deconvolver=self._deconvolver, restoration=True,
+                                      threshold=self._threshold, niter=self._niter, gain=self._gain,
+                                      nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
+                                      mask=self._effective_mask, noisethreshold=self._noisethreshold)
 
         #tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
         #                           phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode,
