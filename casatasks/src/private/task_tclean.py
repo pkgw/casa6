@@ -41,13 +41,13 @@ except ImportError:
     mpi_available = False
 
 
-#if you want to save tclean.last.* from python call of tclean uncomment the decorator   
-#@saveparams2last(multibackup=True) 
+#if you want to save tclean.last.* from python call of tclean uncomment the decorator
+#@saveparams2last(multibackup=True)
 def tclean(
     ####### Data Selection
-    vis,#='', 
+    vis,#='',
     selectdata,
-    field,#='', 
+    field,#='',
     spw,#='',
     timerange,#='',
     uvrange,#='',
@@ -79,7 +79,7 @@ def tclean(
 #    sysvelframe,#='',
     interpolation,#='',
     perchanweightdensity, #=''
-    ## 
+    ##
     ####### Gridding parameters
     gridder,#='ft',
     facets,#=1,
@@ -129,15 +129,15 @@ def tclean(
 
 
     ##### Iteration control
-    niter,#=0, 
+    niter,#=0,
     gain,#=0.1,
-    threshold,#=0.0, 
+    threshold,#=0.0,
     nsigma,#=0.0
-    cycleniter,#=0, 
+    cycleniter,#=0,
     cyclefactor,#=1.0,
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
-    interactive,#=False, 
+    interactive,#=False,
     nmajor,#=-1,
     fullsummary,#=False,
 
@@ -155,7 +155,7 @@ def tclean(
     lownoisethreshold,#=3.0,
     negativethreshold,#=0.0,
     smoothfactor,#=1.0,
-    minbeamfrac,#=0.3, 
+    minbeamfrac,#=0.3,
     cutthreshold,#=0.01,
     growiterations,#=100
     dogrowprune,#=True
@@ -180,11 +180,11 @@ def tclean(
     #####################################################
     #### Sanity checks and controls
     #####################################################
-    
-    ### Move these checks elsewhere ? 
+
+    ### Move these checks elsewhere ?
     inpparams=locals().copy()
 #    saveinputs(inpparams)
-    ###now deal with parameters which are not the same name 
+    ###now deal with parameters which are not the same name
     inpparams['msname']= inpparams.pop('vis')
     inpparams['timestr']= inpparams.pop('timerange')
     inpparams['uvdist']= inpparams.pop('uvrange')
@@ -210,16 +210,16 @@ def tclean(
 
     if((specmode=='cube' or specmode=='cubedata') and (parallel==False and mpi_available and   MPIEnvironment.is_mpi_enabled) ):
         casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect", "WARN", "task_tclean" )
-        
-      
+
+
     if(perchanweightdensity==False and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with perchanweightdensity=False.", "WARN", "task_tclean" )
         return
-        
+
     if((specmode=='mfs' or specmode=='cont') and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with specmode='mfs' or 'cont'.", "WARN", "task_tclean" )
         return
-        
+
     if(npixels != 0 and weighting=='briggsbwtaper'):
         casalog.post( "The briggsbwtaper weighting scheme is not compatable with npixels != 0.", "WARN", "task_tclean" )
         return
@@ -246,7 +246,7 @@ def tclean(
         defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
     else:
         defparm=dict(zip(ImagerParameters.__init__.__func__.__code__.co_varnames[1:], ImagerParameters.__init__.func_defaults))
-        
+
     ###assign values to the ones passed to tclean and if not defined yet in tclean...
     ###assign them the default value of the constructor
     bparm={k:  inpparams[k] if k in inpparams else defparm[k]  for k in defparm.keys()}
@@ -258,15 +258,15 @@ def tclean(
 
     if specmode=='mfs':
         bparm['perchanweightdensity'] = False
-    
+
     # deprecation message
     if usemask=='auto-thresh' or usemask=='auto-thresh2':
-        casalog.post(usemask+" is deprecated, will be removed in CASA 5.4.  It is recommended to use auto-multithresh instead", "WARN") 
+        casalog.post(usemask+" is deprecated, will be removed in CASA 5.4.  It is recommended to use auto-multithresh instead", "WARN")
 
     #paramList.printParameters()
-    
+
     if len(pointingoffsetsigdev)>0 and pointingoffsetsigdev[0]!=0.0 and usepointing==True and gridder.count('awproj')>1:
-        casalog.post("pointingoffsetsigdev will be used for pointing corrections with AWProjection", "WARN") 
+        casalog.post("pointingoffsetsigdev will be used for pointing corrections with AWProjection", "WARN")
 #    elif usepointing==True and pointingoffsetsigdev[0] == 0:
 #        casalog.post("pointingoffsetsigdev is set to zero which is an unphysical value, will proceed with the native sky pixel resolution instead". "WARN")
 
@@ -293,7 +293,7 @@ def tclean(
             cl._cluster.pgc("si=synthesisimager()", False)
         else:
             cl._cluster.pgc("from casac import casac", False)
-            cl._cluster.pgc("si=casac.synthesisimager()", False) 
+            cl._cluster.pgc("si=casac.synthesisimager()", False)
         cl._cluster.pgc("si.initmpi()", False)
         cppparallel=True
         ###ignore chanchunk
@@ -303,7 +303,7 @@ def tclean(
     if pcube and interactive:
         casalog.post( "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F", "WARN", "task_tclean" )
         return False
-    #casalog.post('parameters {}'.format(bparm))    
+    #casalog.post('parameters {}'.format(bparm))
     paramList=ImagerParameters(**bparm)
 
     ## Setup Imager objects, for different parallelization schemes.
@@ -323,16 +323,16 @@ def tclean(
     else:
          casalog.post('Invalid parallel combination in doClean.', 'ERROR')
          return
-    
+
     retrec={}
 
-    try: 
+    try:
     #if (1):
         #pdb.set_trace()
         ## Init major cycle elements
         t0=time.time();
         imager.initializeImagers()
-    
+
         # Construct the CFCache for AWProject-class of FTMs.  For
         # other choices the following three calls become NoOps.
         # imager.dryGridding();
@@ -353,17 +353,17 @@ def tclean(
 
         ####now is the time to check estimated memory
         imager.estimatememory()
-            
+
         if niter>0:
             t0=time.time();
             imager.initializeIterationControl()
             t1=time.time();
             casalog.post("***Time for initializing iteration controller: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
-        
+
         ## Make PSF
         if calcpsf==True:
             t0=time.time();
-             
+
             imager.makePSF()
             if((psfphasecenter != '') and ('mosaic' in gridder)):
                 ###for some reason imager keeps the psf open delete it and recreate it afterwards
@@ -400,7 +400,7 @@ def tclean(
                 ###redo these as we destroyed things for lock issues
                 ## Init minor cycle elements
                 if niter>0 or restoration==True:
-                    imager.initializeDeconvolvers() 
+                    imager.initializeDeconvolvers()
                 if niter>0:
                     imager.initializeIterationControl()
 
@@ -409,7 +409,7 @@ def tclean(
                 casalog.post("***Time for making PSF and PB: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
             else:
                 casalog.post("***Time for making PSF: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
-            
+
             imager.makePB()
 
             t2=time.time();
@@ -419,14 +419,14 @@ def tclean(
         if gridder in ['mosaic','awproject']:
             imager.checkPB()
 
-        if niter >=0 : 
+        if niter >=0 :
 
             ## Make dirty image
             if calcres==True:
                 t0=time.time();
                 imager.runMajorCycle(isCleanCycle=False)
                 t1=time.time();
-                casalog.post("***Time for major cycle (calcres=T): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean"); 
+                casalog.post("***Time for major cycle (calcres=T): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
 
             ## In case of no deconvolution iterations....
             if niter==0 and calcres==False:
@@ -438,27 +438,17 @@ def tclean(
             # populated.
             if niter==0:
                 rd = ReturnDictionary()
-
-                # Various combinations of parameters result in deconvolvers not being initialized
-                # at this point. If that is the case, initialize before creating the mask.
-                if len(imager.SDtools) == 0:
-                    imager.initializeDeconvolvers()
-                    imager.initializeIterationControl()
-
-                imager.hasConverged()
-                imager.updateMask()
                 retrec = rd.constructResidualDict(paramList)
-                #retrec=imager.getSummary(fullsummary);
 
             ## Do deconvolution and iterations
-            if niter>0 :
+            if niter > 0 :
                 t0=time.time();
                 isit = imager.hasConverged()
                 imager.updateMask()
-                #if((type(usemask)==str) and ('auto' in usemask)):  
+                #if((type(usemask)==str) and ('auto' in usemask)):
                 #    isit = imager.hasConverged()
                 isit = imager.hasConverged()
-               
+
                 t1=time.time();
                 casalog.post("***Time to update mask: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
                 while ( not isit ):
@@ -473,16 +463,16 @@ def tclean(
                         imager.runMajorCycle()
                     t1=time.time();
                     casalog.post("***Time for major cycle: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
-                   
+
                     imager.updateMask()
                     t2=time.time()
                     casalog.post("***Time to update mask: "+"%.2f"%(t2-t1)+" sec", "INFO3", "task_tclean");
                     isit = imager.hasConverged() or (not doneMinor)
-                    
+
                 ## Get summary from iterbot
                 #if type(interactive) != bool:
                 retrec=imager.getSummary(fullsummary);
-                
+
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()
                     if parallel and specmode=='mfs':
@@ -492,7 +482,7 @@ def tclean(
                     imager.predictModel()
 
             ## Restore images.
-            if restoration==True:  
+            if restoration==True:
                 t0=time.time();
                 imager.restoreImages()
                 t1=time.time();
@@ -502,7 +492,7 @@ def tclean(
                     imager.pbcorImages()
                     t1=time.time();
                     casalog.post("***Time for pb-correcting images: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
-        ######### niter >=0  end if 
+        ######### niter >=0  end if
 
     finally:
         ##close tools
@@ -517,7 +507,7 @@ def tclean(
             casalog.post("running concatImages ...")
             casalog.post("Running virtualconcat (type=%s) of sub-cubes" % concattype,"INFO2", "task_tclean")
             imager.concatImages(type=concattype)
-        # CAS-10721 
+        # CAS-10721
         #if niter>0 and savemodel != "none":
         #    casalog.post("Please check the casa log file for a message confirming that the model was saved after the last major cycle. If it doesn't exist, please re-run tclean with niter=0,calcres=False,calcpsf=False in order to trigger a 'predict model' step that obeys the savemodel parameter.","WARN","task_tclean")
 

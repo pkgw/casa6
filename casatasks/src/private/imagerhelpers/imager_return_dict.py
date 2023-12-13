@@ -129,10 +129,6 @@ class ReturnDictionary():
             ia.open(self.maskname)
             mask = ia.getchunk(blc, trc, dropdeg=True)
             ia.close()
-
-            # If mask is all zeros, flip to all ones
-            if np.sum(mask) == 0:
-                mask = 1
         else:
             mask = 1 # No mask, so everything is unmasked
 
