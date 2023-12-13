@@ -830,6 +830,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		    MSUtil::getSpwInFreqRange(freqSpw, freqStart, freqNchan, elms, freqBeg(k), freqEnd(k),0.0, eltype, fieldsel[0]);
 		    newspw=mergeSpwSel(freqSpw, freqStart, freqNchan, spwsel);
 		    //cerr << "try " << freqSpw <<  "  " << freqStart << "  " << freqNchan << endl;
+		    os << "ms:" << msname << "freqStart:" << freqStart << "freqNchan" << freqNchan << LogIO::POST;
 		  }
 		  catch(...){
 		    //cerr << "In catch " << endl;
