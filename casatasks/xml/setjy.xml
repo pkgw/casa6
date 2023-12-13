@@ -494,7 +494,7 @@ variable sources (3C48,3C138,3C147).
 <shortdescription>Will create if necessary and use the MODEL_DATA </shortdescription>
 <description>Will create if necessary and use the MODEL_DATA
                      Default: True 
-                     Options: False|True
+                     Options: True|False
 
                      * If False: 'virtual' model is created. The model
                        information is saved either in the SOURCE_MODEL
