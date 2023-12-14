@@ -9,6 +9,7 @@
 #include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
 #include <casacore/measures/Measures/MCBaseline.h>
 #include <casacore/casa/Utilities/GenSort.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 #include <map>
 
 using namespace casacore;
