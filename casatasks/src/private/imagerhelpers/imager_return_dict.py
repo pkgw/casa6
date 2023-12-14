@@ -193,7 +193,14 @@ class ReturnDictionary():
         for ff in range(nfields):
             self.residname=impars[str(ff)]['imagename']+'.residual.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.residual.tt0')) else impars[str(ff)]['imagename']+'.residual'
             self.modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
-            self.maskname=impars[str(ff)]['imagename']+'.mask' if(os.path.exists(impars[str(ff)]['imagename']+'.mask')) else ''
+
+            # Set the maskname
+            if decpars[str(ff)]['mask'] != '' and os.path.exists(decpars[str(ff)]['mask']):
+                self.maskname = decpars[str(ff)]['mask']
+            elif os.path.exists(impars[str(ff)]['imagename']+'.mask'):
+                self.maskname = impars[str(ff)]['imagename']+'.mask'
+            else:
+                self.maskname = ''
 
             fullsummary = decpars[str(ff)]['fullsummary']
             nstokes, nfreq, stokes_axis, freq_axis = self.imageDimensions()
