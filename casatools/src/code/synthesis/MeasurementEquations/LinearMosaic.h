@@ -36,7 +36,7 @@
 #define SYNTHESIS_LINEARMOSAIC_H
 
 #include <casacore/casa/Arrays/ArrayFwd.h>
-
+#include <casacore/casa/Utilities/CountedPtr.h>
 namespace casacore{
 
   template<class T> class ImageInterface;
