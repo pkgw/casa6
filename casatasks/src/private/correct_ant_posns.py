@@ -19,7 +19,7 @@ else:
     # for getting a single tool in gentools
     (_tb,) = gentools(['tb'])
 
-def correct_ant_posns(vis_name, print_offsets=False):
+def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
     """
     Given an input visibility MS name (vis_name), find the antenna
     position offsets that should be applied.  This application should
@@ -55,7 +55,7 @@ def correct_ant_posns(vis_name, print_offsets=False):
     tel_name = _tb.getcol('TELESCOPE_NAME')
     _tb.close()
     if tel_name == 'EVLA' or tel_name == 'VLA':
-        return _correct_ant_posns_evla(vis_name, print_offsets)
+        return _correct_ant_posns_evla(vis_name, print_offsets, time_limit)
     elif tel_name == 'ALMA':
         return _correct_ant_posns_alma(vis_name, print_offsets)
     else:
