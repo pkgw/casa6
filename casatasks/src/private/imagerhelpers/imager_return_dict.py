@@ -5,6 +5,7 @@ import numpy as np
 
 # Assume CASA 6, CASA 5 is no longer built
 from casatools import image
+from casatasks import casalog
 ia = image()
 
 
@@ -258,45 +259,30 @@ class ImagingDict():
     #            for stokes in smdict[field][chan]:
     #                keydict[field][chan][stokes] = self.get_key
 
-    def merge(self, dict1: dict, dict2: dict, key_path=[]) -> None:
+    def merge(self, tclean_dict: dict, deconv_dict: dict, key_path=[]) -> None:
         """
-        Merge the two input dictionaries, and return the merged dictionary.
-
-        The merge recurses into the dictionary, and obeys the following rules:
-        1. If the key exists in both dictionaries, merge the values
-            a. If the value is numeric, add the values
-            b. If the value is a string, use the value from dict2
-        2. If the key exists in only one dictionary, copy the value
-        3. If the key is a dictionary, recurse into the dictionary
-
-        The input dictionary must be a fully formed return dictionary from
-        either `tclean` or `deconvolve`.
+        Merge the return dictionaries from tclean and deconvolve.
 
         Inputs:
-        dict1     The input dictionary to merge. dict
-        dict2     The input dictionary to merge. dict
-        key_path  The path to the current key. Used for recursion. list
+        tclean_dict     The return dictionary from deconvolve. dict
+        deconv_dict     The return dictionary from tclean. dict
 
         Returns:
         merge_dict
         """
 
-        # Taken from SO :
-        # https://stackoverflow.com/questions/7204805/deep-merge-dictionaries-of-dictionaries-in-python/7205107#7205107
+        merge_dict = tclean_dict.copy()
 
-        for key, val in dict2.items():
-            if key in dict1:
-                if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
-                    dict1[key] = self.merge(dict1[key], dict2[key], key_path + [str(key)])
-                elif dict1[key] == dict2[key]:
-                    if isinstance(val, (int, float, complex)):
-                        dict1[key] += val
-                    if isinstance(val, str):
-                        dict1[key] = val
-            else:
-                dict1[key] = val
+        for key, val in deconv_dict.items():
+            if key == 'summaryminor':
+                # Copy summaryminor from deconvolve always
+                merge_dict[key] = val
+            # Copy all the iteration control keys from deconvolve
+            elif key in ['iterdone', 'cycleiterdone', 'cycleniter', 'cyclethreshold',
+                         'maxpsffraction', 'maxpsfsidelobe', 'minpsffraction', 'nsigma']:
+                merge_dict[key] = val
 
-        return dict1
+        return merge_dict
 
 
     def concat(self, dict1:dict, dict2:dict) -> None:
@@ -304,26 +290,25 @@ class ImagingDict():
         Concatenate the two input dictionaries. The input dictionary must be a
         fully formed return dictionary from either `tclean` or `deconvolve`.
 
-        The append recurses into the dictionary, and obeys the following rules:
-        1. If the key exists in both dictionaries, concatenate the values
-            a. If the value is numeric or a list, concatenate the values
-            b. If the value is a string, use the value from dict2
-        2. If the key exists in only one dictionary, copy the value
-        3. If the key is a dictionary, recurse into the dictionary
+        The keys within summaryminor are always concatenated.
+        The following keys are incremented :
+            iterdone
+            nmajordone
+
+        The rest of the keys are left unchanged, and default to the values in dict2.
 
         Inputs:
-        dict1     The input dictionary to append. dict
+        dict1     The initial dictionary, dict
         dict2     The input dictionary to append. dict
 
         Returns:
         appendix  The concatenated dictionary. dict
         """
 
-        appendix = {}
+        appendix = dict1.copy()
 
         # All unique keys
         dict_keys = list(dict1.keys()) + [key for key in dict2.keys() if key not in dict1.keys()]
-        print("dict_keys are ", dict_keys)
 
         for key in dict_keys:
             if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
@@ -338,15 +323,88 @@ class ImagingDict():
                 temparr.extend(dict2[key])
                 appendix[key] = np.array(temparr)
             elif isinstance(dict1[key], (int, float, complex)) and isinstance(dict2[key], (int, float, complex)):
-                # TODO : Clean up the numeric tuple after the move to Python 3.10
-                appendix[key] = dict1[key] + dict2[key]
-            elif isinstance(dict1[key], str) and isinstance(dict2[key], str):
-                appendix[key] = dict2[key]
+                if key in ['iterdone', 'nmajordone']:
+                    appendix[key] = dict1[key] + dict2[key]
+                else:
+                    appendix[key] = dict2[key]
             else:
-                # This should never happen for a well behaved tclean dict.
-                raise TypeError(f'Cannot append {key} of type {type(dict1[key])} and {type(dict2[key])}')
+                # Just use the key from dict1
+                appendix[key] = dict2[key]
 
         return appendix
+
+
+
+    def get_peakres(self, field:int=0, major_index:int=-1) -> float:
+        """
+        Calculates the peak residual across all channels and Stokes planes.
+
+        By default it calculates the peak residual over the last major cycle.
+        major_index directly indexes into the major cycle to query, so
+        major_index=-2 will query the penultimate major cycle etc.
+
+        Inputs:
+        field               The field index over which to calculate the peak residual, int
+        major_index         The major cycle index to query, int
+
+        Returns:
+        peakres             The peak residual, float
+        """
+
+        peakres = 0.0
+
+        for chan in range(self.nchan):
+            for stokes in range(self.nstokes):
+                peakres = max(peakres, np.abs(self.get_key('peakRes', field, chan, stokes))[major_index])
+
+        return peakres
+
+
+    def has_converged(self, niter=0, threshold=0, nmajor=0):
+        """
+        Check stopping criteria for convergence, based on the criteria specified here -
+        https://casadocs.readthedocs.io/en/stable/notebooks/synthesis_imaging.html#Returned-Dictionary
+        """
+
+        # TODO : Implement StopCode 3, 6, 7
+
+        stopcode = 0
+        stopDescription = ''
+
+        nmajordone = self.get_key('nmajordone')
+        if nmajordone > 2:
+            # Peak residual over last two major cycles
+            peakres_1 = self.get_peakres(major_index=-1)
+            peakres_2 = self.get_peakres(major_index=-2)
+        else:
+            peakres1 = 0
+            peakres2 = 0
+
+        peakres_list = [self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajor)]
+        min_peakres = np.amin(peakres_list)
+
+        if self.returndict['iterdone'] >= niter:
+            stopcode = 1
+            stopDescription = 'Reached the iteration limit'
+        elif self.get_peakres() <= threshold:
+            stopcode = 2
+            stopDescription = 'Reached cyclethreshold'
+        elif nmajordone > 2 and np.allclose(peakres_1, peakres_2):
+            stopcode = 3
+            stopDescription = 'No change in peak residual across consecutive major cycles'
+        elif peakres1 > 3*peakres2:
+            stopcode = 4
+            stopDescription = 'Peak residual increased by more than 3x across consecutive major cycles'
+        elif peakres1 > 3*min_peakres:
+            stopcode = 5
+            stopDescription = 'Peak residual increased by more than 3x from the minimum reached'
+        elif (nmajor != -1 and self.returndict['nmajordone'] >= nmajor):
+            stopcode = 9
+            stopDescription = 'Reached the major cycle limit (nmajor)'
+
+
+        return stopcode, stopDescription
+
 
 
 
