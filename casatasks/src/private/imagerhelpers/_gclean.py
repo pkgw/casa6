@@ -474,8 +474,9 @@ class gclean:
                 self.global_imdict.returndict['stopcode'] = self.hasit
                 self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
-                # Run deconvolve to update the mask
-                deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
+                if not self.hasit:
+                    # If we haven't converged, run deconvolve to update the mask
+                    deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
 
             if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
                 # self.current_imdict only contains the latest tclean/deconvolve results
