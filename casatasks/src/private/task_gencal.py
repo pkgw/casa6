@@ -21,7 +21,7 @@ else:
 
 
 def gencal(vis=None, caltable=None, caltype=None, infile='None',
-           endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+           endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
            spw=None, antenna=None, pol=None,
            parameter=None, uniform=None):
     """Externally specify calibration solutions of various types.
@@ -71,13 +71,13 @@ def gencal(vis=None, caltable=None, caltype=None, infile='None',
     gencal = __gencal_factory[gencal_type]
     gencal.gencal(vis=vis, caltable=caltable, caltype=caltype, infile=infile,
                   endpoint=endpoint, timeout=timeout, retry=retry, retry_wait_time=retry_wait_time,
-                  spw=spw, antenna=antenna, pol=pol, parameter=parameter, uniform=uniform)
+                  ant_pos_time_limit=ant_pos_time_limit, spw=spw, antenna=antenna, pol=pol, parameter=parameter, uniform=uniform)
 
 
 class GeneralGencal():
     @classmethod
     def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
-               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
                spw=None, antenna=None, pol=None,
                parameter=None, uniform=None):
         try:
@@ -97,7 +97,7 @@ class GeneralGencal():
 class AntposGencal():
     @classmethod
     def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
-               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
                spw=None, antenna=None, pol=None,
                parameter=None, uniform=None):
         try:
@@ -108,7 +108,7 @@ class AntposGencal():
             if antenna == '':
                 casalog.post(" Determine antenna position offsets from the baseline correction database")
                 # correct_ant_posns returns a list , [return_code, antennas, offsets]
-                antenna_offsets = getantposns.correct_ant_posns(vis, False)
+                antenna_offsets = getantposns.correct_ant_posns(vis, False, ant_pos_time_limit)
                 if ((len(antenna_offsets) == 3) and
                         (int(antenna_offsets[0]) == 0) and
                         (len(antenna_offsets[1]) > 0)):
@@ -138,7 +138,7 @@ class JyperkGencal():
 
     @classmethod
     def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
-               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
                spw=None, antenna=None, pol=None,
                parameter=None, uniform=None):
         """Generate calibration table."""
