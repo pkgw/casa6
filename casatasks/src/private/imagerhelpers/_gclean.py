@@ -406,7 +406,7 @@ class gclean:
                 # NOTE : Only set the mask parameters here, in the first call.
                 deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                               deconvolver=self._deconvolver, restoration=False,
-                                              threshold=self._threshold, niter=0, gain=1e-6,
+                                              threshold=self._threshold, niter=1, gain=1e-6,
                                               nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
                                               mask=self._mask, noisethreshold=self._noisethreshold)
 
