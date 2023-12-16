@@ -419,14 +419,9 @@ class gclean:
                                            gain=self._gain, calcres=True, calcpsf=True, restoration=False, parallel=self._parallel, fullsummary=True)
 
 
-                # Make the mask only, no deconvolution
-                # TODO : This uses gain=1e-6. It should be gain=0; That requires the implementation of a
-                # standalone module to calculate the max PSF sidelobe.
-                # This gets around that requirement for now, but can get expensive for large images/MT-MFS etc.
-                # NOTE : Only set the mask parameters here, in the first call.
                 deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                               deconvolver=self._deconvolver, restoration=False,
-                                              threshold=self._threshold, niter=1, gain=1e-6,
+                                              threshold=self._threshold, niter=0,
                                               nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
                                               mask=self._mask, noisethreshold=self._noisethreshold)
 
