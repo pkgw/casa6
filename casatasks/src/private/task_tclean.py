@@ -438,7 +438,7 @@ def tclean(
             # populated.
             if niter==0:
                 id = ImagingDict()
-                retrec = id.constructResidualDict(paramList)
+                retrec = id.construct_residual_dict(paramList)
 
             ## Do deconvolution and iterations
             if niter>0 :

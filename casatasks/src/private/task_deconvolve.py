@@ -285,7 +285,7 @@ def deconvolve(
         # Residual image needs to be computed for this to work
         if niter==0:
             id = ImagingDict()
-            retrec1 = id.constructResidualDict(paramList)
+            retrec1 = id.construct_residual_dict(paramList)
 
         ## Get summary from iterbot
         #if type(interactive) != bool and niter>0:

@@ -29,6 +29,7 @@ import os
 import asyncio
 from functools import reduce
 import copy
+import numpy as np
 import shutil
 import subprocess
 
@@ -42,6 +43,7 @@ _GCV001 = True
 _GCV002 = True
 _GCV003 = True
 _GCV004 = True
+
 
 print("USING THIS GCLEAN")
 
@@ -249,7 +251,6 @@ class gclean:
 
         self._threshold_to_float()
 
-
     @staticmethod
     def __filter_convergence( raw ):
         ###
@@ -276,15 +277,46 @@ class gclean:
 
         return ret
 
+
+    #@staticmethod
+    #def __filter_convergence( raw ):
+    #    ###
+    #    ### this function filters out the pieces of the `raw` tclean 'summaryminor'
+    #    ### return dictionary that we care about
+    #    ###
+    #    ### the first index in the `raw` dictionary is the channel axis
+    #    ### each channel may have a number of polarity dictionaries
+    #    ###
+    #    keep_keys = [ 'modelFlux', 'iterDone', 'peakRes', 'stopCode', 'cycleThresh' ]
+    #    ret = {}
+
+    #    nfield = raw.nfield
+    #    nchan = raw.nchan
+    #    nstokes = raw.nstokes
+
+    #    # Only assume single field for now - don't iterate over field
+    #    for chan in range(nchan):
+    #        ret[chan] = {}
+    #        for stokes in range(nstokes):
+    #            ret[chan][stokes] = {}
+    #            for key in keep_keys:
+    #                ret[chan][stokes][key] = raw.get_key(key, 0, chan, stokes)
+
+    #    return ret
+
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
         '''Add meta-data about the whole major cycle, including 'cyclethreshold'
         '''
+
         if 'cyclethreshold' in tclean_ret:
-            return dict( major=dict( cyclethreshold=[tclean_ret['cyclethreshold']] if major_ret is None else (major_ret['cyclethreshold'] + [tclean_ret['cyclethreshold']]) ),
+
+            rdict = dict( major=dict( cyclethreshold=[tclean_ret['cyclethreshold']] if major_ret is None else (major_ret['cyclethreshold'] + [tclean_ret['cyclethreshold']]) ),
                          chan=chan_ret )
         else:
-            return dict( major=dict( cyclethreshold=major_ret['cyclethreshold'].append(tclean_ret['cyclethreshold']) ),
+            rdict = dict( major=dict( cyclethreshold=major_ret['cyclethreshold'].append(tclean_ret['cyclethreshold']) ),
                          chan=chan_ret )
+
+        return rdict
 
 
     def _calc_deconv_controls(self, imdict, niter=0, threshold=0, cycleniter=-1):
@@ -309,9 +341,7 @@ class gclean:
         return int(use_cycleniter), cyclethreshold
 
 
-
-    @staticmethod
-    def __update_convergence( cumm_sm, new_sm ):
+    def __update_convergence(self):
         """Accumulates the per-channel/stokes subimage 'summaryminor' records from new_sm to cumm_sm.
         param cumm_sm: cummulative summary minor records : { chan: { stoke: { key: [values] } } }
         param new_sm: new summary minor records : { chan: { stoke: { key: [values] } } }
@@ -327,33 +357,23 @@ class gclean:
         [1, 7, 17, 26, 27]
         """
 
-        ### substitute 'iterations' for 'iterDone'
-        replace_iters_key = lambda x: ('iterations' if x[0] == 'iterDone' else x[0], x[1])
-        new_sm = {
-            chan_k: {
-                stokes_k: {
-                    k: v for k,v in map( replace_iters_key, stokes_v.items( ) )
-                } for stokes_k,stokes_v in chan_v.items()
-            } for chan_k,chan_v in new_sm.items()
-        }
+        keys = ['modelFlux', 'iterDone', 'peakRes', 'stopCode', 'cycleThresh']
 
-        if cumm_sm is None:
-            return new_sm
-        else:
-            def accumulate_tclean_records( cumm_subsm_rec, new_subsm_rec ):
-                """
-                param cumm_subsm_rec: cummulative subimage 'summaryminor' record : { "key": [minor cycle values,...] }
-                param new_subsm_rec: new subimage 'summaryminor' record : { "key": [minor cycle values,...] }
-                """
-                curr_iters_sum = max(cumm_subsm_rec['iterations']) if 'iterations' in cumm_subsm_rec else 0
-                if 'iterations' in new_subsm_rec:
-                    iterations_tuple = reduce(  lambda acc, v: (acc[0]+v, acc[1] + [acc[0]+v+curr_iters_sum]),  new_subsm_rec['iterations'],  (0,[])  )
-                    new_subsm_rec['iterations'] = iterations_tuple[1] # just want the sum of iterations list
-                return { key: cumm_subsm_rec[key] + new_subsm_rec[key] for key in new_subsm_rec.keys( ) }
-            return { channel_k: {
-                         stokes_k: accumulate_tclean_records( cumm_sm[channel_k][stokes_k], stokes_v )
-                         for stokes_k,stokes_v in channel_v.items( ) } for channel_k,channel_v in new_sm.items( )
-                   }
+        # Grab tuples of keys of interest
+        outrec = {}
+        for nn in range(self.global_imdict.nchan):
+            outrec[nn] = {}
+            for ss in range(self.global_imdict.nstokes):
+                outrec[nn][ss] = {}
+                for key in keys:
+                    # Replace iterDone with iterations
+                    if key == 'iterDone':
+                        # Maintain cumulative sum of iterations per entry
+                        outrec[nn][ss]['iterations'] = np.cumsum(self.global_imdict.get_key(key, stokes=ss, chan=nn))
+                    else:
+                        outrec[nn][ss][key] = self.global_imdict.get_key(key, stokes=ss, chan=nn)
+
+        return outrec
 
     def __next__( self ):
         """ Runs tclean and returns the (stopcode, convergence result) when executed with the python builtin next() function.
@@ -470,13 +490,13 @@ class gclean:
                 self._major_done = self.current_imdict.returndict['nmajordone']
 
                 # Use current imdict for convergence check, not global imdict
-                self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, cyclethreshold, self._nmajor)
+                self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
                 self.global_imdict.returndict['stopcode'] = self.hasit
                 self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
                 if not self.hasit:
                     # If we haven't converged, run deconvolve to update the mask
-                    deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
+                    self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
 
             if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
                 # self.current_imdict only contains the latest tclean/deconvolve results
@@ -487,8 +507,7 @@ class gclean:
                                              self._major_done,
                                              self.__add_per_major_items( self.global_imdict.returndict,
                                                                          self._convergence_result[3]['major'],
-                                                                         gclean.__update_convergence( self._convergence_result[3]['chan'],
-                                                                                                      new_summaryminor_rec ) ) )
+                                                                         self.__update_convergence()))
             else:
                 self._convergence_result = ( f'tclean returned an empty result',
                                              self._convergence_result[1],
