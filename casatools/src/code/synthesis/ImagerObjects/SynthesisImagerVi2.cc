@@ -1373,6 +1373,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
     	itsMappers.initializeGrid(*vi_p,dopsf);
 	SynthesisUtilMethods::getResource("After initGrid for all mappers");
         ////Under some peculiar selection criterion and low channel ms  vb2 seems to return more channels than in spw
+        
+        if (gridparsVec_p[0].ftmachine.at(0,3) != "awp")
         {
           vi_p->originChunks();
           vi_p->origin();
@@ -1382,7 +1384,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
           //cerr << "chans " << nchaninms << "   " << nchannow << endl;
          
           if (nchaninms < nchannow){
-            cerr << "NCHANS ms" << nchaninms << " now " << nchannow << " spw " << spwnow << "   " << vb->spectralWindows() << endl;
+            cerr << "NCHANS ms" << nchaninms << " now " << nchannow << " spw " << spwnow << "   " << vb->spectralWindows()[0] << endl;
             throw(AipsError("A nasty Visbuffer2 error occured...wait for CNGI"));
           }
         }

@@ -141,11 +141,15 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pars = self.alldecpars[str(immod)]
             if pars["specmode"] != "mtmfs_via_cube":
                 raise RuntimeError(
-                    f"Creating instance of class {type(self).__name__} with the wrone specmode! Expected 'mtmfs_via_cube' but instead got '{pars['specmode']}'!"
+                    f"Creating instance of class {type(self).__name__} with the wrong specmode! Expected 'mtmfs_via_cube' but instead got '{pars['specmode']}'!"
                 )
             if pars["deconvolver"] != "mtmfs":
                 raise RuntimeError(
                     f"specmode {pars['specmode']} requires 'mtmfs' deconvolver but instead got '{pars['deconvolver']}'!"
+                )
+            if pars["nterms"] < 2:
+                raise RuntimeError(
+                    f"specmode {pars['specmode']} requires nterms >1 !"
                 )
         return True
     ##############################################

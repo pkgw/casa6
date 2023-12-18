@@ -1801,8 +1801,16 @@ using namespace casa::vi;
   Bool FTMachine::matchChannel(const vi::VisBuffer2& vb){
     //Int spw=vb.spectralWindows()[0];
     nvischan  = vb.nChannels();
+    
+    romscol_p = new MSColumns(vb.ms());
+    //Try to avoid a bug in visiter2 than once in a while gets nchan more than what is in ms
+    Int nchaninms = romscol_p->spectralWindow().numChan()(vb.spectralWindows()(0));
+    if(nvischan > nchaninms){
+      nvischan = nchaninms;}
+    //////////////////
     chanMap.resize(nvischan);
     chanMap.set(-1);
+
     Vector<Double> lsrFreq(0);
 
       //cerr << "doConve " << spw << "   " << doConversion_p[spw] << " freqframeval " << freqFrameValid_p << endl;
@@ -1816,7 +1824,6 @@ using namespace casa::vi;
     }
     if (spectralCoord_p.frequencySystem(False)==MFrequency::REST && fixMovingSource_p) {
       if(lastMSId_p != vb.msId()){
-	romscol_p=new MSColumns(vb.ms());
 	//if ms changed ...reset ephem table
 	if (upcase(movingDir_p.getRefString()).contains("APP")) {
 	  MeasComet mcomet(Path((romscol_p->field()).ephemPath(vb.fieldId()(0))).absoluteName());

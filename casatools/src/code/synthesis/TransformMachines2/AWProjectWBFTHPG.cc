@@ -459,17 +459,28 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
-              
-              SimplePBConvFunc::findUsefulChannels(chunkfreq, vb, frange);
-              //cerr << "vbnchan " << vb.nChannels() <<  "chunkfreq " <<  chunkfreq <<  endl;
-              if (chunkfreq.size() > 0) {
-                //validspw=vb.spectralWindows()(0);
-                //cerr << "SPW " << vb.spectralWindows()(0) << " freqs " << Vector<Double>(chunkfreq) << endl;
-                std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
-                double maxfreqused = *(std::max_element(chunkfreq.begin(), chunkfreq.end()));
-                if (nWPlanes_p > 1) {
-                  // 	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
-                  maxW = max(maxW, max(abs(vb.uvw().row(2) * maxfreqused)) / C::c);
+              //matchChannel(vb);
+              //cerr << "MAX chanMap" << chanMap << endl;
+              //if (max(chanMap) > -1) 
+              {
+
+                SimplePBConvFunc::findUsefulChannels(chunkfreq, vb, frange);
+                //cerr << "vbnchan " << vb.nChannels() << "chunkfreq "
+                //     << chunkfreq << endl;
+                if (chunkfreq.size() > 0) {
+                  // validspw=vb.spectralWindows()(0);
+                  // cerr << "SPW " << vb.spectralWindows()(0) << " freqs " <<
+                  // Vector<Double>(chunkfreq) << endl;
+                  std::move(chunkfreq.begin(), chunkfreq.end(),
+                            std::back_inserter(freqs));
+                  double maxfreqused =
+                      *(std::max_element(chunkfreq.begin(), chunkfreq.end()));
+                  if (nWPlanes_p > 1) {
+                    // 	maxW=max(maxW,
+                    // max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+                    maxW = max(maxW,
+                               max(abs(vb.uvw().row(2) * maxfreqused)) / C::c);
+                  }
                 }
               }
           }

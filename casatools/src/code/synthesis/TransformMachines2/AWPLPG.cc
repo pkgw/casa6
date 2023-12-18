@@ -122,7 +122,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
               pbConvFunc_p->findUsefulChannels(chunkfreq, vb, frange);
               //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
               if (chunkfreq.size() > 0) {
-                cerr << "SPW " << vb.spectralWindows()(0) << " freqs " << Vector<Double>(chunkfreq) << endl;
+                //cerr << "SPW " << vb.spectralWindows()(0) << " freqs " << Vector<Double>(chunkfreq) << endl;
                 std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
                 double maxfreqused = *(std::max_element(chunkfreq.begin(), chunkfreq.end()));
                 if (nw_p > 1) {
