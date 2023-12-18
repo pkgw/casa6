@@ -98,6 +98,9 @@
 #19. Single pointing test : cube : with nmajor
 #testname: test_singlepointing_cube_nmajor
 #
+#20. Single-plane test SD+INT with sdpsf="": mtmfs
+#testname: test_singleplane_sdint_autopsf_multiterm
+#
 ###########################################################################
 import os
 import sys
@@ -108,7 +111,7 @@ import numpy as np
 import inspect
 
 from casatools import ctsys
-from casatasks import casalog, sdintimaging, flagdata, tclean
+from casatasks import casalog, sdintimaging, flagdata, tclean, imsubimage
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 from casatestutils.imagerhelpers import TestHelpers
@@ -176,6 +179,12 @@ class testref_base(unittest.TestCase):
                 if (os.path.exists(self.sdimage)):
                     os.system('rm -rf ' + self.sdimage)
                 shutil.copytree(os.path.join(imdatapath,self.sdimage), self.sdimage)
+            if 'sdimage-singleplane' in inputdata and 'sdimage' in inputdata:
+                self.sdimage=inputdata['sdimage-singleplane']
+                if (os.path.exists(inputdata['sdimage'])):
+                    os.system('rm -rf ' + inputdata['sdimage'])
+                shutil.copytree(os.path.join(imdatapath,inputdata['sdimage']), inputdata['sdimage'])
+                imsubimage(inputdata['sdimage'], outfile=self.sdimage, chans='0') # construct single-plane SD image
             if 'sdpsf' in inputdata:
                 self.sdpsf=inputdata['sdpsf']
                 if (os.path.exists(self.sdpsf)):
@@ -243,6 +252,7 @@ class test_singlepointing(testref_base):
         ################ Good enough for basic checks and to catch numerical changes.
         self.niter=100
         self.cycleniter=50
+        self.dishdia=100. # the old default value
 
     # Test 1
     #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Cube Parallel Output Can't be used. Revisit after CAS-9386")
@@ -261,7 +271,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0) 
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
@@ -272,7 +282,7 @@ class test_singlepointing(testref_base):
         if self.niter==100:
             incycleniter=20 # overwrite the initial setup for niter=100 to make the test pass for 6.1 (need furhter investigation)
 
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
@@ -298,9 +308,9 @@ class test_singlepointing(testref_base):
         ######################################################################################
         # inputdata: set of the data to be copied from the data repos or else where during setup. 
         inputdata={'msname':'papersky_standard.ms',
-                     'sdimage':'papersky_standard.sdimage',
-                     'sdpsf':'papersky_standard.sdpsf',
-                     'mask':'papersky_standard.true.im.masklist'}
+                   'sdimage':'papersky_standard.sdimage',
+                   'sdpsf':'papersky_standard.sdpsf',
+                   'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
         #
@@ -310,7 +320,7 @@ class test_singlepointing(testref_base):
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.sp_mfs_intonly'
-        ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
@@ -342,14 +352,14 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.sp_mfs_sdonly'
-        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
@@ -380,14 +390,14 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.sp_cube_sdint'
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
@@ -419,7 +429,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
@@ -427,7 +437,7 @@ class test_singlepointing(testref_base):
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.sp_cube_intonly'
-        ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
@@ -458,7 +468,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
@@ -466,7 +476,7 @@ class test_singlepointing(testref_base):
         self.prepData(inputdata=inputdata)
         imname=self.img+'.sp_cube_sdonly'
 
-        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
@@ -496,7 +506,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0) 
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
@@ -508,7 +518,7 @@ class test_singlepointing(testref_base):
 
         imname=self.img+'.sp_mfs_sdint'
 
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
@@ -538,7 +548,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
@@ -550,7 +560,7 @@ class test_singlepointing(testref_base):
 
 
         imname=self.img+'.sp_cube_sdint'
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
@@ -579,7 +589,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
@@ -588,7 +598,7 @@ class test_singlepointing(testref_base):
 
         imname=self.img+'.sp_mfs_sdint'
 
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf="", vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf="", vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.0, dishdia=100.)
 
 
         outimg = imname+'.joint.multiterm'
@@ -620,7 +630,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
@@ -631,7 +641,7 @@ class test_singlepointing(testref_base):
         if self.niter==100:
             incycleniter=20 # overwrite the initial setup for niter=100 to make the test pass for 6.1 (need furhter investigation)
 
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0,nmajor=2)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0,nmajor=2, dishdia=100.)
 
         outimg = imname+'.joint.multiterm'
         report=th.checkall(imgexist=[outimg+'.psf.tt0', 
@@ -659,7 +669,7 @@ class test_singlepointing(testref_base):
                    'mask':'papersky_standard.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='hogbom'
@@ -670,7 +680,7 @@ class test_singlepointing(testref_base):
         if self.niter==100:
             incycleniter=20 # overwrite the initial setup for niter=100 to make the test pass for 6.1 (need furhter investigation)
 
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, gain=0.01,scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0,nmajor=2)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='standard', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, gain=0.01,scales=self.scales, niter=self.niter, cycleniter=incycleniter, mask=self.mask, pbmask=0.0,nmajor=2, dishdia=100.)
 
   
         outimg = imname+'.joint.cube'
@@ -720,14 +730,14 @@ class test_mosaic(testref_base):
                    'mask':'papersky_mosaic.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.mos_mfs_sdint'
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2, dishdia=100.)
 
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
@@ -758,7 +768,7 @@ class test_mosaic(testref_base):
                    'mask':'papersky_mosaic.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
@@ -766,7 +776,7 @@ class test_mosaic(testref_base):
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.mos_mfs_intonly'
-        ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
+        ret = sdintimaging(usedata='int', vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2, dishdia=100.)
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
@@ -796,14 +806,14 @@ class test_mosaic(testref_base):
                    'mask':'papersky_mosaic.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='mtmfs'
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.mos_mfs_sdonly'
-        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
+        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2, dishdia=100.)
         outimg = imname+'.joint.multiterm'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
                                      outimg+'.residual.tt0', outimg+'.image.tt0', 
@@ -834,14 +844,14 @@ class test_mosaic(testref_base):
                    'mask':'papersky_mosaic.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.mos_cube_sdint'
-        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2, dishdia=100.)
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret,imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
@@ -871,7 +881,7 @@ class test_mosaic(testref_base):
                    'mask':'papersky_mosaic.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
@@ -879,7 +889,7 @@ class test_mosaic(testref_base):
         # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.mos_cube_intonly'
-        ret = sdintimaging(usedata='int', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
+        ret = sdintimaging(usedata='int', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2, dishdia=100.)
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'], 
@@ -909,14 +919,14 @@ class test_mosaic(testref_base):
                    'mask':'papersky_mosaic.true.im.masklist'}
         # data specific parameters 
         # imsize, cell, phasecenter, reffreq, nchan, scales 
-        # set to the default values for sdgain (1.0) and dishdia (100.0)
+        # set to the default values for sdgain (1.0)
         #
         # Other secondary non-default parameters: 
         deconvolver='multiscale'
        # iterations may need to be shorten for the final version of test
         self.prepData(inputdata=inputdata)
         imname=self.img+'.mos_cube_sdonly'
-        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2)
+        ret = sdintimaging(usedata='sd', sdimage=self.sdimage, sdpsf=self.sdpsf, vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='cube', gridder='mosaic', nchan=self.nchan, reffreq=self.reffreq, pblimit=self.pblimit,interpolation=self.interpolation, deconvolver=deconvolver, scales=self.scales, niter=self.niter, cycleniter=self.cycleniter, mask=self.mask, pbmask=0.2, dishdia=100.)
         outimg = imname+'.joint.cube'
         report=th.checkall(ret=ret, imgexist=[outimg+'.psf', 
                                      outimg+'.residual', outimg+'.image'],
@@ -927,6 +937,41 @@ class test_mosaic(testref_base):
                                    (outimg+'.image', 33.16, [650,720,0,0]),        # extended emission with alpha=0
                                    (outimg+'.image', 8.244, [700,783,0,1]),    # point source of 1 Jy
                                    (outimg+'.image', 17.129, [650,720,0,1]) ])      # extended emission with alpha=0
+        self.checkfinal(pstr=report)
+
+    #Test 20
+    def test_singleplane_sdint_autopsf_multiterm(self):
+        """ [singleplane] test_singleplane_sdint_autopsf_multiterm """
+        ######################################################################################
+        # Test mosaic imaging for sdint - mfs with a single channel (plane)
+        # main parameters to be tested: specmode='mfs', usedata='sdint', gridder='mosaic'
+        # with the default weighting (='natural')
+        ######################################################################################
+        # inputdata: set of the data to be copied from the data repos or else where during setup. 
+        inputdata={'msname':'papersky_mosaic.ms',
+                   'sdimage':'papersky_mosaic.sdimage',
+                   'sdimage-singleplane':'papersky_mosaic.sdimage.singleplane',
+                   'mask':'papersky_mosaic.true.im.masklist'}
+        # data specific parameters 
+        # imsize, cell, phasecenter, reffreq, nchan, scales 
+        # set to the default values for sdgain (1.0)
+        #
+        # Other secondary non-default parameters: 
+        deconvolver='mtmfs'
+        # iterations may need to be shorten for the final version of test
+        self.prepData(inputdata=inputdata)
+        os.system('rm -rf '+inputdata['sdimage']) # not needed
+        imname=self.img+'.mos_mfs_sdint_singleplane'
+        ret = sdintimaging(usedata='sdint', sdimage=self.sdimage, sdpsf="", vis=self.msfile,imagename=imname,imsize=self.imsize,cell=self.cell,phasecenter=self.phasecenter, specmode='mfs', gridder='mosaic', nchan=1, reffreq=self.reffreq, pblimit=self.pblimit, deconvolver=deconvolver, niter=self.niter, nterms=1, cycleniter=self.cycleniter, mask='circle[[300pix,395pix],90pix]', pbmask=0.2, dishdia=100.)
+
+        outimg = imname+'.joint.multiterm'
+        report=th.checkall(ret=ret, imgexist=[outimg+'.psf.tt0', 
+                                     outimg+'.residual.tt0', outimg+'.image.tt0', 
+                                     outimg+'.sumwt.tt0'], 
+                           imgval=[(outimg+'.image.tt0', 0.806087, [665,693,0,0]),   # extended emission
+                                   (outimg+'.image.tt0', 1.43183, [700,783,0,0]),    # point source 
+                                   (outimg+'.psf.tt0', 0.114760, [764,750,0,0])])    # off-axis value    
+
         self.checkfinal(pstr=report)
 
 
@@ -949,7 +994,7 @@ class test_compare_sdint_tclean(testref_base):
         inputdata={'refmsname':'refim_point.ms'}
         self.prepData(inputdata=inputdata)
         imname1=self.img+'.sdint'
-        ret1 = sdintimaging(vis=self.refmsfile,imagename=imname1, usedata='int', imsize=200, cell='10.0arcsec', nchan=3, spw='0:0~2', pblimit=0.1, interpolation='nearest',specmode='cube',niter=15, cycleniter=5, gridder='mosaic',mosweight=False, deconvolver='multiscale',scales=[0])
+        ret1 = sdintimaging(vis=self.refmsfile,imagename=imname1, usedata='int', imsize=200, cell='10.0arcsec', nchan=3, spw='0:0~2', pblimit=0.1, interpolation='nearest',specmode='cube',niter=15, cycleniter=5, gridder='mosaic',mosweight=False, deconvolver='multiscale',scales=[0], dishdia=100.)
 
         imname2=self.img+'.tclean'
         ret2 = tclean(vis=self.refmsfile,imagename=imname2, imsize=200, cell='10.0arcsec', nchan=3, spw='0:0~2', pblimit=0.1, interpolation='nearest',specmode='cube',niter=15, cycleniter=5, gridder='mosaic',mosweight=False, deconvolver='multiscale',scales=[0])
@@ -977,7 +1022,7 @@ class test_compare_sdint_tclean(testref_base):
         inputdata={'refmsname':'refim_point.ms'}
         self.prepData(inputdata=inputdata)
         imname1=self.img+'.sdint'
-        ret1 = sdintimaging(vis=self.refmsfile,imagename=imname1, usedata='int', imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', start='1.0GHz',width='200.0MHz', interpolation='nearest',specmode='mfs',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',scales=[0])
+        ret1 = sdintimaging(vis=self.refmsfile,imagename=imname1, usedata='int', imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', start='1.0GHz',width='200.0MHz', interpolation='nearest',specmode='mfs',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',scales=[0], dishdia=100.)
 
         imname2=self.img+'.tclean'
         ret2 = tclean(vis=self.refmsfile,imagename=imname2, imsize=200, cell='10.0arcsec', nchan=5, reffreq='1.5GHz', specmode='mfs',niter=10, cycleniter=5, gridder='standard', deconvolver='mtmfs',nterms=2, scales=[0])
@@ -994,5 +1039,7 @@ class test_compare_sdint_tclean(testref_base):
                                    (imname2+'.alpha', -1.06, [100,100,0,0]) ])
         self.checkfinal(pstr=report)
 
+
+        
 if __name__ == '__main__':
     unittest.main() 
