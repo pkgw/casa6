@@ -378,7 +378,7 @@ class ImagingDict():
             stopDescription = 'Reached cyclethreshold'
         # Stopcode 3 : Force Stop is handled by InteractiveClean GUI for now
         # TODO : If this is used to run iteration control for non-interactive clean, implement this
-        elif nmajordone > 2 and np.allclose(peakres_1, peakres_2):
+        elif nmajordone > 2 and np.allclose(peakres1, peakres2):
             stopcode = 4
             stopDescription = 'No change in peak residual across consecutive major cycles'
         elif peakres1 > 3*peakres2:
