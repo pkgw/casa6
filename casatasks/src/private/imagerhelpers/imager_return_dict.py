@@ -169,6 +169,21 @@ class ReturnDictionary():
         return summaryparams
 
 
+    def _validate_mask(self):
+        """
+        Check if maskname is a valid iamge, and if not, set it to an empty string.
+        """
+
+        if os.path.exists(self.maskname) and os.path.isdir(self.maskname):
+            try:
+                ia.open(self.maskname)
+                ia.close()
+            except RuntimeError:
+                self.maskname = ''
+        else:
+            self.maskname = ''
+
+
     def constructSummaryMinor(self, paramList):
         """
         Constructs and populates a nested dictionary containing the summaryMinor()
@@ -194,13 +209,17 @@ class ReturnDictionary():
             self.residname=impars[str(ff)]['imagename']+'.residual.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.residual.tt0')) else impars[str(ff)]['imagename']+'.residual'
             self.modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
 
-            # Set the maskname
+            # Check if mask exists on disk and set it, else leave it blank
             if decpars[str(ff)]['mask'] != '' and os.path.exists(decpars[str(ff)]['mask']):
                 self.maskname = decpars[str(ff)]['mask']
-            elif os.path.exists(impars[str(ff)]['imagename']+'.mask'):
+            elif os.path.exists(impars[str(ff)]['imagename']+'.mask') and os.path.isdir(impars[str(ff)]['imagename']+'.mask'):
                 self.maskname = impars[str(ff)]['imagename']+'.mask'
             else:
                 self.maskname = ''
+
+            # Check that the derived mask name corresponds to a real mask on disk
+            # Note : This only affects the tclean(niter=0) functionality
+            self._validate_mask()
 
             fullsummary = decpars[str(ff)]['fullsummary']
             nstokes, nfreq, stokes_axis, freq_axis = self.imageDimensions()
