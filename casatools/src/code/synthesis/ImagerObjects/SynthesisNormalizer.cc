@@ -325,6 +325,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   }
 
+  void SynthesisNormalizer::divideWeightBySumWt() {
+
+    LogIO os(LogOrigin("SynthesisNormalizer", "divideWeightBySumWt", WHERE));
+    itsImages->divideWeightBySumwt();
+
+  }
+  
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );

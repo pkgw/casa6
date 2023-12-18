@@ -142,7 +142,10 @@ namespace refim{ //namespace for imaging refactor
       virtual void reset();
       virtual casacore::String name() {return casacore::String("SimplePBConvFunc");};
       void setUsePointing(casacore::Bool usepointing){usePointingTable_p=usepointing;};
-      void findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb);
+      static void findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb);
+      /// same as above except return frequencies in a given range ...an empty vector is returned
+      /// if not useful beam frequencies are found
+      static void findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb, const std::pair<double, double>& range);
       //Spply phase gradient to convfuncs 5 dim convfuncs expected X,Y, pol, chan, row
       virtual void rephaseConvFunc(const casacore::ImageInterface<casacore::Complex>& iimage, 
                                  const vi::VisBuffer2& vb,const casacore::Int& convSampling, casacore::Array<casacore::Complex>& convFunc, 

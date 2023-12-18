@@ -1483,12 +1483,12 @@ namespace casa{
     Double nx=Double(inarray.shape()(0));
     Double ny=Double(inarray.shape()(1));
     IPosition shp=inarray.shape();
-    cerr <<  "shp " <<  shp <<  endl;
+    //cerr <<  "shp " <<  shp <<  endl;
     shp(0)=Int(nx*factorX/8.0)*8;
     shp(1)=Int(ny*factorY/8.0)*8;
     Int newNx=shp(0);
     Int newNy=shp(1);
-     cerr << "SHP " << shp << endl;
+    // cerr << "SHP " << shp << endl;
     Array<Complex> out(shp, Complex(0.0));
    
    /*IPosition incursor=IPosition(inarray.shape().nelements(),1);
@@ -1702,11 +1702,11 @@ namespace casa{
     if (newNx == nx && newNy == ny)
        return inarray;
     IPosition shp=inarray.shape();
-    cerr <<  "shp " <<  shp <<  endl;
+    //cerr <<  "shp " <<  shp <<  endl;
     
     shp(0) = newNx;
     shp(1) = newNy;
-     cerr << "SHP " << shp << endl;
+     //cerr << "SHP " << shp << endl;
     Array<Complex> out(shp, Complex(0.0));  
     ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
     ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);

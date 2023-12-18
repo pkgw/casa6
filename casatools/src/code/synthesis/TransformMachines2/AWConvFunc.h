@@ -200,6 +200,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     virtual casacore::CountedPtr<CFTerms> getTerm(const casacore::String& name)
     {if (name=="ATerm") return aTerm_p; else return NULL;}
     
+    virtual bool isWBAWP() {return wbAWP_p;};
+    
     // virtual casacore::Vector<casacore::Vector<casacore::Double> >findPointingOffset(const casacore::ImageInterface<casacore::Complex>& /*image*/,
     // 								  const VisBuffer2& /*vb*/, const casacore::Bool& doPointing);
 
@@ -212,11 +214,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   protected:
     void normalizeAvgPB(casacore::ImageInterface<casacore::Complex>& inImage,
 			casacore::ImageInterface<casacore::Float>& outImage);
-    casacore::Bool makeAverageResponse_org(const VisBuffer2& vb, 
-				 const casacore::ImageInterface<casacore::Complex>& image,
-				 casacore::ImageInterface<casacore::Float>& theavgPB,
-				 casacore::Bool reset=true);
-    void makePBSq(casacore::ImageInterface<casacore::Complex>& inImage);
+    // void makePBSq(casacore::ImageInterface<casacore::Complex>& inImage);
 
     //for now this will support EVLA and VLA defined bands in evla L to Q
     //and VLA L to Q
