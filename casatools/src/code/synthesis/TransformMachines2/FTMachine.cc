@@ -706,7 +706,7 @@ using namespace casa::vi;
         weight.reference(wt);
         interpVisFreq_p.resize();
         interpVisFreq_p=lsrFreq_p;
-
+        //cerr << "INTERPTOGRID " << interpVisFreq_p.nelements() << " vb.nchan  " << vb.nChannels() << endl;
         return false;
       }
 
@@ -1801,8 +1801,16 @@ using namespace casa::vi;
   Bool FTMachine::matchChannel(const vi::VisBuffer2& vb){
     //Int spw=vb.spectralWindows()[0];
     nvischan  = vb.nChannels();
+    
+    romscol_p = new MSColumns(vb.ms());
+    //Try to avoid a bug in visiter2 than once in a while gets nchan more than what is in ms
+    Int nchaninms = romscol_p->spectralWindow().numChan()(vb.spectralWindows()(0));
+    if(nvischan > nchaninms){
+      nvischan = nchaninms;}
+    //////////////////
     chanMap.resize(nvischan);
     chanMap.set(-1);
+
     Vector<Double> lsrFreq(0);
 
       //cerr << "doConve " << spw << "   " << doConversion_p[spw] << " freqframeval " << freqFrameValid_p << endl;
@@ -1816,7 +1824,6 @@ using namespace casa::vi;
     }
     if (spectralCoord_p.frequencySystem(False)==MFrequency::REST && fixMovingSource_p) {
       if(lastMSId_p != vb.msId()){
-	romscol_p=new MSColumns(vb.ms());
 	//if ms changed ...reset ephem table
 	if (upcase(movingDir_p.getRefString()).contains("APP")) {
 	  MeasComet mcomet(Path((romscol_p->field()).ephemPath(vb.fieldId()(0))).absoluteName());
@@ -2541,7 +2548,9 @@ using namespace casa::vi;
           
           LatticeLocker lock1 (*(imstore->weight()), FileLocker::Write);
 	  getWeightImage( *(imstore->weight())  , sumWeights);
-          imstore->weight()->unlock();
+    imstore->weight()->unlock();
+    //cerr << "FTMachine getweight " << max(imstore->weight()->get()) << endl;
+    
 
 	  // Fill weight image only once, during PSF generation. Remember.... it is normalized only once
 	  // during PSF generation.

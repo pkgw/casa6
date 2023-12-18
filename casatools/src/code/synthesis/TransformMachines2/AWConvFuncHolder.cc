@@ -30,11 +30,13 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Vector.h>
+#include <casacore/measures/Measures/MeasTable.h>
 #include <msvis/MSVis/VisBuffer2.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/EVLAAperture.h>
 #include <synthesis/TransformMachines2/AWConvFuncHolder.h>
+#include <iomanip>
 
 namespace casa {  //# CASA namespace
 namespace refim { //# namespace refactor imaging
@@ -386,7 +388,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   // A little dab will d'ya
   
 }
-  }//# namespace refim ends
+} // # namespace refim ends
 }//namespace CASA ends
 
   

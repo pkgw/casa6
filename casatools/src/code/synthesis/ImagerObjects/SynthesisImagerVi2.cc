@@ -1,5 +1,5 @@
 //# SynthesisImagerVi2.cc: Implementation of SynthesisImager.h
-//# Copyright (C) 1997-2019
+//# Copyright (C) 1997-2021
 //# Associated Universities, Inc. Washington DC, USA.
 //# This library is free software; you can redistribute it and/or modify it
 //# under the terms of the GNU General Public License as published by
@@ -99,6 +99,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iomanip>
+
+#include <chrono>
 #include <thread>
 #include <synthesis/Parallel/Applicator.h>
 
@@ -154,8 +156,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      
 	      String mes=x.getMesg();
 	      if(mes.contains("FilebufIO::readBlock") || mes.contains("SOURCE")){
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
 	      }
 	      else
 		throw(AipsError("Error in selectdata: "+mes));
@@ -655,7 +657,9 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	os << "Set Gridding options for [" << impars_p.imageName << "] with ftmachine : " << gridpars.ftmachine << LogIO::POST;
 
 	itsVpTable=gridpars.vpTable;
-	
+
+	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
+                     (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
 
 	//cerr << "DEFINEimage " << impars_p.toRecord() << endl; 				 
 					 
@@ -704,6 +708,7 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	 //  setCubeGridding(False);
     itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
                      (gridparsVec_p[0].ftmachine.at(0,3)=="awp") )?False:True;
+
     return true;
   }
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
@@ -1790,7 +1795,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
                 assigned = casa::applicator.nextAvailProcess ( cmc, rank );
 
             }
-
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
             ///send process info
             // put data sel params #1
             applicator.put ( vecSelParsRec );
@@ -3205,6 +3210,11 @@ void SynthesisImagerVi2::unlockMSs()
 
       ///This will initialize weight grid too.
       itsMappers.initializeGrid(*vi_p,True);
+      //These 2 lines are for AWProj ftmachines
+      itsMappers.getFTM2(0)->setPBReady(false);
+      itsMappers.getFTM2(0)->setFTMType(casa::refim::FTMachine::WEIGHT);
+
+
       for (vi_p->originChunks(); vi_p->moreChunks();vi_p->nextChunk())
     	{
           
@@ -3237,7 +3247,7 @@ void SynthesisImagerVi2::unlockMSs()
       if(donesumwt){
         IPosition shp=itsMappers.imageStore(0)->weight()->shape();
         CoordinateSystem cs=itsMappers.imageStore(0)->weight()->coordinates();
-        CountedPtr<TempImage<Float> > wgtim=new TempImage<Float>(shp, cs);
+        CountedPtr<ImageInterface<Float> > wgtim=new TempImage<Float>(shp, cs);
         wgtim->copyData(*(itsMappers.imageStore(0)->weight()));
         (static_cast<refim::FTMachine &>( *(itsMappers.getFTM2(0,False)))).setWeightImage(*wgtim);
         static_cast<refim::FTMachine &>( *(itsMappers.getFTM2(0,True))).setWeightImage(*wgtim);
