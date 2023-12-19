@@ -9,53 +9,33 @@
                 <param type="path" name="vis"
 		       mustexist="true">
 		  <shortdescription>Name of input MeasurementSet</shortdescription>
-		  <description>Name of input MS from which gaincal 
-		  caltable in tablein originated.  Used to extract 
-		  geometry information not available in the tablein caltable.</description>
+		  <description>Name of input MS from which gaincal caltable in tablein originated.  Used to extract geometry information not available in the tablein caltable.</description>
                   <value/>
                 </param>
 
                 <param type="path" name="tablein" mustexist="true">
 		  <shortdescription>Input gain calibration table</shortdescription>
-		  <description>Input gain calibration table
-		  corresponding to MS specified in vis.</description>
+		  <description>Input gain calibration table corresponding to MS specified in vis.</description>
                   <value/>
                 </param>
 
                 <param type="string"
 		       name="caltable">
-		  <shortdescription>Optional output caltable (for
-		  polarization-corrected gains if specified)</shortdescription>
-		  <description>Optional output calibration table which
-		  will contain source polarization-corrected gains, if
-		  specified</description>
+		  <shortdescription>Optional output caltable (for polarization-corrected gains if specified)</shortdescription>
+		  <description>Optional output calibration table which will contain source polarization-corrected gains, if specified</description>
                   <value/>
                 </param>
 
                 <param type="double" name="paoffset">
-		  <shortdescription>Manual position angle offset</shortdescription>
-		  <description>Manual position angle offset; added to
-		  RECEPTOR_ANGLE value stored in the MS.  Use with
-		  care, since downstream calibration operation using
-		  polfromgain results will change according to this
-		  position angle offset.</description>
+		  <shortdescription>Manual feed position angle offset (clockwise, in deg)</shortdescription>
+		  <description>Manual position angle offset (clockwise, in deg); added to value stored in the MS FEED subtable.  Use with care, since downstream calibration operation using polfromgain results will change according to this position angle offset.</description>
                   <value>0.0</value>
                 </param>
 
                 <param type="double"
 		       name="minpacov">
-		  <shortdescription>Minimum parallactic angle coverage
-		  (deg) required for Q,U estimation</shortdescription>
-		  <description>Minimum parallactic angle coverage
-		  (deg) required for Q,U estimation. Reliable Q,U
-		  estimation depends on adequate parallactic angle
-		  coverage, and this parameter enforces a minimum
-		  allowable range of parallactic angle (per antenna)
-		  for unflagged gain solutions before the Q,U
-		  esimation is attempted.  (If caltable is specified,
-		  gains for antennas failing the minpacov criteria
-		  will be corrected by the per-spw average of Q,U
-		  estimates from good antennas.)</description>
+		  <shortdescription>Minimum parallactic angle coverage (deg) required for Q,U estimation</shortdescription>
+		  <description>Minimum parallactic angle coverage (deg) required for Q,U estimation. Reliable Q,U estimation depends on adequate parallactic angle coverage, and this parameter enforces a minimum allowable range of parallactic angle (per antenna) for unflagged gain solutions before the Q,U esimation is attempted.  (If caltable is specified, gains for antennas failing the minpacov criteria will be corrected by the per-spw average of Q,U estimates from good antennas.)</description>
                   <value>30.0</value>
                 </param>
 
