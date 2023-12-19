@@ -47,7 +47,7 @@ import numpy as np
 #refcal = casatools.ctsys.resolve('unittest/polfromgain/polfromgainCalCompare.cal')
 
 # The following should be mad a soft link within unittest/polfromgain:
-datapath = casatools.ctsys.resolve('unittest/polfromgain/../../measurementset/alma/polcal_LINEAR_BASIS.ms/')
+datapath = casatools.ctsys.resolve('unittest/polfromgain/polcal_LINEAR_BASIS.ms/')
 
 datacopy = 'polfromgaintest.ms'
 caltab = 'polfromgaintest.G'
