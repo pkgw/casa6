@@ -43,7 +43,7 @@
         Keyword arguments:
         vis -- Name of input visibility file
                 default: none; 
-        tablein -- Input calibration table (G or T)
+        tablein -- Input calibration table (caltype='G')
                 default: none; 
         caltable -- Output calibration table
                 default: ''  (no new table)
@@ -51,6 +51,9 @@
         paoffset -- Manual position angle offset
               default: 0.0  (no extra offset)
               example: paoffset=10.0  (10 degree offset)
+	minpacov -- Minimimu parallactic angle (deg) required for a
+              solution (per antenna
+	      default: 30
 
  </example>
  </task>

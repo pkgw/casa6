@@ -97,6 +97,9 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                 q=mypl.zeros(nant)
                 u=mypl.zeros(nant)
                 antok=mypl.zeros(nant,dtype=bool)
+                parangbyant={}  # we will remember parang outside main iant loop (for rempol on bad ants)
+                
+                casalog.post('Fld='+fldnames[ifld]+' Spw='+str(ispw)+':')
 
                 for iant in range(nant):
                     qstring='FIELD_ID=='+str(ifld)+' && SPECTRAL_WINDOW_ID=='+str(ispw)+' && ANTENNA1=='+str(iant)
@@ -108,13 +111,6 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                         gains=st.getcol('CPARAM')
                         flags=st.getcol('FLAG')
                         flags=mypl.logical_or(flags[0,0,:],flags[1,0,:])  # 1D
-
-                        # Escape if insufficient data
-                        if (nrows-mypl.sum(flags))<3:
-                            antok[iant]=False
-                            st.close()
-                            continue
-
 
                         # parang
                         parang=mypl.zeros(len(times))
@@ -142,12 +138,27 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                         parang+=rang[iant,ispw]
                         parang+=(paoffset*pi/180.)       # manual feed pa offset
 
+                        # save parang values for this antenna
+                        parangbyant[iant]=parang
+
+                        # Escape if insufficient samples
+                        nsamp=nrows-mypl.sum(flags)
+                        if (nsamp<3):
+                            antok[iant]=False
+                            casalog.post('  Ant='+str(iant)+' has insuffiencient sampling: nsamp='+
+                                         str(nsamp)+' < 3')
+                            st.close()
+                            continue
+
                         # Check parang coverage
                         dparang=abs(parang[~flags].max()-parang[~flags].min())  # rad
                         if dparang<minpacovR:
                             antok[iant]=False
-                            casalog.post('Fld='+fldnames[ifld]+' Spw='+str(ispw)+' Ant='+str(iant)+' has insuffiencient parallactic angle coverage: '+str(dparang*180/pi)+' < '+str(minpacov),'WARN')
+                            casalog.post('  Ant='+str(iant)+' has insuffiencient parang cov: '+
+                                         str(round(dparang*180/pi,2))+' < '+str(minpacov)+'deg')
                             continue
+
+
 
                         # indep var matrix
                         A=mypl.ones((nrows,3))
@@ -163,16 +174,24 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                 
                         fit=mypl.lstsq(A,gratio2,rcond=None)
 
-                        r[iant]=fit[0][0]
-                        q[iant]=fit[0][1]/r[iant]/2.0
-                        u[iant]=fit[0][2]/r[iant]/2.0
-                        p=sqrt(q[iant]**2+u[iant]**2)
-                        x=0.5*atan2(u[iant],q[iant])*180/pi
-                    
+                        r2=fit[0][0]
+                        if r2<0.0:
+                            casalog.post('  Ant='+str(iant)+' yielded an unphysical solution; skipping.')
+                            continue
+
+                        # Reaching here, we have a nominally good solution
                         antok[iant]=True;
 
-                        # casalog.post('Fld='+fldnames[ifld],'Spw='+str(ispw),'Ant='+str(iant), '(PA offset='+str(rang[iant,ispw]*180/pi+paoffset)+'deg)','Gx/Gy='+str(r[iant]),'q='+str(q[iant]),'u='+str(u[iant]),'p='+str(p),'x='+str(x))
-                        casalog.post('Fld='+fldnames[ifld]+' Spw='+str(ispw)+' Ant='+str(iant)+' (PA offset='+str(rang[iant,ispw]*180/pi+paoffset)+'deg)'+' q='+str(q[iant])+' u='+str(u[iant])+' p='+str(p)+' x='+str(x)+' Gx/Gy='+str(sqrt(r[iant])))
+                        q[iant]=fit[0][1]/r2/2.0
+                        u[iant]=fit[0][2]/r2/2.0
+                        p=sqrt(q[iant]**2+u[iant]**2)
+                        x=0.5*atan2(u[iant],q[iant])*180/pi
+
+                        casalog.post('  Ant='+str(iant)+
+                                     ' (PA offset='+str(round(rang[iant,ispw]*180/pi+paoffset,2))+'deg)'+
+                                     ' q='+str(round(q[iant],4))+' u='+str(round(u[iant],4))+' p='+str(round(p,4))+' x='+str(round(x,3))+
+                                     ' Gx/Gy='+str(round(sqrt(r2),4))+
+                                     ' (parang cov='+str(round(dparang*180/pi,1))+'deg; nsamp='+str(nsamp))
 
                         if rempol:
                             if p<1.0:
@@ -183,11 +202,13 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                             else:
                                 st.close()
                                 raise RuntimeError('Spurious fractional polarization!')
-
                     st.close()
 
                 nantok=mypl.sum(antok)
-                if nantok>0:
+                if nantok==0:
+                    casalog.post('Found no good polarization solutions for Fld='+fldnames[ifld]+' Spw='+str(ispw),'WARN')
+                    mask[ispw,ifld]=False
+                else:
                     Q[ispw,ifld]=mypl.sum(q)/nantok
                     U[ispw,ifld]=mypl.sum(u)/nantok
                     R[ispw,ifld]=mypl.sum(r)/nantok
@@ -196,14 +217,31 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                     P=sqrt(Q[ispw,ifld]**2+U[ispw,ifld]**2)
                     X=0.5*atan2(U[ispw,ifld],Q[ispw,ifld])*180/pi
 
-                #casalog.post... 'Fld='+fldnames[ifld],'Spw='+str(ispw),'Ant=*', '(PA offset='+str(rang[iant,ispw]*180/pi+paoffset)+'deg)','Gx/Gy='+str(R[ispw,ifld]),'Q='+str(Q[ispw,ifld]),'U='+str(U[ispw,ifld]),'P='+str(P),'X='+str(X)
-
-                    casalog.post('Fld='+fldnames[ifld]+' Spw='+str(ispw)+' Ant=*'+' (PA offset='+str(rang[iant,ispw]*180/pi+paoffset)+'deg)'+' Q='+str(Q[ispw,ifld])+' U='+str(U[ispw,ifld])+' P='+str(P)+' X='+str(X))
+                    casalog.post('  Ant=<*>  '+
+                                 ' Q='+str(round(Q[ispw,ifld],4))+
+                                 ' U='+str(round(U[ispw,ifld],4))+
+                                 ' P='+str(round(P,4))+' X='+str(round(X,3)))
 
                     IQUV[fldnames[ifld]]['Spw'+str(ispw)]=[1.0,Q[ispw,ifld],U[ispw,ifld],0.0]
 
-                else:
-                    mask[ispw,ifld]=False
+                    # if required, remove ant-averaged polarization from non-ok antennas (if any)
+                    if rempol and nantok<nant:
+                        badantlist=[i for i in range(nant) if not antok[i]]
+                        casalog.post('  (Correcting undersampled antennas ('+str(badantlist)+
+                                     ') with <*> solution.)')                                    
+                        for iant in badantlist:
+                            if iant in parangbyant.keys():
+                                qstring='FIELD_ID=='+str(ifld)+' && SPECTRAL_WINDOW_ID=='+str(ispw)+' && ANTENNA1=='+str(iant)
+                                st=mytb.query(query=qstring)
+                                if st.nrows()>0 and P<1.0:
+                                    gains=st.getcol('CPARAM')
+                                    parang=parangbyant[iant]
+                                    Qpsi=Q[ispw,ifld]*mypl.cos(2*parang) + U[ispw,ifld]*mypl.sin(2*parang)
+                                    gains[0,0,:]/=mypl.sqrt(1.0+Qpsi)
+                                    gains[1,0,:]/=mypl.sqrt(1.0-Qpsi)
+                                    st.putcol('CPARAM',gains)
+                                st.close()
+
 
             if sum(mask[:,ifld])>0:
                 casalog.post('For field='+fldnames[ifld]+' there are '+str(sum(mask[:,ifld]))+' good spws.')
@@ -214,14 +252,16 @@ def polfromgain(vis,tablein,caltable,paoffset,minpacov):
                 Ue=mypl.std(U[mask[:,ifld],ifld])
                 Pm=sqrt(Qm**2+Um**2)
                 Xm=0.5*atan2(Um,Qm)*180/pi
-                casalog.post('Spw mean: Fld='+fldnames[ifld]+' Q='+str(Qm)+' U='+str(Um)+' P='+str(Pm)+' X='+str(Xm))
-                
+                casalog.post('Spw mean: Fld='+fldnames[ifld]+' Q='+str(round(Qm,4))+' U='+str(round(Um,4))+' P='+str(round(Pm,4))+' X='+str(round(Xm,3)))
+            else:
+                casalog.post('Found no good polarization solutions for Fld='+fldnames[ifld]+' in any spw.','WARN')
+
         mytb.close()
-        mymd.close()
 
         casalog.post("NB: Returning dictionary containing fractional Stokes results.")
         return IQUV
 
     finally:
-        mytb.close()
         mymd.close()
+        myme.done()
+        
