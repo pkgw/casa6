@@ -247,7 +247,7 @@ class ImagingDict():
                 merge_dict[key] = val
             # Copy all the iteration control keys from deconvolve
             elif key in ['iterdone', 'cycleiterdone', 'cycleniter', 'cyclethreshold',
-                         'maxpsffraction', 'maxpsfsidelobe', 'minpsffraction', 'nsigma']:
+                         'maxpsffraction', 'maxpsfsidelobe', 'minpsffraction', 'nsigma', 'threshold']:
                 merge_dict[key] = val
 
         return merge_dict
