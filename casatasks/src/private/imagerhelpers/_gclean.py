@@ -137,16 +137,16 @@ class gclean:
                 self._nmajor = int(msg['nmajor'])
             except ValueError:
                 pass
-        if 'niterleft' in msg:
-            try:
-                self._niterleft = int(msg['niterleft'])
-            except ValueError:
-                pass
-        if 'nmajorleft' in msg:
-            try:
-                self._nmajorleft = int(msg['nmajorleft'])
-            except ValueError:
-                pass
+        #if 'niterleft' in msg:
+        #    try:
+        #        self._niter = int(msg['niterleft'])
+        #    except ValueError:
+        #        pass
+        #if 'nmajorleft' in msg:
+        #    try:
+        #        self._nmajor = int(msg['nmajorleft'])
+        #    except ValueError:
+        #        pass
 
         if 'threshold' in msg:
             self._threshold = msg['threshold']
@@ -175,7 +175,7 @@ class gclean:
                   smallscalebias=0.0, niter=0, threshold='0.1Jy', nsigma=0.0, cycleniter=-1, nmajor=1, cyclefactor=1.0, minpsffraction=0.05, maxpsffraction=0.8,
                   scales=[], restoringbeam='', pbcor=False, nterms=int(2), weighting='natural', robust=float(0.5), npixels=0, gain=float(0.1),
                   sidelobethreshold=3.0, noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, dogrowprune=True,
-                  minpercentchange=-1.0, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False, nmajorleft=-1, niterleft=-1,
+                  minpercentchange=-1.0, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False,
                   history_filter=lambda index, arg, history_value: history_value ):
         self._vis = vis
         self._imagename = imagename
@@ -246,8 +246,6 @@ class gclean:
         self._savemodel = savemodel
         self._parallel = parallel
         self._usemask = usemask
-        self._nmajorleft = nmajor   ### Set to input pars. These get updated and user-edited later
-        self._niterleft = niter  ### Set to input pars. These get updated and user-edited later
 
         ###
         ### 'self._mask' always contains the mask as supplied by the user while 'self._effective_mask' is
@@ -337,8 +335,9 @@ class gclean:
                     # Replace iterDone with iterations
                     if key == 'iterDone':
                         # Maintain cumulative sum of iterations per entry
-                        #outrec[nn][ss]['iterations'] = np.cumsum(self.global_imdict.get_key(key, stokes=ss, chan=nn))
-                        outrec[nn][ss]['iterations'] =  self.global_imdict.get_key(key, stokes=ss, chan=nn)
+                        outrec[nn][ss]['iterations'] = np.cumsum(self.global_imdict.get_key(key, stokes=ss, chan=nn))
+                        # Replace iterDone with iterations
+                        #outrec[nn][ss]['iterations'] =  self.global_imdict.get_key(key, stokes=ss, chan=nn)
                     else:
                         outrec[nn][ss][key] = self.global_imdict.get_key(key, stokes=ss, chan=nn)
 
@@ -365,8 +364,8 @@ class gclean:
             self._convergence_result = ( f'nothing to run, niter == {self._niter}',
                                          self._convergence_result[1],
                                          self._major_done,
-                                         self._nmajorleft,
-                                         self._niterleft,
+                                         self._nmajor,
+                                         self._niter,
                                          self._convergence_result[3] )
             return self._convergence_result
         else:
@@ -403,9 +402,9 @@ class gclean:
                 # TODO : Add a standalone module to calculate the max PSF sidelobe.
                 # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
 
-                ## Initial call where niterleft and nmajorleft are same as original input values. 
-                self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niterleft, self.current_imdict.get_key('threshold'), self._nmajorleft)
-                
+                ## Initial call where niterleft and nmajorleft are same as original input values.
+                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
+
                 self.current_imdict.returndict['stopcode'] = self.hasit
                 self.current_imdict.returndict['stopDescription'] = self.stopdescription
                 self._major_done = 0
@@ -415,8 +414,8 @@ class gclean:
                 #self.stopdescription = ''
                 self.current_imdict.returndict['iterdone'] = 0.
 
-                ### Check before doing the next round.... 
-                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niterleft, self.global_imdict.get_key('threshold'), self._nmajorleft)
+                ### Check before doing the next round....
+                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
 
                 #self.global_imdict.returndict['stopcode'] = self.hasit
                 #self.global_imdict.returndict['stopDescription'] = self.stopdescription
@@ -425,8 +424,7 @@ class gclean:
                 #self.current_imdict.returndict['stopDescription'] = self.stopdescription
 
                 if self.hasit ==0 :
-                
-                    use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niterleft, self._threshold, self._cycleniter)
+                    use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niter, self._threshold, self._cycleniter)
 
                     # Run the minor cycle
                     deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
@@ -448,14 +446,16 @@ class gclean:
                                            scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
                                            weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False,
                                            niter=0, restart=True, calcpsf=False, calcres=True, restoration=False, threshold=self._threshold,
-                                           nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=self._nmajor, gain=self._gain,
+                                           nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=1, gain=self._gain,
                                            sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
                                            lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
                                            minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
                                            minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
                                            minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
 
+
                     # Replace return dict with new return dict
+                    # The order of the dicts into merge is important.
                     self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
                     # Append new return dict to global return dict
                     self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
@@ -465,9 +465,12 @@ class gclean:
                     self.__decrement_counts()
 
                     # Use global imdict for convergence check
-                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niterleft, self.global_imdict.get_key('threshold'), self._nmajorleft)
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
 
-               
+                    print("final hasconverged")
+                    print(self.hasit, self.stopdescription)
+
+
                 self.global_imdict.returndict['stopcode'] = self.hasit
                 self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
@@ -481,8 +484,8 @@ class gclean:
                 self._convergence_result = ( self.global_imdict.returndict['stopDescription'] if 'stopDescription' in self.global_imdict.returndict else '',
                                              self.global_imdict.returndict['stopcode'] if 'stopcode' in self.global_imdict.returndict else 0,
                                              self._major_done,
-                                             self._nmajorleft,
-                                             self._niterleft,
+                                             self._nmajor,
+                                             self._niter,
                                              self.__add_per_major_items( self.global_imdict.returndict,
                                                                          self._convergence_result[5]['major'],
                                                                          self.__update_convergence()))
@@ -490,8 +493,8 @@ class gclean:
                 self._convergence_result = ( f'tclean returned an empty result',
                                              self._convergence_result[1],
                                              self._major_done,
-                                             self._nmajorleft,
-                                             self._niterleft,
+                                             self._nmajor,
+                                             self._niter,
                                              self._convergence_result[5] )
 
             return self._convergence_result
@@ -499,13 +502,13 @@ class gclean:
     def __decrement_counts( self ):
         ## Update niterleft and nmajorleft now.
         if self.hasit == 0:  ##If not yet converged.
-            if self._nmajorleft != -1:   ## If -1, don't touch it.  
-                self._nmajorleft = self._nmajorleft - 1
-            self._niterleft = self._niterleft - self.current_imdict.get_key('iterdone')
+            if self._nmajor != -1:   ## If -1, don't touch it.
+                self._nmajor = self._nmajor - 1
+            self._niter = self._niter - self.current_imdict.get_key('iterdone')
         else:
             return  ##If convergence has been reached, don't try to decrement further.
 
-        
+
     def __reflect_stop( self ):
         ## if python wasn't hacky, you would be able to try/except/raise in lambda
         time.sleep(1)
@@ -544,8 +547,8 @@ class gclean:
         self._convergence_result = ( None,
                                      self._convergence_result[1],
                                      self._major_done,
-                                     self._nmajorleft,
-                                     self._niterleft,
+                                     self._nmajor,
+                                     self._niter,
                                      self._convergence_result[5] )
 
     def restore(self):
