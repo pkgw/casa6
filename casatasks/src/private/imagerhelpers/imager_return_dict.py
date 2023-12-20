@@ -370,6 +370,9 @@ class ImagingDict():
         peakres_list = [self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajordone)]
         min_peakres = np.amin(peakres_list)
 
+        nmajorleft = nmajor - nmajordone
+        niterleft = niter - self.returndict['iterdone']
+
         if self.returndict['iterdone'] >= niter:
             stopcode = 1
             stopDescription = 'Reached the iteration limit'
@@ -390,12 +393,12 @@ class ImagingDict():
         elif self.check_masksum() == 0:
             stopcode = 7
             stopDescription = 'Zero mask'
-        elif (nmajor != -1 and self.returndict['nmajordone'] >= nmajor):
-            stopcode = 9
-            stopDescription = 'Reached the major cycle limit (nmajor)'
+        #elif (nmajor != -1 and self.returndict['nmajordone'] >= nmajor):
+        #    stopcode = 9
+        #    stopDescription = 'Reached the major cycle limit (nmajor)'
 
 
-        return stopcode, stopDescription
+        return nmajorleft, niterleft, stopcode, stopDescription
 
 
 

@@ -31,6 +31,7 @@ from functools import reduce
 import copy
 import numpy as np
 import shutil
+import time
 import subprocess
 
 from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
@@ -158,7 +159,7 @@ class gclean:
                   smallscalebias=0.0, niter=0, threshold='0.1Jy', nsigma=0.0, cycleniter=-1, nmajor=1, cyclefactor=1.0, minpsffraction=0.05, maxpsffraction=0.8,
                   scales=[], restoringbeam='', pbcor=False, nterms=int(2), weighting='natural', robust=float(0.5), npixels=0, gain=float(0.1),
                   sidelobethreshold=3.0, noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, dogrowprune=True,
-                  minpercentchange=-1.0, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False,
+                  minpercentchange=-1.0, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False, nmajorleft=-1, niterleft=-1,
                   history_filter=lambda index, arg, history_value: history_value ):
         self._vis = vis
         self._imagename = imagename
@@ -229,6 +230,8 @@ class gclean:
         self._savemodel = savemodel
         self._parallel = parallel
         self._usemask = usemask
+        self._nmajorleft = nmajorleft
+        self._niterleft = niterleft
 
         ###
         ### 'self._mask' always contains the mask as supplied by the user while 'self._effective_mask' is
@@ -242,67 +245,19 @@ class gclean:
         self._major_done = 0
         self.hasit = False # Convergence flag
         self.stopdescription = '' # Convergence flag
-        self._convergence_result = (None,None,None,{ 'chan': None, 'major': None })
+        self._convergence_result = (None,None,None,None,None,{ 'chan': None, 'major': None })
         #                           ^^^^ ^^^^ ^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->>> convergence info
-        #                              |    | |
-        #                              |    | +---------------->>> major cycles done for current run
+        #                              |    | |     |    +----->>> Number of global iterations remaining for current run (niterleft)
+        #                              |    | |     +---------->>> Number of major cycles remaining for current run (nmajorleft)
+        #                              |    | +---------------->>> major cycles done for current run (nmajordone)
         #                              |    +------------------>>> tclean stopcode
-        #                              +----------------------->>> error message
+        #                              +----------------------->>> tclean stopdescription
 
+        # Convert threshold from string to float, interpreting units.
+        # XXX : We should ideally use quantities, but we are trying to
+        # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
 
-    @staticmethod
-    def __filter_convergence( raw ):
-        ###
-        ### this function filters out the pieces of the `raw` tclean 'summaryminor'
-        ### return dictionary that we care about
-        ###
-        ### the first index in the `raw` dictionary is the channel axis
-        ### each channel may have a number of polarity dictionaries
-        ###
-        keep_keys = [ 'modelFlux', 'iterDone', 'peakRes', 'stopCode', 'cycleThresh' ]
-        ret = {}
-
-        nfield = raw.nfield
-        nchan = raw.nchan
-        nstokes = raw.nstokes
-
-        # Only assume single field for now - don't iterate over field
-        for chan in range(nchan):
-            ret[chan] = {}
-            for stokes in range(nstokes):
-                ret[chan][stokes] = {}
-                for key in keep_keys:
-                    ret[chan][stokes][key] = raw.get_key(key, 0, chan, stokes)
-
-        return ret
-
-
-    #@staticmethod
-    #def __filter_convergence( raw ):
-    #    ###
-    #    ### this function filters out the pieces of the `raw` tclean 'summaryminor'
-    #    ### return dictionary that we care about
-    #    ###
-    #    ### the first index in the `raw` dictionary is the channel axis
-    #    ### each channel may have a number of polarity dictionaries
-    #    ###
-    #    keep_keys = [ 'modelFlux', 'iterDone', 'peakRes', 'stopCode', 'cycleThresh' ]
-    #    ret = {}
-
-    #    nfield = raw.nfield
-    #    nchan = raw.nchan
-    #    nstokes = raw.nstokes
-
-    #    # Only assume single field for now - don't iterate over field
-    #    for chan in range(nchan):
-    #        ret[chan] = {}
-    #        for stokes in range(nstokes):
-    #            ret[chan][stokes] = {}
-    #            for key in keep_keys:
-    #                ret[chan][stokes][key] = raw.get_key(key, 0, chan, stokes)
-
-    #    return ret
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
         '''Add meta-data about the whole major cycle, including 'cyclethreshold'
@@ -342,11 +297,8 @@ class gclean:
 
 
     def __update_convergence(self):
-        """Accumulates the per-channel/stokes subimage 'summaryminor' records from new_sm to cumm_sm.
-        param cumm_sm: cummulative summary minor records : { chan: { stoke: { key: [values] } } }
-        param new_sm: new summary minor records : { chan: { stoke: { key: [values] } } }
-
-        For most "keys", the resultant "values" will be a list, one value per minor cycle.
+        """
+        Accumulates the per-channel/stokes summaryminor keys across all major cycle calls so far.
 
         The "iterDone" key will be replaced with "iterations", and for the "iterations" key,
         the value in the returned cummulative record will be a rolling sum of iterations done
@@ -375,6 +327,7 @@ class gclean:
 
         return outrec
 
+
     def __next__( self ):
         """ Runs tclean and returns the (stopcode, convergence result) when executed with the python builtin next() function.
 
@@ -395,6 +348,8 @@ class gclean:
             self._convergence_result = ( f'nothing to run, niter == {self._niter}',
                                          self._convergence_result[1],
                                          self._major_done,
+                                         self._nmajorleft,
+                                         self._niterleft,
                                          self._convergence_result[3] )
             return self._convergence_result
         else:
@@ -431,7 +386,8 @@ class gclean:
                 # TODO : Add a standalone module to calculate the max PSF sidelobe.
                 # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
 
-                self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
+                self._nmajorleft, self._niterleft, self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
+
                 self.current_imdict.returndict['stopcode'] = self.hasit
                 self.current_imdict.returndict['stopDescription'] = self.stopdescription
                 self._major_done = 0
@@ -484,34 +440,42 @@ class gclean:
                 self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
                 self._major_done = self.current_imdict.returndict['nmajordone']
 
-                # Use current imdict for convergence check, not global imdict
-                self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
+                # Use global imdict for convergence check
+                self._nmajorleft, self._niterleft, self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
                 self.global_imdict.returndict['stopcode'] = self.hasit
                 self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
                 if not self.hasit:
                     # If we haven't converged, run deconvolve to update the mask
                     self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
+                else:
+                    self._finalized = True
+                    raise StopIteration
 
             if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
                 # self.current_imdict only contains the latest tclean/deconvolve results
                 # Passing in self.global_imdict will pull out the cumulative results everytime, breaking the convergence plot.
-                new_summaryminor_rec = gclean.__filter_convergence(self.current_imdict)
-                self._convergence_result = ( None,
+                self._convergence_result = ( self.global_imdict.returndict['stopDescription'] if 'stopDescription' in self.global_imdict.returndict else '',
                                              self.global_imdict.returndict['stopcode'] if 'stopcode' in self.global_imdict.returndict else 0,
                                              self._major_done,
+                                             self._nmajorleft,
+                                             self._niterleft,
                                              self.__add_per_major_items( self.global_imdict.returndict,
-                                                                         self._convergence_result[3]['major'],
+                                                                         self._convergence_result[5]['major'],
                                                                          self.__update_convergence()))
             else:
                 self._convergence_result = ( f'tclean returned an empty result',
                                              self._convergence_result[1],
                                              self._major_done,
-                                             self._convergence_result[3] )
+                                             self._nmajorleft,
+                                             self._niterleft,
+                                             self._convergence_result[5] )
+
             return self._convergence_result
 
     def __reflect_stop( self ):
         ## if python wasn't hacky, you would be able to try/except/raise in lambda
+        time.sleep(1)
         try:
             return self.__next__( )
         except StopIteration:
@@ -547,7 +511,9 @@ class gclean:
         self._convergence_result = ( None,
                                      self._convergence_result[1],
                                      self._major_done,
-                                     self._convergence_result[3] )
+                                     self._nmajorleft,
+                                     self._niterleft,
+                                     self._convergence_result[5] )
 
     def restore(self):
         """ Restores the final image, and returns a path to the restored image. """
