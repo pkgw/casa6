@@ -127,7 +127,6 @@ from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 from casatasks import impbcor, split, concat
 
 
-
 from casatestutils.imagerhelpers import TestHelpers
 
 
@@ -489,6 +488,30 @@ class test_onefield(testref_base):
           self.delData(ms1)
           self.delData(ms2)
           self.assertTrue(self.check_final(pstr=report))
+
+     def test_onefield_twoMS_weightSpectrum(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column and one without the weight spectrum column  (CAS-11876 bug fix) """
+          ms1 = 'refim_point_onespw0_withWtSpec.ms'
+          ms2 = 'refim_point_onespw1_noWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
+     def test_onefield_twoMS_weightSpectrum2(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
+          ms2 = 'refim_point_onespw1_withWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
 
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Erratic in parallel")
      def test_onefield_briggsabs(self):
@@ -3671,6 +3694,57 @@ class test_mask(testref_base):
           report+=checkwarning
           print('report=',report)
           self.assertTrue(self.check_final(report))
+
+
+     def test_mask_preserve_input_zero_mask(self):
+          """
+          Test the fix for CAS-14203; If a user explicitly provides a
+          zero-filled input mask, it should be respected and not flipped.
+          """
+
+          self.prepData('refim_twochan.ms')
+          os.system('rm -rf '+self.img+'.*')
+          casalog.setlogfile(self.img+'.log')
+
+          ## Make initial residual and psf. No mask
+          tclean(vis=self.msfile,
+                    imsize=100,
+                    cell='10.0arcsec',
+                    imagename=self.img,
+                    specmode='mfs',
+                    deconvolver='hogbom',
+                    niter=1,
+                    gain=1e-6,
+                    restoration=False,
+                    calcres=True,
+                    calcpsf=True)
+
+          init_sum = self.th.check_mask(self.img + '.mask')
+          # Fill up with zeros
+          self.th.fill_mask(self.img+'.mask', 0.0)
+
+          if os.path.exists("new_mask.mask"):
+               os.system('rm -rf new_mask.mask')
+
+          os.rename(self.img+'.mask', 'new_mask.mask')
+
+          # Wipe images on disk
+          os.system('rm -rf '+self.img+'.*')
+
+          ret1 = tclean(vis=self.msfile,
+               imsize=100,
+               cell='10.0arcsec',
+               imagename=self.img,
+               specmode='mfs',
+               deconvolver='hogbom',
+               usemask = 'user',
+               mask='new_mask.mask',
+               niter=10)
+
+          final_sum = self.th.check_mask(self.img + '.mask')
+
+          self.assertTrue((init_sum == 10000) and (final_sum == 0))
+          self.assertTrue(ret1['stopcode'] == 7)
 
 ##############################################
 ##############################################

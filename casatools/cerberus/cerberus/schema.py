@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from collections import Callable, Hashable, Iterable, Mapping, MutableMapping
+from collections.abc import Hashable, Iterable, Mapping, MutableMapping, Callable
 from copy import copy
 
-from cerberus import errors
-from cerberus.platform import _str_type
-from cerberus.utils import get_Validator_class, validator_factory, mapping_hash
+from . import errors
+from .platform import _str_type
+from .utils import get_Validator_class, validator_factory, mapping_hash
 
 
 class SchemaError(Exception):
