@@ -247,7 +247,7 @@ class ImagingDict():
                 merge_dict[key] = val
             # Copy all the iteration control keys from deconvolve
             elif key in ['iterdone', 'cycleiterdone', 'cycleniter', 'cyclethreshold',
-                         'maxpsffraction', 'maxpsfsidelobe', 'minpsffraction', 'nsigma', 'threshold']:
+                         'maxpsffraction', 'maxpsfsidelobe', 'minpsffraction', 'nsigma']:
                 merge_dict[key] = val
 
         return merge_dict
@@ -601,7 +601,7 @@ class ImagingDict():
         if do_summary_minor:
             self.construct_summary_minor(paramList)
 
-        self._returndict['threshold'] = 0.0
+        self._returndict['threshold'] = paramList.getAllPars()['threshold']
         self._returndict['stopDescription'] = 'Zero iterations performed'
 
 
