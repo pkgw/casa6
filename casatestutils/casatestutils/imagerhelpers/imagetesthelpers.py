@@ -1284,3 +1284,19 @@ class TestHelpers:
             if isinstance(v, dict):
                 return self.checkKeyInNestedDict(k,v)
         return None
+
+    def check_mask(self, mname=''):
+        if os.path.exists(mname):
+            _ia.open(mname)
+            ss = _ia.statistics()['sum']
+            _ia.close()
+        else:
+            ss = -1
+        return ss
+
+    def fill_mask(self, mname='',val=0.0):
+        _ia.open(mname)
+        pix = _ia.getchunk()
+        pix.fill(val)
+        _ia.putchunk(pix)
+        _ia.close()
