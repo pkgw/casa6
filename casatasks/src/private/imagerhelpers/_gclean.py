@@ -120,7 +120,7 @@ class gclean:
         """ Interactive clean parameters update.
 
         Args:
-            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' and 'mask'
+            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' and 'mask', 'niterleft','nmajorleft'
         """
         if 'niter' in msg:
             try:
@@ -132,6 +132,22 @@ class gclean:
                 self._cycleniter = int(msg['cycleniter'])
             except ValueError:
                 pass
+        if 'nmajor' in msg:
+            try:
+                self._nmajor = int(msg['nmajor'])
+            except ValueError:
+                pass
+        if 'niterleft' in msg:
+            try:
+                self._niterleft = int(msg['niterleft'])
+            except ValueError:
+                pass
+        if 'nmajorleft' in msg:
+            try:
+                self._nmajorleft = int(msg['nmajorleft'])
+            except ValueError:
+                pass
+
         if 'threshold' in msg:
             self._threshold = msg['threshold']
             self._threshold_to_float() # Convert str to float
@@ -230,8 +246,8 @@ class gclean:
         self._savemodel = savemodel
         self._parallel = parallel
         self._usemask = usemask
-        self._nmajorleft = nmajorleft
-        self._niterleft = niterleft
+        self._nmajorleft = nmajor   ### Set to input pars. These get updated and user-edited later
+        self._niterleft = niter  ### Set to input pars. These get updated and user-edited later
 
         ###
         ### 'self._mask' always contains the mask as supplied by the user while 'self._effective_mask' is
@@ -274,12 +290,12 @@ class gclean:
         return rdict
 
 
-    def _calc_deconv_controls(self, imdict, niter=0, threshold=0, cycleniter=-1):
+    def _calc_deconv_controls(self, imdict, niterleft=0, threshold=0, cycleniter=-1):
         """
         Calculate cycleniter and cyclethreshold for deconvolution.
         """
 
-        use_cycleniter = niter - imdict.returndict['iterdone']
+        use_cycleniter = niterleft  #niter - imdict.returndict['iterdone']
 
         if cycleniter > -1 : # User is forcing this number
             use_cycleniter = min(cycleniter, use_cycleniter)
@@ -321,7 +337,8 @@ class gclean:
                     # Replace iterDone with iterations
                     if key == 'iterDone':
                         # Maintain cumulative sum of iterations per entry
-                        outrec[nn][ss]['iterations'] = np.cumsum(self.global_imdict.get_key(key, stokes=ss, chan=nn))
+                        #outrec[nn][ss]['iterations'] = np.cumsum(self.global_imdict.get_key(key, stokes=ss, chan=nn))
+                        outrec[nn][ss]['iterations'] =  self.global_imdict.get_key(key, stokes=ss, chan=nn)
                     else:
                         outrec[nn][ss][key] = self.global_imdict.get_key(key, stokes=ss, chan=nn)
 
@@ -386,35 +403,39 @@ class gclean:
                 # TODO : Add a standalone module to calculate the max PSF sidelobe.
                 # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
 
-                self._nmajorleft, self._niterleft, self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
-
+                ## Initial call where niterleft and nmajorleft are same as original input values. 
+                self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niterleft, self.current_imdict.get_key('threshold'), self._nmajorleft)
+                
                 self.current_imdict.returndict['stopcode'] = self.hasit
                 self.current_imdict.returndict['stopDescription'] = self.stopdescription
                 self._major_done = 0
             else:
                 # Reset convergence every time, since we return control to the GUI after a single major cycle
-                self.hasit = 0
-                self.stopdescription = ''
+                #self.hasit = 0
+                #self.stopdescription = ''
                 self.current_imdict.returndict['iterdone'] = 0.
 
-                #self.hasit, self.stopdescription = self.current_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
+                ### Check before doing the next round.... 
+                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niterleft, self.global_imdict.get_key('threshold'), self._nmajorleft)
 
-                self.global_imdict.returndict['stopcode'] = self.hasit
-                self.global_imdict.returndict['stopDescription'] = self.stopdescription
+                #self.global_imdict.returndict['stopcode'] = self.hasit
+                #self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
-                self.current_imdict.returndict['stopcode'] = self.hasit
-                self.current_imdict.returndict['stopDescription'] = self.stopdescription
+                #self.current_imdict.returndict['stopcode'] = self.hasit
+                #self.current_imdict.returndict['stopDescription'] = self.stopdescription
 
-                use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niter, self._threshold, self._cycleniter)
+                if self.hasit ==0 :
+                
+                    use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niterleft, self._threshold, self._cycleniter)
 
-                # Run the minor cycle
-                deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
+                    # Run the minor cycle
+                    deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                               deconvolver=self._deconvolver, restoration=False,
                                               threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, usemask=self._usemask,
                                               nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, noisethreshold=self._noisethreshold)
 
-                # Run the major cycle
-                tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                    # Run the major cycle
+                    tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
                                            phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
                                            gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
                                            wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
@@ -434,23 +455,25 @@ class gclean:
                                            minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
                                            minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
 
-                # Replace return dict with new return dict
-                self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
-                # Append new return dict to global return dict
-                self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
-                self._major_done = self.current_imdict.returndict['nmajordone']
+                    # Replace return dict with new return dict
+                    self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
+                    # Append new return dict to global return dict
+                    self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
+                    self._major_done = self.current_imdict.returndict['nmajordone']
 
-                # Use global imdict for convergence check
-                self._nmajorleft, self._niterleft, self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
+                    ## Decrement count for the major cycle just done...
+                    self.__decrement_counts()
+
+                    # Use global imdict for convergence check
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niterleft, self.global_imdict.get_key('threshold'), self._nmajorleft)
+
+               
                 self.global_imdict.returndict['stopcode'] = self.hasit
                 self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
                 if not self.hasit:
                     # If we haven't converged, run deconvolve to update the mask
                     self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
-                else:
-                    self._finalized = True
-                    raise StopIteration
 
             if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
                 # self.current_imdict only contains the latest tclean/deconvolve results
@@ -473,6 +496,16 @@ class gclean:
 
             return self._convergence_result
 
+    def __decrement_counts( self ):
+        ## Update niterleft and nmajorleft now.
+        if self.hasit == 0:  ##If not yet converged.
+            if self._nmajorleft != -1:   ## If -1, don't touch it.  
+                self._nmajorleft = self._nmajorleft - 1
+            self._niterleft = self._niterleft - self.current_imdict.get_key('iterdone')
+        else:
+            return  ##If convergence has been reached, don't try to decrement further.
+
+        
     def __reflect_stop( self ):
         ## if python wasn't hacky, you would be able to try/except/raise in lambda
         time.sleep(1)

@@ -343,7 +343,7 @@ class ImagingDict():
         return peakres
 
 
-    def has_converged(self, niter=0, threshold=0, nmajor=0):
+    def has_converged(self, niterleft=0, threshold=0, nmajorleft=0):
         """
         Check stopping criteria for convergence, based on the criteria specified here -
         https://casadocs.readthedocs.io/en/stable/notebooks/synthesis_imaging.html#Returned-Dictionary
@@ -370,10 +370,9 @@ class ImagingDict():
         peakres_list = [self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajordone)]
         min_peakres = np.amin(peakres_list)
 
-        nmajorleft = nmajor - nmajordone
-        niterleft = niter - self.returndict['iterdone']
 
-        if self.returndict['iterdone'] >= niter:
+        #if self.returndict['iterdone'] >= niter:
+        if niterleft<=0:
             stopcode = 1
             stopDescription = 'Reached the iteration limit'
         elif self.get_peakres() <= threshold:
@@ -393,12 +392,13 @@ class ImagingDict():
         elif self.check_masksum() == 0:
             stopcode = 7
             stopDescription = 'Zero mask'
-        #elif (nmajor != -1 and self.returndict['nmajordone'] >= nmajor):
-        #    stopcode = 9
-        #    stopDescription = 'Reached the major cycle limit (nmajor)'
+        #elif (nmajor != -1 and self.returndict['nmajordone'] > nmajor):
+        elif (nmajorleft != -1 and nmajorleft==0):
+            stopcode = 9
+            stopDescription = 'Reached the major cycle limit (nmajor)'
 
 
-        return nmajorleft, niterleft, stopcode, stopDescription
+        return  stopcode, stopDescription
 
 
 
