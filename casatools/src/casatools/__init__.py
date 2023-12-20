@@ -81,7 +81,9 @@ from .spectralline import spectralline
 from .utils import utils as __utils
 import os as __os
 import sys as __sys
-from casaconfig import pull_data, measures_update, config
+from casaconfig import get_data_info, do_auto_updates, config
+# useful to use here
+from casaconfig.private.print_log_messages import print_log_messages
 
 sakura( ).initialize_sakura( )    ## sakura requires explicit initialization
 
@@ -91,32 +93,52 @@ user_nogui = config.nogui
 user_agg = config.agg
 user_pipeline = config.pipeline
 user_cachedir = __os.path.abspath(__os.path.expanduser(config.cachedir))
-
 user_measurespath = config.measurespath
-if (__sys.argv[0] != '-m') and (not __os.path.isdir(__os.path.realpath(user_measurespath))):
-    print('measurespath path not found, creating %s' % user_measurespath)
-    __os.makedirs(user_measurespath)
+
+logger = logsink(config.logfile) if (hasattr(config,'logfile') and config.logfile is not None) else None
+
+# this uses config.measurespath, config.measures_auto_update and config.data_auto_update as appropriate
+do_auto_updates(config, logger)
+
+# data checks, only if user_measurespath is not None
+data_info = None
+if user_measurespath is not None:
+    data_info = get_data_info(user_measurespath, logger)
+    data_ok = False
+    if data_info['casarundata'] is None:
+        print_log_messages('The expected casa data was not found at measurespath. CASA may still work if the data can be found in datapath.', logger, True)
+    elif data_info['casarundata'] == 'invalid':
+        print_log_messages('The contents of measurespath do not appear to be casarundata. CASA will likely fail as a result', logger, True)
+    elif data_info['casarundata'] == 'unknown':
+        print_log_messages('The casa data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.', logger)
+    else:
+        data_ok = True
+
+    measures_ok = False
+    if data_info['measures'] is None:
+        print_log_messages('The expected measures data was not found at measurespath. CASA may still work if the data can be found in datapath.', logger, True)
+    elif data_info['casarundata'] == 'invalid':
+        print_log_messages('The contents of measurespath do not appear to include measures data. CASA will likely fail as a result', logger, True)
+    elif data_info['measures'] == 'unknown':
+        print_log_messages('The measures data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.', logger)
+    else:
+        measures_ok = True
+
+    if (not data_ok) or (not measures_ok):
+        print('visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
 
 ctsys = __utils( )
 ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui,
                   user_agg, user_pipeline, user_cachedir )
 
-logger = logsink(config.logfile) if (hasattr(config,'logfile') and config.logfile is not None) else None
+# try and find the IERS data
+__resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
+if __resolved_iers == 'geodetic/IERSeop2000':
+    raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
 
-if (__sys.argv[0] != '-m') and (hasattr(config,'configrc')):
-    print('Using %s' % config.configrc)
-    if logger is not None:
-        logger.post('Using %s' % config.configrc, 'INFO')
-
-if hasattr(config,'measures_update') and (config.measures_update == True) and (__sys.argv[0] != '-m'):
-    measures_update(ctsys.rundata(), logger=logger)
-
-if __sys.argv[0] != '-m':
-    __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
-    if __resolved_iers == 'geodetic/IERSeop2000':
-        raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
-    if len(ctsys.rundata( )) == 0:
-        ctsys.setrundata(__resolved_iers[:-21])
+# and use this as rundata (measurespath) if the data_info for measures is None or the measures version is invalid
+if data_info['measures'] is None or data_info['measures']['version'] == "invalid":
+    ctsys.setrundata(__resolved_iers[:-21])
 
 from .coercetype import coerce as __coerce
 
