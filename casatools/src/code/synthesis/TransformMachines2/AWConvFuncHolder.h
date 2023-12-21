@@ -54,6 +54,16 @@ class AWConvFuncHolder{
   casacore::Vector<Double> getFreqVals(){return freqVals_p;};
   casacore::Vector<Double> getWVals(){return wVals_p;};
   casacore::Vector<Double> getPAVals() { return paVals_p; };
+  
+// This function will return a subset of the convFuncs, i.e those used in this vb 
+  void getConvFuncs(casacore::Vector<casacore::Int> &polMap,
+                    casacore::Vector<casacore::Int> &chanMap,
+                    casacore::Vector<casacore::Int> &rowMap,
+                    casacore::Array<casacore::Complex>& convFunc,
+                    casacore::Array<casacore::Complex>& wgtConvFunc,
+                    const vi::VisBuffer2 &vb,
+                    const casacore::Matrix<casacore::Double> &rotuvw);
+
   // For the HPG gridder we have to get some specialized version as it cannot load all frequencies and all
   // w-vals in one go. So do it by spw in the vb
   // call reset first then call to get the conv funcs and indices

@@ -37,7 +37,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Vector.h>
-
+#include <omp.h>
 
 
 namespace casa { //# NAMESPACE CASA - BEGIN
@@ -83,7 +83,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   if(convSampling <4) 
     convSampling=4;
  // TESTOO
-  //convSampling = 1;
+  convSampling = 4;
   // TESTOO
   
   CoordinateSystem cs=image->coordinates();
@@ -175,11 +175,28 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
  void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
   //
   // pbConvFunc_p.phasegradient
-    convFunc.resize();
-    convFunc.assign(awConvs_p->getConvFunc());
- 
-    weightConvFunc_p.resize();
-    weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
+  //double time0=omp_get_wtime();
+  //Complex *oWgtPtr, *oConPtr;
+  //Bool isCopy;
+  //if(convFunc.size()==0 || (convFunc.shape() != awConvs_p->getConvFunc().shape())){
+   // convFunc.resize(awConvs_p->getConvFunc().shape());
+   // weightConvFunc_p.resize(awConvs_p->getWeightConvFunc().shape());
+  
+  //}
+  //oWgtPtr=awConvs_p->getWeightConvFunc().getStorage(isCopy);
+  //oConPtr=awConvs_p->getConvFunc().getStorage(isCopy);
+    //convFunc.resize();
+    //convFunc=(awConvs_p->getConvFunc());
+    //Bool isCopy1, isCopy2;
+    //cerr << "SIZEOF " <<  sizeof convFunc << " size elem wise " << convFunc.nelements() << endl;
+    //Complex* convFuncPtr=convFunc.getStorage(isCopy1);
+    // Complex* wgtFuncPtr=weightConvFunc_p.getStorage(isCopy2);
+    //weightConvFunc_p.resize();
+    //weightConvFunc_p=(awConvs_p->getWeightConvFunc());
+    //std::memcpy(convFuncPtr, oConPtr, sizeof(Complex)*convFunc.nelements());
+    //std::memcpy(wgtFuncPtr, oWgtPtr, sizeof(Complex)*weightConvFunc_p.nelements());
+    //convFunc.putStorage(convFuncPtr, isCopy1);
+    //weightConvFunc_p.putStorage(wgtFuncPtr, isCopy2);
     /*{ 
       ////TESTOO
       IPosition elshp = convFunc.shape().getFirst(4);
@@ -201,13 +218,19 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       lastplaneW.put(weightConvFunc_p(elblc,  eltrc).nonDegenerate());
     //////
     } */  
+    awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
+                             weightConvFunc_p, vb, rotuvw);
+    //double time1=omp_get_wtime();
+    //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
-    awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
+    //awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
     //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
-    std::vector<Int> pmapused=convPolMap_p.tovector();
+    //cerr << "LENGTHS bef" << convRowMap_p.size() << "  " << convChanMap_p.size()
+    //     << "   " << convPolMap_p.size() << endl;
+    std::vector<Int> pmapused = convPolMap_p.tovector();
     {
       std::sort(pmapused.begin(),  pmapused.end());
       auto last = std::unique(pmapused.begin(),  pmapused.end());
@@ -225,11 +248,15 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
-    //cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
+    //cerr << "LENGTH aft " << rmapused.size() << "   " << cmapused.size()
+   //      << "   " << pmapused.size() << endl;
+    // cerr << "pmap " << Vector<Int>(pmapused) << " cmp " <<
+    // Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
-   
+   //double timeend=omp_get_wtime();
+   //cerr << "findConv Time" << timeend-time0 << endl;
     
  }
  
