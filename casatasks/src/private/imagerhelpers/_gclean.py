@@ -267,7 +267,7 @@ class gclean:
         # XXX : We should ideally use quantities, but we are trying to
         # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
-        self.mask_changed=False
+        self._mask_changed=False
 
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
