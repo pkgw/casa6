@@ -273,6 +273,8 @@ def deconvolve(
         decon.updateMask()
 
         isit = decon.hasConverged() # here in case updateMaskMinor() produces an all-false mask
+        runmin = not isit   ##  Are minor cycles going to be run or not ?  Will the return dictionary have summaryminor or not ?
+        ##print ("Runmin? " , runmin)
         if not isit:
             # print("running minor cycle");
             t0=time.time();
@@ -283,7 +285,7 @@ def deconvolve(
 
 
         # Residual image needs to be computed for this to work
-        if niter==0:
+        if niter==0 or runmin==False:
             id = ImagingDict()
             retrec1 = id.construct_residual_dict(paramList)
 
@@ -292,7 +294,7 @@ def deconvolve(
         # this requrirment should go...
         #if niter>0:
         retrec=decon.getSummary(fullsummary);
-        if niter==0:
+        if niter==0 or runmin==False:
             retrec['summaryminor'] = retrec1['summaryminor']  #CAS-14184
 
 

@@ -453,6 +453,10 @@ class gclean:
                                            minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
                                            minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
 
+#                    print("DECONV RET")
+#                    print(deconv_ret)
+#                    print("TCLEAN RET")
+#                    print(tclean_ret)
 
                     # Replace return dict with new return dict
                     # The order of the dicts into merge is important.
@@ -505,6 +509,8 @@ class gclean:
             if self._nmajor != -1:   ## If -1, don't touch it.
                 self._nmajor = self._nmajor - 1
             self._niter = self._niter - self.current_imdict.get_key('iterdone')
+            if self._niter<0:  ## This can happen when we're counting niter across channels in a single minor cycle set, and it crosses the total. 
+                self._niter=0
         else:
             return  ##If convergence has been reached, don't try to decrement further.
 

@@ -279,6 +279,9 @@ class ImagingDict():
         dict_keys = list(dict1.keys()) + [key for key in dict2.keys() if key not in dict1.keys()]
 
         for key in dict_keys:
+            if key not in dict1.keys() or key not in dict2.keys():
+                print("Internal Error : KEY mismatch : ", key)
+            
             if key in ['iterdone', 'nmajordone']:
                 appendix[key] = dict1[key] + dict2[key]
             elif isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
