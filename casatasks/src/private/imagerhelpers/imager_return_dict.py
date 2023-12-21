@@ -371,9 +371,8 @@ class ImagingDict():
             peakres1 = 0
             peakres2 = 0
 
-        peakres_list = [self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajordone)]
-        min_peakres = np.amin(peakres_list)
-
+        peakres_list = np.asarray([self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajordone)])
+        min_peakres = np.amin(peakres_list[peakres_list != 0])
 
         #if self.returndict['iterdone'] >= niter:
         if self.check_masksum() == 0:
@@ -393,7 +392,7 @@ class ImagingDict():
         elif nmajordone > 2 and np.allclose(peakres1, peakres2):
             stopcode = 4
             stopDescription = 'No change in peak residual across consecutive major cycles'
-        elif peakres1 > 3*peakres2:
+        elif peakres1 > 3*peakres2 and peakres2 != 0:
             stopcode = 5
             stopDescription = 'Peak residual increased by more than 3x across consecutive major cycles'
         elif peakres1 > 3*min_peakres:
