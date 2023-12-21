@@ -471,9 +471,6 @@ class gclean:
                     # Use global imdict for convergence check
                     self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
 
-                    print("final hasconverged")
-                    print(self.hasit, self.stopdescription)
-
 
                 self.global_imdict.returndict['stopcode'] = self.hasit
                 self.global_imdict.returndict['stopDescription'] = self.stopdescription

@@ -58,6 +58,7 @@ class ImagingDict():
 
         self.residname = ''
         self.modelname = ''
+        self.maskname = ''
 
         self._initialize()
 
@@ -375,12 +376,18 @@ class ImagingDict():
 
 
         #if self.returndict['iterdone'] >= niter:
-        if niterleft<=0:
+        if self.check_masksum() == 0:
+            stopcode = 7
+            stopDescription = 'Zero mask'
+        elif niterleft<=0:
             stopcode = 1
             stopDescription = 'Reached the iteration limit'
         elif self.get_peakres() <= threshold:
             stopcode = 2
-            stopDescription = 'Reached cyclethreshold'
+            stopDescription = 'Reached global stopping threshold (within mask)'
+        elif (nmajorleft != -1 and nmajorleft==0):
+            stopcode = 9
+            stopDescription = 'Reached the major cycle limit (nmajor)'
         # Stopcode 3 : Force Stop is handled by InteractiveClean GUI for now
         # TODO : If this is used to run iteration control for non-interactive clean, implement this
         elif nmajordone > 2 and np.allclose(peakres1, peakres2):
@@ -392,14 +399,6 @@ class ImagingDict():
         elif peakres1 > 3*min_peakres:
             stopcode = 6
             stopDescription = 'Peak residual increased by more than 3x from the minimum reached'
-        elif self.check_masksum() == 0:
-            stopcode = 7
-            stopDescription = 'Zero mask'
-        #elif (nmajor != -1 and self.returndict['nmajordone'] > nmajor):
-        elif (nmajorleft != -1 and nmajorleft==0):
-            stopcode = 9
-            stopDescription = 'Reached the major cycle limit (nmajor)'
-
 
         return  stopcode, stopDescription
 
@@ -472,9 +471,16 @@ class ImagingDict():
             trc = [shape[0], shape[1], channo, stokes]
 
         data = ia.getchunk(blc, trc, dropdeg=True)
-        mask = ia.getchunk(blc, trc, dropdeg=True, getmask=True)
         ia.close()
 
+        # Get the mask if it exists
+        if os.path.exists(self.maskname):
+            ia.open(self.maskname)
+            mask = ia.getchunk(blc, trc, dropdeg=True)
+            ia.close()
+        else:
+            mask = -1 # No mask, so everything is unmasked
+        
         # If model image exists, calc model flux, else set to 0
         model_sum = 0
         if os.path.exists(self.modelname):
@@ -511,7 +517,6 @@ class ImagingDict():
 
         return summaryparams
 
-
     def construct_summary_minor(self, paramList):
         """
         Constructs and populates a nested dictionary containing the summaryMinor()
@@ -536,6 +541,8 @@ class ImagingDict():
         for ff in range(nfields):
             self.residname=impars[str(ff)]['imagename']+'.residual.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.residual.tt0')) else impars[str(ff)]['imagename']+'.residual'
             self.modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
+            if(os.path.exists(impars[str(ff)]['imagename']+'.mask')):
+                 self.maskname=impars[str(ff)]['imagename']+'.mask'
 
             fullsummary = decpars[str(ff)]['fullsummary']
             nstokes, nfreq, stokes_axis, freq_axis = self.image_dimensions()
