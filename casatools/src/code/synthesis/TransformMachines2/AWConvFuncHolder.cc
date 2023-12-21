@@ -394,12 +394,10 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   IPosition shp(5, convFunc_p.shape()[0], convFunc_p.shape()[1],
                 pmapused.size(), cmapused.size(), rmapused.size());
   polMap.resize(pmap.shape());
-  std::vector<int>pindex(pmapused.size()) ;
   for (uint j = 0; j < polMap.nelements(); ++j) {
     for (int k = 0; k < pmapused.size(); ++k) {
       if (pmap[j]==pmapused[k]){
         polMap[j] = k;
-        pindex[k] = j;
       }
     }
   }
@@ -409,18 +407,15 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
     for (int k = 0; k < cmapused.size(); ++k) {
       if (cmap[j] == cmapused[k]){
         chanMap[j] = k;
-        cindex[k] = j;
       }
     }
   }
   rowMap.resize(rmap.shape());
-  std::vector<int>rindex(rmapused.size());
   for (uint j = 0; j < rowMap.nelements(); ++j) {
     for (int k = 0; k < rmapused.size(); ++k) {
       if (abs(rmap[j]) == rmapused[k]){
         //rowmap is -ve for -ve w
         rowMap[j] = rmap[j] < 0 ? -k : k;
-        rindex[k] = j;
       }
     }
   }
