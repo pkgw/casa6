@@ -369,134 +369,137 @@ class gclean:
             ### CALL SEQUENCE:
             ###       tclean(niter=0),deconvolve(niter=0),tclean(niter=100),deconvolve(niter=0),tclean(niter=100),tclean(niter=0,restoration=True)
             self._exe_cmds_per_iter.append(0)
-            if self._convergence_result[1] is None:
+            try:
+                if self._convergence_result[1] is None:
 
-                # initial call to tclean(...) creates the initial dirty image with niter=0
-                tclean_ret = self._tclean( vis=self._vis, mask=self._mask, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
-                                           phasecenter=self._phasecenter, stokes=self._stokes, startmodel=self._startmodel, specmode=self._specmode,
-                                           reffreq=self._reffreq, gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight,
-                                           psterm=self._psterm, wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing,
-                                           interpolation=self._interpolation, perchanweightdensity=self._perchanweightdensity,
-                                           nchan=self._nchan, start=self._start, width=self._width, veltype=self._veltype, restfreq=self._restfreq,
-                                           outframe=self._outframe, pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit,
-                                           deconvolver=self._deconvolver, smallscalebias=self._smallscalebias, cyclefactor=self._cyclefactor,
-                                           scales=self._scales, restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms,
-                                           field=self._field, spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
-                                           scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
-                                           weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False, niter=0,
-                                           gain=self._gain, calcres=True, calcpsf=True, restoration=False, parallel=self._parallel, fullsummary=True)
-
-
-                deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
-                                              deconvolver=self._deconvolver, restoration=False,
-                                              threshold=self._threshold, niter=0,
-                                              nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
-                                              mask=self._mask, noisethreshold=self._noisethreshold)
-
-                self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
-                self.global_imdict.returndict = self.current_imdict.returndict
-
-                # TODO : Add a standalone module to calculate the max PSF sidelobe.
-                # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
-
-                ## Initial call where niterleft and nmajorleft are same as original input values.
-                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
-
-                self.current_imdict.returndict['stopcode'] = self.hasit
-                self.current_imdict.returndict['stopDescription'] = self.stopdescription
-                self._major_done = 0
-            else:
-                # Reset convergence every time, since we return control to the GUI after a single major cycle
-                self.current_imdict.returndict['iterdone'] = 0.
-
-                ### Check before doing the next round....
-                if not self._mask_changed:
-                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
-                else:
-                    self.hasit = 0
-                    self.stopdescription = ''
+                    # initial call to tclean(...) creates the initial dirty image with niter=0
+                    tclean_ret = self._tclean( vis=self._vis, mask=self._mask, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                                               phasecenter=self._phasecenter, stokes=self._stokes, startmodel=self._startmodel, specmode=self._specmode,
+                                               reffreq=self._reffreq, gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight,
+                                               psterm=self._psterm, wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing,
+                                               interpolation=self._interpolation, perchanweightdensity=self._perchanweightdensity,
+                                               nchan=self._nchan, start=self._start, width=self._width, veltype=self._veltype, restfreq=self._restfreq,
+                                               outframe=self._outframe, pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit,
+                                               deconvolver=self._deconvolver, smallscalebias=self._smallscalebias, cyclefactor=self._cyclefactor,
+                                               scales=self._scales, restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms,
+                                               field=self._field, spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
+                                               scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
+                                               weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False, niter=0,
+                                               gain=self._gain, calcres=True, calcpsf=True, restoration=False, parallel=self._parallel, fullsummary=True)
 
 
-                #self.global_imdict.returndict['stopcode'] = self.hasit
-                #self.global_imdict.returndict['stopDescription'] = self.stopdescription
-
-                #self.current_imdict.returndict['stopcode'] = self.hasit
-                #self.current_imdict.returndict['stopDescription'] = self.stopdescription
-
-                if self.hasit ==0 :
-                    use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niter, self._threshold, self._cycleniter)
-
-                    # Run the minor cycle
                     deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
-                                              deconvolver=self._deconvolver, restoration=False,
-                                              threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, usemask=self._usemask,
-                                              nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, noisethreshold=self._noisethreshold)
+                                                  deconvolver=self._deconvolver, restoration=False,
+                                                  threshold=self._threshold, niter=0,
+                                                  nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
+                                                  mask=self._mask, noisethreshold=self._noisethreshold)
 
-                    # Run the major cycle
-                    tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
-                                           phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
-                                           gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
-                                           wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
-                                           perchanweightdensity=self._perchanweightdensity, nchan=self._nchan, start=self._start,
-                                           width=self._width, veltype=self._veltype, restfreq=self._restfreq, outframe=self._outframe,
-                                           pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit, deconvolver=self._deconvolver,
-                                           smallscalebias=self._smallscalebias, cyclefactor=self._cyclefactor, scales=self._scales,
-                                           restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms, field=self._field,
-                                           spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
-                                           scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
-                                           weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False,
-                                           niter=0, restart=True, calcpsf=False, calcres=True, restoration=False, threshold=self._threshold,
-                                           nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=1, gain=self._gain,
-                                           sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
-                                           lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
-                                           minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
-                                           minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
-                                           minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
-
-#                    print("DECONV RET")
-#                    print(deconv_ret)
-#                    print("TCLEAN RET")
-#                    print(tclean_ret)
-
-                    # Replace return dict with new return dict
-                    # The order of the dicts into merge is important.
                     self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
-                    # Append new return dict to global return dict
-                    self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
-                    self._major_done = self.current_imdict.returndict['nmajordone']
+                    self.global_imdict.returndict = self.current_imdict.returndict
 
-                    ## Decrement count for the major cycle just done...
-                    self.__decrement_counts()
+                    # TODO : Add a standalone module to calculate the max PSF sidelobe.
+                    # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
 
-                    # Use global imdict for convergence check
+                    ## Initial call where niterleft and nmajorleft are same as original input values.
                     self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
+                    self.current_imdict.returndict['stopcode'] = self.hasit
+                    self.current_imdict.returndict['stopDescription'] = self.stopdescription
+                    self._major_done = 0
+                else:
+                    # Reset convergence every time, since we return control to the GUI after a single major cycle
+                    self.current_imdict.returndict['iterdone'] = 0.
 
-                self.global_imdict.returndict['stopcode'] = self.hasit
-                self.global_imdict.returndict['stopDescription'] = self.stopdescription
+                    ### Check before doing the next round....
+                    if not self._mask_changed:
+                        self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
+                    else:
+                        self.hasit = 0
+                        self.stopdescription = ''
 
-                if not self.hasit:
-                    # If we haven't converged, run deconvolve to update the mask
-                    self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
 
-            if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
-                # self.current_imdict only contains the latest tclean/deconvolve results
-                # Passing in self.global_imdict will pull out the cumulative results everytime, breaking the convergence plot.
-                self._convergence_result = ( self.global_imdict.returndict['stopDescription'] if 'stopDescription' in self.global_imdict.returndict else '',
-                                             self.global_imdict.returndict['stopcode'] if 'stopcode' in self.global_imdict.returndict else 0,
-                                             self._major_done,
-                                             self._nmajor,
-                                             self._niter,
-                                             self.__add_per_major_items( self.global_imdict.returndict,
-                                                                         self._convergence_result[5]['major'],
-                                                                         self.__update_convergence()))
-            else:
-                self._convergence_result = ( f'tclean returned an empty result',
-                                             self._convergence_result[1],
-                                             self._major_done,
-                                             self._nmajor,
-                                             self._niter,
-                                             self._convergence_result[5] )
+                    #self.global_imdict.returndict['stopcode'] = self.hasit
+                    #self.global_imdict.returndict['stopDescription'] = self.stopdescription
+
+                    #self.current_imdict.returndict['stopcode'] = self.hasit
+                    #self.current_imdict.returndict['stopDescription'] = self.stopdescription
+
+                    if self.hasit ==0 :
+                        use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niter, self._threshold, self._cycleniter)
+
+                        # Run the minor cycle
+                        deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
+                                                  deconvolver=self._deconvolver, restoration=False,
+                                                  threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, usemask=self._usemask,
+                                                  nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, noisethreshold=self._noisethreshold)
+
+                        # Run the major cycle
+                        tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                                               phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
+                                               gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
+                                               wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
+                                               perchanweightdensity=self._perchanweightdensity, nchan=self._nchan, start=self._start,
+                                               width=self._width, veltype=self._veltype, restfreq=self._restfreq, outframe=self._outframe,
+                                               pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit, deconvolver=self._deconvolver,
+                                               smallscalebias=self._smallscalebias, cyclefactor=self._cyclefactor, scales=self._scales,
+                                               restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms, field=self._field,
+                                               spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
+                                               scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
+                                               weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False,
+                                               niter=0, restart=True, calcpsf=False, calcres=True, restoration=False, threshold=self._threshold,
+                                               nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=1, gain=self._gain,
+                                               sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
+                                               lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
+                                               minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
+                                               minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
+                                               minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
+
+    #                    print("DECONV RET")
+    #                    print(deconv_ret)
+    #                    print("TCLEAN RET")
+    #                    print(tclean_ret)
+
+                        # Replace return dict with new return dict
+                        # The order of the dicts into merge is important.
+                        self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
+                        # Append new return dict to global return dict
+                        self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
+                        self._major_done = self.current_imdict.returndict['nmajordone']
+
+                        ## Decrement count for the major cycle just done...
+                        self.__decrement_counts()
+
+                        # Use global imdict for convergence check
+                        self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
+
+
+                    self.global_imdict.returndict['stopcode'] = self.hasit
+                    self.global_imdict.returndict['stopDescription'] = self.stopdescription
+
+                    if not self.hasit:
+                        # If we haven't converged, run deconvolve to update the mask
+                        self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
+
+                if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
+                    # self.current_imdict only contains the latest tclean/deconvolve results
+                    # Passing in self.global_imdict will pull out the cumulative results everytime, breaking the convergence plot.
+                    self._convergence_result = ( self.global_imdict.returndict['stopDescription'] if 'stopDescription' in self.global_imdict.returndict else '',
+                                                 self.global_imdict.returndict['stopcode'] if 'stopcode' in self.global_imdict.returndict else 0,
+                                                 self._major_done,
+                                                 self._nmajor,
+                                                 self._niter,
+                                                 self.__add_per_major_items( self.global_imdict.returndict,
+                                                                             self._convergence_result[5]['major'],
+                                                                             self.__update_convergence()))
+                else:
+                    self._convergence_result = ( f'tclean returned an empty result',
+                                                 self._convergence_result[1],
+                                                 self._major_done,
+                                                 self._nmajor,
+                                                 self._niter,
+                                                 self._convergence_result[5] )
+            except Exception as e:
+                return str(e), -1, self._major_done, self._nmajor, self._niter, self._convergence_result[5]
 
             return self._convergence_result
 
