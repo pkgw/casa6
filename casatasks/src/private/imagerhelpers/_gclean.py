@@ -120,7 +120,7 @@ class gclean:
         """ Interactive clean parameters update.
 
         Args:
-            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' and 'mask', 'niterleft','nmajorleft'
+            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' and 'mask_changed', 
         """
         if 'niter' in msg:
             try:
@@ -137,16 +137,12 @@ class gclean:
                 self._nmajor = int(msg['nmajor'])
             except ValueError:
                 pass
-        #if 'niterleft' in msg:
-        #    try:
-        #        self._niter = int(msg['niterleft'])
-        #    except ValueError:
-        #        pass
-        #if 'nmajorleft' in msg:
-        #    try:
-        #        self._nmajor = int(msg['nmajorleft'])
-        #    except ValueError:
-        #        pass
+
+        if 'mask_changed' in msg:
+            try:
+                self._mask_changed = bool(msg['mask_changed'])
+            except ValueError:
+                pass
 
         if 'threshold' in msg:
             self._threshold = msg['threshold']
@@ -271,6 +267,7 @@ class gclean:
         # XXX : We should ideally use quantities, but we are trying to
         # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
+        self.mask_changed=False
 
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
@@ -403,19 +400,22 @@ class gclean:
                 # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
 
                 ## Initial call where niterleft and nmajorleft are same as original input values.
-                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.current_imdict.get_key('threshold'), self._nmajor)
+                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
                 self.current_imdict.returndict['stopcode'] = self.hasit
                 self.current_imdict.returndict['stopDescription'] = self.stopdescription
                 self._major_done = 0
             else:
                 # Reset convergence every time, since we return control to the GUI after a single major cycle
-                #self.hasit = 0
-                #self.stopdescription = ''
                 self.current_imdict.returndict['iterdone'] = 0.
 
                 ### Check before doing the next round....
-                self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
+                if not self._mask_changed:
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
+                else:
+                    self.hasit = 0
+                    self.stopdescription = ''
+
 
                 #self.global_imdict.returndict['stopcode'] = self.hasit
                 #self.global_imdict.returndict['stopDescription'] = self.stopdescription
@@ -469,7 +469,7 @@ class gclean:
                     self.__decrement_counts()
 
                     # Use global imdict for convergence check
-                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self.global_imdict.get_key('threshold'), self._nmajor)
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
 
                 self.global_imdict.returndict['stopcode'] = self.hasit
