@@ -120,7 +120,7 @@ class gclean:
         """ Interactive clean parameters update.
 
         Args:
-            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' and 'mask_changed', 
+            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' 
         """
         if 'niter' in msg:
             try:
@@ -135,12 +135,6 @@ class gclean:
         if 'nmajor' in msg:
             try:
                 self._nmajor = int(msg['nmajor'])
-            except ValueError:
-                pass
-
-        if 'mask_changed' in msg:
-            try:
-                self._mask_changed = bool(msg['mask_changed'])
             except ValueError:
                 pass
 
@@ -267,8 +261,6 @@ class gclean:
         # XXX : We should ideally use quantities, but we are trying to
         # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
-        self._mask_changed=False
-
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
         '''Add meta-data about the whole major cycle, including 'cyclethreshold'
@@ -406,13 +398,6 @@ class gclean:
                 else:
                     # Reset convergence every time, since we return control to the GUI after a single major cycle
                     self.current_imdict.returndict['iterdone'] = 0.
-
-#                    ### Check before doing the next round....
-#                    if not self._mask_changed:
-#                        self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
-#                    else:
-#                        self.hasit = 0
-#                        self.stopdescription = ''
 
                     self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
