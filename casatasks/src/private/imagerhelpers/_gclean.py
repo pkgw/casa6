@@ -363,7 +363,7 @@ class gclean:
                                          self._major_done,
                                          self._nmajor,
                                          self._niter,
-                                         self._convergence_result[3] )
+                                         self._convergence_result[5] )
             return self._convergence_result
         else:
             ### CALL SEQUENCE:
@@ -396,9 +396,6 @@ class gclean:
 
                     self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
                     self.global_imdict.returndict = self.current_imdict.returndict
-
-                    # TODO : Add a standalone module to calculate the max PSF sidelobe.
-                    # Add it into deconv_ret at this point. The function can live inside imager_return_dict.py
 
                     ## Initial call where niterleft and nmajorleft are same as original input values.
                     self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
@@ -454,14 +451,10 @@ class gclean:
                                                minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
                                                minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
 
-    #                    print("DECONV RET")
-    #                    print(deconv_ret)
-    #                    print("TCLEAN RET")
-    #                    print(tclean_ret)
-
                         # Replace return dict with new return dict
                         # The order of the dicts into merge is important.
                         self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
+
                         # Append new return dict to global return dict
                         self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
                         self._major_done = self.current_imdict.returndict['nmajordone']
@@ -499,7 +492,13 @@ class gclean:
                                                  self._niter,
                                                  self._convergence_result[5] )
             except Exception as e:
-                return str(e), -1, self._major_done, self._nmajor, self._niter, self._convergence_result[5]
+                self._convergence_result = ( str(e),
+                                             -1,
+                                             self._major_done,
+                                             self._nmajor,
+                                             self._niter,
+                                             self._convergence_result[5] )
+                return self._convergence_result
 
             return self._convergence_result
 
