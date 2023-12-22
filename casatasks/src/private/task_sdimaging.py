@@ -18,7 +18,9 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               mode, nchan, start, width, veltype, outframe,
               gridfunction, convsupport, truncate, gwidth, jwidth,
               imsize, cell, phasecenter, projection, ephemsrcname,
-              pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax, enablecache):
+              pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax,
+              # Performances optimization options
+              enablecache, convertfirst):
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()
@@ -907,7 +909,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         # it should be called after infiles are registered to imager
         self._configure_map_property()
 
-        casalog.post("Using phasecenter \"%s\"" % (self.imager_param['phasecenter']), "INFO")
+        casalog.post(f"Using phasecenter {self.imager_param['phasecenter']}", "INFO")
 
         self.imager.defineimage(**self.imager_param)  # self.__get_param())
         self.imager.setoptions(ftmachine='sd', gridfunction=self.gridfunction)
@@ -917,13 +919,14 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
             truncate=self.truncate,
             gwidth=self.gwidth,
             jwidth=self.jwidth,
-            minweight = 0.,
+            minweight=0.,
             clipminmax=self.clipminmax,
-            enablecache=self.enablecache
+            enablecache=self.enablecache,
+            convertfirst=self.convertfirst
         )
 
         # Create images
-        imgtype_suffix = {'singledish': '', 'coverage' : '.weight'}
+        imgtype_suffix = {'singledish': '', 'coverage': '.weight'}
         for img_type, img_suffix in imgtype_suffix.items():
             img_file = self.outfile + img_suffix
             msg_fmt = string.Template(f"$state {img_type} image {img_file}")
@@ -1142,7 +1145,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         calculation.
         The input argument should be a list of antenna IDs.
         """
-        casalog.post("Calculating Pirimary beam size:")
+        casalog.post("Calculating Primary beam size:")
         # CAS-5410 Use private tools inside task scripts
         my_qa = quanta()
 

@@ -35,10 +35,9 @@ import numpy
 
 from casatasks import casalog, flagdata
 from casatasks import imhead
-from casatasks import split as split_ms
-from casatasks import tsdimaging as sdimaging
+from casatasks import split
+from casatasks import tsdimaging
 from casatasks.private.sdutil import is_ms, calibrater_manager, table_manager, tool_manager
-from casatasks.private.task_tsdimaging import image_suffix, weight_suffix
 from casatestutils import restfreqtool, selection_syntax
 from casatestutils.testhelper import TableCacheValidator
 from casatools import ctsys, image, measures
@@ -57,6 +56,8 @@ ms = mstool()
 # Unit test of sdimaging task.
 #
 
+image_suffix = '.image'
+weight_suffix = '.weight'
 
 def construct_refstat_uniform(fluxval, blc_data, trc_data):
     """Return a dictionary of analytic reference statistics of uniform image.
@@ -344,7 +345,7 @@ class sdimaging_unittest_base(unittest.TestCase, sdimaging_standard_paramset):
 
     """
 
-    taskname = 'sdimaging'
+    taskname = 'tsdimaging'
     datapath = ctsys_resolve('unittest/tsdimaging/')
     postfix = '.im'
     ms_nchan = 1024
@@ -383,7 +384,7 @@ class sdimaging_unittest_base(unittest.TestCase, sdimaging_standard_paramset):
         (4) image statistics
         (5) reference beam of image (optional)
         """
-        res = sdimaging(**task_param)
+        res = tsdimaging(**task_param)
         outprefix = task_param['outfile']
         outfile = outprefix + image_suffix
         # Tests
@@ -601,7 +602,7 @@ class sdimaging_unittest_base(unittest.TestCase, sdimaging_standard_paramset):
 
     def run_exception_case(self, task_param, expected_msg, expected_type=RuntimeError):
         with self.assertRaises(expected_type) as cm:
-            sdimaging(**task_param)
+            tsdimaging(**task_param)
         the_exception = cm.exception
         pos = str(the_exception).find(expected_msg)
         self.assertNotEqual(pos, -1,
@@ -723,8 +724,8 @@ class sdimaging_test0(sdimaging_unittest_base):
         self.run_exception_case(self.task_param, msg)
 #         # default for unknown direction frame is J2000
 #         refimage=self.outfile+'2'
-#         sdimaging(infiles=self.rawfile,outfile=self.outfile,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter.replace('J2000','J3000'),minweight=self.minweight0)
-#         sdimaging(infiles=self.rawfile,outfile=refimage,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter,minweight=self.minweight0)
+#         tsdimaging(infiles=self.rawfile,outfile=self.outfile,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter.replace('J2000','J3000'),minweight=self.minweight0)
+#         tsdimaging(infiles=self.rawfile,outfile=refimage,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter,minweight=self.minweight0)
 #         tb.open(self.outfile)
 #         chunk=tb.getcol('map')
 #         tb.close()
@@ -1421,7 +1422,7 @@ class sdimaging_test_autocoord(sdimaging_unittest_base):
         (3) image shape
         (4) image direction axis
         """
-        res = sdimaging(**task_param)
+        res = tsdimaging(**task_param)
         outprefix = task_param['outfile']
         outfile = outprefix + image_suffix
         # Tests
@@ -1539,7 +1540,7 @@ class TestTimeRangeHelper:
             else:
                 os.remove(sel_ms_name)
         try:
-            split_ms(vis=input_ms, outputvis=sel_ms_name, timerange=params['timerange'])
+            split(vis=input_ms, outputvis=sel_ms_name, timerange=params['timerange'])
             # ---- 1.2 Restore original POINTING table
             org_pointing = os.path.join(input_ms, 'POINTING')
             ref_pointing = os.path.join(sel_ms_name, 'POINTING')
@@ -1551,7 +1552,7 @@ class TestTimeRangeHelper:
             sel_ms_imaging_params = copy.deepcopy(params)
             sel_ms_imaging_params['infiles'] = [sel_ms_name]
             sel_ms_imaging_params['timerange'] = ''
-            sdimaging(**sel_ms_imaging_params)
+            tsdimaging(**sel_ms_imaging_params)
         finally:
             if not debug:
                 remove_table(sel_ms_name)
@@ -1626,7 +1627,7 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     @property
     def task(self):
-        return sdimaging
+        return tsdimaging
 
     @property
     def spw_channel_selection(self):
@@ -2639,9 +2640,9 @@ class sdimaging_test_flag(sdimaging_unittest_base):
 
     def testFlag01(self):
         """testFlag01."""
-        res = sdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
-                        gridfunction=self.gridfunction, cell=self.cell, imsize=self.imsize,
-                        phasecenter=self.phasecenter, minweight=self.minweight0)
+        res = tsdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
+                         gridfunction=self.gridfunction, cell=self.cell, imsize=self.imsize,
+                         phasecenter=self.phasecenter, minweight=self.minweight0)
         self.assertEqual(res, None,
                          msg='Any error occurred during imaging')
         outfile = self.outfile + image_suffix
@@ -2654,10 +2655,10 @@ class sdimaging_test_flag(sdimaging_unittest_base):
         self._check_weight()
 
     def testFlag02(self):
-        res = sdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
-                        width=10, gridfunction=self.gridfunction, cell=self.cell,
-                        imsize=self.imsize, phasecenter=self.phasecenter,
-                        minweight=self.minweight0)
+        res = tsdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
+                         width=10, gridfunction=self.gridfunction, cell=self.cell,
+                         imsize=self.imsize, phasecenter=self.phasecenter,
+                         minweight=self.minweight0)
         self.assertEqual(res, None,
                          msg='Any error occurred during imaging')
         outfile = self.outfile + image_suffix
@@ -2835,7 +2836,7 @@ class sdimaging_test_polflag(sdimaging_unittest_base):
 
     def run_test(self, task_param, refstats, shape,
                  atol=1.e-8, rtol=1.e-5, box=None):
-        self.res = sdimaging(**task_param)
+        self.res = tsdimaging(**task_param)
         # Tests
         imsize = [shape[0], shape[1]]
         outfile = self.outfile + image_suffix
@@ -2979,7 +2980,7 @@ class sdimaging_test_mslist(sdimaging_unittest_base):
             task_param = self.default_param
         if refstats is None:
             refstats = self.refstats
-        sdimaging(**task_param)
+        tsdimaging(**task_param)
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
         self._check_weight_image(outfile)
@@ -3075,7 +3076,7 @@ class sdimaging_test_restfreq(sdimaging_unittest_base):
 
     def run_test(self, restfreq_ref, beam_ref, cell_ref, stats, **kwargs):
         self.param.update(**kwargs)
-        status = sdimaging(**self.param)
+        status = tsdimaging(**self.param)
         if not status:
             return status
         stats.pop('sumsq')
@@ -3238,7 +3239,7 @@ class sdimaging_test_mapextent(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.param.update(**kwargs)
-        status = sdimaging(**self.param)
+        status = tsdimaging(**self.param)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
@@ -3400,7 +3401,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.param.update(**kwargs)
-        status = sdimaging(**self.param)
+        status = tsdimaging(**self.param)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
@@ -3586,7 +3587,7 @@ class sdimaging_test_interp(sdimaging_unittest_base):
             self.__copy_table(infile)
         self.params.update(**kwargs)
 
-        status = sdimaging(infiles=infiles, outfile=outfile, **self.params)
+        status = tsdimaging(infiles=infiles, outfile=outfile, **self.params)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = outfile.rstrip('/') + '.image'
         self._checkfile(outfile)
@@ -3720,7 +3721,7 @@ class sdimaging_test_interp_old(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.params.update(**kwargs)
-        status = sdimaging(**self.params)
+        status = tsdimaging(**self.params)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
@@ -3833,10 +3834,10 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         imsize = 3
         cell = '1arcmin'
         phasecenter = 'J2000 0h0m0s 0d0m0s'
-        sdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
-                  mode=mode, nchan=nchan, start=start, width=width,
-                  gridfunction=gridfunction, imsize=imsize, cell=cell,
-                  phasecenter=phasecenter, clipminmax=True)
+        tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
+                   mode=mode, nchan=nchan, start=start, width=width,
+                   gridfunction=gridfunction, imsize=imsize, cell=cell,
+                   phasecenter=phasecenter, clipminmax=True)
         _outfile = outfile + image_suffix
         self._checkfile(_outfile)
         self._check_weight_image(_outfile)
@@ -3917,10 +3918,10 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                                 mytb.putcell('FLAG', irow, flag)
 
         outfile = self.outfile_ref
-        sdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
-                  mode=mode, nchan=nchan, start=start, width=width,
-                  gridfunction=gridfunction, imsize=imsize, cell=cell,
-                  phasecenter=phasecenter, clipminmax=False)
+        tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
+                   mode=mode, nchan=nchan, start=start, width=width,
+                   gridfunction=gridfunction, imsize=imsize, cell=cell,
+                   phasecenter=phasecenter, clipminmax=False)
         _outfile_ref = outfile + image_suffix
         self._checkfile(_outfile_ref)
         self._check_weight_image(_outfile_ref)
@@ -4228,7 +4229,7 @@ class sdimaging_test_output(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.params.update(**kwargs)
-        status = sdimaging(**self.params)
+        status = tsdimaging(**self.params)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self.assertTrue(os.path.exists(outfile), msg='output image is not created.')
