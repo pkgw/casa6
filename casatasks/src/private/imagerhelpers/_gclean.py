@@ -407,14 +407,18 @@ class gclean:
                     # Reset convergence every time, since we return control to the GUI after a single major cycle
                     self.current_imdict.returndict['iterdone'] = 0.
 
-                    ### Check before doing the next round....
-                    if not self._mask_changed:
-                        self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
-                    else:
-                        self.hasit = 0
-                        self.stopdescription = ''
+#                    ### Check before doing the next round....
+#                    if not self._mask_changed:
+#                        self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
+#                    else:
+#                        self.hasit = 0
+#                        self.stopdescription = ''
 
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
+                    print("HASIT : ",self.hasit)
+                    print("DESC : ",self.stopdescription)
+                    
                     #self.global_imdict.returndict['stopcode'] = self.hasit
                     #self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
@@ -430,8 +434,10 @@ class gclean:
                                                   threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, usemask=self._usemask,
                                                   nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, noisethreshold=self._noisethreshold)
 
-                        # Run the major cycle
-                        tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                        if deconv_ret['stopcode'] != 7:  ## If zero mask, then deconvolution would have done zero iterations -> no need for major cycle
+
+                            # Run the major cycle
+                            tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
                                                phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
                                                gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
                                                wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
@@ -448,19 +454,24 @@ class gclean:
                                                sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
                                                lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
                                                minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
-                                               minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel, maxpsffraction=self._maxpsffraction,
+                                               minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel,
+                                               maxpsffraction=self._maxpsffraction,
                                                minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
 
-                        # Replace return dict with new return dict
-                        # The order of the dicts into merge is important.
-                        self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
+                            # Replace return dict with new return dict
+                            # The order of the dicts into merge is important.
+                            self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
 
-                        # Append new return dict to global return dict
-                        self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
-                        self._major_done = self.current_imdict.returndict['nmajordone']
+                            # Append new return dict to global return dict
+                            self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
+                            self._major_done = self.current_imdict.returndict['nmajordone']
 
-                        ## Decrement count for the major cycle just done...
-                        self.__decrement_counts()
+                            ## Decrement count for the major cycle just done...
+                            self.__decrement_counts()
+
+                        else:
+                            print("NO DECONVOLUTION ITERATIONS because of zero mask. Skipped major cycle and return dictionary update.\n")
+
 
                         # Use global imdict for convergence check
                         self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
@@ -473,6 +484,7 @@ class gclean:
                         # If we haven't converged, run deconvolve to update the mask
                         self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
 
+                #print('\nGLOBAL returndict : ',self.global_imdict.returndict)
                 if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
                     # self.current_imdict only contains the latest tclean/deconvolve results
                     # Passing in self.global_imdict will pull out the cumulative results everytime, breaking the convergence plot.
@@ -507,9 +519,11 @@ class gclean:
         if self.hasit == 0:  ##If not yet converged.
             if self._nmajor != -1:   ## If -1, don't touch it.
                 self._nmajor = self._nmajor - 1
+                if self._nmajor<0:   ## Force a floor
+                    self._nmajor=0
             self._niter = self._niter - self.current_imdict.get_key('iterdone')
             if self._niter<0:  ## This can happen when we're counting niter across channels in a single minor cycle set, and it crosses the total. 
-                self._niter=0
+                self._niter=0  ## Force a floor
         else:
             return  ##If convergence has been reached, don't try to decrement further.
 
