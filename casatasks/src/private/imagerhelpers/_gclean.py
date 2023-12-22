@@ -416,8 +416,8 @@ class gclean:
 
                     self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
-                    print("HASIT : ",self.hasit)
-                    print("DESC : ",self.stopdescription)
+                    #print("HASIT : ",self.hasit)
+                    #print("DESC : ",self.stopdescription)
                     
                     #self.global_imdict.returndict['stopcode'] = self.hasit
                     #self.global_imdict.returndict['stopDescription'] = self.stopdescription
@@ -474,7 +474,10 @@ class gclean:
 
 
                         # Use global imdict for convergence check
-                        self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
+                        if deconv_ret['stopcode'] == 7:   ## Tell the convergence checker that the mask is zero and iterations were skipped
+                            self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor, masksum=0)
+                        else:
+                            self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
 
 
                     self.global_imdict.returndict['stopcode'] = self.hasit

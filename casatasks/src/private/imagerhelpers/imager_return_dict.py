@@ -347,7 +347,7 @@ class ImagingDict():
         return peakres
 
 
-    def has_converged(self, niterleft=0, threshold=0, nmajorleft=0):
+    def has_converged(self, niterleft=0, threshold=0, nmajorleft=0,masksum=None):
         """
         Check stopping criteria for convergence, based on the criteria specified here -
         https://casadocs.readthedocs.io/en/stable/notebooks/synthesis_imaging.html#Returned-Dictionary
@@ -363,22 +363,26 @@ class ImagingDict():
         stopDescription = ''
 
         nmajordone = self.get_key('nmajordone')
-        if nmajordone >= 2:
-            # Peak residual over last two major cycles
-            peakres1 = self.get_peakres(major_index=-1)
-            peakres2 = self.get_peakres(major_index=-2)
+#        if nmajordone >= 2:
+#            # Peak residual over last two major cycles
+#            peakres1 = self.get_peakres(major_index=-1)
+#            peakres2 = self.get_peakres(major_index=-2)
+#        else:
+#            peakres1 = 0
+#            peakres2 = 0
+#
+#        peakres_list = np.asarray([self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajordone)])
+#        #min_peakres = np.amin(peakres_list[peakres_list != 0])
+#        min_peakres = np.amin(peakres_list)
+#        if min_peakres==0:
+#            print("peakres = 0 ! ")
+
+        if masksum !=None:
+            use_masksum = masksum      ## If the mask has been zero'd out and iterations have been skipped (i.e. no summaryminor).
         else:
-            peakres1 = 0
-            peakres2 = 0
-
-        peakres_list = np.asarray([self.get_peakres(major_index=-1*(ii+1)) for ii in range(nmajordone)])
-        #min_peakres = np.amin(peakres_list[peakres_list != 0])
-        min_peakres = np.amin(peakres_list)
-        if min_peakres==0:
-            print("peakres = 0 ! ")
-
-        #if self.returndict['iterdone'] >= niter:
-        if self.check_masksum() == 0:
+            use_masksum = self.check_masksum()    ## If iterations have happened, latest info will be in the summaryminor. 
+            
+        if use_masksum == 0:
             stopcode = 7
             stopDescription = 'Zero mask'
         elif niterleft<=0:
