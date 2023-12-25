@@ -3594,13 +3594,13 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
     @staticmethod
     def fill_weight_spectrum(name):
         with calibrater_manager(name, addcorr=False, addmodel=False) as cb:
-            cb.initweights(wtmode='ones', dowtsp=False)
+            cb.initweights(wtmode='ones', dowtsp=True)
 
     @staticmethod
     def remove_weight_spectrum(name):
         with table_manager(name, nomodify=False) as tb:
             if 'WEIGHT_SPECTRUM' in tb.colnames():
-                tb.removecols('WEIGHT_SPECTRUM')
+                tb.removecols(['WEIGHT_SPECTRUM'])
             wt = tb.getcol('WEIGHT')
             wt[:] = 1.0
             tb.putcol('WEIGHT', wt)
@@ -3614,7 +3614,7 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
     def remove_corrected_data(name):
         with table_manager(name, nomodify=False) as tb:
             if 'CORRECTED_DATA' in tb.colnames():
-                tb.removecols('CORRECTED_DATA')
+                tb.removecols(['CORRECTED_DATA'])
 
     def setUp(self):
         super(sdimaging_ms_conformance, self).setUp()
