@@ -173,13 +173,19 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
 }
   
  void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
-  //
+
+
+
+    awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
+                             weightConvFunc_p, vb, rotuvw);
+
+   //
   // pbConvFunc_p.phasegradient
-    convFunc.resize();
-    convFunc.assign(awConvs_p->getConvFunc());
+    //convFunc.resize();
+    // convFunc.assign(awConvs_p->getConvFunc());
  
-    weightConvFunc_p.resize();
-    weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
+    //weightConvFunc_p.resize();
+    //weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
     /*{ 
       ////TESTOO
       IPosition elshp = convFunc.shape().getFirst(4);
@@ -205,7 +211,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
-    awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
+    //awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
     //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
     std::vector<Int> pmapused=convPolMap_p.tovector();
     {

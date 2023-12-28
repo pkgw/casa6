@@ -301,6 +301,93 @@ Vector<Int> AWConvFuncHolder::getConvSupports() {
   
  return convSupport_p; 
 }
+
+/////////////////////
+void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vector<Int> &rowMap, Array<Complex> &convFunc, Array<Complex> &wgtConvFunc, 
+                  const vi::VisBuffer2 &vb,
+                  const Matrix<Double> &rotuvw){
+
+  Vector<Int> cmap;
+  Vector<Int> pmap;
+  Vector<Int> rmap;
+  getConvIndices(pmap, cmap, rmap, vb, rotuvw);
+  std::vector<Int> pmapused = pmap.tovector();
+  {
+    std::sort(pmapused.begin(), pmapused.end());
+    auto last = std::unique(pmapused.begin(), pmapused.end());
+    pmapused.erase(last, pmapused.end());
+  }
+  std::vector<Int> cmapused = cmap.tovector();
+  {
+    std::sort(cmapused.begin(), cmapused.end());
+    auto last = std::unique(cmapused.begin(), cmapused.end());
+    cmapused.erase(last, cmapused.end());
+  }
+  std::vector<Int> rmapused = abs(rmap).tovector();
+  {
+    std::sort(rmapused.begin(), rmapused.end());
+    auto last = std::unique(rmapused.begin(), rmapused.end());
+    rmapused.erase(last, rmapused.end());
+  }
+  IPosition shp(5, convFunc_p.shape()[0], convFunc_p.shape()[1],
+                pmapused.size(), cmapused.size(), rmapused.size());
+  polMap.resize(pmap.shape());
+  for (uint j = 0; j < polMap.nelements(); ++j) {
+    for (int k = 0; k < pmapused.size(); ++k) {
+      if (pmap[j]==pmapused[k]){
+        polMap[j] = k;
+      }
+    }
+  }
+  chanMap.resize(cmap.shape());
+  std::vector<int>cindex(cmapused.size());
+  for (uint j = 0; j < chanMap.nelements(); ++j) {
+    for (int k = 0; k < cmapused.size(); ++k) {
+      if (cmap[j] == cmapused[k]){
+        chanMap[j] = k;
+      }
+    }
+  }
+  rowMap.resize(rmap.shape());
+  for (uint j = 0; j < rowMap.nelements(); ++j) {
+    for (int k = 0; k < rmapused.size(); ++k) {
+      if (abs(rmap[j]) == rmapused[k]){
+        //rowmap is -ve for -ve w
+        rowMap[j] = rmap[j] < 0 ? -k : k;
+      }
+    }
+  }
+  convFunc.resize(shp);
+  wgtConvFunc.resize(shp);
+  IPosition inblc(5, 0, 0, 0, 0, 0);
+  IPosition intrc(5, shp[0] - 1, shp[1] - 1, 0, 0, 0);
+  IPosition outblc(5, 0, 0, 0, 0, 0);
+  IPosition outtrc(5, shp[0] - 1, shp[1] - 1, 0, 0, 0);
+
+  for (uint r = 0; r < rmapused.size(); ++r){
+    inblc[4] = rmapused[r];
+    intrc[4] = rmapused[r];
+    outblc[4] = r;
+    outtrc[4] = r;
+    for (uint c = 0; c < cmapused.size(); ++c) {
+      inblc[3] = cmapused[c];
+      intrc[3] = cmapused[c];
+      outblc[3] = c;
+      outtrc[3] = c;
+      for (uint p = 0; p < pmapused.size(); ++p) {
+        inblc[2] = pmapused[p];
+        intrc[2] = pmapused[p];
+        outblc[2] = p;
+        outtrc[2] = p;
+        convFunc(outblc, outtrc) = convFunc_p(inblc, intrc);
+        wgtConvFunc(outblc, outtrc) = wgtConvFunc_p(inblc, intrc);
+      }
+    }
+  }
+}
+//////////////////////  
+  
+
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());

@@ -61,12 +61,23 @@ class AWConvFuncHolder{
   //Rowmap will be the same nrow as vb.nrows , polmap will gave the same length of vb.ncorrelations and chanmap will be the length of vb.nchannelscasacore::Vector<casacore::Int>& rowMap
   void getConvIndices( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
 
+// This function will return a subset of the convFuncs, i.e those used in this vb 
+  void getConvFuncs(casacore::Vector<casacore::Int> &polMap,
+                    casacore::Vector<casacore::Int> &chanMap,
+                    casacore::Vector<casacore::Int> &rowMap,
+                    casacore::Array<casacore::Complex>& convFunc,
+                    casacore::Array<casacore::Complex>& wgtConvFunc,
+                    const vi::VisBuffer2 &vb,
+                    const casacore::Matrix<casacore::Double> &rotuvw);
   
 
- private:
-   void appendConvFuncs(const casacore::Array<casacore::Complex>& awConv,  const casacore::Array<casacore::Complex>& aWwtConv,  const casacore::Matrix<casacore::Int>& awsupport, const casacore::Vector<casacore::Double>& newfreqs, const casacore::Double paval);
-   
-   
+private:
+  void appendConvFuncs(const casacore::Array<casacore::Complex> &awConv,
+                       const casacore::Array<casacore::Complex> &aWwtConv,
+                       const casacore::Matrix<casacore::Int> &awsupport,
+                       const casacore::Vector<casacore::Double> &newfreqs,
+                       const casacore::Double paval);
+
   double painc_p;
   bool dosquint_p;
   casacore::Array<casacore::Complex> convFunc_p;
