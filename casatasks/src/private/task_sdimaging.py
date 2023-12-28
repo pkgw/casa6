@@ -835,7 +835,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         self.imager_param['movingsource'] = self.ephemsrcname
 
         # channel map
-        sorted_vislist = sdutil.tentative_chrono_sort(self.infiles)
+        sorted_vislist, _ = mslisthelper.sort_mslist(self.infiles)
         self.sorted_idx = [self.infiles.index(vis) for vis in sorted_vislist]
         imhelper = cleanhelper_minimal(self.imager, self.infiles, sort_index=self.sorted_idx, casalog=casalog)
         spwsel = str(',').join([str(spwid) for spwid in selection_ids['spw']])

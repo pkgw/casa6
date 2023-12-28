@@ -540,28 +540,6 @@ def to_list(param, ptype=int, convert=False):
     return None
 
 
-def tentative_chrono_sort(infiles):
-    assert isinstance(infiles, (list, numpy.ndarray, set))
-
-    sortedvis = []
-    namestuples = []
-    for name in infiles:
-        assert isinstance(name, str)
-        assert os.path.exists(name)
-        with table_manager(name) as t:
-            t.open(name)
-            times = t.getcol('TIME')
-            times.sort()
-            namestuples.append((times[0], name, 0))
-
-    sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
-
-    for i in range(len(infiles)):
-        sortedvis.append(sorted_namestuples[i][1])
-
-    return sortedvis
-
-
 def do_mst(
         infile,
         datacolumn,
