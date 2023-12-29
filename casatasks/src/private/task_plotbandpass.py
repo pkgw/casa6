@@ -53,7 +53,7 @@ MAX_ATM_CALC_CHANNELS = 512
 markeredgewidth = 0.0
 
 # This is a color sequence found online which has distinguishable colors
-overlayColors = [
+overlayColorsSequence = [
       [0.00,  0.00,  0.00],
       [0.00,  0.00,  1.00],
       [0.00,  0.50,  0.00],
@@ -74,11 +74,12 @@ overlayColors = [
       [0.10,  0.49,  0.47],
       [0.66,  0.34,  0.65],
       [0.99,  0.41,  0.23]]
-overlayColors += overlayColors + overlayColors  # 17*3 = 51 total colors
-overlayColors += overlayColors + overlayColors # try to support antenna,time
-overlayColors += overlayColors + overlayColors # try to support antenna,time
-overlayColors += overlayColors + overlayColors # try to support antenna,time
-overlayColors += overlayColors + overlayColors # try to support antenna,time
+overlayColorsList = overlayColorsSequence.copy()
+overlayColorsList += overlayColorsList + overlayColorsList # 17*3 = 51 total colors
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
 
 # Enumeration to keep track of plot pages
 PAGE_ANT = 0
@@ -1936,7 +1937,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                 indexDelete = np.where(spwsToPlot==myspw)[0]
                 if (len(indexDelete) > 0):
                     spwsToPlot = np.delete(spwsToPlot, indexDelete[0])
-        print(("spwsToPlot = ", spwsToPlot))
+        print("spws to plot = ", spwsToPlot)
     casalogPost(debug,"scans to plot: %s" % (str(scansToPlot)))
     casalogPost(debug,"UT times to plot: %s" % (timerangeListTimesString))
     casalogPost(debug,"Corresponding time IDs (0-based): %s" % (str(timerangeList)))
@@ -1955,6 +1956,19 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
             casalogPost(debug,"Revised scans to plot: %s" % (str(scansToPlot)))
             casalogPost(debug,"Revised UT times to plot: %s" % (timerangeListTimesString))
             casalogPost(debug,"Corresponding time IDs (0-based): %s" % (str(timerangeList)))
+
+    # Reassign overlay colors list if time overlays use a single color
+    overlayColors = overlayColorsList
+    if (overlayTimes and not overlayAntennas and len(timerangeList) > 1):
+        timeOverlayColors = [overlayColors[idx] for idx in timerangeList]
+        uniqueTimeColors = np.unique(timeOverlayColors)
+        if (len(uniqueTimeColors) == 1):
+            # Redo overlay colors list with shift
+            if debug: print("Shifting overlay colors list to avoid repeats")
+            shiftOverlayColors = overlayColorsSequence
+            while len(shiftOverlayColors) <= timerangeList[-1]:
+                 shiftOverlayColors += shiftOverlayColors[1:]
+            overlayColors = shiftOverlayColors
 
     # Check for mismatch
     if (bpolyOverlay):
@@ -4076,7 +4090,48 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                       elif (overlayAntennas==True and xant==antennasToPlot[-1] and bOverlay == False   # ):
                             and overlayTimes==False):  # try to support antenna,time  avoid antenna labels 'phase'
                               # We do this last, because by then, the limits will be stable.
-                          DrawAntennaNamesForOverlayAntennas(xstartPolLabel, ystartPolLabel, polsToPlot, corr_type, channeldiff, ystartMadLabel, subplotRows, gamp_mad, gamp_std, overlayColors, mysize, ampmarkstyle, markersize, markeredgewidth, msAnt, msFound, antennasToPlot, ampmarkstyle2, xframe, firstFrame, caltableTitle, titlesize, debug=debug)
+                              if (debug): print("overlayAntennas=True")
+                              x0 = xstartPolLabel
+                              y0 = ystartPolLabel
+                              # draw polarization labels
+                              if (debug): print("1) overlayAntennas=True")
+                              if (corrTypeToString(corr_type[0]) in polsToPlot):
+                                if (channeldiff > 0):
+                                    pb.text(x0, ystartMadLabel-0.03*subplotRows*0,
+                                            corrTypeToString(corr_type[0])+' MAD = %.4f, St.Dev = %.4f'%(gamp_mad[0]['mad'],gamp_std[0]['std']),
+                                            color=overlayColors[0],size=mysize, transform=pb.gca().transAxes)
+                                if (ampmarkstyle.find('-')>=0):
+                                    pb.text(x0, y0, corrTypeToString(corr_type[0])+' solid', color=overlayColors[0],size=mysize,
+                                            transform=pb.gca().transAxes)
+                                else:
+                                    pb.text(x0+0.02, y0, corrTypeToString(corr_type[0]), color=overlayColors[0],size=mysize,
+                                            transform=pb.gca().transAxes)
+                                    pdesc = pb.plot([x0-0.01], [y0], '%sk'%ampmarkstyle, markersize=markersize,
+                                                    scalex=False,scaley=False, transform=pb.gca().transAxes,markeredgewidth=markeredgewidth)
+                              if (debug): print("2) overlayAntennas=True")
+                              if (len(corr_type) > 1):
+                               if (corrTypeToString(corr_type[1]) in polsToPlot):
+                                if (channeldiff > 0):
+                                    pb.text(x0, ystartMadLabel-0.03*subplotRows*1,
+                                            corrTypeToString(corr_type[1])+' MAD = %.4f, St.Dev = %.4f'%(gamp_mad[1]['mad'],gamp_std[1]['std']),
+                                            color=overlayColors[0],size=mysize, transform=pb.gca().transAxes)
+                                if (ampmarkstyle2.find('--')>=0):
+                                  pb.text(x0, y0-0.03*subplotRows, corrTypeToString(corr_type[1])+' dashed',
+                                          color=overlayColors[0],size=mysize, transform=pb.gca().transAxes)
+                                else:
+                                  pb.text(x0+0.02, y0-0.03*subplotRows, corrTypeToString(corr_type[1]),
+                                          color=overlayColors[0],size=mysize, transform=pb.gca().transAxes)
+                                  pdesc = pb.plot([x0-0.01], [y0-0.03*subplotRows], '%sk'%ampmarkstyle2,
+                                                  markersize=markersize, scalex=False,scaley=False,markeredgewidth=markeredgewidth)
+                              if (debug): print("3) overlayAntennas=True")
+                              if (xframe == firstFrame):
+                                  # draw title including caltable name
+                                  if (debug): print("4) overlayAntennas=True")
+                                  pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize, color='k',
+                                          transform=pb.gcf().transFigure)
+                                  if (debug): print("5) overlayAntennas=True")
+                                  DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize, overlayColors)
+                                  if (debug): print("6) overlayAntennas=True")
                       elif (overlayTimes==True and bOverlay == False
                             and overlayAntennas==False):  # try to support antenna,time
                           doneOverlayTime = True  # assumed until proven otherwise in the 'for' loop
@@ -4882,7 +4937,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                               # draw title including caltable name
                               pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize, color='k',
                                       transform=pb.gcf().transFigure)
-                              DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize)
+                              DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize, overlayColors)
                       elif (overlayTimes==True and bOverlay == False
                             and overlayAntennas==False):  # try to support antenna,time
                           doneOverlayTime = True # assumed until proven otherwise in the 'for' loop
@@ -6368,7 +6423,7 @@ def DrawBottomLegendPageCoords(msName, uniqueTimesMytime, mysize, figfile):
     pb.text(0.04, 0.02, bottomLegend, size=mysize, transform=pb.gcf().transFigure)
 #    pb.text(0.1, 0.02, bottomLegend, size=mysize, transform=pb.gcf().transFigure)
 
-def DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize):
+def DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize, overlayColors):
     for a in range(len(antennasToPlot)):
         if (msFound):
             legendString = msAnt[antennasToPlot[a]]
