@@ -3001,12 +3001,20 @@ void SynthesisImagerVi2::unlockMSs()
   void SynthesisImagerVi2::createVisSet(const Bool /*writeAccess*/)
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createVisSet",WHERE) );
-    //cerr << "mss_p num" << mss_p.nelements() <<  " sel  " << fselections_p->size() << endl;
+    cerr << "mss_p num" << mss_p.nelements() <<  " sel  " << fselections_p->size() << endl;
     lockMSs();
     if(mss_p.nelements() > uInt(fselections_p->size()) && (fselections_p->size() !=0)){
       throw(AipsError("Discrepancy between Number of MSs and Frequency selections"));
     }
-    vi_p=new vi::VisibilityIterator2(mss_p, vi::SortColumns(), true); //writeAccess);
+
+    Block<Int> col;
+    col.resize(4);
+    col[0] = MS::ARRAY_ID;
+    col[1] = MS::DATA_DESC_ID;
+    col[2] = MS::FIELD_ID;
+    col[3] = MS::TIME;
+    vi::SortColumns sc(col, false);
+  vi_p = new VisibilityIterator2(mss_p, sc, true); //writeAccess);
 
     if(fselections_p->size() !=0){
       CountedPtr<vi::FrequencySelections> tmpfselections=new FrequencySelections();
