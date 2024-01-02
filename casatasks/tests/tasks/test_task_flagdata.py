@@ -1557,6 +1557,48 @@ class test_statistics_queries(test_base):
         resT = flagdata(vis=self.vis, spw='0', scan='1', mode='summary')
         self.assertEqual(resT['flagged'],res1['flagged'])
 
+    def test_summary_spwcorr(self):
+        ''' flagdata: basic check of summary/spwcorr stats. CAS-14185'''
+        flagdata(vis=self.vis, spw='0', correlation='LL', mode='manual', savepars=False, flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary', spwcorr=True)
+        self.assertTrue("spw:correlation" in res)
+        func_test_eq(res, 2854278, 1427139)
+        self.assertEqual(res["spw:correlation"]["0:LL"]["total"], 1427139)
+        self.assertEqual(res["spw:correlation"]["0:LL"]["flagged"], 1427139)
+        self.assertEqual(res["spw:correlation"]["0:RR"]["total"], 1427139)
+        self.assertEqual(res["spw:correlation"]["0:RR"]["flagged"], 0)
+
+
+    def test_summary_basecnt(self):
+        ''' flagdata: basic check of summary/basecnt stats. CAS-14185'''
+        test_ant = "VA17"
+        flagdata(vis=self.vis, antenna=test_ant, spw='0', scan='1', mode='manual',
+                 savepars=False, flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary', basecnt=True)
+        self.assertTrue("baseline" in res)
+        self.assertTrue("antenna:scan" in res)
+        func_test_eq(res, 2854278, 36036)
+
+        # Check 'baseline' stats
+        for bsn_key in res["baseline"]:
+            ant_occur = bsn_key.count(test_ant)
+            if ant_occur == 1:
+                self.assertEqual(res["baseline"][bsn_key]["total"], 7434)
+                self.assertEqual(res["baseline"][bsn_key]["flagged"], 1386)
+            elif ant_occur == 2:
+                self.assertEqual(res["baseline"][bsn_key]["total"], 7434)
+                self.assertEqual(res["baseline"][bsn_key]["flagged"], 0)
+
+        # Check 'antenna:scan' stats
+        self.assertEqual(res["antenna:scan"]["VA17:1"]["total"], 37422)
+        self.assertEqual(res["antenna:scan"]["VA17:1"]["flagged"], 36036)
+        unflagged_scans = ["2", "3", "4", "5", "6", "7"]
+        for scan in unflagged_scans:
+            self.assertEqual(res["antenna:scan"]["VA17:1"]["total"], 37422)
+            self.assertEqual(res["antenna:scan"]["VA17:1"]["flagged"], 36036)
+
 
 class test_selections(test_base):
     """Test various selections"""
