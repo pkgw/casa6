@@ -227,7 +227,8 @@ class ImagingDict():
             return []
 
 
-    def get_summaryminor_stopdesc(self, stopcode:int) -> str:
+    @staticmethod
+    def get_summaryminor_stopdesc(stopcode:int=None) -> str:
         """
         Given the summaryminor stopcode, return the stop description.
 
@@ -238,13 +239,16 @@ class ImagingDict():
         stopdesc        The stop description. str
         """
 
-        stopdesc = {0:'Skipped this channel/polarization. Zero mask.', 
+        stopdesc = {0:'Skipped this channel/polarization. Zero mask.',
                     1:'Reached cycleniter',
                     2:'Reached cyclethreshold',
                     3:'Zero iterations performed',
                     4:'Possible divergence. Peak residual increased by 10% from minimum',
                     5:'Exited deconvolver minor cycle without reaching any stopping criterion',
                     6:'Reached n-sigma threshold'}
+
+        if stopcode is None:
+            return stopdesc
 
         return stopdesc[stopcode]
 
