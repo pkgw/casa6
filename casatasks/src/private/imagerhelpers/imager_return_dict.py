@@ -227,6 +227,28 @@ class ImagingDict():
             return []
 
 
+    def get_summaryminor_stopdesc(self, stopcode:int) -> str:
+        """
+        Given the summaryminor stopcode, return the stop description.
+
+        Inputs:
+        stopcode        The stopcode to return the description for. int
+
+        Returns:
+        stopdesc        The stop description. str
+        """
+
+        stopdesc = {0:'Skipped this channel/polarization. Zero mask.', 
+                    1:'Reached cycleniter',
+                    2:'Reached cyclethreshold',
+                    3:'Zero iterations performed',
+                    4:'Possible divergence. Peak residual increased by 10% from minimum',
+                    5:'Exited deconvolver minor cycle without reaching any stopping criterion',
+                    6:'Reached n-sigma threshold'}
+
+        return stopdesc[stopcode]
+
+
 
     def merge(self, tclean_dict: dict, deconv_dict: dict, key_path=[]) -> None:
         """
@@ -282,7 +304,7 @@ class ImagingDict():
         for key in dict_keys:
             if key not in dict1.keys() or key not in dict2.keys():
                 print("Internal Error : KEY mismatch : ", key)
-            
+
             if key in ['iterdone', 'nmajordone']:
                 appendix[key] = dict1[key] + dict2[key]
             elif isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
@@ -380,8 +402,8 @@ class ImagingDict():
         if masksum !=None:
             use_masksum = masksum      ## If the mask has been zero'd out and iterations have been skipped (i.e. no summaryminor).
         else:
-            use_masksum = self.check_masksum()    ## If iterations have happened, latest info will be in the summaryminor. 
-            
+            use_masksum = self.check_masksum()    ## If iterations have happened, latest info will be in the summaryminor.
+
         if use_masksum == 0:
             stopcode = 7
             stopDescription = 'Zero mask'
@@ -486,7 +508,7 @@ class ImagingDict():
             ia.close()
         else:
             mask = -1 # No mask, so everything is unmasked
-        
+
         # If model image exists, calc model flux, else set to 0
         model_sum = 0
         if os.path.exists(self.modelname):
