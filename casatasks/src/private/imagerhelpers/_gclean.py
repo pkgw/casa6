@@ -152,7 +152,7 @@ class gclean:
             except ValueError:
                 pass
 
-        self._validate_iteration_control_params()
+        return self._validate_iteration_control_params()
 
 
     def _validate_iteration_control_params(self):
@@ -311,7 +311,10 @@ class gclean:
         # XXX : We should ideally use quantities, but we are trying to
         # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
-        self._validate_iteration_control_params()
+        errcode, errdesc = self._validate_iteration_control_params()
+
+        if errdesc != '':
+            raise ValueError(errdesc)
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
         '''Add meta-data about the whole major cycle, including 'cyclethreshold'
