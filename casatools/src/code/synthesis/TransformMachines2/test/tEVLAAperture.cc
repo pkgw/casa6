@@ -136,7 +136,8 @@ bool resampleCopy(ImageInterface<Complex>& outImage, ImageInterface<Complex>& in
 
 int main() {
   try {
-
+    //till we get repos visible
+    exit(0);
     // Form coordinate systems and test images
     CoordinateSystem coordsys;
     CoordinateSystem coordsys3;

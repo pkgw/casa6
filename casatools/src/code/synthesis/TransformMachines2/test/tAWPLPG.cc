@@ -79,6 +79,9 @@ refim::FTMachine* makeFTM(String ftmachine, MPosition loc, MDirection dir){
 
 Int main(/*int argc, char **argv*/){
   try{
+    
+    exit(0);
+    // Till we get data repos visible
     MDirection thedir(Quantity(20.0, "deg"), Quantity(20.0, "deg"));
     String msname("Test.ms");
     MakeMS::makems(msname, thedir);

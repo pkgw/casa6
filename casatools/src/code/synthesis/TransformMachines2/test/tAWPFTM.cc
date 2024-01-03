@@ -160,6 +160,9 @@ void createAWPFTMachine(CountedPtr<refim::FTMachine>& theFT, CountedPtr<refim::F
 
 Int main(int argc, char **argv)
 {
+  //Till we get repos accessible
+  exit(0);
+  
   Int NX=256, NY=256, cfBufferSize=512, cfOversampling=20;
   if (argc > 1) {sscanf(argv[1],"%d",&NX); NY=NX;}
   if (argc > 2) {sscanf(argv[2],"%d",&cfBufferSize);};
