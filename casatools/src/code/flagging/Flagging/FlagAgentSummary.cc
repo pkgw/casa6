@@ -721,7 +721,8 @@ FlagAgentSummary::getResultCore(Record &result)
         {
             // Construct antenna name
             stringstream antenna_stringStream;
-            antenna_stringStream << flagDataHandler_p->antennaNames_p->operator()(key1.first);
+            const auto antennaName = flagDataHandler_p->antennaNames_p->operator()(key1.first);
+            antenna_stringStream << antennaName;
 
             for (const auto &key2 : key1.second)
             {
@@ -749,7 +750,7 @@ FlagAgentSummary::getResultCore(Record &result)
                 }
 
                 *logger_p 	<< LogIO::NORMAL
-                        << " Spw:" << key1.first << " Correlation:" << key2.first
+                        << " Antenna:" << antennaName << " Scan:" << key2.first
                         << " flagged: " <<  (Double) currentSummary->accumAntScanflags[key1.first][key2.first]
                                          << " total: " <<  (Double) key2.second
                                          << percentage.str()
