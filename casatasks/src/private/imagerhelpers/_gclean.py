@@ -120,13 +120,18 @@ class gclean:
         """ Interactive clean parameters update.
 
         Args:
-            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor' 
+            msg: dict with possible keys 'niter', 'cycleniter', 'nmajor', 'threshold', 'cyclefactor'
+
+        Returns:
+            stopcode : Stop code in case of error (-1 on error, 0 if no error), int
+            stopdesc : Exception error message, str
         """
         if 'niter' in msg:
             try:
                 self._niter = int(msg['niter'])
-            except ValueError:
+            except ValueError as err:
                 pass
+
         if 'cycleniter' in msg:
             try:
                 self._cycleniter = int(msg['cycleniter'])
@@ -146,6 +151,51 @@ class gclean:
                 self._cyclefactor = int(msg['cyclefactor'])
             except ValueError:
                 pass
+
+        self._validate_iteration_control_params()
+
+
+    def _validate_iteration_control_params(self):
+        """
+        Validate the iteration control parameters, and make sure that they make
+        sense, and are of the right types etc.
+        """
+
+        if not isinstance(self._niter, int):
+            return -1, f"niter must be an integer, not {type(self._niter)}"
+        else:
+            if self._niter < -1:
+                return -1, f"niter must be >= -1, not {self._niter}"
+
+        if not isinstance(self._cycleniter, int):
+            return -1, f"cycleniter must be an integer, not {type(self._cycleniter)}"
+        else:
+            if self._cycleniter < -1:
+                return -1, f"cycleniter must be >= -1, not {self._cycleniter}"
+
+        if not isinstance(self._nmajor, int):
+            return -1, f"nmajor must be an integer, not {type(self._nmajor)}"
+        else:
+            if self._nmajor < -1:
+                return -1, f"nmajor must be >= -1, not {self._nmajor}"
+
+
+        if not isinstance(self._threshold, (int, float)):
+            return -1, f"threshold must be a numeric type, not {type(self._threshold)}"
+        else:
+            if self._threshold < 0:
+                return -1, f"threshold must be >= 0, not {self._threshold}"
+
+        if not isinstance(self._cyclefactor, int):
+            return -1, f"cyclefactor must be an integer, not {type(self._cyclefactor)}"
+        else:
+            if self._cyclefactor < 1:
+                return -1, f"cyclefactor must be >= 1, not {self._cyclefactor}"
+
+        # Happy ending
+        return 0, ''
+
+
 
     def _threshold_to_float(self):
         # Convert threshold from string to float if necessary
@@ -261,6 +311,7 @@ class gclean:
         # XXX : We should ideally use quantities, but we are trying to
         # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
+        self._validate_iteration_control_params()
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
         '''Add meta-data about the whole major cycle, including 'cyclethreshold'
@@ -403,7 +454,7 @@ class gclean:
 
                     #print("HASIT : ",self.hasit)
                     #print("DESC : ",self.stopdescription)
-                    
+
                     #self.global_imdict.returndict['stopcode'] = self.hasit
                     #self.global_imdict.returndict['stopDescription'] = self.stopdescription
 
@@ -510,7 +561,7 @@ class gclean:
                 if self._nmajor<0:   ## Force a floor
                     self._nmajor=0
             self._niter = self._niter - self.current_imdict.get_key('iterdone')
-            if self._niter<0:  ## This can happen when we're counting niter across channels in a single minor cycle set, and it crosses the total. 
+            if self._niter<0:  ## This can happen when we're counting niter across channels in a single minor cycle set, and it crosses the total.
                 self._niter=0  ## Force a floor
         else:
             return  ##If convergence has been reached, don't try to decrement further.
