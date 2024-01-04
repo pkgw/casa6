@@ -129,72 +129,50 @@ class gclean:
         if 'niter' in msg:
             try:
                 self._niter = int(msg['niter'])
+                if self._niter < -1:
+                    return -1, f"niter must be >= -1"
             except ValueError as err:
-                self._niter = msg['niter']
+                return -1, "niter must be an integer"
 
         if 'cycleniter' in msg:
             try:
                 self._cycleniter = int(msg['cycleniter'])
+                if self._cycleniter < -1:
+                    return -1, f"cycleniter must be >= -1"
             except ValueError:
-                self._cycleniter = msg['cycleniter']
+                return -1, "cycleniter must be an integer"
 
         if 'nmajor' in msg:
             try:
                 self._nmajor = int(msg['nmajor'])
-            except ValueError:
-                self._nmajor = msg['nmajor']
+                if self._nmajor < -1:
+                    return -1, f"nmajor must be >= -1"
+            except ValueError as e:
+                return -1, "nmajor must be an integer"
 
         if 'threshold' in msg:
             self._threshold = msg['threshold']
-            self._threshold_to_float() # Convert str to float
+            if "jy" in self._threshold.lower():
+                self._threshold_to_float() # Convert str to float
+            else:
+                try:
+                    self._threshold = float(self._threshold)
+                except ValueError:
+                    return -1, f"threshold must be a numeric type, or a string with units"
+
+            if self._threshold < 0:
+                return -1, f"threshold must be >= 0"
+
+
         if 'cyclefactor' in msg:
             try:
                 self._cyclefactor = int(msg['cyclefactor'])
+                if self._cyclefactor < 1:
+                    return -1, f"cyclefactor must be >= 1"
             except ValueError:
-                self._cyclefactor = msg['cyclefactor']
+                return -1, "cyclefactor must be an integer"
 
-        return self._validate_iteration_control_params()
-
-
-    def _validate_iteration_control_params(self):
-        """
-        Validate the iteration control parameters, and make sure that they make
-        sense, and are of the right types etc.
-        """
-
-        if not isinstance(self._niter, int):
-            return -1, f"niter must be an integer, not {type(self._niter)}"
-        else:
-            if self._niter < -1:
-                return -1, f"niter must be >= -1, not {self._niter}"
-
-        if not isinstance(self._cycleniter, int):
-            return -1, f"cycleniter must be an integer, not {type(self._cycleniter)}"
-        else:
-            if self._cycleniter < -1:
-                return -1, f"cycleniter must be >= -1, not {self._cycleniter}"
-
-        if not isinstance(self._nmajor, int):
-            return -1, f"nmajor must be an integer, not {type(self._nmajor)}"
-        else:
-            if self._nmajor < -1:
-                return -1, f"nmajor must be >= -1, not {self._nmajor}"
-
-
-        if not isinstance(self._threshold, (int, float)):
-            return -1, f"threshold must be a numeric type, not {type(self._threshold)}"
-        else:
-            if self._threshold < 0:
-                return -1, f"threshold must be >= 0, not {self._threshold}"
-
-        if not isinstance(self._cyclefactor, (int, float)):
-            return -1, f"cyclefactor must be an integer, not {type(self._cyclefactor)}"
-        else:
-            if self._cyclefactor < 1:
-                return -1, f"cyclefactor must be >= 1, not {self._cyclefactor}"
-
-        # Happy ending
-        return 0, ''
+        return 0, ""
 
 
 
@@ -312,10 +290,7 @@ class gclean:
         # XXX : We should ideally use quantities, but we are trying to
         # stick to "public API" funtions inside _gclean
         self._threshold_to_float()
-        errcode, errdesc = self._validate_iteration_control_params()
 
-        if errdesc != '':
-            raise ValueError(errdesc)
 
     def __add_per_major_items( self, tclean_ret, major_ret, chan_ret ):
         '''Add meta-data about the whole major cycle, including 'cyclethreshold'
