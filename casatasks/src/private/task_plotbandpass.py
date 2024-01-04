@@ -43,7 +43,7 @@ MAX_ATM_CALC_CHANNELS = 512
 markeredgewidth = 0.0
 
 # This is a color sequence found online which has distinguishable colors
-overlayColors = [
+overlayColorsSequence = [
       [0.00,  0.00,  0.00],
       [0.00,  0.00,  1.00],
       [0.00,  0.50,  0.00],
@@ -64,11 +64,12 @@ overlayColors = [
       [0.10,  0.49,  0.47],
       [0.66,  0.34,  0.65],
       [0.99,  0.41,  0.23]]
-overlayColors += overlayColors + overlayColors  # 17*3 = 51 total colors
-overlayColors += overlayColors + overlayColors # try to support antenna,time
-overlayColors += overlayColors + overlayColors # try to support antenna,time
-overlayColors += overlayColors + overlayColors # try to support antenna,time
-overlayColors += overlayColors + overlayColors # try to support antenna,time
+overlayColorsList = overlayColorsSequence.copy()
+overlayColorsList += overlayColorsList + overlayColorsList # 17*3 = 51 total colors
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
+overlayColorsList += overlayColorsList + overlayColorsList # try to support antenna,time
 
 # Enumeration to keep track of plot pages
 PAGE_ANT = 0
@@ -1908,7 +1909,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                 indexDelete = np.where(spwsToPlot==myspw)[0]
                 if (len(indexDelete) > 0):
                     spwsToPlot = np.delete(spwsToPlot, indexDelete[0])
-        print(("spwsToPlot = ", spwsToPlot))
+        print("spws to plot = ", spwsToPlot)
     casalogPost(debug,"scans to plot: %s" % (str(scansToPlot)))
     casalogPost(debug,"UT times to plot: %s" % (timerangeListTimesString))
     casalogPost(debug,"Corresponding time IDs (0-based): %s" % (str(timerangeList)))
@@ -1927,7 +1928,20 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
             casalogPost(debug,"Revised scans to plot: %s" % (str(scansToPlot)))
             casalogPost(debug,"Revised UT times to plot: %s" % (timerangeListTimesString))
             casalogPost(debug,"Corresponding time IDs (0-based): %s" % (str(timerangeList)))
-  
+
+    # Reassign overlay colors list if time overlays use a single color
+    overlayColors = overlayColorsList
+    if (overlayTimes and not overlayAntennas and len(timerangeList) > 1):
+        timeOverlayColors = [overlayColors[idx] for idx in timerangeList]
+        uniqueTimeColors = np.unique(timeOverlayColors)
+        if (len(uniqueTimeColors) == 1):
+            # Redo overlay colors list with shift
+            if debug: print("Shifting overlay colors list to avoid repeats")
+            shiftOverlayColors = overlayColorsSequence
+            while len(shiftOverlayColors) <= timerangeList[-1]:
+                 shiftOverlayColors += shiftOverlayColors[1:]
+            overlayColors = shiftOverlayColors
+
     # Check for mismatch
     if (bpolyOverlay):
         if (len(timerangeListTimes) > nUniqueTimesBP):
@@ -1942,7 +1956,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
             if (len(timerangeListTimes) > nUniqueTimesBP2):
                 print("There are more timeranges to plot (%d) from %s than exist in the caltable3=%s (%d)" % (len(timerangeListTimes), caltable, caltable3, nUniqueTimesBP2))
                 return()
-            
+
     # Parse the antenna string to emulate plotms
     if (type(antenna) == str):
        if (len(antenna) == sum([m in myValidCharacterListWithBang for m in antenna])):
@@ -4034,7 +4048,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                   pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize, color='k',
                                           transform=pb.gcf().transFigure)
                                   if (debug): print("5) overlayAntennas=True")
-                                  DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize)
+                                  DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize, overlayColors)
                                   if (debug): print("6) overlayAntennas=True")
                       elif (overlayTimes==True and bOverlay == False
                             and overlayAntennas==False):  # try to support antenna,time
@@ -4841,7 +4855,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                               # draw title including caltable name
                               pb.text(xstartTitle, ystartTitle, caltableTitle, size=titlesize, color='k',
                                       transform=pb.gcf().transFigure)
-                              DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize)
+                              DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize, overlayColors)
                       elif (overlayTimes==True and bOverlay == False
                             and overlayAntennas==False):  # try to support antenna,time
                           doneOverlayTime = True # assumed until proven otherwise in the 'for' loop
@@ -5946,8 +5960,8 @@ def sloppyUnique(t, thresholdSeconds):
     sloppyList = [t[0]]
     for i in range(1,len(t)):
         keepit = True
-        for j in range(0,i):
-            if (abs(t[i]-t[j]) < thresholdSeconds):
+        for uniqueValue in sloppyList:
+            if (abs(t[i] - uniqueValue) < thresholdSeconds):
                 keepit = False
         if (keepit):
             sloppyList.append(t[i])
@@ -6260,7 +6274,7 @@ def DrawBottomLegendPageCoords(msName, uniqueTimesMytime, mysize, figfile):
     pb.text(0.04, 0.02, bottomLegend, size=mysize, transform=pb.gcf().transFigure)
 #    pb.text(0.1, 0.02, bottomLegend, size=mysize, transform=pb.gcf().transFigure)
 
-def DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize):
+def DrawAntennaNames(msAnt, antennasToPlot, msFound, mysize, overlayColors):
     for a in range(len(antennasToPlot)):
         if (msFound):
             legendString = msAnt[antennasToPlot[a]]

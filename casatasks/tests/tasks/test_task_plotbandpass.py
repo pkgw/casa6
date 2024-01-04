@@ -1294,7 +1294,6 @@ class plotbandpass_CAS_8489_test(unittest.TestCase):
                timeranges='0',scans='9',subplot=11,spw='23,25,27,29',showatm=True,yaxis='amp',
                xaxis='freq', interactive=False, buildpdf=True,figfile=figdir+'regression%02d'%(121))
 
-
 class plotbandpass_CAS_8655_test(unittest.TestCase):
     def setUp(self):
         os.symlink(datapath+'uid___A002_X960614_X1379.ms.hifa_tsyscal.s6_3.tsyscal.tbl', os.getcwd() + '/uid___A002_X960614_X1379.ms.hifa_tsyscal.s6_3.tsyscal.tbl')
@@ -1363,6 +1362,26 @@ class plotbandpass_SCOPS_4877_test(unittest.TestCase):
         '''test_plotbandpass: test_SCOPS_4877_regression124'''
         plotbandpass('uid___A002_Xbf792a_X26ec.ms.tsys',overlay='time',showimage=True,showatm=True,showBasebandNumber=True,
                xaxis='freq', interactive=False, buildpdf=True,figfile=figdir+'regression%02d'%(124))
+
+class plotbandpass_CAS_14119_test(unittest.TestCase):
+    def setUp(self):
+        os.symlink(datapath+'uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl', os.getcwd() + '/uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl')
+    
+    def tearDown(self):
+        os.unlink(os.getcwd() + '/uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl')
+        if delete_artifacts:
+            artifacts = os.listdir(figdir)
+            for artifact in artifacts:
+                if artifact.endswith(".pdf") or artifact.endswith(".png"):
+                    os.remove(artifact)
+
+    # 125 CAS-14119 overlay time colorization
+    def test_CAS_14119_regression125(self):
+        '''test_plotbandpass: CAS-14119, overlay time colors'''
+        # Select two times with same interval as colors list length; should use different color for each time
+        plotbandpass('uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl',overlay='time',field='3',antenna=0,
+               timeranges='0,17',subplot=11,spw='23',yaxis='amp',xaxis='freq',
+               interactive=False, buildpdf=True,figfile=figdir+'regression%02d'%(125))
 
 class plotbandpass_tsysFlagged_test(unittest.TestCase):
     def setUp(self):
@@ -1447,9 +1466,21 @@ class plotbandpass_badSpwFilename_test(unittest.TestCase):
     @unittest.skip("N/A")
     def test_badSpwFilename_regression113(self):
         '''test_plotbandpass: test_badSpwFilename_regression113'''
-        plotbandpass(subplot=11, antenna='DA58', overlay='time', caltable='uid___A002_Xa2ce2e_X7bd.ms.tsys', 
+        plotbandpass(subplot=11, antenna='DA58', overlay='time', caltable='uid___A002_Xa2ce2e_X7bd.ms.tsys',
                figfile=figdir+'regression113', buildpdf=True,
                showatm=True, yaxis='amp', xaxis='freq', interactive=False)
+
+
+class plotbandpass_private_test(unittest.TestCase):
+    def test_sloppyUnique(self):
+        """test sloppyUnique"""
+        import casatasks.private.task_plotbandpass as _plotbandpass
+
+        time_list = [1,  30,  59,  88, 117, 146, 175]
+        time_threshold = 30  # sec
+        unique_time_list = list(_plotbandpass.sloppyUnique(time_list, 30))
+        self.assertEqual(unique_time_list, [1, 59, 117, 175])
+
 
 if __name__ == '__main__':
     unittest.main()

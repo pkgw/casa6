@@ -127,7 +127,6 @@ from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 from casatasks import impbcor, split, concat
 
 
-
 from casatestutils.imagerhelpers import TestHelpers
 
 
@@ -490,6 +489,30 @@ class test_onefield(testref_base):
           self.delData(ms2)
           self.assertTrue(self.check_final(pstr=report))
 
+     def test_onefield_twoMS_weightSpectrum(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column and one without the weight spectrum column  (CAS-11876 bug fix) """
+          ms1 = 'refim_point_onespw0_withWtSpec.ms'
+          ms2 = 'refim_point_onespw1_noWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
+     def test_onefield_twoMS_weightSpectrum2(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
+          ms2 = 'refim_point_onespw1_withWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Erratic in parallel")
      def test_onefield_briggsabs(self):
           """[onefield] test_onefield_briggsabs: """
@@ -518,10 +541,16 @@ class test_onefield(testref_base):
           ## Only psf
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=True,calcres=False,deconvolver='clark',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.psf'], imgexistnot=[self.img+'.residual', self.img+'.image'],nmajordone=1)
+          # CAS-13960: No residual image on disk, ret summaryminor should have length 0
+          self.assertTrue(len(ret['summaryminor']) == 0)
 
           ## Only residual
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,parallel=self.parallel)
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,fullsummary=True,parallel=self.parallel)
           report1=self.th.checkall(imgexist=[self.img+'.psf', self.img+'.residual'], imgexistnot=[self.img+'.image'],nmajordone=1)
+          dict_check1 = self.th.check_ret_structure(ret)
+          report_dict = self.th.checkall(ret=ret, peakres=1.1250, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+          # CAS-13960: Residual image created, len(summaryminor) > 0
+          self.assertTrue(len(ret['summaryminor']) > 0)
 
           ## Start directly with minor cycle and do only the last major cycle.
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,calcpsf=False,calcres=False,deconvolver='clark',parallel=self.parallel)
@@ -532,6 +561,9 @@ class test_onefield(testref_base):
           report3=self.th.checkall(ret=ret, peakres=0.161, modflux=0.991, imgexist=[self.img+'.psf',self.img+'.residual', self.img+'.image'],nmajordone=1)
 
           self.assertTrue(self.check_final(pstr=report+report1+report2+report3))
+          self.assertTrue(self.check_final(pstr=report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
 
 
      def test_onefield_restart_mtmfs(self):
@@ -544,8 +576,10 @@ class test_onefield(testref_base):
           report=self.th.checkall(imgexist=[self.img+'.psf.tt0', self.img+'.psf.tt1'], imgexistnot=[self.img+'.residual.tt0', self.img+'.image.tt0'],nmajordone=1)
 
           ## Only residual
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='mtmfs',restoration=False,parallel=self.parallel)
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='mtmfs',restoration=False,parallel=self.parallel,fullsummary=True)
           report1=self.th.checkall(imgexist=[self.img+'.psf.tt0',self.img+'.psf.tt1', self.img+'.residual.tt0', self.img+'.residual.tt1'], imgexistnot=[self.img+'.image.tt0'],nmajordone=1)
+          dict_check1 = self.th.check_ret_structure(ret)
+          report_dict = self.th.checkall(ret=ret, peakres=1.1250, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
 
           ## Start directly with minor cycle and do only the last major cycle.
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,calcpsf=False,calcres=False,deconvolver='mtmfs',parallel=self.parallel)
@@ -563,6 +597,9 @@ class test_onefield(testref_base):
           report4=self.th.checkall(ret=ret, peakres=0.0477, modflux=1.077, imgexist=[self.img+'.psf.tt1',self.img+'.residual.tt1', self.img+'.image.tt1', self.img+'.alpha'],nmajordone=2,imgval=[(self.img+'.alpha',-1.0,[50,50,0,0])])
 
           self.assertTrue(self.check_final(pstr=report+report1+report2+report3+report4))
+          self.assertTrue(self.check_final(pstr=report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
 
      def test_onefield_all_outputs_mfs(self):
           """ [onefield] : test_onefield_all_outputs_mfs : Make all output images even when not needed """
@@ -573,10 +610,13 @@ class test_onefield(testref_base):
 #          report1=self.th.checkall(imgexist=[self.img+'.psf', self.img+'.residual'],imgexistnot=[self.img+'.image',self.img+'.model'],nmajordone=1)
 
           ## Make all outputs
-          ret = tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='8.0arcsec',niter=0,deconvolver='hogbom',restoration=True,parallel=self.parallel)
+          ret = tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='8.0arcsec',niter=0,deconvolver='hogbom',restoration=True,parallel=self.parallel,fullsummary=True)
           report2=self.th.checkall(imgexist=[self.img+'2.psf', self.img+'2.residual',self.img+'2.image',self.img+'2.model'],nmajordone=1)
+          dict_check1 = self.th.check_ret_structure(ret)
  
           self.assertTrue(self.check_final(pstr = report2))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
 
      def test_onefield_all_outputs_mtmfs(self):
           """ [onefield] : test_onefield_all_outputs_mtmfs : Make all output images even when not needed """
@@ -684,7 +724,11 @@ class test_onefield(testref_base):
           ret1 = tclean(vis=self.msfile,imagename=self.img,
                         imsize=100,cell='10.0arcsec',interpolation='nearest',
                         niter=0,specmode='cube',
-                        parallel=self.parallel)
+                        parallel=self.parallel,
+                        fullsummary=True)
+          dict_check1 = self.th.check_ret_structure(ret1)
+          report_dict = self.th.checkall(ret=ret1, peakres=1.5, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+
           imsmooth(imagename=self.img+'.image', targetres=True, major='120.0arcsec', minor='120.0arcsec', pa='0deg',outfile=self.img+'.smoothed.image',overwrite=True)
 
           ret2 = tclean(vis=self.msfile,imagename=self.img+'.rest',
@@ -708,6 +752,9 @@ class test_onefield(testref_base):
           
           ## Pass or Fail (and why) ?
           self.assertTrue(self.check_final(estr+report))
+          self.assertTrue(self.check_final(report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
 
 
      def test_onefield_mtmfs_restoringbeam(self):
@@ -1224,7 +1271,33 @@ class test_iterbot(testref_base):
 ##Task level tests : multi-field, 2chan.
 ### For some of these tests, do the same with uvsub and compare ? 
 class test_multifield(testref_base):
-     
+
+     def test_multifield_return_dict_mfs(self):
+          """ [multifield] test_multifield_return_dict_mfs : niter=0 Return dict values, two fields, both mfs """
+          self.prepData("refim_twopoints_twochan.ms")
+          self.th.write_file(self.img+'.out.txt', 'imagename='+self.img+'1\nnchan=1\nimsize=[80,80]\ncell=[8.0arcsec,8.0arcsec]\nphasecenter=J2000 19:58:40.895 +40.55.58.543\nusemask=user\nmask=circle[[40pix,40pix],10pix]')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=0,deconvolver='hogbom',parallel=self.parallel,fullsummary=True)
+          report_dict = self.th.checkall(ret=ret, peakres=1.04, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+          dict_check1 = self.th.check_ret_structure(ret)
+
+          self.assertTrue(self.check_final(report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
+
+     def test_multifield_return_dict_mtmfs(self):
+          """ [multifield] test_multifield_return_dict_mtmfs : niter=0 Return dict values, two fields, both mtmfs """
+          self.prepData("refim_twopoints_twochan.ms")
+          self.th.write_file(self.img+'.out.txt', 'imagename='+self.img+'1\nnchan=1\nimsize=[80,80]\ncell=[8.0arcsec,8.0arcsec]\nphasecenter=J2000 19:58:40.895 +40.55.58.543\nusemask=user\nmask=circle[[40pix,40pix],10pix]')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",outlierfile=self.img+'.out.txt',niter=0,deconvolver='mtmfs',parallel=self.parallel,fullsummary=True)
+          report_dict = self.th.checkall(ret=ret, peakres=1.04, iterdone=0, imgvalexact=[self.img+'.model', 0.0, 50])
+          dict_check1 = self.th.check_ret_structure(ret)
+
+          self.assertTrue(self.check_final(report_dict))
+          self.assertTrue(dict_check1[0] == 'full')
+          self.assertTrue(dict_check1[1])
+
+
+
      def test_multifield_both_mfs(self):
           """ [multifield] Test_Multifield_both_mfs : Two fields, both mfs """
           self.prepData("refim_twopoints_twochan.ms")
@@ -1595,6 +1668,10 @@ class test_stokes(testref_base):
                report = report + "(Pass : Units are Jy/beam in the restored image)\n"
           else:
                report = report + "(Fail : Units are not Jy/beam in the restored image)\n"
+          if len(_ia.restoringbeam()) > 0:
+               report = report + "(Pass : Restoring beam is present in the restored image)\n"
+          else:
+               report = report + "(Fail : Restoring beam is not present in the restored image)\n"
           _ia.close()
           self.assertTrue(self.check_final(report))
 
@@ -2591,7 +2668,17 @@ class test_cube(testref_base):
           report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',86.254,[128,128,0,18])])
           ## line is smoother
           self.assertTrue(self.check_final(report))
-
+     #############################################
+     def test_cubedata_briggs(self):
+          """ [cube] test_cubedata_briggs : specmode cubedata with perchanweightdensity- No runtime doppler corrections """
+          self.prepData('refim_Cband.G37line.ms')
+          ret = tclean(vis=self.msfile,field='1',spw='0:105~135',specmode='cubedata',nchan=30,start=105,width=1,veltype='radio', weighting='briggs', perchanweightdensity=True,
+                       imagename=self.img,imsize=256,cell='0.01arcmin',phasecenter=1,deconvolver='hogbom',niter=10,parallel=self.parallel)
+          self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image', 92.63, [128,128,0,18])])
+          #print(report)
+          self.assertTrue(self.check_final(report))
+     #############################################
      def test_cube_D2(self):
           """ [cube] Test_Cube_D2 : specmode cube - WITH doppler corrections """
           self.prepData('refim_Cband.G37line.ms')
@@ -2913,7 +3000,7 @@ class test_cube(testref_base):
                           niter=0,specmode='cube',
                           restoration=True, restoringbeam='common',parallel=False, #### always False. 
                           calcres=False, calcpsf=False)
-          
+
           header = imhead(self.img+'.image',verbose=False)
                
           estr = "["+inspect.stack()[1][3]+"] Has single restoring beam ? : " + self.th.verdict( 'restoringbeam' in header) + "\n"
@@ -3607,6 +3694,57 @@ class test_mask(testref_base):
           report+=checkwarning
           print('report=',report)
           self.assertTrue(self.check_final(report))
+
+
+     def test_mask_preserve_input_zero_mask(self):
+          """
+          Test the fix for CAS-14203; If a user explicitly provides a
+          zero-filled input mask, it should be respected and not flipped.
+          """
+
+          self.prepData('refim_twochan.ms')
+          os.system('rm -rf '+self.img+'.*')
+          casalog.setlogfile(self.img+'.log')
+
+          ## Make initial residual and psf. No mask
+          tclean(vis=self.msfile,
+                    imsize=100,
+                    cell='10.0arcsec',
+                    imagename=self.img,
+                    specmode='mfs',
+                    deconvolver='hogbom',
+                    niter=1,
+                    gain=1e-6,
+                    restoration=False,
+                    calcres=True,
+                    calcpsf=True)
+
+          init_sum = self.th.check_mask(self.img + '.mask')
+          # Fill up with zeros
+          self.th.fill_mask(self.img+'.mask', 0.0)
+
+          if os.path.exists("new_mask.mask"):
+               os.system('rm -rf new_mask.mask')
+
+          os.rename(self.img+'.mask', 'new_mask.mask')
+
+          # Wipe images on disk
+          os.system('rm -rf '+self.img+'.*')
+
+          ret1 = tclean(vis=self.msfile,
+               imsize=100,
+               cell='10.0arcsec',
+               imagename=self.img,
+               specmode='mfs',
+               deconvolver='hogbom',
+               usemask = 'user',
+               mask='new_mask.mask',
+               niter=10)
+
+          final_sum = self.th.check_mask(self.img + '.mask')
+
+          self.assertTrue((init_sum == 10000) and (final_sum == 0))
+          self.assertTrue(ret1['stopcode'] == 7)
 
 ##############################################
 ##############################################

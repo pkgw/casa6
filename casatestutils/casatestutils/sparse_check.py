@@ -1,15 +1,26 @@
-import os
-import argparse
-import subprocess
-import shutil
+## Imports
+import os, argparse, subprocess, json, sys
 from urllib.request import urlopen
 from pathlib import Path
-import json
-import sys
-# IN PYTHON
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
+
+## Functions
+def check_for_git_lfs():
+    git_string = subprocess.check_output(["git","lfs","version"], encoding="utf-8")
+    if ("is not a git command" in git_string) or ("command not found" in git_string):
+        print("ERROR git-lfs is not found. Please Check Configuration")
+        print(git_string)
+        raise Exception("git-lfs not found")
+
+def run_script(script):
+    local_shell = os.environ['SHELL']
+    if os.path.exists("/bin/bash"):
+        os.environ['SHELL'] = "/bin/bash"
+    cmd = ("{} {}".format(os.environ['SHELL'], script)).split()
+    subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    os.environ['SHELL'] = local_shell
 
 def download_data(testfiles: list):
     """
@@ -19,7 +30,7 @@ def download_data(testfiles: list):
         sparse_check.download_data(["ngc5921.ms"])
         sparse_check.download_data(["gaincaltest2.ms"])
     """
-
+    check_for_git_lfs()
     paths = []
 
     sh_filename = "checkout_unit_dir.sh"
@@ -31,11 +42,9 @@ def download_data(testfiles: list):
     print("cd ..",file = bashFile)
     print("rm -rf casatestdata",file = bashFile)
     bashFile.close()
-
-    cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
-    subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    run_script(sh_filename)
     os.remove(sh_filename)
-    
+
     datafile = open("datafile_list.txt","r")
     gitpaths = datafile.readlines()
 
@@ -99,14 +108,14 @@ def download_data(testfiles: list):
     print("rm -rf casatestdata",file = bashFile)
     bashFile.close()
     print("Fetching ", *testfiles)
-    cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
-    subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    run_script(sh_filename)
     os.remove(sh_filename)
     os.remove("datafile_list.txt")
 
     return
 
 def fetch_data_dir(directory):
+    check_for_git_lfs()
     sh_filename = "checkout_unit_dir.sh"
     bashFile = open(sh_filename, 'w')
     print("git clone --depth 1 --no-checkout https://open-bitbucket.nrao.edu/scm/casa/casatestdata.git",file = bashFile)
@@ -116,20 +125,16 @@ def fetch_data_dir(directory):
     print("cd ..",file = bashFile)
     print("rm -rf casatestdata",file = bashFile)
     bashFile.close()
-
-    cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
-    subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    run_script(sh_filename)
     os.remove(sh_filename)
-    
     datafile = open("datafile_list.txt","r")
     gitpaths = datafile.readlines()
     os.remove("datafile_list.txt")
     return gitpaths
 
 def build_checkout(testnames, directory):
-
+    check_for_git_lfs()
     testdata_dir = fetch_data_dir(directory)
-
     datasets = []
     paths = []
     for test in testnames:
@@ -164,10 +169,8 @@ def build_checkout(testnames, directory):
     print("git checkout master",file = bashFile)
     print("cd ..",file = bashFile)
     bashFile.close()
-
-    cmd = ("{} checkout_unit_dir.sh".format(os.environ['SHELL'])).split()
-    subprocess.call(cmd, stdout = subprocess.DEVNULL, stderr=subprocess.STDOUT)
-    os.remove("checkout_unit_dir.sh")
+    run_script(sh_filename)
+    os.remove(sh_filename)
 
     for x_path in paths:
         for root, dirs, files in os.walk("casatestdata/{}".format(x_path), topdown=False):
@@ -183,7 +186,6 @@ def build_checkout(testnames, directory):
                         #raise
                         pass
                 paths.append(path)
-
     paths = [x.split("../../")[-1] for x in paths]
     paths = [x.replace("/","",1 ) if x.startswith("/") else x for x in paths]
     paths = list(set(paths))
@@ -211,18 +213,16 @@ cat > .git/info/sparse-checkout <<'EOF'
               substring  = substring + "{}/*".format(path) + "\n"
             else:
               substring  = substring + "{}".format(path) + "\n"
-
         else:
             substring  = substring + "{}/*".format(path) + "\n"
         
     tailstring = """readme.md
 EOF
 """
-
     string = headstring + substring + tailstring
-
     return string
 
+## Main
 if __name__ == "__main__":
     url = "https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/raw/casatestutils/casatestutils/component_to_test_map.json?at=refs%2Fheads%2Fmaster"
       
