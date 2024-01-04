@@ -219,7 +219,7 @@ Parameter Details
         if antpos:
             break
     if not antpos:
-        raise RuntimeError('All URLs failed to return an antenna position list.')
+        raise RuntimeError("All URLs failed to return an antenna position list.")
     if os.path.exists(outfile):
         if overwrite:
             if os.path.isdir(outfile):
@@ -230,7 +230,7 @@ Parameter Details
                 os.remove(outfile)
         else:
             raise RuntimeError(
-                "Logic Error: shouldn't have gotten too this point with overwrite=False"
+                "Logic Error: shouldn't have gotten to this point with overwrite=False"
             )
     with open(outfile, "w") as f:
         json.dump(antpos, f)
