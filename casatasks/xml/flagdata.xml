@@ -1400,8 +1400,11 @@ in histogram
                 <value type="bool">False</value>
             </param>
             <param subparam="true" name="basecnt" type="bool">
-<shortdescription>Print summary counts per baseline</shortdescription>
-<description>List the number of flags per baseline
+<shortdescription>Count flags per baseline</shortdescription>
+<description>Count the number of flags per baseline. The counts are added to the
+return result dictionary (in the 'baseline'' key) and also printed
+to the log. In addition, counts per antenna/scan are also reported
+and added to the result dictionary (key 'antenna:scan').
                      Subparameter of mode='summary'
                      Default: False
                      Options: False|True

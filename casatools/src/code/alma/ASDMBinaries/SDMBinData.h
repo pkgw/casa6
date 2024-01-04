@@ -224,10 +224,10 @@ class SDMBinData{
    */
   std::vector<MSData*>  getData( Enum<CorrelationModeMod::CorrelationMode> e_qcm, EnumSet<AtmPhaseCorrectionMod::AtmPhaseCorrection> es_qapc); 
 
-  MSData*          getData( unsigned int na, unsigned int nfe, unsigned int ndd, unsigned int nbin) throw (Error); 
+  MSData*          getData( unsigned int na, unsigned int nfe, unsigned int ndd, unsigned int nbin);
 
   MSData*          getCalibratedData( unsigned int na, unsigned int nfe, unsigned int ndd, unsigned int nbin,
-				      std::pair<bool,std::vector<std::vector<float> > > p_tsys) throw (Error); 
+				      std::pair<bool,std::vector<std::vector<float> > > p_tsys);
 
   MSData*          getData( unsigned int na1, unsigned int nfe1, unsigned int na2, unsigned int nfe2, 
 			    unsigned int ndd, unsigned int nbin, std::vector<unsigned int> v_napc,

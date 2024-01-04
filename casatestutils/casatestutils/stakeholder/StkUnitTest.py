@@ -2,7 +2,7 @@ import os
 import copy
 import shutil
 from datetime import datetime
-from collections import Iterable
+from collections.abc import Iterable
 import numpy as np
 import unittest
 import glob

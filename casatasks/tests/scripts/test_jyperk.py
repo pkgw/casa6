@@ -280,12 +280,9 @@ class TestRequestsManager(unittest.TestCase):
         manager = jyperk.RequestsManager(client)
 
         params = jyperk.ASDMParamsGenerator.get_params(self.vis)
-        result = manager.get(params)
 
-        reference = []
-        self.assertEqual(result, reference)
-        self.assertTrue(urlopen_patch.called)
-        self.assertTrue(urlopen_patch.call_count == 1)
+        with self.assertRaisesRegex(RuntimeError, 'dummy'):
+            result = manager.get(params)
 
 
 class TestJyPerKDatabaseClient(unittest.TestCase):

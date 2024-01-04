@@ -58,6 +58,7 @@
 #include <synthesis/TransformMachines/StokesImageUtil.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <casacore/coordinates/Coordinates/TabularCoordinate.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 
 #ifdef _OPENMP
 #include <omp.h>
