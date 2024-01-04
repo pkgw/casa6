@@ -58,19 +58,6 @@ SDPosInterpolator::SDPosInterpolator(
   setup(pointingColumns, columnName, nant);
 }
 SDPosInterpolator::SDPosInterpolator(
-  const MSPointing& pointingTable,
-  const String& columnName,
-  const size_t nant){
-  MSPointingColumns pointingColumns{pointingTable};
-  setup(pointingColumns, columnName, nant);
-}
-SDPosInterpolator::SDPosInterpolator(
-  const MSPointingColumns& pointingColumns,
-  const String& columnName,
-  const size_t nant){
-  setup(pointingColumns, columnName, nant);
-}
-SDPosInterpolator::SDPosInterpolator(
   const Vector<Vector<Double> >& time,
   const Vector<Vector<Vector<Double> > >& dir) {
   setup(time, dir);
