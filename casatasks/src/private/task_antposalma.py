@@ -1,6 +1,7 @@
 from casatasks import casalog
 from casatools import quanta
 import json, os, shutil
+from urllib import request
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 
@@ -27,6 +28,21 @@ def _query(url):
     except Exception as e:
         casalog.post(f"Caught Exception when trying to connect: {str(e)}", "WARN")
     return myjson
+
+
+def _get_prod_dev():
+    prod = "https://asa.alma.cl"
+    dev = " https://2024jan.asa-test.alma.cl"
+    try:
+        import casadhell
+        v = casashell.version_string
+        if 'dev' in v:
+            return dev
+        else:
+            return prod
+    except Exception as e:
+        return dev
+
 
 
 def antposalma(
@@ -170,6 +186,10 @@ Parameter Details
         raise ValueError("The first element of the hosts list must be specified")
     _qa = quanta()
     parms = {}
+    if asdm:
+        parms['asdm'] = asdm
+    else:
+        raise ValueError("parameter asdm must be specified")
     if tw:
         z = tw.split(",")
         if len(z) != 2:
@@ -209,11 +229,14 @@ Parameter Details
     )
     antpos = None
     for h in hosts:
-        if not _is_valid_url_host(h):
+        server = h
+        if server = "prod-dev":
+            server = _get_prod_dev()
+        if not _is_valid_url_host(server):
             raise ValueError(
                 f'Parameter hosts: {h} is not a valid host expressed as a URL.'
             )
-        url = f"{h}?{wsid}"
+        url = f"{server}/{wsid}"
         casalog.post(f"Trying {url} ...", "NORMAL")
         antpos = _query(url)
         if antpos:
