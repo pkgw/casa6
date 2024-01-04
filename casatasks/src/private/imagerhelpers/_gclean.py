@@ -130,18 +130,19 @@ class gclean:
             try:
                 self._niter = int(msg['niter'])
             except ValueError as err:
-                pass
+                self._niter = msg['niter']
 
         if 'cycleniter' in msg:
             try:
                 self._cycleniter = int(msg['cycleniter'])
             except ValueError:
-                pass
+                self._cycleniter = msg['cycleniter']
+
         if 'nmajor' in msg:
             try:
                 self._nmajor = int(msg['nmajor'])
             except ValueError:
-                pass
+                self._nmajor = msg['nmajor']
 
         if 'threshold' in msg:
             self._threshold = msg['threshold']
@@ -150,7 +151,7 @@ class gclean:
             try:
                 self._cyclefactor = int(msg['cyclefactor'])
             except ValueError:
-                pass
+                self._cyclefactor = msg['cyclefactor']
 
         return self._validate_iteration_control_params()
 
@@ -186,7 +187,7 @@ class gclean:
             if self._threshold < 0:
                 return -1, f"threshold must be >= 0, not {self._threshold}"
 
-        if not isinstance(self._cyclefactor, int):
+        if not isinstance(self._cyclefactor, (int, float)):
             return -1, f"cyclefactor must be an integer, not {type(self._cyclefactor)}"
         else:
             if self._cyclefactor < 1:
