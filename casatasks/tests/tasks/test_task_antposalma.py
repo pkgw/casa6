@@ -22,39 +22,37 @@
 #
 ##########################################################################
 # import glob
-import http.server
-import os
-from pathlib import Path
 """
 import numpy as np
 import re
 import shutil
 import sys
-import threading
 """
+import casatestutils
+import http.server
+import os
+import threading
 import unittest
+from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 """
 from urllib import request
 from urllib.error import URLError
-from urllib.parse import urlparse, parse_qs
 
-from casatasks import casalog
 
 from casatools import componentlist, measures
 """
 
-from casatasks import antposalma
+from casatasks import antposalma, casalog
 
-# import casatestutils
 
-"""
 # NOTE be certain to specify the top-level casatestutils directory
 # in your PYTHONPATH so you load the casatestutils directory which
 # is a subdir of that
 
 
 class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
-    """"HTTPServer mock request handler""""
+    """HTTPServer mock request handler"""
 
     def do_GET(self):
         casalog.post('server path ' + self.path, 'WARN')
@@ -66,33 +64,38 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_error(400, message='Invalid input', explain=explain)
             self.end_headers()
             return
-        """"Handle GET requests""""
+        """Handle GET requests"""
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         myfile = os.sep.join([
-            casatestutils.__path__[0], 'calmod_helpers', 'query1.json'
+            casatestutils.__path__[0], 'antposalma_helpers', 'query1.json'
         ])
         with open(myfile, 'r') as f:
             file_contents = f.read()
         self.wfile.write(str.encode(file_contents))
 
-    def log_request(self, code=None, size=None):
-        """"Don't log anything""""
 
-"""
+    def log_request(self, code=None, size=None):
+        """Don't log anything"""
+        pass
+
 
 class antposalma_test(unittest.TestCase):
-    """
 
-    hostname = 'http://127.0.0.1:8080'
-    """
+    hostname = "http://127.0.0.1:8080"
+
+    outfile = "antposalma.json"
 
     def setUp(self):
-        pass
+        if os.path.exists(self.outfile):
+            os.remove(self.outfile)
+
 
     def tearDown(self):
-        pass
+        if os.path.exists(self.outfile):
+            os.remove(self.outfile)
+
 
     def exception_verification(self, cm, expected_msg):
         exc = cm.exception
@@ -217,70 +220,16 @@ class antposalma_test(unittest.TestCase):
         )
 
 
-    """
     def test_json_file_writing(self):
-        """"Test successful writing of json file of antenna positions""""
+        """Test successful writing of json file of antenna positions"""
         hosts = [self.hostname]
-        self.query_server(
-            lambda: calmod(
-                self.clname, '3C48', band='Q',obsdate=50000, hosts=hosts
+        self._query_server(
+            lambda: antposalma(
+                self.outfile, asdm="uid://A002/X10ac6bc/X896d", hosts=hosts
             )
         )
-        self.cl.open(self.clname)
-        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
-        ws = self.cl.getkeyword('web_service')
-        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
-        self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
-    """
-    """ 
-    def test_bad_source_name(self):
-        hosts = [self.hostname]
-        with self.assertRaises(RuntimeError) as cm: 
-            self.query_server(
-                lambda: calmod(
-                    'my.cl', 'mysource', band='L', hosts=[self.hostname],
-                    obsdate=50000
-                )
-            )
-        self.exception_verification(cm, 'All URLs failed to return a component list')
-        found = False
-        pattern = "source must be one of \('3C48', '3C286', '3C138', '3C147'\)"
-        with open(casalog.logfile()) as logfile:
-            for line in logfile:
-                if re.search(pattern, line):
-                    found = True
-                    break
-        self.assertTrue(found)
+        self.assertTrue(os.path.exists(self.outfile))
 
-
-    def test_obsdate_as_string(self):
-        hosts = [self.hostname]
-        self.query_server(
-            lambda: calmod(
-                self.clname, '3C48', band='Q',obsdate='2002-04-20', hosts=hosts
-            )
-        )
-        self.cl.open(self.clname)
-        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
-        ws = self.cl.getkeyword('web_service')
-        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
-        self.assertEqual(ws['source'], '3C48', 'Incorrect source in web_service metadata')
-
-       
-    def test_direction(self):
-        """"Test direction input""""
-        hosts = [self.hostname]
-        direction = 'J2000 01:37:41.1 33.09.32'
-        self.query_server(
-            lambda: calmod(
-                self.clname, direction=direction, band='Q',obsdate=50000, hosts=hosts
-            )
-        )
-        self.cl.open(self.clname)
-        self.assertEqual(self.cl.length(), 385, 'Incorrect number of components')
-        ws = self.cl.getkeyword('web_service')
-        self.assertEqual(ws['band'], 'Q', 'Incorrect band in web_service metadata')
-    """
 
 if __name__ == '__main__':
      unittest.main()
