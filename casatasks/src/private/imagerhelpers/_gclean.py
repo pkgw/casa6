@@ -151,40 +151,46 @@ class gclean:
                 return -1, "nmajor must be an integer"
 
         if 'threshold' in msg:
-            self._threshold = msg['threshold']
-            if "jy" in self._threshold.lower():
-                self._threshold_to_float() # Convert str to float
-            else:
-                try:
-                    self._threshold = float(self._threshold)
-                except ValueError:
-                    return -1, f"threshold must be a numeric type, or a string with units"
-
-            if self._threshold < 0:
-                return -1, f"threshold must be >= 0"
-
+            try:
+                self._threshold = float(msg['threshold'])
+                if self._threshold < 0:
+                    return -1, f"threshold must be >= 0"
+            except ValueError:
+                if isinstance(msg['threshold'], str) and "jy" in msg['threshold'].lower():
+                    self._threshold_to_float(msg['threshold']) # Convert str to float
+                else:
+                    return -1, f"threshold must be a number, or a number with units (Jy/mJy/uJy)"
 
         if 'cyclefactor' in msg:
             try:
-                self._cyclefactor = int(msg['cyclefactor'])
+                self._cyclefactor = float(msg['cyclefactor'])
                 if self._cyclefactor < 1:
                     return -1, f"cyclefactor must be >= 1"
             except ValueError:
-                return -1, "cyclefactor must be an integer"
+                return -1, "cyclefactor must be a number"
 
         return 0, ""
 
 
 
-    def _threshold_to_float(self):
+    def _threshold_to_float(self, msg=None):
         # Convert threshold from string to float if necessary
-        if isinstance(self._threshold, str):
-            if "mJy" in self._threshold:
-                self._threshold = float(self._threshold.replace("mJy", "")) / 1e3
-            elif "uJy" in self._threshold:
-                self._threshold = float(self._threshold.replace("uJy", "")) / 1e6
-            elif "Jy" in self._threshold:
-                self._threshold = float(self._threshold.replace("Jy", ""))
+        if msg is not None:
+            if isinstance(msg, str):
+                if "mJy" in msg:
+                    self._threshold = float(msg.replace("mJy", "")) / 1e3
+                elif "uJy" in msg:
+                    self._threshold = float(msg.replace("uJy", "")) / 1e6
+                elif "Jy" in msg:
+                    self._threshold = float(msg.replace("Jy", ""))
+        else:
+            if isinstance(self._threshold, str):
+                if "mJy" in self._threshold:
+                    self._threshold = float(self._threshold.replace("mJy", "")) / 1e3
+                elif "uJy" in self._threshold:
+                    self._threshold = float(self._threshold.replace("uJy", "")) / 1e6
+                elif "Jy" in self._threshold:
+                    self._threshold = float(self._threshold.replace("Jy", ""))
 
 
     def __init__( self, vis, imagename, field='', spw='', timerange='', uvrange='', antenna='', scan='', observation='', intent='', datacolumn='corrected',
