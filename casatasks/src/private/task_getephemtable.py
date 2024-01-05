@@ -82,13 +82,13 @@ def getephemtable(objectname, asis, timerange, interval, outfile, rawdatafile, o
         raise ValueError("outfile must be specified")
     elif os.path.exists(outfile):
         if not overwrite:
-            raise ValueError(f'{outfile} exsits and overwrite=False')
+            raise ValueError(f'{outfile} exists and overwrite=False')
         else:
             casalog.post(f'{outfile} exists, will be overwritten', 'WARN')
         shutil.rmtree(outfile)
     if os.path.exists(rawdatafile):
         if not overwrite:
-            raise ValueError(f'{rawdatafile} exsits and overwrite=False')
+            raise ValueError(f'{rawdatafile} exists and overwrite=False')
         else:
             casalog.post(f'{rawdatafile} exists, will be overwritten', 'WARN')
 
