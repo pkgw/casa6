@@ -231,12 +231,12 @@
             "comment":""
         },
         {
-            "testScript":"test_task_calmodvla",
+            "testScript":"test_task_getcalmodvla",
             "testType":"casatasks",
             "maintainer":"Dave Mehringer",
             "maintainerEmail":"dmehring@nrao.edu",
             "testOptions":[],
-            "testGroup":["calmodvla"],
+            "testGroup":["getcalmodvla"],
             "timeout":0,
             "comment":""
         },

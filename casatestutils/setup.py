@@ -93,7 +93,7 @@ setuptools.setup(
     url="https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse",
     download_url="https://casa.nrao.edu/download/",
     packages=setuptools.find_packages(),
-    package_data={"casatestutils": ["component_to_test_map.json","calmodvla_helpers/query1.json"]},
+    package_data={"casatestutils": ["component_to_test_map.json","getcalmodvla_helpers/query1.json"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
