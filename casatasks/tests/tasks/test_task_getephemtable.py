@@ -132,6 +132,7 @@ class getephemtable_test(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r'interval value must be integer'):
             getephemtable(objectname='Titan', timerange=self.mjdtimerange, interval='15.0', outfile=self.outfile, overwrite=True)
 
+        # check for overwrite parameter (2nd task call should trigger an exception)
         with self.assertRaisesRegex(Exception, r'exists and overwrite=False'):
             getephemtable(objectname='Titan', timerange=self.mjdtimerange, outfile=self.outfile, overwrite=True)
             getephemtable(objectname='Titan', timerange=self.mjdtimerange, outfile=self.outfile, overwrite=False)
