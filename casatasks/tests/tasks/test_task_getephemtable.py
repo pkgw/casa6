@@ -115,38 +115,42 @@ class getephemtable_test(unittest.TestCase):
             getephemtable(objectname='Titan', timerange=self.caltimerange)
 
         with self.assertRaisesRegex(RuntimeError, r'objectname is given as an ID'):
-            getephemtable(objectname='606',timerange=self.caltimerange, outfile=self.outfile) 
+            getephemtable(objectname='606',timerange=self.caltimerange, outfile=self.outfile, overwrite=True) 
 
         with self.assertRaisesRegex(ValueError, r'timerange needs to be specified with'):
-            getephemtable(objectname='Titan', timerange='2023/09/01/20:00  2023/09/04/20:00', outfile=self.outfile)
+            getephemtable(objectname='Titan', timerange='2023/09/01/20:00  2023/09/04/20:00', outfile=self.outfile, overwrite=True)
 
         with self.assertRaisesRegex(ValueError, r'Error translating stop time of timerange specified in JD'):
-            getephemtable(objectname='Titan', timerange='JD 2460189.8~ 2023/09/04/00', outfile=self.outfile)
+            getephemtable(objectname='Titan', timerange='JD 2460189.8~ 2023/09/04/00', outfile=self.outfile, overwrite=True)
 
         with self.assertRaisesRegex(ValueError, r'Error translating stop time of timerange specified in MJD'):
-            getephemtable(objectname='Titan', timerange='MJD 60189.3~ 2023/09/04/00', outfile=self.outfile)
+            getephemtable(objectname='Titan', timerange='MJD 60189.3~ 2023/09/04/00', outfile=self.outfile, overwrite=True)
 
         with self.assertRaisesRegex(ValueError, r'Error in timerange format'):
-            getephemtable(objectname='Titan', timerange='09-01-2023 20:00~ 09-02-2023 09:20', outfile=self.outfile)
+            getephemtable(objectname='Titan', timerange='09-01-2023 20:00~ 09-02-2023 09:20', outfile=self.outfile, overwrite=True)
 
-        with self.assertRaisesRegex(ValueError, r'must contains integer value and unit'):
-            getephemtable(objectname='Titan', timerange=self.mjdtimerange, interval='15', outfile=self.outfile)
+        with self.assertRaisesRegex(ValueError, r'interval value must be integer'):
+            getephemtable(objectname='Titan', timerange=self.mjdtimerange, interval='15.0', outfile=self.outfile, overwrite=True)
+
+        with self.assertRaisesRegex(Exception, r'exists and overwrite=False'):
+            getephemtable(objectname='Titan', timerange=self.mjdtimerange, outfile=self.outfile, overwrite=True)
+            getephemtable(objectname='Titan', timerange=self.mjdtimerange, outfile=self.outfile, overwrite=False)
 
     @patch('casatasks.private.jplhorizons_query.queryhorizons')
     def test_webservice_errors(self, mock_query):
         with self.assertRaisesRegex(HTTPError, r'Not Found'):
             mock_query.side_effect = HTTPError(url='127.0.0.1', code=404, hdrs={}, fp=None, msg='Not Found')
-            getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
+            getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile, overwrite=True)
 
         with self.assertRaisesRegex(URLError, r'Unknown host'):
             mock_query.side_effect = URLError('Unknown host')
-            getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
+            getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile, overwrite=True)
 
 
     @unittest.skipIf(isDatabaseURLunreachable(hostname), "JPL-Horizons data server is not reachable")
     def test_table_generation(self):
         """Test ephem table generation"""
-        getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile)
+        getephemtable(objectname='Titan', timerange=self.caltimerange, interval='1d', outfile=self.outfile, overwrite=True)
 
         self.assertTrue(os.path.exists(self.outfile))
         # make sure the table is readable by measures
@@ -158,7 +162,7 @@ class getephemtable_test(unittest.TestCase):
     @unittest.skipIf(isDatabaseURLunreachable(hostname), "JPL-Horizons data server is not reachable")
     def test_save_rawdata(self):
         """Test raw query result saving"""
-        getephemtable(objectname='Titan', timerange=self.caltimerange, outfile=self.outfile, rawdatafile='saved_rawqueryresult.txt')
+        getephemtable(objectname='Titan', timerange=self.caltimerange, interval='1d', outfile=self.outfile, rawdatafile='saved_rawqueryresult.txt', overwrite=True)
         self.assertTrue(os.path.exists(self.outfile))
         # make sure the table is readable by measures
         self.assertTrue(_me.framecomet(self.outfile))
