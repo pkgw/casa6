@@ -331,7 +331,8 @@ private:
   );
   casacore::Bool mustConvertPointingColumn(const casacore::MeasurementSet &ms);
   void handleNewMs(const MeasurementSet &ms, ImageInterface<Complex>& image);
-
+  void handleNewMs(const casacore::MeasurementSet & ms,
+                   casacore::CountedPtr<SIImageStore> imstore);
 
   casacore::Int getIndex(const casacore::MSPointingColumns& mspc, const casacore::Double& time,
 	       const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);

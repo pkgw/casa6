@@ -200,46 +200,66 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
   }
 
-void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf, const Int mapperid)
+  void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf, const Int mapperid)
   {
 
     vi::VisBuffer2 *vb=vi.getVisBuffer();
     initializeGrid(*vb, dopsf, mapperid);
-    if(mapperid<0)
-      {
-	for (uInt k=0; k < itsMappers.nelements(); ++k)
-	  {
-	    ((itsMappers[k])->getFTM2())->initBriggsWeightor(vi);
-  	  }
+    if (mapperid < 0) {
+      for (uInt k=0; k < itsMappers.nelements(); ++k) {
+        ((itsMappers[k])->getFTM2())->initBriggsWeightor(vi);
       }
-    else
-      {
-	if (mapperid > (Int)itsMappers.nelements())
-	  throw ( AipsError("Internal Error : SIMapperCollection::initializeGrid(): mapperid out of range") );
-	else (itsMappers[mapperid]->getFTM2())->initBriggsWeightor(vi);
-      }
+    }
+    else if (mapperid > (Int)itsMappers.nelements()) {
+      throw (
+        AipsError("Internal Error : "
+          "SIMapperCollection::initializeGrid(): mapperid out of range")
+      );
+    }
+    else {
+      (itsMappers[mapperid]->getFTM2())->initBriggsWeightor(vi);
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////OLD vi/vb //////////////////////////////////////////////
   void SIMapperCollection::initializeGrid(VisBuffer& vb, Bool dopsf, const Int mapperid)
   {
-    if(mapperid<0)
-      {
-	for (uInt k=0; k < itsMappers.nelements(); ++k)
-	  {
-	    (itsMappers[k])->initializeGrid(vb,dopsf,true);
-  	  }
+    if (mapperid < 0) {
+      for (uInt k=0; k < itsMappers.nelements(); ++k) {
+        (itsMappers[k])->initializeGrid(vb,dopsf,true);
       }
-    else
-      {
-	if (mapperid > (Int)itsMappers.nelements())
-	  throw ( AipsError("Internal Error : SIMapperCollection::initializeGrid(): mapperid out of range") );
-	else itsMappers[mapperid]->initializeGrid(vb, dopsf, true);
-      }
+    }
+    else if (mapperid > (Int)itsMappers.nelements()) {
+      throw (
+        AipsError("Internal Error : "
+          "SIMapperCollection::initializeGrid(): mapperid out of range")
+      );
+    }
+    else {
+      itsMappers[mapperid]->initializeGrid(vb, dopsf, true);
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
+
+  void SIMapperCollection::handleNewMs(const MeasurementSet &ms, const Int mapperid)
+  {
+    if (mapperid < 0) {
+      for (uInt k=0; k < itsMappers.nelements(); ++k) {
+        (itsMappers[k])->handleNewMs(ms);
+      }
+    }
+    else if (mapperid > (Int)itsMappers.nelements()) {
+      throw (
+        AipsError("Internal Error : "
+          "SIMapperCollection::handleNewMs(): mapperid out of range")
+      );
+    }
+    else {
+      itsMappers[mapperid]->handleNewMs(ms);
+    }
+  }
 
   void SIMapperCollection::grid(vi::VisBuffer2& vb, Bool dopsf, refim::FTMachine::Type col,
 				Int mapperid)

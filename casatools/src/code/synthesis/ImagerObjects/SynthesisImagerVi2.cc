@@ -1954,7 +1954,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","makeSdImage",WHERE) );
 
-//    Bool dopsf=false;
+    // Bool dopsf=false;
     if(datacol_p==FTMachine::PSF) dopsf=true;
 
     {
@@ -1972,7 +1972,9 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
       itsMappers.initializeGrid(*vi_p,dopsf);
       for (vi_p->originChunks(); vi_p->moreChunks(); vi_p->nextChunk())
       {
-
+        if (vi_p->getImpl()->isNewMs()) {
+          itsMappers.handleNewMs(vi_p->ms());
+        }
         for (vi_p->origin(); vi_p->more(); vi_p->next())
         {
           itsMappers.grid(*vb, dopsf, (refim::FTMachine::Type)datacol_p);
@@ -2871,6 +2873,7 @@ void SynthesisImagerVi2::unlockMSs()
     }
     theFT->setPointingDirColumn(pointingDirCol);
     static_cast<refim::SDGrid*>(theFT.get())->setConvertFirst(convertFirst);
+    static_cast<refim::SDGrid*>(theIFT.get())->setConvertFirst(convertFirst);
 
     // turn on Pseudo Stokes mode if necessary
     if (pseudoI || stokes == "XX" || stokes == "YY" || stokes == "XXYY"

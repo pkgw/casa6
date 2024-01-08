@@ -1235,8 +1235,10 @@ void SDGrid::convertPointingColumn(
           or columnToConvert == POINTING::SOURCE_OFFSET
           or columnToConvert == POINTING::ENCODER
       );
-      logger << nameOfColumnToConvert << ": not a direction column"
-             << LogIO::EXCEPTION;
+      if (not isDirectionColumn) {
+        logger << nameOfColumnToConvert << ": not a direction column"
+               << LogIO::EXCEPTION;
+      }
   }
 
   { // Copy Pointing table structure
@@ -1367,21 +1369,40 @@ void SDGrid::convertPointingColumn(
          << LogIO::POST;
 }
 
-void SDGrid::handleNewMs(
-        const MeasurementSet &ms,
-        ImageInterface<Complex>& image)
-{
-  if (mustConvertPointingColumn(ms)) {
-    const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
-    const auto imageDirectionRef =
-      image.coordinates().directionCoordinate().directionType();
-    convertPointingColumn(ms, columnEnum, imageDirectionRef);
+  void SDGrid::handleNewMs(
+          const MeasurementSet &ms,
+          ImageInterface<Complex>& image)
+  {
+    if (mustConvertPointingColumn(ms)) {
+      const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
+      const auto imageDirectionRef =
+        image.coordinates().directionCoordinate().directionType();
+      convertPointingColumn(ms, columnEnum, imageDirectionRef);
+    }
+    else {
+      ramPointingTable = MSPointing();
+      ramPointingColumnsPtr.reset();
+    }
   }
-  else {
-    ramPointingTable = MSPointing();
-    ramPointingColumnsPtr.reset();
+
+  void SDGrid::handleNewMs(const MeasurementSet & ms,
+               CountedPtr<SIImageStore> imstore)
+  {
+    if (imstore.null()) return;
+
+    if (mustConvertPointingColumn(ms)) {
+      const auto coordinateSystem = imstore->getCSys();
+      const auto imagesDirectionRef =
+                    coordinateSystem.directionCoordinate()
+                                    .directionType();
+      const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
+      convertPointingColumn(ms, columnEnum, imagesDirectionRef);
+    }
+    else {
+      ramPointingTable = MSPointing();
+      ramPointingColumnsPtr.reset();
+    }
   }
-}
 
   // Make a plain straightforward honest-to-FSM image. This returns
   // a complex image, without conversion to Stokes. The representation
