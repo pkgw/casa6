@@ -260,7 +260,7 @@ class test_onefield(testref_base):
           self.assertTrue(self.check_final(pstr=report))
           
      ## Add tests for CAS-940 here, for asp using sim_data_VLA_jet.ms which contains 5 chans.
-     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
+#     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
      def test_onefield_asp(self):
           """ [onefield] Test_Onefield_asp : mfs with asp minor cycle """
           #import pdb
@@ -273,66 +273,71 @@ class test_onefield(testref_base):
           ##                        smoothed to an angular resolution of 94.3asec x 81.5asec, pa=-89 for channel 0 
           ##                        smoothed to an angular resolution of 52asec x 45asec, pa=-89 for channel 4 
           #############################################################################
-          ## Tolerance : 12% relative error from the truth.
-          ##                     - This includes reconstruction uncertainty, and is an absolute tolerance.
           ##                     - The current ASP implementation uses a library that gives difference convergence profiles, depending on 
-          ##                        how the code is built. This threshold also includes current variability between local vs bamboo builds (as of Feb 2022). 
+          ##                        how the code is built. This threshold also includes current variability between local vs bamboo builds (as of Feb 2022).
+          ##                     - With gain=0.5 and above, there is variation at the 15-20% level between local dev builds, manylinuc2014 tarballs and
+          ##                        MacOS.  With gain=0.2 (which is what other deconvolvers use), the variation is in the 3rd-4th decimal place. 
           #############################################################################
 
           ## Point source (core) : Flux = 1.0 Jy/bm at [256,209,0,0])   --> This should be the same in all channels. A flat-spectrum point source.
-          pt_true = 1.0    
+          ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
+          
+          ### Truth values with a lot of iterations and reaching convergence. Values are derived from the truth image smoothed by the beam size.
+          ### These values are recorded here, for manual testing as needed. 
+          pt_true = 1.0  ## For channel 0 and also 4. 
+          ext_true_0 = 5.1  
+          ext_true_4 = 1.0
+
+          ### Truth values from a 100 iteration run with gain=0.2 are hard-coded in the tests below. These do not reach convergence, but have been manually
+          ### verified to be accurate at the time of writing the test. 
+
           pt_loc_0=[256,209,0,0]    # Channel 0
           pt_loc_4=[256,209,0,4]    # Channel 4
-          ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
-          ext_true_0 = 5.2  
-          ext_true_4 = 1.0
           ext_loc_0=[275,330,0,0]
           ext_loc_4=[275,330,0,4]
 
+          lgain=0.2
+          
           ## case 1: default settings
-          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=0.8,parallel=self.parallel)
-          #report1=self.th.checkall(ret=ret1, peakres=0.3803, modflux=145.524, imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], imgval=[(self.img+'1.psf',1.0,[256,256,0,0])])
+          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=lgain,parallel=self.parallel)
           report1=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], 
                                    imgval=[(self.img+'1.psf',1.0,[256,256,0,0]),
-                                           (self.img+'1.image',pt_true,pt_loc_0),
-                                           (self.img+'1.image',pt_true,pt_loc_4),
-                                           (self.img+'1.image',ext_true_0,ext_loc_0),
-                                           (self.img+'1.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'1.image', 0.95 ,pt_loc_0),
+                                           (self.img+'1.image', 0.78,pt_loc_4),
+                                           (self.img+'1.image',5.48,ext_loc_0),
+                                           (self.img+'1.image',1.91,ext_loc_4) ])
 
           ## case 2: using fusedthreshold to trigger the switch to hogbom
-          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report2=self.th.checkall(ret=ret2, peakres=0.8205, modflux=203.016, imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], imgval=[(self.img+'2.psf',1.0,[256,256,0,0])])
+          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report2=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], 
                                    imgval=[(self.img+'2.psf',1.0,[256,256,0,0]),
-                                           (self.img+'2.image',pt_true,pt_loc_0),
-                                           (self.img+'2.image',pt_true,pt_loc_4),
-                                           (self.img+'2.image',ext_true_0,ext_loc_0),
-                                           (self.img+'2.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'2.image',1.2,pt_loc_0),
+                                           (self.img+'2.image',0.96,pt_loc_4),
+                                           (self.img+'2.image',5.38,ext_loc_0),
+                                           (self.img+'2.image',1.32,ext_loc_4) ])
 
           ## case 3: using the largestscale limit
-          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report3=self.th.checkall(ret=ret3, peakres=0.5804, modflux=107.407, imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], imgval=[(self.img+'3.psf',1.0,[256,256,0,0])])
+          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report3=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], 
                                    imgval=[(self.img+'3.psf',1.0,[256,256,0,0]),
-                                           (self.img+'3.image',pt_true,pt_loc_0),
-                                           (self.img+'3.image',pt_true,pt_loc_4),
-                                           (self.img+'3.image',ext_true_0,ext_loc_0),
-                                           (self.img+'3.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'3.image',1.17,pt_loc_0),
+                                           (self.img+'3.image',0.92,pt_loc_4),
+                                           (self.img+'3.image',5.03,ext_loc_0),
+                                           (self.img+'3.image',1.06,ext_loc_4) ])
          
 
           ## case 4: using both the fusedthreshold and largestscale
-          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report4=self.th.checkall(ret=ret4, peakres=0.5804, modflux=107.407, imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], imgval=[(self.img+'4.psf',1.0,[256,256,0,0])])
+          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report4=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], 
                                    imgval=[(self.img+'4.psf',1.0,[256,256,0,0]),
-                                           (self.img+'4.image',pt_true,pt_loc_0),
-                                           (self.img+'4.image',pt_true,pt_loc_4),
-                                           (self.img+'4.image',ext_true_0,ext_loc_0),
-                                           (self.img+'4.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'4.image',1.17,pt_loc_0),
+                                           (self.img+'4.image',0.92,pt_loc_4),
+                                           (self.img+'4.image',5.03,ext_loc_0),
+                                           (self.img+'4.image',1.06,ext_loc_4) ])
 
           
           self.assertTrue(self.check_final(report1+report2+report3+report4))
