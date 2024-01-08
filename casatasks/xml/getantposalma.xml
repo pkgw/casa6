@@ -60,9 +60,9 @@ Example: outfile='my_alma_antenna_positions.json'
       <shortdescription>Priority-ranked list of hosts to query.</shortdescription>
       <description>Priority-ranked list of hosts to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional hosts will be queried. The special value &quot;prod-dev&quot; indicates that the production server (at the time of CASA release preparation) will only be queried if this task is running as part of a CASA release or pre-release. Otherwise, the development server will be queried.
         Example: hosts=[&quot;server1.alma.cl&quot;, &quot;server2.alma.cl&quot;]
-      </description>
-      <!-- <value type="stringVec"><value>tbd1.alma.cl</value><value>tbd2.alma.cl</value></value> -->
-      <value type="stringVec"><value>prod-dev</value></value>
+        </description>
+        <!-- WARN default is production server -->
+        <value type="stringVec"><value>https://asa.alma.cl/uncertainties-service/uncertainties/versions/last/measurements/casa/</value></value>
       </param>
   </input>
   <returns type="void"/>

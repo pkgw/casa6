@@ -145,12 +145,18 @@ class getantposalma_test(unittest.TestCase):
             getantposalma(outfile="myants.json", hosts=[])
         self.exception_verification(cm, "Parameter hosts must be specified")
         with self.assertRaises(ValueError) as cm: 
-            getantposalma(outfile="myants.json", tw="1,2,3", hosts=["good.example.com"])
+            getantposalma(
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                tw="1,2,3", hosts=["http://good.example.com"]
+            )
         self.exception_verification(
             cm, "Parameter tw should contain exactly one comma that separates two times"
         )
         with self.assertRaises(ValueError) as cm: 
-            getantposalma(outfile="myants.json", tw="1,3", hosts=["good.example.com"])
+            getantposalma(
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d", tw="1,3",
+                hosts=["http://good.example.com"]
+            )
         self.exception_verification(
             cm,
             "Begin time 1 does not appear to have a valid format. The correct format "
@@ -158,8 +164,8 @@ class getantposalma_test(unittest.TestCase):
         )
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
-                outfile="myants.json", tw="2023-04-15T17:15:22,3",
-                hosts=["good.example.com"]
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                tw="2023-04-15T17:15:22,3", hosts=["http://good.example.com"]
             )
         self.exception_verification(
             cm,
@@ -168,8 +174,9 @@ class getantposalma_test(unittest.TestCase):
         )
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
-                outfile="myants.json", tw="2023-04-15T17:15:22,2023-03-02T14:41:00",
-                hosts=["good.example.com"]
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                tw="2023-04-15T17:15:22,2023-03-02T14:41:00",
+                hosts=["http://good.example.com"]
             )
         self.exception_verification(
             cm,
@@ -178,7 +185,8 @@ class getantposalma_test(unittest.TestCase):
         )
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
-                outfile="myants.json", tw="2023-04-15T17:15:22,2023-04-15T17:15:22",
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                tw="2023-04-15T17:15:22,2023-04-15T17:15:22",
                 hosts=["good.example.com"]
             )
         self.exception_verification(
@@ -188,14 +196,16 @@ class getantposalma_test(unittest.TestCase):
         )
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
-                outfile="myants.json", snr=-1, hosts=["good.example.com"]
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                snr=-1, hosts=["http://good.example.com"]
             )
         self.exception_verification(
             cm, "Parameter snr (-1.0) must be non-negative."
         )
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
-                outfile="myants.json", search="sr", hosts=["good.example.com"]
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                search="sr", hosts=["good.example.com"]
             )
         self.exception_verification(
             cm,
@@ -204,7 +214,8 @@ class getantposalma_test(unittest.TestCase):
         )
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
-                outfile="myants.json", hosts=["bogus./12?.example.com"]
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                hosts=["bogus./12?.example.com"]
             )
         self.exception_verification(
             cm,
@@ -212,7 +223,8 @@ class getantposalma_test(unittest.TestCase):
         )
         with self.assertRaises(RuntimeError) as cm: 
             getantposalma(
-                outfile="myants.json", hosts=["http://www.bogus.edu"]
+                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
+                hosts=["http://www.bogus.edu"]
             )
         self.exception_verification(
             cm,

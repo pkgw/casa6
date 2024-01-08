@@ -30,21 +30,6 @@ def _query(url):
     return myjson
 
 
-def _get_prod_dev():
-    prod = "https://asa.alma.cl"
-    dev = " https://2024jan.asa-test.alma.cl"
-    try:
-        import casadhell
-        v = casashell.version_string
-        if 'dev' in v:
-            return dev
-        else:
-            return prod
-    except Exception as e:
-        return dev
-
-
-
 def getantposalma(
     outfile='', overwrite=False, asdm='', tw='', snr=0, search='both_latest',
     hosts=['tbd1.alma.cl', 'tbd2.alma.cl']
@@ -223,20 +208,14 @@ Parameter Details
                 f"Parameter search (={search}) must have a value of either "
                 "'both_latest' or 'both_closest'."
             )
-    wsid = (
-        "uncertainties-service/uncertainties/versions/last/measurements/casa/?"
-        f"{urlencode(parms)}"
-    )
+    qs = f"?{urlencode(parms)}"
     antpos = None
     for h in hosts:
-        server = h
-        if server == "prod-dev":
-            server = _get_prod_dev()
-        if not _is_valid_url_host(server):
+        if not _is_valid_url_host(h):
             raise ValueError(
                 f'Parameter hosts: {h} is not a valid host expressed as a URL.'
             )
-        url = f"{server}/{wsid}"
+        url = f"{h}/{qs}"
         casalog.post(f"Trying {url} ...", "NORMAL")
         antpos = _query(url)
         if antpos:
