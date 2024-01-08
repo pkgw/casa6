@@ -45,7 +45,7 @@ def _get_prod_dev():
 
 
 
-def antposalma(
+def getantposalma(
     outfile='', overwrite=False, asdm='', tw='', snr=0, search='both_latest',
     hosts=['tbd1.alma.cl', 'tbd2.alma.cl']
 ):
@@ -230,7 +230,7 @@ Parameter Details
     antpos = None
     for h in hosts:
         server = h
-        if server = "prod-dev":
+        if server == "prod-dev":
             server = _get_prod_dev()
         if not _is_valid_url_host(server):
             raise ValueError(

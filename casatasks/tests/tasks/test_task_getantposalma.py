@@ -1,5 +1,5 @@
 ##########################################################################
-# test_task_antposalma.py
+# test_task_getantposalma.py
 #
 # Copyright (C) 2018
 # Associated Universities, Inc. Washington DC, USA.
@@ -43,7 +43,7 @@ from urllib.error import URLError
 from casatools import componentlist, measures
 """
 
-from casatasks import antposalma, casalog
+from casatasks import getantposalma, casalog
 
 
 # NOTE be certain to specify the top-level casatestutils directory
@@ -69,7 +69,7 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         myfile = os.sep.join([
-            casatestutils.__path__[0], 'antposalma_helpers', 'query1.json'
+            casatestutils.__path__[0], 'getantposalma_helpers', 'query1.json'
         ])
         with open(myfile, 'r') as f:
             file_contents = f.read()
@@ -81,11 +81,11 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-class antposalma_test(unittest.TestCase):
+class getantposalma_test(unittest.TestCase):
 
     hostname = "http://127.0.0.1:8080"
 
-    outfile = "antposalma.json"
+    outfile = "getantposalma.json"
 
     def setUp(self):
         if os.path.exists(self.outfile):
@@ -125,15 +125,15 @@ class antposalma_test(unittest.TestCase):
         without having queried the server
         """
         with self.assertRaises(ValueError) as cm: 
-            antposalma()
+            getantposalma()
         self.exception_verification(cm, "Parameter outfile must be specified")
         with self.assertRaises(ValueError) as cm: 
-            antposalma(hosts=["good.example.com"])
+            getantposalma(hosts=["good.example.com"])
         self.exception_verification(cm, "Parameter outfile must be specified")
         outfile = "kyfjak.blah"
         Path(outfile).touch()
         with self.assertRaises(RuntimeError) as cm: 
-            antposalma(outfile=outfile, overwrite=False, hosts=["http://good.example.com"])
+            getantposalma(outfile=outfile, overwrite=False, hosts=["http://good.example.com"])
         self.exception_verification(
             cm,
             f"A file or directory named {outfile} already exists and overwrite "
@@ -142,22 +142,22 @@ class antposalma_test(unittest.TestCase):
         )
         os.remove(outfile)
         with self.assertRaises(ValueError) as cm: 
-            antposalma(outfile="myants.json", hosts=[])
+            getantposalma(outfile="myants.json", hosts=[])
         self.exception_verification(cm, "Parameter hosts must be specified")
         with self.assertRaises(ValueError) as cm: 
-            antposalma(outfile="myants.json", tw="1,2,3", hosts=["good.example.com"])
+            getantposalma(outfile="myants.json", tw="1,2,3", hosts=["good.example.com"])
         self.exception_verification(
             cm, "Parameter tw should contain exactly one comma that separates two times"
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(outfile="myants.json", tw="1,3", hosts=["good.example.com"])
+            getantposalma(outfile="myants.json", tw="1,3", hosts=["good.example.com"])
         self.exception_verification(
             cm,
             "Begin time 1 does not appear to have a valid format. The correct format "
             "is of the form YYYY-MM-DDThh:mm:ss."
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", tw="2023-04-15T17:15:22,3",
                 hosts=["good.example.com"]
             )
@@ -167,7 +167,7 @@ class antposalma_test(unittest.TestCase):
             "is of the form YYYY-MM-DDThh:mm:ss."
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", tw="2023-04-15T17:15:22,2023-03-02T14:41:00",
                 hosts=["good.example.com"]
             )
@@ -177,7 +177,7 @@ class antposalma_test(unittest.TestCase):
             "time (2023-03-02T14:41:00)."
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", tw="2023-04-15T17:15:22,2023-04-15T17:15:22",
                 hosts=["good.example.com"]
             )
@@ -187,14 +187,14 @@ class antposalma_test(unittest.TestCase):
             "time (2023-04-15T17:15:22)."
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", snr=-1, hosts=["good.example.com"]
             )
         self.exception_verification(
             cm, "Parameter snr (-1.0) must be non-negative."
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", search="sr", hosts=["good.example.com"]
             )
         self.exception_verification(
@@ -203,7 +203,7 @@ class antposalma_test(unittest.TestCase):
             "or 'both_closest'."
         )
         with self.assertRaises(ValueError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", hosts=["bogus./12?.example.com"]
             )
         self.exception_verification(
@@ -211,7 +211,7 @@ class antposalma_test(unittest.TestCase):
             "Parameter hosts: bogus./12?.example.com is not a valid host expressed as a URL."
         )
         with self.assertRaises(RuntimeError) as cm: 
-            antposalma(
+            getantposalma(
                 outfile="myants.json", hosts=["http://www.bogus.edu"]
             )
         self.exception_verification(
@@ -224,7 +224,7 @@ class antposalma_test(unittest.TestCase):
         """Test successful writing of json file of antenna positions"""
         hosts = [self.hostname]
         self._query_server(
-            lambda: antposalma(
+            lambda: getantposalma(
                 self.outfile, asdm="uid://A002/X10ac6bc/X896d", hosts=hosts
             )
         )

@@ -1,9 +1,9 @@
 <casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
 
-<task category="calibration" name="antposalma" type="function">
+<task category="calibration" name="getantposalma" type="function">
   <shortdescription>Retrieve antenna positions by querying ALMA web service.</shortdescription>
   <description>
-    Antposalma queries an ALMA-specific web service and retrieves antenna positions. The positions
+    Query an ALMA-specific web service and retrieves antenna positions. The positions
     retrieved can faill within a specified time window, be greater than a specified
     signal-to-noise level, etc. The task writes this data to a specified output file.
     This file can then be read by gaincal to apply antenna position corrections.

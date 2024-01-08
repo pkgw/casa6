@@ -64,7 +64,6 @@ Again, **substitute** the path to your build of [CASAtools](https://open-bitbuck
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | accor         | Normalize visibilities based on auto-correlations                                                                               |
 | accum         | Accumulate incremental calibration solutions into a calibration table                                                           |
-| antposalma    | Retrieve antenna position information from ALMA web service                                                                     |
 | applycal      | Apply calibrations solutions(s) to data                                                                                         |
 | asdmsummary   | Summarized description of an ASDM dataset.                                                                                      |
 | bandpass      | Calculates a bandpass calibration solution                                                                                      |
@@ -90,6 +89,7 @@ Again, **substitute** the path to your build of [CASAtools](https://open-bitbuck
 | ft            | Insert a source model as a visibility set                                                                                       |
 | gaincal       | Determine temporal gains from calibrator observations                                                                           |
 | gencal        | Specify Calibration Values of Various Types                                                                                     |
+| getantposalma | Retrieve antenna position information from ALMA web service                                                                     |
 | hanningsmooth | Hanning smooth frequency channel data to remove Gibbs ringing                                                                   |
 | imcollapse    | Collapse image along one axis, aggregating pixel values along that axis.                                                        |
 | imcontsub     | Estimates and subtracts continuum emission from an image cube                                                                   |
