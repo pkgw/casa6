@@ -164,8 +164,8 @@ class gclean:
         if 'cyclefactor' in msg:
             try:
                 self._cyclefactor = float(msg['cyclefactor'])
-                if self._cyclefactor < 1:
-                    return -1, f"cyclefactor must be >= 1"
+                if self._cyclefactor <= 0:
+                    return -1, f"cyclefactor must be > 0"
             except ValueError:
                 return -1, "cyclefactor must be a number"
 
