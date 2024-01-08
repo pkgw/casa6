@@ -62,7 +62,7 @@ Example: outfile='my_alma_antenna_positions.json'
         Example: hosts=[&quot;server1.alma.cl&quot;, &quot;server2.alma.cl&quot;]
       </description>
       <!-- <value type="stringVec"><value>tbd1.alma.cl</value><value>tbd2.alma.cl</value></value> -->
-      <value type="stringVec"><value>prod-dev</value>
+      <value type="stringVec"><value>prod-dev</value></value>
       </param>
   </input>
   <returns type="void"/>
