@@ -1938,6 +1938,35 @@ class test_mask(testref_base):
         report=th.checkall(imgexist=[self.img+'.mask'], imgval=[(self.img+'.mask',1.0,[500,500,0,0]),(self.img+'.mask',0.0,[500,510,0,0])])
         self.checkfinal(report)
 
+
+    def test_mask_preserve_input_zero_mask(self):
+        """
+        Test the fix for CAS-14203; If a user explicitly provides a
+        zero-filled input mask, it should be respected and not flipped.
+        """
+
+        os.system('rm -rf '+self.img+'.*')
+        ## Make initial residual and psf. No mask
+        self.prepData('refim_twochan.ms', tclean_args={'imsize':100, 'cell':'10.0arcsec', 'deconvolver':'hogbom', 'specmode':'mfs', 'niter':0}, delold=True)
+        casalog.setlogfile(self.img+'.log')
+
+        # Create initial mask
+        deconvolve(imagename=self.img, deconvolver='hogbom', niter=0)
+
+        init_sum = th.check_mask(self.img + '.mask')
+        # Fill up with zeros
+        th.fill_mask(self.img+'.mask', 0.0)
+
+        # Deconvolve shouldn't flip the mask
+        ret1 = deconvolve(imagename=self.img, deconvolver='hogbom', niter=10)
+
+        final_sum = th.check_mask(self.img + '.mask')
+
+        self.assertTrue((init_sum == 10000) and (final_sum == 0))
+        self.assertTrue(ret1['stopcode'] == 7)
+
+
+
 ##############################################
 ##############################################
 
