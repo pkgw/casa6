@@ -34,7 +34,7 @@ from six.moves import input, range
 # CAS-13722, CAS-13385
 import warnings
 import matplotlib.cbook
-warnings.filterwarnings("ignore",category=matplotlib.cbook.MatplotlibDeprecationWarning)
+#warnings.filterwarnings("ignore",category=matplotlib.cbook.MatplotlibDeprecationWarning)
 
 ##------------------------------------------------------------------------------------------------------
 ##--- Increment the micro version number with each update to task_plotbandpass.py, adjust the major  ---
