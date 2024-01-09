@@ -1,9 +1,11 @@
 from casatools import componentlist, measures, quanta
 from casatasks import casalog
+import certifi
 from datetime import datetime, timedelta
 import json
 import numbers
 import os, re, shutil
+import ssl
 from urllib import request
 from urllib.error import URLError, HTTPError
 from urllib.parse import urlparse, quote
@@ -18,7 +20,8 @@ def __query(url):
     components = None
     response = None
     try:
-        with request.urlopen(url) as response:
+        context = ssl.create_default_context(cafile=certifi.where())
+        with request.urlopen(url, context=context, timeout=400) as response:
             if response.status == 200:
                 components = json.loads(response.read().decode('utf-8'))
     except HTTPError as e:
