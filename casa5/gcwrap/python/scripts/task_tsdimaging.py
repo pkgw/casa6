@@ -2,12 +2,13 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import collections
 import os
 import re
 import numpy
 import shutil
 import contextlib
-import functools
+import time
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -16,7 +17,7 @@ if is_CASA6:
     from casatools import quanta, imager, image, table
     from . import sdutil
     from . import sdbeamutil
-    from .cleanhelper import cleanhelper
+    from . import mslisthelper
 
     ## (1) Import the python application layer
     from .imagerhelpers.imager_base import PySynthesisImager
@@ -30,7 +31,7 @@ else:
     from taskinit import tbtool as table
     import sdutil
     import sdbeamutil
-    from cleanhelper import cleanhelper
+    import recipes.mslisthelper as mslisthelper
 
     ## (1) Import the python application layer
     from imagerhelpers.imager_base import PySynthesisImager
@@ -59,14 +60,6 @@ def open_ms(vis):
     finally:
         ms.close()
 
-@contextlib.contextmanager
-def open_table(vis):
-    tb = table()
-    tb.open(vis)
-    try:
-        yield tb
-    finally:
-        tb.close()
 
 class SelectionHandler(object):
     def __init__(self, sel):
@@ -177,28 +170,176 @@ class OldImagerBasedTools(object):
                                      pointingcolumntouse=pointingcolumntouse)
         return map_param
 
-    def sort_vis(self, vislist, spw, mode, width, field, antenna, scan, intent, timerange):
-        if isinstance(vislist, str) or len(vislist) == 1:
-            return vislist, field, spw, antenna, scan, intent, timerange
-        imhelper = cleanhelper(imtool=self.imager, vis=vislist, casalog=casalog)
-        imhelper.sortvislist(spw=spw, mode=mode, width=width)
-        sorted_idx = list(imhelper.sortedvisindx)
-        # reverse the order
-        sorted_idx.reverse()
-        sorted_vislist = [vislist[i] for i in sorted_idx]
-        fieldsel = SelectionHandler(field)
-        sorted_field = [fieldsel(i) for i in sorted_idx]
-        spwsel = SelectionHandler(spw)
-        sorted_spw = [spwsel(i) for i in sorted_idx]
-        antennasel = SelectionHandler(antenna)
-        sorted_antenna = [antennasel(i) for i in sorted_idx]
-        scansel = SelectionHandler(scan)
-        sorted_scan = [scansel(i) for i in sorted_idx]
-        intentsel = SelectionHandler(intent)
-        sorted_intent = [intentsel(i) for i in sorted_idx]
-        timerangesel = SelectionHandler(timerange)
-        sorted_timerange = [timerangesel(i) for i in sorted_idx]
-        return sorted_vislist, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent, sorted_timerange
+
+def check_conformance(mslist, check_result):
+    """Check conformance of input MS list
+
+    Check conformance of input MS list, particularlly existence of
+    WEIGHT_SPECTRUM column.
+
+    Args:
+        mslist (list): list of names for input MS
+        check_result (dict): result of conformance check.
+            see mslisthelper.check_mslist for detail about
+            the structure of check_result.
+
+    Returns:
+        dict: Per-column set of names for MS that needs to be
+              edited to resolve the conformance. Top level dict
+              has two keys, "remove" and "add", which indicate
+              the operation to be applied to the columns.
+    """
+    process_dict = {
+        'remove': collections.defaultdict(set),
+        'add': collections.defaultdict(set)
+    }
+    for name, summary in check_result.items():
+        if 'Main' in summary:
+            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['a', 'b']]
+            ms_a = mslist[0]
+            ms_b = name
+
+            # "remove" operation:
+            #  - MS list is opposite order to missingcol_list
+            #  - if WEIGHT_SPECTRUM column is missing in one MS,
+            #    the column should be removed from another MS.
+            for c, t in zip(missingcol_list, [ms_b, ms_a]):
+                if 'WEIGHT_SPECTRUM' in c:
+                    process_dict['remove']['WEIGHT_SPECTRUM'].add(t)
+            # "add" operation:
+            #  - MS list is same order as missingcol_list
+            #  - if CORRECTED_DATA column is missing in one MS,
+            #    the column should be added to that MS.
+            for c, t in zip(missingcol_list, [ms_a, ms_b]):
+                if 'CORRECTED_DATA' in c:
+                    process_dict['add']['CORRECTED_DATA'].add(t)
+    return process_dict
+
+
+def report_conformance(mslist, column_name, process_set):
+    """Report conformance of input MS
+
+    Report conformance of input MS, particularlly on the existence
+    of the column given by column_name.
+
+    Args:
+        mslist (list): list of names for input MS
+        column_name (str): name of the column
+        process_set (set): set of names of MS that need to be edited
+    """
+    if len(process_set) > 0:
+        casalog.post('Detected non-conformance of {} column in input list of MSes.'.format(column_name), priority='WARN')
+        cols = ['exists?', 'MS name']
+        header = ' '.join(cols)
+        casalog.post('', priority='WARN')
+        casalog.post('Summary of existence of {}:'.format(column_name), priority='WARN')
+        casalog.post(header, priority='WARN')
+        casalog.post('-' * len(header), priority='WARN')
+        for name in mslist:
+            basename = os.path.basename(name.rstrip('/'))
+            exists = 'YES' if name in process_set else 'NO'
+            row = '{:^7s} {:<s}'.format(exists, basename)
+            casalog.post(row, priority='WARN')
+
+
+def fix_conformance(process_dict):
+    """Resolve non-conformance by removing WEIGHT_SPECTRUM
+
+    Two non-conformances are fixed, WEIGHT_SPECTRUM and
+    CORRECTED_DATA. Remove WEIGHT_SPECTRUM column from, or
+    add CORRECTED_DATA to the MS provided by process_dict.
+    Backup is created with the name:
+
+      <original_name>.sdimaging.backup-<timestamp>
+
+    Args:
+        process_dict (dict): per-operation ("remove" and "add")
+                             key-value pair of column name and
+                             list of names for MS to be edited
+
+    Returns:
+        dict: mapping of original MS name and the name of backup
+    """
+    backup_list = {}
+    process_list = set()
+    for v in process_dict.values():
+        for w in v.values():
+            process_list = process_list.union(w)
+    for name in process_list:
+        basename = os.path.basename(name.rstrip('/'))
+        timestamp = time.strftime('%Y%m%dT%H%M%S', time.gmtime())
+        backup_name = basename + '.sdimaging.backup-{}'.format(timestamp)
+        with sdutil.table_manager(name) as tb:
+            tb.copy(backup_name, deep=True, returnobject=True).close()
+        backup_list[name] = backup_name
+        casalog.post('Copy of "{}" has been saved to "{}"'.format(name, backup_name), priority='WARN')
+
+    for colname, msnames in process_dict['remove'].items():
+        for name in msnames:
+            casalog.post('{} will be removed from "{}"'.format(colname, name), priority='WARN')
+            with sdutil.table_manager(name, nomodify=False) as tb:
+                if colname in tb.colnames():
+                    tb.removecols(colname)
+
+    for colname, msnames in process_dict['add'].items():
+        for name in msnames:
+            casalog.post('{} will be added to "{}"'.format(colname, name), priority='WARN')
+            with sdutil.cbmanager(name, addmodel=False, addcorr=True):
+                pass
+    return backup_list
+
+
+def conform_mslist(mslist, ignore_columns=['CORRECTED_DATA']):
+    """Make given set of MS data conform
+
+    Here, only conformance on the existence of WEIGHT_SPECTRUM
+    is checked and resolved because non-conformance of WEIGHT_SPECTRUM,
+    i.e. some MS have the column while others don't, could cause
+    the task to crash. If non-conformance is detected, all existing
+    WEIGHT_SPECTRUM columns are removed. This opration modifies input
+    MS so data will be backed up with the name:
+
+      <original_name>.sdimaging.backup-<timestamp>
+
+    Args:
+        mslist (list): list of names for input MS
+    """
+    check_result = mslisthelper.check_mslist(mslist, testcontent=False)
+    process_dict = check_conformance(mslist, check_result)
+    fix_dict = dict()
+    for op, op_dict in process_dict.items():
+        fix_dict[op] = dict()
+        for col, process_set in op_dict.items():
+            if col not in ignore_columns:
+                report_conformance(mslist, col, process_set)
+                fix_dict[op][col] = process_set
+    fix_conformance(fix_dict)
+
+
+def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent, timerange):
+    if isinstance(vislist, str) or len(vislist) == 1:
+        return vislist, field, spw, antenna, scan, intent, timerange
+    # chronological sort
+    sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(vislist)
+    _vislist = list(vislist)
+    sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
+    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, mycasalog=casalog)
+    # conform MS
+    conform_mslist(sorted_vislist)
+    fieldsel = SelectionHandler(field)
+    sorted_field = [fieldsel(i) for i in sorted_idx]
+    spwsel = SelectionHandler(spw)
+    sorted_spw = [spwsel(i) for i in sorted_idx]
+    antennasel = SelectionHandler(antenna)
+    sorted_antenna = [antennasel(i) for i in sorted_idx]
+    scansel = SelectionHandler(scan)
+    sorted_scan = [scansel(i) for i in sorted_idx]
+    intentsel = SelectionHandler(intent)
+    sorted_intent = [intentsel(i) for i in sorted_idx]
+    timerangesel = SelectionHandler(timerange)
+    sorted_timerange = [timerangesel(i) for i in sorted_idx]
+    return sorted_vislist, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent, sorted_timerange
+
 
 def _configure_spectral_axis(mode, nchan, start, width, restfreq):
     # fix default
@@ -282,7 +423,7 @@ def _calc_PB(vis, antenna_id, restfreq):
               "Please set restreq or cell manually to generate an image."
         raise RuntimeError(msg)
     # Antenna diameter
-    with open_table(os.path.join(vis, 'ANTENNA')) as tb:
+    with sdutil.table_manager(os.path.join(vis, 'ANTENNA')) as tb:
         antdiam_ave = tb.getcell('DISH_DIAMETER', antenna_id)
     #antdiam_ave = self._get_average_antenna_diameter(antenna)
     # Calculate PB
@@ -330,7 +471,7 @@ def _get_pointing_extent(phasecenter, vislist, field, spw, antenna, scan, intent
         base_mref = 'J2000'
     elif isinstance(phasecenter, int) or phasecenter.isdigit():
         # may be field id
-        with open_table(os.path.join(vis, 'FIELD')) as tb:
+        with sdutil.table_manager(os.path.join(vis, 'FIELD')) as tb:
             base_mref = tb.getcolkeyword('PHASE_DIR', 'MEASINFO')['Ref']
     else:
         # may be phasecenter is explicitly specified
@@ -354,12 +495,17 @@ def _get_pointing_extent(phasecenter, vislist, field, spw, antenna, scan, intent
         qwidth = my_qa.quantity(mapextent['extent'][0], 'rad')
         qcent0 = my_qa.quantity(mapextent['center'][0], 'rad')
         qcent1 = my_qa.quantity(mapextent['center'][1], 'rad')
-        scenter = '%s %s %s'%(base_mref, my_qa.formxxx(qcent0, 'hms'),
-                              my_qa.formxxx(qcent1, 'dms'))
+        scenter = '{ref} {longitude} {latitude}'.format(
+            ref=base_mref,
+            longitude=my_qa.formxxx(qcent0, 'hms'),
+            latitude=my_qa.formxxx(qcent1, 'dms')
+        )
 
-        casalog.post("- Pointing center: %s" % scenter)
-        casalog.post("- Pointing extent: [%s, %s] (projected)" % (my_qa.tos(qwidth), \
-                                                              my_qa.tos(qheight)))
+        casalog.post("- Pointing center: {center}".format(center=scenter))
+        casalog.post("- Pointing extent: [{width}, {height}] (projected)".format(
+            width=my_qa.tos(qwidth),
+            height=my_qa.tos(qheight)
+        ))
         ret_dict['center'] = scenter
         ret_dict['width'] = qwidth
         ret_dict['height'] = qheight
@@ -518,13 +664,13 @@ def _get_restfreq_if_empty(vislist, spw, field, restfreq):
             fieldid = None
     sourceid = None
     if fieldid is not None:
-        with open_table(os.path.join(vis, 'FIELD')) as tb:
+        with sdutil.table_manager(os.path.join(vis, 'FIELD')) as tb:
             sourceid = tb.getcell('SOURCE_ID', fieldid)
         if sourceid < 0:
             sourceid = None
     if rf is None:
         # if restfrequency is defined in SOURCE table, return it
-        with open_table(os.path.join(vis, 'SOURCE')) as tb:
+        with sdutil.table_manager(os.path.join(vis, 'SOURCE')) as tb:
             if 'REST_FREQUENCY' in tb.colnames():
                 tsel = None
                 taql = ''
@@ -555,7 +701,7 @@ def _get_restfreq_if_empty(vislist, spw, field, restfreq):
         if spwid is None:
             spwid = 0
         # otherwise, return mean frequency of given spectral window
-        with open_table(os.path.join(vis, 'SPECTRAL_WINDOW')) as tb:
+        with sdutil.table_manager(os.path.join(vis, 'SPECTRAL_WINDOW')) as tb:
             cf = tb.getcell('CHAN_FREQ', spwid)
             rf = cf.mean()
 
@@ -590,7 +736,10 @@ def set_beam_size(vis, imagename,
     xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'], 'arcsec'))
     angle = qa.getvalue(qa.convert(sampling_params['angle'], 'deg'))[0]
 
-    casalog.post('Detected raster sampling = [{0:f}, {1:f}] arcsec'.format(xsampling, ysampling))
+    casalog.post('Detected raster sampling = [{x:f}, {y:f}] arcsec'.format(
+        x=xsampling,
+        y=ysampling
+    ))
 
     # handling of failed sampling detection
     valid_sampling = True
@@ -622,9 +771,11 @@ def set_beam_size(vis, imagename,
                            jwidth, is_alma)
         bu.summary()
         imbeam_dict = bu.get_beamsize_image()
-        casalog.post("Setting image beam: major=%s, minor=%s, pa=%s" %
-                     (imbeam_dict['major'], imbeam_dict['minor'],
-                      imbeam_dict['pa'],))
+        casalog.post("Setting image beam: major={major}, minor={minor}, pa={pa}".format(
+            major=imbeam_dict['major'],
+            minor=imbeam_dict['minor'],
+            pa=imbeam_dict['pa']
+        ))
         # set beam size to image
         with open_ia(imagename) as ia:
             ia.setrestoringbeam(**imbeam_dict)
@@ -648,7 +799,7 @@ def do_weight_mask(imagename, weightimage, minweight):
                 raise e
 
     if len(valid_pixels) == 0 or valid_pixels[0] == 0:
-        casalog.post("All pixels weight zero. This indicates no data in MS is in image area. Mask will not be set. Please check your image parameters.","WARN")
+        casalog.post("All pixels have zero weight. This means the imaged region contains no MS data. Mask will not be set. Please check your image parameters.","WARN")
         return
     median_weight = stat['median'][0]
     weight_threshold = median_weight * minweight
@@ -658,7 +809,6 @@ def do_weight_mask(imagename, weightimage, minweight):
                  (weight_threshold),"INFO")
     ###Leaving the original logic to calculate the number of masked pixels via
     ###product of median of and min_weight (which i don't understand the logic)
-
     # Modify default mask
     with open_ia(imagename) as ia:
         ia.calcmask("'%s'>%f" % (weightimage, weight_threshold), asdefault=True)
@@ -697,7 +847,7 @@ def get_ms_column_unit(tb, colname):
 
 def get_brightness_unit_from_ms(msname):
     image_unit = ''
-    with open_table(msname) as tb:
+    with sdutil.table_manager(msname) as tb:
         image_unit = get_ms_column_unit(tb, 'DATA')
         if image_unit == '': image_unit = get_ms_column_unit(tb, 'FLOAT_DATA')
     if image_unit.upper() == 'K':
@@ -708,7 +858,7 @@ def get_brightness_unit_from_ms(msname):
     return image_unit
 
 
-
+@sdutil.sdtask_decorator
 def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, timerange, mode, nchan, start, width, veltype,
                specmode, outframe,
                gridfunction, convsupport, truncate, gwidth, jwidth, imsize, cell, phasecenter, projection,
@@ -756,7 +906,7 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
 
         # handle image spectral axis parameters
         imnchan, imstart, imwidth = _configure_spectral_axis(mode, nchan, start, width, restfreq)
-        
+
         # handle image restfreq parameter's default value
         _restfreq = _get_restfreq_if_empty(infiles, _spw, field, restfreq)
 
@@ -766,21 +916,26 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
         ggwidth = _handle_grid_defaults(gwidth)
         gjwidth = _handle_grid_defaults(jwidth)
 
-        # handle infiles parameter
-        # ---- sort input data using cleanhelper function to get results consistent with older sdimaging task
-        old_way = OldImagerBasedTools()
-        _sorted = old_way.sort_vis(infiles, _spw, mode, imwidth, field, antenna, scan, intent, timerange)
-        sorted_vis, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent, sorted_timerange = _sorted
-
         # handle image geometric parameters
         _ephemsrcname = ''
         ephem_sources = ['MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE', 'PLUTO', 'SUN', 'MOON', 'TRACKFIELD']
         if isinstance(phasecenter, str) and phasecenter.strip().upper() in ephem_sources:
             _ephemsrcname = phasecenter
-        _imsize, _cell, _phasecenter = _handle_image_params(imsize, cell, phasecenter, sorted_vis,
-                                                            sorted_field, sorted_spw, sorted_antenna,
-                                                            sorted_scan, sorted_intent, sorted_timerange,
-                                                            _restfreq, pointingcolumn, _ephemsrcname)
+
+        # handle image parameters
+        if isinstance(infiles, str) or len(infiles) == 1:
+            _imsize, _cell, _phasecenter = _handle_image_params(imsize, cell, phasecenter, infiles,
+                                                                field, _spw, antenna, scan, intent, timerange,
+                                                                _restfreq, pointingcolumn, _ephemsrcname)
+            sorted_vis = infiles
+        else:
+            # sort input data to get consistent result with older sdimaging
+            _sorted = sort_vis(infiles, _spw, mode, imwidth, field, antenna, scan, intent)
+            sorted_vis, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent = _sorted
+            _imsize, _cell, _phasecenter = _handle_image_params(imsize, cell, phasecenter, sorted_vis,
+                                                                sorted_field, sorted_spw, sorted_antenna,
+                                                                sorted_scan, sorted_intent, sorted_timerange,
+                                                                _restfreq, pointingcolumn, _ephemsrcname)
 
         # calculate pblimit from minweight
         pblimit = _calc_pblimit(minweight)
@@ -793,25 +948,25 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
         casalog.post('*** Creating paramList ***', origin=origin)
         paramList = ImagerParameters(
             # input file name
-            msname =infiles,#'sdimaging.ms',
+            msname=sorted_vis,
             # data selection
-            field=field,#'',
-            spw=_spw,#'0',
+            field=field,
+            spw=_spw,
             timestr=timerange,
             antenna=baseline,
             scan=scan,
             state=intent,
             # image parameters
-            imagename=_outfile,#'try2',
-            nchan=imnchan,#1024,
-            start=imstart,#'0',
-            width=imwidth,#'1',
+            imagename=_outfile,
+            nchan=imnchan,
+            start=imstart,
+            width=imwidth,
             outframe=outframe,
             veltype=veltype,
             restfreq=_restfreq,
-            phasecenter=_phasecenter,#'J2000 17:18:29 +59.31.23',
-            imsize=_imsize,#[75,75],
-            cell=_cell,#['3arcmin', '3arcmin'],
+            phasecenter=_phasecenter,
+            imsize=_imsize,
+            cell=_cell,
             projection=projection,
             stokes=stokes,
             specmode=specmode,
@@ -894,7 +1049,7 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
         ms.msselect({'baseline': baseline})
         ndx = ms.msselectedindices()
         antenna_index = ndx['antenna1'][0]
-    with open_table(os.path.join(rep_ms, 'ANTENNA')) as tb:
+    with sdutil.table_manager(os.path.join(rep_ms, 'ANTENNA')) as tb:
         antenna_name = tb.getcell('NAME', antenna_index)
         antenna_diameter = tb.getcell('DISH_DIAMETER', antenna_index)
     set_beam_size(rep_ms, imagename,
