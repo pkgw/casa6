@@ -279,7 +279,8 @@ Also, to avoid issues with some ccache versions, it is recommended to set the ma
 To ease the instructions, define the variables CASAINSTALL, CASASRC and CASATESTDIR described above. The use of these variables is optional, but they help to follow the installation procedure as described here. The instructions to set the variables depend on the shell being used:
 ```
     $ export CASAINSTALL=/installation/path/  # (bash, zsh, POSIX shell)
-    $ export CASASRC=/source/to/casa6/repo    # (bash, zsh, POSIX shell)
+    $ export CASASRC=/path/to/cloned/casa6/   # (bash, zsh, POSIX shell)
+    # note that it is required to run `git submodule update --init --recursive` inside $CASARC first if building casacore
     $ export CASATESTDIR=/testdir/path/       # (bash, zsh, POSIX shell)
     $ export CASABUILD=/temporary/build/path/ # (bash, zsh, POSIX shell)
 
@@ -304,9 +305,9 @@ To install libsakura:
 1. Compile and install with cmake (you might change the build directory or the make options).
 ```
     $ cd sakura-libsakura*/libsakura
-    $ mkdir build
-    $ cd build
+    $ mkdir -p build && cd $_
     $ cmake  \
+        -S .. -B . \
         -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DBUILD_DOC:BOOL=OFF \
@@ -328,7 +329,7 @@ Install measures data:
 ```
 Compile and install with cmake (you might change the build directory or the make options):
 ```
-    $ mkdir $CASABUILD/casacore
+    $ mkdir -p $CASABUILD/casacore
     $ cd $CASABUILD/casacore
 ```
 > NOTE! Macs have an extra cmake directive compared to linux, so be certain to use the cmake command below that is valid for your OS
@@ -374,6 +375,8 @@ Compile and install with cmake (you might change the build directory or the make
     # Note: we use '/opt/local/' as location where gcc is installed (MacPorts install prefix)
     $ export FC=/opt/local/bin/gfortran-mp-11  # (gcc version can be 11, 12, etc.)
     $ cmake \
+	# remember, on Ventura the extra flag is necessary
+	# -DCMAKE_CXX_FLAGS="-Qunused-arguments -flat_namespace" \
         -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
         -DDATA_DIR=$CASAINSTALL/data \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -399,7 +402,7 @@ Compile and install with cmake (you might change the build directory or the make
 
 >    NOTE: The modular system allows to install casacore from other repository which is not the git submodule configured in casatools. This adds flexibility to get a customized casacore if needed. However, it is up to the developer to ensure that the version installed is the one that needs to be used for the subsequent casa C++ build. For instance, one could use a single casacore installation for several casa branches if that's practical or desired.
 
->    NOTE (macOS): In the macOS cmake command line we have to add '-DPRIVATE_LIBS="-framework Accelerate -lm -ldl"' as a temporary workaround until a fix can be added in casacore and used from casa. The problem is explained in (first comment, temporary workaround for an issue with LAPACK).
+>    NOTE (macOS): In the macOS cmake command line we have to add '-DPRIVATE_LIBS="-framework Accelerate -lm -ldl"' as a temporary workaround until a fix can be added in casacore and used from casa. The problem is explained in [CAS-13921](https://open-jira.nrao.edu/browse/CAS-13921?focusedCommentId=199695&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-199695) (first comment, temporary workaround for an issue with LAPACK).
 >    The additional linker rpath to lib/libgcc is needed for gcc 11 and 12, but not for older gcc versions (9). For gcc 9, The "-DPRIVATE_LIBS" can be set to simply -DPRIVATE_LIBS="-framework Accelerate -lm -ldl". The -rpath flag is needed in more modern versions of gcc to load libgfortran, or otherwise one would have to add that path to libgfortran in the DYLD_FALLBACK_LIBRARY_PATH environment variable.
 
 
@@ -410,6 +413,7 @@ Compile and install with cmake (you might change the build directory or the make
     $ mkdir $CASABUILD/casacpp
     $ cd $CASABUILD/casacpp
     $ export PATH=/usr/lib64/openmpi/bin/:$PATH   # This is not needed in Debian or Ubuntu and is optional in the other platforms if no MPI support at the C++ level is needed
+                                                  # on macOS, this should not be necessary if `port select --set mpi openmpi-clang-fortran` has been run after installation of relevant dependencies
 
     # LINUX ONLY! (not manylinux2014, not macOS) use this cmake command
     $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig cmake \
@@ -427,6 +431,8 @@ Compile and install with cmake (you might change the build directory or the make
     # MAC ONLY! use this cmake command
     # Note: we use '/opt/local/include' as location where to find the WCSLIB includes.
     $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig cmake \
+         # remember, on Ventura the extra flag is necessary
+         # -D CMAKE_CXX_FLAGS="-Qunused-arguments -flat_namespace" \
          -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
          -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=$CASAINSTALL \
          -DCMAKE_CXX_FLAGS="-isystem /opt/local/include" \
@@ -437,7 +443,7 @@ Compile and install with cmake (you might change the build directory or the make
 
 1. This will install libraries under ` $CASAINSTALL/lib ` which are named like `libcasacpp_*` and header files under ` $CASAINSTALL/include `
 
->    NOTE: In the macOS cmake command line we have to add '-DCMAKE_CXX_FLAGS="-isystem /opt/local/include"' as a temporary workaround to give the include path of wcslib, until a fix can be used from casacore. This will no longer be needed once the pointer to casacore is updated to include the fix in casa (). Alternatively, before running the casacore cmake one would need to  modify the following line inside $CASASRC/casatools/casacore/casacore.pc.in.
+>    NOTE: In the macOS cmake command line we have to add '-DCMAKE_CXX_FLAGS="-isystem /opt/local/include"' as a temporary workaround to give the include path of wcslib, until a fix can be used from casacore. This will no longer be needed once the pointer to casacore is updated to include the fix in casa (see [CAS-14246](https://open-jira.nrao.edu/browse/CAS-14246) and prior linked issues). Alternatively, before running the casacore cmake one would need to  modify the following line inside $CASASRC/casatools/casacore/casacore.pc.in.
 
 #### Run casacpp unit tests (optional)
 
@@ -445,7 +451,7 @@ Compile and install with cmake (you might change the build directory or the make
 ```
     $ cd $CASABUILD/casacpp
 ```
-1.    Export the variable CASADATA to point to the contents of the casatestdata repository
+1.    Export the variable CASADATA to point to the contents of the [casatestdata repository](https://open-bitbucket.nrao.edu/projects/CASA/repos/casatestdata/browse)
 ```
     $ export CASADATA=/path/to/casatestdata
 ```
