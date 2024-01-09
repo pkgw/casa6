@@ -4,6 +4,7 @@ import itertools
 import numpy
 import os
 
+from casatasks import casalog
 from casatools import msmetadata
 from casatools import table
 from casatools import measures
@@ -39,7 +40,7 @@ DEBUG = False
 def debug_print(msg):
     if DEBUG:
         for m in msg.split('\n'):
-            print('DEBUG: {}'.format(m))
+            casalog.post('DEBUG: {}'.format(m))
 
 
 def inspect_ms(vis, fieldid, spwid, chanstart=0, nchan=-1):
