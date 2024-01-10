@@ -159,7 +159,8 @@ public:
   virtual void initializeToVisNew(const vi::VisBuffer2& vb,
 					     casacore::CountedPtr<SIImageStore> imstore);
 
-  // Handle new MeasurementSet
+  // Provide derived classes with a mean to perform initialization tasks
+  // each time the Visibility Iterator starts iterating over a new MeasurementSet
   virtual void handleNewMs(const casacore::MeasurementSet &ms,
                casacore::CountedPtr<SIImageStore> imstore) {}
 
