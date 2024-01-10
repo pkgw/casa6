@@ -64,7 +64,7 @@ if (gRPC_USES_FIND_PACKAGE)
 else()
   # GRPC has been detected using pkgconfig
   target_link_libraries(casacpp_protobuf_generated PUBLIC PkgConfig::GRPC)
-  target_link_libraries(casacpp_protobuf_generated PUBLIC ${Protobuf_LIBRARIES})
+  target_link_libraries(casacpp_protobuf_generated PUBLIC Protobuf::libprotobuf)
 endif()
 
 # Install the library
