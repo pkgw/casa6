@@ -11,17 +11,17 @@
 from __future__ import absolute_import
 
 from ast import literal_eval
-from collections import Hashable, Iterable, Mapping, Sequence
+from collections.abc import  Hashable, Iterable, Mapping, Sequence
 from copy import copy
 from datetime import date, datetime
 import re
 from warnings import warn
 
-from cerberus import errors
-from cerberus.platform import _int_types, _str_type
-from cerberus.schema import (schema_registry, rules_set_registry,
+from . import errors
+from .platform import _int_types, _str_type
+from .schema import (schema_registry, rules_set_registry,
                              DefinitionSchema, SchemaError)
-from cerberus.utils import drop_item_from_tuple, isclass
+from .utils import drop_item_from_tuple, isclass
 
 
 toy_error_handler = errors.ToyErrorHandler()

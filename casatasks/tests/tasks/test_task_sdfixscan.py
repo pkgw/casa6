@@ -202,7 +202,7 @@ class sdfixscan_test0(unittest.TestCase, sdfixscan_unittest_base):
     def test004(self):
         """Test 004: direction is not given for Press."""
         try:
-            sdfixscan(infiles=[self.rawfiles[0]], mode='model')
+            sdfixscan(infiles=[self.rawfiles[0]], mode='model', direction=[])
             self.assertTrue(False,
                             msg='The task must throw exception')
         except Exception as e:

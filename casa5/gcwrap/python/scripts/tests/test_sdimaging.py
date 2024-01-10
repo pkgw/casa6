@@ -12,8 +12,9 @@ import copy
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import ctsys, image, regionmanager, measures, msmetadata, table, quanta
+    from casatools import calibrater
     from casatools import ms as mstool
-    from casatasks import sdimaging, flagdata
+    from casatasks import sdimaging, flagdata, imhead
     from casatasks.private.sdutil import tbmanager, toolmanager, table_selector
 
     ### for selection_syntax import
@@ -35,6 +36,7 @@ else:
     from taskinit import iatool as image
     from taskinit import rgtool as regionmanager
     from taskinit import msmdtool as msmetadata
+    from taskinit import cbtool as calibrater
 
     try:
         from casatestutils import selection_syntax
@@ -48,11 +50,16 @@ else:
 
     from sdimaging import sdimaging
     from flagdata import flagdata
+    from imhead import imhead
     from sdutil import tbmanager, toolmanager, table_selector
 
     dataRoot = os.path.join(os.environ.get('CASAPATH').split()[0],'casatestdata/')
     def ctsys_resolve(apath):
-        return os.path.join(dataRoot,apath)
+        subdir_hints = ['data', 'casa-data-req', 'data/casa-data-req']
+        for subdir in subdir_hints:
+            path = os.path.join(casaRoot, subdir, apath)
+            if os.path.exists(path):
+                return path
 
 _ia = image()
 _rg = regionmanager()
@@ -3412,10 +3419,9 @@ class sdimaging_test_projection(sdimaging_unittest_base):
                              projection=projection)
 
 
-class sdimaging_antenna_move(sdimaging_unittest_base):
+class sdimaging_pm04_test_base(sdimaging_unittest_base):
     datapath = ctsys_resolve('unittest/sdimaging/')
     infiles = ['PM04_A108.ms', 'PM04_T704.ms']
-    outfile = 'antenna_move.im'
 
     def setUp(self):
         self.__clear_files()
@@ -3432,10 +3438,10 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             if os.path.exists(f):
                 shutil.rmtree(f)
 
-    def test_antenna_move(self):
+    def _run_pm04_test(self, infiles=None):
         imsize = 11
         params = {
-            'infiles': self.infiles,
+            'infiles': self.infiles if infiles is None else infiles,
             'antenna': '2',
             'spw': '18',
             'phasecenter': 2,
@@ -3454,6 +3460,179 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             'sum': [1]
         }
         self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+
+class sdimaging_antenna_move(sdimaging_pm04_test_base):
+    """
+    Test imaging multiple data from the same antenna but different stations
+    """
+    outfile = 'antenna_move'
+
+    def test_antenna_move(self):
+        self._run_pm04_test()
+
+
+class sdimaging_ms_order(sdimaging_pm04_test_base):
+    """
+    Test MS order using the fact that sdimaging takes object name
+    from the first MS of internally sorted list of MSes.
+    """
+    field_names = ['SUCCESS', 'FAIL']
+    outfile = 'ms_order.im'
+
+    def setUp(self):
+        super(sdimaging_ms_order, self).setUp()
+        for infile, fname in zip(self.infiles, self.field_names):
+            self.__set_field_name(infile, 2, fname)
+
+    def __set_field_name(self, infile, field_id, name):
+        with tbmanager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
+            tb.putcell('NAME', field_id, name)
+            assert tb.getcell('NAME', field_id) == name
+
+    def _verify_field_name(self, imagename):
+        object_name = imhead(imagename=imagename, mode='get', hdkey='OBJECT')
+        print('imagename="{}", object name="{}"'.format(imagename, object_name))
+        self.assertEqual(object_name, self.field_names[0])
+
+    def _test_ms_order(self, infiles):
+        self._run_pm04_test(infiles)
+        outputimage = self.outfile
+        self._verify_field_name(outputimage)
+
+    def test_normal_order(self):
+        """test_normal_order: test normal chronological order"""
+        self._test_ms_order(self.infiles)
+
+    def test_reverse_order(self):
+        """test_reverse_order: test reverse chronological order"""
+        infiles = self.infiles[::-1]
+        self.assertEqual(infiles.index(self.infiles[0]), 1)
+        self._test_ms_order(infiles)
+
+
+class sdimaging_ms_conformance(sdimaging_pm04_test_base):
+    """
+    Test handling of non-conform set of MS inputs
+
+    This test checks the following:
+
+      - sdimaging works on conformant input MS list
+      - sdimaging removes WEIGHT_SPECTRUM from MS if non-conformant
+      - sdimaging creates backup for data whose WEIGHT_SPECTRUM need
+        to be removed
+    """
+    outfile = 'ms_conformance'
+
+    @staticmethod
+    def column_exists(name, colname):
+        tb = table()
+        tb.open(name)
+        colnames = tb.colnames()
+        tb.close()
+        return colname in colnames
+
+    @staticmethod
+    def fill_weight_spectrum(name):
+        cb = calibrater()
+        cb.open(name, addcorr=False, addmodel=False)
+        cb.initweights(wtmode='ones', dowtsp=False)
+        cb.close()
+
+    @staticmethod
+    def remove_weight_spectrum(name):
+        tb = table()
+        tb.open(name, nomodify=False)
+        if 'WEIGHT_SPECTRUM' in tb.colnames():
+            tb.removecols('WEIGHT_SPECTRUM')
+        wt = tb.getcol('WEIGHT')
+        wt[:] = 1.0
+        tb.putcol('WEIGHT', wt)
+        tb.close()
+
+    @staticmethod
+    def fill_corrected_data(name):
+        cb = calibrater()
+        cb.open(name, addmodel=False, addcorr=True)
+        cb.close()
+
+    @staticmethod
+    def remove_corrected_data(name):
+        tb = table()
+        tb.open(name, nomodify=False)
+        if 'CORRECTED_DATA' in tb.colnames():
+            tb.removecols('CORRECTED_DATA')
+        tb.close()
+
+    def setUp(self):
+        super(sdimaging_ms_conformance, self).setUp()
+        # keep existing backup files
+        self.existing_backup_files = set(glob.glob('*.sdimaging.backup-2*'))
+        self.additional_backup_files = set()
+
+    def tearDown(self):
+        super(sdimaging_ms_conformance, self).tearDown()
+        # remove backup files created during test
+        for name in self.additional_backup_files:
+            if os.path.exists(name):
+                shutil.rmtree(name)
+
+    def _test_backup(self, name):
+        backup_files = set(glob.glob('{}.sdimaging.backup-2*'.format(name)))
+        self.additional_backup_files.update(
+            backup_files.difference(self.existing_backup_files)
+        )
+        self.assertEqual(len(self.additional_backup_files), 1)
+
+    def test_nowtsp1(self):
+        """test_nowtsp1: no WEIGHT_SPECTRUM column in the first MS"""
+        self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[1])
+
+    def test_nowtsp2(self):
+        """test_nowtsp2: no WEIGHT_SPECTRUM column in the second MS"""
+        self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[0])
+
+    def test_conform1(self):
+        """test_conform1: WEIGHT_SPECTRUM exists"""
+        self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform2(self):
+        """test_conform2: WEIGHT_SPECTRUM does not exist"""
+        self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform3(self):
+        """test_conform3: CORRECTED_DATA column exists only for the first MS"""
+        self.fill_corrected_data(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.remove_corrected_data(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform4(self):
+        """test_conform4: CORRECTED_DATA column exists only for the second MS"""
+        self.remove_corrected_data(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.fill_corrected_data(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
 
 
 """
@@ -3548,7 +3727,9 @@ def suite():
             sdimaging_test_interp,
             sdimaging_test_clipping,
             sdimaging_test_projection,
-            sdimaging_antenna_move
+            sdimaging_antenna_move,
+            sdimaging_ms_order,
+            sdimaging_ms_conformance,
             ]
 
 if is_CASA6:
