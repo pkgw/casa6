@@ -21,7 +21,9 @@
 #
 #
 ##########################################################################
-# import glob
+
+
+import ast
 import casatestutils
 import http.server
 import json
@@ -225,8 +227,7 @@ class getantposalma_test(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(self.outfile))
         with open(self.outfile, "r") as f:
-            d = json.load(f)
-            casalog.post(f"type {type(d)}", "SEVERE")
+            d = ast.literal_eval(json.load(f))
         self.assertEqual(type(d), dict, "Wrong data type")
         self.assertEqual(len(d), 3, "Wrong number of antennas")
 

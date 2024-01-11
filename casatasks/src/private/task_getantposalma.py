@@ -231,10 +231,18 @@ Parameter Details
     if os.path.exists(outfile):
         if overwrite:
             if os.path.isdir(outfile):
-                casalog.post(f"Removing existing directory {outfile}", "WARN")
+                casalog.post(
+                    f"Removing existing directory {outfile} before writing new "
+                    "file of same name",
+                    "WARN"
+                )
                 shutil.rmtree(outfile)
             else:
-                casalog.post(f"Removing existing file {outfile}", "WARN")
+                casalog.post(
+                    f"Removing existing file {outfile} before writing now file of "
+                    "same name",
+                    "WARN"
+                )
                 os.remove(outfile)
         else:
             raise RuntimeError(
