@@ -1,6 +1,8 @@
 from casatasks import casalog
 from casatools import quanta
+import certifi
 import json, os, shutil
+import ssl
 from urllib import request
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
@@ -15,7 +17,8 @@ def _query(url):
     myjson = None
     response = None
     try:
-        with request.urlopen(url) as response:
+        context = ssl.create_default_context(cafile=certifi.where())
+        with request.urlopen(url, context=context, timeout=400) as response:
             if response.status == 200:
                 myjson = response.read().decode('utf-8')
     except HTTPError as e:
@@ -201,6 +204,8 @@ Parameter Details
     elif snr > 0:
         parms["snr"] = snr
     if search:
+        parms['search'] = search
+    """
         if search in ["both_latest", "both_closest"]:
             parms["search"] = search
         else:
@@ -208,6 +213,7 @@ Parameter Details
                 f"Parameter search (={search}) must have a value of either "
                 "'both_latest' or 'both_closest'."
             )
+    """
     qs = f"?{urlencode(parms)}"
     antpos = None
     for h in hosts:

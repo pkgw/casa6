@@ -22,27 +22,14 @@
 #
 ##########################################################################
 # import glob
-"""
-import numpy as np
-import re
-import shutil
-import sys
-"""
 import casatestutils
 import http.server
+import json
 import os
 import threading
 import unittest
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-"""
-from urllib import request
-from urllib.error import URLError
-
-
-from casatools import componentlist, measures
-"""
-
 from casatasks import getantposalma, casalog
 
 
@@ -58,12 +45,6 @@ class MockHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         casalog.post('server path ' + self.path, 'WARN')
         parms = parse_qs(urlparse(self.path).query)
         casalog.post(f'server parms {parms}', 'INFO')
-        good_sources = ("3C48", "3C286", "3C138", "3C147")
-        if 'source' in parms and parms['source'][0].upper() not in good_sources:
-            explain = f'source must be one of {good_sources}'
-            self.send_error(400, message='Invalid input', explain=explain)
-            self.end_headers()
-            return
         """Handle GET requests"""
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -202,6 +183,7 @@ class getantposalma_test(unittest.TestCase):
         self.exception_verification(
             cm, "Parameter snr (-1.0) must be non-negative."
         )
+        """
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
                 outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
@@ -212,6 +194,7 @@ class getantposalma_test(unittest.TestCase):
             "Parameter search (=sr) must have a value of either 'both_latest' "
             "or 'both_closest'."
         )
+        """
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
                 outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
@@ -241,7 +224,11 @@ class getantposalma_test(unittest.TestCase):
             )
         )
         self.assertTrue(os.path.exists(self.outfile))
-
+        with open(self.outfile, "r") as f:
+            d = json.load(f)
+            casalog.post(f"type {type(d)}", "SEVERE")
+        self.assertEqual(type(d), dict, "Wrong data type")
+        self.assertEqual(len(d), 3, "Wrong number of antennas")
 
 if __name__ == '__main__':
      unittest.main()
