@@ -1885,7 +1885,8 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     // Setup our Measures container
     const auto & rowAntenna1Position =
       vb.subtableColumns().antenna().positionMeas()(rowAntenna1);
-    const MEpoch dummyEpoch(Quantity(0, "s"));
+    // Set dummy time stamp 1 day before rowTime
+    const MEpoch dummyEpoch(Quantity(rowTime - 86400.0, "s"));
     mFrame_p = MeasFrame(dummyEpoch, rowAntenna1Position);
     // Remember antenna id for next call,
     // which may be done using a different VisBuffer ...
