@@ -227,9 +227,16 @@ class getantposalma_test(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(self.outfile))
         with open(self.outfile, "r") as f:
-            d = ast.literal_eval(json.load(f))
-        self.assertEqual(type(d), dict, "Wrong data type")
-        self.assertEqual(len(d), 3, "Wrong number of antennas")
+            antpos, md = json.load(f)
+            antpos = ast.literal_eval(antpos)
+        self.assertEqual(type(antpos), dict, "Wrong data type")
+        self.assertEqual(len(antpos), 3, "Wrong number of antennas")
+        self.assertEqual(
+            md["outfile"], self.outfile, "Wrong outfile name in metadata"
+        )
+        self.assertEqual(
+            md["asdm"], "uid://A002/X10ac6bc/X896d", "Wrong asdm name in metadata"
+        )
 
 if __name__ == '__main__':
      unittest.main()

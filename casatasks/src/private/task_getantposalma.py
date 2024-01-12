@@ -1,6 +1,7 @@
 from casatasks import casalog
 from casatools import quanta
 import certifi
+from datetime import datetime
 import json, os, shutil
 import ssl
 from urllib import request
@@ -162,6 +163,7 @@ Parameter Details
     """
     if not outfile:
         raise ValueError("Parameter outfile must be specified")
+    md = {"outfile": outfile}
     if not overwrite and os.path.exists(outfile):
         raise RuntimeError(
             f"A file or directory named {outfile} already exists and overwrite "
@@ -172,6 +174,7 @@ Parameter Details
         raise ValueError("Parameter hosts must be specified")
     if isinstance(hosts, list) and not hosts[0]:
         raise ValueError("The first element of the hosts list must be specified")
+    md["hosts"] = hosts
     _qa = quanta()
     parms = {}
     if asdm:
@@ -205,16 +208,8 @@ Parameter Details
         parms["snr"] = snr
     if search:
         parms['search'] = search
-    """
-        if search in ["both_latest", "both_closest"]:
-            parms["search"] = search
-        else:
-            raise ValueError(
-                f"Parameter search (={search}) must have a value of either "
-                "'both_latest' or 'both_closest'."
-            )
-    """
     qs = f"?{urlencode(parms)}"
+    md.update(parms)
     antpos = None
     for h in hosts:
         if not _is_valid_url_host(h):
@@ -225,6 +220,7 @@ Parameter Details
         casalog.post(f"Trying {url} ...", "NORMAL")
         antpos = _query(url)
         if antpos:
+            md["successful_url"] = url
             break
     if not antpos:
         raise RuntimeError("All URLs failed to return an antenna position list.")
@@ -248,5 +244,6 @@ Parameter Details
             raise RuntimeError(
                 "Logic Error: shouldn't have gotten to this point with overwrite=False"
             )
+    md["timestamp"] = str(datetime.now())
     with open(outfile, "w") as f:
-        json.dump(antpos, f)
+        json.dump([antpos, md], f)
