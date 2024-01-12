@@ -186,12 +186,6 @@ class XmlCMakeBuildExt(build_ext):
         # Call cmake to compile the tools C++ code (as well as SWIG processing)
         cmake_args = ['-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
                       '-DPython3_EXECUTABLE=' + sys.executable]
-        # Renaud: Mac OS Sonoma 14.2.1 / grpc port: requires C++ 14
-        # This did not work
-        # cmake_args.append('-DCMAKE_CXX_STANDARD=14')
-        # cmake_args.append('-DCMAKE_CXX_STANDARD_REQUIRED:BOOL=ON')
-        # Or: set CXXFLAGS environment variable
-        cmake_args.append('-DCMAKE_CXX_FLAGS=-std=c++14')
 
         if in_virtualenv():
             cmake_args.append('-DPython3_FIND_VIRTUALENV=ONLY')
@@ -210,7 +204,6 @@ class XmlCMakeBuildExt(build_ext):
         if 'CMAKE_BUILD_PARALLEL_LEVEL' not in os.environ:
             cmake_par = os.sysconf('SC_NPROCESSORS_ONLN') -1
             os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(1 if cmake_par == 0 else cmake_par)
-        #subprocess.check_call(['cmake', sourcedir] + cmake_args)
         print(f"Working directory: {os.getcwd()}")
         print("Configuring casatools using cmake args:")
         [print(arg) for arg in cmake_args]
@@ -233,7 +226,6 @@ class XmlCMakeBuildExt(build_ext):
             print(e.stderr.decode())
             print("EndError@cmake-configure")
             raise
-        #subprocess.check_call(['cmake', '--build', '.'])
         print("Building casatools ...")
         try:
             subprocess.run(['cmake', '--build', '.'],
@@ -254,7 +246,7 @@ class XmlCMakeBuildExt(build_ext):
             print(e.stderr.decode())
             print("EndError@cmake--build")
             parent_dir = '/'.join(os.getcwd().split('/')[0:-1])
-            copy_tree(parent_dir, parent_dir + '.bak')
+            # copy_tree(parent_dir, parent_dir + '.bak')
             raise
 
 
