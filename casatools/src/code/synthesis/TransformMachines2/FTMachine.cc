@@ -2497,13 +2497,6 @@ using namespace casa::vi;
   
   // Vectorized finalizeToVis is not implemented because it does nothing and is never called.
 
-  // Handle new MeasurementSet
-  // void handleNewMs(const casacore::MeasurementSet & /* ms */,
-  //              casacore::CountedPtr<SIImageStore> /* imstore */)
-  // {
-  //   // By default do nothing
-  // }
-
   // Vectorized InitializeToSky
   void FTMachine::initializeToSkyNew(const Bool dopsf, 
 				     const VisBuffer2& vb,
