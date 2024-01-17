@@ -72,9 +72,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         nchan = self.allimpars["0"]["nchan"]
         freqbeg, freqwidth = self.determineFreqRange()
         if nchan < 1 :
-            nchan=int((freqbeg+freqwidth)/20)   #1/20 of peak freq
-            if nchan < 4:
-                nchan=4
+            nchan=int((freqwidth)/(0.1*freqbeg))  #gives around 10 channel for 2:1 BW
+            if nchan < 5:
+                nchan=5
         freqwidth = freqwidth / nchan
         #print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
@@ -141,11 +141,15 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             pars = self.alldecpars[str(immod)]
             if pars["specmode"] != "mtmfs_via_cube":
                 raise RuntimeError(
-                    f"Creating instance of class {type(self).__name__} with the wrone specmode! Expected 'mtmfs_via_cube' but instead got '{pars['specmode']}'!"
+                    f"Creating instance of class {type(self).__name__} with the wrong specmode! Expected 'mtmfs_via_cube' but instead got '{pars['specmode']}'!"
                 )
             if pars["deconvolver"] != "mtmfs":
                 raise RuntimeError(
                     f"specmode {pars['specmode']} requires 'mtmfs' deconvolver but instead got '{pars['deconvolver']}'!"
+                )
+            if pars["nterms"] < 2:
+                raise RuntimeError(
+                    f"specmode {pars['specmode']} requires nterms >1 !"
                 )
         return True
     ##############################################
@@ -457,7 +461,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 )
             else:
                 imname = self.get_dec_pars_for_immod(immod)['imagename']
-                if suffix == "psf" or suffix == "sumwt" or suffix == "weight":
+                if suffix == "psf":
                     imtype=0   ## num_terms should be 2*nterms-1
                 if suffix == "residual":
                     imtype=1   ## num_terms should be nterms
