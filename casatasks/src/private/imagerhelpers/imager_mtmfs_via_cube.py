@@ -72,9 +72,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         nchan = self.allimpars["0"]["nchan"]
         freqbeg, freqwidth = self.determineFreqRange()
         if nchan < 1 :
-            nchan=int((freqbeg+freqwidth)/20)   #1/20 of peak freq
-            if nchan < 4:
-                nchan=4
+            nchan=int((freqwidth)/(0.1*freqbeg))  #gives around 10 channel for 2:1 BW
+            if nchan < 5:
+                nchan=5
         freqwidth = freqwidth / nchan
         #print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
