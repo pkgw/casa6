@@ -580,6 +580,7 @@ def set_beam_size(vis, imagename,
     """Set estimated beam size to the image."""
     is_alma = antenna_name[0:2] in ['PM', 'DV', 'DA', 'CM']
     blockage = '0.75m' if is_alma else '0.0m'
+    log_origin = 'set_beam_size'
 
     with open_ia(imagename) as ia:
         csys = ia.coordsys()
@@ -595,11 +596,17 @@ def set_beam_size(vis, imagename,
                                                             pointingcolumntouse=pointingcolumntouse,
                                                             antenna_name=antenna_name)
     qa = quanta()
-    casalog.post('sampling_params={0}'.format(sampling_params))
+    casalog.post(
+        f'sampling_params={sampling_params}',
+        origin=log_origin
+    )
     xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'], 'arcsec'))
     angle = qa.getvalue(qa.convert(sampling_params['angle'], 'deg'))[0]
 
-    casalog.post('Detected raster sampling = [{0:f}, {1:f}] arcsec'.format(xsampling, ysampling))
+    casalog.post(
+        f'Detected raster sampling = [{xsampling:f}, {ysampling:f}] arcsec',
+        origin=log_origin
+    )
 
     # handling of failed sampling detection
     valid_sampling = True
@@ -609,7 +616,9 @@ def set_beam_size(vis, imagename,
         casalog.post(
             f"Invalid sampling={xsampling} arcsec. "
             f"Using the value of orthogonal direction={ysampling} arcsec",
-            priority="WARN")
+            priority="WARN",
+            origin=log_origin
+        )
         sampling = [ysampling]
         angle = 0.0
         valid_sampling = False
@@ -618,7 +627,9 @@ def set_beam_size(vis, imagename,
             casalog.post(
                 f"Invalid sampling={ysampling} arcsec. "
                 f"Using the value of orthogonal direction={xsampling} arcsec",
-                priority="WARN")
+                priority="WARN",
+                origin=log_origin
+            )
             sampling = [xsampling]
             angle = 0.0
             valid_sampling = True
@@ -638,17 +649,24 @@ def set_beam_size(vis, imagename,
                            jwidth, is_alma)
         bu.summary()
         imbeam_dict = bu.get_beamsize_image()
-        casalog.post("Setting image beam: major=%s, minor=%s, pa=%s" %
-                     (imbeam_dict['major'], imbeam_dict['minor'],
-                      imbeam_dict['pa'],))
+        casalog.post(
+            f"Setting image beam: "
+            f"major={imbeam_dict['major']}, "
+            f"minor={imbeam_dict['minor']}, "
+            f"pa={imbeam_dict['pa']}",
+            origin=log_origin
+        )
         # set beam size to image
         with open_ia(imagename) as ia:
             ia.setrestoringbeam(**imbeam_dict)
     else:
         # BOTH sampling was invalid
         casalog.post(
-            "Could not detect valid raster sampling. Exitting without setting beam size to image",
-            priority='WARN')
+            "Could not detect valid raster sampling. "
+            "Exiting without setting beam size to image",
+            priority='WARN',
+            origin=log_origin
+        )
 
 
 def do_weight_mask(imagename, weightimage, minweight):
@@ -916,9 +934,10 @@ def tsdimaging(
         casalog.post('*** Initializing normalizers ***', origin=origin)
         imager.initializeNormalizers()
 
-        # Compute the Single-Dish image
-        casalog.post('*** makeSdImage... ***', origin=origin)
+        # Create Single-Dish images
+        casalog.post('*** Creating single-dish images ***', origin=origin)
         imager.makeSdImage()
+        casalog.post('*** Created single-dish images ***', origin=origin)
 
     finally: # Close tools and rename Synthesis Imager's residual image
         casalog.post('*** Cleaning up tools ***', origin=origin)
@@ -950,6 +969,7 @@ def tsdimaging(
     with sdutil.table_manager(os.path.join(rep_ms, 'ANTENNA')) as tb:
         antenna_name = tb.getcell('NAME', antenna_index)
         antenna_diameter = tb.getcell('DISH_DIAMETER', antenna_index)
+    casalog.post(f"Setting single-dish image's brightness unit to '{image_unit}'")
     set_beam_size(
         rep_ms, singledish_image_path,
         rep_field, rep_spw, baseline, rep_scan, rep_intent, rep_timerange,
@@ -962,7 +982,7 @@ def tsdimaging(
         image_unit = get_brightness_unit_from_ms(rep_ms)
     if len(image_unit) > 0:
         with open_ia(singledish_image_path) as ia:
-            casalog.post(f"Setting image's brightness unit to '{image_unit}'")
+            casalog.post(f"Setting single-dish image's brightness unit to '{image_unit}'")
             ia.setbrightnessunit(image_unit)
 
     # Update single-dish image's mask: mask low weight pixels
