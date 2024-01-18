@@ -136,10 +136,12 @@ endif()
 
 # Create a list with all the components
 set(casacpp_all_components
+  air_casawvr
   alma
   asdmstman
   atmosphere
   atnf
+  bnmin1
   calanalysis
   casadbus
   casatools
