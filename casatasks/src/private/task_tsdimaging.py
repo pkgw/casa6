@@ -673,8 +673,9 @@ def set_beam_size(vis, imagename,
 def do_weight_mask(imagename, weightimage, minweight):
     # Mask image pixels whose weight are smaller than minweight.
     # Weight image should have 0 weight for pixels below < minweight
-    casalog.post("Start masking the map using minweight = %f" %
-                 minweight, "INFO")
+    logger = sdutil.Casalog(origin="do_weight_mask")
+    logger.post(f"Start masking the map using minweight = {minweight:f}",
+                 priority="INFO")
     with open_ia(weightimage) as ia:
         try:
             stat = ia.statistics(mask="'" + weightimage + "' > 0.0", robust=True)
@@ -686,7 +687,7 @@ def do_weight_mask(imagename, weightimage, minweight):
                 raise e
 
     if len(valid_pixels) == 0 or valid_pixels[0] == 0:
-        casalog.post(
+        logger.post(
             "All pixels weight zero. "
             "This indicates no data in MS is in image area. "
             "Mask will not be set. Please check your image parameters.",
@@ -694,10 +695,11 @@ def do_weight_mask(imagename, weightimage, minweight):
         return
     median_weight = stat['median'][0]
     weight_threshold = median_weight * minweight
-    casalog.post("Median of weight in the map is %f" % median_weight,
-                 "INFO")
-    casalog.post("Pixels in map with weight <= median(weight)*minweight = %f will be masked." %
-                 (weight_threshold), "INFO")
+    logger.post(f"Median of weight in the map is {median_weight:f}",
+                 priority="INFO")
+    logger.post(f"Pixels in map with weight <= median(weight)*minweight = "
+                 "{weight_threshold:f} will be masked.",
+                 priority="INFO")
     # Leaving the original logic to calculate the number of masked pixels via
     # product of median of and min_weight (which i don't understand the logic)
 
@@ -720,9 +722,10 @@ def do_weight_mask(imagename, weightimage, minweight):
 
     masked_fraction = 100. * (1. - valid_pixels_after / float(valid_pixels[0]))
 
-    msg = f"This amounts to {masked_fraction:5.1f} % of the area with nonzero weight."
-    casalog.post(msg, "INFO")
-    casalog.post(
+    logger.post(f"This amounts to {masked_fraction:5.1f} % "
+                  "of the area with nonzero weight.", 
+                  priority="INFO")
+    logger.post(
         f"The weight image '{weightimage}' is returned by this task, "
         "if the user wishes to assess the results in detail.",
         priority="INFO")
