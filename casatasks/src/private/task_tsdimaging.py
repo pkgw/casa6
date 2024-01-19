@@ -258,7 +258,8 @@ def _calc_PB(vis, antenna_id, restfreq):
     calculation.
     The input argument should be a list of antenna IDs.
     """
-    casalog.post("Calculating Pirimary beam size:")
+    logger = sdutil.Casalog(origin="_calc_PB")
+    logger.post("Calculating Primary beam size:")
     # CAS-5410 Use private tools inside task scripts
     my_qa = quanta()
 
@@ -283,9 +284,9 @@ def _calc_PB(vis, antenna_id, restfreq):
     lambda_D = wave_length / D_m * 3600. * 180 / numpy.pi
     PB = my_qa.quantity(pb_factor * lambda_D, 'arcsec')
     # Summary
-    casalog.post("- Antenna diameter: %s m" % D_m)
-    casalog.post("- Reference Frequency: %s" % ref_freq)
-    casalog.post("PB size = %5.3f * lambda/D = %s" % (pb_factor, my_qa.tos(PB)))
+    logger.post(f"- Antenna diameter: {D_m} m")
+    logger.post(f"- Reference Frequency: {ref_freq}")
+    logger.post(f"PB size = {pb_factor:5.3f} * lambda/D = {my_qa.tos(PB)}")
     return PB
 
 
