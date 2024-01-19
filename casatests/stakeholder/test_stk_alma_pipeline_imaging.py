@@ -160,14 +160,6 @@ class test_tclean_base(unittest.TestCase):
         for f in del_files:
             shutil.rmtree(f)
 
-    def prepInputmask(self, maskname=""):
-        if maskname!="":
-            self.maskname=maskname
-        if (os.path.exists(self.maskname)):
-            shutil.rmtree(self.maskname)
-        shutil.copytree(refdatapath+self.maskname, self.maskname, symlinks=True)
-
-
     def check_dict_vals_beam(self, exp_dict, act_dict, suffix, epsilon=0.01):
         """ Compares expected dictionary with actual dictionary. Useful for comparing the restoring beam.
 
