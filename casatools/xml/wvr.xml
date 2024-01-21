@@ -1,0 +1,193 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd                              file:///opt/casa/code/tools/xml/casa.xsd" xmlns="http://casa.nrao.edu/schema/psetTypes.html" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <tool module="wvr" name="wvr">
+
+    <code>
+      <include>wvr_forward.h</include>
+      <private>
+         <include>wvr_private.h</include>
+      </private>
+    </code>
+    <shortdescription>Operate on ALMA Water Vapour Radiometer (WVR) data</shortdescription>
+
+    <description/>
+
+    <method name="wvr" type="constructor">
+
+      <shortdescription>Construct a WVR tool</shortdescription>
+      <description/>
+
+      <returns type="wvr"/>
+
+      <example/>
+
+    </method>
+
+    <method name="gcal" type="function">
+
+      <shortdescription>Generate a calibration table based on the WVR data in the given MS</shortdescription>
+      <description>
+       Generate a gain table based on Water Vapour Radiometer data
+      </description>
+
+      <input>
+        <param name="vis" mustexist="true" type="path">
+            <description>Input measurement set</description>
+          <value/>
+        </param>
+        <param name="output" mustexist="false" type="path">
+            <description>Name of the output file</description>
+          <value/>
+        </param>
+        <param name="toffset" type="double">
+          <description>
+          Time offset (in seconds) between interferometric and WVR data
+          </description>
+          <value>0.</value>
+        </param>
+        <param name="nsol" type="int">
+          <description>
+          Number of solutions for phase correction coefficients to make during this observation
+          </description>
+          <value>1</value>
+        </param>
+        <param name="segsource" type="bool">
+          <description>
+	  Do a new coefficient calculation for each source
+          </description>
+          <value>false</value>
+        </param>
+        <param name="reverse" type="bool">
+          <description>
+	  Reverse the sign of correction in all SPW (e.g. due to AIV-1740)
+          </description>
+          <value>false</value>
+        </param>
+        <param name="reversespw" type="intVec">
+          <description>
+	  Reverse the sign correction for these spws
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+        <param name="disperse" type="bool">
+          <description>
+	    Apply correction for dispersion
+          </description>
+          <value>false</value>
+        </param>
+        <param name="cont" type="bool">
+          <description>
+	  UNTESTED! Estimate the continuum (e.g., due to clouds)
+          </description>
+          <value>false</value>
+        </param>
+        <param name="wvrflag" type="string">
+          <description>
+	    Regard this WVR (labelled with either antenna number or antenna name) as bad, and use interpolated values instead. (Can be comma-separated list without spaces.)
+          </description>
+	  <value type="string">
+	  </value>
+        </param>
+        <param name="sourceflag" type="stringVec">
+          <description>
+	  Flag the WVR data for this source and do not produce any phase corrections on it
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+        <param name="statfield" type="stringVec">
+          <description>
+	  Compute the statistics (Phase RMS, Disc) on this field only
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+        <param name="statsource" type="stringVec">
+          <description>
+	  Compute the statistics (Phase RMS, Disc) on this source only
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+        <param name="tie" type="stringVec">
+          <description>
+	  Prioritise tieing the phase of these sources as well as possible
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+        <param name="smooth" type="int">
+          <description>
+	  Smooth WVR data by this many samples before applying the correction
+          </description>
+          <value>1</value>
+        </param>
+        <param name="scale" type="double">
+          <description>
+	  Scale the entire phase correction by this factor
+          </description>
+          <value>1.0</value>
+        </param>
+        <param name="maxdistm" type="double">
+          <description>
+	  Maximum distance (m) an antenna may have to be considered for being part of the set of up to 3 antennas for interpolation of a solution for a flagged antenna
+          </description>
+          <value>500.</value>
+        </param>
+	<param name="minnumants" type="int">
+          <description>
+          Minimum number of near antennas (up to 3) required for interpolation
+          </description>
+          <value>2</value>
+        </param>
+        <param name="mingoodfrac" type="double">
+          <description>
+	  If the fraction of unflagged data for an antenna is below this value (0. to 1.), the antenna is flagged
+          </description>
+          <value>0.8</value>
+        </param>
+        <param name="usefieldtab" type="bool">
+          <description>
+	  Derive the antenna pointing information from the FIELD table instead of the POINTING table
+          </description>
+          <value>false</value>
+        </param>
+        <param name="spw" type="intVec">
+          <description>
+	  Only write out corrections for these SPWs.
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+        <param name="wvrspw" type="intVec">
+          <description>
+	  Only use data from these WVR SPWs.
+          </description>
+	  <value type="vector">
+	  </value>
+        </param>
+	<param name="refant" type="string">
+          <description>
+	    Use the WVR data from this antenna for calculating the dT/dL parameters. (Can be comma-separated ranked list without spaces.)
+          </description>
+	  <value type="string">
+	  </value>
+        </param>
+	<param name="offsets" mustexist="true" type="path">
+          <description>
+	  Name of the optional input table containing the temperature offsets, e.g. generated by remove_cloud
+          </description>
+	  <value/>
+        </param>
+	
+      </input>
+
+      <returns type="int"/>
+
+      <example/>
+
+    </method>    
+    
+  </tool>
+</casaxml>

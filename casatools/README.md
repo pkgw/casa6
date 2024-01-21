@@ -219,6 +219,7 @@ Here, ```test_constructor``` is one test within the ```coordsys_test``` *TestCas
 | table                | Access tables from casapy                                       |
 | vlafiller            | tool for VLA filler tasks                                       |
 | vpmanager            | Tool for specifying voltage patterns and primary beams          |
+| wvr                  | Tool for the analysis of Water Vapour Radiometer data           |
 
 
 ## Tool Initialization

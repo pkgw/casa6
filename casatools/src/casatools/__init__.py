@@ -39,6 +39,7 @@ __all__ = [ "ctsys", "version", "version_string"
             'synthesisimager',
             'componentlist',
             'spectralline',
+            'wvr'
           ]
 from .image import image
 from .logsink import logsink
@@ -58,6 +59,7 @@ from .synthesisimstore import synthesisimstore
 from .miriadfiller import miriadfiller
 from .ms import ms
 from .vpmanager import vpmanager
+from .wvr import wvr
 from .synthesisdeconvolver import synthesisdeconvolver
 from .vlafiller import vlafiller
 from .sakura import sakura
