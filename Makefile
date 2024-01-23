@@ -11,7 +11,7 @@ CASACORE_DATA_REPO 	= ftp://ftp.astron.nl/outgoing/Measures/WSRT_Measures.ztar
 CASA_BUILD_TYPE     = RelWithDebInfo
 CASACORE_BUILD_TYPE = RelWithDebInfo
 
-LIBSAKURA_VERSION	= 5.1.3
+LIBSAKURA_VERSION	= 5.2.1
 CASASHELL_BRANCH	= master
 
 # Number of cores used for compilation (default: all available in the machine)

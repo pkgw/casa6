@@ -102,7 +102,7 @@ To install these dependencies one can either install them manually using any nat
 
 What follows is the detailed instructions to install the prerequisites for all these platforms.
 
-#### Installing prerequisites in RHEL equivalent (tested on RockyLinux 8 only)
+#### Installing prerequisites in RHEL 8 equivalent (tested on RHEL 8.5 and RockyLinux 8\)
 
 Note: on RHEL8.5 powertools is provided by: 
 
@@ -113,7 +113,7 @@ Note: on NRAO systems CodeReadyBuilder is packaged as part of nrao-rhel-8.repo a
 Run as root or as a used with sudo rights the following commands:
 
 ```
-    # Make sure that the needed repos are there
+    # Make sure that the additional repos needed are there
     $ dnf -y install epel-release
     $ dnf install -y dnf-plugins-core
     $ dnf config-manager --set-enabled powertools
@@ -245,13 +245,15 @@ Run as root or as a used with sudo rights the following commands:
     $ sudo port install fftw-3 fftw-3-single eigen3
 
     # Additional packages needed for CASA development 
-    $ sudo port install ccache  py38-build py38-pip py38-numpy swig-python xercesc3 pkgconfig protobuf3-cpp grpc gsl libxslt openmpi-clang libxml2 fftw-3 fftw-3-single
+    $ sudo port install ccache openjdk11 py38-build py38-pip py38-numpy swig-python xercesc3 pkgconfig protobuf3-cpp grpc gsl libxslt openmpi-clang libxml2 fftw-3 fftw-3-single
 
     # Select python default version
     $ sudo port select --set python python38
     $ sudo port select --set python3 python38
     $ sudo port select --set pip pip38
     $ sudo port select --set pip3 pip38
+    $ sudo port select --set gcc mp-gcc12
+    $ sudo port select --set mpi openmpi-clang-fortran
 ```
 
 (note that we exclude boost related packages that are optional in the casacore build instructions: libboost-dev, libboost-python-dev. We do not need those as CASA does not use the python bindings from casacore. In addition, if one wanted to compile all the boost related functionality of casacore (there is additional code that uses boost for Arrays and Dysco tests), the following packages would be needed: libboost-filesystem-dev libboost-test-dev libboost-system-dev).
@@ -280,7 +282,7 @@ To ease the instructions, define the variables CASAINSTALL, CASASRC and CASATEST
 ```
     $ export CASAINSTALL=/installation/path/  # (bash, zsh, POSIX shell)
     $ export CASASRC=/path/to/cloned/casa6/   # (bash, zsh, POSIX shell)
-    # note that it is required to run `git submodule update --init --recursive` inside $CASARC first if building casacore
+    # note that it is required to run `git submodule update --init --recursive` inside $CASASRC first if building casacore
     $ export CASATESTDIR=/testdir/path/       # (bash, zsh, POSIX shell)
     $ export CASABUILD=/temporary/build/path/ # (bash, zsh, POSIX shell)
 
@@ -300,21 +302,21 @@ To install libsakura:
 1. Get the sources
 ```
     $ cd $CASABUILD
-    $ curl -L https://github.com/tnakazato/sakura/archive/refs/tags/libsakura-5.1.3.tar.gz | gunzip | tar -xvf -
+    $ curl -L https://github.com/tnakazato/sakura/archive/refs/tags/libsakura-5.2.1.tar.gz | gunzip | tar -xvf -
 ```
 1. Compile and install with cmake (you might change the build directory or the make options).
 ```
     $ cd sakura-libsakura*/libsakura
     $ mkdir -p build && cd $_
     $ cmake  \
-        -S .. -B . \
         -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DBUILD_DOC:BOOL=OFF \
         -DPYTHON_BINDING:BOOL=OFF \
         -DSIMD_ARCH=GENERIC \
         -DENABLE_TEST:BOOL=OFF \
-         ..
+        -S .. -B .
+         
     $ make install -j `getconf _NPROCESSORS_ONLN`
 ```
 
@@ -329,8 +331,7 @@ Install measures data:
 ```
 Compile and install with cmake (you might change the build directory or the make options):
 ```
-    $ mkdir -p $CASABUILD/casacore
-    $ cd $CASABUILD/casacore
+    $ mkdir -p $CASABUILD/casacore && cd $_
 ```
 > NOTE! Macs have an extra cmake directive compared to linux, so be certain to use the cmake command below that is valid for your OS
 ```
@@ -348,7 +349,7 @@ Compile and install with cmake (you might change the build directory or the make
         -DPORTABLE=ON \
         -DUSE_PCH=OFF \
         -DUseCcache=1 \
-        $CASASRC/casatools/casacore
+        -S $CASASRC/casatools/casacore -B .
 
     # manylinux2014 Note the extra gsl flags 
     cmake \
@@ -382,7 +383,7 @@ Compile and install with cmake (you might change the build directory or the make
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DUSE_OPENMP=ON \
         -DUSE_THREADS=ON \
-        -DBUILD_FFTPACK_DEPRECATED=ON \ 
+        -DBUILD_FFTPACK_DEPRECATED=ON \
         -DBUILD_TESTING=ON \
         -DBUILD_PYTHON3=OFF \
         -DBUILD_DYSCO=ON \
@@ -410,8 +411,7 @@ Compile and install with cmake (you might change the build directory or the make
 
 1. Compile and install with cmake
 ```
-    $ mkdir $CASABUILD/casacpp
-    $ cd $CASABUILD/casacpp
+    $ mkdir $CASABUILD/casacpp && cd $_
     $ export PATH=/usr/lib64/openmpi/bin/:$PATH   # This is not needed in Debian or Ubuntu and is optional in the other platforms if no MPI support at the C++ level is needed
                                                   # on macOS, this should not be necessary if `port select --set mpi openmpi-clang-fortran` has been run after installation of relevant dependencies
 
@@ -480,8 +480,7 @@ Compile and install with cmake (you might change the build directory or the make
 Please note that this procedure might be affected by the PYTHONPATH variable. Consider unsetting it.
 1.    Create build directory
 ```
-    $ mkdir $CASABUILD/casatools
-    $ cd $CASABUILD/casatools 
+    $ mkdir $CASABUILD/casatools && cd $_
 ```
 1.    REQUIRED in Rocky Linux 8, Ubuntu 22.04 and MacOS ! OPTIONAL for other platforms. Create a virtual environment that has the needed packages:
 ```
@@ -498,18 +497,16 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 ```
     $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -o $CASAINSTALL/dist $CASASRC/casatools # Rocky Linux 8, Ubuntu 22.04 and MacOS with a venv
 
-    $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -o $CASAINSTALL/dist $CASASRC/casatools # Ubuntu and Fedora without a venv
+    $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist $CASASRC/casatools # Ubuntu and Fedora without a venv
 
     # WARNING: Add -C="--build-option=--mod-closure" to make wheels portable. This is required to build ManyLinux compatible wheels. However it will make the build slower and is not neccessary if you don't plan to distribute your wheel to someone else or install the wheel in a different computer than yours. The command line would then be:
     # PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist -C="--build-option=--mod-closure" $CASASRC/casatools
 
-
     # manylinux2014 only!
     PKG_CONFIG_PATH=/data/install/lib/pkgconfig:/opt/casa/03/lib/pkgconfig python3.8 -m build -n -o /data/install/dist ..
-
-    # macOS
-    PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -n -o $CASAINSTALL/dist -C="--build-option=--mod-closure" $CASASRC/casatools
 ```
+> NOTE: You can use environmental variable VERBOSE=true if you want the full output of the commands from cmake. That might be useful for debugging compilation failures.
+
 1. This will create an output wheel inside the `$CASAINSTALL/dist` directory. That wheel depends on the libraries installed under `$CASAINSTALL/lib`.
 
 1. Optional: Convert Casatools wheel to ManyLinux compatible format
@@ -537,13 +534,13 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
     $ pip install casatestutils
     $ pip install casadata
 ```
-1. Run the tests. Note that until CAS-13968 is not fixed, there will be failures when running all tools tests with pytest in test_tool_table. You can avoid these failures by running all tests with "python casatools/tests/run.py"
+1. Run the tests.
 ```
     $ python -m pytest $CASASRC/casatools/tests/tools/
 ```
 ### Create CASA casatasks wheel
 
-The casatasks wheel creation and installation has not changed int he modular build system and is not yet fully PEP-517 compliant. Hence the build creation needs to take place on-source.
+The casatasks wheel creation and installation has not changed in the modular build system and is not yet fully PEP-517 compliant. Hence the build creation needs to take place on-source.
 
 1.  Go to the casatasks source:
 ```
@@ -580,6 +577,7 @@ It is assumed that the steps to test casatools (see above) have already been per
 ```
 1.     Run the tests:
 ```
+    $ cd $CASATESTDIR
     $ python $CASASRC/casatasks/tests/run.py
 ```
 
