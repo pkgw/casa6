@@ -511,7 +511,7 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 
 1. Optional: Convert Casatools wheel to ManyLinux compatible format
 ```
-    # Add to your build_env
+    # Add to your build_env (if you have created one, otherwise it will install it globally in your $HOME)
     pip install --upgrade pip auditwheel patchelf
 
     # ManyLinux 2.28
@@ -522,7 +522,7 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 ```
 #### Test casatools (Optional)
 
-1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly necessary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sessions which is probably not what most of developers want. You can use the --system-site-packages option to venv, which will use the python packages from your environment as installed with the instructions mentioned above using your package manager (or by other method you have used). However, for some platforms, including RHEL 8 and macOS that won't work out of the box and therefore is not recommended.
+1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly necessary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sessions which is probably not what most of developers want. You can use the --system-site-packages option to venv, which will use the python packages from your environment as installed with the instructions mentioned above using your package manager (or by other method you have used). However, for some platforms, including RHEL 8 and macOS that won't work out of the box and therefore is not recommended. In these instrutions it is assumed that the virtual environment is the same as the one for building casatools (see previous section), but it is possible to use a different environment just for testing if the required packages are installed.
 ```
     $ python3 -m venv $CASATESTDIR/test_env # You can use python3 -m venv --system-site-packages $CASATESTDIR/test_env in Ubuntu and Fedora  
     $ . $CASATESTDIR/test_env/bin/activate 
