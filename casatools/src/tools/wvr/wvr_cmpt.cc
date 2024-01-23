@@ -955,7 +955,7 @@ namespace casac {
 
       d->offsetTime(toffset_par);
      
-      if (smooth_par > 0){
+      if (smooth_par > 1){
 	smoothWVR(*d, (int) smooth_par);
       }
      
