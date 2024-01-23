@@ -1366,7 +1366,7 @@ class plotbandpass_SCOPS_4877_test(unittest.TestCase):
 class plotbandpass_CAS_14119_test(unittest.TestCase):
     def setUp(self):
         os.symlink(datapath+'uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl', os.getcwd() + '/uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl')
-    
+
     def tearDown(self):
         os.unlink(os.getcwd() + '/uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl')
         if delete_artifacts:
@@ -1479,7 +1479,11 @@ class plotbandpass_private_test(unittest.TestCase):
         time_list = [1,  30,  59,  88, 117, 146, 175]
         time_threshold = 30  # sec
         unique_time_list = list(_plotbandpass.sloppyUnique(time_list, 30))
-        self.assertEqual(unique_time_list, [1, 59, 117, 175])
+        # -------------------------------------------------------
+        # sloppyUnique(...) changed with CAS-13568
+        # -------------------------------------------------------
+        # self.assertEqual(unique_time_list, [1, 59, 117, 175])
+        self.assertEqual(unique_time_list, [1])
 
 
 if __name__ == '__main__':

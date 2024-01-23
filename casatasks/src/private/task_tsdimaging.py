@@ -1,9 +1,11 @@
 # sd task for imaging
 
+import collections
 import contextlib
 import os
 import re
 import shutil
+import time
 
 import numpy
 
@@ -14,8 +16,7 @@ from casatools import image, imager
 from casatools import ms as mstool
 from casatools import quanta
 
-from . import sdbeamutil, sdutil
-from .cleanhelper import cleanhelper
+from . import mslisthelper, sdbeamutil, sdutil
 # (1) Import the python application layer
 from .imagerhelpers.imager_base import PySynthesisImager
 from .imagerhelpers.input_parameters import ImagerParameters
@@ -158,29 +159,175 @@ class OldImagerBasedTools(object):
                                      pointingcolumntouse=pointingcolumntouse)
         return map_param
 
-    def sort_vis(self, vislist, spw, mode, width, field, antenna, scan, intent, timerange):
-        if isinstance(vislist, str) or len(vislist) == 1:
-            return vislist, field, spw, antenna, scan, intent, timerange
-        imhelper = cleanhelper(imtool=self.imager, vis=vislist, casalog=casalog)
-        imhelper.sortvislist(spw=spw, mode=mode, width=width)
-        sorted_idx = list(imhelper.sortedvisindx)
-        # reverse the order
-        sorted_idx.reverse()
-        sorted_vislist = [vislist[i] for i in sorted_idx]
-        fieldsel = SelectionHandler(field)
-        sorted_field = [fieldsel(i) for i in sorted_idx]
-        spwsel = SelectionHandler(spw)
-        sorted_spw = [spwsel(i) for i in sorted_idx]
-        antennasel = SelectionHandler(antenna)
-        sorted_antenna = [antennasel(i) for i in sorted_idx]
-        scansel = SelectionHandler(scan)
-        sorted_scan = [scansel(i) for i in sorted_idx]
-        intentsel = SelectionHandler(intent)
-        sorted_intent = [intentsel(i) for i in sorted_idx]
-        timerangesel = SelectionHandler(timerange)
-        sorted_timerange = [timerangesel(i) for i in sorted_idx]
-        return (sorted_vislist, sorted_field, sorted_spw, sorted_antenna, sorted_scan,
-                sorted_intent, sorted_timerange)
+
+def check_conformance(mslist, check_result):
+    """Check conformance of input MS list
+
+    Check conformance of input MS list, particularlly existence of
+    WEIGHT_SPECTRUM column.
+
+    Args:
+        mslist (list): list of names for input MS
+        check_result (dict): result of conformance check.
+            see mslisthelper.check_mslist for detail about
+            the structure of check_result.
+
+    Returns:
+        dict: Per-column set of names for MS that needs to be
+              edited to resolve the conformance. Top level dict
+              has two keys, "remove" and "add", which indicate
+              the operation to be applied to the columns.
+    """
+    process_dict = {
+        'remove': collections.defaultdict(set),
+        'add': collections.defaultdict(set)
+    }
+    for name, summary in check_result.items():
+        if 'Main' in summary:
+            missingcol_list = [summary['Main']['missingcol_{}'.format(x)] for x in ['a', 'b']]
+            ms_a = mslist[0]
+            ms_b = name
+
+            # "remove" operation:
+            #  - MS list is opposite order to missingcol_list
+            #  - if WEIGHT_SPECTRUM column is missing in one MS,
+            #    the column should be removed from another MS.
+            for c, t in zip(missingcol_list, [ms_b, ms_a]):
+                if 'WEIGHT_SPECTRUM' in c:
+                    process_dict['remove']['WEIGHT_SPECTRUM'].add(t)
+            # "add" operation:
+            #  - MS list is same order as missingcol_list
+            #  - if CORRECTED_DATA column is missing in one MS,
+            #    the column should be added to that MS.
+            for c, t in zip(missingcol_list, [ms_a, ms_b]):
+                if 'CORRECTED_DATA' in c:
+                    process_dict['add']['CORRECTED_DATA'].add(t)
+    return process_dict
+
+
+def report_conformance(mslist, column_name, process_set):
+    """Report conformance of input MS
+
+    Report conformance of input MS, particularlly on the existence
+    of the column given by column_name.
+
+    Args:
+        mslist (list): list of names for input MS
+        column_name (str): name of the column
+        process_set (set): set of names of MS that need to be edited
+    """
+    if len(process_set) > 0:
+        casalog.post('Detected non-conformance of {} column in input list of MSes.'.format(column_name), priority='WARN')
+        cols = ['exists?', 'MS name']
+        header = ' '.join(cols)
+        casalog.post('', priority='WARN')
+        casalog.post('Summary of existence of {}:'.format(column_name), priority='WARN')
+        casalog.post(header, priority='WARN')
+        casalog.post('-' * len(header), priority='WARN')
+        for name in mslist:
+            basename = os.path.basename(name.rstrip('/'))
+            exists = 'YES' if name in process_set else 'NO'
+            row = '{:^7s} {:<s}'.format(exists, basename)
+            casalog.post(row, priority='WARN')
+
+
+def fix_conformance(process_dict):
+    """Resolve non-conformance by removing WEIGHT_SPECTRUM
+
+    Two non-conformances are fixed, WEIGHT_SPECTRUM and
+    CORRECTED_DATA. Remove WEIGHT_SPECTRUM column from, or
+    add CORRECTED_DATA to the MS provided by process_dict.
+    Backup is created with the name:
+
+      <original_name>.sdimaging.backup-<timestamp>
+
+    Args:
+        process_dict (dict): per-operation ("remove" and "add")
+                             key-value pair of column name and
+                             list of names for MS to be edited
+
+    Returns:
+        dict: mapping of original MS name and the name of backup
+    """
+    backup_list = {}
+    process_list = set()
+    for v in process_dict.values():
+        for w in v.values():
+            process_list = process_list.union(w)
+    for name in process_list:
+        basename = os.path.basename(name.rstrip('/'))
+        timestamp = time.strftime('%Y%m%dT%H%M%S', time.gmtime())
+        backup_name = basename + '.sdimaging.backup-{}'.format(timestamp)
+        with sdutil.table_manager(name) as tb:
+            tb.copy(backup_name, deep=True, returnobject=True).close()
+        backup_list[name] = backup_name
+        casalog.post('Copy of "{}" has been saved to "{}"'.format(name, backup_name), priority='WARN')
+
+    for colname, msnames in process_dict['remove'].items():
+        for name in msnames:
+            casalog.post('{} will be removed from "{}"'.format(colname, name), priority='WARN')
+            with sdutil.table_manager(name, nomodify=False) as tb:
+                if colname in tb.colnames():
+                    tb.removecols(colname)
+
+    for colname, msnames in process_dict['add'].items():
+        for name in msnames:
+            casalog.post('{} will be added to "{}"'.format(colname, name), priority='WARN')
+            with sdutil.calibrater_manager(name, addmodel=False, addcorr=True):
+                pass
+    return backup_list
+
+
+def conform_mslist(mslist, ignore_columns=['CORRECTED_DATA']):
+    """Make given set of MS data conform
+
+    Here, only conformance on the existence of WEIGHT_SPECTRUM
+    is checked and resolved because non-conformance of WEIGHT_SPECTRUM,
+    i.e. some MS have the column while others don't, could cause
+    the task to crash. If non-conformance is detected, all existing
+    WEIGHT_SPECTRUM columns are removed. This opration modifies input
+    MS so data will be backed up with the name:
+
+      <original_name>.sdimaging.backup-<timestamp>
+
+    Args:
+        mslist (list): list of names for input MS
+    """
+    check_result = mslisthelper.check_mslist(mslist, testcontent=False)
+    process_dict = check_conformance(mslist, check_result)
+    fix_dict = dict()
+    for op, op_dict in process_dict.items():
+        fix_dict[op] = dict()
+        for col, process_set in op_dict.items():
+            if col not in ignore_columns:
+                report_conformance(mslist, col, process_set)
+                fix_dict[op][col] = process_set
+    fix_conformance(fix_dict)
+
+
+def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent, timerange):
+    if isinstance(vislist, str) or len(vislist) == 1:
+        return vislist, field, spw, antenna, scan, intent, timerange
+    # chronological sort
+    sorted_vislist, sorted_timelist = mslisthelper.sort_mslist(vislist)
+    _vislist = list(vislist)
+    sorted_idx = [_vislist.index(vis) for vis in sorted_vislist]
+    mslisthelper.report_sort_result(sorted_vislist, sorted_timelist, sorted_idx, mycasalog=casalog)
+    # conform MS
+    conform_mslist(sorted_vislist)
+    fieldsel = SelectionHandler(field)
+    sorted_field = [fieldsel(i) for i in sorted_idx]
+    spwsel = SelectionHandler(spw)
+    sorted_spw = [spwsel(i) for i in sorted_idx]
+    antennasel = SelectionHandler(antenna)
+    sorted_antenna = [antennasel(i) for i in sorted_idx]
+    scansel = SelectionHandler(scan)
+    sorted_scan = [scansel(i) for i in sorted_idx]
+    intentsel = SelectionHandler(intent)
+    sorted_intent = [intentsel(i) for i in sorted_idx]
+    timerangesel = SelectionHandler(timerange)
+    sorted_timerange = [timerangesel(i) for i in sorted_idx]
+    return sorted_vislist, sorted_field, sorted_spw, sorted_antenna, sorted_scan, sorted_intent, sorted_timerange
 
 
 def _configure_spectral_axis(mode, nchan, start, width, restfreq):
