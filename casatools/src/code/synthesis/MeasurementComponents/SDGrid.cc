@@ -2179,7 +2179,10 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
       } else {
         for (Int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
-            weight(chan, k) = (weightspec(0, chan, k) + weightspec((npol-1), chan, k))/2.0f;
+            // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
+            auto const denominator = weightspec(0, chan, k) + weightspec((npol-1), chan, k);
+            auto const numerator = weightspec(0, chan, k) * weightspec((npol-1), chan, k);
+            weight(chan, k) = 4.0f * numerator / denominator;
           }
         }
       }
