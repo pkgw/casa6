@@ -998,10 +998,8 @@ def tsdimaging(
         gjwidth = _handle_grid_defaults(jwidth)
 
         # handle infiles parameter
-        # sort input data using cleanhelper function to get results
-        # consistent with older sdimaging task
-        old_way = OldImagerBasedTools()
-        _sorted = old_way.sort_vis(
+        # sort input data to get results consistent with old sdimaging task
+        _sorted = sort_vis(
             infiles, _spw, mode, imwidth, field,
             antenna, scan, intent, timerange
         )
