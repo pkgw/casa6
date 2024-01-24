@@ -505,7 +505,7 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
     # manylinux2014 only!
     PKG_CONFIG_PATH=/data/install/lib/pkgconfig:/opt/casa/03/lib/pkgconfig python3.8 -m build -n -o /data/install/dist ..
 ```
-> NOTE: You can use environmental variable VERBOSE=true if you want the full output of the commands from cmake. That might be useful for debugging compilation failures.
+> NOTE: You can use environmental variable VERBOSE=true if you want the full output of the commands from cmake. That might be useful for debugging compilation failures. Setting also CMAKE_BUILD_PARALLEL_LEVEL=1 to avoid intermingled output from different cmake processes would help to understand the build failures derived from cmake.
 
 1. This will create an output wheel inside the `$CASAINSTALL/dist` directory. That wheel depends on the libraries installed under `$CASAINSTALL/lib`.
 
