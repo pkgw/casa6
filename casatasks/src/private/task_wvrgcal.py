@@ -4,8 +4,7 @@ import os
 from casatasks.private.casa_transition import *
 if is_CASA6:
     from casatasks import casalog
-    from casatools import ms, quanta, calibrater, wvr
-    from .mstools import write_history
+    from casatools import ctsys, ms, quanta, calibrater, wvr
 else:
     raise('Only CASA6 supported.')
 
@@ -109,8 +108,9 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
     """
 
     # make ms tool local 
-    mst = mstool()
-    myqa = qatool()
+    myms = ms()
+    myqa = quanta()
+    mywvr = wvr()
 
     ## parameters which are different in format between wvrgcal and wvr.gcal:
     # reverse: only exists in wvr.gcal
@@ -144,13 +144,14 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         
         toffsetpar = toffset
 
+        nsolpar = 1
         if nsol>1:
             if not segsource:
                 nsolpar = nsol
             else:
                 raise Exception("In order to use nsol>1, segsource must be set to False.")
 
-        segsourcpar = segsource
+        segsourcepar = segsource
 
         sourceflagpar = []
         if segsource and (len(sourceflag)>0):
@@ -183,7 +184,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         reversepar = False
         if not (reversespw==''):
             reversepar = True
-            spws = mst.msseltoindex(vis=vis,spw=reversespw)['spw']
+            spws = myms.msseltoindex(vis=vis,spw=reversespw)['spw']
             for id in spws:
                 reversespwpar.append(id)
 
@@ -192,7 +193,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
             dispdirpath = os.getenv('WVRGCAL_DISPDIR', '')
             if not os.path.exists(dispdirpath+'/libair-ddefault.csv'):
                 path1 = dispdirpath
-                dispdirpath = os.getenv("CASAPATH").split(' ')[0] + "/data/alma/wvrgcal"
+                dispdirpath = ctsys.resolve("alma/wvrgcal")
                 if not os.path.exists(dispdirpath+'/libair-ddefault.csv'):
                     raise Exception("Dispersion table libair-ddefault.csv not found in path "\
                         +"given by WVRGCAL_DISPDIR nor in \""+dispdirpath+"\"")
@@ -207,7 +208,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         usefieldtabpar = usefieldtab
         
-        offsetstablepar = offsetstable
+        offsetspar = offsetstable
 
         wvrflagpar = ""
         if (len(wvrflag)>0):
@@ -249,39 +250,40 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         casalog.post('Running wvr.gcal ...')
 
-        ##templogfile = tempfile.gettempdir()+"/"+templogfile
-
         from IPython.utils.capture import capture_output
 
         with capture_output() as cap:
-            
-            rval = wvr.gcal(vis=vispar,
-                            output=outputpar,
-                            toffset=toffsetpar,
-                            nsol=nsolpar,
-                            segsource=segsourcepar,
-                            reverse=reversepar,
-                            reversespw=reversespwpar,
-                            disperse=dispersepar,
-                            cont=contpar,
-                            wvrflag=wvrflagpar,
-                            sourceflag=sourceflagpar,
-                            statfield=statfieldpar,
-                            statsource=statsourcepar,
-                            tie=tiepar,
-                            smooth=smoothpar,
-                            scale=scalepar,
-                            maxdistm=maxdistmpar,
-                            minnumants=minnumantspar,
-                            mingoodfrac=mingoodfracpar,
-                            usefieldtab=usefieldtabpar,
-                            spw=spwpar,
-                            wvrspw=wvrspwpar,
-                            refant=refantpar,
-                            offsets=offsetspar)
-            cap()
 
-            loglines = cap.stdout
+            try:
+                rval = mywvr.gcal(vis=vispar,
+                                  output=outputpar,
+                                  toffset=toffsetpar,
+                                  nsol=nsolpar,
+                                  segsource=segsourcepar,
+                                  reverse=reversepar,
+                                  reversespw=reversespwpar,
+                                  disperse=dispersepar,
+                                  cont=contpar,
+                                  wvrflag=wvrflagpar,
+                                  sourceflag=sourceflagpar,
+                                  statfield=statfieldpar,
+                                  statsource=statsourcepar,
+                                  tie=tiepar,
+                                  smooth=smoothpar,
+                                  scale=scalepar,
+                                  maxdistm=maxdistmpar,
+                                  minnumants=minnumantspar,
+                                  mingoodfrac=mingoodfracpar,
+                                  usefieldtab=usefieldtabpar,
+                                  spw=spwpar,
+                                  wvrspw=wvrspwpar,
+                                  refant=refantpar,
+                                  offsets=offsetspar)
+            finally:
+                cap()
+                loglines = cap.stdout.split('\n')
+                for ll in loglines:
+                    casalog.post(ll.expandtabs())
 
         # prepare variables for parsing log lines to extract info table
         hfound = False
@@ -294,7 +296,6 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         parsingok = True
                 
         for ll in loglines:
-            casalog.post(ll.expandtabs())
             if hfound:
                 if "Expected performance" in ll:
                     hend = True
@@ -341,8 +342,6 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         # end for ll
 
-        ##os.system('rm -rf '+templogfile)
-
         taskrval = { 'Name': namel,
                      'WVR': wvrl,
                      'Flag': flagl,
@@ -363,7 +362,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         if(rval == 0):
             if (smoothing>0):
-                mycb = cbtool()
+                mycb = calibrater()
                 mycb.open(filename=vis, compress=False, addcorr=False, addmodel=False)
                 mycb.smooth(tablein=caltable+'_unsmoothed', tableout=caltable,
                             smoothtype='mean', smoothtime=smoothing)
