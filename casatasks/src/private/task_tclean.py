@@ -44,7 +44,7 @@ except ImportError:
     mpi_available = False
 
 # if you want to save tclean.last.* from python call of tclean uncomment the decorator
-@saveparams2last(multibackup=True)
+#@saveparams2last(multibackup=True)
 
 def tclean(
     ####### Data Selection
@@ -228,7 +228,7 @@ def tclean(
 
     ## Part of CAS-13814, moving warnings about pbcor and widebandpbcor from the C++ code to here, for better access to user-settings.
     if specmode=='mfs' and deconvolver=='mtmfs' and gridder in ['standard','mosaic'] and pbcor==True:
-        casalog.post("For specmode='mfs' and deconvolver='mtmfs', the option of pbcor=True divides each restored Taylor coefficient image by the pb.tt0 image. This correction ignores the frequency-dependence of the primary beam and does not correct for PB spectral index. It is scientifically valid only for small fractional bandwidths. For more accurate wideband primary beam correction (if needed), please use one of the following options : (1) specmode='mtmfs_via_cube' with gridder='standard' or 'mosaic' with pbcor=True,  (2) conjbeams=True and wbawp=True with gridder='awproject' and pbcor=True, or (3) for single pointings only, use task widebandpbcor after running tclean with specmode='mfs', deconvolver='mtmfs', and gridder='standard' (with either pbcor=True or False)",
+        casalog.post("For specmode='mfs' and deconvolver='mtmfs', the option of pbcor=True divides each restored Taylor coefficient image by the pb.tt0 image. This correction ignores the frequency-dependence of the primary beam and does not correct for PB spectral index. It is scientifically valid only for small fractional bandwidths. For more accurate wideband primary beam correction (if needed), please use one of the following options : (1) specmode='mtmfs_via_cube' with gridder='standard' or 'mosaic' with pbcor=True,  (2) conjbeams=True and wbawp=True with gridder='awproject' and pbcor=True.",
                      "WARN",
                      "task_tclean")
     if perchanweightdensity == False and weighting == "briggsbwtaper":

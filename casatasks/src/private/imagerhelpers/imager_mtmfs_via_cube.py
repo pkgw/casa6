@@ -294,13 +294,13 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         #self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
         #suffixes = ["psf", "sumwt", "weight"]
 
-        suffixes = ["pb","psf", "sumwt", "weight"]
+        suffixes = ["pb","psf", "sumwt"]
         for immod in range(0, self.NF):
             self.cube2tt(immod, suffixes=suffixes)
        
-        for immod in range(0, self.NF):
-            self.mfsImager.PStools[immod].gatherpsfweight()
-            self.mfsImager.PStools[immod].dividepsfbyweight()
+#        for immod in range(0, self.NF):
+#            self.mfsImager.PStools[immod].gatherpsfweight()
+#            self.mfsImager.PStools[immod].dividepsfbyweight()
         time2 = time.time()
         #print(f"MAKE psf time, core={time1-time0} s, cube2tt={time2-time1}")
 
@@ -398,8 +398,8 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             ("pb",1),
             ("residual", nterms),
             ("psf", nterms * 2 - 1),
-            ("sumwt", nterms * 2 - 1),
-            ("weight", nterms * 2 - 1),
+            ("sumwt", nterms * 2 - 1)
+            #            ("weight", 1),
         ]  # , ('model',nterms)]
         tmp_imgs = []
         for suffix, num_terms in imgs:

@@ -220,7 +220,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         itsFastNoise = decpars.fastnoise;
 	      itsIsInteractive = decpars.interactive;
         itsNsigma = decpars.nsigma;
-        itsNoRequireSumwt = decpars.noRequireSumwt;
+        itsNoRequireSumwt = true; //decpars.noRequireSumwt;
         itsFullSummary = decpars.fullsummary;
       }
     catch(AipsError &x)
