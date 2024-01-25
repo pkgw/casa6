@@ -510,7 +510,7 @@ variable sources (3C48,3C138,3C147).
                      * If False: 'virtual' model is created. The model
                        information is saved either in the SOURCE_MODEL
                        column in the SOURCE table (if one exists) or
-                       in the keyword of the main table in the MS and
+                       in the keyword of the main table in the MS, and
                        model visibilities are evaluated on the fly
                        when calculating  calibration or plotting in
                        plotms.

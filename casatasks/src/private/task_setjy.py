@@ -18,34 +18,18 @@ import shutil
 
 # get is_python3 and is_CASA6
 from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .setjy_helper import * 
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from .mstools import write_history
-    from casatools import ctsys, ms, imager, calibrater
-    from casatasks import casalog
+from .setjy_helper import * 
+from .parallel.parallel_data_helper import ParallelDataHelper
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mstools import write_history
+from casatools import ctsys, ms, imager, calibrater
+from casatasks import casalog
 
-    # used in one type comparison
-    strType = str
+# used in one type comparison
+strType = str
 
-    # default roots argument for findCalModels
-    defaultRoots = ['.']
-else:
-    from setjy_helper import * 
-    from taskinit import *
-    from taskinit import mstool as ms
-    from taskinit import imtool as imager
-    from taskinit import cbtool as calibrater
-    from mstools import write_history
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from parallel.parallel_task_helper import ParallelTaskHelper
-
-    # used in one type comparison
-    strType = string
-
-    # default roots argument for findCalModels
-    defaultRoots = ['.', casa['dirs']['data']]
+# default roots argument for findCalModels
+defaultRoots = ['.']
 
 # Helper class for Multi-MS processing (by SC)
 class SetjyHelper():
@@ -202,8 +186,8 @@ def setjy_core(vis=None, field=None, spw=None,
               #casalog.post(vis + " must be a valid MS unless listmodels is True.",
               #             "SEVERE")
                 raise Exception("%s is not a valid MS" % vis) 
-            if 'Butler-JPL-Horizons' in standard and usescratch == False:
-                raise Exception(f"usescratch={usescratch} and standard={standard}. "
+            if 'Butler-JPL-Horizons' in standard and not usescratch:
+                raise RuntimeError(f"usescratch={usescratch} and standard={standard}. "
                   +"Virtual model can not be used for an ephemeris object calibrator. Use usescratch=True.") 
             myms = ms()
             myim = imager()
