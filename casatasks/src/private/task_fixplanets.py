@@ -7,7 +7,6 @@ import string
 from casatasks.private.casa_transition import *
 if is_CASA6:
     from .parallel.parallel_task_helper import ParallelTaskHelper
-    from . import JPLephem_reader2 as jplreader
     from casatools import ms as mstool
     from casatools import table as tbtool
     from casatools import imager as imtool
@@ -20,10 +19,29 @@ else:
     from taskinit import *
     from mstools import write_history
     from parallel.parallel_task_helper import ParallelTaskHelper
-    import recipes.ephemerides.JPLephem_reader2 as jplreader
     # not really local copies
     _qa = qa
     _me = me
+
+def _checkinternalephemtab(vis, field):
+    """
+    This function checks if there is an ephemeris table attached in the MS for
+    the field selected. It will returned table names found under FIELD table.
+
+    """
+    import glob
+    from casatools import table, ms
+    _tb = table()
+    _ms = ms() 
+    fids = _ms.msseltoindex(vis,field)['field']
+    _tb.open(msfile+'/FIELD')
+    ephemnames = []
+    if 'EPHEMERIS_ID' in tb.colnames():
+        for i in fids:
+            ephemid = _tb.getcell('EPHEMERIS_ID',i)
+            ephemnames.append(glob.glob(f'{vis}/FIELD/EPHEM{ephemid}*/')[0])
+    _tb.close()
+    return list(set(ephemnames))
 
 def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'):
     """
@@ -47,13 +65,9 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
                   The direction can either be given explicitly or as the path
                   to a JPL Horizons ephemeris (for an example of the format,
                   see directory data/ephemerides/JPL-Horizons/).
-                  Alternatively, the ephemeris table can also be provided as mime format file,
-                  i.e. a saved email as obtained via the commands (for example):
-                  import recipes.ephemerides.request as jplreq
-                  jplreq.request_from_JPL(objnam='Mars',startdate='2012-01-01',enddate='2014-12-31',
-                       date_incr='0.1 d', get_axis_orientation=False, get_axis_ang_orientation=True,
-                       get_sub_long=True, use_apparent=False, get_sep=False,
-                       return_address='YOUR_EMAIL_ADDESS', mailserver='YOUR_MAIL_SERVER_ADDRESS')
+                  Alternatively, the ephemeris table can also be obtained using
+                  getephemtable task.
+ 
                   example: 'J2000 19h30m00 -40d00m00', default= '' (use pointing table)
 
     refant     -- if using pointing table information, use it from this antenna
@@ -257,25 +271,23 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
                     if len(dirstr)==1: # an ephemeris table was given
                         if(os.path.exists(dirstr[0])):
                             if os.path.isfile(dirstr[0]): # it is a file, i.e. not a CASA table
-                                try: # a mime file maybe?
-                                    outdict=jplreader.readJPLephem(dirstr[0], '1.0')
-                                    if not jplreader.ephem_dict_to_table(outdict, dirstr[0]+".tab"):
-                                        raise ValueError("Error converting dictionary to ephem table")
-                                except: # no it is not a mime file either
-                                    msg = "*** Error when interpreting parameter \'direction\':\n File given is not a valid JPL email mime format file."
-                                    raise RuntimeError(msg)
-                                else:
-                                    theephemeris = dirstr[0]+".tab"
-                                    casalog.post('Successfully converted mime format ephemeris to table '+theephemeris+'.\n Will use it with offset (0,0)', 'NORMAL')
+                                msg = "*** Error when interpreting parameter \'direction\':\n File is given. Use of the JPL email mime format file is deplicated."
+                                
+                                raise RuntimeError(msg)
                             else: # not a file, assume it is a CASA table
                                 theephemeris = dirstr[0]
+                                # add a check if it is going to replace the existing table in the MS
+                                existingephemtab = _checkinternalephemtab(vis, field)
+                                if existingephemtab != []:
+                                    casalog.post(f'Will replace existing ephemeris table(s) {existingephemtab} in the MS, which \
+                                               is the one used by correlator. This may result in scientifically wrong result.','WARN')
                                 casalog.post('Will use ephemeris table '+theephemeris+' with offset (0,0)', 'NORMAL')
                             
                             thenewra_rad = 0.
                             thenewdec_rad = 0.
 
                         else:
-                            msg = "*** Error when interpreting parameter \'direction\':\n string is neither a direction nor an existing file or table."
+                            msg = "*** Error when interpreting parameter \'direction\':\n string is neither a direction nor a table."
                             raise RuntimeError(msg)
                     else:
                         if len(dirstr)==2: # a direction without ref frame was given
