@@ -306,6 +306,13 @@ def conform_mslist(mslist, ignore_columns=['CORRECTED_DATA']):
 
 
 def sort_vis(vislist, spw, mode, width, field, antenna, scan, intent, timerange):
+    """Sort the given MeasurementSet path(s) by their earliest data-taking time, in increasing order.
+
+    Return a 7-tuple where
+        * the first entry holds the re-ordered paths
+        * the remaining entries hold their corresponding data selection parameters
+        * FIXME: input parameters mode and width are not used
+    """
     if isinstance(vislist, str) or len(vislist) == 1:
         return vislist, field, spw, antenna, scan, intent, timerange
     # chronological sort
@@ -1011,6 +1018,8 @@ def tsdimaging(
         sorted_intent = _sorted[5]
         sorted_timerange = _sorted[6]
 
+        sorted_baseline = [antenna_to_baseline(a) for a in sorted_antenna]
+
         # Handle image geometric parameters
         _ephemsrcname = ''
         ephem_sources = ['MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN',
@@ -1034,12 +1043,12 @@ def tsdimaging(
                 # input file name
                 msname=sorted_vis,  # 'sdimaging.ms',
                 # data selection
-                field=field,  # '',
-                spw=_spw,  # '0',
-                timestr=timerange,
-                antenna=baseline,
-                scan=scan,
-                state=intent,
+                field=sorted_field,  # '',
+                spw=sorted_spw,  # '0',
+                timestr=sorted_timerange,
+                antenna=sorted_baseline,
+                scan=sorted_scan,
+                state=sorted_intent,
                 # image parameters
                 imagename=output_path_prefix,  # 'try2',
                 nchan=imnchan,  # 1024,
