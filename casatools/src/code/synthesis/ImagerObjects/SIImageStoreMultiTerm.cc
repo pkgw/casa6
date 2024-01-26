@@ -1166,7 +1166,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	SIImageStore::pbcor(tix);
       }	
 
-    calculateAlphaBeta("pbcor");
+    //calculateAlphaBeta("pbcor");
 
   }
 
