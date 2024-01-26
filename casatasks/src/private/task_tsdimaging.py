@@ -1032,7 +1032,7 @@ def tsdimaging(
         casalog.post('*** Creating paramList ***', origin=origin)
         paramList = ImagerParameters(
                 # input file name
-                msname=infiles,  # 'sdimaging.ms',
+                msname=sorted_vis,  # 'sdimaging.ms',
                 # data selection
                 field=field,  # '',
                 spw=_spw,  # '0',
