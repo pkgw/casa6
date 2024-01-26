@@ -521,7 +521,11 @@ class ImagingDict():
             model_sum = np.sum(model_data)
             ia.close()
 
-        peak_resid = np.amax(data*mask)
+        if mask > 0:
+            peak_resid = np.amax(data*mask)
+        else:
+            peak_resid = np.amax(data)
+
         if fullsummary:
             peak_resid_NM = np.amax(data)
             mask_sum = np.sum(mask)

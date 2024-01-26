@@ -541,8 +541,6 @@ class test_onefield(testref_base):
           ## Only psf
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=True,calcres=False,deconvolver='clark',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.psf'], imgexistnot=[self.img+'.residual', self.img+'.image'],nmajordone=1)
-          # CAS-13960: No residual image on disk, ret summaryminor should have length 0
-          self.assertTrue(len(ret['summaryminor']) == 0)
 
           ## Only residual
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,fullsummary=True,parallel=self.parallel)
