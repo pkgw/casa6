@@ -25,7 +25,7 @@ namespace LibAIR2 {
    Following "am", the raw partition table can be represented
    as two dimensional array
    */
-  typedef casacore::Matrix<double>  part_table_raw;
+  typedef std::unique_ptr<casacore::Matrix<double> >  part_table_raw;
 
   /**
      Partition sum table relates temperatures to a thermodynamic
@@ -47,7 +47,7 @@ namespace LibAIR2 {
        and the others represent isotopologues sequenced in the same
        way as in HITRAN.
      */
-    PartitionTable(const part_table_raw & raw);
+    PartitionTable(casacore::Matrix<double>* raw);
 
     // ---------- Public interface ------------------------
 
