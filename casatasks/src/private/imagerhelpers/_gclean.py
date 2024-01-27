@@ -46,8 +46,6 @@ _GCV003 = True
 _GCV004 = True
 
 
-print("USING THIS GCLEAN")
-
 # from casatasks.private.imagerhelpers._gclean import gclean
 class gclean:
     '''gclean(...) creates a stream of convergence records which indicate
@@ -490,8 +488,8 @@ class gclean:
                             ## Decrement count for the major cycle just done...
                             self.__decrement_counts()
 
-                        else:
-                            print("NO DECONVOLUTION ITERATIONS because of zero mask. Skipped major cycle and return dictionary update.\n")
+                        #else:
+                        #    print("NO DECONVOLUTION ITERATIONS because of zero mask. Skipped major cycle and return dictionary update.\n")
 
 
                         # Use global imdict for convergence check

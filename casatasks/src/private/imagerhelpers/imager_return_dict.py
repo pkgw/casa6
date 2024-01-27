@@ -368,7 +368,7 @@ class ImagingDict():
 
         for chan in range(self.nchan):
             for stokes in range(self.nstokes):
-                peakres = max(peakres, np.abs(self.get_key('peakRes', field, chan, stokes))[major_index])
+                peakres = max(peakres, self.get_key('peakRes', field, chan, stokes)[major_index])
 
         return peakres
 
@@ -511,7 +511,7 @@ class ImagingDict():
             mask = ia.getchunk(blc, trc, dropdeg=True)
             ia.close()
         else:
-            mask = -1 # No mask, so everything is unmasked
+            mask = [] # No mask, so everything is unmasked
 
         # If model image exists, calc model flux, else set to 0
         model_sum = 0
@@ -521,10 +521,10 @@ class ImagingDict():
             model_sum = np.sum(model_data)
             ia.close()
 
-        if mask > 0:
-            peak_resid = np.amax(data*mask)
-        else:
+        if len(mask) == 0:
             peak_resid = np.amax(data)
+        else:
+            peak_resid = np.amax(data*mask)
 
         if fullsummary:
             peak_resid_NM = np.amax(data)
