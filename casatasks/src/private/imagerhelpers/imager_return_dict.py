@@ -368,7 +368,9 @@ class ImagingDict():
 
         for chan in range(self.nchan):
             for stokes in range(self.nstokes):
-                peakres = max(peakres, self.get_key('peakRes', field, chan, stokes)[major_index])
+                masksum = self.get_key('masksum', field, chan, stokes)[major_index]
+                if masksum > 0:
+                    peakres = max(peakres, self.get_key('peakRes', field, chan, stokes)[major_index])
 
         return peakres
 
