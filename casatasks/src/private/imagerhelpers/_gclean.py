@@ -35,7 +35,7 @@ import time
 import subprocess
 
 from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
-from casatasks import deconvolve, tclean
+from casatasks import deconvolve, tclean, imstat
 
 ###
 ### import check versions
@@ -366,6 +366,16 @@ class gclean:
 
         return outrec
 
+    def _update_peakres(self):
+        if self._deconvolver == 'mtmfs':
+            residname = self._imagename + '.residual.tt0'
+        else:
+            residname = self._imagename + '.residual'
+
+        maskname = self._imagename + '.mask'
+
+        peakres = imstat(imagename=residname, mask=maskname)['max'][0]
+        return peakres
 
     def __next__( self ):
         """ Runs tclean and returns the (stopcode, convergence result) when executed with the python builtin next() function.
@@ -433,7 +443,11 @@ class gclean:
                     # Reset convergence every time, since we return control to the GUI after a single major cycle
                     self.current_imdict.returndict['iterdone'] = 0.
 
-                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor)
+                    # Mask can be updated here...
+                    # Check for mask update - peakres + masksum
+                    _peakres = self._update_peakres()
+
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor, peakres=_peakres)
 
                     #print("HASIT : ",self.hasit)
                     #print("DESC : ",self.stopdescription)

@@ -217,6 +217,9 @@ class ImagingDict():
         The list of values for the specified key. list
         """
 
+        if key.lower() == 'peakres':
+            print(f"field {field}, chan {chan}, stokes {stokes}, peakres {self._returndict['summaryminor'][field][chan][stokes][key]}")
+
         try:
             if key in self._summaryminor_keys:
                 return self._returndict['summaryminor'][field][chan][stokes][key]
@@ -375,10 +378,16 @@ class ImagingDict():
         return peakres
 
 
-    def has_converged(self, niterleft=0, threshold=0, nmajorleft=0,masksum=None):
+    def has_converged(self, niterleft=0, threshold=0, nmajorleft=0, masksum=None, peakres=None):
         """
         Check stopping criteria for convergence, based on the criteria specified here -
         https://casadocs.readthedocs.io/en/stable/notebooks/synthesis_imaging.html#Returned-Dictionary
+
+        If peakres is provided, then prefer that over what is in the return
+        dict. This is to account for the usage case where the user has modified
+        the mask in between major cycles, and we need to update values of the
+        peak residual in order to determine if we want to continue
+        deconvolution.
         """
 
         # TODO : Implement StopCode 3, 8
@@ -405,6 +414,11 @@ class ImagingDict():
 #        if min_peakres==0:
 #            print("peakres = 0 ! ")
 
+        if peakres != None:
+            _peakres = peakres
+        else:
+            _peakres = self.get_peakres()
+
         if masksum !=None:
             use_masksum = masksum      ## If the mask has been zero'd out and iterations have been skipped (i.e. no summaryminor).
         else:
@@ -416,7 +430,7 @@ class ImagingDict():
         elif niterleft<=0:
             stopcode = 1
             stopDescription = 'Reached the iteration limit'
-        elif self.get_peakres() <= threshold:
+        elif _peakres <= threshold:
             stopcode = 2
             stopDescription = 'Reached global stopping threshold (within mask)'
         elif (nmajorleft != -1 and nmajorleft==0):
