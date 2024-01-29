@@ -217,8 +217,8 @@ class ImagingDict():
         The list of values for the specified key. list
         """
 
-        if key.lower() == 'peakres':
-            print(f"field {field}, chan {chan}, stokes {stokes}, peakres {self._returndict['summaryminor'][field][chan][stokes][key]}")
+        #if key.lower() == 'peakres':
+        #    print(f"field {field}, chan {chan}, stokes {stokes}, peakres {self._returndict['summaryminor'][field][chan][stokes][key]}")
 
         try:
             if key in self._summaryminor_keys:

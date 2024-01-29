@@ -45,6 +45,8 @@ _GCV002 = True
 _GCV003 = True
 _GCV004 = True
 
+print("USING THIS GCLEAN")
+
 
 # from casatasks.private.imagerhelpers._gclean import gclean
 class gclean:
@@ -374,8 +376,20 @@ class gclean:
 
         maskname = self._imagename + '.mask'
 
-        peakres = imstat(imagename=residname, mask=maskname)['max'][0]
-        return peakres
+        peakres = imstat(imagename=residname, mask=maskname)['max']
+        masksum = imstat(imagename=maskname)['sum']
+
+        if len(peakres) > 0:
+            peakres = peakres[0]
+        else:
+            peakres = None
+
+        if len(masksum) > 0:
+            masksum = masksum[0]
+        else:
+            masksum = None
+
+        return peakres, masksum
 
     def __next__( self ):
         """ Runs tclean and returns the (stopcode, convergence result) when executed with the python builtin next() function.
@@ -445,12 +459,9 @@ class gclean:
 
                     # Mask can be updated here...
                     # Check for mask update - peakres + masksum
-                    _peakres = self._update_peakres()
+                    _peakres, _masksum = self._update_peakres()
 
-                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor, peakres=_peakres)
-
-                    #print("HASIT : ",self.hasit)
-                    #print("DESC : ",self.stopdescription)
+                    self.hasit, self.stopdescription = self.global_imdict.has_converged(self._niter, self._threshold, self._nmajor, masksum=_masksum, peakres=_peakres)
 
                     #self.global_imdict.returndict['stopcode'] = self.hasit
                     #self.global_imdict.returndict['stopDescription'] = self.stopdescription
@@ -458,53 +469,49 @@ class gclean:
                     #self.current_imdict.returndict['stopcode'] = self.hasit
                     #self.current_imdict.returndict['stopDescription'] = self.stopdescription
 
+                    # Has not, i.e., not converged
                     if self.hasit ==0 :
                         use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niter, self._threshold, self._cycleniter)
 
+                        print("No convergence, running deconvolve + tclean")
                         # Run the minor cycle
                         deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                                   deconvolver=self._deconvolver, restoration=False,
                                                   threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, usemask=self._usemask,
                                                   nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, noisethreshold=self._noisethreshold)
 
-                        if deconv_ret['stopcode'] != 7:  ## If zero mask, then deconvolution would have done zero iterations -> no need for major cycle
+                        # Run the major cycle
+                        tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
+                                           phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
+                                           gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
+                                           wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
+                                           perchanweightdensity=self._perchanweightdensity, nchan=self._nchan, start=self._start,
+                                           width=self._width, veltype=self._veltype, restfreq=self._restfreq, outframe=self._outframe,
+                                           pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit, deconvolver=self._deconvolver,
+                                           smallscalebias=self._smallscalebias, cyclefactor=self._cyclefactor, scales=self._scales,
+                                           restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms, field=self._field,
+                                           spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
+                                           scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
+                                           weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False,
+                                           niter=0, restart=True, calcpsf=False, calcres=True, restoration=False, threshold=self._threshold,
+                                           nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=1, gain=self._gain,
+                                           sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
+                                           lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
+                                           minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
+                                           minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel,
+                                           maxpsffraction=self._maxpsffraction,
+                                           minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
 
-                            # Run the major cycle
-                            tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
-                                               phasecenter=self._phasecenter, stokes=self._stokes, specmode=self._specmode, reffreq=self._reffreq,
-                                               gridder=self._gridder, wprojplanes=self._wprojplanes, mosweight=self._mosweight, psterm=self._psterm,
-                                               wbawp=self._wbawp, conjbeams=self._conjbeams, usepointing=self._usepointing, interpolation=self._interpolation,
-                                               perchanweightdensity=self._perchanweightdensity, nchan=self._nchan, start=self._start,
-                                               width=self._width, veltype=self._veltype, restfreq=self._restfreq, outframe=self._outframe,
-                                               pointingoffsetsigdev=self._pointingoffsetsigdev, pblimit=self._pblimit, deconvolver=self._deconvolver,
-                                               smallscalebias=self._smallscalebias, cyclefactor=self._cyclefactor, scales=self._scales,
-                                               restoringbeam=self._restoringbeam, pbcor=self._pbcor, nterms=self._nterms, field=self._field,
-                                               spw=self._spw, timerange=self._timerange, uvrange=self._uvrange, antenna=self._antenna,
-                                               scan=self._scan, observation=self._observation, intent=self._intent, datacolumn=self._datacolumn,
-                                               weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False,
-                                               niter=0, restart=True, calcpsf=False, calcres=True, restoration=False, threshold=self._threshold,
-                                               nsigma=self._nsigma, cycleniter=self._cycleniter, nmajor=1, gain=self._gain,
-                                               sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
-                                               lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold,
-                                               minbeamfrac=self._minbeamfrac, growiterations=self._growiterations, dogrowprune=self._dogrowprune,
-                                               minpercentchange=self._minpercentchange, fastnoise=self._fastnoise, savemodel=self._savemodel,
-                                               maxpsffraction=self._maxpsffraction,
-                                               minpsffraction=self._minpsffraction, parallel=self._parallel, fullsummary=True )
+                        # Replace return dict with new return dict
+                        # The order of the dicts into merge is important.
+                        self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
 
-                            # Replace return dict with new return dict
-                            # The order of the dicts into merge is important.
-                            self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
+                        # Append new return dict to global return dict
+                        self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
+                        self._major_done = self.current_imdict.returndict['nmajordone']
 
-                            # Append new return dict to global return dict
-                            self.global_imdict.returndict = self.global_imdict.concat(self.global_imdict.returndict, self.current_imdict.returndict)
-                            self._major_done = self.current_imdict.returndict['nmajordone']
-
-                            ## Decrement count for the major cycle just done...
-                            self.__decrement_counts()
-
-                        #else:
-                        #    print("NO DECONVOLUTION ITERATIONS because of zero mask. Skipped major cycle and return dictionary update.\n")
-
+                        ## Decrement count for the major cycle just done...
+                        self.__decrement_counts()
 
                         # Use global imdict for convergence check
                         if deconv_ret['stopcode'] == 7:   ## Tell the convergence checker that the mask is zero and iterations were skipped
@@ -608,11 +615,10 @@ class gclean:
 
     def restore(self):
         """ Restores the final image, and returns a path to the restored image. """
-        deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
-                                      deconvolver=self._deconvolver, restoration=True,
-                                      threshold=self._threshold, niter=0, gain=self._gain,
-                                      nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
-                                      noisethreshold=self._noisethreshold)
+        deconv_ret = self._deconvolve(imagename=self._imagename,
+                                      deconvolver=self._deconvolver,
+                                      restoration=True, niter=0,
+                                      fullsummary=True)
 
         return { "image": f"{self._imagename}.image" }
 
