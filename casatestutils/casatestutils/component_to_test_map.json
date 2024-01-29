@@ -251,6 +251,16 @@
             "comment":""
         },
         {
+            "testScript":"test_task_getantposalma",
+            "testType":"casatasks",
+            "maintainer":"Dave Mehringer",
+            "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["getantposalma"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_calstat",
             "testType":"casatasks",
             "maintainer":"Neal Schweighart",
