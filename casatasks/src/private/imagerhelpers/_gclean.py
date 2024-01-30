@@ -193,15 +193,14 @@ class gclean:
                     self._threshold = float(self._threshold.replace("Jy", ""))
 
 
-    def __init__( self, vis, imagename, field='', spw='', timerange='', uvrange='', antenna='', scan='', observation='', intent='', datacolumn='corrected',
-                  imsize=[100], cell=[ ], phasecenter='', stokes='I', startmodel='', specmode='cube', reffreq='', nchan=-1, start='', width='',
-                  outframe='LSRK', veltype='radio', restfreq='', interpolation='linear', perchanweightdensity=True, gridder='standard', wprojplanes=int(1),
-                  mosweight=True, psterm=False, wbawp=True, conjbeams=False, usepointing=False, pointingoffsetsigdev=[  ], pblimit=0.2, deconvolver='hogbom',
-                  smallscalebias=0.0, niter=0, threshold='0.1Jy', nsigma=0.0, cycleniter=-1, nmajor=1, cyclefactor=1.0, minpsffraction=0.05, maxpsffraction=0.8,
-                  scales=[], restoringbeam='', pbcor=False, nterms=int(2), weighting='natural', robust=float(0.5), npixels=0, gain=float(0.1),
-                  sidelobethreshold=3.0, noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, dogrowprune=True,
-                  minpercentchange=-1.0, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False,
-                  history_filter=lambda index, arg, history_value: history_value ):
+    def __init__( self, vis, imagename, field='', spw='', timerange='', uvrange='', antenna='', scan='', observation='', intent='', datacolumn='corrected', imsize=[100], cell=[ ],
+                 phasecenter='', stokes='I', startmodel='', specmode='cube', reffreq='', nchan=-1, start='', width='', outframe='LSRK', veltype='radio', restfreq='', interpolation='linear',
+                 perchanweightdensity=True, gridder='standard', wprojplanes=int(1), mosweight=True, psterm=False, wbawp=True, conjbeams=False, usepointing=False, pointingoffsetsigdev=[  ],
+                 pblimit=0.2, deconvolver='hogbom', smallscalebias=0.0, niter=0, threshold='0.1Jy', nsigma=0.0, cycleniter=-1, nmajor=1, cyclefactor=1.0, minpsffraction=0.05,
+                 maxpsffraction=0.8, scales=[], restoringbeam='', pbcor=False, nterms=int(2), weighting='natural', robust=float(0.5), npixels=0, gain=float(0.1), pbmask=0.2, sidelobethreshold=3.0,
+                 noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, smoothfactor=1.0, minbeamfrac=0.3, cutthreshold=0.01, growiterations=75, dogrowprune=True,
+                 minpercentchange=-1.0, verbose=False, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False, history_filter=lambda index, arg, history_value: history_value ):
+
         self._vis = vis
         self._imagename = imagename
         self._imsize = imsize
@@ -259,14 +258,18 @@ class gclean:
         self._robust = robust
         self._npixels = npixels
         self._gain = gain
+        self._pbmask = pbmask
         self._sidelobethreshold = sidelobethreshold
         self._noisethreshold = noisethreshold
         self._lownoisethreshold = lownoisethreshold
         self._negativethreshold = negativethreshold
+        self._smoothfactor = smoothfactor,
         self._minbeamfrac = minbeamfrac
+        self._cutthreshold = cutthreshold
         self._growiterations = growiterations
         self._dogrowprune = dogrowprune
         self._minpercentchange = minpercentchange
+        self._verbose = verbose
         self._fastnoise = fastnoise
         self._savemodel = savemodel
         self._parallel = parallel
@@ -442,7 +445,10 @@ class gclean:
                                                   deconvolver=self._deconvolver, restoration=False,
                                                   threshold=self._threshold, niter=0,
                                                   nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask,
-                                                  mask=self._mask, noisethreshold=self._noisethreshold)
+                                                  mask=self._mask, pbmask=self._pbmask, sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
+                                                  lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold, smoothfactor=self._smoothfactor,
+                                                  minbeamfrac=self._minbeamfrac, cutthreshold=self._cutthreshold, growiterations=self._growiterations,
+                                                  dogrowprune=self._dogrowprune, minpercentchange=self._minpercentchange, verbose=self._verbose)
 
                     self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
                     self.global_imdict.returndict = self.current_imdict.returndict
@@ -477,8 +483,7 @@ class gclean:
                         # Run the minor cycle
                         deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                                   deconvolver=self._deconvolver, restoration=False,
-                                                  threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, usemask=self._usemask,
-                                                  nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, noisethreshold=self._noisethreshold)
+                                                  threshold=cyclethreshold, niter=use_cycleniter, gain=self._gain, fullsummary=True)
 
                         # Run the major cycle
                         tclean_ret = self._tclean( vis=self._vis, imagename=self._imagename, imsize=self._imsize, cell=self._cell,
@@ -525,12 +530,16 @@ class gclean:
 
                     if not self.hasit:
                         # If we haven't converged, run deconvolve to update the mask
-                        self._deconvolve(imagename=self._imagename, niter=0, deconvolver=self._deconvolver, usemask=self._usemask, restoration=False)
+                        #print("no convergence, updating mask")
 
-                #print('\nGLOBAL returndict : ',self.global_imdict.returndict)
+                        self._deconvolve(imagename=self._imagename, startmodel=self._startmodel, deconvolver=self._deconvolver, restoration=False, threshold=self._threshold, niter=0,
+                                         nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask, mask=self._mask, pbmask=self._pbmask,
+                                         sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold, lownoisethreshold=self._lownoisethreshold,
+                                         negativethreshold=self._negativethreshold, smoothfactor=self._smoothfactor, minbeamfrac=self._minbeamfrac, cutthreshold=self._cutthreshold,
+                                         growiterations=self._growiterations, dogrowprune=self._dogrowprune, minpercentchange=self._minpercentchange, verbose=self._verbose)
+
+
                 if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
-                    # self.current_imdict only contains the latest tclean/deconvolve results
-                    # Passing in self.global_imdict will pull out the cumulative results everytime, breaking the convergence plot.
                     self._convergence_result = ( self.global_imdict.returndict['stopDescription'] if 'stopDescription' in self.global_imdict.returndict else '',
                                                  self.global_imdict.returndict['stopcode'] if 'stopcode' in self.global_imdict.returndict else 0,
                                                  self._major_done,
