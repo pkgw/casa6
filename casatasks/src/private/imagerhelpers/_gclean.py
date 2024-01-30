@@ -274,19 +274,13 @@ class gclean:
         self._savemodel = savemodel
         self._parallel = parallel
         self._usemask = usemask
-
-        ###
-        ### 'self._mask' always contains the mask as supplied by the user while 'self._effective_mask' is
-        ### the mask currently in play as interactive clean progresses. When the user has supplied a mask,
-        ### it should be the same as 'self._mask' but when the mask is managed internally by iclean/gclean
-        ### the two will diverge.
-        ###
         self._mask = mask
         self.global_imdict = ImagingDict()
         self.current_imdict = ImagingDict()
         self._major_done = 0
         self.hasit = False # Convergence flag
         self.stopdescription = '' # Convergence flag
+        self._initial_mask_exists = False
         self._convergence_result = (None,None,None,None,None,{ 'chan': None, 'major': None })
         #                           ^^^^ ^^^^ ^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----->>> convergence info
         #                              |    | |     |    +----->>> Number of global iterations remaining for current run (niterleft)
@@ -371,6 +365,44 @@ class gclean:
 
         return outrec
 
+
+    def _check_initial_mask(self):
+        """
+        Check if a mask from a previous run exists on disk or not.
+        """
+
+        if self._usemask == 'user' and self._mask == '':
+            if self._deconvolver == 'mtmfs':
+                maskname = self._imagename + '.mask.tt0'
+            else:
+                maskname = self._imagename + '.mask'
+
+            if os.path.exists(maskname):
+                self._initial_mask_exists = True
+            else:
+                self._initial_mask_exists = False
+
+    def _fix_initial_mask(self):
+        """
+        If on start up, no user mask is provided, then flip the initial mask to
+        be all zeros for interactive use.
+        """
+
+        from casatools import image
+        ia = image()
+
+        if self._usemask == 'user' and self._mask == '':
+            if self._deconvolver == 'mtmfs':
+                maskname = self._imagename + '.mask.tt0'
+            else:
+                maskname = self._imagename + '.mask'
+
+            # This means the mask was newly created by deconvolve, so flip it
+            if os.path.exists(maskname) and self._initial_mask_exists is False:
+                ia.open(maskname)
+                ia.set(0.0)
+                ia.close()
+
     def _update_peakres(self):
         if self._deconvolver == 'mtmfs':
             residname = self._imagename + '.residual.tt0'
@@ -445,6 +477,8 @@ class gclean:
                                                weighting=self._weighting, robust=self._robust, npixels=self._npixels, interactive=False, niter=0,
                                                gain=self._gain, calcres=True, calcpsf=True, restoration=False, parallel=self._parallel, fullsummary=True)
 
+                    # Check if a mask from a previous run exists on disk
+                    self._check_initial_mask()
 
                     deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                                   deconvolver=self._deconvolver, restoration=False,
@@ -454,6 +488,9 @@ class gclean:
                                                   lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold, smoothfactor=self._smoothfactor,
                                                   minbeamfrac=self._minbeamfrac, cutthreshold=self._cutthreshold, growiterations=self._growiterations,
                                                   dogrowprune=self._dogrowprune, verbose=self._verbose)
+
+                    # If no mask from a previous run exists, over-write the ones with zeros for the default mask
+                    self._fix_initial_mask()
 
                     self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
                     self.global_imdict.returndict = self.current_imdict.returndict
@@ -484,7 +521,6 @@ class gclean:
                     if self.hasit ==0 :
                         use_cycleniter, cyclethreshold = self._calc_deconv_controls(self.current_imdict, self._niter, self._threshold, self._cycleniter)
 
-                        print("No convergence, running deconvolve + tclean")
                         # Run the minor cycle
                         deconv_ret = self._deconvolve(imagename=self._imagename, startmodel=self._startmodel,
                                                   deconvolver=self._deconvolver, restoration=False,
@@ -535,8 +571,6 @@ class gclean:
 
                     if not self.hasit:
                         # If we haven't converged, run deconvolve to update the mask
-                        #print("no convergence, updating mask")
-
                         self._deconvolve(imagename=self._imagename, startmodel=self._startmodel, deconvolver=self._deconvolver, restoration=False, threshold=self._threshold, niter=0,
                                          nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask, mask=self._mask, pbmask=self._pbmask,
                                          sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold, lownoisethreshold=self._lownoisethreshold,
