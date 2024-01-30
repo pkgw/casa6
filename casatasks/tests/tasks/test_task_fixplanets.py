@@ -330,10 +330,11 @@ class fixplanets_test(unittest.TestCase):
         os.system('cp ' + os.path.join(datapath, 'titan.eml') + ' .')
         for myms in [outms, outms2]:
             os.system("rm -rf titan.eml.tab")
-            fixplanets(vis=myms, field='Titan', fixuvw=True, direction='titan.eml')
+            with self.assertRaisesRegex(RuntimeError, r'Use of the JPL-Horizons MIME format file is deprecated'):
+                fixplanets(vis=myms, field='Titan', fixuvw=True, direction='titan.eml')
 
-            self.assertTrue(os.path.exists(myms + '/FIELD/EPHEM0_Titan.tab'))
-            self.assertTrue(self.verify(myms, 'Titan', 'J2000'))
+            #self.assertTrue(os.path.exists(myms + '/FIELD/EPHEM0_Titan.tab'))
+            #self.assertTrue(self.verify(myms, 'Titan', 'J2000'))
 
 if __name__ == "__main__":
     unittest.main()

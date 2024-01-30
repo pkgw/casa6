@@ -33,10 +33,11 @@ def _checkinternalephemtab(vis, field):
     from casatools import table, ms
     _tb = table()
     _ms = ms() 
-    fids = _ms.msseltoindex(vis,field)['field']
-    _tb.open(msfile+'/FIELD')
+    print(f'vis={vis}, field={field}')
+    fids = _ms.msseltoindex(vis=vis,field=field)['field']
+    _tb.open(vis+'/FIELD')
     ephemnames = []
-    if 'EPHEMERIS_ID' in tb.colnames():
+    if 'EPHEMERIS_ID' in _tb.colnames():
         for i in fids:
             ephemid = _tb.getcell('EPHEMERIS_ID',i)
             ephemnames.append(glob.glob(f'{vis}/FIELD/EPHEM{ephemid}*/')[0])
@@ -271,16 +272,18 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
                     if len(dirstr)==1: # an ephemeris table was given
                         if(os.path.exists(dirstr[0])):
                             if os.path.isfile(dirstr[0]): # it is a file, i.e. not a CASA table
-                                msg = "*** Error when interpreting parameter \'direction\':\n File is given. Use of the JPL email mime format file is deplicated."
-                                
+                                msg = "*** Error when interpreting parameter \'direction\':\n  A file is given. Use of the JPL-Horizons "+\
+                                     "MIME format file is deprecated."
                                 raise RuntimeError(msg)
                             else: # not a file, assume it is a CASA table
                                 theephemeris = dirstr[0]
                                 # add a check if it is going to replace the existing table in the MS
                                 existingephemtab = _checkinternalephemtab(vis, field)
                                 if existingephemtab != []:
-                                    casalog.post(f'Will replace existing ephemeris table(s) {existingephemtab} in the MS, which \
-                                               is the one used by correlator. This may result in scientifically wrong result.','WARN')
+                                    casalog.post(f'Will replace existing ephemeris table {existingephemtab} in the MS with {direction}. '+\
+                                         'Ephemeris tables attached in the MS are assumed to be the ones used by the correlator and attaching' +\
+                                         ' a different ephemeris table may lead to scientifically wrong results.','WARN') 
+
                                 casalog.post('Will use ephemeris table '+theephemeris+' with offset (0,0)', 'NORMAL')
                             
                             thenewra_rad = 0.
@@ -442,10 +445,10 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
 
             for i in range(0,tbt.nrows()):
                 if(sname[i]==planetname):
-                    # casalog.post('i old dir ' + i + " " + sdir[0][i] + sdir[1][i])
+                    #casalog.post('i old dir ' + i + " " + sdir[0][i] + sdir[1][i])
                     newsdir[0][i] = newsra_rad
                     newsdir[1][i] = newsdec_rad
-                    # casalog.post('  new dir ' + newsdir[0][i] + newsdir[1][i])
+                    #casalog.post('  new dir ' + newsdir[0][i] + newsdir[1][i])
             tbt.putcol('DIRECTION', newsdir)
             tbt.close()
             casalog.post("SOURCE table DIRECTION column changed.", 'NORMAL')
