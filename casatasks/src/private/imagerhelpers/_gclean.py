@@ -114,7 +114,17 @@ class gclean:
         is set to True then the full history will be returned, otherwise the commands
         executed for generating the latest result are returned.
         """
-        return self._exe_cmds if history else self._exe_cmds[-self._exe_cmds_per_iter[-1]:]
+
+        if history:
+            return self._exe_cmds
+        else:
+            if self._exe_cmds_per_iter[-1] > 0:
+                # Return the last N commands
+                return self._exe_cmds[-self._exe_cmds_per_iter[-1]:]
+            else:
+                # If convergence is hit, no commands were run so return nothing
+                return []
+
 
     def update( self, msg ):
         """ Interactive clean parameters update.
