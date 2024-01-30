@@ -31,16 +31,10 @@ namespace LibAIR2 {
 
     virtual ~ALMAResBase();
     
-    /**\brief Output the field names when doing str_inline
-
-     */
-    virtual std::ostream &header_inline(std::ostream &os) const;
-
     /**\brief Output the results separated by tabs and on a single line 
 
-       \note Polymorphic as this class is used through pointers
      */
-    virtual std::ostream &str_inline(std::ostream &os) const;
+    void print_str_inline(std::ostream &os) const;
     
     
   };
@@ -50,10 +44,9 @@ namespace LibAIR2 {
 
     ALMAResBaseList(void);
 
-    ~ALMAResBaseList();
+    virtual ~ALMAResBaseList();
     
     std::list<ALMAResBase*> ptr_list;
-    std::list<ALMAResBase*>::iterator iter_ptr_list;
   };
   
   std::ostream &operator<<(std::ostream &os,
@@ -72,8 +65,8 @@ namespace LibAIR2 {
 
     double tau183_err;
 
-    virtual std::ostream &header_inline(std::ostream &os) const;
-    virtual std::ostream &str_inline(std::ostream &os) const;
+    std::ostream &header_inline(std::ostream &os) const;
+    virtual void print_str_inline(std::ostream &os);
   };
 
   std::ostream &operator<<(std::ostream &os,

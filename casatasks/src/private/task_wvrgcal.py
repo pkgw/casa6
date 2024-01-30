@@ -282,6 +282,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
             finally:
                 cap()
                 loglines = cap.stdout.split('\n')
+                print("wvrgcal output:", loglines)
                 for ll in loglines:
                     casalog.post(ll.expandtabs())
 

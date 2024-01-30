@@ -921,121 +921,121 @@ namespace casac {
 
     int iterations = 0;
 
-    while(rval<0 && iterations<2){
+    try{
 
-      iterations++;
+      while(rval<0 && iterations<2){
 
-      std::vector<size_t> sortedI; // to be filled with the time-sorted row number index
-      std::set<int> flaggedantsInMain; // the antennas totally flagged in the MS main table
-      std::unique_ptr<LibAIR2::InterpArrayData> d (LibAIR2::loadWVRData(ms,
-									wvrspws,
-									sortedI, 
-									flaggedantsInMain,
-									mingoodfrac_par,
-									usefieldtab_par==false, // i.e. usepointing==true
-									offsetstable)
-						   );
+	iterations++;
 
-      // For debug purposes, print the loaded WVR data: 
-      // for(size_t j=0; j<d->g_time().size(); ++j)
-      // {
-      // 	for(size_t i=0; i < ms.antenna().nrow(); ++i)
-      // 	  {
-      // 	    std::cout << "row ant data " << j << " " << i << " "
-      // 		      << d->g_wvrdata()[j][i][0] << " "
-      // 		      << d->g_wvrdata()[j][i][1] << " " 
-      // 		      << d->g_wvrdata()[j][i][2] << " "
-      // 		      << d->g_wvrdata()[j][i][3] << std::endl; 
-      // 	  }
-      // }
+	std::vector<size_t> sortedI; // to be filled with the time-sorted row number index
+	std::set<int> flaggedantsInMain; // the antennas totally flagged in the MS main table
+	std::unique_ptr<LibAIR2::InterpArrayData> d (LibAIR2::loadWVRData(ms,
+									  wvrspws,
+									  sortedI, 
+									  flaggedantsInMain,
+									  mingoodfrac_par,
+									  usefieldtab_par==false, // i.e. usepointing==true
+									  offsetstable)
+						     );
+      
+	// For debug purposes, print the loaded WVR data: 
+	// for(size_t j=0; j<d->g_time().size(); ++j)
+	// {
+	// 	for(size_t i=0; i < ms.antenna().nrow(); ++i)
+	// 	  {
+	// 	    std::cout << "row ant data " << j << " " << i << " "
+	// 		      << d->g_wvrdata()[j][i][0] << " "
+	// 		      << d->g_wvrdata()[j][i][1] << " " 
+	// 		      << d->g_wvrdata()[j][i][2] << " "
+	// 		      << d->g_wvrdata()[j][i][3] << std::endl; 
+	// 	  }
+	// }
      
 
-      interpwvrs.insert(flaggedantsInMain.begin(),flaggedantsInMain.end()); // for flagInterp()
-      wvrflagset.insert(flaggedantsInMain.begin(),flaggedantsInMain.end());
+	interpwvrs.insert(flaggedantsInMain.begin(),flaggedantsInMain.end()); // for flagInterp()
+	wvrflagset.insert(flaggedantsInMain.begin(),flaggedantsInMain.end());
 
-      d->offsetTime(toffset_par);
+	d->offsetTime(toffset_par);
      
-      if (smooth_par > 1){
-	smoothWVR(*d, (int) smooth_par);
-      }
+	if (smooth_par > 1){
+	  smoothWVR(*d, (int) smooth_par);
+	}
      
-      d.reset(LibAIR2::filterState(*d, useID));
+	d.reset(LibAIR2::filterState(*d, useID));
 
-      LibAIR2::AntSet interpImpossibleAnts;
+	LibAIR2::AntSet interpImpossibleAnts;
 
-      // Flag and interpolate
-      flagInterp(ms,
-		 interpwvrs,
-		 *d,
-		 maxdistm_par,
-		 (int) minnumants_par,
-		 interpImpossibleAnts);
+	// Flag and interpolate
+	flagInterp(ms,
+		   interpwvrs,
+		   *d,
+		   maxdistm_par,
+		   (int) minnumants_par,
+		   interpImpossibleAnts);
 
-      // Determine the reference antenna for dTdL calculation
-      int therefant = -1; 
+	// Determine the reference antenna for dTdL calculation
+	int therefant = -1; 
 
-      if (refant_par.length()>0){
-	std::vector<size_t> refants=getAntParsV(refant_par, ms);    
-	for(std::vector<size_t>::iterator it=refants.begin(); it != refants.end(); it++){ // 
-	  if(interpImpossibleAnts.count(*it)==0){
-	    therefant = *it; // use the first of the given list of possible ref antennas which was OK or which could be interpolated to
-	    break;
+	if (refant_par.length()>0){
+	  std::vector<size_t> refants=getAntParsV(refant_par, ms);    
+	  for(std::vector<size_t>::iterator it=refants.begin(); it != refants.end(); it++){ // 
+	    if(interpImpossibleAnts.count(*it)==0){
+	      therefant = *it; // use the first of the given list of possible ref antennas which was OK or which could be interpolated to
+	      break;
+	    }
+	    else{
+	      std::cout << "Given reference antenna " << *it << "==" << anames.at(*it) 
+			<< " is flagged and cannot be interpolated." << std::endl;
+	    }	   
 	  }
-	  else{
-	    std::cout << "Given reference antenna " << *it << "==" << anames.at(*it) 
-		      << " is flagged and cannot be interpolated." << std::endl;
-	  }	   
-	}
-	if(therefant<0){
-	  std::cout << "None of the given reference antennas is usable." << std::endl;
-	  std::cerr << "None of the given reference antennas is usable." << std::endl;
-	  return -1;
-	}
+	  if(therefant<0){
+	    std::cout << "None of the given reference antennas is usable." << std::endl;
+	    std::cerr << "None of the given reference antennas is usable." << std::endl;
+	    return -1;
+	  }
 
-      }
-      else{
-	LibAIR2::AntSet wvrants=LibAIR2::WVRAntennas(ms, wvrspws);
-	for(LibAIR2::AntSet::iterator it=wvrants.begin(); it != wvrants.end(); it++){
-	  if(interpImpossibleAnts.count(*it)==0){
-	    therefant = *it; // use the first antenna which was OK or which could be interpolated to
-	    break;
+	}
+	else{
+	  LibAIR2::AntSet wvrants=LibAIR2::WVRAntennas(ms, wvrspws);
+	  for(LibAIR2::AntSet::iterator it=wvrants.begin(); it != wvrants.end(); it++){
+	    if(interpImpossibleAnts.count(*it)==0){
+	      therefant = *it; // use the first antenna which was OK or which could be interpolated to
+	      break;
+	    }
+	  }
+	  if(therefant<0){
+	    std::cout << "No antennas with sufficient WVR data found." << std::endl;
+	    std::cerr << "No antennas with sufficient WVR data found." << std::endl;
+	    return -1;
 	  }
 	}
-	if(therefant<0){
-	  std::cout << "No antennas with sufficient WVR data found." << std::endl;
-	  std::cerr << "No antennas with sufficient WVR data found." << std::endl;
-	  return -1;
+
+	std::cout << "Choosing";
+	if(interpwvrs.count(therefant)>0){
+	  std::cout << " (interpolated)";
 	}
-      }
-
-      std::cout << "Choosing";
-      if(interpwvrs.count(therefant)>0){
-	std::cout << " (interpolated)";
-      }
-      std::cout << " antenna " << therefant  << " == " << anames.at(therefant)
-		<< " as reference antenna for dTdL calculations." << std::endl;
+	std::cout << " antenna " << therefant  << " == " << anames.at(therefant)
+		  << " as reference antenna for dTdL calculations." << std::endl;
 
 
-      LibAIR2::ArrayGains g(d->g_time(), 
-			    d->g_el(),
-			    d->g_state(),
-			    d->g_field(),
-			    d->g_source(),
-			    d->nAnts);
+	LibAIR2::ArrayGains g(d->g_time(), 
+			      d->g_el(),
+			      d->g_state(),
+			      d->g_field(),
+			      d->g_source(),
+			      d->nAnts);
      
-      std::unique_ptr<LibAIR2::dTdLCoeffsBase>  coeffs;
+	std::unique_ptr<LibAIR2::dTdLCoeffsBase>  coeffs;
      
-      // These are the segments on which coefficients are re-calculated
-      std::vector<std::pair<double, double> >  fb;
+	// These are the segments on which coefficients are re-calculated
+	std::vector<std::pair<double, double> >  fb;
      
-      if ( cont_par )
-	{
+	if ( cont_par ){
 	  std::cout<<"[Output from \"cont\" option has not yet been updated]"
 		   <<std::endl;
 	  coeffs.reset(LibAIR2::SimpleSingleCont(*d, therefant));
 	}
-      else
-	{
+	else{
 	
 	  LibAIR2::ALMAAbsInpL inp;
 	  if(segsource_par){
@@ -1049,7 +1049,7 @@ namespace casac {
 			      sortedI);
 	    try{
 	      std::vector<std::set<size_t> >  tiedi=tiedIDs(tied, ms);
-	     
+	      
 	      printTied(tied, tiedi);
 	      LibAIR2::fieldSegmentsTied(time,
 					 src,
@@ -1063,7 +1063,7 @@ namespace casac {
 	    }
 
 	    //printFieldSegments(fb, time[0]);
-	   
+	    
 	    //       { // debugging output
 	    // 	std::vector<double> tt(d->g_time());
 	    // 	std::vector<double> te(d->g_el());
@@ -1089,11 +1089,11 @@ namespace casac {
 	    // 	}
 	    //       }
 	    
-	      inp=FieldMidPointI(*d,
-				 fb,
-				 useID,
-				 therefant);
-	      
+	    inp=FieldMidPointI(*d,
+			       fb,
+			       useID,
+			       therefant);
+	    
 	  }
 	  else{
 	    const size_t n=nsol_par;
@@ -1104,13 +1104,12 @@ namespace casac {
 	  }
 
 	
-	  if (sourceflag_par.size() > 0)
-	    {
-	      std::tie(inp,fb)=filterInp(inp,
-					 fb,
-					 sourceflag_par,
-					 ms);
-	    }
+	  if (sourceflag_par.size() > 0){
+	    std::tie(inp,fb)=filterInp(inp,
+				       fb,
+				       sourceflag_par,
+				       ms);
+	  }
 	
 	  std::tie(inp,fb)=filterFlaggedInp(inp,
 					    fb);
@@ -1126,7 +1125,7 @@ namespace casac {
 					fb,
 					problemAnts);
 	  }
-	  catch(const std::runtime_error rE){
+	  catch(const std::runtime_error& rE){
 	    rval = 1;
 	    std::cerr << std::endl << "WARNING: problem while calculating coefficients:"
 		      << std::endl << "         LibAIR2::doALMAAbsRet: " << rE.what() << std::endl;
@@ -1135,9 +1134,9 @@ namespace casac {
 	  }
 	
 	  if(problemAnts.size()>0){
-	   
+	    
 	    rval = -2;
-
+	    
 	    if(iterations<2){
 	      for(LibAIR2::AntSet::const_iterator it=problemAnts.begin(); it!=problemAnts.end(); it++){
 		if(interpwvrs.count(*it)==0){
@@ -1162,11 +1161,10 @@ namespace casac {
 	  std::cerr<<"done!"
 		   <<std::endl;
 	
-	
 	  std::cout<<"       Retrieved parameters      "<<std::endl
 		   <<"----------------------------------------------------------------"<<std::endl
 		   << rlist.ptr_list <<std::endl;
-	
+	  
 	  if (segsource_par){
 	    //std::vector<int> flds;
 	    //std::vector<double> time;
@@ -1176,88 +1174,92 @@ namespace casac {
 	    //		    flds,
 	    //		    src,
 	    //		    sortedI);
-	   
+	    
 	    coeffs.reset(LibAIR2::SimpleMultiple(fb,
-						 rlist));   
+						   rlist));   
 	  }
 	  else{
 	    coeffs.reset(LibAIR2::ALMAAbsProcessor(inp, rlist));
 	  }  
-	
+	  
 	}
     
-      try{
-	g.calc(*d,
-	       *coeffs);    
-      }
-      catch(const std::runtime_error& x){
-	std::cout << "Problem while calculating gains: " << x.what() << std::endl;
-	std::cerr << "Problem while calculating gains: " << x.what() << std::endl;
-	return 1;
-      }
+	try{
+	  g.calc(*d,
+		 *coeffs);    
+	}
+	catch(const std::runtime_error& rE){
+	  std::cout << "Problem while calculating gains: " << rE.what() << std::endl;
+	  std::cerr << "Problem while calculating gains: " << rE.what() << std::endl;
+	  return 1;
+	}
 
-      if (sourceflag_par.size() > 0){
-	std::set<size_t> flagset=sourceSet(sourceflag_par,
-					   ms);
-	g.blankSources(flagset);
-      }
+	if (sourceflag_par.size() > 0){
+	  std::set<size_t> flagset=sourceSet(sourceflag_par,
+					     ms);
+	  g.blankSources(flagset);
+	}
      
-      std::vector<std::pair<double, double> > tmask;
-      statTimeMask(ms, statfield_par, statsource_par, tmask, sortedI, wvrspws);
-     
-      std::vector<double> pathRMS;
-      g.pathRMSAnt(tmask, pathRMS);
-     
-     
-      std::vector<double> pathDisc;
-      try{
-	computePathDisc(*d, 
-			tmask,
-			*coeffs,
-			pathDisc);
-     
-	std::cout<<LibAIR2::AntITable(anames,
-				      wvrflagset,
-				      nowvr,
-				      pathRMS,
-				      pathDisc,
-				      interpImpossibleAnts);
-       
-	printExpectedPerf(g, 
+	std::vector<std::pair<double, double> > tmask;
+	statTimeMask(ms, statfield_par, statsource_par, tmask, sortedI, wvrspws);
+	
+	std::vector<double> pathRMS;
+	g.pathRMSAnt(tmask, pathRMS);
+	
+	std::vector<double> pathDisc;
+	try{
+	  computePathDisc(*d, 
+			  tmask,
 			  *coeffs,
-			  tmask);
+			  pathDisc);
+     
+	  std::cout<<LibAIR2::AntITable(anames,
+					wvrflagset,
+					nowvr,
+					pathRMS,
+					pathDisc,
+					interpImpossibleAnts);
        
-      }
-      catch(const std::runtime_error& x){
-	std::cout << "Problem while calculating path RMS discrepancy: " << x.what() << std::endl;
-	std::cerr << "Problem while calculating path RMS discrepancy: " << x.what() << std::endl;
-	return 1;
-      }
+	  printExpectedPerf(g, 
+			    *coeffs,
+			    tmask);
+       
+	}
+	catch(const std::runtime_error& rE){
+	  std::cout << "Problem while calculating path RMS discrepancy: " << rE.what() << std::endl;
+	  std::cerr << "Problem while calculating path RMS discrepancy: " << rE.what() << std::endl;
+	  return 1;
+	}
      
-      if (scale_par != 1.0){
-	g.scale(scale_par);
-      }
+	if (scale_par != 1.0){
+	  g.scale(scale_par);
+	}
      
-      LibAIR2::MSSpec sp;
-      loadSpec(ms, sciencespws, sp);
-      std::set<size_t> to_be_reversed=reversedSPWs(sp, reverse_par, reversespw_par);  
+	LibAIR2::MSSpec sp;
+	loadSpec(ms, sciencespws, sp);
+	std::set<size_t> to_be_reversed=reversedSPWs(sp, reverse_par, reversespw_par);  
      
-      std::cout << "Writing gain table ..." << std::endl;
+	std::cout << "Writing gain table ..." << std::endl;
 
-      // Write new table, including history
-      LibAIR2::writeNewGainTbl(g,
-			       fnameout.c_str(),
-			       sp,
-			       to_be_reversed,
-			       disperse_par,
-			       msname,
-			       cmdLineHistory,
-			       interpImpossibleAnts);
-
-
-    } // end while
+	// Write new table, including history
+	LibAIR2::writeNewGainTbl(g,
+				 fnameout.c_str(),
+				 sp,
+				 to_be_reversed,
+				 disperse_par,
+				 msname,
+				 cmdLineHistory,
+				 interpImpossibleAnts);
 
 
+      } // end while
+    }
+    catch(const std::runtime_error& rE){
+      std::cout << "Problem while processing WVR data: " << rE.what() << std::endl;
+      std::cerr << "Problem while processing WVR data: " << rE.what() << std::endl;
+      return 1;
+    }
+    
     return rval;
   }
 }
