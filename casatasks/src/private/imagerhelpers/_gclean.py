@@ -198,7 +198,7 @@ class gclean:
                  perchanweightdensity=True, gridder='standard', wprojplanes=int(1), mosweight=True, psterm=False, wbawp=True, conjbeams=False, usepointing=False, pointingoffsetsigdev=[  ],
                  pblimit=0.2, deconvolver='hogbom', smallscalebias=0.0, niter=0, threshold='0.1Jy', nsigma=0.0, cycleniter=-1, nmajor=1, cyclefactor=1.0, minpsffraction=0.05,
                  maxpsffraction=0.8, scales=[], restoringbeam='', pbcor=False, nterms=int(2), weighting='natural', robust=float(0.5), npixels=0, gain=float(0.1), pbmask=0.2, sidelobethreshold=3.0,
-                 noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, smoothfactor=1.0, minbeamfrac=0.3, cutthreshold=0.01, growiterations=75, dogrowprune=True,
+                 noisethreshold=5.0, lownoisethreshold=1.5, negativethreshold=0.0, smoothfactor=float(1.0), minbeamfrac=0.3, cutthreshold=0.01, growiterations=75, dogrowprune=True,
                  minpercentchange=-1.0, verbose=False, fastnoise=True, savemodel='none', usemask='user', mask='', parallel=False, history_filter=lambda index, arg, history_value: history_value ):
 
         self._vis = vis
@@ -263,7 +263,7 @@ class gclean:
         self._noisethreshold = noisethreshold
         self._lownoisethreshold = lownoisethreshold
         self._negativethreshold = negativethreshold
-        self._smoothfactor = smoothfactor,
+        self._smoothfactor = smoothfactor
         self._minbeamfrac = minbeamfrac
         self._cutthreshold = cutthreshold
         self._growiterations = growiterations
@@ -378,9 +378,14 @@ class gclean:
             residname = self._imagename + '.residual'
 
         maskname = self._imagename + '.mask'
+        if not os.path.exists(maskname):
+            maskname = ''
 
         peakres = imstat(imagename=residname, mask=maskname)['max']
-        masksum = imstat(imagename=maskname)['sum']
+        if len(maskname) > 0:
+            masksum = imstat(imagename=maskname)['sum']
+        else:
+            masksum = []
 
         if len(peakres) > 0:
             peakres = peakres[0]
@@ -448,7 +453,7 @@ class gclean:
                                                   mask=self._mask, pbmask=self._pbmask, sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold,
                                                   lownoisethreshold=self._lownoisethreshold, negativethreshold=self._negativethreshold, smoothfactor=self._smoothfactor,
                                                   minbeamfrac=self._minbeamfrac, cutthreshold=self._cutthreshold, growiterations=self._growiterations,
-                                                  dogrowprune=self._dogrowprune, minpercentchange=self._minpercentchange, verbose=self._verbose)
+                                                  dogrowprune=self._dogrowprune, verbose=self._verbose)
 
                     self.current_imdict.returndict = self.current_imdict.merge(tclean_ret, deconv_ret)
                     self.global_imdict.returndict = self.current_imdict.returndict
@@ -536,7 +541,7 @@ class gclean:
                                          nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask, mask=self._mask, pbmask=self._pbmask,
                                          sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold, lownoisethreshold=self._lownoisethreshold,
                                          negativethreshold=self._negativethreshold, smoothfactor=self._smoothfactor, minbeamfrac=self._minbeamfrac, cutthreshold=self._cutthreshold,
-                                         growiterations=self._growiterations, dogrowprune=self._dogrowprune, minpercentchange=self._minpercentchange, verbose=self._verbose)
+                                         growiterations=self._growiterations, dogrowprune=self._dogrowprune, verbose=self._verbose)
 
 
                 if len(self.global_imdict.returndict) > 0 and 'summaryminor' in self.global_imdict.returndict and sum(map(len,self.global_imdict.returndict['summaryminor'].values())) > 0:
