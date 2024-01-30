@@ -877,5 +877,32 @@ class TestJyPerK(unittest.TestCase):
 
         self.assertEqual(cm.exception.args[0], 'The infile argument should be str or None.')
 
+class gencal_eoptest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        rmtables(caltab)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(vlbacopy)
+
+    def test_eop(self):
+        """Test calibration table produced when gencal is run on an MS
+           with an EARTH_ORIENTATION table."""
+
+        gencal(vis=vlbacopy,
+               caltable=caltab,
+               caltype='eop')
+
+        self.assertTrue(os.path.exists(caltab))
+
+
 if __name__ == '__main__':
     unittest.main()
