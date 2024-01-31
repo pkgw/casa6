@@ -40,7 +40,8 @@ def _checkinternalephemtab(vis, field):
     if 'EPHEMERIS_ID' in _tb.colnames():
         for i in fids:
             ephemid = _tb.getcell('EPHEMERIS_ID',i)
-            ephemnames.append(glob.glob(f'{vis}/FIELD/EPHEM{ephemid}*/')[0])
+            if ephemid != -1:
+                ephemnames.append(glob.glob(f'{vis}/FIELD/EPHEM{ephemid}*/')[0])
     _tb.close()
     return list(set(ephemnames))
 
