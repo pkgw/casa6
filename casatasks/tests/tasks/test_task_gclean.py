@@ -227,27 +227,38 @@ class testref_base(unittest.TestCase):
          return stopdesc, stopcode, majordone, nmajor, niter, retdict
 
 
-     def fill_mask(self, maskname, fill_type='zero'):
+     def fill_mask(self, maskname, fill_type='zero', channel=-1, stokes=-1):
          """
          Given an input mask, fill the mask with ones, zeros or a pre-defined
-         box of ones.
+         box of ones. By default fill the mask in all channels and Stokes.
 
          Allowable fill_types : zeros, ones, box
          """
 
+         if channel == -1:
+             chan_slice = slice(None)
+         else:
+             chan_slice = slice(channel, channel+1)
+
+         if stokes == -1:
+             stokes_slice = slice(None)
+         else:
+             stokes_slice = slice(stokes, stokes+1)
+
          _ia.open(maskname)
          pix = _ia.getchunk()
+         print("pix shape ", pix.shape)
          if fill_type == 'zero':
-             pix = pix * 0.0
+             pix[:, :, stokes_slice, chan_slice] = pix * 0.0
          elif fill_type == 'ones':
-             pix = np.ones_like(pix)
+             pix[:, :, stokes_slice, chan_slice] = np.ones_like(pix)
          elif fill_type == 'box':
-             pix[40:60,40:60] = 1.0
+             pix[40:60,40:60, stokes_slice, chan_slice] = 1.0
 
-             pix[0:40,0:40] = 0.0
-             pix[60:100,60:100] = 0.0
-             pix[0:40,60:100] = 0.0
-             pix[60:100,0:40] = 0.0
+             pix[0:40,0:40, stokes_slice, chan_slice] = 0.0
+             pix[60:100,60:100, stokes_slice, chan_slice] = 0.0
+             pix[0:40,60:100, stokes_slice, chan_slice] = 0.0
+             pix[60:100,0:40, stokes_slice, chan_slice] = 0.0
 
          _ia.putchunk(pix)
          _ia.close()
@@ -631,5 +642,74 @@ class test_ic(testref_base):
 
         self.assertTrue(total_iterations == 120)
 
+
+    @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "gclean doesn't work with mpi")
+    def test_ic_cube_partialmask(self):
+        """ [test_ic] test_ic_zeromask : Image cube with a single channel masked """
+
+        self.prepData('refim_point.ms')
+
+        stopdesc1, stopcode1, majordone1, nmajor1, niter1, retdict1 = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec', specmode='cube',
+                                                                              interpolation='nearest', nchan=5, start='1.0GHz', width='0.2GHz', pblimit=-1e-05,
+                                                                              deconvolver='hogbom', niter=10, cycleniter=-1, cyclefactor=1, nmajor=3,
+                                                                              threshold='0.01Jy', usemask='user', mask='')
+
+        masksum1 = self.calc_mask_sum(self.img+'.mask')
+        # Fill mask with zeros and start imaging again
+        self.fill_mask(self.img+'.mask', fill_type='box', channel=1)
+
+        # Clean down until single channel reaches threshold
+        stopdesc2, stopcode2, majordone2, nmajor2, niter2, retdict2 = self.do_clean(vis=self.msfile, imagename=self.img,
+                                                                                    imsize=100, cell='10.0arcsec', specmode='cube',
+                                                                                    interpolation = 'nearest', nchan=5, start='1.0GHz', width='0.2GHz',
+                                                                                    pblimit=-1e-05, deconvolver='hogbom', niter=100,
+                                                                                    cycleniter=10, cyclefactor=1, nmajor=2, threshold='1.0Jy',
+                                                                                    usemask='user', mask='')
+
+        masksum2 = self.calc_mask_sum(self.img+'.mask')
+        self.fill_mask(self.img+'.mask', fill_type='box', channel=2)
+        stopdesc3, stopcode3, majordone3, nmajor3, niter3, retdict3 = self.do_clean(vis=self.msfile, imagename=self.img,
+                                                                                    imsize=100, cell='10.0arcsec', specmode='cube',
+                                                                                    interpolation = 'nearest', nchan=5, start='1.0GHz', width='0.2GHz',
+                                                                                    pblimit=-1e-05, deconvolver='hogbom', niter=100,
+                                                                                    cycleniter=10, cyclefactor=1, nmajor=2, threshold='1.0Jy',
+                                                                                    usemask='user', mask='')
+        masksum3 = self.calc_mask_sum(self.img+'.mask')
+
+        self.delData()
+
+        self.assertTrue(masksum1 == 0)
+        self.assertTrue(masksum2 == 400)
+        self.assertTrue(masksum3 == 800)
+
+        self.assertTrue(len(retdict1['major']['cyclethreshold']) == 2)
+        self.assertTrue(len(retdict2['major']['cyclethreshold']) == 2)
+        self.assertTrue(len(retdict3['major']['cyclethreshold']) == 2)
+
+        self.assertTrue(stopcode1 == 7)
+        self.assertTrue(stopcode2 == 2)
+        self.assertTrue(stopcode3 == 2)
+
+
+    # Test niter stopping criteria for cubes where niterdone > niter
+    @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "gclean doesn't work with mpi")
+    def test_ic_niter_cube(self):
+        """ [test_ic] Test_niter_cube : niter stopping criteria for cubes """
+
+        total_iterations = 0
+        for nchan in range(5):
+            # 'iterations' contains the cumulative sum, so first diff to get
+            # the iterations per minor cycle Then sum to get the total number
+            # of iterations.
+            total_iterations += np.sum(np.diff(retdict['chan'][nchan][0]['iterations']))
+
+        print("total iterations ", total_iterations)
+
+        self.delData()
+
+        # This should be the same as the number of major cycles done
+        self.assertTrue(len(retdict['major']['cyclethreshold']) == 3)
+        self.assertTrue(total_iterations == 156)
+        self.assertTrue(stopcode == 1)
 
 
