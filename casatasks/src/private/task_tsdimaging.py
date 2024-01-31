@@ -974,19 +974,6 @@ def tsdimaging(
         else:
             _spw = ['*' + v if v.startswith(':') else v for v in spw]
 
-        # Tweak antenna parameter
-        def antenna_to_baseline(s):
-            if len(s) == 0:
-                return s
-            elif len(s) > 3 and s.endswith('&&&'):
-                return s
-            else:
-                return '{0}&&&'.format(s)
-        if isinstance(antenna, str):
-            baseline = antenna_to_baseline(antenna)
-        else:
-            baseline = [antenna_to_baseline(a) for a in antenna]
-
         # Handle image spectral axis parameters
         imnchan, imstart, imwidth = _configure_spectral_axis(
             mode, nchan, start, width, restfreq
@@ -1018,7 +1005,18 @@ def tsdimaging(
         sorted_intent = _sorted[5]
         sorted_timerange = _sorted[6]
 
-        sorted_baseline = [antenna_to_baseline(a) for a in sorted_antenna]
+        def antenna_to_baseline(s):
+            if len(s) == 0:
+                return s
+            elif len(s) > 3 and s.endswith('&&&'):
+                return s
+            else:
+                return '{0}&&&'.format(s)
+
+        if isinstance(sorted_antenna, str):
+            sorted_baseline = antenna_to_baseline(sorted_antenna)
+        else:
+            sorted_baseline = [antenna_to_baseline(a) for a in sorted_antenna]
 
         # Handle image geometric parameters
         _ephemsrcname = ''
