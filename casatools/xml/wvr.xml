@@ -180,6 +180,10 @@
           </description>
 	  <value/>
         </param>
+        <param name="logfile" mustexist="false" type="path">
+            <description>Name of the log file (existing file will be overwritten)</description>
+          <value type="path">wvrgcal.log</value>
+        </param>
 	
       </input>
 

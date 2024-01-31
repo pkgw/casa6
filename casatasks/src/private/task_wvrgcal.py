@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import os
+import sys
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
 if is_CASA6:
@@ -110,7 +111,6 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
     # make ms tool local 
     myms = ms()
     myqa = quanta()
-    mywvr = wvr()
 
     ## parameters which are different in format between wvrgcal and wvr.gcal:
     # reverse: only exists in wvr.gcal
@@ -132,6 +132,12 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         if os.path.exists(caltable):
             raise Exception("Output caltable "+caltable+" already exists - will not overwrite.")
 
+        outdir = os.path.dirname(caltable)
+        if outdir == '':
+            outdir = '.' 
+        if not os.access(outdir, os.W_OK):
+            raise Exception("Don't have write permission for output directory "+outdir)
+        
         vispar = vis
 
         smoothpar = 1 # this is for the internal smoothing of wvr.gcal(), which we don't use
@@ -163,7 +169,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         tiepar = []
         if segsource and (len(tie)>0):
             tiepar = tie
-            for i in xrange(0,len(tie)):
+            for i in range(0,len(tie)):
                 src = tie[i]
                 if not (type(src)==str) or src=='':
                     raise Exception("List elements of parameter tie must be non-emptystrings.")
@@ -250,42 +256,51 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         casalog.post('Running wvr.gcal ...')
 
-        from IPython.utils.capture import capture_output
 
-        with capture_output() as cap:
+        import numpy
 
-            try:
-                rval = mywvr.gcal(vis=vispar,
-                                  output=outputpar,
-                                  toffset=toffsetpar,
-                                  nsol=nsolpar,
-                                  segsource=segsourcepar,
-                                  reverse=reversepar,
-                                  reversespw=reversespwpar,
-                                  disperse=dispersepar,
-                                  cont=contpar,
-                                  wvrflag=wvrflagpar,
-                                  sourceflag=sourceflagpar,
-                                  statfield=statfieldpar,
-                                  statsource=statsourcepar,
-                                  tie=tiepar,
-                                  smooth=smoothpar,
-                                  scale=scalepar,
-                                  maxdistm=maxdistmpar,
-                                  minnumants=minnumantspar,
-                                  mingoodfrac=mingoodfracpar,
-                                  usefieldtab=usefieldtabpar,
-                                  spw=spwpar,
-                                  wvrspw=wvrspwpar,
-                                  refant=refantpar,
-                                  offsets=offsetspar)
-            finally:
-                cap()
-                loglines = cap.stdout.split('\n')
-                print("wvrgcal output:", loglines)
-                for ll in loglines:
-                    casalog.post(ll.expandtabs())
+        templogfile = 'wvrgcal_tmp_'+str(numpy.random.randint(1E6,1E8))
+        if not os.access(".", os.W_OK):
+            import tempfile
+            templogfile = tempfile.gettempdir()+"/"+templogfile
 
+        os.system('rm -rf '+templogfile)
+
+        mywvr = wvr()
+
+        rval = mywvr.gcal(vis=vispar,
+                          output=outputpar,
+                          toffset=toffsetpar,
+                          nsol=nsolpar,
+                          segsource=segsourcepar,
+                          reverse=reversepar,
+                          reversespw=reversespwpar,
+                          disperse=dispersepar,
+                          cont=contpar,
+                          wvrflag=wvrflagpar,
+                          sourceflag=sourceflagpar,
+                          statfield=statfieldpar,
+                          statsource=statsourcepar,
+                          tie=tiepar,
+                          smooth=smoothpar,
+                          scale=scalepar,
+                          maxdistm=maxdistmpar,
+                          minnumants=minnumantspar,
+                          mingoodfrac=mingoodfracpar,
+                          usefieldtab=usefieldtabpar,
+                          spw=spwpar,
+                          wvrspw=wvrspwpar,
+                          refant=refantpar,
+                          offsets=offsetspar,
+                          logfile=templogfile)
+
+        loglines = []
+        with open(templogfile) as f:
+            loglines = f.readlines()
+        for i in range(len(loglines)):
+            loglines[i] = loglines[i].expandtabs()
+        casalog.post(''.join(loglines))
+        
         # prepare variables for parsing log lines to extract info table
         hfound = False
         hend = False
@@ -343,6 +358,8 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         # end for ll
 
+        os.system('rm -rf '+templogfile)
+        
         taskrval = { 'Name': namel,
                      'WVR': wvrl,
                      'Flag': flagl,

@@ -134,6 +134,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[1])
             os.system('cp -R '+self.out+' newref/'+self.ref[1])
 
+        print('test2')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -166,6 +167,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[3])
             os.system('cp -R '+self.out+' newref/'+self.ref[3])
 
+        print('test3')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -184,6 +186,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[8])
             os.system('cp -R '+self.out+' newref/'+self.ref[8])
 
+        print('test4')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -200,6 +203,7 @@ class wvrgcal_test(unittest.TestCase):
         os.system('cp -R ' + myvis + ' myinput.ms')
         rvaldict = wvrgcal(vis="myinput.ms",caltable=self.out, smooth='3s', segsource=False, toffset=0.)
 
+        print('test5')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -226,6 +230,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[10])
             os.system('cp -R '+self.out+' newref/'+self.ref[10])
 
+        print('test6')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -244,6 +249,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[11])
             os.system('cp -R '+self.out+' newref/'+self.ref[11])
 
+        print('test7')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -262,6 +268,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[12])
             os.system('cp -R '+self.out+' newref/'+self.ref[12])
 
+        print('test8')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -282,6 +289,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[14])
             os.system('cp -R '+self.out+' newref/'+self.ref[14])
 
+        print('test9')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -300,6 +308,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[15])
             os.system('cp -R '+self.out+' newref/'+self.ref[15])
 
+        print('test10')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -318,6 +327,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[16])
             os.system('cp -R '+self.out+' newref/'+self.ref[16])
 
+        print('test11')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -336,6 +346,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[17])
             os.system('cp -R '+self.out+' newref/'+self.ref[17])
 
+        print('test12')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -353,6 +364,7 @@ class wvrgcal_test(unittest.TestCase):
         
         rvaldict = wvrgcal(vis="myinput.ms", caltable=self.out, disperse=True, toffset=-1.)
 
+        print('test13')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -374,7 +386,9 @@ class wvrgcal_test(unittest.TestCase):
         rvaldict = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=0.)
         rvaldict2 = wvrgcal(vis="myinput2.ms", caltable='comp2.W', toffset=0.)
 
+        print('test14-1')
         print(rvaldict)
+        print('test14-2')
         print(rvaldict2)
 
         self.rval = rvaldict['success'] and rvaldict2['success']
@@ -404,7 +418,9 @@ class wvrgcal_test(unittest.TestCase):
         
         rvaldict2 = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=-1.)
 
+        print('test15-1')
         print(rvaldict)
+        print('test15-2')
         print(rvaldict2)
 
         self.rval = rvaldict['success'] and rvaldict2['success']
@@ -427,6 +443,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[18])
             os.system('cp -R '+self.out+' newref/'+self.ref[18])
 
+        print('test16')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -461,7 +478,9 @@ class wvrgcal_test(unittest.TestCase):
         
         rvaldict2 = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=-1., mingoodfrac=0.5)
 
+        print('test17-1')
         print(rvaldict)
+        print('test17-2')
         print(rvaldict2)
 
         self.rval = rvaldict['success'] and rvaldict2['success']
@@ -491,7 +510,9 @@ class wvrgcal_test(unittest.TestCase):
         
         rvaldict2 = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=-1.)
 
+        print('test18-1')
         print(rvaldict)
+        print('test18-2')
         print(rvaldict2)
 
         self.rval = rvaldict['success'] and rvaldict2['success']
@@ -521,6 +542,7 @@ class wvrgcal_test(unittest.TestCase):
             os.system('rm -rf newref/'+self.ref[19])
             os.system('cp -R '+self.out+' newref/'+self.ref[19])
 
+        print('test19')
         print(rvaldict)
 
         self.rval = rvaldict['success']
@@ -540,7 +562,9 @@ class wvrgcal_test(unittest.TestCase):
 
         rvaldict2 = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=-1.)
 
+        print('test20-1')
         print(rvaldict)
+        print('test20-2')
         print(rvaldict2)
 
         self.rval = rvaldict['success'] and rvaldict2['success']
@@ -562,6 +586,7 @@ class wvrgcal_test(unittest.TestCase):
         os.system('cp -R ' + myvis + ' myinput.ms')
         rvaldict = wvrgcal(vis="myinput.ms",caltable=self.out, toffset=0, refant=['DV11','DV12','DV09'], wvrflag=['DA41','DV11'])
 
+        print('test21')
         print(rvaldict)
 
         self.rval = rvaldict['success']
