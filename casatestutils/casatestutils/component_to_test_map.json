@@ -231,22 +231,22 @@
             "comment":""
         },
         {
-            "testScript":"test_task_getcalmodvla",
-            "testType":"casatasks",
-            "maintainer":"Dave Mehringer",
-            "maintainerEmail":"dmehring@nrao.edu",
-            "testOptions":[],
-            "testGroup":["getcalmodvla"],
-            "timeout":0,
-            "comment":""
-        },
-        {
             "testScript":"test_task_calstat",
             "testType":"casatasks",
             "maintainer":"Neal Schweighart",
             "maintainerEmail":"nschweig@nrao.edu",
             "testOptions":[],
             "testGroup":["calstat"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_casaxmlutil",
+            "testType":"casatasks",
+            "maintainer":"Takeshi Nakazato",
+            "maintainerEmail":"takeshi.nakazato@nao.ac.jp",
+            "testOptions":[],
+            "testGroup":["Single Dish"],
             "timeout":0,
             "comment":""
         },
@@ -431,6 +431,16 @@
             "comment":"DEFAULT"
         },
         {
+            "testScript":"test_flaghelper",
+            "testType":"casatasks",
+            "maintainer":"Federico Montesino",
+            "maintainerEmail":"fpouzols@eso.org",
+            "testOptions":[],
+            "testGroup":["flagdata","Flagging"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_flagmanager",
             "testType":"casatasks",
             "maintainer":"Federico Montesino",
@@ -471,12 +481,22 @@
             "comment":""
         },
         {
+            "testScript":"test_task_getcalmodvla",
+            "testType":"casatasks",
+            "maintainer":"Dave Mehringer",
+            "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["Calibration","getcalmodvla"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_task_getephemtable",
             "testType":"casatasks",
             "maintainer":"Tak Tsutsumi",
             "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":[],
-            "testGroup":["getephemtable"],
+            "testGroup":["Calibration","getephemtable"],
             "timeout":0,
             "comment":""
         },
@@ -777,6 +797,16 @@
             "maintainerEmail":"gmoellen@nrao.edu",
             "testOptions":[],
             "testGroup":["Calibration","initweights"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_jyperk",
+            "testType":"casatasks",
+            "maintainer":"Takeshi Nakazato",
+            "maintainerEmail":"takeshi.nakazato@nao.ac.jp",
+            "testOptions":[],
+            "testGroup":["Single Dish"],
             "timeout":0,
             "comment":""
         },
