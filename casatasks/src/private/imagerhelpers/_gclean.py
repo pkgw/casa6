@@ -213,6 +213,8 @@ class gclean:
 
         self._vis = vis
         self._imagename = imagename
+        print(f"Input imagename is ", imagename)
+        print(f"Derived maskname is ", imagename + '.mask')
         self._imsize = imsize
         self._cell = cell
         self._phasecenter = phasecenter
@@ -382,10 +384,7 @@ class gclean:
         """
 
         if self._usemask == 'user' and self._mask == '':
-            if self._deconvolver == 'mtmfs':
-                maskname = self._imagename + '.mask.tt0'
-            else:
-                maskname = self._imagename + '.mask'
+            maskname = self._imagename + '.mask'
 
             if os.path.exists(maskname):
                 self._initial_mask_exists = True
@@ -655,10 +654,11 @@ class gclean:
 
     def __default_mask_name( self ):
         imgparts = self.__split_filename( self._imagename )
-        return f'''{imgparts[0]}.mask'''
+        return f'{imgparts[0]}.mask'
 
     def mask(self):
-        return self.__default_mask_name() if self._mask == '' else self._mask
+        #return self.__default_mask_name() if self._mask == '' else self._mask
+        return f'{self._imagename}.mask' if self._mask == '' else self._mask
 
     def reset(self):
         #if not self._finalized:
