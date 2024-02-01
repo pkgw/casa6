@@ -45,8 +45,6 @@ _GCV002 = True
 _GCV003 = True
 _GCV004 = True
 
-print("USING THIS GCLEAN")
-
 
 # from casatasks.private.imagerhelpers._gclean import gclean
 class gclean:
@@ -213,8 +211,6 @@ class gclean:
 
         self._vis = vis
         self._imagename = imagename
-        print(f"Input imagename is ", imagename)
-        print(f"Derived maskname is ", imagename + '.mask')
         self._imsize = imsize
         self._cell = cell
         self._phasecenter = phasecenter
@@ -401,10 +397,7 @@ class gclean:
         ia = image()
 
         if self._usemask == 'user' and self._mask == '':
-            if self._deconvolver == 'mtmfs':
-                maskname = self._imagename + '.mask.tt0'
-            else:
-                maskname = self._imagename + '.mask'
+            maskname = self._imagename + '.mask'
 
             # This means the mask was newly created by deconvolve, so flip it
             if os.path.exists(maskname) and self._initial_mask_exists is False:
