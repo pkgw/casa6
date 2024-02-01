@@ -1392,7 +1392,7 @@
         },
         {
             "testScript":"test_task_wvrgcal",
-            "testType":"almatasks",
+            "testType":"casatasks",
             "maintainer":"Dirk Petry",
             "maintainerEmail":"dpetry@eso.org",
             "testOptions":[],

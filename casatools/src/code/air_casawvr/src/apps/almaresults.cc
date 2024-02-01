@@ -25,42 +25,41 @@ namespace LibAIR2 {
   {
   }
 
-  std::ostream &ALMAResBase::header_inline(std::ostream &os) const
-  {
-    os<<"Evidence"<<"\t"
-      <<"PWV"<<"\t"<<"PWV Error"<<"\t";
-    for(size_t i=1; i<5; ++i)
-      os<<"dT"<<i<<"dL"<<"\t";
-    return os;
+  // std::ostream &ALMAResBase::header_inline(std::ostream &os) const
+  // {
+  //   os<<"Evidence"<<"\t"
+  //     <<"PWV"<<"\t"<<"PWV Error"<<"\t";
+  //   for(size_t i=1; i<5; ++i)
+  //     os<<"dT"<<i<<"dL"<<"\t";
+  //   return os;
 
-  }
+  // }
 
-  std::ostream &ALMAResBase::str_inline(std::ostream &os) const
-  {
+  // std::ostream &ALMAResBase::str_inline(std::ostream &os) const
+  // {
+  //   os<<ev<<"\t"
+  //     <<c<<"\t"<<c_err<<"\t";
+  //   for (const double &x: dTdL)
+  //     os<<x<<"\t";
+  //   return os;
+  // }
+
+  void ALMAResBase::print_str_inline(std::ostream &os) const{
     os<<ev<<"\t"
       <<c<<"\t"<<c_err<<"\t";
     for (const double &x: dTdL)
       os<<x<<"\t";
-    return os;
+    os<<std::endl;
+    return;
   }
 
   ALMAResBaseList::ALMAResBaseList(void):
-    ptr_list(),
-    iter_ptr_list(nullptr)
+    ptr_list()
   {
   }
 
   ALMAResBaseList::~ALMAResBaseList()
   {
-    for(iter_ptr_list = ptr_list.begin();
-	iter_ptr_list != ptr_list.end();
-	iter_ptr_list++)
-    {
-      delete *iter_ptr_list;
-    }
-
-    ptr_list.clear();
-
   }
 
   
@@ -76,15 +75,16 @@ namespace LibAIR2 {
 
   }
 
-  std::ostream &ALMAContRes::str_inline(std::ostream &os) const
-  {
+  void ALMAContRes::print_str_inline(std::ostream &os){
+  
     os<<ev<<"\t"
       <<c<<"\t"<<c_err<<"\t";
     for(const double &x: dTdL)
       os<<x<<"\t";
-    os<<tau183<<"\t"
-      <<tau183_err;
-    return os;
+
+    os<<tau183<<"\t"<<tau183_err<<std::endl;
+
+    return;
   }
 
   static void printdTdL(std::ostream &os,
@@ -124,11 +124,16 @@ namespace LibAIR2 {
 			   const std::list<ALMAResBase*> &i)
   {
     if(i.size()>0){
-      (*(i.begin()))->header_inline(os)<<std::endl;
-      for(const ALMAResBase* x: i)
-      {
-	x->str_inline(os)<<std::endl;
+      os<<"Evidence"<<"\t"
+	<<"PWV"<<"\t"<<"PWV Error"<<"\t";
+      for(size_t i=1; i<5; ++i)
+	os<<"dT"<<i<<"dL"<<"\t";
+      os<<std::endl;
+      
+      for(const ALMAResBase* x: i){
+	x->print_str_inline(os);
       }
+
     }
     return os;
   }

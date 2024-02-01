@@ -1,7 +1,7 @@
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <numeric>
-
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -32,16 +32,14 @@
 
 #include <casacore/casa/Logging/StreamLogSink.h>
 #include <casacore/casa/Logging/LogSink.h>
+#include <casacore/casa/Logging/LogIO.h>
 
 #include <wvr_cmpt.h>
 
 #include "wvrgcalerrors.h"
 #include "wvrgcalfeedback.h"
 
-
-using LibAIR2::fatalMsg;
-using LibAIR2::errorMsg;
-using LibAIR2::warnMsg;
+using casacore::LogIO;
 
 // Utilities ////////////////////////////////////////////////////////////
 
@@ -161,7 +159,8 @@ void flagInterp(const casacore::MeasurementSet &ms,
 		LibAIR2::InterpArrayData &d,
 		const double maxdist_m,
 		const int minnumants,
-		LibAIR2::AntSet &interpImpossibleAnts)
+		LibAIR2::AntSet &interpImpossibleAnts,
+		casacore::LogIO *itsLog)
 {
 
   LibAIR2::antpos_t apos;
@@ -201,13 +200,11 @@ void flagInterp(const casacore::MeasurementSet &ms,
     }
     else
     { 
-      std::ostringstream oss;
-      oss << "Antenna " << *i 
-	  << " has bad or no WVR and only " << near.size() << " near antennas ("
-	  << maxdist_m << " m max. distance) to interpolate from. Required are " 
-	  << minnumants << "." << std::endl;
-      std::cout << std::endl << "*** " << oss.str();
-      std::cerr << oss.str();
+      *itsLog << LogIO::WARN << "Antenna " << *i 
+	      << " has bad or no WVR and only " << near.size() << " near antennas ("
+	      << maxdist_m << " m max. distance) to interpolate from. Required are " 
+	      << minnumants << "." << LogIO::POST;
+
       for(size_t j=0; j<d.g_time().size(); ++j)
       {
         for(size_t k=0; k < 4; ++k)
@@ -251,7 +248,8 @@ std::set<size_t> reversedSPWs(const LibAIR2::MSSpec &sp,
 
 void printExpectedPerf(const LibAIR2::ArrayGains &g,
 		       const LibAIR2::dTdLCoeffsBase &coeffs,
-		       const std::vector<std::pair<double, double> > &tmask)
+		       const std::vector<std::pair<double, double> > &tmask,
+		       casacore::LogIO *itsLog)
 {
 
   std::cout<<"  Expected performance "<<std::endl
@@ -277,7 +275,7 @@ void printExpectedPerf(const LibAIR2::ArrayGains &g,
   }
   else {
     std::cout<<"* Rough estimate path error due to coefficient error could not be calculated."<<std::endl;
-    std::cerr<<"* Rough estimate path error due to coefficient error could not be calculated."<<std::endl;
+    *itsLog << LogIO::WARN <<"* Rough estimate path error due to coefficient error could not be calculated." << LogIO::POST;
   }
 }
 
@@ -290,7 +288,8 @@ void statTimeMask(const casacore::MeasurementSet &ms,
 		  const std::vector<std::string> &statsource,
 		  std::vector<std::pair<double, double> > &tmask,
 		  const std::vector<size_t> &sortedI,
-		  const std::vector<int> &wvrspws)
+		  const std::vector<int> &wvrspws,
+		  casacore::LogIO *itsLog)
 {
   std::vector<int> flds;
   std::vector<double> time;
@@ -347,8 +346,8 @@ void statTimeMask(const casacore::MeasurementSet &ms,
 	  }
 	catch (casacore::AipsError x)
 	  {
-	    std::cout<<"Warning: Could not understand statfield argument. Will use zeroth field."
-		     <<std::endl;
+	    *itsLog << LogIO::WARN <<"Could not understand statfield argument. Will use zeroth field."
+		    << LogIO::POST;
 	  }
       }
     LibAIR2::fieldTimes(time,
@@ -438,7 +437,8 @@ std::vector<std::set<std::string> > getTied(const std::vector<std::string> &inpu
 
 // Convert tied source names to tied source IDs
 std::vector<std::set<size_t> >  tiedIDs(const std::vector<std::set<std::string> > &tied,
-					const casacore::MeasurementSet &ms)
+					const casacore::MeasurementSet &ms,
+					casacore::LogIO *itsLog)
 {
   std::map<size_t, std::string > srcmap=LibAIR2::getSourceNames(ms);
   std::vector<std::set<size_t> > res;
@@ -454,7 +454,7 @@ std::vector<std::set<size_t> >  tiedIDs(const std::vector<std::set<std::string> 
 	int srcid=casacore::String::toInt(*j, true);
 	std::map<size_t, std::string>::const_iterator it = srcmap.find(srcid);
 	if(it == srcmap.end()) { // id does not exist
-	  std::cerr << "Parameter 'tie': The source id " << *j << " is an integer but not a valid numerical Source ID. Will try to interpret it as a name ..." << std::endl;
+	  *itsLog << LogIO::WARN << "Parameter 'tie': The source id " << *j << " is an integer but not a valid numerical Source ID. Will try to interpret it as a name ..." << LogIO::POST;
 	  throw std::exception();
 	}
 	cs.insert(srcid);
@@ -489,22 +489,22 @@ void printTied(const std::vector<std::set<std::string> > &tied,
   for(size_t i=0; i<tied.size(); ++i)
   {
     std::set<std::string>::const_iterator it=tied[i].begin();
-    std::cout<<"Tying: " << *it;
+    std::cout << "Tying: " << *it;
     for(it++; it!=tied[i].end(); it++){
-      std::cout<<" and "<<*it;
+      std::cout <<" and "<<*it;
     }
-    std::cout<<std::endl;
+    std::cout << std::endl;
   }
   if (tied.size())
-    std::cout<<"Tied sets as numerical source IDs:"<<std::endl;
+    std::cout <<"Tied sets as numerical source IDs:"<<std::endl;
   for(size_t i=0; i<tiedi.size(); ++i)
   {
     std::set<size_t>::const_iterator it=tiedi[i].begin();
-    std::cout<<"Tying: " << *it;
+    std::cout << "Tying: " << *it;
     for(it++; it!=tiedi[i].end(); it++){
-      std::cout<<" and "<<*it;
+      std::cout <<" and "<<*it;
     }
-    std::cout<<std::endl;
+    std::cout << std::endl;
   }
 
 }
@@ -688,9 +688,16 @@ namespace casac {
 		 const std::vector<long> &spw_par,
 		 const std::vector<long> &wvrspw_par,
 		 const std::string &refant_par,
-		 const std::string &offsets_par)
+		 const std::string &offsets_par,
+		 const std::string &logfile_par
+		 )
   {
-  
+
+    std::string logfile = logfile_par;
+    if(logfile.length()<1){
+      logfile = "wvrgcal.log";
+    }
+    
     casa::AsdmStMan::registerClass();
 
     int rval = -2;
@@ -734,63 +741,60 @@ namespace casac {
 	" offsets=\""<<offsets_par<<"\")";
       cmdLineHistory = toss.str();
     }
-      
-    
-    LibAIR2::printBanner(std::cout);
-
+          
     // Check parameters
 
     if (vis_par.length()<1){
-      fatalMsg("No input measurement set given -- aborting ");
+      *itsLog << LogIO::SEVERE << "No input measurement set given -- aborting " << LogIO::POST;
       return -1;
     }
 
     if (output_par.length()<1){
-      fatalMsg("No output file give -- aborting ");
+      *itsLog << LogIO::SEVERE << "No output file give -- aborting " << LogIO::POST;
       return -1;
     }
 
     if (segsource_par && cont_par){
-      fatalMsg("Multiple retrievals using continuum estimation not yet supported");
-      fatalMsg("Set only one of  segfield and cont to True");
+      *itsLog << LogIO::SEVERE << "Multiple retrievals using continuum estimation not yet supported";
+      *itsLog << "Set only one of  segfield and cont to True" << LogIO::POST;
       return -1;
     }
 
     if (nsol_par>1 && cont_par){
-      fatalMsg("Multiple retrievals using continuum estimation not yet supported");
-      fatalMsg("You can not use the nsol parameter yet with cont");
+      *itsLog << LogIO::SEVERE << "Multiple retrievals using continuum estimation not yet supported";
+      *itsLog << "You can not use the nsol parameter yet with cont" << LogIO::POST;
       return -1;
     }
 
     if (sourceflag_par.size()>0 && !segsource_par){
-      fatalMsg("Can only flag a source using sourceflag if the segsource option is also used");
-      fatalMsg("Please either remove the sourceflag option or also specify the segsource option");
+      *itsLog << LogIO::SEVERE << "Can only flag a source using sourceflag if the segsource option is also used";
+      *itsLog << "Please either remove the sourceflag option or also specify the segsource option" << LogIO::POST;
       return -1;
     }
 
     if (tie_par.size()>0 && !segsource_par){
-      fatalMsg("Can only tie sources together if the segsource option is also used");
-      fatalMsg("Please either remove the tie option or also specify the segsource option");
+      *itsLog << LogIO::SEVERE << "Can only tie sources together if the segsource option is also used";
+      *itsLog << "Please either remove the tie option or also specify the segsource option" << LogIO::POST;
       return -1;
     }
 
     if (reverse_par and reversespw_par.size()>0){
-      warnMsg("You are specifying both the reverse and reversespw options;"
-	      "the latter will be ignored and all spectral windows will be reversed");
+      *itsLog << LogIO::WARN << "You are specifying both the reverse and reversespw options. "
+	"The latter will be ignored and all spectral windows will be reversed" << LogIO::POST;
     }
 
     if (smooth_par < 1){
-      fatalMsg("smooth parameter must be 1 or greater");
+      *itsLog << "smooth parameter must be 1 or greater" << LogIO::POST;
       return -1;
     }
 
     if (scale_par <= 0.){
-      fatalMsg("scale parameter must be > 0.");
+      *itsLog << LogIO::SEVERE << "scale parameter must be > 0." << LogIO::POST;
       return -1;
     }
 
     if (maxdistm_par < 0.){
-      warnMsg("maxdistm parameter must be 0. or greater");
+      *itsLog << LogIO::SEVERE << "maxdistm parameter must be 0. or greater" << LogIO::POST;
       return -1;
     }
 
@@ -800,16 +804,16 @@ namespace casac {
 	casacore::Table f(offsetstable);
       }
       catch(const casacore::AipsError rE){
-	fatalMsg(rE.getMesg());
-	fatalMsg("The --offsets option needs to point to an existing CASA Table containing temperature offsets.");
+	*itsLog << LogIO::SEVERE << rE.getMesg() << std::endl;
+	*itsLog << "The --offsets option needs to point to an existing CASA Table containing temperature offsets." << LogIO::POST;
 	return -1;
       }
     }
 
     if (statfield_par.size() > 0){
-      warnMsg("The use of \"statfield\" is not recommended as mosaiced"
-	      "observations are recorded as many separate fields. Recomended option"
-	      "to use is \"statsource\". ");
+      *itsLog << LogIO::WARN << "The use of \"statfield\" is not recommended as mosaiced"
+	"observations are recorded as many separate fields. Recommended option"
+	"to use is \"statsource\". " << LogIO::POST;
     }
   
     std::vector<std::set<std::string> > tied=getTied(tie_par);
@@ -821,10 +825,9 @@ namespace casac {
       std::set<size_t> fselect=LibAIR2::getSrcFields(ms,
 						     srcname);
       if (fselect.size() == 0){
-	std::cout<<"WARNING: No Source table entries appear to be identified with source "<< srcname <<std::endl
-		 <<"         that you supplied to the statsource option"<<std::endl
-		 <<"         Statistics will be corrupted and wvrgcal may fail"<<std::endl
-		 <<std::endl;
+	*itsLog<< LogIO::WARN << "No Source table entries appear to be identified with source "<< srcname <<std::endl
+	       <<" that you supplied to the statsource option."<<std::endl
+	       <<" Statistics will be corrupted and wvrgcal may fail."<< LogIO::POST;
       }
     }
 
@@ -835,25 +838,24 @@ namespace casac {
 	for(size_t i=0; i<wvrspw_par.size(); i++){
 	  wvrspws.push_back((int) wvrspw_par[i]);
 	  if(thewvrspws.count(wvrspws[i])==0){
-	    std::cout << "ERROR: SPW " << wvrspws[i] << " is not a WVR SPW or invalid." <<std::endl;
-	    std::cerr << "ERROR: SPW " << wvrspws[i] << " is not a WVR SPW or invalid." <<std::endl;
+	    *itsLog << LogIO::SEVERE << "SPW " << wvrspws[i] << " is not a WVR SPW or invalid." << LogIO::POST;
 	    return -10;
 	  }
 	}
-	std::cout<<"Will use the following WVR SPWs:"<<std::endl;
+	*itsLog << LogIO::NORMAL << "Will use the following WVR SPWs:" <<std::endl;
 	for(size_t i=0; i<wvrspws.size();i++){
-	  std::cout<< " " << wvrspws[i];
+	  *itsLog << " " << wvrspws[i];
 	}
-	std::cout <<std::endl;
+	*itsLog << LogIO::POST;
       }
       else{ // no wvrspws specified
 
-	std::cout<<"Will use all WVR SPWs:"<<std::endl;
+	*itsLog << LogIO::NORMAL <<"Will use all WVR SPWs:"<<std::endl;
 	for(LibAIR2::SPWSet::const_iterator si=thewvrspws.begin(); si!=thewvrspws.end();++si){
 	  wvrspws.push_back((int) *si);
-	  std::cout<< " " <<  *si;
+	  *itsLog << " " <<  *si;
 	}
-	std::cout <<std::endl;
+	*itsLog << LogIO::POST;
       }
     }
 
@@ -866,28 +868,26 @@ namespace casac {
       for(size_t i=0; i<spw_par.size(); i++){
 	sciencespws.push_back((int) spw_par[i]);
 	if(thewvrspws.count(sciencespws[i])!=0){
-	  std::cout<<"WARNING: SPW "<< sciencespws[i] << " is a WVR SPW, not a science SPW." <<std::endl;
-	  std::cerr<<"WARNING: SPW "<< sciencespws[i] << " is a WVR SPW, not a science SPW." <<std::endl;
+	  *itsLog << LogIO::WARN << "SPW "<< sciencespws[i] << " is a WVR SPW, not a science SPW." << LogIO::POST;
 	}
 	if(sciencespws[i]<0 || sciencespws[i]>= nspw){
-	  std::cout<<"ERROR: Invalid SPW "<< sciencespws[i] <<std::endl;
-	  std::cerr<<"ERROR: Invalid SPW "<< sciencespws[i] <<std::endl;
+	  *itsLog << LogIO::SEVERE <<"Invalid SPW "<< sciencespws[i] << LogIO::POST;
 	  return -11;
 	}
       }
-      std::cout<<"Will produce solutions for the following SPWs:"<<std::endl;
+      *itsLog << LogIO::NORMAL << "Will produce solutions for the following SPWs:"<<std::endl;
       for(size_t i=0; i<sciencespws.size();i++){
-	std::cout<< " " << sciencespws[i];
+	*itsLog << " " << sciencespws[i];
       }
-      std::cout <<std::endl;
+      *itsLog << LogIO::POST;
     }
     else{ // no sciencespws specified
-      std::cout<<"Will produce solutions for all SPWs:"<<std::endl;
+      *itsLog << LogIO::NORMAL <<"Will produce solutions for all SPWs:"<<std::endl;
       for(size_t i=0; i<LibAIR2::numSPWs(ms);i++){
 	sciencespws.push_back(i);
-	std::cout<< " " << i;
+	*itsLog << " " << i;
       }
-      std::cout <<std::endl;
+      *itsLog << LogIO::POST;
     }
 
     std::string fnameout=output_par;
@@ -914,128 +914,139 @@ namespace casac {
     wvrflagset.insert(flaggedants.begin(),flaggedants.end());
 
     if(interpwvrs.size()+flaggedants.size()==ms.antenna().nrow()){
-      std::cout << "No good antennas with WVR data found." << std::endl;
-      std::cerr << "No good antennas with WVR data found." << std::endl;
+      *itsLog << LogIO::SEVERE << "No good antennas with WVR data found." << LogIO::POST;
       return -1;
     }
 
+    // redirect stdout to logfile
+    std::fstream logstream; 
+    logstream.open(logfile, std::ios::out);
+    std::streambuf* stream_buffer_cout_orig = std::cout.rdbuf();
+    std::streambuf* stream_buffer_logstream = logstream.rdbuf();
+    std::cout.rdbuf(stream_buffer_logstream);
+
+    LibAIR2::printBanner(std::cout);
+    
     int iterations = 0;
 
-    while(rval<0 && iterations<2){
+    try{
 
-      iterations++;
+      while(rval<0 && iterations<2){
 
-      std::vector<size_t> sortedI; // to be filled with the time-sorted row number index
-      std::set<int> flaggedantsInMain; // the antennas totally flagged in the MS main table
-      std::unique_ptr<LibAIR2::InterpArrayData> d (LibAIR2::loadWVRData(ms,
-									wvrspws,
-									sortedI, 
-									flaggedantsInMain,
-									mingoodfrac_par,
-									usefieldtab_par==false, // i.e. usepointing==true
-									offsetstable)
-						   );
+	iterations++;
 
-      // For debug purposes, print the loaded WVR data: 
-      // for(size_t j=0; j<d->g_time().size(); ++j)
-      // {
-      // 	for(size_t i=0; i < ms.antenna().nrow(); ++i)
-      // 	  {
-      // 	    std::cout << "row ant data " << j << " " << i << " "
-      // 		      << d->g_wvrdata()[j][i][0] << " "
-      // 		      << d->g_wvrdata()[j][i][1] << " " 
-      // 		      << d->g_wvrdata()[j][i][2] << " "
-      // 		      << d->g_wvrdata()[j][i][3] << std::endl; 
-      // 	  }
-      // }
+	std::vector<size_t> sortedI; // to be filled with the time-sorted row number index
+	std::set<int> flaggedantsInMain; // the antennas totally flagged in the MS main table
+	std::unique_ptr<LibAIR2::InterpArrayData> d (LibAIR2::loadWVRData(ms,
+									  wvrspws,
+									  sortedI, 
+									  flaggedantsInMain,
+									  mingoodfrac_par,
+									  usefieldtab_par==false, // i.e. usepointing==true
+									  offsetstable)
+						     );
+      
+	// For debug purposes, print the loaded WVR data: 
+	// for(size_t j=0; j<d->g_time().size(); ++j)
+	// {
+	// 	for(size_t i=0; i < ms.antenna().nrow(); ++i)
+	// 	  {
+	// 	    std::cout << "row ant data " << j << " " << i << " "
+	// 		      << d->g_wvrdata()[j][i][0] << " "
+	// 		      << d->g_wvrdata()[j][i][1] << " " 
+	// 		      << d->g_wvrdata()[j][i][2] << " "
+	// 		      << d->g_wvrdata()[j][i][3] << std::endl; 
+	// 	  }
+	// }
      
 
-      interpwvrs.insert(flaggedantsInMain.begin(),flaggedantsInMain.end()); // for flagInterp()
-      wvrflagset.insert(flaggedantsInMain.begin(),flaggedantsInMain.end());
+	interpwvrs.insert(flaggedantsInMain.begin(),flaggedantsInMain.end()); // for flagInterp()
+	wvrflagset.insert(flaggedantsInMain.begin(),flaggedantsInMain.end());
 
-      d->offsetTime(toffset_par);
+	d->offsetTime(toffset_par);
      
-      if (smooth_par > 0){
-	smoothWVR(*d, (int) smooth_par);
-      }
+	if (smooth_par > 1){
+	  smoothWVR(*d, (int) smooth_par);
+	}
      
-      d.reset(LibAIR2::filterState(*d, useID));
+	d.reset(LibAIR2::filterState(*d, useID));
 
-      LibAIR2::AntSet interpImpossibleAnts;
+	LibAIR2::AntSet interpImpossibleAnts;
 
-      // Flag and interpolate
-      flagInterp(ms,
-		 interpwvrs,
-		 *d,
-		 maxdistm_par,
-		 (int) minnumants_par,
-		 interpImpossibleAnts);
+	// Flag and interpolate
+	flagInterp(ms,
+		   interpwvrs,
+		   *d,
+		   maxdistm_par,
+		   (int) minnumants_par,
+		   interpImpossibleAnts,
+		   itsLog);
 
-      // Determine the reference antenna for dTdL calculation
-      int therefant = -1; 
+	// Determine the reference antenna for dTdL calculation
+	int therefant = -1; 
 
-      if (refant_par.length()>0){
-	std::vector<size_t> refants=getAntParsV(refant_par, ms);    
-	for(std::vector<size_t>::iterator it=refants.begin(); it != refants.end(); it++){ // 
-	  if(interpImpossibleAnts.count(*it)==0){
-	    therefant = *it; // use the first of the given list of possible ref antennas which was OK or which could be interpolated to
-	    break;
+	if (refant_par.length()>0){
+	  std::vector<size_t> refants=getAntParsV(refant_par, ms);    
+	  for(std::vector<size_t>::iterator it=refants.begin(); it != refants.end(); it++){ // 
+	    if(interpImpossibleAnts.count(*it)==0){
+	      therefant = *it; // use the first of the given list of possible ref antennas which was OK or which could be interpolated to
+	      break;
+	    }
+	    else{
+	      std::cout << "Given reference antenna " << *it << "==" << anames.at(*it) 
+			<< " is flagged and cannot be interpolated." << std::endl;
+	    }	   
 	  }
-	  else{
-	    std::cout << "Given reference antenna " << *it << "==" << anames.at(*it) 
-		      << " is flagged and cannot be interpolated." << std::endl;
-	  }	   
-	}
-	if(therefant<0){
-	  std::cout << "None of the given reference antennas is usable." << std::endl;
-	  std::cerr << "None of the given reference antennas is usable." << std::endl;
-	  return -1;
-	}
+	  if(therefant<0){
+	    std::cout << "None of the given reference antennas is usable." << std::endl;
+	    *itsLog << LogIO::WARN << "None of the given reference antennas is usable." << LogIO::POST;
+	    rval = -1;
+	    break; // leave while loop
+	  }
 
-      }
-      else{
-	LibAIR2::AntSet wvrants=LibAIR2::WVRAntennas(ms, wvrspws);
-	for(LibAIR2::AntSet::iterator it=wvrants.begin(); it != wvrants.end(); it++){
-	  if(interpImpossibleAnts.count(*it)==0){
-	    therefant = *it; // use the first antenna which was OK or which could be interpolated to
-	    break;
+	}
+	else{
+	  LibAIR2::AntSet wvrants=LibAIR2::WVRAntennas(ms, wvrspws);
+	  for(LibAIR2::AntSet::iterator it=wvrants.begin(); it != wvrants.end(); it++){
+	    if(interpImpossibleAnts.count(*it)==0){
+	      therefant = *it; // use the first antenna which was OK or which could be interpolated to
+	      break;
+	    }
+	  }
+	  if(therefant<0){
+	    std::cout << "No antennas with sufficient WVR data found." << std::endl;
+	    *itsLog << LogIO::WARN << "No antennas with sufficient WVR data found." << std::endl;
+	    rval = -1;
+	    break; // leave while loop
 	  }
 	}
-	if(therefant<0){
-	  std::cout << "No antennas with sufficient WVR data found." << std::endl;
-	  std::cerr << "No antennas with sufficient WVR data found." << std::endl;
-	  return -1;
+
+	std::cout << "Choosing";
+	if(interpwvrs.count(therefant)>0){
+	  std::cout << " (interpolated)";
 	}
-      }
-
-      std::cout << "Choosing";
-      if(interpwvrs.count(therefant)>0){
-	std::cout << " (interpolated)";
-      }
-      std::cout << " antenna " << therefant  << " == " << anames.at(therefant)
-		<< " as reference antenna for dTdL calculations." << std::endl;
+	std::cout << " antenna " << therefant  << " == " << anames.at(therefant)
+		  << " as reference antenna for dTdL calculations." << std::endl;
 
 
-      LibAIR2::ArrayGains g(d->g_time(), 
-			    d->g_el(),
-			    d->g_state(),
-			    d->g_field(),
-			    d->g_source(),
-			    d->nAnts);
+	LibAIR2::ArrayGains g(d->g_time(), 
+			      d->g_el(),
+			      d->g_state(),
+			      d->g_field(),
+			      d->g_source(),
+			      d->nAnts);
      
-      std::unique_ptr<LibAIR2::dTdLCoeffsBase>  coeffs;
+	std::unique_ptr<LibAIR2::dTdLCoeffsBase>  coeffs;
      
-      // These are the segments on which coefficients are re-calculated
-      std::vector<std::pair<double, double> >  fb;
+	// These are the segments on which coefficients are re-calculated
+	std::vector<std::pair<double, double> >  fb;
      
-      if ( cont_par )
-	{
+	if ( cont_par ){
 	  std::cout<<"[Output from \"cont\" option has not yet been updated]"
 		   <<std::endl;
 	  coeffs.reset(LibAIR2::SimpleSingleCont(*d, therefant));
 	}
-      else
-	{
+	else{
 	
 	  LibAIR2::ALMAAbsInpL inp;
 	  if(segsource_par){
@@ -1048,8 +1059,8 @@ namespace casac {
 			      src,
 			      sortedI);
 	    try{
-	      std::vector<std::set<size_t> >  tiedi=tiedIDs(tied, ms);
-	     
+	      std::vector<std::set<size_t> >  tiedi=tiedIDs(tied, ms, itsLog);
+	      
 	      printTied(tied, tiedi);
 	      LibAIR2::fieldSegmentsTied(time,
 					 src,
@@ -1058,12 +1069,13 @@ namespace casac {
 	    }
 	    catch(LibAIR2::WVRUserError& x){
 	      std::cout << x.what() << std::endl;
-	      std::cerr << x.what() << std::endl;
-	      return -1;
+	      *itsLog << LogIO::WARN << x.what() << LogIO::POST;
+	      rval = -1;
+	      break; // leave while loop
 	    }
 
 	    //printFieldSegments(fb, time[0]);
-	   
+	    
 	    //       { // debugging output
 	    // 	std::vector<double> tt(d->g_time());
 	    // 	std::vector<double> te(d->g_el());
@@ -1071,29 +1083,29 @@ namespace casac {
 	    // 	std::vector<size_t> tf(d->g_field());
 	    // 	std::vector<size_t> tsou(d->g_source());
 	    // 	for(uint i=0; i<tt.size(); i++){
-	    // 	  std::cerr << "i time el state field source " << i << " " << tt[i] << " ";
-	    // 	  std::cerr << te[i] << " ";
-	    // 	  std::cerr << ts[i] << " ";
-	    // 	  std::cerr << tf[i] << " ";
-	    // 	  std::cerr << tsou[i] << std::endl;
+	    // 	  *itsLog << LogIO::WARN << "i time el state field source " << i << " " << tt[i] << " ";
+	    // 	  *itsLog << LogIO::WARN << te[i] << " ";
+	    // 	  *itsLog << LogIO::WARN << ts[i] << " ";
+	    // 	  *itsLog << LogIO::WARN << tf[i] << " ";
+	    // 	  *itsLog << LogIO::WARN << tsou[i] << std::endl;
 	    // 	}
-	    // 	std::cerr << "nAnts " << d->nAnts << std::endl;
+	    // 	*itsLog << LogIO::WARN << "nAnts " << d->nAnts << std::endl;
 	    // 	for(uint i=0; i<time.size(); i++){
-	    // 	  std::cerr << "i time  " << i << " " << time[i] << std::endl;
+	    // 	  *itsLog << LogIO::WARN << "i time  " << i << " " << time[i] << std::endl;
 	    // 	}
 	    // 	for(uint i=0; i<fb.size(); i++){
-	    // 	  std::cerr << "i fb  " << i << " " << fb[i].first << " " << fb[i].second  << std::endl;
+	    // 	  *itsLog << LogIO::WARN << "i fb  " << i << " " << fb[i].first << " " << fb[i].second  << std::endl;
 	    // 	}
 	    // 	for(std::set<size_t>::iterator it = useID.begin(); it != useID.end(); it++){
-	    // 	  std::cerr << "useID " << *it << std::endl;
+	    // 	  *itsLog << LogIO::WARN << "useID " << *it << std::endl;
 	    // 	}
 	    //       }
 	    
-	      inp=FieldMidPointI(*d,
-				 fb,
-				 useID,
-				 therefant);
-	      
+	    inp=FieldMidPointI(*d,
+			       fb,
+			       useID,
+			       therefant);
+	    
 	  }
 	  else{
 	    const size_t n=nsol_par;
@@ -1104,17 +1116,17 @@ namespace casac {
 	  }
 
 	
-	  if (sourceflag_par.size() > 0)
-	    {
-	      std::tie(inp,fb)=filterInp(inp,
-					 fb,
-					 sourceflag_par,
-					 ms);
-	    }
+	  if (sourceflag_par.size() > 0){
+	    std::tie(inp,fb)=filterInp(inp,
+				       fb,
+				       sourceflag_par,
+				       ms);
+	  }
 	
 	  std::tie(inp,fb)=filterFlaggedInp(inp,
 					    fb);
 
+	  *itsLog << LogIO::NORMAL << "Calculating the coefficients now ... " << LogIO::POST;
 	  std::cerr << "Calculating the coefficients now ... " << std::endl;
 	  LibAIR2::ALMAResBaseList rlist;
 	  LibAIR2::AntSet problemAnts;
@@ -1126,35 +1138,35 @@ namespace casac {
 					fb,
 					problemAnts);
 	  }
-	  catch(const std::runtime_error rE){
+	  catch(const std::runtime_error& rE){
 	    rval = 1;
-	    std::cerr << std::endl << "WARNING: problem while calculating coefficients:"
-		      << std::endl << "         LibAIR2::doALMAAbsRet: " << rE.what() << std::endl;
+	    *itsLog << LogIO::WARN << "problem while calculating coefficients:"
+		    << std::endl << "         LibAIR2::doALMAAbsRet: " << rE.what() << LogIO::POST;
 	    std::cout << std::endl << "WARNING: problem while calculating coefficients:"
 		      << std::endl << "         LibAIR2::doALMAAbsRet: " << rE.what() << std::endl;
 	  }
 	
 	  if(problemAnts.size()>0){
-	   
+	    
 	    rval = -2;
-
+	    
 	    if(iterations<2){
 	      for(LibAIR2::AntSet::const_iterator it=problemAnts.begin(); it!=problemAnts.end(); it++){
 		if(interpwvrs.count(*it)==0){
-		  std::cerr	<< "Flagging antenna " << *it << " == " << anames.at(*it) << std::endl;
+		  *itsLog << LogIO::WARN << "Flagging antenna " << *it << " == " << anames.at(*it) << LogIO::POST;
 		  std::cout	<< "Flagging antenna " << *it << " == " << anames.at(*it) << std::endl;
 		  interpwvrs.insert(*it); // for flagInterp()
 		  wvrflagset.insert(*it); // for later log output
 		}
 	      }
-	      std::cerr	<< "Reiterating ..." << std::endl;
+	      *itsLog << LogIO::WARN << "Reiterating ..." << LogIO::POST;
 	      std::cout	<< "Reiterating ..." << std::endl;
 	      continue;
 	    }
 	    else{
-	      std::cerr << "Number of remaining antennas with problematic WVR measurements: " << problemAnts.size() << std::endl;
+	      *itsLog << LogIO::WARN << "Number of remaining antennas with problematic WVR measurements: " << problemAnts.size() << LogIO::POST;
 	      std::cout << "Number of remaining antennas with problematic WVR measurements: " << problemAnts.size() << std::endl;
-	      std::cerr << "Will continue without further iterations ..." << std::endl;
+	      *itsLog << LogIO::WARN << "Will continue without further iterations ..." << LogIO::POST;
 	      std::cout << "Will continue without further iterations ..." << std::endl;
 	    }	      
 	  }	   
@@ -1162,11 +1174,10 @@ namespace casac {
 	  std::cerr<<"done!"
 		   <<std::endl;
 	
-	
 	  std::cout<<"       Retrieved parameters      "<<std::endl
 		   <<"----------------------------------------------------------------"<<std::endl
 		   << rlist.ptr_list <<std::endl;
-	
+	  
 	  if (segsource_par){
 	    //std::vector<int> flds;
 	    //std::vector<double> time;
@@ -1176,88 +1187,97 @@ namespace casac {
 	    //		    flds,
 	    //		    src,
 	    //		    sortedI);
-	   
+	    
 	    coeffs.reset(LibAIR2::SimpleMultiple(fb,
-						 rlist));   
+						   rlist));   
 	  }
 	  else{
 	    coeffs.reset(LibAIR2::ALMAAbsProcessor(inp, rlist));
 	  }  
-	
+	  
 	}
     
-      try{
-	g.calc(*d,
-	       *coeffs);    
-      }
-      catch(const std::runtime_error& x){
-	std::cout << "Problem while calculating gains: " << x.what() << std::endl;
-	std::cerr << "Problem while calculating gains: " << x.what() << std::endl;
-	return 1;
-      }
+	try{
+	  g.calc(*d,
+		 *coeffs);    
+	}
+	catch(const std::runtime_error& rE){
+	  std::cout << "Problem while calculating gains: " << rE.what() << std::endl;
+	  *itsLog << LogIO::WARN << "Problem while calculating gains: " << rE.what() << LogIO::POST;
+	  rval = 1;
+	  break; // leave while loop
+	}
 
-      if (sourceflag_par.size() > 0){
-	std::set<size_t> flagset=sourceSet(sourceflag_par,
-					   ms);
-	g.blankSources(flagset);
-      }
+	if (sourceflag_par.size() > 0){
+	  std::set<size_t> flagset=sourceSet(sourceflag_par,
+					     ms);
+	  g.blankSources(flagset);
+	}
      
-      std::vector<std::pair<double, double> > tmask;
-      statTimeMask(ms, statfield_par, statsource_par, tmask, sortedI, wvrspws);
-     
-      std::vector<double> pathRMS;
-      g.pathRMSAnt(tmask, pathRMS);
-     
-     
-      std::vector<double> pathDisc;
-      try{
-	computePathDisc(*d, 
-			tmask,
-			*coeffs,
-			pathDisc);
-     
-	std::cout<<LibAIR2::AntITable(anames,
-				      wvrflagset,
-				      nowvr,
-				      pathRMS,
-				      pathDisc,
-				      interpImpossibleAnts);
-       
-	printExpectedPerf(g, 
+	std::vector<std::pair<double, double> > tmask;
+	statTimeMask(ms, statfield_par, statsource_par, tmask, sortedI, wvrspws, itsLog);
+	
+	std::vector<double> pathRMS;
+	g.pathRMSAnt(tmask, pathRMS);
+	
+	std::vector<double> pathDisc;
+	try{
+	  computePathDisc(*d, 
+			  tmask,
 			  *coeffs,
-			  tmask);
+			  pathDisc);
+     
+	  std::cout<<LibAIR2::AntITable(anames,
+					wvrflagset,
+					nowvr,
+					pathRMS,
+					pathDisc,
+					interpImpossibleAnts);
        
-      }
-      catch(const std::runtime_error& x){
-	std::cout << "Problem while calculating path RMS discrepancy: " << x.what() << std::endl;
-	std::cerr << "Problem while calculating path RMS discrepancy: " << x.what() << std::endl;
-	return 1;
-      }
+	  printExpectedPerf(g, 
+			    *coeffs,
+			    tmask,
+			    itsLog);
+       
+	}
+	catch(const std::runtime_error& rE){
+	  std::cout << "Problem while calculating path RMS discrepancy: " << rE.what() << std::endl;
+	  *itsLog << LogIO::WARN << "Problem while calculating path RMS discrepancy: " << rE.what() << LogIO::POST;
+	  rval = 1;
+	  break; // leave while loop
+	}
      
-      if (scale_par != 1.0){
-	g.scale(scale_par);
-      }
+	if (scale_par != 1.0){
+	  g.scale(scale_par);
+	}
      
-      LibAIR2::MSSpec sp;
-      loadSpec(ms, sciencespws, sp);
-      std::set<size_t> to_be_reversed=reversedSPWs(sp, reverse_par, reversespw_par);  
+	LibAIR2::MSSpec sp;
+	loadSpec(ms, sciencespws, sp);
+	std::set<size_t> to_be_reversed=reversedSPWs(sp, reverse_par, reversespw_par);  
      
-      std::cout << "Writing gain table ..." << std::endl;
+	std::cout << "Writing gain table ..." << std::endl;
 
-      // Write new table, including history
-      LibAIR2::writeNewGainTbl(g,
-			       fnameout.c_str(),
-			       sp,
-			       to_be_reversed,
-			       disperse_par,
-			       msname,
-			       cmdLineHistory,
-			       interpImpossibleAnts);
-
-
-    } // end while
+	// Write new table, including history
+	LibAIR2::writeNewGainTbl(g,
+				 fnameout.c_str(),
+				 sp,
+				 to_be_reversed,
+				 disperse_par,
+				 msname,
+				 cmdLineHistory,
+				 interpImpossibleAnts);
 
 
+      } // end while
+    }
+    catch(const std::runtime_error& rE){
+      std::cout << "Problem while processing WVR data: " << rE.what() << std::endl;
+      *itsLog << LogIO::WARN << "Problem while processing WVR data: " << rE.what() << LogIO::POST;
+      rval = 1;
+    }
+    
+    std::cout.rdbuf(stream_buffer_cout_orig);
+    logstream.close();
     return rval;
-  }
+  } // end gcal
 }

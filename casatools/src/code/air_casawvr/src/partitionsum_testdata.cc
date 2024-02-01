@@ -10,7 +10,6 @@
 
 #include "partitionsum_testdata.h"
 
-
 namespace LibAIR2 {
 
   /**
@@ -2957,14 +2956,16 @@ static const double h2o_Qtab[] = {
 };
 
 
-  part_table_raw getH2ORawTable(void)
+  casacore::Matrix<double>* getH2ORawTable(void)
   {
-    casacore::IPosition shape(H2O_Q_ROWS, H2O_Q_COLS);
-    return part_table_raw(shape, h2o_Qtab);
+    casacore::Matrix<double>* h2otab = new casacore::Matrix<double>(H2O_Q_ROWS, H2O_Q_COLS, 0.);
+    for(size_t i=0; i<H2O_Q_ROWS; i++){
+      for(size_t j=0; j<H2O_Q_COLS; j++){
+	(*h2otab)(i,j) = h2o_Qtab[i*H2O_Q_COLS+j];
+      }
+    }
+    return h2otab;
   }
 
 
-
 }
-
-

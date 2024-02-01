@@ -19,12 +19,10 @@
 
 namespace LibAIR2 {
 
-
-
   /**
      Return the raw partition table for h2o
    */
-  part_table_raw getH2ORawTable(void);
+  casacore::Matrix<double>* getH2ORawTable(void);
 
 
 }

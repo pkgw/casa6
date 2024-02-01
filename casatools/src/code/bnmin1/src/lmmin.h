@@ -14,6 +14,8 @@
 #ifndef _BNMIN_LMMIN_HXX__
 #define _BNMIN_LMMIN_HXX__
 
+#define BNMIN1_NO_PDA
+
 #include "minim.h"
 
 namespace Minim {

@@ -363,7 +363,6 @@ def fetch_tests(work_dir, branch, merge_target=None):
             "casa6": ["/casa6/casatests/regression/","/casa6/casatests/stakeholder/","/casa6/casatasks/tests/","/casa6/casatools/tests/"],
             "casampi": ["/casampi/src/casampi/tests"],
             "casaplotms": ["/casaplotms/tests/plotms"],
-            "almatasks": ["/almatasks/tests/tasks"],
             "casaviewer": ["/casaviewer/tests/tasks"]
         }[x]
 
@@ -416,7 +415,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
         test_paths.append(source_dir + "/" + x)
 
     # Clone the auxiliary repositories and checkout branch
-    repositories = ["casampi", "casaplotms", "almatasks","casaviewer"]
+    repositories = ["casampi", "casaplotms", "casaviewer"]
     for repo in repositories:
         print("")
         print("Fetching Repository: {}".format(repo))
