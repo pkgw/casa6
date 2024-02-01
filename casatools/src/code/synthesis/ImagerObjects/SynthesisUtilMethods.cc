@@ -2363,7 +2363,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    if(movingSource=="TRACKFIELD"){
 	      Int fieldID=MSColumns(*mss[j]).fieldId()(0);
 	      ephemtab=Path(MSColumns(*mss[j]).field().ephemPath(fieldID)).absoluteName();
-              cerr << "Buildcoordsys  ---- j="<<j<<" ephemtab = " << ephemtab <<endl;
+              //cerr << "Buildcoordsys  ---- j="<<j<<" ephemtab = " << ephemtab <<endl;
 	    }
 	    MEpoch refep=MSColumns(*mss[j]).timeMeas()(0);
 	    Quantity refsysvel;
@@ -2683,10 +2683,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     String specmode;
 
     if(mode=="cubesource"){
-      cerr<<"sysvelvalue = "<<String::toString(sysvelvalue)<<endl;
+      os << "sysvelvalue = " << String::toString(sysvelvalue) << LogIO::POST;
       MDoppler mdop(sysvelvalue, MDoppler::RELATIVISTIC);
       dataChanFreq=mdop.shiftFrequency(dataChanFreq);
       dataChanWidth=mdop.shiftFrequency(dataChanWidth);
+      os << "dataChanFreq=" << dataChanFreq[0] << " dataChanWidth=" << dataChanWidth[0] << LogIO::POST;
       if (std::isnan(dataChanFreq[0]) || std::isnan(dataChanFreq[dataChanFreq.nelements()-1])) {
 	throw(AipsError("The Doppler shift correction of the data channel frequencies resulted in 'NaN' using the radial velocity = "+
               String::toString(sysvelvalue)+". Typically this indicates a problem in the ephemeris data being used.")); 
@@ -3113,7 +3114,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ephemtab=Path(MSColumns(ms).field().ephemPath(fieldID)).absoluteName();
     }
     casacore::MDirection::Types planetType=MDirection::castType(trackDir.getRef().getType());
-    cerr<<"ephemtab="<<ephemtab<<endl;
+    //cerr<<"ephemtab="<<ephemtab<<endl;
     if( (! Table::isReadable(ephemtab)) &&   ( (planetType <= MDirection::N_Types) || (planetType >= MDirection::COMET)))
       throw(AipsError("Does not have a valid ephemeris table or major solar system object defined"));
     MeasFrame mframe(refEp, obsposition);
