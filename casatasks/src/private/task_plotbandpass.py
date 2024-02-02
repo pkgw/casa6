@@ -507,7 +507,7 @@ def drawOverlayTimeLegends(xframe,firstFrame,xstartTitle,ystartTitle,caltable,ti
                            fieldIndicesToPlot,ispwInCalTable,uniqueTimesPerFieldPerSpw,
                            timerangeListTimes, solutionTimeThresholdSeconds,debugSloppyMatch,
                            ystartOverlayLegend,debug,mysize, fieldsToPlot,myUniqueColor,
-                           timeHorizontalSpacing, fieldIndex,overlayColors,
+                           timeHorizontalSpacing, fieldIndex, overlayColors,
                            antennaVerticalSpacing, overlayAntennas,
                            timerangeList, caltableTitle,
                            mytime, scansToPlot, scansForUniqueTimes):
@@ -609,7 +609,7 @@ def drawAtmosphereAndFDM(showatm, showtsky, atmString, subplotRows, mysize, Tebb
                          atmfreqImage,transmissionImage, firstFrame,showfdm,nChannels,tableFormat,
                          originalSpw_casa33, chanFreqGHz_casa33,originalSpw,chanFreqGHz,
                          overlayTimes, overlayAntennas, xant, antennasToPlot, overlaySpws,
-                         baseband, showBasebandNumber, basebandDict, overlayBasebands,
+                         baseband, showBasebandNumber, basebandDict, overlayBasebands, overlayColors,
                          drewAtmosphere, showtsys=False, Trx=None):
     """
     If requested by the user at the command line, draw the atmospheric curve
@@ -646,10 +646,10 @@ def drawAtmosphereAndFDM(showatm, showtsky, atmString, subplotRows, mysize, Tebb
         if (xaxis.find('freq')>=0 and showfdm and nChannels <= 256):
             if (tableFormat == 33):
                 showFDM(originalSpw_casa33, chanFreqGHz_casa33,
-                        baseband, showBasebandNumber, basebandDict)
+                        baseband, showBasebandNumber, basebandDict, overlayColors)
             else:
                 showFDM(originalSpw, chanFreqGHz,
-                        baseband, showBasebandNumber, basebandDict)
+                        baseband, showBasebandNumber, basebandDict, overlayColors)
             ylim = pb.ylim()  # CAS-11062 need to pass the new wider limits back up to calling function
     return ylim  # CAS-8655
 
@@ -3413,7 +3413,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                                        overlayTimes, overlayAntennas, xant,
                                                        antennasToPlot, overlaySpws, baseband,
                                                        showBasebandNumber, basebandDict,
-                                                       overlayBasebands, drewAtmosphere, showtsys)
+                                                       overlayBasebands, overlayColors, drewAtmosphere, showtsys)
                                   drewAtmosphere = True
                               if (xctr == firstUnflaggedAntennaToPlot or overlayAntennas==False): # changed xant->xctr on 11-mar-2014
                                   DrawPolarizationLabelsForOverlayTime(xstartPolLabel,ystartPolLabel,corr_type,polsToPlot,
@@ -4167,7 +4167,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                                          timerangeListTimes, solutionTimeThresholdSeconds,
                                                          debugSloppyMatch,ystartOverlayLegend,debug,mysize,
                                                          fieldsToPlot,myUniqueColor,timeHorizontalSpacing,
-                                                         fieldIndex,overlayColors, antennaVerticalSpacing,
+                                                         fieldIndex, overlayColors, antennaVerticalSpacing,
                                                          overlayAntennas, timerangeList, caltableTitle,
                                                          mytime, scansToPlotPerSpw[ispw], scansForUniqueTimes)
 #                                                         mytime, scansToPlot, scansForUniqueTimes) # task version
@@ -4199,7 +4199,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                                        timerangeListTimes, solutionTimeThresholdSeconds,
                                                        debugSloppyMatch,ystartOverlayLegend,debug,mysize,
                                                        fieldsToPlot,myUniqueColor,timeHorizontalSpacing,
-                                                       fieldIndex,overlayColors, antennaVerticalSpacing,
+                                                       fieldIndex, overlayColors, antennaVerticalSpacing,
                                                        overlayAntennas, timerangeList, caltableTitle,
                                                        mytime, scansToPlotPerSpw[ispw], scansForUniqueTimes)
 #                                                       mytime, scansToPlot, scansForUniqueTimes) # task version
@@ -4270,9 +4270,9 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                               drewAtmosphere = True
                           if (xaxis.find('freq')>=0 and showfdm and nChannels <= 256):
                               if (tableFormat == 33):
-                                  showFDM(originalSpw_casa33, chanFreqGHz_casa33, baseband, showBasebandNumber, basebandDict)
+                                  showFDM(originalSpw_casa33, chanFreqGHz_casa33, baseband, showBasebandNumber, basebandDict, overlayColors)
                               else:
-                                  showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict)
+                                  showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict, overlayColors)
                       if (debug): print("done drawAtmosphere/FDM check")
 
                       if (bOverlay):
@@ -4992,7 +4992,7 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
                                                          timerangeListTimes, solutionTimeThresholdSeconds,
                                                          debugSloppyMatch,ystartOverlayLegend,debug,mysize,
                                                          fieldsToPlot,myUniqueColor,timeHorizontalSpacing,
-                                                         fieldIndex,overlayColors, antennaVerticalSpacing,
+                                                         fieldIndex, overlayColors, antennaVerticalSpacing,
                                                          overlayAntennas, timerangeList, caltableTitle,
                                                          mytime, scansToPlotPerSpw[ispw], scansForUniqueTimes)
 #                                                         mytime, scansToPlot, scansForUniqueTimes) # task version
@@ -5068,9 +5068,9 @@ def plotbandpass(caltable='', antenna='', field='', spw='', yaxis='amp',
 
                           if (xaxis.find('freq')>=0 and showfdm and nChannels <= 256):
                               if (tableFormat == 33):
-                                  showFDM(originalSpw_casa33, chanFreqGHz_casa33, baseband, showBasebandNumber, basebandDict)
+                                  showFDM(originalSpw_casa33, chanFreqGHz_casa33, baseband, showBasebandNumber, basebandDict, overlayColors)
                               else:
-                                  showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict)
+                                  showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict, overlayColors)
 
                       if (bOverlay):
                           # draw polarization labels
@@ -6153,7 +6153,7 @@ def SetLimits(plotrange, chanrange, newylimits, channels, frequencies, pfrequenc
         SetNewYLimits([plotrange[2],plotrange[3]])
     return(0)
 
-def showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict):
+def showFDM(originalSpw, chanFreqGHz, baseband, showBasebandNumber, basebandDict, overlayColors):
     """
     Draws a horizontal bar indicating the location of FDM spws in the dataset.
 
