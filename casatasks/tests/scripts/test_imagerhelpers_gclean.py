@@ -109,7 +109,7 @@ class testref_base(unittest.TestCase):
               shutil.copy(os.path.join(refdatapath,self.textfile), self.textfile)
 
 
-     def do_clean(self, vis, imagename, **kwargs):
+     def do_clean(self, vis, imagename, flip_mask=False, **kwargs):
          """
          Run _gclean in a manner similar to InteractiveClean() and test usage modes.
          Manual break at 20 iterations to prevent infinite loops.
@@ -117,6 +117,11 @@ class testref_base(unittest.TestCase):
          clean = gclean(vis=vis, imagename=imagename, **kwargs)
 
          stopdesc, stopcode, majordone, nmajor, niter, retdict = clean.__next__()
+
+         # By default, interactive clean initializes a zero mask. So non-interactive calls of gclean will
+         # result in no deconvolution. For the purposes of testing, optionally flip the mask to all ones.
+         if flip_mask:
+             self.fill_mask(imagename + '.mask', fill_type='ones')
 
          ncyc = 0
          while stopcode==0 or ncyc==0:
@@ -149,7 +154,6 @@ class testref_base(unittest.TestCase):
 
          _ia.open(maskname)
          pix = _ia.getchunk()
-         print("pix shape ", pix.shape)
          if fill_type == 'zero':
              pix[:, :, stokes_slice, chan_slice] = pix * 0.0
          elif fill_type == 'ones':
@@ -196,7 +200,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_point.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='cube', interpolation='nearest', nchan=5, start='1.0GHz', width='0.2GHz',
                                                                               pblimit=-1e-05, deconvolver='hogbom', niter=100, cycleniter=-1, cyclefactor=1, nmajor=3,
                                                                               threshold='0.01Jy', usemask='user', mask='')
@@ -206,8 +210,6 @@ class test_gclean_ic(testref_base):
             # the iterations per minor cycle Then sum to get the total number
             # of iterations.
             total_iterations += np.sum(np.diff(retdict['chan'][nchan][0]['iterations']))
-
-        print("total iterations ", total_iterations)
 
         self.delData()
 
@@ -223,7 +225,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_twochan.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='mfs', interpolation='nearest', pblimit=-1e-05, deconvolver='hogbom',
                                                                               niter=100, cycleniter=10, cyclefactor=1, nmajor=3,
                                                                               threshold='0.01Jy', usemask='user', mask='')
@@ -242,7 +244,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_twochan.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='mfs', interpolation='nearest', pblimit=-1e-05, deconvolver='hogbom',
                                                                               niter=100, cycleniter=-1, cyclefactor=1, nmajor=-1,
                                                                               threshold='0.01Jy', usemask='user', mask='')
@@ -257,7 +259,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_twochan.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='mfs', interpolation='nearest', pblimit=-1e-05, deconvolver='hogbom',
                                                                               niter=100, cycleniter=-1, cyclefactor=1, nmajor=2,
                                                                               threshold='0.01Jy', usemask='user', mask='')
@@ -274,7 +276,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_twochan.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='mfs', interpolation='nearest', pblimit=-1e-05, deconvolver='hogbom',
                                                                               niter=100, cycleniter=-1, cyclefactor=1, nmajor=3,
                                                                               threshold='0.3Jy', usemask='user', mask='')
@@ -290,7 +292,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_point.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='cube', interpolation='nearest', nchan=5, start='1.0GHz', width='0.2GHz',
                                                                               pblimit=-1e-05, deconvolver='hogbom', niter=50, cycleniter=10, cyclefactor=1, nmajor=-1,
                                                                               threshold='0.01Jy', usemask='user', mask='')
@@ -317,7 +319,7 @@ class test_gclean_ic(testref_base):
 
         self.prepData('refim_twochan.ms')
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100, cell='10.0arcsec',
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec',
                                                                               specmode='mfs', interpolation='nearest', pblimit=-1e-05, deconvolver='mtmfs',
                                                                               niter=50, cycleniter=-1, cyclefactor=1, nmajor=-1,
                                                                               threshold='0.0Jy', usemask='user', mask='')
@@ -343,7 +345,7 @@ class test_gclean_ic(testref_base):
         self.prepData('refim_twochan.ms')
 
 
-        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, imsize=100,
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100,
                                                                                cell='10.0arcsec', specmode='mfs', interpolation='nearest',
                                                                                pblimit=-1e-05, deconvolver='hogbom', niter=50, cycleniter=-1,
                                                                                cyclefactor=1, nmajor=-1, threshold='0.0Jy', usemask='user',
@@ -360,6 +362,33 @@ class test_gclean_ic(testref_base):
         self.assertTrue(len(retdict['major']['cyclethreshold']) == 3)
         self.assertTrue(stopcode == 1)
         self.assertTrue(total_iterations == 50)
+
+
+    @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "gclean doesn't work with mpi")
+    def test_ic_mfs_staticmask_pbmask(self):
+        """ [test_ic] test_ic_mfs_staticmask_pbmask : Image MFS with a PB mask that does not change """
+
+        self.prepData('refim_twochan.ms')
+
+
+        stopdesc, stopcode, majordone, nmajor, niter, retdict = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100,
+                                                                               cell='10.0arcsec', specmode='mfs', interpolation='nearest',
+                                                                               pblimit=-1e-05, deconvolver='hogbom', niter=50, cycleniter=-1,
+                                                                               cyclefactor=1, nmajor=-1, threshold='0.0Jy', usemask='user',
+                                                                               mask='', pbmask=0.2)
+
+        self.delData()
+
+        total_iterations = 0
+        # 'iterations' contains the cumulative sum, so first diff to get
+        # the iterations per minor cycle Then sum to get the total number
+        # of iterations.
+        total_iterations += np.sum(np.diff(retdict['chan'][0][0]['iterations']))
+
+        self.assertTrue(len(retdict['major']['cyclethreshold']) == 3)
+        self.assertTrue(stopcode == 1)
+        self.assertTrue(total_iterations == 50)
+
 
 
     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "gclean doesn't work with mpi")
@@ -465,8 +494,8 @@ class test_gclean_ic(testref_base):
                                                                                     usemask='user', mask='')
 
         masksum1 = self.calc_mask_sum(self.img+'.mask')
-        # Fill mask with zeros and start imaging again
-        self.fill_mask(self.img+'.mask', fill_type='zero')
+        # Fill mask with ones and start imaging again
+        self.fill_mask(self.img+'.mask', fill_type='ones')
 
 
         stopdesc2, stopcode2, majordone2, nmajor2, niter2, retdict2 = self.do_clean(vis=self.msfile, imagename=self.img,
@@ -480,14 +509,14 @@ class test_gclean_ic(testref_base):
         self.delData()
 
 
-        self.assertTrue(masksum1 == 10000)
-        self.assertTrue(masksum2 == 0)
+        self.assertTrue(masksum2 == 10000)
+        self.assertTrue(masksum1 == 0)
 
-        self.assertTrue(len(retdict1['major']['cyclethreshold']) == 3)
-        self.assertTrue(len(retdict2['major']['cyclethreshold']) == 2)
+        self.assertTrue(len(retdict1['major']['cyclethreshold']) == 2)
+        self.assertTrue(len(retdict2['major']['cyclethreshold']) == 3)
 
-        self.assertTrue(stopcode1 == 9)
-        self.assertTrue(stopcode2 == 7)
+        self.assertTrue(stopcode1 == 7)
+        self.assertTrue(stopcode2 == 9)
 
 
     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "gclean doesn't work with mpi")
@@ -505,6 +534,8 @@ class test_gclean_ic(testref_base):
         # Fist major cycle just makes the residual
         # Make initial resiudal
         stopdesc, stopcode, majordone, nmajor, niter, retdict = clean.__next__()
+        self.fill_mask(self.img+'.mask', fill_type='ones')
+
         # Maj cycle 1
         stopdesc, stopcode, majordone, nmajor, niter, retdict = clean.__next__()
         # Maj cycle 2
@@ -531,8 +562,8 @@ class test_gclean_ic(testref_base):
 
         self.assertTrue(stopcode == 1)
 
-        # Set nmajor back to zero and it should stop with stopcode = 9
-        clean.update({'nmajor':0, 'niter':100, 'threshold':'0.01Jy', 'cycleniter':50})
+        # Set nmajor back to zero, drop the threshold and it should stop with stopcode = 9
+        clean.update({'nmajor':0, 'niter':100, 'threshold':'0Jy', 'cycleniter':50})
         stopdesc, stopcode, majordone, nmajor, niter, retdict = clean.__next__()
 
         self.assertTrue(stopcode == 9)
@@ -598,21 +629,24 @@ class test_gclean_ic(testref_base):
     def test_ic_niter_cube(self):
         """ [test_ic] Test_niter_cube : niter stopping criteria for cubes """
 
+        self.prepData('refim_point.ms')
+        stopdesc1, stopcode1, majordone1, nmajor1, niter1, retdict1 = self.do_clean(vis=self.msfile, imagename=self.img, flip_mask=True, imsize=100, cell='10.0arcsec', specmode='cube',
+                                                                              interpolation='nearest', nchan=5, start='1.0GHz', width='0.2GHz', pblimit=-1e-05,
+                                                                              deconvolver='hogbom', niter=100, cycleniter=-1, cyclefactor=1, nmajor=3,
+                                                                              threshold='0.01Jy', usemask='user', mask='')
         total_iterations = 0
         for nchan in range(5):
             # 'iterations' contains the cumulative sum, so first diff to get
             # the iterations per minor cycle Then sum to get the total number
             # of iterations.
-            total_iterations += np.sum(np.diff(retdict['chan'][nchan][0]['iterations']))
+            total_iterations += np.sum(np.diff(retdict1['chan'][nchan][0]['iterations']))
 
-        print("total iterations ", total_iterations)
-
-        self.delData()
+        #self.delData()
 
         # This should be the same as the number of major cycles done
-        self.assertTrue(len(retdict['major']['cyclethreshold']) == 3)
+        self.assertTrue(len(retdict1['major']['cyclethreshold']) == 3)
         self.assertTrue(total_iterations == 156)
-        self.assertTrue(stopcode == 1)
+        self.assertTrue(stopcode1 == 1)
 
 if __name__ == '__main__':
     unittest.main()

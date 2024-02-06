@@ -574,7 +574,7 @@ class gclean:
                     if not self.hasit:
                         # If we haven't converged, run deconvolve to update the mask
                         self._deconvolve(imagename=self._imagename, startmodel=self._startmodel, deconvolver=self._deconvolver, restoration=False, threshold=self._threshold, niter=0,
-                                         nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask, mask=self._mask, pbmask=self._pbmask,
+                                         nsigma=self._nsigma, fullsummary=True, fastnoise=self._fastnoise, usemask=self._usemask, mask='', pbmask=self._pbmask,
                                          sidelobethreshold=self._sidelobethreshold, noisethreshold=self._noisethreshold, lownoisethreshold=self._lownoisethreshold,
                                          negativethreshold=self._negativethreshold, smoothfactor=self._smoothfactor, minbeamfrac=self._minbeamfrac, cutthreshold=self._cutthreshold,
                                          growiterations=self._growiterations, dogrowprune=self._dogrowprune, verbose=self._verbose)
