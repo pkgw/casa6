@@ -1351,6 +1351,16 @@
             "comment":""
         },
         {
+            "testScript":"test_imagerhelpers_gclean",
+            "testType":"casatasks",
+            "maintainer":"Krishna Sekhar",
+            "maintainerEmail":"ssekhar@nrao.edu",
+            "testOptions":[,
+            "testGroup":["deconvolve","tclean"],
+            "timeout":0,
+            "comment":""
+        },
+        {
             "testScript":"test_tool_agentflagger",
             "testType":"casatools",
             "maintainer":"Sandra Castro",
