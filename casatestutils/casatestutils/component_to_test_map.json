@@ -1355,7 +1355,7 @@
             "testType":"casatasks",
             "maintainer":"Krishna Sekhar",
             "maintainerEmail":"ssekhar@nrao.edu",
-            "testOptions":[,
+            "testOptions":[],
             "testGroup":["deconvolve","tclean"],
             "timeout":0,
             "comment":""
