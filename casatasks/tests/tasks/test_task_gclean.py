@@ -14,119 +14,21 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Library General Public
 # License for more details.
 #
-# Based on the requirements listed in casadocs found here:
-# https://casadocs.readthedocs.io/en/stable/api/tt/casatasks.imaging.tclean.html
-#
-# Each of the following categories (classes) has a set of tests within it.
-#
-#  test_onefield                 # basic tests, deconvolution algorithms
-#  test_iterbot                   # iteration control options for mfs and cube
-#  test_multifield               # multiple fields of same type and with different shapes/deconvolvers/gridders
-#  test_stokes                    # multiple stokes planes, imaging with flagged correlations..
-#  test_cube                      # all things cube. Spectral frame setup, handling empty channels, etc
-#  test_widefield                # facets, wprojection, imagemosaic, mosaicft, awproject
-#  test_mask                      # input mask options : regridding, mask file, automasking, etc
-#  test_modelvis                # saving models (column/otf), using starting models, predict-only (setjy)
-#  test_ephemeris                # ephemeris tests for gridder standard and mosaic, mode mfs and cubesource
-#
-#  To run the tests with python3 or casa in the command line
-#
-#  ./casa -c ./test_tclean.py
-#  ./python3 ./test_tclean.py
-#  ./casa -c ./casa6/casatestutils/runtest.py -h                                   # to see all options
-#  ./casa -c ./casa6/casatestutils/runtest.py ./test_tclean.py                     # run the local test script
-#  ./casa -c ./casa6/casatestutils/runtest.py ./test_tclean.py
-
-# To run from within a casa 6 session:
-#
-#  from casatestutils import runtest
-#  runtest.run(['test_tclean'])                                                 # pull test script from git trunk
-#  runtest.run(['/path-to-test/test_tclean.py'])                                # run a local test script
-#  runtest.run(['test_tclean[test_onefield_clark,test_onefield_hogbom]'])       # pull multiple test cases from git trunk
-#  runtest.run(['test_tclean.py[test_onefield_clark,test_onefield_hogbom]'])    # run multiple test cases from local test script
-#  See documentation for runtest.py in README.md of casatestutils
-# To see the full list of tests :   grep "\"\"\" \[" test_tclean.py
-#
-#  These tests need data stored in casatestdata/unittest/tclean
-#  The datasets are symliked to the above directory. If using cp to copy them locally,
-#  Use cp -RH
-#
-#  For a developer build, to get the datasets locally
-#
-#  --- Get the test data repo :  svn co https://svn.cv.nrao.edu/svn/casatestdata casatestdata
-#  --- Use ~/.casa/config.py to point to the casatestdata
-# ########################################################################
-# SKIPPED TESTS
-# More tests were added to skip (as of 2019,04,26)
-#
-# (as of 2019.02.05 - Seven tests total)
-# The following tests are currently skipped as the supports of the particular
-# modes are not available in parallel mode yet
-# =>
-#     test_multifield_both_cube_diffshape
-#     test_multifield_cube_mfs
-#     test_multifield_cube_mtmfs
-#
-# The following tests in pricipal should be working but curently broken
-# for parallel  until fixes to test or code are properly made.
-# =>  test_multifield_facets_mfs
-#     test_multifield_facets_mtmfs
-#
-# Added to skip at least for 5.5
-#     test_cube_chanchunks
-#     test_cube_chanchunks_savemodel (possible race conditions)
-#     test_modelvis_2 (possible race conditions)
-#     test_modelvis_3 (possible race conditions)
-#     test_modelvis_5 (possible race conditions)
-#     test_modelvis_6 (possible race conditions)
-#     test_modelvis_7 (possible race conditions)
-#     test_modelvis_8 (possible race conditions)
-#     test_modelvis_9 (possible race conditions)
-#     test_modelvis_10 (possible race conditions)
-#     test_modelvis_11 (possible race conditions)
-#     test_startmodel_with_mask_mfs(possible race conditions)
-#     test_startmodel_with_mask_mtmfs(possible race conditions)
-
-# Ressurected from skipping after some fixes
-#     test_mask_5
-#     test_iterbot_cube_2
-#     test_multifield_both_cube
-##########################################################################
-#
-#  Datasets
-#
-#  refim_twochan.ms : 2 channels, one 1Jy point source with spectral index of -1.0
-#  refim_twopoints_twochan.ms : Two point sources, 1Jy and 5Jy, both with spectral index -1.0. For multifield tests.
-#  refim_point.ms : 1-2 GHz, 20 channels, 1 spw, one 1Jy point source with spectral index -1.0.
-#  refim_point_withline.ms : refim_point with a 'line' added into 3 channels (just topo)
-#  refim_mawproject.ms : Two pointing wideband mosaic with 1 point source in between the two pointings
-#  refim_mawproject_offcenter.ms : Two pointing wideband mosaic with 1 point source at center of one pointing
-#  refim_point_stokes.ms : RR=1.0, LL=0.8, RL and LR are zero. Stokes I=0.9, V=0.1, U,Q=0.0
-#  refim_point_linRL.ms : I=1, Q=2, U=3, V=4  in circular pol basis.
-#  venus_ephem_test.ms : 7-point mosaic of Venus (ephemeris), Band 6, 1 spw, averaged to 1 chan
-#
-# List of test classes
-#
-# [test_onefield, test_iterbot, test_multifield,test_stokes, test_modelvis, test_cube, test_mask, test_startmodel, test_widefield,
-# test_pbcor, test_mosaic_mtmfs, test_mosaic_cube, test_ephemeris, test_hetarray_imaging, test_wproject, test_errors_failures]
+# Based on the requirements listed in here:
+# https://github.com/casangi/casagui/wiki/Interactive-Clean
 #
 ##########################################################################
 
 import os
-import sys
 import shutil
 import unittest
-import inspect
 import numpy as np
-import operator
 
 from casatools import ctsys, quanta, measures, image, vpmanager, calibrater
-from casatasks import casalog, delmod, imsubimage, tclean, uvsub, imhead, imsmooth, immath, widebandpbcor, impbcor, flagdata, makemask
+from casatasks import casalog
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 from casatasks.private.imagerhelpers._gclean import gclean
-from casatasks import impbcor, split, concat
 
 from casatestutils.imagerhelpers import TestHelpers
 
@@ -278,7 +180,7 @@ class testref_base(unittest.TestCase):
 
 
 
-class test_ic(testref_base):
+class test_gclean_ic(testref_base):
     """
     Test iteration control options in gclean
     """
@@ -712,4 +614,6 @@ class test_ic(testref_base):
         self.assertTrue(total_iterations == 156)
         self.assertTrue(stopcode == 1)
 
+if __name__ == '__main__':
+    unittest.main()
 
