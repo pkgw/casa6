@@ -67,7 +67,7 @@ this value
                      The direction can either be given explicitly or
                      as the path to a JPL Horizons
                      ephemeris. Alternatively, the ephemeris table can
-                     also be provided as mime format file. For more
+                     also be provided using getephemtable task. For more
                      information, see the task pages of fixplanets in
                      CASA Docs (https://casa.nrao.edu/casadocs/).
 </description>
