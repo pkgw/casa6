@@ -1835,9 +1835,20 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
     weight.resize(vb.nChannels(), vb.nRows());
 
     if (weightspec.nelements() == 0) {
-      for (rownr_t k = 0; k < vb.nRows(); ++k) {
-        //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
-        weight.column(k).set(mean(vb.weight().column(k)));
+      auto const weightMat = vb.weight();
+      Int const npol = weightMat.shape()(0);
+      if (npol == 1) {
+        for (rownr_t k = 0; k < vb.nRows(); ++k) {
+          weight.column(k).set(weightMat(0, k));
+        }
+      } else {
+        for (rownr_t k = 0; k < vb.nRows(); ++k) {
+          //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
+          // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
+          auto const denominator = weightMat(0, k) + weightMat((npol-1), k);
+          auto const numerator = weightMat(0, k) * weightMat((npol-1), k);
+          weight.column(k).set(4.0f * numerator / denominator);
+        }
       }
     } else {
       Int npol = weightspec.shape()(0);
