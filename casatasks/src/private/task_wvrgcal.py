@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 import os
 import sys
+import numpy as np
+
 # get is_CASA6 and is_python3
 from casatasks.private.casa_transition import *
 if is_CASA6:
@@ -257,9 +259,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         casalog.post('Running wvr.gcal ...')
 
 
-        import numpy
-
-        templogfile = 'wvrgcal_tmp_'+str(numpy.random.randint(1E6,1E8))
+        templogfile = 'wvrgcal_tmp_'+str(np.random.randint(1E6,1E8))
         if not os.access(".", os.W_OK):
             import tempfile
             templogfile = tempfile.gettempdir()+"/"+templogfile
@@ -309,6 +309,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
         flagl = []
         rmsl = []
         discl = []
+        flagsd = {}
         parsingok = True
                 
         for ll in loglines:
@@ -355,14 +356,38 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
                                         
             elif (rval==0) and (not hend) and ("Disc (um)" in ll):
                 hfound = True
-
+            elif 'WVR data points for antenna' in ll: # take note of antennas flagged because of too few good WVR data
+                token = ll.split('for antenna ')[1].split()
+                antennaID = int(token[0])
+                if 'All WVR' in ll:
+                    flagsd[antennaID] = 0.
+                else:
+                    unflagged = int(token[2])
+                    total = float(token[5]) # ends in a period
+                    if total>0:
+                        flagsd[antennaID] = unflagged / total
+                    else:
+                        casalog.post('Error: zero datapoints reported for antenna id '+str(antennaID)+' in info table line: '+ll,'WARN')
+                        parsingok=False
+                        
         # end for ll
+
+        # create list of flagging fractions for each antenna
+        unflagfracl = list(np.ones(len(namel)))
+        for myid in flagsd.keys():
+            if myid >= len(unflagfracl):
+                casalog.post('Error: flagged antenna id '+str(myid)+' > max known antenna id '+str(len(unflagfracl)-1) ,'WARN')
+                parsingok=False
+            else:
+                unflagfracl[myid] = flagsd[myid]
+                    
 
         os.system('rm -rf '+templogfile)
         
         taskrval = { 'Name': namel,
                      'WVR': wvrl,
                      'Flag': flagl,
+                     'Frac_unflagged': unflagfracl,
                      'RMS_um': rmsl,
                      'Disc_um': discl,
                      'rval': rval,

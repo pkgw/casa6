@@ -375,7 +375,7 @@ class wvrgcal_test(unittest.TestCase):
 
 
     def test14(self):
-        '''Test 14:  wvrgcal4quasar_10s.ms, first seconds flagged for one antenna'''
+        '''Test 14:  wvrgcal4quasar_10s.ms, first seconds flagged for one antenna, mingoodfrac=0.99'''
         myvis = self.vis_g
         os.system('rm -rf myinput2.ms comp.W comp2.W')
         os.system('cp -R ' + myvis + ' myinput.ms')
@@ -383,19 +383,20 @@ class wvrgcal_test(unittest.TestCase):
         flagdata(vis="myinput.ms", timerange='09:10:11~09:10:15', antenna='DV14&&*', mode='manual')
         split(vis='myinput.ms', outputvis='myinput2.ms', datacolumn='data', keepflags=False)
         
-        rvaldict = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=0.)
-        rvaldict2 = wvrgcal(vis="myinput2.ms", caltable='comp2.W', toffset=0.)
+        rvaldict = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=0., mingoodfrac=0.99)
+        rvaldict2 = wvrgcal(vis="myinput2.ms", caltable='comp2.W', toffset=0., mingoodfrac=0.99)
 
         print('test14-1')
         print(rvaldict)
         print('test14-2')
         print(rvaldict2)
 
-        self.rval = rvaldict['success'] and rvaldict2['success']
+        self.rval = rvaldict['success'] and rvaldict2['success'] and (rvaldict['Frac_unflagged'][14]>0.9)
 
         if(self.rval):
-            rvaldict2['Disc_um'][14]= 64.299999999999997 # The value for antenna14 is the only one expected to be different
-            rvaldict2['RMS_um'][14]= 55.600000000000001 # The value for antenna14 is the only one expected to be different
+            rvaldict2['Disc_um'][14]= 98.0 # The value for antenna14 is the only one expected to be different
+            rvaldict2['RMS_um'][14]= 58.9 # The value for antenna14 is the only one expected to be different
+            rvaldict['Frac_unflagged'][14]=0.9117647058823529 # The value for antenna14 is the only one expected to be different
             
             self.rval = (rvaldict==rvaldict2)
                
