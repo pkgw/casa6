@@ -6,6 +6,7 @@ import string
 import time
 import re
 import copy
+from typing import TYPE_CHECKING
 from casatasks.private.casa_transition import is_CASA6
 
 if is_CASA6:
@@ -20,7 +21,8 @@ if is_CASA6:
     )
     from casatasks import casalog
     from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+    if TYPE_CHECKING:
+        from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 
     ctsys_hostinfo = ctsys.hostinfo
     _tb = table()
@@ -28,7 +30,8 @@ if is_CASA6:
 else:
     from taskinit import *
     from imagerhelpers.summary_minor import SummaryMinor
-    from imagerhelpers.input_parameters import ImagerParameters
+    if TYPE_CHECKING:
+        from imagerhelpers.input_parameters import ImagerParameters
 
     synthesisimager = casac.synthesisimager
     synthesisdeconvolver = casac.synthesisdeconvolver
@@ -49,7 +52,7 @@ Summary...
 #############################################
 class PySynthesisImager:
 
-    def __init__(self,params: ImagerParameters):
+    def __init__(self,params: 'ImagerParameters'):
         ################ Tools
         self.initDefaults()
 
