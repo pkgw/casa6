@@ -102,30 +102,46 @@ do_auto_updates(config, logger)
 
 # data checks, only if user_measurespath is not None
 data_info = None
+data_ok = False
+measures_ok = False
+isSevere = False
+# accumuale messages, less confusing when the logger is being redirected to the terminal
+msgs = ['']
 if user_measurespath is not None:
     data_info = get_data_info(user_measurespath, logger)
-    data_ok = False
     if data_info['casarundata'] is None:
-        print_log_messages('The expected casa data was not found at measurespath. CASA may still work if the data can be found in datapath.', logger, True)
+        isSevere = True
+        msgs.append('The expected casa data was not found at measurespath. CASA may still work if the data can be found in datapath.')
     elif data_info['casarundata'] == 'invalid':
-        print_log_messages('The contents of measurespath do not appear to be casarundata. CASA will likely fail as a result', logger, True)
+        isSevere = True
+        msgs.append('The contents of measurespath do not appear to be casarundata. CASA will likely fail as a result')
     elif data_info['casarundata'] == 'unknown':
-        print_log_messages('The casa data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.', logger)
+        isSevere = True
+        msgs.append('The casa data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.')
     else:
         data_ok = True
 
-    measures_ok = False
     if data_info['measures'] is None:
-        print_log_messages('The expected measures data was not found at measurespath. CASA may still work if the data can be found in datapath.', logger, True)
+        isSevere = True
+        msgs.append('The expected measures data was not found at measurespath. CASA may still work if the data can be found in datapath.')
     elif data_info['casarundata'] == 'invalid':
-        print_log_messages('The contents of measurespath do not appear to include measures data. CASA will likely fail as a result', logger, True)
+        isSevere = True
+        msgs.append('The contents of measurespath do not appear to include measures data. CASA will likely fail as a result')
     elif data_info['measures'] == 'unknown':
-        print_log_messages('The measures data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.', logger)
+        msgs.append('The measures data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.')
     else:
         measures_ok = True
 
-    if (not data_ok) or (not measures_ok):
-        print('visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+else:
+    msgs.append('measurespath is None, set this to the location where the measures IERS data is found, typically this also includes the casarundata')
+    msgs.append('Either set this in your personal config.py in ~/.casa or the site config file (casasiteconfig.py) in this CASA installation')
+    # ctsys initialize needs a string for measurespath, leave it empty
+    user_measurespath = ""
+
+if (not data_ok) or (not measures_ok):
+    msgs.append('visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+    msgs.append('')
+    print_log_messages(msgs, logger, isSevere)
 
 ctsys = __utils( )
 ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui,
