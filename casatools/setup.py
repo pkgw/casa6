@@ -204,51 +204,8 @@ class XmlCMakeBuildExt(build_ext):
         if 'CMAKE_BUILD_PARALLEL_LEVEL' not in os.environ:
             cmake_par = os.sysconf('SC_NPROCESSORS_ONLN') -1
             os.environ['CMAKE_BUILD_PARALLEL_LEVEL'] = str(1 if cmake_par == 0 else cmake_par)
-        print(f"Working directory: {os.getcwd()}")
-        print("Configuring casatools using cmake args:")
-        [print(arg) for arg in cmake_args]
-        try:
-            subprocess.run(['cmake', sourcedir] + cmake_args,
-                           check=True,
-                           capture_output=True
-                           )
-        except subprocess.CalledProcessError as e:
-            print("BeginError@cmake-configure")
-            print("e.args:")
-            print(e.args)
-            print("e.cmd:")
-            print(e.cmd)
-            print("e.returncode:")
-            print(e.returncode)
-            print("e.stdout:")
-            print(e.stdout.decode())
-            print("e.stderr:")
-            print(e.stderr.decode())
-            print("EndError@cmake-configure")
-            raise
-        print("Building casatools ...")
-        try:
-            subprocess.run(['cmake', '--build', '.'],
-                           check=True,
-                           capture_output=True
-                           )
-        except subprocess.CalledProcessError as e:
-            print("BeginError@cmake--build")
-            print("e.args:")
-            print(e.args)
-            print("e.cmd:")
-            print(e.cmd)
-            print("e.returncode:")
-            print(e.returncode)
-            print("e.stdout:")
-            print(e.stdout.decode())
-            print("e.stderr:")
-            print(e.stderr.decode())
-            print("EndError@cmake--build")
-            parent_dir = '/'.join(os.getcwd().split('/')[0:-1])
-            # copy_tree(parent_dir, parent_dir + '.bak')
-            raise
-
+        subprocess.check_call(['cmake', sourcedir] + cmake_args)
+        subprocess.check_call(['cmake', '--build', '.'])
 
         # Copy GCC libs on Macos. 
         # TODO: Make this work with non-"standard" gcc location
