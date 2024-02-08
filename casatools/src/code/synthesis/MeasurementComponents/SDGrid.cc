@@ -2165,13 +2165,13 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
 
     if (weightspec.nelements() == 0) {
       auto const weightMat = vb.weightMat();
-      Int const npol = weightMat.shape()(0);
+      ssize_t const npol = weightMat.shape()(0);
       if (npol == 1) {
-        for (rownr_t k = 0; k < vb.nRow(); ++k) {
+        for (int k = 0; k < vb.nRow(); ++k) {
           weight.column(k).set(weightMat(0, k));
         }
       } else {
-        for (Int k = 0; k < vb.nRow(); ++k) {
+        for (int k = 0; k < vb.nRow(); ++k) {
           //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
           // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
           auto const denominator = weightMat(0, k) + weightMat((npol-1), k);
@@ -2180,15 +2180,15 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
         }
       }
     } else {
-      Int npol = weightspec.shape()(0);
+      ssize_t const npol = weightspec.shape()(0);
       if (npol == 1) {
-        for (Int k = 0; k < vb.nRow(); ++k) {
+        for (int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
             weight(chan, k)=weightspec(0, chan, k);
           }
         }
       } else {
-        for (Int k = 0; k < vb.nRow(); ++k) {
+        for (int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
             // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
             auto const denominator = weightspec(0, chan, k) + weightspec((npol-1), chan, k);

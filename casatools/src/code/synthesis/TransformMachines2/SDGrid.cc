@@ -1836,7 +1836,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
 
     if (weightspec.nelements() == 0) {
       auto const weightMat = vb.weight();
-      Int const npol = weightMat.shape()(0);
+      ssize_t const npol = weightMat.shape()(0);
       if (npol == 1) {
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           weight.column(k).set(weightMat(0, k));
@@ -1851,7 +1851,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
         }
       }
     } else {
-      Int npol = weightspec.shape()(0);
+      ssize_t const npol = weightspec.shape()(0);
       if (npol == 1) {
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           for (int chan = 0; chan < vb.nChannels(); ++chan) {
