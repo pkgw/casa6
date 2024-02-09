@@ -289,15 +289,11 @@ def deconvolve(
             id = ImagingDict()
             retrec1 = id.construct_residual_dict(paramList)
 
-        print("retrec1 ", retrec1)
-
         ## Get summary from iterbot
         #if type(interactive) != bool and niter>0:
         # this requrirment should go...
         #if niter>0:
         retrec=decon.getSummary(fullsummary);
-
-        print("retrec ", retrec)
 
         if niter==0 or runmin==False:
             retrec['summaryminor'] = retrec1['summaryminor']  #CAS-14184
