@@ -34,14 +34,15 @@ import unittest
 import numpy
 
 from casatasks import casalog, flagdata
+from casatasks import imhead
 from casatasks import split
 from casatasks import tsdimaging
-from casatasks.private.sdutil import is_ms, table_manager, tool_manager
+from casatasks.private.sdutil import is_ms, calibrater_manager, table_manager, tool_manager
 from casatestutils import restfreqtool, selection_syntax
 from casatestutils.testhelper import TableCacheValidator
 from casatools import ctsys, image, measures
 from casatools import ms as mstool
-from casatools import msmetadata, quanta, regionmanager, table
+from casatools import msmetadata, quanta, regionmanager
 
 ctsys_resolve = ctsys.resolve
 
@@ -49,7 +50,6 @@ _ia = image()
 _rg = regionmanager()
 me = measures()
 qa = quanta()
-tb = table()
 ms = mstool()
 
 #
@@ -858,12 +858,12 @@ class sdimaging_test1(sdimaging_unittest_base):
 
     def test102(self):
         """Test 102: Full channel image."""
-        tb.open(self.rawfile)
-        if 'FLOAT_DATA' in tb.colnames():
-            nchan = tb.getcell('FLOAT_DATA').shape[1]
-        else:
-            nchan = tb.getcell('DATA').shape[1]
-        tb.close()
+        with table_manager(self.rawfile) as tb:
+            if 'FLOAT_DATA' in tb.colnames():
+                nchan = tb.getcell('FLOAT_DATA').shape[1]
+            else:
+                nchan = tb.getcell('DATA').shape[1]
+
         self.task_param.update(dict(nchan=nchan, start=0, width=1))
         # for testing
         # self.task_param['gridfunction'] = 'BOX'
@@ -3139,14 +3139,14 @@ class sdimaging_test_restfreq(sdimaging_unittest_base):
         stats = construct_refstat_uniform(self.unifval, [0, 0, 0, 0],
                                           [10, 10, 0, 9])
         # remove REST_REQUENCY in SOURCE TABLE
-        tb.open(self.infiles + '/SOURCE', nomodify=False)
-        rf = tb.getcell('REST_FREQUENCY', 0)
-        rf.resize(0)
-        for idx in range(tb.nrows()):
-            tb.putcell('REST_FREQUENCY', idx, rf)
-            self.assertTrue(len(tb.getcell('REST_FREQUENCY', idx)) == 0)
-        tb.flush()
-        tb.close()
+        with table_manager(self.infiles + '/SOURCE', nomodify=False) as tb:
+            rf = tb.getcell('REST_FREQUENCY', 0)
+            rf.resize(0)
+            for idx in range(tb.nrows()):
+                tb.putcell('REST_FREQUENCY', idx, rf)
+                self.assertTrue(len(tb.getcell('REST_FREQUENCY', idx)) == 0)
+            tb.flush()
+
         self.run_test(restfreq, beam_ref, cell_ref, stats,
                       restfreq='', imsize=[11, 11])
 
@@ -3846,7 +3846,6 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
             # pre-flag the data to be clipped
             # myme = measures()
             mymsmd = msmetadata()
-            mytb = table()
             myqa = qa
             # center = myme.direction('J2000', myqa.quantity(0, 'rad'), myqa.quantity(0, 'rad'))
             offset_plus = myqa.convert(myqa.quantity('1arcmin'), 'rad')
@@ -3890,11 +3889,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                     meta = gridmeta[ira][idec]
                     for imeta in range(len(meta)):
                         infile, irow = meta[imeta]
-                        mytb.open(infile)
-                        try:
+                        with table_manager(infile) as mytb:
                             data = mytb.getcell('FLOAT_DATA', irow)[0]
-                        finally:
-                            mytb.close()
+
                         grid[ira][idec].append(data)
 
             for ira in range(imsize):
@@ -3911,8 +3908,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                             ira, idec, argmin, argmax))
                         for imeta in (argmin, argmax):
                             infile, irow = gridmeta[ira][idec][imeta]
-                            mytb.open(infile, nomodify=False)
-                            try:
+                            with table_manager(infile, nomodify=False) as mytb:
                                 print('### clip {} row {} chan {} data {}'.format(
                                     infile, irow, ichan, mytb.getcell('FLOAT_DATA', irow)))
                                 flag = mytb.getcell('FLAG', irow)
@@ -3920,8 +3916,6 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                                 flag[0, ichan] = True
                                 print('### flag (after) {}'.format(flag))
                                 mytb.putcell('FLAG', irow, flag)
-                            finally:
-                                mytb.close()
 
         outfile = self.outfile_ref
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
@@ -4255,10 +4249,9 @@ class sdimaging_test_output(sdimaging_unittest_base):
                              msg=suffix + ' exists though it should not.')
 
 
-class sdimaging_antenna_move(sdimaging_unittest_base):
+class sdimaging_pm04_test_base(sdimaging_unittest_base):
     datapath = ctsys_resolve('unittest/tsdimaging/')
     infiles = ['PM04_A108.ms', 'PM04_T704.ms']
-    outfile = 'antenna_move'
 
     def setUp(self):
         self.__clear_files()
@@ -4275,10 +4268,10 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             if os.path.exists(f):
                 shutil.rmtree(f)
 
-    def test_antenna_move(self):
+    def _run_pm04_test(self, infiles=None):
         imsize = 11
         params = {
-            'infiles': self.infiles,
+            'infiles': self.infiles if infiles is None else infiles,
             'antenna': '2',
             'spw': '18',
             'phasecenter': 2,
@@ -4297,6 +4290,172 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             'sum': [1]
         }
         self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+
+class sdimaging_antenna_move(sdimaging_pm04_test_base):
+    """
+    Test imaging multiple data from the same antenna but different stations
+    """
+    outfile = 'antenna_move'
+
+    def test_antenna_move(self):
+        self._run_pm04_test()
+
+
+class sdimaging_ms_order(sdimaging_pm04_test_base):
+    """
+    Test MS order using the fact that sdimaging takes object name
+    from the first MS of internally sorted list of MSes.
+    """
+    field_names = ['SUCCESS', 'FAIL']
+    outfile = 'ms_order'
+
+    def setUp(self):
+        super(sdimaging_ms_order, self).setUp()
+        for infile, fname in zip(self.infiles, self.field_names):
+            self.__set_field_name(infile, 2, fname)
+
+    def __set_field_name(self, infile, field_id, name):
+        with table_manager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
+            tb.putcell('NAME', field_id, name)
+            assert tb.getcell('NAME', field_id) == name
+
+    def _verify_field_name(self, imagename):
+        object_name = imhead(imagename=imagename, mode='get', hdkey='OBJECT')
+        print('imagename="{}", object name="{}"'.format(imagename, object_name))
+        self.assertEqual(object_name, self.field_names[0])
+
+    def _test_ms_order(self, infiles):
+        self._run_pm04_test(infiles)
+        outputimage = self.outfile + '.image'
+        self._verify_field_name(outputimage)
+
+    def test_normal_order(self):
+        """test_normal_order: test normal chronological order"""
+        self._test_ms_order(self.infiles)
+
+    def test_reverse_order(self):
+        """test_reverse_order: test reverse chronological order"""
+        infiles = self.infiles[::-1]
+        self.assertEqual(infiles.index(self.infiles[0]), 1)
+        self._test_ms_order(infiles)
+
+
+class sdimaging_ms_conformance(sdimaging_pm04_test_base):
+    """
+    Test handling of non-conform set of MS inputs
+
+    This test checks the following:
+
+      - sdimaging works on conformant input MS list
+      - sdimaging removes WEIGHT_SPECTRUM from MS if non-conformant
+      - sdimaging creates backup for data whose WEIGHT_SPECTRUM need
+        to be removed
+    """
+    outfile = 'ms_conformance'
+
+    @staticmethod
+    def column_exists(name, colname):
+        with table_manager(name) as tb:
+            colnames = tb.colnames()
+
+        return colname in colnames
+
+    @staticmethod
+    def fill_weight_spectrum(name):
+        with calibrater_manager(name, addcorr=False, addmodel=False) as cb:
+            cb.initweights(wtmode='ones', dowtsp=True)
+
+    @staticmethod
+    def remove_weight_spectrum(name):
+        with table_manager(name, nomodify=False) as tb:
+            if 'WEIGHT_SPECTRUM' in tb.colnames():
+                tb.removecols(['WEIGHT_SPECTRUM'])
+            wt = tb.getcol('WEIGHT')
+            wt[:] = 1.0
+            tb.putcol('WEIGHT', wt)
+
+    @staticmethod
+    def fill_corrected_data(name):
+        with calibrater_manager(name, addmodel=False, addcorr=True):
+            pass
+
+    @staticmethod
+    def remove_corrected_data(name):
+        with table_manager(name, nomodify=False) as tb:
+            if 'CORRECTED_DATA' in tb.colnames():
+                tb.removecols(['CORRECTED_DATA'])
+
+    def setUp(self):
+        super(sdimaging_ms_conformance, self).setUp()
+        # keep existing backup files
+        self.existing_backup_files = set(glob.glob('*.sdimaging.backup-2*'))
+        self.additional_backup_files = set()
+
+    def tearDown(self):
+        super(sdimaging_ms_conformance, self).tearDown()
+        # remove backup files created during test
+        for name in self.additional_backup_files:
+            if os.path.exists(name):
+                shutil.rmtree(name)
+
+    def _test_backup(self, name):
+        backup_files = set(glob.glob('{}.sdimaging.backup-2*'.format(name)))
+        self.additional_backup_files.update(
+            backup_files.difference(self.existing_backup_files)
+        )
+        self.assertEqual(len(self.additional_backup_files), 1)
+
+    def test_nowtsp1(self):
+        """test_nowtsp1: no WEIGHT_SPECTRUM column in the first MS"""
+        self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[1])
+
+    def test_nowtsp2(self):
+        """test_nowtsp2: no WEIGHT_SPECTRUM column in the second MS"""
+        self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[0])
+
+    def test_conform1(self):
+        """test_conform1: WEIGHT_SPECTRUM exists"""
+        self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform2(self):
+        """test_conform2: WEIGHT_SPECTRUM does not exist"""
+        self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform3(self):
+        """test_conform3: CORRECTED_DATA column exists only for the first MS"""
+        self.fill_corrected_data(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.remove_corrected_data(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform4(self):
+        """test_conform4: CORRECTED_DATA column exists only for the second MS"""
+        self.remove_corrected_data(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.fill_corrected_data(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
+
 
 
 """

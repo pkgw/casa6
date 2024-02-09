@@ -170,6 +170,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/listobs.xml',
               'xml/flagdata.xml',
               'xml/flagcmd.xml',
+              'xml/getephemtable.xml',
               'xml/setjy.xml',
               'xml/cvel.xml',
               'xml/cvel2.xml',
@@ -213,6 +214,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/gencal.xml',
               'xml/testconcat.xml',
               'xml/apparentsens.xml',
+              'xml/getcalmodvla.xml',
               'xml/hanningsmooth.xml',
               'xml/imcollapse.xml',
               'xml/imcontsub.xml',
@@ -400,9 +402,9 @@ def generate_pyinit(moduledir,tasks):
         fd.write('        casalog.post("Python version " + platform.python_version())\n')
         fd.write('        casalog.post("CASA Version " + package_variant.upper() + " %s")\n' % casatasks_version)
         fd.write('    except:\n')
-        fd.write('        print("Error: the logfile is not writable")\n')  
+        fd.write('        print("Error: the logfile is not writable")\n')
         fd.write("\n")
-        
+
 
 class BuildCasa(build):
     description = "Description of the command"
@@ -458,7 +460,7 @@ class BuildCasa(build):
         mkpath(xmldir)
         for x in xml_files:
             copy2(x,xmldir)
-            
+
         os.makedirs(os.path.join(moduledir, 'tests'))
         f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
         f.close()
