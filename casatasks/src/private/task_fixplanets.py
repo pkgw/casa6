@@ -33,7 +33,6 @@ def _checkinternalephemtab(vis, field):
     from casatools import table, ms
     _tb = table()
     _ms = ms() 
-    print(f'vis={vis}, field={field}')
     fids = _ms.msseltoindex(vis=vis,field=field)['field']
     _tb.open(vis+'/FIELD')
     ephemnames = []
