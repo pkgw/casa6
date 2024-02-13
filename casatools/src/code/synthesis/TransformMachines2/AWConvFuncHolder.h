@@ -71,6 +71,8 @@ class AWConvFuncHolder{
                     const casacore::Matrix<casacore::Double> &rotuvw);
   
 
+  
+
 private:
   void appendConvFuncs(const casacore::Array<casacore::Complex> &awConv,
                        const casacore::Array<casacore::Complex> &aWwtConv,

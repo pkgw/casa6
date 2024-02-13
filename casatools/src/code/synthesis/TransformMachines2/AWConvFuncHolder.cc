@@ -150,10 +150,11 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   Matrix<Int> awSupport;
   calcCsys_p = outcsys_p;
   calcNpix_p = min(nx_p,  ny_p);
-  cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
+  //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
+  //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
-    
+    cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
     //append arrays and indices  
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
@@ -202,6 +203,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   Vector<Int> waxis(wVals_p.nelements());
   indgen(waxis);
   rowAxisWVals_p(blc, trc) = waxis;
+  //cerr << "rowAxisWVals " << rowAxisWVals_p << endl;
   rowAxisAntennaPair_p.resize(trc[0]+1,  True);
   rowAxisAntennaPair_p(blc, trc).set(0);
   /// Let us rescale convolution function to match nx, ny and incr of image that makes 
@@ -311,6 +313,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   Vector<Int> pmap;
   Vector<Int> rmap;
   getConvIndices(pmap, cmap, rmap, vb, rotuvw);
+  //cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
   std::vector<Int> pmapused = pmap.tovector();
   {
     std::sort(pmapused.begin(), pmapused.end());
@@ -333,16 +336,16 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
                 pmapused.size(), cmapused.size(), rmapused.size());
   polMap.resize(pmap.shape());
   for (uint j = 0; j < polMap.nelements(); ++j) {
-    for (int k = 0; k < pmapused.size(); ++k) {
+    for (uint k = 0; k < pmapused.size(); ++k) {
       if (pmap[j]==pmapused[k]){
         polMap[j] = k;
       }
     }
   }
   chanMap.resize(cmap.shape());
-  std::vector<int>cindex(cmapused.size());
+  //std::vector<int>cindex(cmapused.size());
   for (uint j = 0; j < chanMap.nelements(); ++j) {
-    for (int k = 0; k < cmapused.size(); ++k) {
+    for (uint k = 0; k < cmapused.size(); ++k) {
       if (cmap[j] == cmapused[k]){
         chanMap[j] = k;
       }
@@ -350,13 +353,14 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   }
   rowMap.resize(rmap.shape());
   for (uint j = 0; j < rowMap.nelements(); ++j) {
-    for (int k = 0; k < rmapused.size(); ++k) {
+    for (uint k = 0; k < rmapused.size(); ++k) {
       if (abs(rmap[j]) == rmapused[k]){
         //rowmap is -ve for -ve w
         rowMap[j] = rmap[j] < 0 ? -k : k;
       }
     }
   }
+  //cerr << "old rmapused" << Vector<int>(rmapused) << " cmap " << Vector<int>(cmapused) << " pmap " << Vector<int>(pmapused) << endl;
   convFunc.resize(shp);
   wgtConvFunc.resize(shp);
   IPosition inblc(5, 0, 0, 0, 0, 0);

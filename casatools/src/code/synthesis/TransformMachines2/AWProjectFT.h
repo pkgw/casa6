@@ -33,7 +33,8 @@
 #include <synthesis/TransformMachines2/VLAIlluminationConvFunc.h>
 #include <synthesis/TransformMachines2/AWVisResampler.h>
 //#include <synthesis/MeasurementComponents/ConvolutionFunction.h>
-#include <synthesis/TransformMachines2/EVLAConvFunc.h>
+//#include <synthesis/TransformMachines2/EVLAConvFunc.h>
+#include <casacore/lattices/LatticeMath/LatticeFFT.h>
 #include <synthesis/MeasurementComponents/SolvableVisCal.h>
 #include <synthesis/TransformMachines2/VPSkyJones.h>
 #include <synthesis/TransformMachines2/FTMachine.h>
@@ -424,7 +425,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     casacore::Int nint(casacore::Double val) {return casacore::Int(floor(val+0.5));};
 
     // Find the convolution function
-    void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
+    virtual void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
 			  const vi::VisBuffer2& vb);
     
     // Get the appropriate data pointer
@@ -432,7 +433,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     void ok();
     
-    void init();
+    virtual void init(const vi::VisBuffer2& vb);
     //    virtual void initPolInfo(const vi::VisBuffer2& vb);
     // Is this record on Grid? check both ends. This assumes that the
     // ends bracket the middle
@@ -551,7 +552,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     casacore::CountedPtr<refim::FTMachine> self_p;
     casacore::CountedPtr<refim::VB2CFBMap> vb2CFBMap_p;
     casacore::CountedPtr<refim::PointingOffsets> po_p;
-
     Bool wbAWP_p;
     casacore::Double timemass_p, timegrid_p, timedegrid_p;
 #include "AWProjectFT.FORTRANSTUFF.INC"

@@ -184,12 +184,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			  VBStore& vbs, const VisBuffer2& vb);
 
     casacore::Bool resetPBs_p, wtImageFTDone_p;
+    // Allow access to inherted classes (e.g. AWPWBHPG)
+    casacore::TempImage<casacore::Complex> griddedWeights;
+    casacore::TempImage<casacore::DComplex> griddedWeights_D;
 
   private:
     casacore::String tt_pp;
     casacore::Vector<casacore::Int> fieldIds_p;
-    casacore::TempImage<casacore::Complex> griddedWeights;
-    casacore::TempImage<casacore::DComplex> griddedWeights_D;
     CFStore rotatedCFWts_p;
     casacore::CountedPtr<VisibilityResamplerBase> visResamplerWt_p;
     casacore::Bool oneTimeMessage_p;

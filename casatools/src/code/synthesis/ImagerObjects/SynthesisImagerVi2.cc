@@ -83,10 +83,8 @@
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
 #include <synthesis/TransformMachines2/AWPLPG.h>
 #include <synthesis/TransformMachines2/MultiTermFTNew.h>
-#include <synthesis/TransformMachines2/AWProjectWBFTNew.h>
+#include <synthesis/TransformMachines2/AWProjectWBFT.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
-//#include <synthesis/TransformMachines2/AWConvFuncEPJones.h>
-#include <synthesis/TransformMachines2/NoOpATerm.h>
 #include <synthesis/TransformMachines2/SDGrid.h>
 #include <synthesis/TransformMachines/WProjectFT.h>
 #include <synthesis/TransformMachines2/BriggsCubeWeightor.h>
@@ -602,8 +600,8 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
 	
 
 	os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
-    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
-    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+	//    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
+	//    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
 	csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
 	//use the location defined for coordinates frame;
 	mLocation_p=impars_p.obslocation;
@@ -1352,6 +1350,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
     	itsMappers.initializeGrid(*vi_p,dopsf);
 	SynthesisUtilMethods::getResource("After initGrid for all mappers");
         ////Under some peculiar selection criterion and low channel ms  vb2 seems to return more channels than in spw
+        
+        if (gridparsVec_p[0].ftmachine.at(0,3) != "awp")
         {
           vi_p->originChunks();
           vi_p->origin();
@@ -1361,7 +1361,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
           //cerr << "chans " << nchaninms << "   " << nchannow << endl;
          
           if (nchaninms < nchannow){
-            cerr << "NCHANS ms" << nchaninms << " now " << nchannow << " spw " << spwnow << "   " << vb->spectralWindows() << endl;
+            cerr << "NCHANS ms" << nchaninms << " now " << nchannow << " spw " << spwnow << "   " << vb->spectralWindows()[0] << endl;
             throw(AipsError("A nasty Visbuffer2 error occured...wait for CNGI"));
           }
         }
@@ -2394,7 +2394,7 @@ void SynthesisImagerVi2::unlockMSs()
 
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
-    cerr <<  "####FTNAME " <<  ftname <<  endl;
+    //    cerr <<  "####FTNAME " <<  ftname <<  endl;
     if(ftname=="gridft"){
       if(facets >1){
 	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
@@ -2638,11 +2638,9 @@ void SynthesisImagerVi2::unlockMSs()
     // With lazy fill ON, CFCache loads the required CFs on-demand
     // from the disk.  And periodically triggers garbage collection to
     // release CFs that aren't required immediately.
-    if(impars_p.mode.contains("cube")){
-      cfCacheObj->setLazyFill(False);
-    }
-    else
-      cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
+    //cfCacheObj->setLazyFill(refim::SynthesisUtils::getenv("CFCache.LAZYFILL",1)==1);
+    cfCacheObj->setLazyFill(False);
+
     //    cerr << "Setting wtImagePrefix to " << imageNamePrefix.c_str() << endl;
     cfCacheObj->setWtImagePrefix(imageNamePrefix.c_str());
     cfCacheObj->initCache2(CFC_VERBOSE);
@@ -3061,7 +3059,7 @@ void SynthesisImagerVi2::unlockMSs()
       // useful to extend it to other projection FTMs -- but later.
       // String ftmName = ((*(itsMappers.getFTM(whichFTM)))).name();
 
-      if (!ftmName.contains("awproject") and
+      if ( !(ftmName.at(0,3)=="awp") &&
 	  !ftmName.contains("multitermftnew")) return;
       //if (!ftmName.contains("awproject")) return;
       
@@ -3222,7 +3220,8 @@ void SynthesisImagerVi2::unlockMSs()
             {
               if (SynthesisUtilMethods::validate(*vb)!=SynthesisUtilMethods::NOVALIDROWS)
 		    {
-                      itsMappers.getFTM2(0)->gridImgWeights(*vb);
+                      itsMappers.getFTM2(0)->gridImgWeights(*vb);//This just calls AWP::put();
+
                       cohDone += vb->nRows();
                       pm.update(Double(cohDone));
 		    }
@@ -3230,6 +3229,8 @@ void SynthesisImagerVi2::unlockMSs()
     	}
       //now load the images in weight and sumwt
       itsMappers.getFTM2(0)-> finalizeToWeightImage(*vb, imageStore(0));  
+      itsMappers.getFTM2(0)->setPBReady(false);
+
       //cerr << "@@@@@@@MAKING PB " << endl;
       return True;
      
@@ -3237,9 +3238,11 @@ void SynthesisImagerVi2::unlockMSs()
    }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  Bool SynthesisImagerVi2::loadMosaicSensitivity(){
+  bool  SynthesisImagerVi2::loadMosaicSensitivity(){
+    if(!itsMappers.getFTM2(0))
+      return False;
     String ftmname=itsMappers.getFTM2(0)->name();
-    
+    //cerr << "########Trying to load PB" << endl;
     if(ftmname.contains("Mosaic") || ftmname.contains("AWProjectWB")){
       //sumwt has been calcuated
       Bool donesumwt=(max(itsMappers.imageStore(0)->sumwt()->get()) > 0.0);
@@ -3249,8 +3252,9 @@ void SynthesisImagerVi2::unlockMSs()
         CoordinateSystem cs=itsMappers.imageStore(0)->weight()->coordinates();
         CountedPtr<ImageInterface<Float> > wgtim=new TempImage<Float>(shp, cs);
         wgtim->copyData(*(itsMappers.imageStore(0)->weight()));
-        (static_cast<refim::FTMachine &>( *(itsMappers.getFTM2(0,False)))).setWeightImage(*wgtim);
-        static_cast<refim::FTMachine &>( *(itsMappers.getFTM2(0,True))).setWeightImage(*wgtim);
+        (const_cast<CountedPtr<refim::FTMachine>& >(itsMappers.getFTM2(0,False)))->setWeightImage(*wgtim);
+        (const_cast<CountedPtr<refim::FTMachine>& >(itsMappers.getFTM2(0,True)))->setWeightImage(*wgtim);
+        //cerr <<"@@@@@@@@LOADING PB" << endl;
         return true;
       }
 

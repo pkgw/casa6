@@ -157,6 +157,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	usezero_p       =   other.usezero_p;
 	doPBCorrection  =   other.doPBCorrection;
 	maxConvSupport  =   other.maxConvSupport;
+        avgPBReady_p= other.avgPBReady_p;
 	resetPBs_p      =   other.resetPBs_p;
 	wtImageFTDone_p =   other.wtImageFTDone_p;
 	rotatedCFWts_p  =   other.rotatedCFWts_p;
@@ -543,6 +544,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
     //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
+    ////TESTOO need to oveload this init in HPG
     if(!avgPBReady_p)
       avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
@@ -555,22 +557,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Need to grid the weighted Convolution Functions to make the sensitivity pattern.
     if (!avgPBReady_p)
       {
-	// Make a copy of the re-sampler and set it up.
-	if (visResamplerWt_p.null()) visResamplerWt_p = visResampler_p->clone();
-	visResamplerWt_p = visResampler_p;
-	visResamplerWt_p->setMaps(chanMap, polMap);
-	if (useDoubleGrid_p)
-	  {
-	    Array<DComplex> gwts; Bool removeDegenerateAxis=false;
-	    griddedWeights_D.get(gwts, removeDegenerateAxis);
-	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
-	  }
-	else
-	  {
-	    Array<Complex> gwts; Bool removeDegenerateAxis=false;
-	    griddedWeights.get(gwts, removeDegenerateAxis);
-	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
-	  }
+    	// Make a copy of the re-sampler and set it up.
+    	if (visResamplerWt_p.null()) visResamplerWt_p = visResampler_p->clone();
+    	visResamplerWt_p = visResampler_p;
+    	visResamplerWt_p->setMaps(chanMap, polMap);
+    	if (useDoubleGrid_p)
+    	  {
+    	    Array<DComplex> gwts; Bool removeDegenerateAxis=false;
+    	    griddedWeights_D.get(gwts, removeDegenerateAxis);
+    	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
+    	  }
+    	else
+    	  {
+    	    Array<Complex> gwts; Bool removeDegenerateAxis=false;
+    	    griddedWeights.get(gwts, removeDegenerateAxis);
+    	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
+    	  }
       }
   }
   //
@@ -581,6 +583,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO log_l(LogOrigin("AWProjectWBFT2", "finalizeToSky[R&D]"));
     AWProjectFT::finalizeToSky();
 
+    
+    if(name()=="AWProjectWBFTHPG")
+      return;
+    ////
     if(!visResamplerWt_p)
       return;
 
@@ -590,8 +596,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // method in the AWProjectWBFTHPG class making the NoOp obvious
     // for that class, and easily extendable & maintainable.
     //
-    if(name()=="AWProjectWBFTHPG")
-      return;
+   
 
      if (!avgPBReady_p) 
       {
@@ -653,8 +658,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       vbs.accumCFs_p=((vbs.uvw_p.nelements() == 0) && dopsf_l);
       vbs.ftmType_p=casa::refim::FTMachine::WEIGHT;  
       Int nDataChan = vbs.flagCube_p.shape()[1];
-    
+      
+      visResamplerWt_p->setVB2CFMap(vb2CFBMap_p);
       vbs.startChan_p = 0; vbs.endChan_p = nDataChan;
+
       visResamplerWt_p->DataToGrid(gwts, vbs, sumCFWeight, dopsf_l); 
     }
   //
@@ -707,59 +714,59 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
  void  AWProjectWBFT::gridImgWeights(const VisBuffer2& vb)
  {
+   findConvFunction(*image, vb);
+   //cerr << "IN gridWTImage" << endl;
    if(avgPBReady_p)
      return;
    else
      avgPB_p=nullptr;  ///make sure it is not pointing to anything
-   /*   // This does WEIGHTs gridding via the framework route 
+
+   // This does WEIGHTs gridding via the framework route 
    // (set ftmType and use ::put() for *all* gridding)
    ftmType_p=casa::refim::FTMachine::WEIGHT;
    put(vb,-1,false);
    return;
-   */
-   try
-     {
-       findConvFunction(*image, vb);
-        if(avgPBReady_p)
-          return;
-     }
-   catch(AipsError& x)
-     {
-       LogIO log_l(LogOrigin("AWProjectFT2", "put[R&D]"));
-       log_l << x.getMesg() << LogIO::WARN;
-       return;
-     }
-   Matrix<Float> imagingweight;
-   getImagingWeight(imagingweight, vb);
-   matchChannel(vb);
-   Cube<Complex> data;
-   //Fortran gridder need the flag as ints 
-   Cube<Int> flags;
-   Matrix<Float> elWeight;
    
-   interpolateFrequencyTogrid(vb, imagingweight,data, flags , elWeight, FTMachine::PSF);
-   //Matrix<Double> uvw(negateUV(vb));
-   Matrix<Double> uvw;
-   Vector<Double> dphase(vb.nRows());
-   dphase=0.0;
-   doUVWRotation_p=true;
-   VBStore vbs;
-   Vector<Int> gridShape = griddedData2.shape().asVector();
-    ftmType_p=casa::refim::FTMachine::WEIGHT;
-   setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase, True ,gridShape);
-   if (useDoubleGrid_p){
-     	Array<DComplex> gwts; Bool removeDegenerateAxis=false;
-	griddedWeights_D.get(gwts, removeDegenerateAxis);
-	resampleCFToGrid(gwts, vbs, vb);
+   // try
+   //   {
+   //     findConvFunction(*image, vb);
+   //      if(avgPBReady_p)
+   //        return;
+   //   }
+   // catch(AipsError& x)
+   //   {
+   //     LogIO log_l(LogOrigin("AWProjectFT2", "put[R&D]"));
+   //     log_l << x.getMesg() << LogIO::WARN;
+   //     return;
+   //   }
+   // Matrix<Float> imagingweight;
+   // getImagingWeight(imagingweight, vb);
+   // matchChannel(vb);
+   // Cube<Complex> data;
+   // //Fortran gridder need the flag as ints 
+   // Cube<Int> flags;
+   // Matrix<Float> elWeight;
+   
+   // interpolateFrequencyTogrid(vb, imagingweight,data, flags , elWeight, FTMachine::PSF);
+   // Matrix<Double> uvw(negateUV(vb));
+   // Vector<Double> dphase(vb.nRows());
+   // dphase=0.0;
+   // doUVWRotation_p=true;
+   // VBStore vbs;
+   // Vector<Int> gridShape = griddedData2.shape().asVector();
+   // setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase, True /*dopsf*/,gridShape);
+   // if (useDoubleGrid_p){
+   //   	Array<DComplex> gwts; Bool removeDegenerateAxis=false;
+   // 	griddedWeights_D.get(gwts, removeDegenerateAxis);
+   // 	resampleCFToGrid(gwts, vbs, vb);
         
-    }
-   else{
-     Array<Complex> gwts; Bool removeDegenerateAxis=false;
-     griddedWeights.get(gwts, removeDegenerateAxis);
-     resampleCFToGrid(gwts, vbs, vb);
+   //  }
+   // else{
+   //   Array<Complex> gwts; Bool removeDegenerateAxis=false;
+   //   griddedWeights.get(gwts, removeDegenerateAxis);
+   //   resampleCFToGrid(gwts, vbs, vb);
      
-   }
-    
+   // }
  }
   
   void AWProjectWBFT::setCFCache(CountedPtr<CFCache>& cfc, const Bool resetCFC) 

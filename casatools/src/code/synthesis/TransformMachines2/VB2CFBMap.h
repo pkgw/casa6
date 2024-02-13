@@ -61,6 +61,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
        
      };
      
+     VB2CFBMap(const VB2CFBMap& other);
      VB2CFBMap& operator=(const VB2CFBMap& other);
      const casacore::CountedPtr<CFBuffer >& operator[](const int& i) {return vb2CFBMap_p[i];};
      
@@ -109,7 +110,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
      Vector<int> maxCFShape_p;
      casacore::Timer timer_p;
      float totalCost_p, totalVB_p;
-     Bool computePhaseScreen_p;
+     casacore::Bool  computePhaseScreen_p;
+
    };
  }
 }
