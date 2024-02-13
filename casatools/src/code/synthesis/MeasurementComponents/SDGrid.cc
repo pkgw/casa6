@@ -2163,6 +2163,11 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
     const Cube<Float> weightspec(vb.weightSpectrum());
     weight.resize(vb.nChannel(), vb.nRow());
 
+    auto const toStokesWeight = [](float numerator, float denominator) {
+          constexpr float fmin = std::numeric_limits<float>::min();
+          return abs(denominator) < fmin ? 0.0f : 4.0f * numerator / denominator;
+    };
+
     if (weightspec.nelements() == 0) {
       auto const weightMat = vb.weightMat();
       ssize_t const npol = weightMat.shape()(0);
@@ -2176,7 +2181,7 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
           // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
           auto const denominator = weightMat(0, k) + weightMat((npol-1), k);
           auto const numerator = weightMat(0, k) * weightMat((npol-1), k);
-          weight.column(k).set(4.0f * numerator / denominator);
+          weight.column(k).set(toStokesWeight(numerator, denominator));
         }
       }
     } else {
@@ -2193,7 +2198,7 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
             // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
             auto const denominator = weightspec(0, chan, k) + weightspec((npol-1), chan, k);
             auto const numerator = weightspec(0, chan, k) * weightspec((npol-1), chan, k);
-            weight(chan, k) = 4.0f * numerator / denominator;
+            weight(chan, k) = toStokesWeight(numerator, denominator);
           }
         }
       }
