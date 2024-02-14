@@ -568,7 +568,6 @@ It is assumed that the steps to test casatools (see above) have already been per
 ```
 
 1.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
-
 ```
     $ cd $CASASRC/casatasks
     $ pip uninstall casatasks
@@ -576,13 +575,11 @@ It is assumed that the steps to test casatools (see above) have already been per
 ```
 
 1.    Optionally install casadata or point to a given location of casadata in your $HOME/.casa/config.py
-
 ```
     $ pip install casadata
 ```
 
-1.     Run the tests:
-
+1.    Run the tests:
 ```
     $ cd $CASATESTDIR
     $ python $CASASRC/casatasks/tests/run.py
