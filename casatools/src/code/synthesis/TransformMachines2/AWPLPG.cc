@@ -95,15 +95,15 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     spCS.toWorld(f2, double(nchan)-0.5);
     auto frange=std::make_pair(f1, f2);
     
-  
+  if(pbConvFunc_p.null())
+      pbConvFunc_p=new HetArrayConvFunc();
+  awConvs_p=pbConvFunc_p->getAWConvFuncHolder();
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
     awConvs_p=std::make_shared<AWConvFuncHolder>((*image).coordinates(), nx, ny, 
                    doSquint_p, paInc_p, observatory, convSampling);
     vi::VisibilityIterator2 *vi= const_cast<VisibilityIterator2 *>(vb.getVi());
     
-    if(pbConvFunc_p.null())
-      pbConvFunc_p=new HetArrayConvFunc();
     if(sj_p)
       pbConvFunc_p->setSkyJones(sj_p.get());
       
@@ -167,25 +167,36 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         wVals[k]=Double(k*k)*st;
     }
     (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, paMax);
-    
+    pbConvFunc_p->setAWConvFuncHolder(awConvs_p);
   }
   
 }
   
  void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
-
-
-
-    awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
-                             weightConvFunc_p, vb, rotuvw);
-
-   //
+  //
   // pbConvFunc_p.phasegradient
+  //double time0=omp_get_wtime();
+  //Complex *oWgtPtr, *oConPtr;
+  //Bool isCopy;
+  //if(convFunc.size()==0 || (convFunc.shape() != awConvs_p->getConvFunc().shape())){
+   // convFunc.resize(awConvs_p->getConvFunc().shape());
+   // weightConvFunc_p.resize(awConvs_p->getWeightConvFunc().shape());
+  
+  //}
+  //oWgtPtr=awConvs_p->getWeightConvFunc().getStorage(isCopy);
+  //oConPtr=awConvs_p->getConvFunc().getStorage(isCopy);
     //convFunc.resize();
-    // convFunc.assign(awConvs_p->getConvFunc());
- 
+    //convFunc=(awConvs_p->getConvFunc());
+    //Bool isCopy1, isCopy2;
+    //cerr << "SIZEOF " <<  sizeof convFunc << " size elem wise " << convFunc.nelements() << endl;
+    //Complex* convFuncPtr=convFunc.getStorage(isCopy1);
+    // Complex* wgtFuncPtr=weightConvFunc_p.getStorage(isCopy2);
     //weightConvFunc_p.resize();
-    //weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
+    //weightConvFunc_p=(awConvs_p->getWeightConvFunc());
+    //std::memcpy(convFuncPtr, oConPtr, sizeof(Complex)*convFunc.nelements());
+    //std::memcpy(wgtFuncPtr, oWgtPtr, sizeof(Complex)*weightConvFunc_p.nelements());
+    //convFunc.putStorage(convFuncPtr, isCopy1);
+    //weightConvFunc_p.putStorage(wgtFuncPtr, isCopy2);
     /*{ 
       ////TESTOO
       IPosition elshp = convFunc.shape().getFirst(4);
@@ -207,13 +218,18 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       lastplaneW.put(weightConvFunc_p(elblc,  eltrc).nonDegenerate());
     //////
     } */  
+    awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
+                             weightConvFunc_p, vb, rotuvw);
+    //double time1=omp_get_wtime();
+    //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
     //awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
     //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
-    std::vector<Int> pmapused=convPolMap_p.tovector();
+    //cerr << "LENGTHS bef" << convRowMap_p.size() << "  " << convChanMap_p.size()   << "   " << convPolMap_p.size() << endl;
+    std::vector<Int> pmapused = convPolMap_p.tovector();
     {
       std::sort(pmapused.begin(),  pmapused.end());
       auto last = std::unique(pmapused.begin(),  pmapused.end());
@@ -231,7 +247,8 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
-    //cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
+    //cerr << "LENGTH aft " << rmapused.size() << "   " << cmapused.size() << "   " << pmapused.size() << endl;
+    // cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
