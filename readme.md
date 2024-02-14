@@ -550,7 +550,7 @@ The casatasks wheel creation and installation has not changed in the modular bui
 ```
     $ rm -rf dist
 ```
-1. Create casatasks wheel. The resulting wheel file is stored under $CASASRC/casatasks/dist. Requires the Python wheel module (question)
+1. Create casatasks wheel. The resulting wheel file is stored under $CASASRC/casatasks/dist. Requires the Python wheel module (question). Note that one should deactivate the test_env (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
 ```
     $ ./setup.py bdist_wheel
 ```
@@ -561,21 +561,28 @@ The casatasks wheel creation and installation has not changed in the modular bui
 
 It is assumed that the steps to test casatools (see above) have already been performed.
 
-1.     (Optional). Activate the same virtual environment that was used to test casatools (see above). Omit this step if you prefer to install in your $HOME.
+1.    Optionally activate the same virtual environment that was used to test casatools (see above). Omit this step if you prefer to install in your $HOME.
+
 ```
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
+
 1.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
+
 ```
     $ cd $CASASRC/casatasks
     $ pip uninstall casatasks
     $ pip install ./dist/casatasks*whl
 ```
+
 1.    Optionally install casadata or point to a given location of casadata in your $HOME/.casa/config.py
+
 ```
     $ pip install casadata
 ```
+
 1.     Run the tests:
+
 ```
     $ cd $CASATESTDIR
     $ python $CASASRC/casatasks/tests/run.py
