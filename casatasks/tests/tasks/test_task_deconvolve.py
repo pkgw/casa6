@@ -945,7 +945,7 @@ class test_onefield(testref_base):
     # Test 5
     #@unittest.skip("ASP deconvolver currently does not follow the same logic for deconvolve as it does for tclean by the most basic measure, iterdone. To be fixed in CAS-13570")
     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "ASP deconvolver currently has issues when running with MPI. To be unskipped in CAS-13874.")
-    @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures. To be fixed in CAS-13791.")
+    #@unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures. To be fixed in CAS-13791.")
     def test_onefield_asp(self):
         """ [onefield] test_onefield_asp """
         ######################################################################################
@@ -975,9 +975,9 @@ class test_onefield(testref_base):
 
         # only running the major cycle once, run the minor cycle for as many times as is done during the first minor cycle of tclean
         # niter and threshold are pulled from the logs of the test_task_tclean.py::test_onefield_asp
-        niter, threshold = 140, 2.18838
-        results = deconvolve(imagename=self.img+'1', niter=niter, threshold=threshold, deconvolver='asp', gain=0.2)
-        report  = th.checkall(ret=results, iterdone=135,
+        niter, threshold = 150, 2.19194
+        results = deconvolve(imagename=self.img+'1', niter=niter, threshold=threshold, deconvolver='asp', gain=0.1)
+        report  = th.checkall(ret=results, iterdone=268,
                               imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], 
                               imgval=[(self.img+'1.psf',1.0,[256,256,0,0]),
                                       (self.img+'1.image',pt_true_1major,pt_loc_4),
