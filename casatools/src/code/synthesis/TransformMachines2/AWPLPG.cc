@@ -37,7 +37,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/Matrix.h>
 #include <casacore/casa/Arrays/Vector.h>
-#include <omp.h>
+
 
 
 namespace casa { //# NAMESPACE CASA - BEGIN
@@ -83,7 +83,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   if(convSampling <4) 
     convSampling=4;
  // TESTOO
-  convSampling = 4;
+  //convSampling = 1;
   // TESTOO
   
   CoordinateSystem cs=image->coordinates();
@@ -95,15 +95,15 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     spCS.toWorld(f2, double(nchan)-0.5);
     auto frange=std::make_pair(f1, f2);
     
-  
+  if(pbConvFunc_p.null())
+      pbConvFunc_p=new HetArrayConvFunc();
+  awConvs_p=pbConvFunc_p->getAWConvFuncHolder();
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
     awConvs_p=std::make_shared<AWConvFuncHolder>((*image).coordinates(), nx, ny, 
                    doSquint_p, paInc_p, observatory, convSampling);
     vi::VisibilityIterator2 *vi= const_cast<VisibilityIterator2 *>(vb.getVi());
     
-    if(pbConvFunc_p.null())
-      pbConvFunc_p=new HetArrayConvFunc();
     if(sj_p)
       pbConvFunc_p->setSkyJones(sj_p.get());
       
@@ -167,7 +167,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         wVals[k]=Double(k*k)*st;
     }
     (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, paMax);
-    
+    pbConvFunc_p->setAWConvFuncHolder(awConvs_p);
   }
   
 }
@@ -220,16 +220,16 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     } */  
     awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
                              weightConvFunc_p, vb, rotuvw);
-    //double time1=omp_get_wtime();
-    //cerr << " assign time " << time1-time0 << endl;
+    //cerr << "convRowMap" << convRowMap_p << endl;
+    // double time1=omp_get_wtime();
+    // cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
     //awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
     //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
-    //cerr << "LENGTHS bef" << convRowMap_p.size() << "  " << convChanMap_p.size()
-    //     << "   " << convPolMap_p.size() << endl;
+    //cerr << "LENGTHS bef" << convRowMap_p.size() << "  " << convChanMap_p.size()   << "   " << convPolMap_p.size() << endl;
     std::vector<Int> pmapused = convPolMap_p.tovector();
     {
       std::sort(pmapused.begin(),  pmapused.end());
@@ -248,15 +248,12 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
-    //cerr << "LENGTH aft " << rmapused.size() << "   " << cmapused.size()
-   //      << "   " << pmapused.size() << endl;
-    // cerr << "pmap " << Vector<Int>(pmapused) << " cmp " <<
-    // Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
+    //cerr << "LENGTH aft " << rmapused.size() << "   " << cmapused.size() << "   " << pmapused.size() << endl;
+    // cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
-   //double timeend=omp_get_wtime();
-   //cerr << "findConv Time" << timeend-time0 << endl;
+   
     
  }
  

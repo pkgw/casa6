@@ -207,7 +207,8 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   Vector<Int> waxis(wVals_p.nelements());
   indgen(waxis);
   rowAxisWVals_p(blc, trc) = waxis;
-  rowAxisAntennaPair_p.resize(trc[0]+1,  True);
+  //cerr << "rowAxisWVals " << rowAxisWVals_p << endl;
+  rowAxisAntennaPair_p.resize(trc[0] + 1, True);
   rowAxisAntennaPair_p(blc, trc).set(0);
   /// Let us rescale convolution function to match nx, ny and incr of image that makes 
   /// uvgrid
@@ -235,7 +236,8 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
       lastplane.put(newAWConv(elblc, eltrc).nonDegenerate());
     
     //////
-    }*/       
+    } 
+    */      
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
@@ -288,8 +290,22 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
       
     }
   }
+  /*{
+  ////TESTOO
   
-  
+  IPosition elshp = convFunc_p.shape().getFirst(4);
+  IPosition elblc(5, 0);
+  std::time_t rawtime=std::time(nullptr);
+  char tstr[20];
+  std::strftime(tstr, sizeof(tstr), "_%H_%M_%S", std::localtime(&rawtime)); 
+  IPosition eltrc = convFunc_p.shape() - 1;
+  elblc[4] = eltrc[4];
+  PagedImage<Complex> lastplane(elshp, calcCsys_p, "MOOBOO"+String(tstr)+String::toString(newFreqs(0)));
+  lastplane.put(convFunc_p(elblc, eltrc).nonDegenerate());
+
+  //////
+  } */
+
 }
 Array<Complex>& AWConvFuncHolder::getConvFunc() {
   return convFunc_p;
@@ -365,14 +381,18 @@ void AWConvFuncHolder::resetHPGConvFuncs(const vi::VisBuffer2 &vb){
   }
 }
 /////////////////////
-void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vector<Int> &rowMap, Array<Complex> &convFunc, Array<Complex> &wgtConvFunc, 
-                  const vi::VisBuffer2 &vb,
-                  const Matrix<Double> &rotuvw){
+void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
+                                    Vector<Int> &rowMap,
+                                    Array<Complex> &convFunc,
+                                    Array<Complex> &wgtConvFunc,
+                                    const vi::VisBuffer2 &vb,
+                                    const Matrix<Double> &rotuvw) {
 
   Vector<Int> cmap;
   Vector<Int> pmap;
   Vector<Int> rmap;
   getConvIndices(pmap, cmap, rmap, vb, rotuvw);
+  // cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
   std::vector<Int> pmapused = pmap.tovector();
   {
     std::sort(pmapused.begin(), pmapused.end());
@@ -385,40 +405,55 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
     auto last = std::unique(cmapused.begin(), cmapused.end());
     cmapused.erase(last, cmapused.end());
   }
-  std::vector<Int> rmapused = abs(rmap).tovector();
+  std::vector<Int> rmapused = rmap.tovector();
   {
     std::sort(rmapused.begin(), rmapused.end());
     auto last = std::unique(rmapused.begin(), rmapused.end());
     rmapused.erase(last, rmapused.end());
   }
+  {
+    vector<Int> cpRmapUsed = rmapused;
+    // lets move the -ve values to the end  -ve means -w which means we have to
+    // conjugate the plane
+    vector<int>::iterator it = remove_if(rmapused.begin(), rmapused.end(),
+                                         [](const int i) { return i < 0; });
+    rmapused.erase(it, rmapused.end());
+    for (auto cit = cpRmapUsed.rbegin(); cit != cpRmapUsed.rend(); ++cit) {
+      if (*cit < 0)
+        rmapused.push_back(*cit);
+    }
+  }
+  // cerr << "#####rmapused " << rmapused << endl;
   IPosition shp(5, convFunc_p.shape()[0], convFunc_p.shape()[1],
                 pmapused.size(), cmapused.size(), rmapused.size());
   polMap.resize(pmap.shape());
   for (uint j = 0; j < polMap.nelements(); ++j) {
-    for (int k = 0; k < pmapused.size(); ++k) {
-      if (pmap[j]==pmapused[k]){
+    for (uint k = 0; k < pmapused.size(); ++k) {
+      if (pmap[j] == pmapused[k]) {
         polMap[j] = k;
       }
     }
   }
   chanMap.resize(cmap.shape());
-  std::vector<int>cindex(cmapused.size());
+  // std::vector<int>cindex(cmapused.size());
   for (uint j = 0; j < chanMap.nelements(); ++j) {
-    for (int k = 0; k < cmapused.size(); ++k) {
-      if (cmap[j] == cmapused[k]){
+    for (uint k = 0; k < cmapused.size(); ++k) {
+      if (cmap[j] == cmapused[k]) {
         chanMap[j] = k;
       }
     }
   }
   rowMap.resize(rmap.shape());
   for (uint j = 0; j < rowMap.nelements(); ++j) {
-    for (int k = 0; k < rmapused.size(); ++k) {
-      if (abs(rmap[j]) == rmapused[k]){
-        //rowmap is -ve for -ve w
-        rowMap[j] = rmap[j] < 0 ? -k : k;
+    for (uint k = 0; k < rmapused.size(); ++k) {
+      if (rmap[j] == rmapused[k]) {
+        // rowmap is -ve for -ve w
+        rowMap[j] = k;
       }
     }
   }
+  // cerr << "old rmapused" << Vector<int>(rmapused) << " cmap " <<
+  // Vector<int>(cmapused) << " pmap " << Vector<int>(pmapused) << endl;
   convFunc.resize(shp);
   wgtConvFunc.resize(shp);
   IPosition inblc(5, 0, 0, 0, 0, 0);
@@ -426,9 +461,9 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   IPosition outblc(5, 0, 0, 0, 0, 0);
   IPosition outtrc(5, shp[0] - 1, shp[1] - 1, 0, 0, 0);
 
-  for (uint r = 0; r < rmapused.size(); ++r){
-    inblc[4] = rmapused[r];
-    intrc[4] = rmapused[r];
+  for (uint r = 0; r < rmapused.size(); ++r) {
+    inblc[4] = abs(rmapused[r]);
+    intrc[4] = abs(rmapused[r]);
     outblc[4] = r;
     outtrc[4] = r;
     for (uint c = 0; c < cmapused.size(); ++c) {
@@ -441,12 +476,18 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
         intrc[2] = pmapused[p];
         outblc[2] = p;
         outtrc[2] = p;
-        convFunc(outblc, outtrc) = convFunc_p(inblc, intrc);
+        // rowmap is -ve for -ve w
+        convFunc(outblc, outtrc) = rmapused[r] > 0
+                                       ? convFunc_p(inblc, intrc)
+                                       : conj(convFunc_p(inblc, intrc));
         wgtConvFunc(outblc, outtrc) = wgtConvFunc_p(inblc, intrc);
       }
     }
   }
 }
+//////////////////////
+
+
 //////////////////////  
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
   // Lets do the polmap
@@ -520,8 +561,10 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
        tmpWInd = j;
       }
     }
+    
     wIndex[k] = (w > 0)? -tmpWInd : tmpWInd;
   }
+  //cerr << "FID " << vb.fieldId()(0) << " winDex " << wIndex << endl;
   // Now lets search for combination of all 3
   rowMap.resize(vb.nRows());
   for (uint k = 0; k < vb.nRows();++k) {
@@ -532,7 +575,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
     }
     
   }
-
+//cerr << "SPID " << vb.spectralWindows()(0) << " rowMap " << rowMap << endl;
   // A little dab will d'ya
   
 }
@@ -577,7 +620,9 @@ void AWConvFuncHolder::getConvIndicesHPG(Vector<Int> &polMap, Vector<Int> &chanM
   }
   rowMap.resize();
   rowMap = wIndex;
+  //cerr << "FID " << vb.fieldId()(0) << " SPID " << vb.spectralWindows()(0) << " winDex " << wIndex << endl;
 }
+
   Vector<Double> AWConvFuncHolder::getPointingPhaseShift(
       const vi::VisBuffer2 &vb, bool usePointingTable) {
     Bool hasValidPointing = False;

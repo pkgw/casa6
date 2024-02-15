@@ -389,8 +389,10 @@ Int BriggsCubeWeightor::estimateSwingChanPad(vi::VisibilityIterator2 &vi,
   MFrequency::Types freqframe = spCoord.frequencySystem(True);
   ////If using Undefined there is no Doppler correction to do
   // so no need of padding frequency
-  if(freqframe == MFrequency::Undefined)
+  if(freqframe == MFrequency::Undefined )
     return 0;
+  Bool sameframe = True;
+
   uInt swingpad = 16;
   Double swingFreq = 0.0;
   Double minFreq = 1e99;
@@ -407,8 +409,11 @@ Int BriggsCubeWeightor::estimateSwingChanPad(vi::VisibilityIterator2 &vi,
   for (vi.originChunks(); vi.moreChunks(); vi.nextChunk()) {
     for (vi.origin(); vi.more(); vi.next()) {
       // process for required msid
-      if ((msid < 0) || (msid == vb->msId())) {
-        if ((msID != vb->msId()) || (fieldID != vb->fieldId()(0))) {
+      if ((msid < 0) || (msid == vb->msId())) {   //note there is msid and msID
+        if ((msID != vb->msId()) || (fieldID != vb->fieldId()(0)) ) 
+        {
+          if((spwID != vb->spectralWindows()(0)) || (!sameframe) )  // if already not sameframe no need to test further
+            sameframe = sameframe && compareframe(freqframe, *vb);
           msID = vb->msId();
           fieldID = vb->fieldId()(0);
           spwID = vb->spectralWindows()(0);
@@ -430,6 +435,9 @@ Int BriggsCubeWeightor::estimateSwingChanPad(vi::VisibilityIterator2 &vi,
           } else {
             MSUtil::getSpwInFreqRange(spw, start, nchan, vb->ms(), localBeg,
                                       localEnd, localStep, freqframe, fieldID);
+            //cerr <<"SPWID " << spwID << " localBeg " << localBeg << " localEnd " << localEnd
+            //     << " spw " << spw << " start " << start << " nchan " << nchan
+            //     << endl;
           }
           for (uInt spwk = 0; spwk < spw.nelements(); ++spwk) {
             if (spw[spwk] == spwID) {
@@ -446,7 +454,6 @@ Int BriggsCubeWeightor::estimateSwingChanPad(vi::VisibilityIterator2 &vi,
                     mschanfreq[start[spwk] + nchan[spwk] - 1]);
                 localmaxfreq.push_back(mschanfreq[start[spwk]]);
               }
-
               firstchanfreq.push_back(min(mschanfreq));
               // if(mschanfreq[start[spwk]+nchan[spwk]-1] <
               // localminfreq[localminfreq.size()-1])
@@ -462,7 +469,13 @@ Int BriggsCubeWeightor::estimateSwingChanPad(vi::VisibilityIterator2 &vi,
       } // input msid
     }
   }
-
+  vi.originChunks();
+  vi.origin();
+  if(sameframe)    //no channel swing will happen
+    return 0;
+  // no matching spw for field and  in this data selection
+  if(firstchanfreq.size()==0)
+    return 0;
   auto itf = firstchanfreq.begin();
   auto itmax = localmaxfreq.begin();
   Double firstchanshift = 0.0;
@@ -486,7 +499,12 @@ Int BriggsCubeWeightor::estimateSwingChanPad(vi::VisibilityIterator2 &vi,
   ////////////////
   return swingpad;
 }
-
+Bool BriggsCubeWeightor::compareframe(const MFrequency::Types freqFrame, const vi::VisBuffer2& vb){
+  Int spwId = vb.spectralWindows()(0);
+  MFrequency::Types dataFrame =
+      (MFrequency::Types)vb.subtableColumns().spectralWindow().measFreqRef()(spwId);
+  return (freqFrame == dataFrame);
+}
 String BriggsCubeWeightor::makeScratchImagingWeightTable(
     CountedPtr<Table> &weightTable, const String &filetag) {
 

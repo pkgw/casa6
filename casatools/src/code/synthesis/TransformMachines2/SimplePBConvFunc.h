@@ -81,7 +81,7 @@ namespace casa{
 
 namespace refim{ //namespace for imaging refactor
   class SkyJones;
-    
+  class AWConvFuncHolder;  
 
   class SimplePBConvFunc 
 
@@ -154,7 +154,9 @@ namespace refim{ //namespace for imaging refactor
                                  const std::vector<casacore::Int>& cmap, 
                                  const std::vector<casacore::Int>& rmap, 
                                  const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
-     
+    // Just holding AWPConvFuncHolder so as ftmachines don't need to re-create them
+     void setAWConvFuncHolder(std::shared_ptr<AWConvFuncHolder> awptr);                            
+     std::shared_ptr<AWConvFuncHolder> getAWConvFuncHolder();
 
     protected:
       SkyJones* sj_p;
@@ -190,6 +192,7 @@ namespace refim{ //namespace for imaging refactor
       casacore::String bandName_p;
       casacore::CountedPtr<VisBufferUtil> vbutil_p;
       casacore::Bool usePointingTable_p;
+      std::shared_ptr<AWConvFuncHolder> awConvs_p;
     private:
       casacore::Bool checkPBOfField(const vi::VisBuffer2& vb);
       void addPBToFlux(const vi::VisBuffer2& vb);

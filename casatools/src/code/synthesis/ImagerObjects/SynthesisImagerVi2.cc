@@ -1253,7 +1253,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 		nsubcube=imshape[3]; 
         }
         cerr << "FTM name " << gridpars_p.ftmachine << endl;
-        if(gridpars_p.ftmachine.at(0,3)=="awp")
+        if(gridpars_p.ftmachine.at(0,4)=="awph")
           nsubcube=imshape[3];
         cerr << "SUBCUBE " << nsubcube << " shp  " << imshape[3] << endl;
         

@@ -64,7 +64,7 @@
 
 #include <synthesis/TransformMachines2/SimplePBConvFunc.h>
 #include <synthesis/TransformMachines2/SkyJones.h>
-
+#include <synthesis/TransformMachines2/AWConvFuncHolder.h>
 #include <casacore/casa/Utilities/CompositeNumber.h>
 #include <iomanip>
 #include <math.h>
@@ -81,7 +81,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       npol_p(-1), pointToPix_p(), directionIndex_p(-1), thePix_p(0),
       filledFluxScale_p(false), doneMainConv_p(0),
 
-      calcFluxScale_p(true), usePointingTable_p(False), actualConvIndex_p(-1), convSize_p(0), convSupport_p(0), pointingPix_p() {
+      calcFluxScale_p(true), usePointingTable_p(False), actualConvIndex_p(-1), convSize_p(0), convSupport_p(0), pointingPix_p(), awConvs_p(nullptr) {
       //
 
       pbClass_p = PBMathInterface::COMMONPB;
@@ -92,7 +92,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     SimplePBConvFunc::SimplePBConvFunc(const PBMathInterface::PBClass typeToUse) :
       nchan_p(-1), npol_p(-1), pointToPix_p(),
       directionIndex_p(-1), thePix_p(0), filledFluxScale_p(false), doneMainConv_p(0),
-      calcFluxScale_p(true), usePointingTable_p(False), actualConvIndex_p(-1), convSize_p(0), convSupport_p(0), pointingPix_p() {
+      calcFluxScale_p(true), usePointingTable_p(False), actualConvIndex_p(-1), convSize_p(0), convSupport_p(0), pointingPix_p(), awConvs_p(nullptr) {
       //
       pbClass_p = typeToUse;
       ft_p = FFT2D(true);
@@ -101,7 +101,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     SimplePBConvFunc::SimplePBConvFunc(const RecordInterface& rec, const Bool calcfluxneeded)
       : nchan_p(-1), npol_p(-1), pointToPix_p(), directionIndex_p(-1), thePix_p(0), filledFluxScale_p(false),
       doneMainConv_p(0),
-      calcFluxScale_p(calcfluxneeded), usePointingTable_p(False), actualConvIndex_p(-1), convSize_p(0), convSupport_p(0), pointingPix_p()
+      calcFluxScale_p(calcfluxneeded), usePointingTable_p(False), actualConvIndex_p(-1), convSize_p(0), convSupport_p(0), pointingPix_p(), awConvs_p(nullptr)
     {
       String err;
       fromRecord(err, rec, calcfluxneeded);
@@ -237,6 +237,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       convSupportBlock_p.resize(0, true);
       convFunctionMap_p.clear();
       vbConvIndex_p.clear();
+      awConvs_p=nullptr;
       ft_p = FFT2D(true);
     }
 
@@ -1312,6 +1313,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         fluxScale_p.copyData(le);
       }
     }
+  void SimplePBConvFunc::setAWConvFuncHolder(std::shared_ptr<AWConvFuncHolder> awptr){
+    awConvs_p=awptr;
+
+  }                            
+  std::shared_ptr<AWConvFuncHolder> SimplePBConvFunc::getAWConvFuncHolder(){
+    return awConvs_p;
+  }
+  
   } //# END of name space REFIM
 } //# NAMESPACE CASA - END
 
