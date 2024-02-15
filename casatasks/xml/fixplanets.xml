@@ -69,7 +69,7 @@ this value
                      ephemeris. Alternatively, the ephemeris table can
                      also be provided using getephemtable task. For more
                      information, see the task pages of fixplanets in
-                     CASA Docs (https://casa.nrao.edu/casadocs/).
+                     the CASA Docs.
 </description>
       <any type="variant"/>
       <value type="string"/>

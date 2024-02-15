@@ -1,27 +1,16 @@
-from __future__ import absolute_import
 import shutil
 import os
 import string
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from casatools import ms as mstool
-    from casatools import table as tbtool
-    from casatools import imager as imtool
-    from casatools import measures, quanta
-    from casatasks import casalog
-    from .mstools import write_history
-    _qa = quanta( )
-    _me = measures( )
-else:
-    from taskinit import *
-    from mstools import write_history
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    # not really local copies
-    _qa = qa
-    _me = me
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from casatools import ms as mstool
+from casatools import table as tbtool
+from casatools import imager as imtool
+from casatools import measures, quanta
+from casatasks import casalog
+from .mstools import write_history
+_qa = quanta( )
+_me = measures( )
 
 def _checkinternalephemtab(vis, field):
     """
@@ -65,7 +54,8 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
     direction  -- if set, don't use pointing table but set direction to this value.
                   The direction can either be given explicitly or as the path
                   to a JPL Horizons ephemeris (for an example of the format,
-                  see directory data/ephemerides/JPL-Horizons/).
+                  ephemerides/JPL-Horizons/ in the local data directory or "External Data" section 
+                  of the current CASADocs).
                   Alternatively, the ephemeris table can also be obtained using
                   getephemtable task.
  
@@ -491,11 +481,8 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
     # Write history to MS
     try:
         param_names = fixplanets.__code__.co_varnames[:fixplanets.__code__.co_argcount]
-        if is_python3:
-            vars = locals()
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        vars = locals()
+        param_vals = [vars[p] for p in param_names]
         write_history(mstool(), vis, 'fixplanets', param_names,
                       param_vals, casalog)
     except Exception as instance:

@@ -326,7 +326,7 @@ class fixplanets_test(unittest.TestCase):
             self.assertTrue(self.verify(myms, 'Titan', 'APP'))
 
     def test_ephemerisMimeFormat(self):
-        '''test9: Does a fixplanets with an ephemeris in mime format work'''
+        '''test9: Test task fixplanets raises an exception when ephemeris data is given in MIME format'''
         os.system('cp ' + os.path.join(datapath, 'titan.eml') + ' .')
         for myms in [outms, outms2]:
             os.system("rm -rf titan.eml.tab")
