@@ -28,7 +28,8 @@ target_link_libraries(casacpp_air_casawvr PUBLIC PkgConfig::CASACORE)
 
 # Internal dependencies
 add_dependencies(casacpp_air_casawvr casacpp_bnmin1 casacpp_synthesis)
-target_link_libraries(casacpp_air_casawvr PUBLIC casacpp_synthesis casacpp_bnmin1)
+target_link_libraries(casacpp_air_casawvr PUBLIC casacpp_bnmin1)
+target_link_libraries(casacpp_air_casawvr PRIVATE casacpp_synthesis)
 
 # the top level source directory, so that we can find all the includes
 target_include_directories(casacpp_air_casawvr PUBLIC ${CMAKE_SOURCE_DIR})
