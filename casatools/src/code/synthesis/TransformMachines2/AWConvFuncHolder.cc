@@ -124,24 +124,23 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
  if (wVals_p.nelements() == 0) {
    // make sure first wval is 0;
   wVals_p = wVals;
-  
- }
- else if (wVals_p.nelements() !=  wVals.nelements())
+  //cerr << "@@@@@@@@@@@@@@@@@@@@@@wVals to be calc " << wVals_p << endl;
+ } else if (wVals_p.nelements() != wVals.nelements())
    throw(AipsError("Cannot change W terms length right now"));
+ //cerr << "########WVals_p " << wVals_p << endl;
  if (!dosquint_p) {
    paVals_p.resize(1);
    paVals_p[0] = 0.0;
- }
- else{
-  cerr << "paMax " << paMax << " painc " << painc_p << endl;
-  Vector<Double> pavals(int(std::ceil(2*paMax/painc_p)));
-  //setting pavals from -paMax to paMax
-  for (uint k = 0; k < pavals.nelements(); ++k )
-    pavals[k] = double(k) *painc_p-paMax;
-  if (paVals_p.nelements() == 0)
-    paVals_p = pavals;
-  else if ((paVals_p.nelements()) !=  pavals.nelements())
-    throw(AipsError("Cannot change number of PA's in between"));
+ } else {
+   cerr << "paMax " << paMax << " painc " << painc_p << endl;
+   Vector<Double> pavals(int(std::ceil(2 * paMax / painc_p)));
+   // setting pavals from -paMax to paMax
+   for (uint k = 0; k < pavals.nelements(); ++k)
+     pavals[k] = double(k) * painc_p - paMax;
+   if (paVals_p.nelements() == 0)
+     paVals_p = pavals;
+   else if ((paVals_p.nelements()) != pavals.nelements())
+     throw(AipsError("Cannot change number of PA's in between"));
  }
   std::shared_ptr<refim::WPConvFunc>wptr;
   AWConvFunc a(aterm_p, wptr);
@@ -326,12 +325,24 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
     auto last = std::unique(cmapused.begin(), cmapused.end());
     cmapused.erase(last, cmapused.end());
   }
-  std::vector<Int> rmapused = abs(rmap).tovector();
+  std::vector<Int> rmapused = rmap.tovector();
   {
     std::sort(rmapused.begin(), rmapused.end());
     auto last = std::unique(rmapused.begin(), rmapused.end());
     rmapused.erase(last, rmapused.end());
   }
+  {
+    vector<Int> cpRmapUsed=rmapused;
+  //lets move the -ve values to the end  -ve means -w which means we have to conjugate the plane
+   vector<int>::iterator it =
+      remove_if(rmapused.begin(), rmapused.end(), [](const int i) { return i < 0; });
+    rmapused.erase(it, rmapused.end());
+    for (auto cit = cpRmapUsed.rbegin(); cit != cpRmapUsed.rend(); ++cit){
+      if(*cit <0)
+        rmapused.push_back(*cit);  
+    }
+  }
+  //cerr << "#####rmapused " << rmapused << endl;
   IPosition shp(5, convFunc_p.shape()[0], convFunc_p.shape()[1],
                 pmapused.size(), cmapused.size(), rmapused.size());
   polMap.resize(pmap.shape());
@@ -354,9 +365,9 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   rowMap.resize(rmap.shape());
   for (uint j = 0; j < rowMap.nelements(); ++j) {
     for (uint k = 0; k < rmapused.size(); ++k) {
-      if (abs(rmap[j]) == rmapused[k]){
+      if (rmap[j] == rmapused[k]){
         //rowmap is -ve for -ve w
-        rowMap[j] = rmap[j] < 0 ? -k : k;
+        rowMap[j] = k;
       }
     }
   }
@@ -369,8 +380,8 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   IPosition outtrc(5, shp[0] - 1, shp[1] - 1, 0, 0, 0);
 
   for (uint r = 0; r < rmapused.size(); ++r){
-    inblc[4] = rmapused[r];
-    intrc[4] = rmapused[r];
+    inblc[4] = abs(rmapused[r]);
+    intrc[4] = abs(rmapused[r]);
     outblc[4] = r;
     outtrc[4] = r;
     for (uint c = 0; c < cmapused.size(); ++c) {
@@ -383,7 +394,8 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
         intrc[2] = pmapused[p];
         outblc[2] = p;
         outtrc[2] = p;
-        convFunc(outblc, outtrc) = convFunc_p(inblc, intrc);
+        //rowmap is -ve for -ve w
+        convFunc(outblc, outtrc) = rmapused[r] >0 ? convFunc_p(inblc, intrc) : conj(convFunc_p(inblc, intrc));
         wgtConvFunc(outblc, outtrc) = wgtConvFunc_p(inblc, intrc);
       }
     }
