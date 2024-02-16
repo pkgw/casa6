@@ -1,0 +1,99 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd       file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
+
+<task category="calibration" name="getcalmodvla" type="function">
+    <shortdescription>Retrieve calibrator brightness distributions from a VLA web service.</shortdescription>
+        <description>
+This application retrieves calibrator information via a VLA web service
+and writes this information as a componentlist so that it may be used by applications
+downstream.
+        </description>
+        <input>
+            <param name="outfile" type="path">
+                <shortdescription>The name of the output component list to be written. Must be specified</shortdescription>
+                <description>The name of the output component list to be written. Must be specified
+                     Default: none, must be specified
+                        Example: outfile=&quot;3c273.cl&quot;
+                </description>
+                <value/>
+            </param>
+            <param name="overwrite" type="bool">
+                <shortdescription>Overwrite a file or directory of the same name as outfile if it exists.</shortdescription>
+                <description>Overwrite a file or directory of the same name of outfile if it exists. If overwrite=False and a file or directory of the same name as outfile exists, an exception will be thrown.</description>
+                <value>False</value>
+            </param>
+            <param name="source" type="string">
+                <shortdescription>The calibrator name.</shortdescription>
+                <description>
+                    The calibrator name. The case-insensitive names
+                    &quot;3C48&quot;, &quot;3C286&quot;, &quot;3C138&quot;,
+                    and &quot;3C147&quot; are supported. Exactly one of source
+                    or direction must be specified. 
+                </description>
+                <value type="string"/>
+            </param>
+            <param name="direction" type="string">
+                <shortdescription>The direction of the calibrator</shortdescription>
+                <description>An alternative to source. It is the direction of the calibrator. The supported
+                    formats are of the form &quot;EPOCH LONGITUDE LATITUDE&quot;, eg
+                    
+                    &quot;J2000 12:34:56 -12.34.56&quot;.
+                    &quot;J2000 19h53m50 40d06m00&quot;
+                    &quot;B1950 292.5deg -40.0deg&quot;
+                    &quot;ICRS 13:05:27.2780 -049.28.04.458&quot;
+                    &quot;GALACTIC 47.5rad -60.22rad&quot;
+
+                    Only astronomical coordinate systems should be used; eg AZEL is right out. The web service
+                    will attempt to locate a known calibrator near this direction, where "near" is defined by
+                    the web service team. Exactly one of source or direction must be specified.
+                </description>
+                <value type="string"/>
+            </param>
+            <param name="band" type="string">
+                <shortdescription>The receiver band for which the source structure is needed</shortdescription>
+                <description>A string representing the case-insensitive code of
+                    the band for which the data are required. For the VLA,
+                    supported codes are &quot;P&quot;, &quot;L&quot;, &quot;S&quot;, &quot;C&quot;, &quot;X&quot;, &quot;U&quot;, &quot;K&quot;, &quot;A&quot;, and &quot;Q&quot;.
+                </description>
+                <value type="string"/>
+            </param>
+            <param name="obsdate" type="any">
+                <any type="variant" limittype="string double int"/>
+                <shortdescription>The observation date</shortdescription>
+                <description>
+                    The date for which to obtain the calibrator information. If numeric,
+                    is assumed to be an MJD. If a string, is assumed to be a date and must
+                    be of the form &quot;YYYY-MM-DD&quot;.
+                </description>
+                <example>obsdate=59000</example>
+                <example>obsdate=&quot;2020-05-31&quot;</example>
+                <value type="int">0</value>
+            </param>
+            <param name="refdate" type="any">
+                <any type="variant" limittype="string double int"/>
+                <shortdescription>The reference date after which new database entries will be ignored.</shortdescription>
+                <description>
+                    The reference date after which new database entries will be ignored. If numeric,
+                    is assumed to be an MJD. If a string, is assumed to be a date and must
+                    be of the form &quot;YYYY-MM-DD&quot;. Used to support
+                    historical reproducibility. A non-positive value will result in this parameter being ignored,
+                    and the most recent entry will be used (which may be later than obsdate). 
+                </description>
+                <example>obsdate=59000</example>
+                <example>obsdate=&quot;2020-05-31&quot;</example>
+                <value type="int">0</value>
+            </param>
+            <param name="hosts" type="stringVec">
+                <shortdescription>List of hostnames to use when querying the web service.</shortdescription>
+                <description>
+                    List of hostnames to use when querying the web service. They will be queried in
+                    order until a successful response is received.
+                </description>
+                <value type="stringVec"><value type="string">http://obs.vla.nrao.edu/calmodvla</value></value>
+            </param>
+        </input>    
+        <returns type="void"/>
+        <example>
+            SEE TASK DESCRIPTION IN CASADOCS
+        </example>
+    </task>
+ </casaxml>

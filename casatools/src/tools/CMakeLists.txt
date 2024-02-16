@@ -54,6 +54,8 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 
+message (STATUS "CMAKE_CXX_STANDARD ${CMAKE_CXX_STANDARD}")
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Set definitions global to the whole project
