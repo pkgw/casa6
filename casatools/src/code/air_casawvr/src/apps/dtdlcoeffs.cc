@@ -259,14 +259,14 @@ namespace LibAIR2 {
     //Finally if not before beginning or after end, interpolate
     //linearly
     
-    double c_f=(time-prev->time)/(next->time-prev->time);
-    double c_s=(next->time-time)/(next->time-prev->time);
+    double c_f=(time - prev->time)/(next->time - prev->time);
+    double c_s=(next->time - time)/(next->time - prev->time);
     
     for(size_t k=0; k<4; ++k)
     {
-      res[k]= c_f*(prev->coeffs[k]) + c_s*(next->coeffs[k]);
+      res[k]= c_s*(prev->coeffs[k]) + c_f*(next->coeffs[k]);
       res[k]*= chmask[k];
-      c2[k]= c_f*(prev->c2[k]) + c_s*(next->c2[k]);
+      c2[k]= c_s*(prev->c2[k]) + c_f*(next->c2[k]);
     }
   }
 
