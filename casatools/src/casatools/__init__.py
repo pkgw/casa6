@@ -134,8 +134,8 @@ if user_measurespath is not None:
 
 else:
     msgs.append('measurespath is None, set this to the location where the measures IERS data is found, typically this also includes the casarundata')
-    msgs.append('Either set this in your personal config.py in ~/.casa or the site config file (casasiteconfig.py) in this CASA installation')
-    # ctsys initialize needs a string for measurespath, leave it empty
+    msgs.append('Either set this in your personal config.py in ~/.casa or a site config file')
+    # ctsys initialize needs a string for measurespath, leave it empty, it might still work (probably not)
     user_measurespath = ""
 
 if (not data_ok) or (not measures_ok):
