@@ -236,6 +236,10 @@ class getantposalma_test(unittest.TestCase):
         self.assertEqual(
             md["asdm"], "uid://A002/X10ac6bc/X896d", "Wrong asdm name in metadata"
         )
+        self.assertEqual(
+            md["caltype"], "ALMA antenna positions", "Incorrect metadata caltype"
+        )
+
 
 if __name__ == '__main__':
      unittest.main()
