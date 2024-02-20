@@ -228,7 +228,6 @@ class getantposalma_test(unittest.TestCase):
         self.assertTrue(os.path.exists(self.outfile))
         with open(self.outfile, "r") as f:
             antpos, md = json.load(f)
-            antpos = ast.literal_eval(antpos)
         self.assertEqual(type(antpos), dict, "Wrong data type")
         self.assertEqual(len(antpos), 3, "Wrong number of antennas")
         self.assertEqual(
