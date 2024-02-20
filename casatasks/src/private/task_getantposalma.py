@@ -262,6 +262,7 @@ Parameter Details
         antpos = _query(url)
         if antpos:
             md["successful_url"] = url
+            antpos = json.loads(antpos)
             break
     if not antpos:
         raise RuntimeError("All URLs failed to return an antenna position list.")
