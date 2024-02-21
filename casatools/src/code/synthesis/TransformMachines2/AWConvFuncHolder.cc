@@ -124,14 +124,15 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
  if (wVals_p.nelements() == 0) {
    // make sure first wval is 0;
   wVals_p = wVals;
-  //cerr << "@@@@@@@@@@@@@@@@@@@@@@wVals to be calc " << wVals_p << endl;
- } else if (wVals_p.nelements() != wVals.nelements())
+  
+ }
+ else if (wVals_p.nelements() !=  wVals.nelements())
    throw(AipsError("Cannot change W terms length right now"));
- //cerr << "########WVals_p " << wVals_p << endl;
  if (!dosquint_p) {
    paVals_p.resize(1);
    paVals_p[0] = 0.0;
- } else {
+ }
+ else{
    cerr << "paMax " << paMax << " painc " << painc_p << endl;
    Vector<Double> pavals(int(std::ceil(2 * paMax / painc_p)));
    // setting pavals from -paMax to paMax
@@ -153,7 +154,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
-    cerr << "######MAX awsupp " << max(awSupport) << endl;
+    //cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
     //append arrays and indices  
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
@@ -203,7 +204,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   indgen(waxis);
   rowAxisWVals_p(blc, trc) = waxis;
   //cerr << "rowAxisWVals " << rowAxisWVals_p << endl;
-  rowAxisAntennaPair_p.resize(trc[0]+1,  True);
+  rowAxisAntennaPair_p.resize(trc[0] + 1, True);
   rowAxisAntennaPair_p(blc, trc).set(0);
   /// Let us rescale convolution function to match nx, ny and incr of image that makes 
   /// uvgrid
@@ -235,8 +236,8 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    //cerr << "npix " << npix << " " << 2*max(awsupport)*oversamp_p << endl;
-    if(npix <= 2*max(awsupport)*oversamp_p){
+    //cerr << "npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
+    if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
       cerr << "aft npix " << npix << endl;
       IPosition elshp=newAWConv.shape();
@@ -250,6 +251,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
       
     }
     else{
+      npix=2*(max(awsupport)+1)*oversamp_p;
       convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
     }
@@ -304,9 +306,12 @@ Vector<Int> AWConvFuncHolder::getConvSupports() {
 }
 
 /////////////////////
-void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vector<Int> &rowMap, Array<Complex> &convFunc, Array<Complex> &wgtConvFunc, 
-                  const vi::VisBuffer2 &vb,
-                  const Matrix<Double> &rotuvw){
+void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
+                                    Vector<Int> &rowMap,
+                                    Array<Complex> &convFunc,
+                                    Array<Complex> &wgtConvFunc,
+                                    const vi::VisBuffer2 &vb,
+                                    const Matrix<Double> &rotuvw) {
 
   Vector<Int> cmap;
   Vector<Int> pmap;
@@ -348,7 +353,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
   polMap.resize(pmap.shape());
   for (uint j = 0; j < polMap.nelements(); ++j) {
     for (uint k = 0; k < pmapused.size(); ++k) {
-      if (pmap[j]==pmapused[k]){
+      if (pmap[j] == pmapused[k]) {
         polMap[j] = k;
       }
     }
@@ -394,8 +399,10 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
         intrc[2] = pmapused[p];
         outblc[2] = p;
         outtrc[2] = p;
-        //rowmap is -ve for -ve w
-        convFunc(outblc, outtrc) = rmapused[r] >0 ? convFunc_p(inblc, intrc) : conj(convFunc_p(inblc, intrc));
+        // rowmap is -ve for -ve w
+        convFunc(outblc, outtrc) = rmapused[r] > 0
+                                       ? convFunc_p(inblc, intrc)
+                                       : conj(convFunc_p(inblc, intrc));
         wgtConvFunc(outblc, outtrc) = wgtConvFunc_p(inblc, intrc);
       }
     }
@@ -404,6 +411,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap,Vector<Int> &chanMap,Vec
 //////////////////////  
   
 
+//////////////////////  
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
