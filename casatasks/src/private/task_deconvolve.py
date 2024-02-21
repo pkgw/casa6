@@ -20,7 +20,7 @@ from casatasks import casalog
 from casatools import image
 from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
 from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
+from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
 from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from .cleanhelper import write_tclean_history, get_func_params
 from casatools import synthesisimager
@@ -273,6 +273,8 @@ def deconvolve(
         decon.updateMask()
 
         isit = decon.hasConverged() # here in case updateMaskMinor() produces an all-false mask
+        runmin = not isit   ##  Are minor cycles going to be run or not ?  Will the return dictionary have summaryminor or not ?
+        ##print ("Runmin? " , runmin)
         if not isit:
             # print("running minor cycle");
             t0=time.time();
@@ -283,15 +285,21 @@ def deconvolve(
 
 
         # Residual image needs to be computed for this to work
-        if niter==0:
-            rd = ReturnDictionary()
-            retrec = rd.constructResidualDict(paramList)
+        if niter==0 or runmin==False:
+            id = ImagingDict()
+            retrec1 = id.construct_residual_dict(paramList)
 
         ## Get summary from iterbot
         #if type(interactive) != bool and niter>0:
         # this requrirment should go...
-        if niter>0:
-            retrec=decon.getSummary(fullsummary);
+        #if niter>0:
+        retrec=decon.getSummary(fullsummary);
+
+        if niter==0 or runmin==False:
+            retrec['summaryminor'] = retrec1['summaryminor']  #CAS-14184
+            retrec['stopcode'] = retrec1['stopcode']
+            retrec['stopDescription'] = retrec1['stopDescription']
+
 
         #################################################
         #### Teardown
