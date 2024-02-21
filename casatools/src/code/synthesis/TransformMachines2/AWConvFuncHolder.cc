@@ -158,7 +158,6 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
-    cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
     //append arrays and indices  
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
@@ -214,10 +213,10 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   /// uvgrid
   Float factorX=fabs(calcCsys_p.increment()(0)/outcsys_p.increment()(0));
   Float factorY=fabs(calcCsys_p.increment()(1)/outcsys_p.increment()(1));
-//  cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
+  //cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
-//  cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
+  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
   Array<Complex>newAWConv = m.resampleViaFFT(awConv,  factorX,  factorY);
   Array<Complex> newWtConv = m.resampleViaFFT(aWwtConv,  factorX,  factorY);
@@ -225,7 +224,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   //cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
   newAWConv *= correcfac;
   newWtConv *= correcfac;
-  /*{ 
+  { 
       ////TESTOO
       IPosition elshp = newAWConv.shape().getFirst(4);
       IPosition elblc(5, 0);
@@ -237,14 +236,13 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     
     //////
     } 
-    */      
+          
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    //cerr << "npix " << npix << " " << 2*max(awsupport)*oversamp_p << endl;
-    if(npix <= 2*max(awsupport)*oversamp_p){
+    if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
-      cerr << "aft npix " << npix << endl;
+      cerr << "@@@@@aft npix " << npix << endl;
       IPosition elshp=newAWConv.shape();
       elshp[0]=npix;
       elshp[1]=npix;
@@ -256,6 +254,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
       
     }
     else{
+      npix=2*(max(awsupport)+1)*oversamp_p;
       convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
     }
@@ -342,6 +341,20 @@ void AWConvFuncHolder::resetHPGConvFuncs(const vi::VisBuffer2 &vb){
       usedfreq[k] = true;
       ++indx;
     }
+    
+  }
+  if(indx==0){ //some single channel spw will do this
+    Double diffFreq=1e40;
+    for (uint k = 0; k < freqVals_p.nelements(); ++k) {
+      if(abs(fmax-freqVals_p[k]) < diffFreq){
+        diffFreq=abs(fmax-freqVals_p[k]);
+        freqValsHPG_p[0]=freqVals_p[k];
+        std::fill(usedfreq.begin(),usedfreq.end(), false);
+        usedfreq[k]=true;
+        indx=1;
+      }
+    }
+
   }
   }
   else{
@@ -372,7 +385,6 @@ void AWConvFuncHolder::resetHPGConvFuncs(const vi::VisBuffer2 &vb){
         trcin[4] = j;
         blcout[4] = j;
         trcout[4] = j;
-        //cerr << blcin << blcout << trcin << trcout << endl;
         wgtConvFuncHPG_p(blcout, trcout) = wgtConvFunc_p(blcin, trcin);
         convFuncHPG_p(blcout, trcout) = convFunc_p(blcin, trcin);
       }
