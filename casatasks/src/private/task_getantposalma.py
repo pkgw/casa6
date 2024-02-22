@@ -288,4 +288,4 @@ Parameter Details
             )
     md["timestamp"] = str(datetime.now())
     with open(outfile, "w") as f:
-        json.dump([antpos, md], f)
+        json.dump({"data": antpos, "metadata": md}, f)

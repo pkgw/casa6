@@ -227,7 +227,13 @@ class getantposalma_test(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(self.outfile))
         with open(self.outfile, "r") as f:
-            antpos, md = json.load(f)
+            res_dict = json.load(f)
+        self.assertTrue(
+            "data" in res_dict and "metadata" in res_dict,
+            "Incorrect data structure"
+        )
+        antpos = res_dict["data"]
+        md = res_dict["metadata"]
         self.assertEqual(type(antpos), dict, "Wrong data type")
         self.assertEqual(len(antpos), 3, "Wrong number of antennas")
         self.assertEqual(
