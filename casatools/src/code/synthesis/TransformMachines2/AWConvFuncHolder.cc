@@ -224,7 +224,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   //cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
   newAWConv *= correcfac;
   newWtConv *= correcfac;
-  { 
+  /*{ 
       ////TESTOO
       IPosition elshp = newAWConv.shape().getFirst(4);
       IPosition elblc(5, 0);
@@ -236,7 +236,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     
     //////
     } 
-          
+    */      
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);

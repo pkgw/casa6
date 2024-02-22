@@ -1480,17 +1480,18 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     logIO() <<  LogIO::WARN << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
-   Matrix<Double> tmpSumWgt(sumWeight.shape());
-   tmpSumWgt=0.0;
-   if(useDoubleGrid_p) 
+   if(name()=="AWProjectWBFTHPG"){
+    Matrix<Double> tmpSumWgt(sumWeight.shape());
+    tmpSumWgt=0.0;
+    if(useDoubleGrid_p) 
       visResampler_p->finalizeToSky(griddedData2, tmpSumWgt);
     else
       visResampler_p->finalizeToSky(griddedData, tmpSumWgt);
     sumWeight=tmpSumWgt;
    
-    if(name()=="AWProjectWBFTHPG")
-      return;
+    return;
     
+   }
     //
     // Now we flush the cache and report statistics For memory based,
     // we don't write anything out yet.
