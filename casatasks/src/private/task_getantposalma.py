@@ -204,7 +204,12 @@ Parameter Details
     """
     if not outfile:
         raise ValueError("Parameter outfile must be specified")
-    md = {"caltype": "ALMA antenna positions", "outfile": outfile}
+    md = {
+        "caltype": "ALMA antenna positions",
+        "description": "ALMA ITRF antenna positions in meters",
+        "product_code": "antposalma",
+        "outfile": outfile
+    }
     if not overwrite and os.path.exists(outfile):
         raise RuntimeError(
             f"A file or directory named {outfile} already exists and overwrite "

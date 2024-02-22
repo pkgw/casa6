@@ -236,6 +236,15 @@ class getantposalma_test(unittest.TestCase):
         md = res_dict["metadata"]
         self.assertEqual(type(antpos), dict, "Wrong data type")
         self.assertEqual(len(antpos), 3, "Wrong number of antennas")
+        self.assertTrue(
+            "description" in md, "metadata lacks required description key"
+        )
+        self.assertTrue(
+            "product_code" in md and md["product_code"] == "antposalma",
+            "metadata either does not contains required product_code key "
+            "or the value associated with that key is incorrect. It must "
+            "be 'antposalma'"
+        )
         self.assertEqual(
             md["outfile"], self.outfile, "Wrong outfile name in metadata"
         )
