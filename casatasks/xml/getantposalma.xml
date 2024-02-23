@@ -24,8 +24,8 @@ Example: outfile='my_alma_antenna_positions.json'
         <value>False</value>
     </param>
     <param name="asdm" type="string">
-      <shortdescription>The associated ASDM name. Should be associated ASDM UID.</shortdescription>
-      <description>The associated ASDM name. Should be associated ASDM UID. The ASDM is not required to be on the file system; this value is simply passed to the web service.
+      <shortdescription>The associated ASDM UID.</shortdescription>
+      <description>The associated ASDM UID. The ASDM is not required to be on the file system; this value is simply passed to the web service.
                    default: ''
                    Example:asdm='uid://A002/X10ac6bc/X896d'
       </description>
