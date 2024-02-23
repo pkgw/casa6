@@ -79,9 +79,9 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
  
   //oversample if image is small
   //But not more than 5000 pixels
- convSampling=(max(nx, ny) < 50) ? 100: Int(ceil(5000.0/max(nx, ny)));
-  if(convSampling <4) 
-    convSampling=4;
+ convSampling=(max(nx, ny) < 50) ? 100: 2*Int(ceil(5000.0/max(nx, ny)));
+  if(convSampling <10) 
+    convSampling=10;
  // TESTOO
   //convSampling = 1;
   // TESTOO

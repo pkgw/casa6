@@ -438,13 +438,14 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     //convSampling=4;
   //TESTOO
     
-    convSampling=4;
-  ///////
-    
-    
-  // we are not doing parallactiv angle here
+    convSampling=10;
+    if (min(nx, ny) > 2000)
+      convSampling = 4;
+    ///////
+
+    // we are not doing parallactiv angle here
     Double painc=2*C::pi;
-  
+
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
     awConvs_p=std::make_shared<AWConvFuncHolder>((*image).coordinates(), nx, ny, 
