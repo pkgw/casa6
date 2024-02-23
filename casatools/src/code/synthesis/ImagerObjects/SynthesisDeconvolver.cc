@@ -322,7 +322,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       // Calculate Peak Residual and Max Psf Sidelobe, and fill into SubIterBot.
       Float peakresnomask = itsImages->getPeakResidual();
-      Float peakresinmask= validMask ? itsImages->getPeakResidualWithinMask() : peakresnomask;
+      // CAS-14201 : if the mask is all zero, then the peakresinmask is 0
+      Float peakresinmask= validMask ? itsImages->getPeakResidualWithinMask() : 0;
       //os << LogIO::NORMAL3 << "****INITMINOR residual peak "<< tim.real() << LogIO::POST;
       //tim.mark();
       itsLoopController.setPeakResidual( validMask ? peakresinmask : peakresnomask );
