@@ -189,9 +189,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
                     raise Exception("List elements of parameter wvrspw must be int and >=0.")
                         
         reversespwpar = []
-        reversepar = False
         if not (reversespw==''):
-            reversepar = True
             spws = myms.msseltoindex(vis=vis,spw=reversespw)['spw']
             for id in spws:
                 reversespwpar.append(id)
@@ -273,7 +271,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
                           toffset=toffsetpar,
                           nsol=nsolpar,
                           segsource=segsourcepar,
-                          reverse=reversepar,
+                          reverse=False, # only reverse those SPWs in reversespwpar
                           reversespw=reversespwpar,
                           disperse=dispersepar,
                           cont=contpar,

@@ -38,7 +38,7 @@ namespace LibAIR2 {
   void writeNewGainTbl(const ArrayGains &g,
 		       const char *fnameout,
 		       const MSSpec &s,
-		       std::set<size_t> reverse,
+		       const std::set<size_t> &reverse,
 		       bool disperse,
 		       const std::string &msname,
 		       const std::string &invocation,
@@ -96,16 +96,14 @@ namespace LibAIR2 {
 	const size_t spwid=s.spws[ispw].spwid;
 
 	// The minus sign here is required to match ALMA convention
-	double path_to_phase=-2 * M_PI * s.spws[ispw].chf[nch/2] / 3e8;
-	if (reverse.count(spwid))
-	  {
-	    path_to_phase *= -1;
-	  }
-	if (disperse)
-	  {
-	    const double dispf=(1+dispt(s.spws[ispw].chf[nch/2]));
-	    path_to_phase *= dispf;
-	  }
+	double path_to_phase = -2 * M_PI * s.spws[ispw].chf[nch/2] / 3e8;
+	if (reverse.count(spwid)==1){
+	  path_to_phase *= -1;
+	}
+	if (disperse){
+	  const double dispf=(1+dispt(s.spws[ispw].chf[nch/2]));
+	  path_to_phase *= dispf;
+	}
 	
 	
 	// Generate antenna-based complex factors

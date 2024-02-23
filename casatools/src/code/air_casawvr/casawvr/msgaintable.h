@@ -46,7 +46,7 @@ namespace LibAIR2 {
   void writeNewGainTbl(const ArrayGains &g,
 		       const char *fnameout,
 		       const MSSpec &s,
-		       std::set<size_t> reverse,
+		       const std::set<size_t> &reverse,
 		       bool disperse,
 		       const std::string &msname,
 		       const std::string &invocation,
