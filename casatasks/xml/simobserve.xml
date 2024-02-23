@@ -113,10 +113,12 @@ https://casa.nrao.edu/help_desk_all.shtml)
     <param subparam="true" name="incenter" type="string">
       <shortdescription>Set new frequency of center channel e.g. 89GHz (required even for 2D model)</shortdescription>
 <description>Frequency to use for the center channel (or only channel,
-if the skymodel is 2D)
+if the skymodel is 2D).
                      Subparameter of skymodel
                      Default: '' (use whatever is in the image
                      already)
+
+		     This will also become the default rest frequency, e.g. when imaging with tclean.
 
                         Example: incenter='89GHz'
 </description>
