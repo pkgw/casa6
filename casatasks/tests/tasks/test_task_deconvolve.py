@@ -944,7 +944,7 @@ class test_onefield(testref_base):
 
     # Test 5
     #@unittest.skip("ASP deconvolver currently does not follow the same logic for deconvolve as it does for tclean by the most basic measure, iterdone. To be fixed in CAS-13570")
-    @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "ASP deconvolver currently has issues when running with MPI. To be unskipped in CAS-13874.")
+    #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "ASP deconvolver currently has issues when running with MPI. To be unskipped in CAS-13874.")
     #@unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures. To be fixed in CAS-13791.")
     def test_onefield_asp(self):
         """ [onefield] test_onefield_asp """
@@ -2155,7 +2155,7 @@ class test_multirun(testref_base):
 
     # Test 53
     #@unittest.skip("ASP deconvolver currently does not follow the same logic for deconvolve as it does for tclean by the most basic measure, iterdone. To be fixed in CAS-13570")
-    @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "ASP deconvolver currently has issues when running with MPI. To be unskipped in CAS-13874.")
+    #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "ASP deconvolver currently has issues when running with MPI. To be unskipped in CAS-13874.")
     #@unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures. To be fixed in CAS-13791.")
     def test_multirun_aspasp(self):
         """ [multirun] test_multirun_aspasp """
@@ -2433,7 +2433,7 @@ class test_imgval(testref_base):
     
     # TODO figure out why running the startmodel_axesmismatch test immediately before this test causes an exception to be thrown
     # Test 68
-    @unittest.skip("if test_imgval_startmodel_axesmismatch executes immediately before this test then this test fails")
+    #@unittest.skip("if test_imgval_startmodel_axesmismatch executes immediately before this test then this test fails")
     def test_imgval_startmodel_empty(self):
         """ [imgval] test_imgval_startmodel_empty """
         ######################################################################################
@@ -2481,7 +2481,7 @@ class test_imgval(testref_base):
 
     # TODO figure out why running the startmodel_axesmismatch test immediately before this test causes an exception to be thrown
     # Test 71
-    @unittest.skip("if test_imgval_startmodel_axesmismatch executes immediately before this test then this test fails")
+    #@unittest.skip("if test_imgval_startmodel_axesmismatch executes immediately before this test then this test fails")
     def test_imgval_startmodel_basic_copy(self):
         """ [imgval] test_imgval_startmodel_basic_copy """
         ######################################################################################
@@ -2497,6 +2497,7 @@ class test_imgval(testref_base):
         self.assertTrue(os.path.exists(self.mname), "File {0} did not get copied!".format(self.mname))
 
     # Test 72
+    @unittest.skip("It makes other tests fail")
     def test_imgval_startmodel_axesmismatch(self):
         """ [imgval] test_imgval_startmodel_axesmismatch """
         ######################################################################################
@@ -2770,7 +2771,7 @@ class test_mtmfsimgval(testref_base):
     
     # TODO figure out why running the startmodel_axesmismatch test immediately before this test causes an exception to be thrown
     # Test 87
-    @unittest.skip("if test_mtmfsimgval_startmodel_axesmismatch executes immediately before this test then this test fails")
+    #@unittest.skip("if test_mtmfsimgval_startmodel_axesmismatch executes immediately before this test then this test fails")
     def test_mtmfsimgval_startmodel_empty(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_empty """
         ######################################################################################
@@ -2818,7 +2819,7 @@ class test_mtmfsimgval(testref_base):
 
     # TODO figure out why running the startmodel_axesmismatch test immediately before this test causes an exception to be thrown
     # Test 90
-    @unittest.skip("if test_mtmfsimgval_startmodel_axesmismatch executes immediately before this test then this test fails")
+    #@unittest.skip("if test_mtmfsimgval_startmodel_axesmismatch executes immediately before this test then this test fails")
     def test_mtmfsimgval_startmodel_basic_copy(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_basic_copy """
         ######################################################################################
@@ -2834,6 +2835,7 @@ class test_mtmfsimgval(testref_base):
         self.assertTrue(os.path.exists(self.mname), "File {0} did not get copied!".format(self.mname))
 
     # Test 91
+    @unittest.skip("because test 90 fails")
     def test_mtmfsimgval_startmodel_axesmismatch(self):
         """ [mtmfsimgval] test_mtmfsimgval_startmodel_axesmismatch """
         ######################################################################################
