@@ -69,12 +69,25 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 f"Can't use specmode {self.allimpars['0']['specmode']} with imager helper {self.__class__.__name__}!"
             )
 
+        ### Set up and check nchan and reffreq settings. 
         nchan = self.allimpars["0"]["nchan"]
         freqbeg, freqwidth = self.determineFreqRange()
         if nchan < 1 :
             nchan=int((freqwidth)/(0.1*freqbeg))  #gives around 10 channel for 2:1 BW
             if nchan < 5:
                 nchan=5
+            casalog.post('Calculating nchan from the data range to be '+str(nchan),'INFO')
+
+        ## If nchan < nterms, complain.
+        in_nterms = mfsparams.alldecpars["0"]["nterms"]
+        if nchan<in_nterms:
+            raise RuntimeError(
+                f"nchan (={nchan}) should be >= nterms ( {in_nterms} ) for valid polynomial fits to be feasible. "
+            )
+
+        if nchan>50:
+            casalog.post('For mtmfs_via_cube, one usually needs only about 10 channels across the freq range, to fit Taylor polynomials of a low order','INFO')
+                
         freqwidth = freqwidth / nchan
         #print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
