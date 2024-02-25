@@ -182,6 +182,7 @@ namespace LibAIR2 {
     ALMAAbsInpL res;
     const size_t nrows=d.g_time().size();
     const size_t ndelta=nrows / (n+1);
+
     for(size_t i=0; i<n; ++i)
     {
       ALMAAbsInput a;
@@ -190,6 +191,7 @@ namespace LibAIR2 {
       {
 	++row;
       }
+
       if (states.count(d.g_state()[row]) == 0)
       {
 	throw std::runtime_error("Could not find a row with a sky state");
@@ -200,6 +202,7 @@ namespace LibAIR2 {
       a.el=d.g_el()[row];
       a.time=d.g_time()[row];
       a.state=d.g_state()[row];
+
       res.push_back(a);
     }
     return res;
@@ -342,8 +345,9 @@ namespace LibAIR2 {
     {
       bool problematic = false;
       std::vector<double>  TObs(4);
-      for(size_t i=0; i<4; ++i)
+      for(size_t i=0; i<4; ++i){
         TObs[i]=x.TObs[i];
+      }
       try {
 	checkTObs(TObs);
       }
@@ -415,34 +419,29 @@ namespace LibAIR2 {
   ALMAAbsProcessor(const ALMAAbsInpL &inp,
 		   ALMAResBaseList &r)
   {
+    assert(inp.size == r.ptr_list.size());
+
     std::unique_ptr<dTdLCoeffsBase> res;
-    if (inp.size()==0)
-    {
-    }
-    else
-    {
+    if (inp.size()>0){
       dTdLCoeffsSingleInterpolated *rr=new dTdLCoeffsSingleInterpolated();
       res=std::unique_ptr<dTdLCoeffsBase>(rr);
-
-      ALMAResBase *rp = *(r.ptr_list.begin());
 
       for(ALMAAbsInpL::const_iterator i=inp.begin(); 
 	  i!=inp.end(); 
 	  ++i)
       {
+	ALMAResBase *rp = *(r.ptr_list.begin());
+
 	std::array<double, 4> dTdL;
 	std::array<double, 4> dTdL_err;
 	ALMAAbsRetP(rp, dTdL, dTdL_err);
+
 	rr->insert(i->time,
 		   dTdL,
 		   dTdL_err);
-	if( rp != r.ptr_list.back() )
-	{
-	  rp++;
-	}
-	else{
-	  break;
-	}
+
+	r.ptr_list.pop_front(); // remove this almaresbase pointer from the list
+	delete rp; // and free it
       }
       
     }

@@ -1,8 +1,9 @@
 ##########################################################################
 # test_task_wvrgcal.py
 #
-# Copyright (C) 2018
+# Copyright (C) 2018, 2024
 # Associated Universities, Inc. Washington DC, USA.
+# European Sourthern Observatory, Garching, Germany
 #
 # This script is free software; you can redistribute it and/or modify it
 # under the terms of the GNU Library General Public License as published by
@@ -22,14 +23,321 @@ import os
 import sys
 import shutil
 import numpy as np
+import matplotlib.pyplot as plt
+import math
 
 from casatools import ctsys, table
-from casatasks import flagdata, smoothcal, split, wvrgcal
+from casatasks import flagdata, smoothcal, split
+try:
+    iscasatask = True
+    from casatasks import wvrgcal
+except:
+    iscasatask = False
+    from almatasks import wvrgcal
+
 import unittest
 
 from casatestutils import testhelper as th
 
-tb = table( )
+tb = table()
+
+def comp_gainphase(oldctab, newctab, myant=0, spw=None, tol_deg=0.2, figfile='', symsize=12, x_is_time=True):
+    """
+    Test the phaseangle dfference of the two gaintables oldctab and newctab for antenna myant
+    together with their difference and write plot to "figfile".png .
+
+    If myant==-1, check all antennas.
+
+    tol_deg is the max permitted difference in phase angle (degrees) for return value True.
+
+    If figfile is not an empty string, dignostic plots of phase angle difference between
+    the result and the reference are produced with the filenames starting with the value of figfile.
+
+    symsize specifies the plot symbol size in pixels. The minimum size is limited to 5 pixels.
+
+    x_is_time specifies whether the plot x-axis is in units of time or table rows.
+
+    """
+
+    rval = True
+    
+    mytb = table()
+    
+    mytb.open(oldctab)
+    old = mytb.getcol('CPARAM')
+    ants = mytb.getcol('ANTENNA1')
+    fields = mytb.getcol('FIELD_ID')
+    spws = mytb.getcol('SPECTRAL_WINDOW_ID')
+    flags = mytb.getcol('FLAG')[0][0]
+    times = mytb.getcol('TIME')
+    times -= times[0]
+    mytb.close()
+    mytb.open(newctab)
+    new = mytb.getcol('CPARAM')
+    mytb.close()
+    
+    olda = np.angle(old[0][0],deg=True)
+    newa = np.angle(new[0][0],deg=True)
+    
+    nant = np.max(ants)+1
+    
+    if myant<-1 or myant>nant:
+        print('myant out of range. Numants is '+str(nant))
+        return False
+
+    the_ants = [myant]
+    if myant==-1:
+        the_ants = list(range(nant))
+
+
+    if spw==None:
+        the_spw = [spws[0]]
+    elif type(spw) == int:
+        the_spw = [spw]
+    elif type(spw) == list:
+        the_spw = spw
+        
+    for the_ant in the_ants:
+        
+        x = []
+        y1 = []
+        y2 = []
+        y3 = []
+        y4 = []
+        prev_field = -1
+        fieldavs = {}
+        fieldns = {}
+        field_occurrence = {}
+        fo_rows = {}
+        
+        j = 0
+        for i in range(the_ant, len(olda), nant):
+            if flags[i]==0 and spws[i] in the_spw:
+                if x_is_time:
+                    x.append(times[i])
+                else:
+                    x.append(j)
+
+                y1.append(olda[i])
+                y2.append(newa[i])
+                if olda[i]==math.nan:
+                    if newa[i]==math.nan:
+                        myy3 = 0.
+                    else:
+                        myy3 = math.nan
+                elif newa[i]==math.nan:
+                    myy3 = math.nan
+                else:
+                    myy3 = newa[i]-olda[i]
+                    if myy3 < -180:
+                        myy3 += 360.
+                    elif myy3 > 180.:
+                        myy3 -= 360.
+                        
+                y3.append(myy3)
+                
+                if fields[i] not in fieldavs.keys():
+                    print('Found field ', fields[i])
+                    fieldavs[fields[i]] = 0.
+                    fieldns[fields[i]] = 0.
+                    field_occurrence[fields[i]] = 0
+                    fo_rows[fields[i]] = []
+                elif fields[i] != prev_field:
+                    #print('Found field again ', fields[i])
+                    # initialise new occurence
+                    field_occurrence[fields[i]] += 1
+                    fieldavs[fields[i]+field_occurrence[fields[i]]*1000] = 0.
+                    fieldns[fields[i]+field_occurrence[fields[i]]*1000] = 0.
+                    fo_rows[fields[i]+field_occurrence[fields[i]]*1000] = []
+
+                if myy3 != math.nan:
+                    fieldavs[fields[i]+field_occurrence[fields[i]]*1000] += myy3
+                fieldns[fields[i]+field_occurrence[fields[i]]*1000] += 1.
+                fo_rows[fields[i]+field_occurrence[fields[i]]*1000].append(j)
+                
+                #print(fieldns, fields[i], myy3)
+
+                prev_field=fields[i]
+                j+=1
+                    
+                
+        #print(fieldavs)
+        #print(fieldns)
+
+        y4 = list(np.zeros(len(y3)))
+        within_tol = np.ones(len(y3), dtype='bool')
+        for myfield in fieldavs.keys():
+            if fieldns[myfield] != 0:
+                fieldavs[myfield] /= fieldns[myfield]
+                for j in fo_rows[myfield]:
+                    if y3[j] != math.nan:
+                        myy4 = (y3[j] - fieldavs[myfield]) 
+                        if myy4 < -180:
+                            myy4 += 360.
+                        elif myy4 > 180.:
+                            myy4 -= 360.
+                    else:
+                        myy4 = 999.
+                        
+                    y4[j] = myy4
+                    if abs( myy4 ) > tol_deg or myy4==math.nan: 
+                        within_tol[j] = False
+                
+                    
+        if figfile !='':
+            fig, ax = plt.subplots()
+            ax.set_ylim(-181.,181.)
+            if symsize<5:
+                symsize=5
+            ax.scatter(np.array(x), np.array(y1), c='tab:blue', s=symsize, label='ant '+str(the_ant)+' old',
+                       alpha=1.0, edgecolors='none')
+            ax.scatter(np.array(x), np.array(y2), c='tab:orange', s=symsize-1, label='ant '+str(the_ant)+' new',
+                       alpha=1.0, edgecolors='none')
+            ax.scatter(np.array(x), np.array(y3), c='tab:green', s=symsize-2, label='new minus old',
+                       alpha=1.0, edgecolors='none')
+            ax.scatter(np.array(x), np.array(y4), c='tab:red', s=symsize-3, label='(new - old) - avDiffPerField',
+                       alpha=1.0, edgecolors='none')
+
+            if x_is_time:
+                ax.set_xlabel('time since obs. start (sec)')
+            else:
+                ax.set_xlabel('row')
+                
+            ax.set_ylabel('degrees')
+
+            ax.legend()
+            ax.grid(True)
+
+            #plt.show()
+
+            the_file = figfile+'_ant'+str(the_ant)+'.png'
+            os.system('rm -rf '+the_file)
+            plt.savefig(the_file)
+
+            plt.close()
+            
+        rval = rval and (False not in within_tol)
+        print('FIELD averages ant '+str(the_ant)+': ', fieldavs)
+        if len(y4) >0:
+            print('Ant '+str(the_ant)+' Max diff (deg)', np.max(y4))
+            print('Ant '+str(the_ant)+' Min diff (deg)', np.min(y4))
+        else:
+            print('Ant '+str(the_ant)+': no diff values.')
+
+    # end for the_ant
+        
+    return rval
+
+
+def plot_gainphase_diff(oldctab, newctab, myant=0, figfile='lastplot', symsize=10., spw=None):
+    """
+    Plot the phaseangle of the two gaintables oldctab and newctab for antenna myant
+    together with their difference and write plot to "figfile".png .
+
+    If myant==-1, produce plots for all antennas.
+
+    Returns the number of plot produced.
+
+    """
+
+    mytb = tbtool()
+    
+    mytb.open(oldctab)
+    old = mytb.getcol('CPARAM')
+    ants = mytb.getcol('ANTENNA1')
+    spws = mytb.getcol('SPECTRAL_WINDOW_ID')
+    mytb.close()
+    mytb.open(newctab)
+    new = mytb.getcol('CPARAM')
+    mytb.close()
+    
+    olda = np.angle(old[0][0],deg=True)
+    newa = np.angle(new[0][0],deg=True)
+    
+    nant = np.max(ants)+1
+    
+    if myant<-1 or myant>nant:
+        print('myant out of range. Numants is '+str(nant))
+        return 0
+
+    the_ants = [myant]
+    if myant==-1:
+        the_ants = list(range(nant))
+
+
+    if spw==None:
+        the_spw = [spws[0]]
+    elif type(spw) == int:
+        the_spw = [spw]
+    elif type(spw) == list:
+        the_spw = spw
+        
+    for the_ant in the_ants:
+        
+        x = []
+        y1 = []
+        y2 = []
+        y3 = []
+        j = 0
+        for i in range(the_ant, len(olda), nant):
+            if spws[i] in the_spw: 
+                x.append(j)
+                j+=1
+                y1.append(olda[i])
+                y2.append(newa[i])
+                y3.append(newa[i]-olda[i])
+
+        fig, ax = plt.subplots()
+        ax.set_ylim(-181.,181.)
+        ax.scatter(np.array(x), np.array(y1), c='tab:blue', s=symsize, label='ant '+str(the_ant)+' old',
+                   alpha=0.8, edgecolors='none')
+        ax.scatter(np.array(x), np.array(y2), c='tab:orange', s=symsize, label='ant '+str(the_ant)+' new',
+                   alpha=0.8, edgecolors='none')
+        ax.scatter(np.array(x), np.array(y3), c='tab:green', s=symsize, label='new minus old',
+                   alpha=0.8, edgecolors='none')
+
+        ax.set_xlabel('row')
+        ax.set_ylabel('degrees')
+
+        ax.legend()
+        ax.grid(True)
+
+        #plt.show()
+
+        if figfile !='':
+            the_file = figfile+'_ant'+str(the_ant)+'.png'
+            os.system('rm -rf '+the_file)
+            plt.savefig(the_file)
+
+        plt.close()
+
+    return len(the_ants)
+
+def comp_refs(dirold, dirnew):
+    refs = ['multisource_unittest_reference-mod.wvr',
+            'wvrgcalctest_disperse_v2.W',
+            'wvrgcalctest_scale.W',
+            'wvrgcalctest_tie1_v2.W',
+            'multisource_unittest_reference-newformat.wvr',
+            'wvrgcalctest_nsol_v2.W',
+            'wvrgcalctest_sourceflag2_v2.W',
+            'wvrgcalctest_tie2_v2.W',
+            'wvrgcalctest-test19_v2.W',
+            'wvrgcalctest_reversespw.W',
+            'wvrgcalctest_statsource.W',
+            'wvrgcalctest_toffset.W']
+
+    rval = True
+    
+    for myref in refs:
+        numants = plot_gainphase_diff(dirold+'/'+myref, dirnew+'/'+myref, myant=-1, figfile=myref)
+        print(myref+': found '+str(numants)+' ants.')
+        if numants <1:
+            rval = False
+        
+    print('Done.')
+    return rval
+
 
 class wvrgcal_test(unittest.TestCase):
 
@@ -48,15 +356,15 @@ class wvrgcal_test(unittest.TestCase):
            'wvrgcalctest_reversespw.W', # ref8: test4
            'wvrgcalctest_smooth.W', # ref9
            'wvrgcalctest_scale.W', # ref10: test6
-           'wvrgcalctest_tie1.W', # ref11: test7
-           'wvrgcalctest_tie2.W', # ref12: test8
+           'wvrgcalctest_tie1_v2.W', # ref11: test7
+           'wvrgcalctest_tie2_v2.W', # ref12: test8
            'wvrgcalctest_sourceflag1.W', # ref13
-           'wvrgcalctest_sourceflag2.W', # ref14: test9
+           'wvrgcalctest_sourceflag2_v2.W', # ref14: test9
            'wvrgcalctest_statsource.W', # ref15: test10
-           'wvrgcalctest_nsol.W', # ref16: test11
-           'wvrgcalctest_disperse.W', # ref17: test12
+           'wvrgcalctest_nsol_v2.W', # ref16: test11
+           'wvrgcalctest_disperse_v2.W', # ref17: test12
            'multisource_unittest_reference-mod.wvr', # ref18: test16
-           'wvrgcalctest-test19.W'] # ref19: test19
+           'wvrgcalctest-test19_v2.W'] # ref19: test19
 
 ## 2   'wvrgcalctest.W': '',
 ## 3   'wvrgcalctest_toffset.W': '--toffset -1', ........................ test3
@@ -77,7 +385,11 @@ class wvrgcal_test(unittest.TestCase):
 
     makeref = False # set this to true to generate new reference tables 
 
+    makeplots = False # set this to true to generate caltable comparison plots where applicable
+
     out = 'mycaltable.wvr'
+    comptabtol = 0.001 # default is 0.001, i.e. 0.1%
+    compangtol = 0.25 # max. permitted phase correction difference (degrees)
     rval = False
     
     def setUp(self):    
@@ -99,6 +411,8 @@ class wvrgcal_test(unittest.TestCase):
             print("Will create copies of generated caltables in directory \"newref\"")
             os.system('mkdir -p newref')
 
+        if self.makeplots:
+            print("Will create diagnostic plots of caltable comparisons where applicable.")
 
     def tearDown(self):
         os.system('rm -rf myinput.ms*')
@@ -140,7 +454,8 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[1], self.out, ['WEIGHT'] # ignore WEIGHT because it is empty
+            self.rval = th.compTables(referencetab=self.ref[1], testtab=self.out, excludecols=['WEIGHT','CPARAM'],
+                                      # ignore WEIGHT because it is empty, CPARAM because it is tested separately
 ##                                             ['TIME',
 ##                                              'FIELD_ID',
 ##                                              'SPECTRAL_WINDOW_ID',
@@ -153,8 +468,13 @@ class wvrgcal_test(unittest.TestCase):
 ##                                              'FLAG',
 ##                                              'SNR',
 ##                                              'WEIGHT']
-                                            )
-
+                                      tolerance=self.comptabtol)
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test2'
+            self.rval = comp_gainphase(oldctab=self.ref[1], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+            
         self.assertTrue(self.rval)
 
     def test3(self):
@@ -173,7 +493,16 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[3], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[3], self.out, ['WEIGHT', 'CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test3'
+            self.rval = comp_gainphase(oldctab=self.ref[3], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
+            
         self.assertTrue(self.rval)
 
     def test4(self):
@@ -193,7 +522,15 @@ class wvrgcal_test(unittest.TestCase):
 
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[8], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[8], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test4'
+            self.rval = comp_gainphase(oldctab=self.ref[8], newctab=self.out, myant=-1, spw=[0,1], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
 
@@ -216,8 +553,17 @@ class wvrgcal_test(unittest.TestCase):
 		  smoothtype = 'mean',
 		  smoothtime = 3.)
         if(self.rval):
-            self.rval = th.compTables(self.out+'_ref', self.out, ['WEIGHT'], # ignore WEIGHT because it is empty
-                                      0.01) # tolerance 1 % to accomodate differences between Linux and Mac OSX
+            self.rval = th.compTables(self.out+'_ref', self.out, ['WEIGHT','CPARAM'], 
+                                      tolerance=0.01) # tolerance 1 % to accomodate differences between Linux and Mac OSX
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test5'
+            self.rval = comp_gainphase(oldctab=self.out+'_ref', newctab=self.out, myant=-1, spw=[0,1], tol_deg=self.compangtol, figfile=figfile)
+
+            
         self.assertTrue(self.rval)
 
     def test6(self):
@@ -236,7 +582,15 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[10], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[10], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol) 
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test6'
+            self.rval = comp_gainphase(oldctab=self.ref[10], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+            
         self.assertTrue(self.rval)
 
     def test7(self):
@@ -245,7 +599,7 @@ class wvrgcal_test(unittest.TestCase):
         os.system('cp -R ' + myvis + ' myinput.ms')
         rvaldict = wvrgcal(vis="myinput.ms", caltable=self.out, tie=['0,1,2'], toffset=0.)
 
-        if self.makeref:
+        if self.makeref: # remove
             os.system('rm -rf newref/'+self.ref[11])
             os.system('cp -R '+self.out+' newref/'+self.ref[11])
 
@@ -255,7 +609,15 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[11], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[11], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test7'
+            self.rval = comp_gainphase(oldctab=self.ref[11], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
     def test8(self):
@@ -274,9 +636,17 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[12], self.out, ['WEIGHT'], 0.01) # ignore WEIGHT because it is empty,
-                                                                                  # increase tolerance to 1 % to temporarily
-                                                                                  # overcome difference between 32bit and 64bit output
+            self.rval = th.compTables(self.ref[12], self.out, ['WEIGHT','CPARAM'], 0.01) 
+            # increase tolerance to 1 % to temporarily
+            # overcome difference between 32bit and 64bit output;
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test8'
+            self.rval = comp_gainphase(oldctab=self.ref[12], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
     def test9(self):
@@ -295,7 +665,15 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[14], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[14], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test9'
+            self.rval = comp_gainphase(oldctab=self.ref[14], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
     def test10(self):
@@ -314,7 +692,15 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[15], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[15], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test10'
+            self.rval = comp_gainphase(oldctab=self.ref[15], newctab=self.out, myant=-1, spw=[0,1], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
     def test11(self):
@@ -333,7 +719,17 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[16], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[16], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test11'
+            self.rval = comp_gainphase(oldctab=self.ref[16], newctab=self.out, myant=-1, spw=[0],
+                                       tol_deg=10*self.compangtol, # the nsol>1 setting leads to a larger impact of the rnd gen dependencies
+                                       figfile=figfile)
+
         self.assertTrue(self.rval)
 
     def test12(self):
@@ -352,7 +748,15 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[17], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[17], self.out, ['WEIGHT','CPARAM'], tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test12'
+            self.rval = comp_gainphase(oldctab=self.ref[17], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
     def test13(self):
@@ -391,12 +795,22 @@ class wvrgcal_test(unittest.TestCase):
         print('test14-2')
         print(rvaldict2)
 
-        self.rval = rvaldict['success'] and rvaldict2['success'] and (rvaldict['Frac_unflagged'][14]>0.9)
+        self.rval = rvaldict['success'] and rvaldict2['success']
 
+        if 'Frac_unflagged' in rvaldict.keys():
+            self.rval = self.rval and (rvaldict['Frac_unflagged'][14]>0.9)
+            
         if(self.rval):
-            rvaldict2['Disc_um'][14]= 98.0 # The value for antenna14 is the only one expected to be different
-            rvaldict2['RMS_um'][14]= 58.9 # The value for antenna14 is the only one expected to be different
-            rvaldict['Frac_unflagged'][14]=0.9117647058823529 # The value for antenna14 is the only one expected to be different
+            # antenna DV14 has antenna id 14 (accidentally)
+            print(rvaldict['Disc_um'][14], rvaldict2['Disc_um'][14])
+            rvaldict2['Disc_um'][14]= rvaldict['Disc_um'][14] # The value for antenna 14 is the only one expected to be different
+            print(rvaldict['RMS_um'][14], rvaldict2['RMS_um'][14])
+            rvaldict2['RMS_um'][14]=rvaldict['RMS_um'][14]  # The value for antenna 14 is the only one expected to be different
+            print(rvaldict['Flag'][14], rvaldict2['Flag'][14])
+            rvaldict2['Flag'][14]=rvaldict['Flag'][14]  # The value for antenna 14 is the only one expected to be different
+            if 'Frac_unflagged' in rvaldict.keys():
+                print(rvaldict['Frac_unflagged'][14], rvaldict2['Frac_unflagged'][14])
+                rvaldict2['Frac_unflagged'][14]=rvaldict['Frac_unflagged'][14] # The value for antenna 14 is the only one expected to be different
             
             self.rval = (rvaldict==rvaldict2)
                
@@ -406,16 +820,12 @@ class wvrgcal_test(unittest.TestCase):
     def test15(self):
         '''Test 15:  wvrgcal4quasar_10s.ms, one antenna flagged'''
         myvis = self.vis_g
-        os.system('rm -rf myinput2.ms comp.W')
+        os.system('rm -rf myinput.ms comp.W')
         os.system('cp -R ' + myvis + ' myinput.ms')
 
         rvaldict = wvrgcal(vis="myinput.ms", caltable=self.out, wvrflag='DA41', toffset=-1.)
 
-        tb.open('myinput.ms/ANTENNA', nomodify=False)
-        fr = tb.getcol('FLAG_ROW')
-        fr[2] = True
-        tb.putcol('FLAG_ROW', fr)
-        tb.close()
+        flagdata(vis="myinput.ms", antenna='DA41&&*', mode='manual', spw='0;9~26') # flag the WVR SPWs for antenna 2 = DA41
         
         rvaldict2 = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=-1.)
 
@@ -427,11 +837,17 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success'] and rvaldict2['success']
 
         if(self.rval):
-            rvaldict2['Disc_um'][2]=49.100000000000001 # The value for antenna2 is the only one expected to be different
-                                                       # as it was flagged. Replace by value for the unflagged case
-                                                       # to make following test pass if all else agrees.
-            self.rval = (rvaldict==rvaldict2)
+            if 'Frac_unflagged' in rvaldict.keys():
+                print(rvaldict['Frac_unflagged'][2], rvaldict2['Frac_unflagged'][2])
+                rvaldict2['Frac_unflagged'][2]=rvaldict['Frac_unflagged'][2] # The value for antenna 2 is the only one expected to be different
+            self.rval = (rvaldict==rvaldict2) # otherwise, it shouldn't matter if we use wvrflag or flag the WVR data with flagdata
 
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test15'
+            self.rval = comp_gainphase(oldctab='comp.W', newctab=self.out, myant=-1, spw=[1,3,5,7], tol_deg=self.compangtol, figfile=figfile)
+            
         self.assertTrue(self.rval)
 
     def test16(self):
@@ -450,26 +866,32 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[18], self.out, ['WEIGHT', 'CPARAM'] # ignore WEIGHT because it is empty
-                                      )
-            if(self.rval):
-                tb.open(self.out)
-                a = tb.getcol('ANTENNA1')
-                c = tb.getcol('CPARAM')[0][0]
-                tb.close()
-                i = 1
-                for i in range(len(a)):
-                    if (a[i]==1 and not (c[i]==(1+0j))):
-                        self.rval=False
-                        print("CPARAM for antenna 1 has value ", c[i], " expected (1+0j).")
-                        break
+            self.rval = th.compTables(self.ref[18], self.out, ['WEIGHT', 'CPARAM'],
+                                      tolerance=self.comptabtol)
+        if(self.rval):
+            tb.open(self.out)
+            a = tb.getcol('ANTENNA1')
+            c = tb.getcol('CPARAM')[0][0]
+            tb.close()
+            for i in range(len(a)):
+                if (a[i]==1 and not (c[i]==(1+0j))):
+                    self.rval=False
+                    print("CPARAM for antenna 1 has value ", c[i], " expected (1+0j).")
+                    break
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test16'
+            self.rval = comp_gainphase(oldctab=self.ref[18], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
             
         self.assertTrue(self.rval)
 
     def test17(self):
         '''Test 17:  wvrgcal4quasar_10s.ms, two antennas flagged in main table, one only partially, use of mingoodfrac'''
         myvis = self.vis_g
-        os.system('rm -rf myinput2.ms comp.W')
+        os.system('rm -rf myinput.ms comp.W')
         os.system('cp -R ' + myvis + ' myinput.ms')
 
         rvaldict = wvrgcal(vis="myinput.ms", caltable=self.out, wvrflag='DA41', toffset=-1.)
@@ -487,11 +909,15 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success'] and rvaldict2['success']
 
         if(self.rval):
-            rvaldict2['Disc_um'][2]=49.100000000000001 # The value for antenna 2 is the only one expected to be different
-                                                       # as it was flagged. Replace by value for the unflagged case
-                                                       # to make following test pass if all else agrees.
+            print(rvaldict['Disc_um'][2], rvaldict2['Disc_um'][2])
+            rvaldict2['Disc_um'][2]= rvaldict['Disc_um'][2] # The value for antenna 2 is the only one expected to be different
+                                                            # as it was flagged. Replace by value for the unflagged case
+                                                            # to make following test pass if all else agrees.
             rvaldict2['Flag'][2]=True # by the same logic as above
-            rvaldict2['RMS_um'][2]=66.900000000000006 # by the same logic as above
+            if 'Frac_unflagged' in rvaldict.keys():
+                rvaldict2['Frac_unflagged'][2]=rvaldict['Frac_unflagged'][2] # by the same logic as above
+            print(rvaldict['RMS_um'][2], rvaldict2['RMS_um'][2])
+            rvaldict2['RMS_um'][2]=rvaldict['RMS_um'][2] # by the same logic as above
             for mykey in ['Name', 'WVR', 'RMS_um', 'Disc_um']:  
                 print(mykey+" "+str(rvaldict[mykey]==rvaldict2[mykey]))
             self.rval = (rvaldict==rvaldict2)
@@ -501,14 +927,13 @@ class wvrgcal_test(unittest.TestCase):
     def test18(self):
         '''Test 18:  wvrgcal4quasar_10s.ms, two antennas flagged in main table, one only partially'''
         myvis = self.vis_g
-        os.system('rm -rf myinput2.ms comp.W')
+        os.system('rm -rf myinput.ms comp.W')
         os.system('cp -R ' + myvis + ' myinput.ms')
 
-        rvaldict = wvrgcal(vis="myinput.ms", caltable=self.out, wvrflag='DA41', toffset=-1.)
+        flagdata(vis='myinput.ms', mode='manual', antenna='DA41&&*', spw='0,9~26')
+        rvaldict = wvrgcal(vis="myinput.ms", caltable=self.out, toffset=-1.) 
 
-        flagdata(vis='myinput.ms', mode='manual', antenna='DA41&&*')
-        flagdata(vis='myinput.ms', mode='manual', antenna='DV12&&*', timerange='9:10:12~9:10:13,9:12:31~9:12:32') # antenna 12, a few non-contiguous scans!
-        
+        flagdata(vis='myinput.ms', mode='manual', antenna='DV12&&*', timerange='9:10:12~9:10:13,9:12:31~9:12:32', spw='0,9~26') # a few non-contiguous scans!        
         rvaldict2 = wvrgcal(vis="myinput.ms", caltable='comp.W', toffset=-1.)
 
         print('test18-1')
@@ -518,14 +943,15 @@ class wvrgcal_test(unittest.TestCase):
 
         self.rval = rvaldict['success'] and rvaldict2['success']
 
+        # DA41 has ID 2, DV12 has ID 12
+        
         if(self.rval):
-            rvaldict2['Disc_um'][12]=42.100000000000001 # The value for antenna 2 is the only one expected to be different
-                                                       # as it was flagged. Replace by value for the unflagged case
-                                                       # to make following test pass if all else agrees.
-            rvaldict2['Flag'][12]=False # by the same logic as above
-            rvaldict2['RMS_um'][12]=66.0 # by the same logic as above
-            for mykey in ['Name', 'WVR', 'RMS_um', 'Disc_um']:  
-                print(mykey+" "+str(rvaldict[mykey]==rvaldict2[mykey]))
+            print(rvaldict['Disc_um'][12], rvaldict2['Disc_um'][12])
+            rvaldict2['Disc_um'][12]=rvaldict['Disc_um'][12] # The value for antenna 12 is the only one expected to be different
+                                                             # as it was flagged only in the second call. Replace by value for the unflagged case
+                                                             # to make following test pass if all else agrees.
+            print(rvaldict['RMS_um'][12], rvaldict2['RMS_um'][12])
+            rvaldict2['RMS_um'][12]=rvaldict['RMS_um'][12] # by the same logic as above
             self.rval = (rvaldict==rvaldict2)
                
         self.assertTrue(self.rval)
@@ -549,7 +975,16 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success']
 
         if(self.rval):
-            self.rval = th.compTables(self.ref[19], self.out, ['WEIGHT']) # ignore WEIGHT because it is empty
+            self.rval = th.compTables(self.ref[19], self.out, ['WEIGHT','CPARAM'],
+                                      tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test19'
+            self.rval = comp_gainphase(oldctab=self.ref[19], newctab=self.out, myant=-1, spw=[0], tol_deg=self.compangtol, figfile=figfile)
+
         self.assertTrue(self.rval)
 
 
@@ -571,13 +1006,13 @@ class wvrgcal_test(unittest.TestCase):
         self.rval = rvaldict['success'] and rvaldict2['success']
 
         if(self.rval):
-            self.rval = th.compcaltabnumcol(self.out, 'comp.W', 1E-6, colname1='CPARAM', colname2="CPARAM", testspw=1)
+            self.rval = th.compcaltabnumcol(self.out, 'comp.W', self.comptabtol, colname1='CPARAM', colname2="CPARAM", testspw=1)
         if(self.rval):
-            self.rval = th.compcaltabnumcol(self.out, 'comp.W', 1E-6, colname1='CPARAM', colname2="CPARAM", testspw=3)
+            self.rval = th.compcaltabnumcol(self.out, 'comp.W', self.comptabtol, colname1='CPARAM', colname2="CPARAM", testspw=3)
         if(self.rval):
-            self.rval = th.compcaltabnumcol(self.out, 'comp.W', 1E-6, colname1='CPARAM', colname2="CPARAM", testspw=5)
+            self.rval = th.compcaltabnumcol(self.out, 'comp.W', self.comptabtol, colname1='CPARAM', colname2="CPARAM", testspw=5)
         if(self.rval):
-            self.rval = th.compcaltabnumcol(self.out, 'comp.W', 1E-6, colname1='CPARAM', colname2="CPARAM", testspw=7)
+            self.rval = th.compcaltabnumcol(self.out, 'comp.W', self.comptabtol, colname1='CPARAM', colname2="CPARAM", testspw=7)
                
         self.assertTrue(self.rval)
 
@@ -585,17 +1020,30 @@ class wvrgcal_test(unittest.TestCase):
         '''Test 21:  uid___A002_X8ca70c_X5_shortened.ms - refant handling'''
         myvis = self.vis_h
         os.system('cp -R ' + myvis + ' myinput.ms')
-        rvaldict = wvrgcal(vis="myinput.ms",caltable=self.out, toffset=0, refant=['DV11','DV12','DV09'], wvrflag=['DA41','DV11'])
+        rvaldict = wvrgcal(vis="myinput.ms",caltable=self.out, toffset=0, refant=['DV11','DV12','DV09'], wvrflag=['DA41','DV11'], spw=[1,3,5,7])
+        rvaldict2 = wvrgcal(vis="myinput.ms",caltable=self.out+'.ref', toffset=0, refant=['DV12'], wvrflag=['DA41','DV11'], spw=[1,3,5,7])
 
         print('test21')
         print(rvaldict)
+        print(rvaldict2)
 
-        self.rval = rvaldict['success']
+        self.rval = rvaldict['success'] and rvaldict2['success']
 
         if(self.rval):
-            self.assertTrue(rvaldict['Disc_um']==[0.0, 6790.0, 6920.0, 7170.0, 7180.0, 6810.0, 7100.0, 6720.0, 6860.0, 6600.0, 7090.0, 7000.0,
-                                                  6990.0, 6700.0, 7280.0, 7040.0, 7160.0, 6790.0, 6980.0, 6890.0, 7120.0, 0.0, 7080.0, 6970.0,
-                                                  6950.0, 6930.0, 7060.0, 6850.0, 7030.0])
+            self.rval = (rvaldict['Disc_um'][0]==0.) and (rvaldict['Disc_um'][21]==0.)
 
+        if(self.rval):
+            self.rval = th.compTables(self.out+'.ref', self.out, ['WEIGHT','CPARAM'],
+                                      tolerance=self.comptabtol)
+            # ignore WEIGHT because it is empty, CPARAM because it is tested separately
+
+        if(self.rval):
+            figfile = ''
+            if self.makeplots:
+                figfile='test21'
+            self.rval = comp_gainphase(oldctab=self.out+'.ref', newctab=self.out, myant=-1, spw=[1,3,5,7], tol_deg=self.compangtol, figfile=figfile)
+
+        self.assertTrue(self.rval)
+            
 if __name__ == '__main__':
     unittest.main()
