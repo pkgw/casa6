@@ -174,8 +174,19 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   }
   else if (bltype_str == "sinusoid")
   {
-    // sinusoid is not supported yet
-    throw(AipsError("Unsupported baseline type, sinusoid"));
+    // Find the index of the occurrences of "[" and "]"
+    size_t start_index = linestr.find("[");
+    if (start_index == std::string::npos)
+      throw(AipsError("Incorrect format for the nwave list."));
+    size_t end_index = linestr.find("]");
+    // Substract nwave list from the linestr, elements after "[" and before "]"
+    std::string nwave_substr = linestr.substr(start_index + 1, end_index - start_index - 1);
+    // Split, covert and fill in the paramset_nwave
+    std::vector<string> tmp_nwave;
+    SplitLine(nwave_substr, ',',tmp_nwave);
+    for(const auto& i : tmp_nwave)
+      paramset.nwave.emplace_back(ConvertString<size_t>(i));
+    paramset.baseline_type = static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kSinusoid);
   }
   else
   { // poly or chebyshev
@@ -230,9 +241,9 @@ uint16_t BLParameterParser::GetTypeOrder(BLParameterSet const &bl_param)
     AlwaysAssert(bl_param.npiece<=USHRT_MAX, AipsError);//UINT16_MAX);
     return static_cast<uint16_t>(bl_param.npiece);
     break;
-//   case BaselineType_kSinusoidal:
-//     return static_cast<size_t>(bl_param.nwave.size()); <== must be max of nwave elements
-//     break;
+  case BaselineType_kSinusoid:
+    return static_cast<size_t>(bl_param.nwave.size()); //<== must be max of nwave elements
+    break;
   default:
     throw(AipsError("Unsupported baseline type."));
   }
@@ -318,16 +329,16 @@ void BLTableParser::parse()
 	static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(bt_->getBaselineType(irow, ipol));
       bool new_type = true;
       for (size_t i = 0; i < baseline_types_.size(); ++i){
-	if (curr_type_idx == baseline_types_[i]){
-	  new_type = false;
-	  break;
-	}
+        if (curr_type_idx == baseline_types_[i]){
+          new_type = false;
+          break;
+        }
       }
       if (new_type) baseline_types_.push_back(curr_type_idx);
       // update max_orders_
       size_t curr_order = GetTypeOrder(curr_type_idx, irow, ipol);
       if (curr_order > max_orders_[curr_type_idx]) {
-	max_orders_[curr_type_idx] = curr_order;
+	      max_orders_[curr_type_idx] = curr_order;
       }
     }
   }
