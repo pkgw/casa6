@@ -174,8 +174,19 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   }
   else if (bltype_str == "sinusoid")
   {
-    // sinusoid is not supported yet
-    throw(AipsError("Unsupported baseline type, sinusoid"));
+    // Find the index of the occurrences of "[" and "]"
+    size_t start_index = linestr.find("[");
+    if (start_index == std::string::npos)
+      throw(AipsError("Incorrect format for the nwave list."));
+    size_t end_index = linestr.find("]");
+    // Substract nwave list from the linestr, elements after "[" and before "]"
+    std::string nwave_substr = linestr.substr(start_index + 1, end_index - start_index - 1);
+    // Split, covert and fill in the paramset_nwave
+    std::vector<string> tmp_nwave;
+    SplitLine(nwave_substr, ',',tmp_nwave);
+    for(const auto& i : tmp_nwave)
+      paramset.nwave.emplace_back(ConvertString<size_t>(i));
+    paramset.baseline_type = static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kSinusoid);
   }
   else
   { // poly or chebyshev
@@ -230,9 +241,10 @@ uint16_t BLParameterParser::GetTypeOrder(BLParameterSet const &bl_param)
     AlwaysAssert(bl_param.npiece<=USHRT_MAX, AipsError);//UINT16_MAX);
     return static_cast<uint16_t>(bl_param.npiece);
     break;
-//   case BaselineType_kSinusoidal:
-//     return static_cast<size_t>(bl_param.nwave.size()); <== must be max of nwave elements
-//     break;
+  case BaselineType_kSinusoid:
+    //needs to be checked later
+    return static_cast<size_t>(bl_param.nwave.size()); //<== must be max of nwave elements
+    break;
   default:
     throw(AipsError("Unsupported baseline type."));
   }
