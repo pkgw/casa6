@@ -121,8 +121,8 @@ void BLParameterParser::parse(string const file_name)
     bool new_type = true;
     for (size_t i=0; i<baseline_types_.size(); ++i){
       if (bl_param->baseline_type==baseline_types_[i]){
-	new_type = false;
-	break;
+        new_type = false;
+        break;
       }
     }
     if (new_type) baseline_types_.push_back(bl_param->baseline_type);
@@ -181,7 +181,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
     size_t end_index = linestr.find("]");
     // Substract nwave list from the linestr, elements after "[" and before "]"
     std::string nwave_substr = linestr.substr(start_index + 1, end_index - start_index - 1);
-    // Split, covert and fill in the paramset_nwave
+    // Split, convert and fill in the paramset_nwave
     std::vector<string> tmp_nwave;
     SplitLine(nwave_substr, ',',tmp_nwave);
     for(const auto& i : tmp_nwave)
