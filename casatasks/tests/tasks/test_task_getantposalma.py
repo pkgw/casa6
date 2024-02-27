@@ -227,16 +227,34 @@ class getantposalma_test(unittest.TestCase):
         )
         self.assertTrue(os.path.exists(self.outfile))
         with open(self.outfile, "r") as f:
-            antpos, md = json.load(f)
-            antpos = ast.literal_eval(antpos)
+            res_dict = json.load(f)
+        self.assertTrue(
+            "data" in res_dict and "metadata" in res_dict,
+            "Incorrect data structure"
+        )
+        antpos = res_dict["data"]
+        md = res_dict["metadata"]
         self.assertEqual(type(antpos), dict, "Wrong data type")
         self.assertEqual(len(antpos), 3, "Wrong number of antennas")
+        self.assertTrue(
+            "description" in md, "metadata lacks required description key"
+        )
+        self.assertTrue(
+            "product_code" in md and md["product_code"] == "antposalma",
+            "metadata either does not contains required product_code key "
+            "or the value associated with that key is incorrect. It must "
+            "be 'antposalma'"
+        )
         self.assertEqual(
             md["outfile"], self.outfile, "Wrong outfile name in metadata"
         )
         self.assertEqual(
             md["asdm"], "uid://A002/X10ac6bc/X896d", "Wrong asdm name in metadata"
         )
+        self.assertEqual(
+            md["caltype"], "ALMA antenna positions", "Incorrect metadata caltype"
+        )
+
 
 if __name__ == '__main__':
      unittest.main()

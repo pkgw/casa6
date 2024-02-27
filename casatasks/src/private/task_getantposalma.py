@@ -204,7 +204,12 @@ Parameter Details
     """
     if not outfile:
         raise ValueError("Parameter outfile must be specified")
-    md = {"outfile": outfile}
+    md = {
+        "caltype": "ALMA antenna positions",
+        "description": "ALMA ITRF antenna positions in meters",
+        "product_code": "antposalma",
+        "outfile": outfile
+    }
     if not overwrite and os.path.exists(outfile):
         raise RuntimeError(
             f"A file or directory named {outfile} already exists and overwrite "
@@ -262,6 +267,7 @@ Parameter Details
         antpos = _query(url)
         if antpos:
             md["successful_url"] = url
+            antpos = json.loads(antpos)
             break
     if not antpos:
         raise RuntimeError("All URLs failed to return an antenna position list.")
@@ -287,4 +293,4 @@ Parameter Details
             )
     md["timestamp"] = str(datetime.now())
     with open(outfile, "w") as f:
-        json.dump([antpos, md], f)
+        json.dump({"data": antpos, "metadata": md}, f)
