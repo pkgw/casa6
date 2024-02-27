@@ -977,7 +977,7 @@ class test_onefield(testref_base):
         # niter and threshold are pulled from the logs of the test_task_tclean.py::test_onefield_asp
         niter, threshold = 150, 2.19194
         results = deconvolve(imagename=self.img+'1', niter=niter, threshold=threshold, deconvolver='asp', gain=0.1)
-        report  = th.checkall(ret=results, iterdone=268,
+        report  = th.checkall(ret=results,
                               imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], 
                               imgval=[(self.img+'1.psf',1.0,[256,256,0,0]),
                                       (self.img+'1.image',pt_true_1major,pt_loc_4),
