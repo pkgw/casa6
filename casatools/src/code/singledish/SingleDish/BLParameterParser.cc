@@ -176,9 +176,11 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   {
     // Find the index of the occurrences of "[" and "]"
     size_t start_index = linestr.find("[");
-    if (start_index == std::string::npos)
-      throw(AipsError("Incorrect format for the nwave list."));
     size_t end_index = linestr.find("]");
+    if (start_index == std::string::npos || end_index == std::string::npos)
+      throw(AipsError("Incorrect format for the nwave list. Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
+    else if (start_index > end_index)
+      throw(AipsError("Incorrect format for the nwave list. Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
     // Substract nwave list from the linestr, elements after "[" and before "]"
     std::string nwave_substr = linestr.substr(start_index + 1, end_index - start_index - 1);
     // Split, convert and fill in the paramset_nwave
