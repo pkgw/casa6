@@ -1681,6 +1681,108 @@ class test_stokes(testref_base):
           self.assertTrue(self.check_final(report))
 
 
+
+
+     def test_stokes_awp2_mfs_I(self):
+          """ [stokes] test_stokes_awp2_I_mfs mfs with stokes I"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='I',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0])])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_IV(self):
+          """ [stokes] test_stokes_awp2_mfs_IV : mfs with stokes IV"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IV',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0]),(self.img+'.image',4.0,[50,50,1,0])  ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_QU(self):
+          """ [stokes] test_stokes_awp2_mfs_QU : mfs with stokes QU"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='QU',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]),(self.img+'.image',3.0,[50,50,1,0])  ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_Q(self):
+          """ [stokes] test_stokes_awp2_mfs_Q : mfs with stokes Q"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='Q',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_U(self):
+          """ [stokes] test_stokes_awp2_mfs_U : mfs with stokes U"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='U',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',3.0,[50,50,0,0]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_V(self):
+          """ [stokes] test_stokes_awp2_mfs_V : mfs with stokes V"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='V',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',4.0,[50,50,0,0]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_I(self):
+          """ [stokes] test_stokes_awp2_cube_I : cube with stokes I"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='I',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0]),(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',1.0,[50,50,0,2]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_IV(self):
+          """ [stokes] test_stokes_awp2_stokes_IV : cube with stokes V"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IV',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0]),(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',1.0,[50,50,0,2]),  (self.img+'.image',4.0,[50,50,1,0]),(self.img+'.image',4.0,[50,50,1,1]),(self.img+'.image',4.0,[50,50,1,2])] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_QU(self):
+          """ [stokes] test_stokes_awp2_stokes_QU : cube with stokes QU"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='QU',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]),(self.img+'.image',2.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,0,2]),  (self.img+'.image',3.0,[50,50,1,0]),(self.img+'.image',3.0,[50,50,1,1]),(self.img+'.image',3.0,[50,50,1,2])] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_Q(self):
+          """ [stokes] test_stokes_awp2_cube_Q : cube with stokes Q"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='Q',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]),(self.img+'.image',2.0,[50,50,0,1]) ,(self.img+'.image',2.0,[50,50,0,2]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_U(self):
+          """ [stokes] test_stokes_awp2_cube_U : cube with stokes U"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='U',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',3.0,[50,50,0,0]),(self.img+'.image',3.0,[50,50,0,1]) ,(self.img+'.image',3.0,[50,50,0,2]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_V(self):
+          """ [stokes] test_stokes_awp2_cube_V : cube with stokes V"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='V',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',4.0,[50,50,0,0]),(self.img+'.image',4.0,[50,50,0,1]) ,(self.img+'.image',4.0,[50,50,0,2]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_IQUV_fromRL(self):
+          """ [stokes] test_stokes_awp2_cube_IQUV_fromRL : cube with stokes IQUV"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IQUV',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_IQUV_fromXY(self):
+          """ [stokes] test_stokes_awp2_cube_IQUV_fromXY : cube with stokes IQUV"""
+          self.prepData('refim_point_linXY.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IQUV',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+          self.assertTrue(self.check_final(report))
+
+
+
 #     def test_stokes_cube_I_flags(self):
 #          """ [onefield] Test_Stokes_cube_I_flags : cube with stokes I and only XY or YX flagged"""
 #          self.prepData('refim_point_linXY.ms')
