@@ -120,9 +120,22 @@ Current antenna-based gencal options (caltype) are:
    
    <param subparam="true" name="infile" type="string">
       <shortdescription>Input ancilliary file</shortdescription>
-      <description>Input ancilliary file
-                     Subparameter of caltype='gc|gceff|tecim|jyperk'
+      <description>Input ancilliary file.
+                     Subparameter of caltype='gc|gceff|tecim|jyperk|antpos'
                      Default: none
+
+                     The format of the file in case of 'antpos' is JSON.
+                     The file contains the information about the antenna
+                     positions as well as some metadata. As a reference,
+                     this code snippet would create the most minimal JSON file
+                     that can be used by **gencal**
+
+    ::
+       import json
+       ...
+       with open("outfile.json", "w") as f:
+           json.dump({"data":{"ANT1" : [500000, 500000, 500000]}, "metadata" : {"product_code": "antposalma"} }, f)
+
       </description>
       <value/>
    </param>
@@ -295,6 +308,7 @@ Current antenna-based gencal options (caltype) are:
          </equals>
          <equals value="antpos">
             <default param="ant_pos_time_limit"><value type="int">0</value></default>
+            <default param="infile"><value type="string"/></default>
          </equals>
       </when>
    </constraints>
