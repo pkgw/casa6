@@ -4989,10 +4989,31 @@ class test_hetarray_imaging(testref_base):
                                           ## Check that PB peak is at the expected location
                                           (self.img+'_pcorr1_time1_cross.pb' ,1.0,[924,1024,0,0]) ] )   
           report4 = report4 + "This test checks for cross-baseline PB values that are known to be incorrect. Edit these values/test once the algorithm for cross-baseline PBs is fixed.\n"
-          
+
+
+          ## Antenna/time correction : usepointing=True, pointingoffsetsigdev=[20,2000], timerange='*', antenna='grp1' : PB = Mosaiced PB. 
+
+          tclean(vis=msname, imagename=self.img+'_pcorr1_time_1_2', specmode='cube', deconvolver='hogbom',
+                   niter = 0, datacolumn='observed', imsize=2048, cell=5.0, nchan=3, start='1.9GHz',
+                   width='0.4GHz', interpolation='nearest', pblimit=-0.01, gridder='awp2',
+                   usepointing=True, antenna=f"{baselines['grp1']}&")
+          report5=self.th.checkall(imgval=[
+                                          ## Check source intensity
+                                          (self.img+'_pcorr1_time1_2.image' ,0.56,[1024,1024,0,0]), 
+                                          (self.img+'_pcorr1_time1_2.image' ,0.22,[1024,1024,0,1]), 
+                                          (self.img+'_pcorr1_time1_2.image' ,0.07,[1024,1024,0,2]), 
+                                          ## Check PB at source location
+                                          (self.img+'_pcorr1_time1_2.pb' ,0.51,[1024,1024,0,0]), 
+                                          (self.img+'_pcorr1_time1_2.pb' ,0.52,[1024,1024,0,1]), 
+                                          (self.img+'_pcorr1_time1_2.pb' ,0.34,[1024,1024,0,2]), 
+                                          ## Check that PB peak is at the expected location
+                                          (self.img+'_pcorr1_time1_2.pb' ,1.0,[927,1124,0,0]) ] )   
+                                          (self.img+'_pcorr1_time1_2.pb' ,1.0,[1121,1124,0,0]) ] )   
+
+
           ## Four corners : usepointing=True, pointingoffsetsigdev=[20,20], timerange='*', antenna='grp1,grp2' : PB = Sum of PB in all 4 corners (with no cross-terms). Flux/alpha are correct. 
           tclean(vis=msname, datacolumn='observed', imsize=2048,cell=5.0, imagename=self.img+'_pcorr2_4corners', niter=0, specmode='cube', nchan=3,start='1.9GHz', width='0.4GHz', interpolation='nearest', pblimit=-0.01,gridder='awproject',wbawp=True,psterm=False, usepointing=True, pointingoffsetsigdev=[20.0,20.0], antenna=self.baselines['grp1']+' & ; '+self.baselines['grp2']+ ' &')
-          report5=self.th.checkall(imgval=[
+          report6=self.th.checkall(imgval=[
                                           ## Check source intensity
                                           (self.img+'_pcorr2_4corners.image' ,0.77,[1024,1024,0,0]), 
                                           (self.img+'_pcorr2_4corners.image' ,0.42,[1024,1024,0,1]), 
@@ -5006,7 +5027,7 @@ class test_hetarray_imaging(testref_base):
                                           (self.img+'_pcorr2_4corners.pb' ,1.0,[924,924,0,0]),   
                                           (self.img+'_pcorr2_4corners.pb' ,0.925,[1124,1124,0,0]),   
                                           (self.img+'_pcorr2_4corners.pb' ,1.0,[1124,924,0,0]) ] )   
-          report5 = report5 + "This test leaves out cross-baselines. Edit later to include them, once the algorithm for cross-baseline PBs is fixed.\n"
+          report6 = report6 + "This test leaves out cross-baselines. Edit later to include them, once the algorithm for cross-baseline PBs is fixed.\n"
         
           #### Note : Add a run with all antennas ONLY after the cross-baselines imaging is correct.  
           #### grp1 has 14 ants. grp2 has 13.  But, the PBs for grp1 have the peak of 1.0 whereas grp2 has 0.93.  Needs to be understood. But, image and pb values match, so flux is ok. 
@@ -5016,7 +5037,7 @@ class test_hetarray_imaging(testref_base):
           os.environ['ATerm_CONVSIZE'] = '2048'
 
 
-          self.assertTrue(self.check_final(report1+report2+report3+report4+report5))
+          self.assertTrue(self.check_final(report1+report2+report3+report4+report5+report6))
 
      ###########################
 
