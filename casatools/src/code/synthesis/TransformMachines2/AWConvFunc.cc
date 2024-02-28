@@ -2072,11 +2072,17 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	//Assuming first freq is lowest
 	Quantity cell;
 	Int convnx=0;
+	if(freqlist.nelements() ==0)
+		throw(AipsError("Programmer error: No frequencies has been sent for A-Terms construnction"));
 	asupport.resize(freqlist.nelements());
 	if(!atermMaker_p)
 		throw(AipsError("Programmer Error: AWConvFunc has to be constructed with a EVLAAperture"));
-	String bandname=EVLAAperture::getVLABandName(freqlist[int(freqlist.nelements()/2)], atermMaker_p->getTelescopeName());
-//	cerr << "BANDNAME " << bandname << " telescip " << atermMaker_p->getTelescopeName()  << " csys tel " << csys.obsInfo().telescope() << endl;
+        String bandname = EVLAAperture::getVLABandName(
+            freqlist[int(freqlist.nelements() / 2)],
+            atermMaker_p->getTelescopeName());
+        //	cerr << "BANDNAME " << bandname << " telescip " <<
+        //atermMaker_p->getTelescopeName()  << " csys tel " <<
+        //csys.obsInfo().telescope() << endl;
 	std::tie(cell,convnx)=getBeamCellSize(bandname);
 //	cerr << "@@@cell " << cell <<  " npix " <<  convnx << endl;
 	csys_p=csys;

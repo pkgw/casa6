@@ -156,7 +156,6 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
     //cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
-    //append arrays and indices  
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
   }
   
@@ -239,7 +238,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     //cerr << "npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
     if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
-      cerr << "aft npix " << npix << endl;
+      //cerr << "aft npix " << npix << endl;
       IPosition elshp=newAWConv.shape();
       elshp[0]=npix;
       elshp[1]=npix;
@@ -266,24 +265,40 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     // asumming same freqs for now
     newshp(4) = newshp(4)+awConv.shape()(4);
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    if (npix !=  newshp[0])
-    {
-      
-     cerr <<  "npix is not the same for a different PA" <<  endl; 
+    //cerr << "Npix " << npix << " newAWConv " << convFunc_p.shape() << endl;
+    if (npix > newshp[0]) {
+
+      cerr << "npix is not the same for a different PA" << endl;
+    } 
+    else if(npix <= newshp[0]){
+      IPosition blcadded(5, 0, 0, 0, 0, convFunc_p.shape()[4]);
+      IPosition trcadded = newshp - 1;
+      convFunc_p.resize(newshp, True);
+      wgtConvFunc_p.resize(newshp, True);
+      convFunc_p(blcadded, trcadded).set(0.0);
+      wgtConvFunc_p(blcadded, trcadded).set(0.0);
+Array<Complex> c=convFunc_p(blcadded, trcadded);
+      MathUtils::putMiddle(c, newAWConv);
+      Array<Complex> d=wgtConvFunc_p(blcadded, trcadded);
+      MathUtils::putMiddle(d, newWtConv);
+      convSizes_p.resize(trc[0]+1, true);
+      convSizes_p(blc,  trc).set(newshp[0]);
+      convSupport_p.resize(trc[0]+1, true);
+      convSupport_p(blc, trc)= awsupport.row(nfreqs-1);
+
+
     }
-    else{
+    else {
       IPosition blcadded(5,  0,  0,  0,  0, convFunc_p.shape()[4]);
       IPosition trcadded = newshp-1;
       convFunc_p.resize(newshp,  True);
       wgtConvFunc_p.resize(newshp,  True);
       convFunc_p(blcadded,  trcadded) = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p(blcadded, trcadded) = MathUtils::getMiddle(newWtConv,  npix,  npix);
-      convSizes_p.resize(trc[0]+1);
+      convSizes_p.resize(trc[0]+1, true);
       convSizes_p(blc,  trc).set(npix);
-      convSupport_p.resize(trc[0]+1);
+      convSupport_p.resize(trc[0]+1, true);
       convSupport_p(blc, trc)= awsupport.row(nfreqs-1);
-      
-      
     }
   }
   
@@ -317,6 +332,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   Vector<Int> pmap;
   Vector<Int> rmap;
   getConvIndices(pmap, cmap, rmap, vb, rotuvw);
+  //cerr << "pmap "<< pmap << endl;
   //cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
   std::vector<Int> pmapused = pmap.tovector();
   {
@@ -491,7 +507,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   for (uint k = 0; k < vb.nRows();++k) {
     for (uint j = 0; j < rowAxisWVals_p.nelements(); ++j) {
      if ( (abs(wIndex[k]) == rowAxisWVals_p[j]) && (paIndex[k] == rowAxisPAVals_p[j]) && (antPairIndex[k] == rowAxisAntennaPair_p[j]) ) {
-      rowMap[k] = wIndex[k] > 0 ? j : -j;
+      rowMap[k] = wIndex[k] >= 0 ? j : -j;
      }
     }
     

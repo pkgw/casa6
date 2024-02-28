@@ -87,15 +87,28 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   // TESTOO
   
   CoordinateSystem cs=image->coordinates();
-  
-    SpectralCoordinate spCS = cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+   
+  SpectralCoordinate spCS = cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
     double f1, f2;
+   { //Lets get the frame to convert to
+    MFrequency::Types fframe;
+   
+    Int spw = vb.spectralWindows()(0);
+    MDirection d;
+    cs.directionCoordinate(0).toWorld(d, Vector<Double>(2,0));
+    MPosition p= cs.obsInfo().telescopePosition();
+    MEpoch e = cs.obsInfo().obsDate();
+    fframe=(MFrequency::Types)vb.subtableColumns().spectralWindow().measFreqRef()(spw);
+    spCS.setReferenceConversion(fframe, e, p, d);
+  
+   }
+    
     nchan = image->shape()(3);
     spCS.toWorld(f1, double(-0.5));
     spCS.toWorld(f2, double(nchan)-0.5);
     auto frange=std::make_pair(f1, f2);
-    
-  if(pbConvFunc_p.null())
+
+    if (pbConvFunc_p.null())
       pbConvFunc_p=new HetArrayConvFunc();
   awConvs_p=pbConvFunc_p->getAWConvFuncHolder();
   if(awConvs_p.use_count()==0){
@@ -139,8 +152,8 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     
     //return vi to origin
     vi->originChunks(); vi->origin();
-    
-    std::sort(freqs.begin(),  freqs.end());
+    //cerr << "FREQS " << Vector<Double>(freqs) << endl;
+    std::sort(freqs.begin(), freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
     
@@ -157,7 +170,6 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       }
     }
     
-    cerr <<  "PAMax in data " <<  paMax <<  endl;
     if (nw_p == 0)
       nw_p = 1;
     Vector<Double> wVals(nw_p,0);
@@ -248,7 +260,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       rmapused.erase(last,  rmapused.end());
     }
     //cerr << "LENGTH aft " << rmapused.size() << "   " << cmapused.size() << "   " << pmapused.size() << endl;
-    // cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
+    //cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
     pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
