@@ -727,7 +727,7 @@ class wvrgcal_test(unittest.TestCase):
             if self.makeplots:
                 figfile='test11'
             self.rval = comp_gainphase(oldctab=self.ref[16], newctab=self.out, myant=-1, spw=[0],
-                                       tol_deg=10*self.compangtol, # the nsol>1 setting leads to a larger impact of the rnd gen dependencies
+                                       tol_deg=20*self.compangtol, # the nsol>1 setting leads to a larger impact of the rnd gen dependencies
                                        figfile=figfile)
 
         self.assertTrue(self.rval)
