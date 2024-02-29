@@ -12,12 +12,11 @@
 */
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include <stdio.h> 
 #include <stdlib.h>
 #include <string>
-#include <cstring>
-#include <casacore/casa/BasicSL/String.h>
 
 #include "dispersion.h"
 
@@ -41,45 +40,43 @@ namespace LibAIR2 {
 	       DispersionTab &dt)
   {
     std::ifstream ifs(fname);
-    if (not ifs.good())
-    {
+    if (not ifs.good()){
       throw std::runtime_error(std::string("Could not open dispersion table ")+fname);
     }
     std::string scratch;
 
-    while(ifs.good())
-    {
+    while(ifs.good()){
       std::getline(ifs, scratch);
-      if (scratch.size() < 5)
+      //std::cerr << scratch << " - interpreted as:"; 
+      if (scratch.size() < 5){
+	//std::cerr << "(nothing)" << std:: endl;
 	continue;
+      }
 
-      char * pch;
-      char *s = new char[scratch.size()+1];
-      strcpy( s, scratch.c_str() );
-      pch = strtok(s, ",;\"");
-      casacore::String first(*pch);
-      pch = strtok (NULL, ",;\"");
-      casacore::String second(*pch);
-      
-      casacore::trim(first);
-      casacore::trim(second);
-      try {
-	dt.insert(dt.end(),
-		  std::pair<double, double>(casacore::String::toDouble(first),
-					    casacore::String::toDouble(second)
-					    ));
+      std::stringstream ss(scratch);
+      double first, second;
+      std::string sep;
+      if(ss >> first){
+	if(ss >> sep){
+	  if(ss >> second){
+	    dt.insert(dt.end(),
+		      std::pair<double, double>(first, second));
+	    //std::cerr << "(double)  " << first << " ,  " << second << " " << std::endl;
+	  }
+	  else{
+	    std::cerr<<" Reading " << fname << ": could not interpret third part of " << scratch <<std::endl;
+	  }
+	}
+	else{
+	  std::cerr<<" Reading " << fname << ": could not interpret separator in " << scratch <<std::endl;
+	}
       }
-      catch (const std::bad_cast &bc)
-      {
-	std::cerr<<"Could not interpret " << first << " and " << second
-		 <<std::endl;
-      }
-      delete [] s;
+      else{
+	std::cerr<<" Reading " << fname << ": could not interpret first part of " << scratch <<std::endl;
+      } 
     }
+
+    return;
   }
 
-
 }
-
-
-
