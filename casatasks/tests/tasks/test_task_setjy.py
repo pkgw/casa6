@@ -1742,6 +1742,11 @@ class test_inputs(SetjyUnitTestBase):
         except Exception as exc:
             self.fail('Unexpected task exception: {}'.format(exc))
 
+    def test_usescratchFalseForEphemObject(self):
+        """ Test to catch usescratch=T when Butler-JPL-Horizons is used """
+        with self.assertRaisesRegex(RuntimeError, r'usescratch=False and standard=Butler-JPL-Horizons 2012'):
+            setjy(vis=self.inpms, standard='Butler-JPL-Horizons 2012', usescratch=False )  
+
 
 class test_conesearch(SetjyUnitTestBase):
     """Test search for field match by position (standard='Perley-Butler 2013')"""
