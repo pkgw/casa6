@@ -1,0 +1,72 @@
+<casaxml xsi:schemaLocation="http://casa.nrao.edu/schema/casa.xsd file:///opt/casa/code/xmlcasa/xml/casa.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://casa.nrao.edu/schema/psetTypes.html">
+
+<task category="calibration" name="getantposalma" type="function">
+  <shortdescription>Retrieve antenna positions by querying ALMA web service.</shortdescription>
+  <description>
+    Query an ALMA-specific web service and retrieves antenna positions. The positions
+    retrieved can faill within a specified time window, be greater than a specified
+    signal-to-noise level, etc. The task writes this data to a specified output file.
+    This file can then be read by gaincal to apply antenna position corrections.
+  </description>
+  <input>
+    <param name="outfile" type="path">
+      <shortdescription>Name of output file to which to write retrieved antenna positions.</shortdescription>
+      <description>Name of output file to which to write antenna positions. If a file by this name already exists, it will be silently overwritten. The written file will be in JSON format.
+default: none
+Example: outfile='my_alma_antenna_positions.json'
+      </description>
+      <value/>
+    </param>
+    <param name="overwrite" type="bool">
+        <shortdescription>Overwrite a file by the same name if it exists?</shortdescription>
+        <description> Overwrite a file by the same name if it exists? If False and a file
+            with the same name exists, and exception will be thrown.</description>
+        <value>False</value>
+    </param>
+    <param name="asdm" type="string">
+      <shortdescription>The associated ASDM UID.</shortdescription>
+      <description>The associated ASDM UID. The ASDM is not required to be on the file system; this value is simply passed to the web service.
+                   default: ''
+                   Example:asdm='uid://A002/X10ac6bc/X896d'
+      </description>
+      <value/>
+    </param>
+
+    <param name="tw" type="string">
+      <shortdescription>Optional time window in which to consider baseline measurements in the database, when calculating the antenna positions.</shortdescription>
+      <description>Optional time window in which to consider baseline measurements in the database, when calculating the antenna positions. Format is of the form begin_time,end_time, where times must be specified in YYYY-MM-DDThh:mm:ss.sss format and end_time must be later than begin time. Times should be UTC.
+      Example: tw='2023-03-14T00:40:20,2023-03-20T17:58:20'
+</description>
+      <value/>
+    </param>
+
+    <param name="snr" type="float">
+      <shortdescription>Optional signal-to-noise.</shortdescription>
+      <description>Optional signal-to-noise. Antenna positions which have corrections with S/N less than this value will not be retrieved nor written. If not specified, positions of all antennas will be written.
+        default: 0 (no snr constraint will be used) 
+        Example: snr=5.0
+      </description>
+      <value>0</value>
+    </param>
+
+    <param name="search" type="string">
+      <shortdescription>Search algorithm to use.</shortdescription>
+      <description>Search algorithm to use. Supported values are &quot;both_latest&quot; and &quot;both_closest&quot;. For &quot;both_latest&quot;, the last updated position for each antenna within 30 days after the observation will be returned, taking into account snr if specified. If provided, tw will override the 30 day default value. For &quot;both_closest&quot;, the position of each antenna closest in time to the observation, within 30 days (before or after the observation) will be returned, subject to the value of snr if it is specified. If specified, the value of tw will override the default 30 days. The default algorithm to use will be &quot;both_latest&quot;.
+      Example: search=&quot;both_closest&quot;
+      </description>
+      <value>both_latest</value>
+    </param>
+    <param name="hosts" type="stringVec">
+      <shortdescription>Priority-ranked list of hosts to query.</shortdescription>
+      <description>Priority-ranked list of hosts to query to obtain positions. Only one server that returns a list of antenna positions is required. That response will be written and no additional hosts will be queried.
+        Example: hosts=[&quot;server1.alma.cl&quot;, &quot;server2.alma.cl&quot;]
+        </description>
+        <!-- WARN default is production server -->
+        <value type="stringVec"><value>https://asa.alma.cl/uncertainties-service/uncertainties/versions/last/measurements/casa/</value></value>
+      </param>
+  </input>
+  <returns type="void"/>
+  THIS TASK IS COMPLETELY DOCUMENTED ON ITS CASADOCS PAGE.
+</task>
+</casaxml>
+
