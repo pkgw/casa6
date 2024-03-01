@@ -219,7 +219,7 @@ bool synthesisimager::defineimage(const casac::record& impars, const casac::reco
       casacore::MDirection::Types refType;
       Bool trackingNearSource= (Table::isReadable(pcen, False))
 	|| ( (casacore::MDirection::getType(refType, pcen)) && (refType > casacore::MDirection::N_Types && refType < casacore::MDirection:: N_Planets ))
-	|| (upcase(pcen)==String("TRACKFIELD"));
+	|| (pcen==String("TRACKFIELD"));
       if(trackingNearSource){
 	*itsLog << "Detected tracking of moving source " <<  casacore::LogIO::POST;
 	if(refType > casacore::MDirection::N_Types && refType < casacore::MDirection::COMET){
@@ -229,9 +229,16 @@ bool synthesisimager::defineimage(const casac::record& impars, const casac::reco
 	movingSource=pcen;
 	irecpars->define("phasecenter", "");
       }
-      
-      
-      
+      else {
+        //extract strings separated by a space
+        String tmpref, tmpra, tmpdec;
+        std::istringstream iss(pcen);
+        iss >> tmpref >> tmpra >> tmpdec;
+        // if only a single string extracted assume it is ephemeris object related specification
+        if( tmpra.length() == 0 &&  tmpdec.length() == 0 ){
+          throw(AipsError("Cannot translate the specified phasecenter, "+pcen+ " as a valid ephemeris table or major solar system object defined or a special case option (in all uppercase), 'TRACKFIELD'"));
+        }
+      }
       //cerr << "PCEN " << pcen << "  " << irecpars.asString("phasecenter")<< endl;
     }
 
