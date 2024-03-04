@@ -1,15 +1,9 @@
-from __future__ import absolute_import
 import os
 import sys
 import numpy as np
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import ctsys, ms, quanta, calibrater, wvr
-else:
-    raise('Only CASA6 supported.')
+from casatasks import casalog
+from casatools import ctsys, ms, quanta, calibrater, wvr
 
 def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
             sourceflag=None, tie=None, nsol=None, disperse=None, 

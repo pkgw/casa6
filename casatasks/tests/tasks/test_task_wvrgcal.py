@@ -28,12 +28,7 @@ import math
 
 from casatools import ctsys, table
 from casatasks import flagdata, smoothcal, split
-try:
-    iscasatask = True
-    from casatasks import wvrgcal
-except:
-    iscasatask = False
-    from almatasks import wvrgcal
+from casatasks import wvrgcal
 
 import unittest
 
