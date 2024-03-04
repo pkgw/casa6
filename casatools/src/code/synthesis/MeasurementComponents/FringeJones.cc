@@ -1338,11 +1338,6 @@ void smoothCTFringe(NewCalTable ct,
                       float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
                       float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
                       // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
-                      // Wrong STILL?
-                      int FW = 0;//static_cast<int>(temp[counter-1][1] * refFreq * timeStep);
-                      int BW = 0;//-static_cast<int>(temp[counter][1] * refFreq * timeStep);
-                      //int FwCycles = static_cast<int>((predictFW-temp[counter-1][0]) / (2*M_PI));
-                      //int BwCycles = -(static_cast<int>((predictBW-temp[counter][0]) / (2*M_PI)));
                       int FwCycles = 0;
                       int BwCycles = 0;
                       
@@ -1367,45 +1362,15 @@ void smoothCTFringe(NewCalTable ct,
                         BwCycles = -(int)(bcp-1);
                       }
                       
-                      // Get cycles from forward prediction
-                      /*if (predictFW > M_PI) {
-                        FwCycles = 1;
-                        FW = static_cast<int>((temp[counter-1][1] * refFreq * timeStep) - .5);
-                        //cout << "CAST: " << static_cast<int>((predictFW - M_PI) / (2*M_PI)) << "\n";
-                        //FwCycles += static_cast<int>((predictFW - temp[counter-1][0]) / (2*M_PI));
-                      }
-                      else if (predictFW < -M_PI) {
-                        FwCycles = -1;
-                        FW = static_cast<int>(((temp[counter-1][1] * refFreq * timeStep) + .5));
-                        //FwCycles -= static_cast<int>((predictFW - temp[counter-1][0]) / (2*M_PI));
-                      }
-                      
-                      // Get cycles from backward prediction
-                      if (predictBW < -M_PI) {
-                        BwCycles = 1;
-                        BW = -static_cast<int>((temp[counter][1] * refFreq * timeStep) + .5);
-                        //BwCycles += static_cast<int>((predictBW - temp[counter][0]) / (2*M_PI));
-                      }
-                      else if (predictBW > M_PI) {
-                        BwCycles = -1;
-                        BW = -static_cast<int>((temp[counter][1] * refFreq * timeStep) - .5);
-                        //BwCycles -= static_cast<int>((predictBW - temp[counter][0]) / (2*M_PI));
-                      }*/
-                      
-                      //FwCycles += FW;
-                      //BwCycles += BW;
-                      cout << "FW: " << FwCycles << ", BW: " << BwCycles << "\n";
-                      //cycles += ((FwCycles + BwCycles) / 2);
+                      //cout << "FW: " << FwCycles << ", BW: " << BwCycles << "\n";
                       cycles += (int)((fcp-bcp) / 2);
-                      
-                      //cycles += FwCycles;
-                      //cycles = -1;
-                      cout << "REF FREQ: " << refFreq << "\n";
-                      cout << "TIME STEP: " << timeStep << "\n";
-                      cout << "FORWARD PRED: " << fcp << ", BACKWARD PRED: " << bcp << "\n";
-                      cout << "CHANGE: " << (FwCycles + BwCycles) / 2 << "\n";
-                      cout << "CYCLES: " << cycles << "\n";
-                      cout<< "COUNTER: " << counter << "\n";
+
+                      //cout << "REF FREQ: " << refFreq << "\n";
+                      //cout << "TIME STEP: " << timeStep << "\n";
+                      //cout << "FORWARD PRED: " << fcp << ", BACKWARD PRED: " << bcp << "\n";
+                      //cout << "CHANGE: " << (FwCycles + BwCycles) / 2 << "\n";
+                      //cout << "CYCLES: " << cycles << "\n";
+                      //cout<< "COUNTER: " << counter << "\n";
                       
                       unwrap.push_back(temp[counter][0] + 2 * M_PI * cycles);
                     }
@@ -1430,82 +1395,17 @@ void smoothCTFringe(NewCalTable ct,
         newp.assign(p);
         pOK.reference(fparok(fblc,ftrc).reform(vec));
         newpOK.reference(newfparok(fblc,ftrc).reform(vec));
-
-         /*
-          cout << ispw << " "
-           << ichan << " "
-           << ipar << " "
-           << "p.shape() = " << p.shape() << " "
-           << "pOK.shape() = " << pOK.shape() << " "
-           << endl;
-         */
-
           
         Vector<Bool> mask;
 
-          //cout << "--------NEW I LOOP-------\n" <<
-          //"Chan: " << ichan << " IPAR: " << ipar << "\n";
         for (Int i=0;i<nSlot;++i) {
           // Make mask
           mask = pOK;
           mask = (mask && ( (times >  (times(i)-thw)) &&
                     (times <= (times(i)+thw)) ) );
           
-            
-
-          // Avoid explicit zeros, for now
-          //        mask = (mask && amp>=FLT_MIN);
-
-
-          //cout << "    " << ifld << " " << i << " " << idx(i) << " ";
-          //for (Int j=0;j<mask.nelements();++j)
-          //  cout << mask(j);
-          //cout << endl;
-
-          //vector<float> holder {0.0, 0.0, 0.0};
-          
           if (ntrue(mask)>0) {
             if (smtype=="mean") {
-              
-              /*if (ipar == 0){
-                  //holder[0] = newp(i);
-                  //holder[2] = times(i);
-                  //temp.push_back(holder);
-                  //cout << "PMASK: " << p(mask) << "\n";
-                }
-                else if (ipar == 2){
-                    //cout << "COUNTER: " << counter << " SIZE " << temp.size() << "\n";
-                    temp[counter][1] = p(i);
-                    // Interp here
-                    // if are at counter 0 you can't interpolate back. Just insert as starting value
-                    if (counter == 0) {
-                        unwrap.push_back(temp[counter][0]);
-                    }
-                    else {
-                  
-                      // Get the time difference between two points
-                      float timeStep = temp[counter][2] - temp[counter-1][2];
-                      // Get Forwards and backwards predictions (in radians)
-                      float predictFW = temp[counter-1][0] + temp[counter-1][1] * refFreq * timeStep;
-                      float predictBW = temp[counter][0] - temp[counter][1] * refFreq * timeStep;
-                      // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
-                      // WRONG?
-                      int FwCycles = static_cast<int>((predictFW-temp[counter-1][0]) / (2*M_PI));
-                      int BwCycles = -(static_cast<int>((predictBW-temp[counter][0]) / (2*M_PI)));
-                      
-                      cycles += (FwCycles + BwCycles) / 2;
-                      
-                      cout << "Time Step: " << timeStep << "\n";
-                      cout << "BEFORE AND AFTER: " << temp[counter-1][0] << ", " << temp[counter][0] << "\n";
-                      cout << "PREDICTED: " << predictFW<< ", " << predictBW << "\n";
-                      cout << "DELAY RATE: " << temp[counter-1][1] << ", " << temp[counter][1] << "\n";
-                      cout << "CYCLES: " << cycles << " FW: " << FwCycles << " BW: " << BwCycles << "\n";
-                      // add value to unwrapped
-                      unwrap.push_back(temp[counter][0] + 2 * M_PI * cycles);
-                    }
-                    
-                    counter ++;
-                }*/
               // If phases use our unwrapped vector
               if (ipar == 0){
                 newp(i)=mean(unwrapPhases(mask));
@@ -1525,6 +1425,13 @@ void smoothCTFringe(NewCalTable ct,
             else if (smtype=="median") {
               if (ipar == 0) {
                 newp(i)= median(unwrapPhases(mask),false);
+                // re wrap value
+                while (newp(i) < -M_PI) {
+                  newp(i) += 2*M_PI;
+                }
+                while (newp(i) > M_PI) {
+                  newp(i) -= 2*M_PI;
+                }
               }
               else {
                 newp(i)= median(p(mask),false);
