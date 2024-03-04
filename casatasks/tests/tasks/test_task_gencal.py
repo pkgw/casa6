@@ -881,6 +881,7 @@ class gencal_eoptest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        shutil.copytree(os.path.join(datapath, evndata), evncopy)
         shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
 
     def setUp(self):
@@ -891,17 +892,30 @@ class gencal_eoptest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        shutil.rmtree(evncopy)
         shutil.rmtree(vlbacopy)
 
     def test_eop(self):
         """Test calibration table produced when gencal is run on an MS
            with an EARTH_ORIENTATION table."""
 
-        gencal(vis=vlbacopy,
-               caltable=caltab,
-               caltype='eop')
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop')
 
         self.assertTrue(os.path.exists(caltab))
+
+
+    def test_noeop(self):
+        """Test that no calibration table is produced when gencal is run on an
+           MS without an EARTH_ORIENTATION table.
+
+        """
+
+        try:
+            gencal(vis=evncopy, caltable=caltab, caltype='eop')
+        except:
+            pass
+
+        self.assertFalse(os.path.exists(caltab))
 
 
 if __name__ == '__main__':

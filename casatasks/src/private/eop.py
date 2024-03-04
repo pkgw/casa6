@@ -1,5 +1,6 @@
 import math
 import re
+import shutil
 
 from casatasks import casalog
 from casatools import ctsys
@@ -119,10 +120,10 @@ def get_eops_from_ms(vis, obsid):
             continue
         tb.close()
     except:
-        msg = 'No EOPS found'
-        casalog.post(msg)
-        pass
+        return None
 
+    if len(eops['MJD']) == 0:
+        return None
     return eops
 
 def get_eops_from_casadata(mjd_min, mjd_max):
@@ -134,16 +135,22 @@ def get_eops_from_casadata(mjd_min, mjd_max):
     eops['PM_x'] = []
     eops['PM_y'] = []
 
-    path = ctsys.resolve('geodetic/IERSeop2000')
-    tb.open(path)
-    res = tb.query('MJD > %f && MJD < %f' % (mjd_min - 0.5, mjd_max + 0.5))
-    for row in range(res.nrows()):
-        eops['MJD'].append(res.getcell('MJD', row))
-        eops['UT1_UTC'].append(res.getcell('dUT1', row))
-        eops['PM_x'].append(res.getcell('x', row))
-        eops['PM_y'].append(res.getcell('y', row))
-        continue
+    try:
+        path = ctsys.resolve('geodetic/IERSeop2000')
+        tb.open(path)
+        res = tb.query('MJD > %f && MJD < %f' % (mjd_min - 0.5, mjd_max + 0.5))
+        for row in range(res.nrows()):
+            eops['MJD'].append(res.getcell('MJD', row))
+            eops['UT1_UTC'].append(res.getcell('dUT1', row))
+            eops['PM_x'].append(res.getcell('x', row))
+            eops['PM_y'].append(res.getcell('y', row))
+            continue
+        tb.close()
+    except:
+        return None
 
+    if len(eops['MJD']) == 0:
+        return None
     return eops
 
 # Parse UNSO finals version 2.0 format
@@ -176,6 +183,8 @@ def parse_usno_2_0(fp, mjd_min, mjd_max):
         eops['PM_y'].append(pm_y)
         continue
 
+    if len(eops['MJD']) == 0:
+        return None
     return eops
 
 # Parse UNSO finals version 2.1 format
@@ -208,6 +217,8 @@ def parse_usno_2_1(fp, mjd_min, mjd_max):
         eops['PM_y'].append(pm_y)
         continue
 
+    if len(eops['MJD']) == 0:
+        return None
     return eops
 
 # Parse old IERS format
@@ -235,19 +246,28 @@ def parse_eopc04(fp, mjd_min, mjd_max):
         eops['PM_y'].append(pm_y)
         continue
 
+    if len(eops['MJD']) == 0:
+        return None
     return eops
 
 def get_eops_from_file(infile, mjd_min, mjd_max):
     fp = open(infile)
-    line = fp.readline()
-    if line.startswith("EOP-MOD Ver 2.0"):
-        return parse_usno_2_0(fp, mjd_min, mjd_max)
-    if line.startswith("EOP-MOD Ver 2.1"):
-        return parse_usno_2_1(fp, mjd_min, mjd_max)
-    else:
-        return parse_eopc04(fp, mjd_min, mjd_max)
+    if not fp:
+        msg = 'Cannot open ' + infile
+        casalog.post(msg, 'SEVERE')
+        return None
+    try:
+        line = fp.readline()
+        if line.startswith("EOP-MOD Ver 2.0"):
+            return parse_usno_2_0(fp, mjd_min, mjd_max)
+        elif line.startswith("EOP-MOD Ver 2.1"):
+            return parse_usno_2_1(fp, mjd_min, mjd_max)
+        else:
+            return parse_eopc04(fp, mjd_min, mjd_max)
+    except:
+        return None
 
-def generate_eop(vis, caltable, infile):
+def do_generate_eop(vis, caltable, infile):
     msmd = msmetadata()
     tb = table()
 
@@ -285,6 +305,10 @@ def generate_eop(vis, caltable, infile):
     for obsid in range(msmd.nobservations()):
         # Get the original EOPs for this obervation from the MS.
         old_eops = get_eops_from_ms(vis, obsid)
+        if not old_eops:
+            msg = 'No EOPS found in ' + vis
+            casalog.post(msg, 'SEVERE')
+            continue
 
         # Get the updated EOPs for the timerange covered by the
         # original EOPs.
@@ -294,6 +318,11 @@ def generate_eop(vis, caltable, infile):
             new_eops = get_eops_from_file(infile, mjd_min, mjd_max)
         else:
             new_eops = get_eops_from_casadata(mjd_min, mjd_max)
+        if not new_eops:
+            msg = 'No updated EOPS found for MJD ' + mjd_min + '-' + mjd_max \
+                + ' in ' + infile
+            casalog.post(msg, 'SEVERE')
+            continue
 
         # Iterate by scan over all the antennas and fields in this
         # observation.
@@ -323,5 +352,15 @@ def generate_eop(vis, caltable, infile):
             continue
         continue
 
+    nrows = tb.nrows()
     tb.close()
-    return
+
+    return nrows
+
+def generate_eop(vis, caltable, infile):
+    nrows = 0
+    try:
+        nrows = do_generate_eop(vis, caltable, infile)
+    finally:
+        if nrows == 0:
+            shutil.rmtree(caltable)
