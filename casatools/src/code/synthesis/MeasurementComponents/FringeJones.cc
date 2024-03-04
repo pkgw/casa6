@@ -1219,7 +1219,356 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
     }
 }
 
+// CT Smooth for fringefit table
+// Some duplication from CTglobals Smooth
+
+void smoothCTFringe(NewCalTable ct,
+              const String& smtype,
+              const Double& smtime,
+              Vector<Int> selfields) {
+    cout << "USING FRINGEFIT JONES SMOOTHING" << "\n";
     
+    // Complex parameters?
+    Bool cmplx=ct.isComplex();
+
+    // half-width
+    Double thw(smtime/2.0);
+
+    // Workspace
+    Vector<Double> times;
+    Vector<Float> p,newp;
+    Vector<Float> d;
+    Vector<Bool> pOK, newpOK;
+    // Unwrapped
+    vector<vector<float>> temp;
+
+    Cube<Float> fpar;
+    Cube<Bool> fparok,newfparok;
+
+    Vector<Bool> mask;
+    
+    // Set up spw col for ref freq
+    MSSpectralWindow msSpw(ct.spectralWindow());
+    MSSpWindowColumns msCol(msSpw);
+
+    IPosition blc(3,0,0,0), fblc(3,0,0,0);
+    IPosition trc(3,0,0,0), ftrc(3,0,0,0);
+    IPosition vec(1,0);
+
+    Block<String> cols(4);
+    cols[0]="SPECTRAL_WINDOW_ID";
+    cols[1]="FIELD_ID";
+    cols[2]="ANTENNA1";
+    cols[3]="ANTENNA2";
+    CTIter ctiter(ct,cols);
+    int counter = 0;
+      
+    while (!ctiter.pastEnd()) {
+
+      Int nSlot=ctiter.nrow();
+      Int ifld=ctiter.thisField();
+      Int ispw=ctiter.thisSpw();
+
+      // Only if more than one slot in this spw _AND_
+      //  field is among those requested (if any)
+      if (nSlot>1 &&
+      (selfields.nelements()<1 || anyEQ(selfields,ifld))) {
+        vec(0)=nSlot;
+        trc(2)=ftrc(2)=nSlot-1;
+
+        times.assign(ctiter.time());
+
+        // Extract Float info
+        if (cmplx)
+          fpar.assign(ctiter.casfparam("AP"));
+        else
+          fpar.assign(ctiter.fparam());
+
+        fparok.assign(!ctiter.flag());
+        newfparok.assign(fparok);
+        IPosition fsh(fpar.shape());
+
+        // For each channel
+        for (int ichan=0;ichan<fsh(1);++ichan) {
+      blc(1)=trc(1)=fblc(1)=ftrc(1)=ichan;
+        
+          // get chan Freqs
+          Vector<Double> freqs;
+          msCol.chanFreq().get(ispw,freqs,True);
+          Double refFreq = freqs(0);
+        
+          // For each param (pol)
+          counter = 0;
+          temp.clear();
+          vector<float> unwrap;
+          //int cycles = 0;
+              
+          // Need a seperate iter over par to construct unwrapped phase estimates
+          for (Int ipar=0;ipar<fsh(0);++ipar) {
+            blc(0)=trc(0)=ipar;
+            fblc(0)=ftrc(0)=ipar/(cmplx?2:1);
+            
+            // Reference slices of par/parOK
+            p.reference(fpar(blc,trc).reform(vec));
+            newp.assign(p);
+            pOK.reference(fparok(fblc,ftrc).reform(vec));
+            newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+            int cycles = 0;
+            
+            for (Int i=0;i<nSlot;++i) {
+              vector<float> holder {0.0, 0.0, 0.0};
+              
+              if (ipar == 0){
+                  // Save the phase values to use for the estimates
+                  holder[0] = newp(i);
+                  holder[2] = times(i);
+                  temp.push_back(holder);
+                }
+                else if (ipar == 2){
+                    // Now that we have the delay rates we can estimate the number of phase cycles
+                    temp[counter][1] = p(i);
+                    // if are at counter 0 you can't interpolate back. Just insert as starting value
+                    if (counter == 0) {
+                      unwrap.push_back(temp[counter][0]);
+                    }
+                    else {
+                      // Get the time difference between two points
+                      float timeStep = temp[counter][2] - temp[counter-1][2];
+                      // Get Forwards and backwards predictions (in radians)
+                      float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
+                      float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
+                      // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
+                      // Wrong STILL?
+                      int FW = 0;//static_cast<int>(temp[counter-1][1] * refFreq * timeStep);
+                      int BW = 0;//-static_cast<int>(temp[counter][1] * refFreq * timeStep);
+                      //int FwCycles = static_cast<int>((predictFW-temp[counter-1][0]) / (2*M_PI));
+                      //int BwCycles = -(static_cast<int>((predictBW-temp[counter][0]) / (2*M_PI)));
+                      int FwCycles = 0;
+                      int BwCycles = 0;
+                      
+                      float fcp = (((temp[counter-1][0]+M_PI)/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep));
+                      float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
+                      
+                      if (fcp > 1) {
+                        //FwCycles = 1;
+                        FwCycles = (int)fcp;
+                      }
+                      else if (fcp < 0) {
+                        //FwCycles = -1;
+                        FwCycles = (int)(fcp-1);
+                      }
+                      
+                      if (bcp > 1) {
+                        //BwCycles = -1;
+                        BwCycles = -(int)(bcp);
+                      }
+                      else if (bcp < 0) {
+                        //BwCycles = 1;
+                        BwCycles = -(int)(bcp-1);
+                      }
+                      
+                      // Get cycles from forward prediction
+                      /*if (predictFW > M_PI) {
+                        FwCycles = 1;
+                        FW = static_cast<int>((temp[counter-1][1] * refFreq * timeStep) - .5);
+                        //cout << "CAST: " << static_cast<int>((predictFW - M_PI) / (2*M_PI)) << "\n";
+                        //FwCycles += static_cast<int>((predictFW - temp[counter-1][0]) / (2*M_PI));
+                      }
+                      else if (predictFW < -M_PI) {
+                        FwCycles = -1;
+                        FW = static_cast<int>(((temp[counter-1][1] * refFreq * timeStep) + .5));
+                        //FwCycles -= static_cast<int>((predictFW - temp[counter-1][0]) / (2*M_PI));
+                      }
+                      
+                      // Get cycles from backward prediction
+                      if (predictBW < -M_PI) {
+                        BwCycles = 1;
+                        BW = -static_cast<int>((temp[counter][1] * refFreq * timeStep) + .5);
+                        //BwCycles += static_cast<int>((predictBW - temp[counter][0]) / (2*M_PI));
+                      }
+                      else if (predictBW > M_PI) {
+                        BwCycles = -1;
+                        BW = -static_cast<int>((temp[counter][1] * refFreq * timeStep) - .5);
+                        //BwCycles -= static_cast<int>((predictBW - temp[counter][0]) / (2*M_PI));
+                      }*/
+                      
+                      //FwCycles += FW;
+                      //BwCycles += BW;
+                      cout << "FW: " << FwCycles << ", BW: " << BwCycles << "\n";
+                      //cycles += ((FwCycles + BwCycles) / 2);
+                      cycles += (int)((fcp-bcp) / 2);
+                      
+                      //cycles += FwCycles;
+                      //cycles = -1;
+                      cout << "REF FREQ: " << refFreq << "\n";
+                      cout << "TIME STEP: " << timeStep << "\n";
+                      cout << "FORWARD PRED: " << fcp << ", BACKWARD PRED: " << bcp << "\n";
+                      cout << "CHANGE: " << (FwCycles + BwCycles) / 2 << "\n";
+                      cout << "CYCLES: " << cycles << "\n";
+                      cout<< "COUNTER: " << counter << "\n";
+                      
+                      unwrap.push_back(temp[counter][0] + 2 * M_PI * cycles);
+                    }
+                    counter ++;
+                }
+            }
+          }
+          
+          // Convert unwrap to casa Vector so we can use the same mean and masking functions
+          cout << "Yeah it's Vectors fault I guess..." << endl;
+          Vector<Float> unwrapPhases(unwrap);
+          cout << "Not its fault?" << endl;
+          //Vector(unwrap.begin(), unwrapPhases);
+          
+      // Regular ipar interation
+      for (Int ipar=0;ipar<fsh(0);++ipar) {
+        blc(0)=trc(0)=ipar;
+        fblc(0)=ftrc(0)=ipar/(cmplx?2:1);
+        
+        // Reference slices of par/parOK
+        p.reference(fpar(blc,trc).reform(vec));
+        newp.assign(p);
+        pOK.reference(fparok(fblc,ftrc).reform(vec));
+        newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+
+         /*
+          cout << ispw << " "
+           << ichan << " "
+           << ipar << " "
+           << "p.shape() = " << p.shape() << " "
+           << "pOK.shape() = " << pOK.shape() << " "
+           << endl;
+         */
+
+          
+        Vector<Bool> mask;
+
+          //cout << "--------NEW I LOOP-------\n" <<
+          //"Chan: " << ichan << " IPAR: " << ipar << "\n";
+        for (Int i=0;i<nSlot;++i) {
+          // Make mask
+          mask = pOK;
+          mask = (mask && ( (times >  (times(i)-thw)) &&
+                    (times <= (times(i)+thw)) ) );
+          
+            
+
+          // Avoid explicit zeros, for now
+          //        mask = (mask && amp>=FLT_MIN);
+
+
+          //cout << "    " << ifld << " " << i << " " << idx(i) << " ";
+          //for (Int j=0;j<mask.nelements();++j)
+          //  cout << mask(j);
+          //cout << endl;
+
+          //vector<float> holder {0.0, 0.0, 0.0};
+          
+          if (ntrue(mask)>0) {
+            if (smtype=="mean") {
+              
+              /*if (ipar == 0){
+                  //holder[0] = newp(i);
+                  //holder[2] = times(i);
+                  //temp.push_back(holder);
+                  //cout << "PMASK: " << p(mask) << "\n";
+                }
+                else if (ipar == 2){
+                    //cout << "COUNTER: " << counter << " SIZE " << temp.size() << "\n";
+                    temp[counter][1] = p(i);
+                    // Interp here
+                    // if are at counter 0 you can't interpolate back. Just insert as starting value
+                    if (counter == 0) {
+                        unwrap.push_back(temp[counter][0]);
+                    }
+                    else {
+                  
+                      // Get the time difference between two points
+                      float timeStep = temp[counter][2] - temp[counter-1][2];
+                      // Get Forwards and backwards predictions (in radians)
+                      float predictFW = temp[counter-1][0] + temp[counter-1][1] * refFreq * timeStep;
+                      float predictBW = temp[counter][0] - temp[counter][1] * refFreq * timeStep;
+                      // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
+                      // WRONG?
+                      int FwCycles = static_cast<int>((predictFW-temp[counter-1][0]) / (2*M_PI));
+                      int BwCycles = -(static_cast<int>((predictBW-temp[counter][0]) / (2*M_PI)));
+                      
+                      cycles += (FwCycles + BwCycles) / 2;
+                      
+                      cout << "Time Step: " << timeStep << "\n";
+                      cout << "BEFORE AND AFTER: " << temp[counter-1][0] << ", " << temp[counter][0] << "\n";
+                      cout << "PREDICTED: " << predictFW<< ", " << predictBW << "\n";
+                      cout << "DELAY RATE: " << temp[counter-1][1] << ", " << temp[counter][1] << "\n";
+                      cout << "CYCLES: " << cycles << " FW: " << FwCycles << " BW: " << BwCycles << "\n";
+                      // add value to unwrapped
+                      unwrap.push_back(temp[counter][0] + 2 * M_PI * cycles);
+                    }
+                    
+                    counter ++;
+                }*/
+              // If phases use our unwrapped vector
+              if (ipar == 0){
+                newp(i)=mean(unwrapPhases(mask));
+                // re wrap value
+                while (newp(i) < -M_PI) {
+                  newp(i) += 2*M_PI;
+                }
+                while (newp(i) > M_PI) {
+                  newp(i) -= 2*M_PI;
+                }
+              }
+              else{
+                newp(i)=mean(p(mask));
+              }
+
+            }
+            else if (smtype=="median") {
+              if (ipar == 0) {
+                newp(i)= median(unwrapPhases(mask),false);
+              }
+              else {
+                newp(i)= median(p(mask),false);
+              }
+            }
+            newpOK(i)=true;
+          }
+          else
+            newpOK(i)=false;
+          
+        } // i
+          if (temp.size() > 0)
+          {
+              float average = accumulate(unwrap.begin(), unwrap.end(), 0.0) / unwrap.size();
+              while(average < -M_PI) {
+                  average += 2 * M_PI;
+              }
+              while(average > M_PI) {
+                  average -= 2 * M_PI;
+              }
+              cout << "UNWRAP: " << unwrap << "\n";
+            cout << "AVERAGE: " << average << "\n";
+            cout << "REG MEAN: " << newp << "\n"
+            << "-----------END I----------\n";
+          }
+          
+        // keep new ok info
+        p=newp;
+      } // ipar
+        } // ichan
+
+        // Put info back
+        if (cmplx)
+          ctiter.setcparam(RIorAPArray(fpar).c());
+        else
+          ctiter.setfparam(fpar);
+
+        ctiter.setflag(!newfparok);
+
+      } // nSlot>1
+
+      ctiter.next();
+    } // ispw
+}
 
 
 // **********************************************************
@@ -2156,6 +2505,8 @@ void FringeJones::applyRefAnt() {
   return;
 
 }
+
+
 
 } //# NAMESPACE CASA - END
 

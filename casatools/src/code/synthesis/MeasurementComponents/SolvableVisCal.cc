@@ -28,6 +28,7 @@
 #include <synthesis/MeasurementComponents/CalCorruptor.h>
 #include <synthesis/MeasurementComponents/SolvableVisCal.h>
 #include <synthesis/MeasurementComponents/MSMetaInfoForCal.h>
+#include <synthesis/MeasurementComponents/FringeJones.h>
 
 #include <msvis/MSVis/VisBuffer.h>
 
@@ -4149,11 +4150,21 @@ void SolvableVisCal::smooth(Vector<Int>& fields,
 			    const String& smtype,
 			    const Double& smtime) {
 
-  if (smoothable()) 
-    // Call NewCalTable's global smooth method
-    casa::smoothCT(*ct_,smtype,smtime,fields);
-  else
-    throw(AipsError("This type "+this->typeName()+" does not support smoothing!"));
+    if (smoothable()) {
+        // Call NewCalTable's global smooth method
+      //cout << "TYPE: " << this->typeName() << "\n";
+      if (this->typeName().contains("Fringe Jones")) {
+        casa::smoothCTFringe(*ct_,smtype,smtime,fields);
+      }
+      else {
+        casa::smoothCT(*ct_,smtype,smtime,fields);
+      }
+      
+      cout << "TYPE: " << this->typeName() <<"\n";
+    }
+    else {
+        throw(AipsError("This type "+this->typeName()+" does not support smoothing!"));
+    }
 
 }
 
