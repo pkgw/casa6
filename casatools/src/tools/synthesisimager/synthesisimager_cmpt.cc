@@ -235,7 +235,7 @@ bool synthesisimager::defineimage(const casac::record& impars, const casac::reco
         std::istringstream iss(pcen);
         iss >> tmpref >> tmpra >> tmpdec;
         // if only a single string extracted assume it is ephemeris object related specification
-        if( tmpra.length() == 0 &&  tmpdec.length() == 0 ){
+        if( tmpref.length() != 0 && tmpra.length() == 0 &&  tmpdec.length() == 0 ){
           throw(AipsError("Cannot translate the specified phasecenter, "+pcen+ " as a valid ephemeris table or major solar system object defined or a special case option (in all uppercase), 'TRACKFIELD'"));
         }
       }
