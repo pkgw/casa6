@@ -541,10 +541,15 @@ class ImagerParameters:
             for par in selkeys:
                 if type(self.allselpars[par]) != list:
                     self.allselpars[par] = [self.allselpars[par]]
-
+                    
             # Check that all are the same length as nvis
             # If not, and if they're single, replicate them nvis times
             nvis = len(self.allselpars["msname"])
+
+            if nvis==0:
+                errs = errs + "Input MS list is empty"
+                return errs
+            
             for par in selkeys:
                 if len(self.allselpars[par]) > 1 and len(self.allselpars[par]) != nvis:
                     errs = (
@@ -575,7 +580,6 @@ class ImagerParameters:
                 synu.done()
 
             # casalog.post(selparlist)
-
             self.allselpars = selparlist
 
         return errs

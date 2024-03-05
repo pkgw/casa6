@@ -69,12 +69,25 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                 f"Can't use specmode {self.allimpars['0']['specmode']} with imager helper {self.__class__.__name__}!"
             )
 
+        ### Set up and check nchan and reffreq settings. 
         nchan = self.allimpars["0"]["nchan"]
         freqbeg, freqwidth = self.determineFreqRange()
         if nchan < 1 :
             nchan=int((freqwidth)/(0.1*freqbeg))  #gives around 10 channel for 2:1 BW
             if nchan < 5:
                 nchan=5
+            casalog.post('Calculating nchan from the data range to be '+str(nchan),'INFO')
+
+        ## If nchan < nterms, complain.
+        in_nterms = mfsparams.alldecpars["0"]["nterms"]
+        if nchan<in_nterms:
+            raise RuntimeError(
+                f"nchan (={nchan}) should be >= nterms ( {in_nterms} ) for valid polynomial fits to be feasible. "
+            )
+
+        if nchan>50:
+            casalog.post('For mtmfs_via_cube, one usually needs only about 10 channels across the freq range, to fit Taylor polynomials of a low order','INFO')
+                
         freqwidth = freqwidth / nchan
         #print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
@@ -294,13 +307,13 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         #self.cubePB2ttPB(pbcube, pbcube + ".tt0", cubewt, np.fabs(pblimit))
         #suffixes = ["psf", "sumwt", "weight"]
 
-        suffixes = ["pb","psf", "sumwt", "weight"]
+        suffixes = ["pb","psf", "sumwt"]
         for immod in range(0, self.NF):
             self.cube2tt(immod, suffixes=suffixes)
        
-        for immod in range(0, self.NF):
-            self.mfsImager.PStools[immod].gatherpsfweight()
-            self.mfsImager.PStools[immod].dividepsfbyweight()
+#        for immod in range(0, self.NF):
+#            self.mfsImager.PStools[immod].gatherpsfweight()
+#            self.mfsImager.PStools[immod].dividepsfbyweight()
         time2 = time.time()
         #print(f"MAKE psf time, core={time1-time0} s, cube2tt={time2-time1}")
 
@@ -398,8 +411,8 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             ("pb",1),
             ("residual", nterms),
             ("psf", nterms * 2 - 1),
-            ("sumwt", nterms * 2 - 1),
-            ("weight", nterms * 2 - 1),
+            ("sumwt", nterms * 2 - 1)
+            #            ("weight", 1),
         ]  # , ('model',nterms)]
         tmp_imgs = []
         for suffix, num_terms in imgs:

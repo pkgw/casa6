@@ -4002,7 +4002,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  { ftmachine="gridft"; }
 	else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
 	  { ftmachine="wprojectft";}
-
+        //facetting alone use gridft
+        else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
+          {ftmachine=="gridft";}
+      
 	else if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
 	  { ftmachine="mosaicft"; }
 	else if(gridder=="imagemosaic") {
@@ -4099,7 +4102,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Valid other params per FTM type, etc... ( check about nterms>1 )
 
     if( imageName=="" ) {err += "Please supply an image name\n";}
-
+    
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
 	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
 	(ftmachine != "mawprojectft")  &&

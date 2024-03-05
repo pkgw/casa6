@@ -468,6 +468,15 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                               implicit wideband pb-correction, with the deconvolver seeing only
                                                               the sky spectral structure.
 
+							      Note : 'nchan' needs to be greater than or equal to 'nterms'.
+							      Note : 'nchan' needs to be less than or equal to the number of
+							      selected data channels.
+							      Note : For a low-order polynomial fit, only a small number (around 10)
+							      channels are typically needed (for VLA/ALMA bandwidth ratios).
+							      'nchan=-1' applies a heuristic to determine the number of channels,
+							      as a convenience option, but it is recommended that the user set
+							      nchan explicitly.
+
                                
 
 </description>
