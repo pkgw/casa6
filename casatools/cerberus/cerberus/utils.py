@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from collections import Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
-from cerberus.platform import _int_types, _str_type
+from .platform import _int_types, _str_type
 
 
 def compare_paths_lt(x, y):
@@ -24,7 +24,7 @@ def drop_item_from_tuple(t, i):
 def get_Validator_class():
     global Validator
     if 'Validator' not in globals():
-        from cerberus.validator import Validator
+        from .validator import Validator
     return Validator
 
 

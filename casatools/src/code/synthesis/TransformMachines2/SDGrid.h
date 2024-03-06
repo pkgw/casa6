@@ -70,11 +70,11 @@ namespace refim { //# namespace for imaging refactor
 // Single Dish gridding in a similar way
 // </etymology>
 //
-// <synopsis> 
+// <synopsis>
 // The <linkto class=SkyEquation>SkyEquation</linkto> needs to be able
 // to perform Fourier transforms on visibility data and to grid
 // single dish data.
-// SDGrid allows efficient Single Dish processing using a 
+// SDGrid allows efficient Single Dish processing using a
 // <linkto class=VisBuffer>VisBuffer</linkto> which encapsulates
 // a chunk of visibility (typically all baselines for one time)
 // together with all the information needed for processing
@@ -103,19 +103,19 @@ namespace refim { //# namespace for imaging refactor
 // grid points in the neighborhood using a weighting function.
 // In degridding, the value is derived by a weight summ of the
 // same points, using the same weighting function.
-// </synopsis> 
+// </synopsis>
 //
 // <example>
 // See the example for <linkto class=SkyModel>SkyModel</linkto>.
 // </example>
 //
 // <motivation>
-// Define an interface to allow efficient processing of chunks of 
+// Define an interface to allow efficient processing of chunks of
 // visibility data
 // </motivation>
 //
 // <todo asof="97/10/01">
-// <ul> Deal with large VLA spectral line case 
+// <ul> Deal with large VLA spectral line case
 // </todo>
 
 class SDGrid final : public FTMachine {
@@ -129,14 +129,14 @@ public:
   // and BOX is plain box-car summation). mLocation is
   // the position to be used in some phase rotations. If
   // mTangent is specified then the uvw rotation is done for
-  // that location iso the image center. userSupport is to allow 
-  // larger support for the convolution if the user wants it ..-1 will 
+  // that location iso the image center. userSupport is to allow
+  // larger support for the convolution if the user wants it ..-1 will
   // use the default  i.e 1 for BOX and 3 for others
   // USEIMAGINGWEIGHT
-  // The parameter useImagingWeight in the constructors is to explicitly  
+  // The parameter useImagingWeight in the constructors is to explicitly
   // use vb.imagingweight while gridding,
   // When doing just SD imaging then setting it to false is fine (in fact recommended as vb.imagingweight
-  // is set to zero if any pol is flagged this may change later .....today being 2014/08/06) 
+  // is set to zero if any pol is flagged this may change later .....today being 2014/08/06)
   // when using it in conjuction with interferometer gridding then set useImagingWeight to true
   // this is to allow for proper non natural weighting scheme while imaging
   // <group>
@@ -151,7 +151,7 @@ public:
 	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Float minweight=0., casacore::Bool clipminmax=false,
 	 casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="TGAUSS", casacore::Float truncate=-1.0, 
+	 casacore::String convType="TGAUSS", casacore::Float truncate=-1.0,
 	 casacore::Float gwidth=0.0, casacore::Float jwidth=0.0, casacore::Float minweight=0., casacore::Bool clipminmax=false,
 	 casacore::Bool useImagingWeight=false);
   // </group>
@@ -190,7 +190,7 @@ public:
 	   FTMachine::Type type=FTMachine::OBSERVED);
 
   // Make the entire image using a ROVisIter...
-  // This is an overload for FTMachine version as 
+  // This is an overload for FTMachine version as
   //SDGrid now does everything in memory
   // so for large cube ..proceed by slices that fit in memory here.
   virtual void makeImage(FTMachine::Type type,
@@ -198,7 +198,7 @@ public:
 			 casacore::ImageInterface<casacore::Complex>& image,
 			 casacore::Matrix<casacore::Float>& weight);
 
-  // Get the final image: 
+  // Get the final image:
   //  optionally normalize by the summed weights
   casacore::ImageInterface<casacore::Complex>& getImage(casacore::Matrix<casacore::Float>&, casacore::Bool normalize=true);
   virtual void normalizeImage(casacore::Lattice<casacore::Complex>& /*skyImage*/,
@@ -222,6 +222,8 @@ public:
 
 private:
   casacore::Bool isSD() const override {return true;}
+
+  virtual void initUVWMachine(const vi::VisBuffer2& vb) override;
 
   // Find the Primary beam and convert it into a convolution buffer
   void findPBAsConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
@@ -285,7 +287,7 @@ private:
   casacore::Int convSize;
   casacore::Int convSupport;
   casacore::Int userSetSupport_p;
-  
+
   casacore::Float truncate_p;
   casacore::Float gwidth_p;
   casacore::Float jwidth_p;
