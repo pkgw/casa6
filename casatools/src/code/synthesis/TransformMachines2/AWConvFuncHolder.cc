@@ -153,6 +153,8 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
   //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
+    calcNpix_p = min(nx_p,  ny_p);
+    calcCsys_p = outcsys_p;
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
     //cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
@@ -209,17 +211,32 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   /// uvgrid
   Float factorX=fabs(calcCsys_p.increment()(0)/outcsys_p.increment()(0));
   Float factorY=fabs(calcCsys_p.increment()(1)/outcsys_p.increment()(1));
-//  cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
+  //cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
-//  cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
+  
+  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
-  Array<Complex>newAWConv = m.resampleViaFFT(awConv,  factorX,  factorY);
-  Array<Complex> newWtConv = m.resampleViaFFT(aWwtConv,  factorX,  factorY);
-  Float correcfac = float(awConv.shape()(0) *awConv.shape()(1) *oversamp_p*oversamp_p)/float(newAWConv.shape()(0) *newAWConv.shape()(1));
-  //cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
+  Array<Complex> newAWConv;
+  Array<Complex> newWtConv;
+ if (factorX < 1.0 || factorY < 1.0)
+  {
+    newAWConv = m.resample(awConv, factorX, factorY);
+    newWtConv = m.resample(aWwtConv, factorX, factorY);
+  }
+  else {
+    newAWConv = m.resampleViaFFT(awConv, factorX, factorY);
+    newWtConv = m.resampleViaFFT(aWwtConv,  factorX, factorY);
+    
+     
+  }
+  Float correcfac =
+      float(awConv.shape()(0) * awConv.shape()(1) * oversamp_p * oversamp_p) /
+      float(newAWConv.shape()(0) * newAWConv.shape()(1));
   newAWConv *= correcfac;
   newWtConv *= correcfac;
+  
+ 
   /*{ 
       ////TESTOO
       IPosition elshp = newAWConv.shape().getFirst(4);
@@ -235,7 +252,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    //cerr << "npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
+    //cerr << "####npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
     if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
       //cerr << "aft npix " << npix << endl;
@@ -265,12 +282,13 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     // asumming same freqs for now
     newshp(4) = newshp(4)+awConv.shape()(4);
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    //cerr << "Npix " << npix << " newAWConv " << convFunc_p.shape() << endl;
-    if (npix > newshp[0]) {
+    //cerr << "Npix " << npix << " newShp " << convFunc_p.shape() << endl;
+    //if (npix > newshp[0]) {
 
-      cerr << "npix is not the same for a different PA" << endl;
-    } 
-    else if(npix <= newshp[0]){
+    //  cerr << "npix is not the same for a different PA" << endl;
+
+    //} 
+    if(npix <= newshp[0]){
       IPosition blcadded(5, 0, 0, 0, 0, convFunc_p.shape()[4]);
       IPosition trcadded = newshp - 1;
       convFunc_p.resize(newshp, True);
@@ -290,6 +308,8 @@ Array<Complex> c=convFunc_p(blcadded, trcadded);
     }
     else {
       IPosition blcadded(5,  0,  0,  0,  0, convFunc_p.shape()[4]);
+      if(newshp.product()>0 && newshp[0] < npix)
+        npix=newshp[0];
       IPosition trcadded = newshp-1;
       convFunc_p.resize(newshp,  True);
       wgtConvFunc_p.resize(newshp,  True);

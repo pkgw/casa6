@@ -2084,28 +2084,35 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
         //atermMaker_p->getTelescopeName()  << " csys tel " <<
         //csys.obsInfo().telescope() << endl;
 	std::tie(cell,convnx)=getBeamCellSize(bandname);
-//	cerr << "@@@cell " << cell <<  " npix " <<  convnx << endl;
+	//widen it to twice first sidelobe
+	convnx *=2;
+        convnx = Int(ceil(Float(convnx) / 8.0)) * 8;
+        ////////////////////
+        //cerr << "@@@cell " << cell <<  " pbnpix " <<  convnx << " imnpix "<< npix << " imcell"<<  csys_p.increment()<<  endl;
 	csys_p=csys;
 	Vector<String> units=csys_p.worldAxisUnits();
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
+	
+	
 	incr[0]=cell.get(units[0]).getValue();
 	incr[1]=cell.get(units[1]).getValue();
-	//cerr <<  "###inp fov" <<  inpFov <<  " conv fov " << fabs(incr[0]*Double(convnx)) <<  endl;
+
+	//cerr <<  "###inp fov" <<  inpFov <<  " pbfov " << fabs(incr[0]*Double(convnx)) <<  endl;
 	Double pbFov= fabs(incr[0]*Double(convnx));
-	/*if(inpFov < fabs(incr[0]*Double(convnx))){
-		//incr = csys_p.increment();
-		npix=int(std::ceil(incr[0]*Double(convnx)/inpFov/2.0))*2;
-		//npix remains the same and csys used for beam calc stays
-	}
-	else{
-	 npix = convnx;                                            // return the npix used to calc beam
-	}*/
+	/*if(inpFov > (pbFov/8.0) && inpFov< pbFov/2.0 ){
+          convnx = Int(floor(Double(convnx) * inpFov / pbFov / 8.0)) * 8;
+          pbFov = fabs(incr[0] * Double(convnx));
+          cerr << "pbFov " << pbFov << " inpFov " << inpFov << " convnx "
+               << convnx << endl;
+        }
+	*/	
+	
 	npix=convnx;
-	if((inpFov/pbFov) < 1.0){
-		npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
-		//cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
-	}
+	//if((inpFov/pbFov) < 0.5){
+	//	npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
+	//	cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
+	//}
 	Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};
 	StokesCoordinate stokesCoords(stoks);
 	Quantum<Vector<Double> > freqs(freqlist, "Hz");
@@ -2422,7 +2429,7 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
     Int trial=0;
     for (trial=convSize/2-2; trial>0; trial--) {
         //Searching down a diagonal
-        if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (1.0e-2*maxAbsConvFunc) ) {
+        if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (5e-3*maxAbsConvFunc) ) {
             found=true;
             trial=Int(sqrt(2.0*Float(trial*trial)));
 	   
@@ -2430,7 +2437,7 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
         }
     }
     if(!found) {
-        if((maxAbsConvFunc-minAbsConvFunc) > (1.0e-2*maxAbsConvFunc))
+        if((maxAbsConvFunc-minAbsConvFunc) > (5e-3*maxAbsConvFunc))
             found=true;
         // if it drops by more than 2 magnitudes per pixel
         trial= (convSize >10) ? 5 : (convSize/2 - 4);
@@ -2476,8 +2483,8 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
 	return found;
 }
  std::pair<Quantity, int> AWConvFunc::getBeamCellSize(const String& band){
-	 
-	 Quantity fov(0.024,"rad"); //fov at 1 GHz for VLA
+	 //testoo
+	 Quantity fov(0.048,"rad"); //fov at 1 GHz for VLA
 	 Quantity cell=fov/256;
 	 if(band=="EVLA_S")
 		 cell=cell/2.0;
