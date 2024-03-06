@@ -105,6 +105,7 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
     convSizesHPG_p = other.convSizesHPG_p;
 
     convSupport_p.resize();
+    convSupport_p.resize();
     convSupportHPG_p.resize();
     convSupport_p = other.convSupport_p;
     convSupportHPG_p = other.convSupportHPG_p;
@@ -137,15 +138,15 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
    paVals_p[0] = 0.0;
  }
  else{
-  cerr << "paMax " << paMax << " painc " << painc_p << endl;
-  Vector<Double> pavals(int(std::ceil(2*paMax/painc_p)));
-  //setting pavals from -paMax to paMax
-  for (uint k = 0; k < pavals.nelements(); ++k )
-    pavals[k] = double(k) *painc_p-paMax;
-  if (paVals_p.nelements() == 0)
-    paVals_p = pavals;
-  else if ((paVals_p.nelements()) !=  pavals.nelements())
-    throw(AipsError("Cannot change number of PA's in between"));
+   cerr << "paMax " << paMax << " painc " << painc_p << endl;
+   Vector<Double> pavals(int(std::ceil(2 * paMax / painc_p)));
+   // setting pavals from -paMax to paMax
+   for (uint k = 0; k < pavals.nelements(); ++k)
+     pavals[k] = double(k) * painc_p - paMax;
+   if (paVals_p.nelements() == 0)
+     paVals_p = pavals;
+   else if ((paVals_p.nelements()) != pavals.nelements())
+     throw(AipsError("Cannot change number of PA's in between"));
  }
   std::shared_ptr<refim::WPConvFunc>wptr;
   AWConvFunc a(aterm_p, wptr);
@@ -157,9 +158,11 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
   //cerr << "FREQS " << freqsToCalc << endl;
   for (uint k=0; k<paVals_p.nelements(); ++k){
+    calcNpix_p = min(nx_p,  ny_p);
+    calcCsys_p = outcsys_p;
     a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
+    //cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
-    //append arrays and indices  
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
   }
   
@@ -216,14 +219,29 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   //cerr <<  "####Factor " <<  factorX <<  "   " <<  factorY <<  endl;
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
+  
   //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
-  Array<Complex>newAWConv = m.resampleViaFFT(awConv,  factorX,  factorY);
-  Array<Complex> newWtConv = m.resampleViaFFT(aWwtConv,  factorX,  factorY);
-  Float correcfac = float(awConv.shape()(0) *awConv.shape()(1) *oversamp_p*oversamp_p)/float(newAWConv.shape()(0) *newAWConv.shape()(1));
-  //cerr <<  "correcfac " <<  correcfac  <<  "  "  <<  1.0/correcfac  <<  endl;
+  Array<Complex> newAWConv;
+  Array<Complex> newWtConv;
+ if (factorX < 1.0 || factorY < 1.0)
+  {
+    newAWConv = m.resample(awConv, factorX, factorY);
+    newWtConv = m.resample(aWwtConv, factorX, factorY);
+  }
+  else {
+    newAWConv = m.resampleViaFFT(awConv, factorX, factorY);
+    newWtConv = m.resampleViaFFT(aWwtConv,  factorX, factorY);
+    
+     
+  }
+  Float correcfac =
+      float(awConv.shape()(0) * awConv.shape()(1) * oversamp_p * oversamp_p) /
+      float(newAWConv.shape()(0) * newAWConv.shape()(1));
   newAWConv *= correcfac;
   newWtConv *= correcfac;
+  
+ 
   /*{ 
       ////TESTOO
       IPosition elshp = newAWConv.shape().getFirst(4);
@@ -240,9 +258,10 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   // have to slice if not zero
   if (convFunc_p.nelements() == 0) {
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
+    //cerr << "####npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
     if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
-      cerr << "@@@@@aft npix " << npix << endl;
+      //cerr << "aft npix " << npix << endl;
       IPosition elshp=newAWConv.shape();
       elshp[0]=npix;
       elshp[1]=npix;
@@ -269,24 +288,43 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     // asumming same freqs for now
     newshp(4) = newshp(4)+awConv.shape()(4);
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    if (npix !=  newshp[0])
-    {
-      
-     cerr <<  "npix is not the same for a different PA" <<  endl; 
+    //cerr << "Npix " << npix << " newShp " << convFunc_p.shape() << endl;
+    //if (npix > newshp[0]) {
+
+    //  cerr << "npix is not the same for a different PA" << endl;
+
+    //} 
+    if(npix <= newshp[0]){
+      IPosition blcadded(5, 0, 0, 0, 0, convFunc_p.shape()[4]);
+      IPosition trcadded = newshp - 1;
+      convFunc_p.resize(newshp, True);
+      wgtConvFunc_p.resize(newshp, True);
+      convFunc_p(blcadded, trcadded).set(0.0);
+      wgtConvFunc_p(blcadded, trcadded).set(0.0);
+Array<Complex> c=convFunc_p(blcadded, trcadded);
+      MathUtils::putMiddle(c, newAWConv);
+      Array<Complex> d=wgtConvFunc_p(blcadded, trcadded);
+      MathUtils::putMiddle(d, newWtConv);
+      convSizes_p.resize(trc[0]+1, true);
+      convSizes_p(blc,  trc).set(newshp[0]);
+      convSupport_p.resize(trc[0]+1, true);
+      convSupport_p(blc, trc)= awsupport.row(nfreqs-1);
+
+
     }
-    else{
+    else {
       IPosition blcadded(5,  0,  0,  0,  0, convFunc_p.shape()[4]);
+      if(newshp.product()>0 && newshp[0] < npix)
+        npix=newshp[0];
       IPosition trcadded = newshp-1;
       convFunc_p.resize(newshp,  True);
       wgtConvFunc_p.resize(newshp,  True);
       convFunc_p(blcadded,  trcadded) = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p(blcadded, trcadded) = MathUtils::getMiddle(newWtConv,  npix,  npix);
-      convSizes_p.resize(trc[0]+1);
+      convSizes_p.resize(trc[0]+1, true);
       convSizes_p(blc,  trc).set(npix);
-      convSupport_p.resize(trc[0]+1);
+      convSupport_p.resize(trc[0]+1, true);
       convSupport_p(blc, trc)= awsupport.row(nfreqs-1);
-      
-      
     }
   }
   /*{
@@ -301,10 +339,10 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   elblc[4] = eltrc[4];
   PagedImage<Complex> lastplane(elshp, calcCsys_p, "MOOBOO"+String(tstr)+String::toString(newFreqs(0)));
   lastplane.put(convFunc_p(elblc, eltrc).nonDegenerate());
-
+  
   //////
   } */
-
+  
 }
 Array<Complex>& AWConvFuncHolder::getConvFunc() {
   return convFunc_p;
@@ -430,12 +468,12 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
     vector<int>::iterator it = remove_if(rmapused.begin(), rmapused.end(),
                                          [](const int i) { return i < 0; });
     rmapused.erase(it, rmapused.end());
-    for (auto cit = cpRmapUsed.rbegin(); cit != cpRmapUsed.rend(); ++cit) {
-      if (*cit < 0)
-        rmapused.push_back(*cit);
+    for (auto cit = cpRmapUsed.rbegin(); cit != cpRmapUsed.rend(); ++cit){
+      if(*cit <0)
+        rmapused.push_back(*cit);  
     }
   }
-  // cerr << "#####rmapused " << rmapused << endl;
+  //cerr << "#####rmapused " << rmapused << endl;
   IPosition shp(5, convFunc_p.shape()[0], convFunc_p.shape()[1],
                 pmapused.size(), cmapused.size(), rmapused.size());
   polMap.resize(pmap.shape());
@@ -447,10 +485,10 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
     }
   }
   chanMap.resize(cmap.shape());
-  // std::vector<int>cindex(cmapused.size());
+  //std::vector<int>cindex(cmapused.size());
   for (uint j = 0; j < chanMap.nelements(); ++j) {
     for (uint k = 0; k < cmapused.size(); ++k) {
-      if (cmap[j] == cmapused[k]) {
+      if (cmap[j] == cmapused[k]){
         chanMap[j] = k;
       }
     }
@@ -458,14 +496,13 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   rowMap.resize(rmap.shape());
   for (uint j = 0; j < rowMap.nelements(); ++j) {
     for (uint k = 0; k < rmapused.size(); ++k) {
-      if (rmap[j] == rmapused[k]) {
-        // rowmap is -ve for -ve w
+      if (rmap[j] == rmapused[k]){
+        //rowmap is -ve for -ve w
         rowMap[j] = k;
       }
     }
   }
-  // cerr << "old rmapused" << Vector<int>(rmapused) << " cmap " <<
-  // Vector<int>(cmapused) << " pmap " << Vector<int>(pmapused) << endl;
+  //cerr << "old rmapused" << Vector<int>(rmapused) << " cmap " << Vector<int>(cmapused) << " pmap " << Vector<int>(pmapused) << endl;
   convFunc.resize(shp);
   wgtConvFunc.resize(shp);
   IPosition inblc(5, 0, 0, 0, 0, 0);
@@ -473,7 +510,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   IPosition outblc(5, 0, 0, 0, 0, 0);
   IPosition outtrc(5, shp[0] - 1, shp[1] - 1, 0, 0, 0);
 
-  for (uint r = 0; r < rmapused.size(); ++r) {
+  for (uint r = 0; r < rmapused.size(); ++r){
     inblc[4] = abs(rmapused[r]);
     intrc[4] = abs(rmapused[r]);
     outblc[4] = r;
@@ -497,8 +534,8 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
     }
   }
 }
-//////////////////////
-
+//////////////////////  
+  
 
 //////////////////////  
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
@@ -573,21 +610,18 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
        tmpWInd = j;
       }
     }
-    
     wIndex[k] = (w > 0)? -tmpWInd : tmpWInd;
   }
-  //cerr << "FID " << vb.fieldId()(0) << " winDex " << wIndex << endl;
   // Now lets search for combination of all 3
   rowMap.resize(vb.nRows());
   for (uint k = 0; k < vb.nRows();++k) {
     for (uint j = 0; j < rowAxisWVals_p.nelements(); ++j) {
      if ( (abs(wIndex[k]) == rowAxisWVals_p[j]) && (paIndex[k] == rowAxisPAVals_p[j]) && (antPairIndex[k] == rowAxisAntennaPair_p[j]) ) {
-      rowMap[k] = wIndex[k] > 0 ? j : -j;
+      rowMap[k] = wIndex[k] >= 0 ? j : -j;
      }
     }
     
   }
-//cerr << "SPID " << vb.spectralWindows()(0) << " rowMap " << rowMap << endl;
   // A little dab will d'ya
   
 }
