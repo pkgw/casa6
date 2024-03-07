@@ -25,6 +25,7 @@ import matplotlib.transforms
 import numpy as np
 import pylab as pb
 from casatasks import casalog
+from casatasks.private import sdutil, simutil
 from casatools import (atmosphere, ctsys, measures, ms, msmetadata, quanta,
                        table)
 from matplotlib.ticker import (FormatStrFormatter, MultipleLocator,
@@ -5670,6 +5671,7 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
         print("Using PWV = %.2f mm" % pwvmean)
 
     # default values in case we can't find them below
+    myqa = quanta()
     airmass = 1.5
     P = 563.0
     H = 20.0
@@ -5705,7 +5707,10 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
         if (verbose): print("Calling getWeather()")
         [conditions,myTimes] = getWeather(vis,bestscan,antenna,verbose,mymsmd)
         if (verbose): print("Done getWeather()")
-        P = conditions['pressure']
+
+        # convert pressure with unit to the value in mbar
+        P = myqa.convert(myqa.quantity(conditions['pressure'], conditions['pressure_unit']), 'mbar')['value']
+
         H = conditions['humidity']
         T = conditions['temperature']+273.15
         if (P <= 0.0):
@@ -5746,6 +5751,13 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
     else:
         airmass = 1.0/math.cos((90-conditions['elevation'])*math.pi/180.)
 
+    # get the elevation of the antenna
+    geodetic_elevation = 5059
+    if os.path.exists(os.path.join(vis, 'ANTENNA')):
+        with sdutil.table_manager(os.path.join(vis, 'ANTENNA')) as tb:
+            _X, _Y, _Z = (float(i) for i in tb.getcell('POSITION', antenna))
+            geodetic_elevation = simutil.simutil().xyz2long(_X, _Y, _Z, 'WGS84')[2]
+
     tropical = 1
     midLatitudeSummer = 2
     midLatitudeWinter = 3
@@ -5763,11 +5775,12 @@ def CalcAtmTransmission(chans,freqs,xaxis,pwv,vm, mymsmd,vis,asdm,antenna,timest
     if (verbose): print("Opening casac.atmosphere()")
     myat = atmosphere()
     if (verbose): print("Opened")
-    myqa = quanta()
     fCenter = myqa.quantity(reffreq,'GHz')
     fResolution = myqa.quantity(chansep,'GHz')
     fWidth = myqa.quantity(numchan*chansep,'GHz')
-    myat.initAtmProfile(humidity=H,temperature=myqa.quantity(T,"K"),altitude=myqa.quantity(5059,"m"),pressure=myqa.quantity(P,'mbar'),atmType=midLatitudeWinter)
+    myat.initAtmProfile(humidity=H, temperature=myqa.quantity(T, "K"),
+                        altitude=myqa.quantity(geodetic_elevation, "m"),
+                        pressure=myqa.quantity(P, 'mbar'), atmType=midLatitudeWinter)
     myat.initSpectralWindow(nbands,fCenter,fWidth,fResolution)
     myat.setUserWH2O(myqa.quantity(pwvmean,'mm'))
 
@@ -7193,6 +7206,7 @@ def getWeather(vis='', scan='', antenna='0',verbose=False, mymsmd=None):
         indices = np.argsort(mjdsec)
         mjd = mjdsec/86400.
         pressure = mytb.getcol('PRESSURE')
+        conditions['pressure_unit'] = mytb.getcolkeywords('PRESSURE').get('QuantumUnits', ['mbar'])[0]
         relativeHumidity = mytb.getcol('REL_HUMIDITY')
         temperature = mytb.getcol('TEMPERATURE')
         if (np.median(temperature) > 100):
