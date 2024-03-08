@@ -215,11 +215,12 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
   
-  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
+ // cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
   Array<Complex> newAWConv;
   Array<Complex> newWtConv;
- if (factorX < 1.0 || factorY < 1.0)
+  // For small images or factor less than 1.0  use linear interpolation
+ if ((factorX/oversamp_p) < 1.0 || (factorY/oversamp_p) < 1.0  || nx_p < 200 || ny_p < 200)
   {
     newAWConv = m.resample(awConv, factorX, factorY);
     newWtConv = m.resample(aWwtConv, factorX, factorY);

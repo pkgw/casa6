@@ -2093,26 +2093,24 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	Vector<String> units=csys_p.worldAxisUnits();
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
-	
-	
-	incr[0]=cell.get(units[0]).getValue();
-	incr[1]=cell.get(units[1]).getValue();
+	Double pbFov= fabs(cell.get(units[0]).getValue()*Double(convnx));
+	if(inpFov > 0.0625*pbFov){
+		incr[0]=cell.get(units[0]).getValue();
+		incr[1]=cell.get(units[1]).getValue();
+		npix=convnx; // return that npix
+	}
+	else{
+		//Very small image inside mainlobes
+		// use the image incr rather than the minimum required 
+		//have to keep convnx bigger as it BeamCalc is unhappy to generate beam for small fields
+		//no need to calculate into the lobes thus the factor 4
+		convnx = Int(ceil(fabs(Float(convnx)/incr[0]*cell.get(units[0]).getValue()) / 32.0)) * 8;
+		npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
+		pbFov=fabs(incr[0])*convnx;
+		//cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
+	}
 
-	//cerr <<  "###inp fov" <<  inpFov <<  " pbfov " << fabs(incr[0]*Double(convnx)) <<  endl;
-	Double pbFov= fabs(incr[0]*Double(convnx));
-	/*if(inpFov > (pbFov/8.0) && inpFov< pbFov/2.0 ){
-          convnx = Int(floor(Double(convnx) * inpFov / pbFov / 8.0)) * 8;
-          pbFov = fabs(incr[0] * Double(convnx));
-          cerr << "pbFov " << pbFov << " inpFov " << inpFov << " convnx "
-               << convnx << endl;
-        }
-	*/	
 	
-	npix=convnx;
-	//if((inpFov/pbFov) < 0.5){
-	//	npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
-	//	cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
-	//}
 	Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};
 	StokesCoordinate stokesCoords(stoks);
 	Quantum<Vector<Double> > freqs(freqlist, "Hz");
