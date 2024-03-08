@@ -1264,6 +1264,9 @@ void smoothCTFringe(NewCalTable ct,
     int counter = 0;
       
     while (!ctiter.pastEnd()) {
+      
+      //MSSpectralWindow msSpw(ct.spectralWindow());
+      //MSSpWindowColumns msCol(msSpw);
 
       Int nSlot=ctiter.nrow();
       Int ifld=ctiter.thisField();
@@ -1300,8 +1303,10 @@ void smoothCTFringe(NewCalTable ct,
           // For each param (pol)
           counter = 0;
           temp.clear();
-          vector<float> unwrap;
-          //int cycles = 0;
+          vector<vector<float>> unwrap(2);
+          int polId = 0;
+          bool polReset = false;
+
               
           // Need a seperate iter over par to construct unwrapped phase estimates
           for (Int ipar=0;ipar<fsh(0);++ipar) {
@@ -1315,75 +1320,72 @@ void smoothCTFringe(NewCalTable ct,
             newpOK.reference(newfparok(fblc,ftrc).reform(vec));
             int cycles = 0;
             
+            cout << "ipar: " << ipar << ", newp: " << newp << ", polId:" << polId << "\n" << endl;
+            
             for (Int i=0;i<nSlot;++i) {
               vector<float> holder {0.0, 0.0, 0.0};
+              if (ipar == 4 && !polReset) {
+                polId = 1;
+                counter = 0;
+                temp.clear();
+                polReset = true;
+              }
               
-              if (ipar == 0){
+              if (ipar == 0 || ipar == 4){
                   // Save the phase values to use for the estimates
                   holder[0] = newp(i);
                   holder[2] = times(i);
                   temp.push_back(holder);
                 }
-                else if (ipar == 2){
-                    // Now that we have the delay rates we can estimate the number of phase cycles
-                    temp[counter][1] = p(i);
-                    // if are at counter 0 you can't interpolate back. Just insert as starting value
-                    if (counter == 0) {
-                      unwrap.push_back(temp[counter][0]);
+              else if (ipar == 2 || ipar == 6){
+                  // Now that we have the delay rates we can estimate the number of phase cycles
+                  temp[counter][1] = p(i);
+                  // if are at counter 0 you can't interpolate back. Just insert as starting value
+                  if (counter == 0) {
+                    unwrap[polId].push_back(temp[counter][0]);
+                  }
+                  else {
+                    // Get the time difference between two points
+                    float timeStep = temp[counter][2] - temp[counter-1][2];
+                    // Get Forwards and backwards predictions (in radians)
+                    float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
+                    float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
+                    // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
+                    int FwCycles = 0;
+                    int BwCycles = 0;
+                    
+                    float fcp = (((temp[counter-1][0]+M_PI)/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep));
+                    float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
+                    
+                    if (fcp > 1) {
+                      //FwCycles = 1;
+                      FwCycles = (int)fcp;
                     }
-                    else {
-                      // Get the time difference between two points
-                      float timeStep = temp[counter][2] - temp[counter-1][2];
-                      // Get Forwards and backwards predictions (in radians)
-                      float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
-                      float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
-                      // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
-                      int FwCycles = 0;
-                      int BwCycles = 0;
-                      
-                      float fcp = (((temp[counter-1][0]+M_PI)/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep));
-                      float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
-                      
-                      if (fcp > 1) {
-                        //FwCycles = 1;
-                        FwCycles = (int)fcp;
-                      }
-                      else if (fcp < 0) {
-                        //FwCycles = -1;
-                        FwCycles = (int)(fcp-1);
-                      }
-                      
-                      if (bcp > 1) {
-                        //BwCycles = -1;
-                        BwCycles = -(int)(bcp);
-                      }
-                      else if (bcp < 0) {
-                        //BwCycles = 1;
-                        BwCycles = -(int)(bcp-1);
-                      }
-                      
-                      //cout << "FW: " << FwCycles << ", BW: " << BwCycles << "\n";
-                      cycles += (int)((fcp-bcp) / 2);
-
-                      //cout << "REF FREQ: " << refFreq << "\n";
-                      //cout << "TIME STEP: " << timeStep << "\n";
-                      //cout << "FORWARD PRED: " << fcp << ", BACKWARD PRED: " << bcp << "\n";
-                      //cout << "CHANGE: " << (FwCycles + BwCycles) / 2 << "\n";
-                      //cout << "CYCLES: " << cycles << "\n";
-                      //cout<< "COUNTER: " << counter << "\n";
-                      
-                      unwrap.push_back(temp[counter][0] + 2 * M_PI * cycles);
+                    else if (fcp < 0) {
+                      //FwCycles = -1;
+                      FwCycles = (int)(fcp-1);
                     }
-                    counter ++;
-                }
+                    
+                    if (bcp > 1) {
+                      //BwCycles = -1;
+                      BwCycles = -(int)(bcp);
+                    }
+                    else if (bcp < 0) {
+                      //BwCycles = 1;
+                      BwCycles = -(int)(bcp-1);
+                    }
+                    
+                    cycles += (int)((fcp-bcp) / 2);
+                    unwrap[polId].push_back(temp[counter][0] + 2 * M_PI * cycles);
+                  }
+                  counter ++;
+              }
             }
           }
           
           // Convert unwrap to casa Vector so we can use the same mean and masking functions
-          cout << "Yeah it's Vectors fault I guess..." << endl;
-          Vector<Float> unwrapPhases(unwrap);
-          cout << "Not its fault?" << endl;
-          //Vector(unwrap.begin(), unwrapPhases);
+          Vector<Float> unwrapPhasesPol1(unwrap[polId]);
+          Vector<Float> unwrapPhasesPol2(unwrap[polId]);
           
       // Regular ipar interation
       for (Int ipar=0;ipar<fsh(0);++ipar) {
@@ -1397,19 +1399,24 @@ void smoothCTFringe(NewCalTable ct,
         newpOK.reference(newfparok(fblc,ftrc).reform(vec));
           
         Vector<Bool> mask;
+        
+        cout << "IPAR: " << ipar << "\n"
+        << "VAL: " << newp << "\n" << endl;
 
         for (Int i=0;i<nSlot;++i) {
           // Make mask
           mask = pOK;
           mask = (mask && ( (times >  (times(i)-thw)) &&
                     (times <= (times(i)+thw)) ) );
-          
+    
           if (ntrue(mask)>0) {
             if (smtype=="mean") {
+              
               // If phases use our unwrapped vector
-              if (ipar == 0){
-                newp(i)=mean(unwrapPhases(mask));
-                // re wrap value
+              if (ipar==0) {newp(i)=mean(unwrapPhasesPol1(mask));};
+              if (ipar==4) {newp(i)=mean(unwrapPhasesPol2(mask));};
+
+              if (ipar == 0 || ipar == 4){
                 while (newp(i) < -M_PI) {
                   newp(i) += 2*M_PI;
                 }
@@ -1423,9 +1430,10 @@ void smoothCTFringe(NewCalTable ct,
 
             }
             else if (smtype=="median") {
-              if (ipar == 0) {
-                newp(i)= median(unwrapPhases(mask),false);
-                // re wrap value
+              if (ipar==0) {newp(i)=median(unwrapPhasesPol1(mask),false);};
+              if (ipar==4) {newp(i)=median(unwrapPhasesPol2(mask),false);};
+              
+              if (ipar == 0 || 4) {
                 while (newp(i) < -M_PI) {
                   newp(i) += 2*M_PI;
                 }
@@ -1443,20 +1451,6 @@ void smoothCTFringe(NewCalTable ct,
             newpOK(i)=false;
           
         } // i
-          if (temp.size() > 0)
-          {
-              float average = accumulate(unwrap.begin(), unwrap.end(), 0.0) / unwrap.size();
-              while(average < -M_PI) {
-                  average += 2 * M_PI;
-              }
-              while(average > M_PI) {
-                  average -= 2 * M_PI;
-              }
-              cout << "UNWRAP: " << unwrap << "\n";
-            cout << "AVERAGE: " << average << "\n";
-            cout << "REG MEAN: " << newp << "\n"
-            << "-----------END I----------\n";
-          }
           
         // keep new ok info
         p=newp;
