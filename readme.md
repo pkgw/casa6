@@ -374,7 +374,7 @@ Compile and install with cmake (you might change the build directory or the make
 
     # MAC ONLY! use the following cmake command (see additional note below)
     # Note: we use '/opt/local/' as location where gcc is installed (MacPorts install prefix)
-    $ export FC=/opt/local/bin/gfortran-mp-11  # (gcc version can be 11, 12, etc.)
+    $ export FC=/opt/local/bin/gfortran-mp-12  # (gcc version can be 11, 12, 13 etc.)
     $ cmake \
 	# remember, on Ventura the extra flag is necessary
 	# -DCMAKE_CXX_FLAGS="-Qunused-arguments -flat_namespace" \
@@ -441,7 +441,7 @@ Compile and install with cmake (you might change the build directory or the make
     $ make install -j `getconf _NPROCESSORS_ONLN`
 ```
 
-1. This will install libraries under ` $CASAINSTALL/lib ` which are named like `libcasacpp_*` and header files under ` $CASAINSTALL/include `
+2. This will install libraries under ` $CASAINSTALL/lib ` which are named like `libcasacpp_*` and header files under ` $CASAINSTALL/include `
 
 >    NOTE: In the macOS cmake command line we have to add '-DCMAKE_CXX_FLAGS="-isystem /opt/local/include"' as a temporary workaround to give the include path of wcslib, until a fix can be used from casacore. This will no longer be needed once the pointer to casacore is updated to include the fix in casa (see [CAS-14246](https://open-jira.nrao.edu/browse/CAS-14246) and prior linked issues). Alternatively, before running the casacore cmake one would need to  modify the following line inside $CASASRC/casatools/casacore/casacore.pc.in.
 
@@ -451,27 +451,27 @@ Compile and install with cmake (you might change the build directory or the make
 ```
     $ cd $CASABUILD/casacpp
 ```
-1.    Export the variable CASADATA to point to the contents of the [casatestdata repository](https://open-bitbucket.nrao.edu/projects/CASA/repos/casatestdata/browse)
+2.    Export the variable CASADATA to point to the contents of the [casatestdata repository](https://open-bitbucket.nrao.edu/projects/CASA/repos/casatestdata/browse)
 ```
     $ export CASADATA=/path/to/casatestdata
 ```
-1.    Run the tests
+3.    Run the tests
 ```
     $ ctest -T test --output-on-failure
 ```
-1.    It is also possible to list all available tests. This command can be run from $CASABUILD/casacpp and will list all available tests. If it is run from within a subdirectory of it (for instance $CASABUILD/casacpp/singledish), then it will list the unit tests associated to that module:
+4.    It is also possible to list all available tests. This command can be run from $CASABUILD/casacpp and will list all available tests. If it is run from within a subdirectory of it (for instance $CASABUILD/casacpp/singledish), then it will list the unit tests associated to that module:
 ```
     ctest -N
 ```
-1.    To run a individual test:
+5.    To run a individual test:
 ```
     ctest -T test -R nameOfTest
 ```
-1.    To run valgrind on a given test:
+6.    To run valgrind on a given test:
 ```
     ctest -T memcheck -R nameOfTest
 ```
-1.    To run the debugger on a given test you can use the following one-liner :
+7.    To run the debugger on a given test you can use the following one-liner :
 ```
     gdb `ctest -V -N -R nameOfTest | grep "Test command" | sed -r 's/.*Test command:(.*)/\1/g' `
 ```
@@ -482,18 +482,19 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 ```
     $ mkdir $CASABUILD/casatools && cd $_
 ```
-1.    REQUIRED in Rocky Linux 8, Ubuntu 22.04 and MacOS ! OPTIONAL for other platforms. Create a virtual environment that has the needed packages:
+2.    REQUIRED in Rocky Linux 8, Ubuntu 22.04 and MacOS ! OPTIONAL for other platforms. Create a virtual environment that has the needed packages:
 ```
     $ mkdir build_env
     $ python3 -m venv build_env
-    $ . ./build_env/bin/activate
+    $ if [ `command -v deactivate` ] ; then deactivate ; fi # This ensures that no previous Python environment is still active
+    $ . $CASABUILD/casatools/build_env/bin/activate
     $ pip install build setuptools wheel
 ```
-1.    Remove the output directory to avoid confusion with old created wheels:
+3.    Remove the output directory to avoid confusion with old created wheels:
 ```
     $ rm -rf $CASAINSTALL/dist
 ```
-1.    Create casatools wheel. Note that this assumes that the virtual environment in previous step (if required) is still active.
+4.    Create casatools wheel. Note that this assumes that the virtual environment in previous step (if required) is still active.
 ```
     $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig python3 -m build -o $CASAINSTALL/dist $CASASRC/casatools # Rocky Linux 8, Ubuntu 22.04 and MacOS with a venv
 
@@ -507,9 +508,9 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 ```
 > NOTE: You can use environmental variable VERBOSE=true if you want the full output of the commands from cmake. That might be useful for debugging compilation failures. Setting also CMAKE_BUILD_PARALLEL_LEVEL=1 to avoid intermingled output from different cmake processes would help to understand the build failures derived from cmake.
 
-1. This will create an output wheel inside the `$CASAINSTALL/dist` directory. That wheel depends on the libraries installed under `$CASAINSTALL/lib`.
+5. This will create an output wheel inside the `$CASAINSTALL/dist` directory. That wheel depends on the libraries installed under `$CASAINSTALL/lib`.
 
-1. Optional: Convert Casatools wheel to ManyLinux compatible format
+6. Optional: Convert Casatools wheel to ManyLinux compatible format
 ```
     # Add to your build_env (if you have created one, otherwise it will install it globally in your $HOME)
     pip install --upgrade pip auditwheel patchelf
@@ -525,16 +526,17 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
 1. (Optional) Create a virtual environment for testing purposes. It is recommended, although not strictly necessary. If done this way, only the python sessions that activate the environment will have access to casatools. Otherwise casatools will be installed in `$HOME` and be available to all python sessions which is probably not what most of developers want. You can use the --system-site-packages option to venv, which will use the python packages from your environment as installed with the instructions mentioned above using your package manager (or by other method you have used). However, for some platforms, including RHEL 8 and macOS that won't work out of the box and therefore is not recommended. In these instrutions it is assumed that the virtual environment is the same as the one for building casatools (see previous section), but it is possible to use a different environment just for testing if the required packages are installed.
 ```
     $ python3 -m venv $CASATESTDIR/test_env # You can use python3 -m venv --system-site-packages $CASATESTDIR/test_env in Ubuntu and Fedora  
+    $ if [ `command -v deactivate` ] ; then deactivate ; fi # This ensures that no previous Python environment is still active
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
-1. Install the casatools wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatools is installed.
+2. Install the casatools wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatools is installed.
 ```
     $ pip uninstall casatools
     $ pip install $CASAINSTALL/dist/casatools*whl
     $ pip install casatestutils
     $ pip install casadata
 ```
-1. Run the tests.
+3. Run the tests.
 ```
     $ python -m pytest $CASASRC/casatools/tests/tools/
 ```
@@ -546,40 +548,39 @@ The casatasks wheel creation and installation has not changed in the modular bui
 ```
     $ cd $CASASRC/casatasks
 ```
-1.    Remove the output directory to avoid confusion with old created wheels:
+2.    Remove the output directory to avoid confusion with old created wheels:
 ```
     $ rm -rf dist
 ```
-1. Create casatasks wheel. The resulting wheel file is stored under $CASASRC/casatasks/dist. Requires the Python wheel module (question). Note that one should deactivate the test_env (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
+3. Create casatasks wheel. The resulting wheel file is stored under $CASASRC/casatasks/dist. Requires the Python wheel module (question). Note that one should deactivate the test_env (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
 ```
+    $ if [ `command -v deactivate` ] ; then deactivate ; fi # This ensures that no previous Python environment is still active
+    $ . $CASABUILD/casatools/build_env/bin/activate
     $ ./setup.py bdist_wheel
 ```
 
-1. This creates a casatasks wheel under `$CASASRC/casatasks/dist`. The current status of the casatasks setup.py is not fully PEP-517 compatible, that's why it is not possible to get the wheel under `$CASAINSTALL/dist` like the casatools case.
+4. This creates a casatasks wheel under `$CASASRC/casatasks/dist`. The current status of the casatasks setup.py is not fully PEP-517 compatible, that's why it is not possible to get the wheel under `$CASAINSTALL/dist` like the casatools case.
 
 #### Test casatasks (Optional)
 
 It is assumed that the steps to test casatools (see above) have already been performed.
 
-1.    Optionally activate the same virtual environment that was used to test casatools (see above). Omit this step if you prefer to install in your $HOME.
-
+1.     (Optional). Activate the same virtual environment that was used to test casatools (see above). Omit this step if you prefer to install in your $HOME. Note that one should deactivate the test_env (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
 ```
+    $ if [ `command -v deactivate` ] ; then deactivate ; fi # This ensures that no previous Python environment is still active
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
-
-1.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
+2.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
 ```
     $ cd $CASASRC/casatasks
     $ pip uninstall casatasks
     $ pip install ./dist/casatasks*whl
 ```
-
-1.    Optionally install casadata or point to a given location of casadata in your $HOME/.casa/config.py
+3.    Optionally install casadata or point to a given location of casadata in your $HOME/.casa/config.py
 ```
     $ pip install casadata
 ```
-
-1.    Run the tests:
+4.    Run the tests:
 ```
     $ cd $CASATESTDIR
     $ python $CASASRC/casatasks/tests/run.py
@@ -605,6 +606,17 @@ If a new casatools wheel is created and needs to be tested using casatasks then 
 ```
     $ pip uninstall -y casatools
     $ pip install $CASAINSTALL/dist/casatools*whl
+```
+
+### Debug builds for developers
+
+There are several options to help debug the builds. `cmake` offers a number of settings to help debugging compilation issues. The following variable influence the output of cmake:
+```
+    $ export VERBOSE=true
+```
+That works both in the compilation of `casacore` and `casacpp` as well as in the creation of the `casatools` wheel (which uses `cmake` under the hood). In the case of `casacore` and `casacpp` it might be useful to build without parallelization to avoid intermingled output using simply `make install` (without `-j`), whereas in the case of `casatools` the same effect can be achieved by setting other environmental variable:
+```
+    $ export CMAKE_BUILD_PARALLEL_LEVEL=1
 ```
 
 ### Installation using Makefile
