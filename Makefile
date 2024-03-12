@@ -64,11 +64,12 @@ CASABUILD   = $(ROOT)/build
 #--------------------------------------------------------------------------------------------------------
 
 firstcasa: init casa-clone libsakura casacore casacpp venv-build casatools casatasks casashell
-	echo CASA has been built successfully.
-	You can run it with:
-	\$ . $(CASAVENVDIR)/bin/activate
-	\$python
-	>>> import casatasks
+	@echo ======================================== "\n" \
+	CASA has been built successfully. "\n" \
+	You can run it with: "\n" \
+	$$ . $(CASAVENVDIR)/bin/activate "\n" \
+	$$ python "\n" \
+	\>\>\> import casatasks "\n"
 
 casa: libsakura casacore casacpp venv-build casatools casatasks casashell
 
