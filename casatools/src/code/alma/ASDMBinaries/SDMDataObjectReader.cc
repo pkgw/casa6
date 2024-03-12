@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <cstring>
 #include <string.h>
 #include <exception>
 #include <sstream>
@@ -942,7 +943,7 @@ namespace asdmbinaries {
 #else
     if ( (filedes_ = open(filename.c_str(), O_RDONLY | O_LARGEFILE)) == -1) {
 #endif
-      string message(strerror(errno));
+      string message(std::strerror(errno));
       throw SDMDataObjectReaderException("Could not open file '" + filename + "'. The message was '" + message + "'");
     }
     read_ = FILE_;
@@ -951,7 +952,7 @@ namespace asdmbinaries {
     errno = 0;
     int status = fstat(filedes_,&fattr); // fstat64(filedes_,&fattr);
     if (status == -1) {
-      string message(strerror(errno));
+      string message(std::strerror(errno));
       throw SDMDataObjectReaderException("Could not retrieve size of file '" + filename + "'. The message was '" + message + "'");
     }
     filesize = fattr.st_size;
@@ -961,7 +962,7 @@ namespace asdmbinaries {
 
     data = (char *) mmap((caddr_t)0, filesize, PROT_READ, MAP_SHARED, filedes_, (off_t)0);
     if ( ((unsigned long) data) == 0xffffffff) {      
-      string message(strerror(errno));
+      string message(std::strerror(errno));
       throw SDMDataObjectReaderException("Could not map file '" + filename + "' to memory. The message was '" + message + "'");
     }
     
