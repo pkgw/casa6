@@ -5002,7 +5002,7 @@ class test_pbcor(testref_base):
           self.prepData('refim_mawproject.ms')
           ret1 = tclean(vis=self.msfile, imagename=self.img, field='0', imsize=512, cell='10.0arcsec', phasecenter="J2000 19:59:28.500 +40.44.01.50", 
                         niter=10, specmode='mfs', vptable='evlavp.tab', pbcor=True, deconvolver='mtmfs',parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.pb.tt0'], imgexistnot=[self.img+'.image.tt0.pbcor', self.img+'.alpha.pbcor'], imgval=[(self.img+'.pb.tt0',0.7,[256,256,0,0])])  
+          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.pb.tt0', self.img+'.image.tt0.pbcor', self.img+'.alpha.pbcor'], imgval=[(self.img+'.pb.tt0',0.7,[256,256,0,0])])  
           #report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.pb.tt0', self.img+'.image.tt0.pbcor', self.img+'.alpha.pbcor'], imgval=[(self.img+'.pb.tt0',0.7,[256,256,0,0]),(self.img+'.image.tt0.pbcor',1.0,[256,256,0,0]),(self.img+'.alpha',-0.7,[256,256,0,0]), (self.img+'.alpha.pbcor',-0.7,[256,256,0,0]) ])  
           # uncorrected alpha, for now. 
           self.assertTrue(self.check_final(report))

@@ -2067,7 +2067,7 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 							   Array<Complex>& wtConvFunc, CoordinateSystem& csys,
 							   Vector<Int>& asupport, Int& npix,
 							   const Vector<Double>& freqlist, const Bool doSquint, 
-							   const Double& pa){
+							   const Double& pa, const bool isSingleField){
 	
 	//Assuming first freq is lowest
 	Quantity cell;
@@ -2084,8 +2084,6 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
         //atermMaker_p->getTelescopeName()  << " csys tel " <<
         //csys.obsInfo().telescope() << endl;
 	std::tie(cell,convnx)=getBeamCellSize(bandname);
-	//widen it to twice first sidelobe
-	convnx *=2;
         convnx = Int(ceil(Float(convnx) / 8.0)) * 8;
         ////////////////////
         //cerr << "@@@cell " << cell <<  " pbnpix " <<  convnx << " imnpix "<< npix << " imcell"<<  csys_p.increment()<<  endl;
@@ -2094,24 +2092,36 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
 	Double pbFov= fabs(cell.get(units[0]).getValue()*Double(convnx));
-	if(inpFov > 0.0625*pbFov){
-		incr[0]=cell.get(units[0]).getValue();
-		incr[1]=cell.get(units[1]).getValue();
-		npix=convnx; // return that npix
-	}
-	else{
-		//Very small image inside mainlobes
-		// use the image incr rather than the minimum required 
-		//have to keep convnx bigger as it BeamCalc is unhappy to generate beam for small fields
-		//no need to calculate into the lobes thus the factor 4
-		convnx = Int(ceil(fabs(Float(convnx)/incr[0]*cell.get(units[0]).getValue()) / 32.0)) * 8;
-		npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
-		pbFov=fabs(incr[0])*convnx;
-		//cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
-	}
+    //    cerr << "@@inpfov " << inpFov << " pbFov " << pbFov << endl;
+        if (inpFov > 0.125 * pbFov) {
+          incr[0] = cell.get(units[0]).getValue();
+          incr[1] = cell.get(units[1]).getValue();
+          //For small fov post fft resampling is not good enough...create alarge fov 
+		  // here to resample finer at calculation
+		  if(inpFov < pbFov || isSingleField){
+			incr[0]*=2.0;
+			incr[1]*=2.0;
+			convnx *=2.0;
+			pbFov *=4.0;
+		  }
+          npix = convnx; // return that npix
 
-	
-	Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};
+        } else {
+          // Very small image inside mainlobes
+          //  use the image incr rather than the minimum required
+          // have to keep convnx bigger as it BeamCalc is unhappy to generate
+          // beam for small fields no need to calculate into the lobes thus the
+          // factor 2
+          convnx = Int(ceil(fabs(Float(convnx) / incr[0] *
+                                 cell.get(units[0]).getValue()) /
+                            16.0)) *
+                   8;
+          npix = int(std::ceil(inpFov / pbFov * Double(convnx) / 2.0)) * 2;
+          pbFov = fabs(incr[0]) * convnx;
+          // cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
+        }
+
+        Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};
 	StokesCoordinate stokesCoords(stoks);
 	Quantum<Vector<Double> > freqs(freqlist, "Hz");
 	SpectralCoordinate specCoord(MFrequency::TOPO, freqs);
@@ -2186,8 +2196,8 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 			
 		}*/
 		//cerr << "Post FT MAX arr "<< max(wtArr) << " min "<< min(wtArr) << endl;
-                
-		supportAndNormalizeAFunc(support, arr, wtArr);
+                //cerr << "inpFov/pbFov " << (inpFov / pbFov) << endl;
+                supportAndNormalizeAFunc(support, arr, wtArr, (inpFov/pbFov >1) );
 		//cerr << "Post Norm MAX arr "<< max(arr) << " min "<< min(arr) << endl;
 		if(k==0){
 		
@@ -2221,13 +2231,14 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
                        Array<Complex>& wtconv,
                        CoordinateSystem& csys,
                        Matrix<Int>& awsupport, Int& npix, const Vector<Double>& freqlist, 
-                       const Vector<Double>& wVals, const Bool dosquint, const Double& pa){
+                       const Vector<Double>& wVals, const Bool dosquint, const Double& pa,
+					   const bool isSingleField){
 
 
 	Array<Complex> pbFT;
 	Array<Complex> pbWFT;
 	Vector<Int> aTsup;
-	makeAConvFunc(pbFT, pbWFT, csys, aTsup, npix, freqlist, dosquint, pa);
+	makeAConvFunc(pbFT, pbWFT, csys, aTsup, npix, freqlist, dosquint, pa, isSingleField);
 	//cerr << "In AW wtConv "<< max(pbWFT) << " min "<< min(pbWFT) << endl;
 	/////TESTOO
 	//{
@@ -2413,7 +2424,7 @@ Bool AWConvFunc::supportResizeAWConv(Matrix<Int>& sup, Array<Complex>& conv, con
 	return True;	
 	
 }
-Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<Complex>& wtconv){
+Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<Complex>& wtconv, const bool isLarge){
 	sup=-1;
 	IPosition begin(4, 0, 0, 0, 0);
     IPosition end=conv.shape()-1;
@@ -2425,17 +2436,22 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
 	minMax(minAbsConvFunc, maxAbsConvFunc, minpos, maxpos, amplitude(convPlane));
     Bool found=false;
     Int trial=0;
-    for (trial=convSize/2-2; trial>0; trial--) {
-        //Searching down a diagonal
-        if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (5e-3*maxAbsConvFunc) ) {
-            found=true;
-            trial=Int(sqrt(2.0*Float(trial*trial)));
-	   
-            break;
+    Float suplimit = 5e-3;
+    if (isLarge)
+      suplimit = 1e-2;
+    //cerr << "###SUPLIMIT " << suplimit << endl;
+    for (trial = convSize / 2 - 2; trial > 0; trial--) {
+      // Searching down a diagonal
+      if (abs(convPlane(convSize / 2 - trial, convSize / 2 - trial)) >
+          (suplimit * maxAbsConvFunc)) {
+        found = true;
+        trial = Int(sqrt(2.0 * Float(trial * trial)));
+
+        break;
+      }
         }
-    }
     if(!found) {
-        if((maxAbsConvFunc-minAbsConvFunc) > (5e-3*maxAbsConvFunc))
+        if((maxAbsConvFunc-minAbsConvFunc) > (suplimit*maxAbsConvFunc))
             found=true;
         // if it drops by more than 2 magnitudes per pixel
         trial= (convSize >10) ? 5 : (convSize/2 - 4);
@@ -2482,7 +2498,7 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
 }
  std::pair<Quantity, int> AWConvFunc::getBeamCellSize(const String& band){
 	 //testoo
-	 Quantity fov(0.048,"rad"); //fov at 1 GHz for VLA
+	 Quantity fov(0.024,"rad"); //fov at 1 GHz for VLA
 	 Quantity cell=fov/256;
 	 if(band=="EVLA_S")
 		 cell=cell/2.0;

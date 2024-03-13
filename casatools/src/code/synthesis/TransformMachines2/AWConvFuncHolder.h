@@ -69,9 +69,11 @@ class AWConvFuncHolder{
                     casacore::Array<casacore::Complex>& wgtConvFunc,
                     const vi::VisBuffer2 &vb,
                     const casacore::Matrix<casacore::Double> &rotuvw);
-  
 
-  
+  //help AWConvFunc decide if single field or not
+  void setSingleField(const bool isSingleField = False){
+    isSingleField_p = isSingleField;
+  };
 
 private:
   void appendConvFuncs(const casacore::Array<casacore::Complex> &awConv,
@@ -105,8 +107,8 @@ private:
   int calcNpix_p;
   int oversamp_p;
   std::shared_ptr<EVLAAperture> aterm_p;
-  std::shared_ptr<VisBufferUtil> vbutil_p;                 
-  
+  std::shared_ptr<VisBufferUtil> vbutil_p;
+  bool isSingleField_p;
 };
   
    }//# end namespace refim

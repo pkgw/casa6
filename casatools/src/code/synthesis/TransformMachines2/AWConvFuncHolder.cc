@@ -46,7 +46,7 @@ using namespace casa;
 using namespace casa::refim;
 using namespace std;
 
-AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, const int ny, const bool dosquint, const double paInc,  const String& obs,  const int& oversamp): painc_p(paInc),  dosquint_p(dosquint), outcsys_p(csys),  nx_p(nx),  ny_p(ny),  oversamp_p(oversamp) {
+AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, const int ny, const bool dosquint, const double paInc,  const String& obs,  const int& oversamp): painc_p(paInc),  dosquint_p(dosquint), outcsys_p(csys),  nx_p(nx),  ny_p(ny),  oversamp_p(oversamp), isSingleField_p(false) {
   
   convFunc_p.resize();
   wgtConvFunc_p.resize();
@@ -101,10 +101,7 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
     convSupport_p.resize();
     convSupport_p = other.convSupport_p;
     aterm_p = other.aterm_p;
-    
-    
-    
-    
+    isSingleField_p = other.isSingleField_p;
   }
   return *this;
 }
@@ -155,7 +152,9 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   for (uint k=0; k<paVals_p.nelements(); ++k){
     calcNpix_p = min(nx_p,  ny_p);
     calcCsys_p = outcsys_p;
-    a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
+    a.makeAWConvFunc(aWConv, aWwtconv, calcCsys_p, awSupport, calcNpix_p,
+                     freqsToCalc, wVals_p, dosquint_p, paVals_p[k],
+                     isSingleField_p);
     //cerr << "######MAX awsupp " << max(awSupport) << endl;
                                                    
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
@@ -220,8 +219,8 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   Array<Complex> newAWConv;
   Array<Complex> newWtConv;
   // For small images or factor less than 1.0  use linear interpolation
- if ((factorX/oversamp_p) < 1.0 || (factorY/oversamp_p) < 1.0  || nx_p < 200 || ny_p < 200)
-  {
+  if ((factorX / oversamp_p) < 1.0 || (factorY / oversamp_p) < 1.0 ||
+      nx_p < 200 || ny_p < 200) {
     newAWConv = m.resample(awConv, factorX, factorY);
     newWtConv = m.resample(aWwtConv, factorX, factorY);
   }
@@ -375,9 +374,10 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   }
   {
     vector<Int> cpRmapUsed=rmapused;
-  //lets move the -ve values to the end  -ve means -w which means we have to conjugate the plane
-   vector<int>::iterator it =
-      remove_if(rmapused.begin(), rmapused.end(), [](const int i) { return i < 0; });
+    // lets move the -ve values to the end  -ve means -w which means we have to
+    // conjugate the plane
+    vector<int>::iterator it = remove_if(rmapused.begin(), rmapused.end(),
+                                         [](const int i) { return i < 0; });
     rmapused.erase(it, rmapused.end());
     for (auto cit = cpRmapUsed.rbegin(); cit != cpRmapUsed.rend(); ++cit){
       if(*cit <0)
