@@ -2437,7 +2437,7 @@ Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<
     Float suplimit = 5e-3;
     if (isLarge)
       suplimit = 1e-2;
-    cerr << "###SUPLIMIT " << suplimit << endl;
+    #cerr << "###SUPLIMIT " << suplimit << endl;
     for (trial = convSize / 2 - 2; trial > 0; trial--) {
       // Searching down a diagonal
       if (abs(convPlane(convSize / 2 - trial, convSize / 2 - trial)) >
