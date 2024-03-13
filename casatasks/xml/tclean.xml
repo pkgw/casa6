@@ -458,29 +458,46 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         velocity if the emission region is moving w.r.t the systemic
                                                         velocity frame of the source)
 
-                        specmode='mtmfs_via_cube' : Multiterm continuum imaging with cube major cycles. 
-                                                              This mode requires deconvolver='mtmfs' with nterms>1 
-                                                              and user-set choices of 'reffreq' and 'nchan'. 
+                        specmode='mvc' : Multiterm continuum imaging with cube major cycles. 
+                                                        This mode requires deconvolver='mtmfs' with nterms>1 
+                                                        and user-set choices of 'reffreq' and 'nchan'. 
 
-                                                              The output images and minor cycle are similar to specmode='mfs' 
-                                                              with deconvolver='mtmfs', but the major cycles are done in 
-                                                              cube mode (and require a setting of 'reffreq' and 'nchan'). 
-                                                              By default, frequency-dependent primary beam correction is 
-                                                              applied to each channel, before being combined across frequency
-                                                              to make the inputs to the 'mtmfs' deconvolver.  This results in 
-                                                              implicit wideband pb-correction, with the deconvolver seeing only
-                                                              the sky spectral structure.
+                                                        The output images and minor cycle are similar to specmode='mfs' 
+                                                        with deconvolver='mtmfs', but the major cycles are done in 
+                                                        cube mode (and require a setting of 'reffreq' and 'nchan'). 
+                                                        By default, frequency-dependent primary beam correction is 
+                                                        applied to each channel, before being combined across frequency
+                                                        to make the inputs to the 'mtmfs' deconvolver.  This results in 
+                                                        implicit wideband pb-correction, with the deconvolver seeing only
+                                                        the sky spectral structure.
 
-							      Note : 'nchan' needs to be greater than or equal to 'nterms'.
-							      Note : 'nchan' needs to be less than or equal to the number of
-							      selected data channels.
-							      Note : For a low-order polynomial fit, only a small number (around 10)
-							      channels are typically needed (for VLA/ALMA bandwidth ratios).
-							      'nchan=-1' applies a heuristic to determine the number of channels,
-							      as a convenience option, but it is recommended that the user set
-							      nchan explicitly.
+                                                        Note : There is currently no option to turn off wideband pb correction
+                                                        as part of the flat-sky normalization between the major and minor cycles.
+                                                        Therefore, 'mvc' with the 'standard' and 'wproject' gridders will also apply
+                                                        pblimits per channel, masking all regions outside of pblimit.                 	
+                                                        An option to retain sources outside the pblimit will be added in a future release. 
 
-                               
+                                                        Note : Below is some guidance for choosing 'nchan' and 'reffreq' :
+                                  
+                                                        The cube produced by the major cycle is used in a linear least square fits for Taylor
+                                                        polynomials per pixel. Therefore, one only needs as many channels in the cube, as
+                                                        required for an accurate polynomial fit for sources that have the strongest
+                                                        spectral structure.
+
+                                                        In general, 'nchan' needs to be greater than or equal to 'nterms', and the
+                                                        frequency range selected by the data will be evenly split into nchan channels.
+                                                        For a low-order polynomial fit, only a small number (around 10)
+                                                        channels are typically needed (for VLA/ALMA bandwidth ratios).
+                                                        'nchan=-1' applies a heuristic that results in a default of 10 cube channels
+                                                        for a 2:1 bandwidth ratio.
+
+                                                        nchan = MAX( bandwidth/(0.1*startfreq) ,  nterms+1 )
+
+                                                        The 'reffreq' is the reference frequency used for the Taylor polynomial expansion.
+                                                        By default, in specmode='mvc', reffreq is set to the middle of the selected
+                                                        frequency range. 
+
+				
 
 </description>
      <value type="string">mfs</value>
@@ -490,7 +507,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
        <value>cube</value>
        <value>cubedata</value>
        <value>cubesource</value>
-       <value>mtmfs_via_cube</value>
+       <value>mvc</value>
      </allowed>
     </param>
 
@@ -1556,7 +1573,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                         pbcor=True will be accurate because the spectral index map will already 
                                         be PB-corrected. 
 
-                                  (c) For mosaics, run tclean with specmode='mtmfs_via_cube', deconvolver='mtmfs', 
+                                  (c) For mosaics, run tclean with specmode='mvc', deconvolver='mtmfs', 
                                         and gridder='standard' or 'mosaic' with pbcor=True.  
                                         This option applies wideband PB-correction to channelized residual images
                                         prior to the minor cycle and pbcor=True will be accurate because the spectral 
@@ -1572,8 +1589,6 @@ to use the correct direction in which the antenna is pointing with respect to th
 </description>
       <value type="bool">False</value>
     </param>
-
-
 
 
 
@@ -2622,7 +2637,7 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="reffreq"><value>&quot;&quot;</value></default>
 
        </equals>
-       <equals type="string" value="mtmfs_via_cube">
+       <equals type="string" value="mvc">
          <default param="reffreq"><value>&quot;&quot;</value></default>
          <default param="nchan"><value>-1</value></default>
        </equals>
