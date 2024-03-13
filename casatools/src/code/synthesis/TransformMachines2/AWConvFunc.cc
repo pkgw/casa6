@@ -2092,7 +2092,6 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
 	Double pbFov= fabs(cell.get(units[0]).getValue()*Double(convnx));
-        cerr << "@@inpfov " << inpFov << " pbFov " << pbFov << endl;
         if (inpFov > 0.125 * pbFov) {
           incr[0] = cell.get(units[0]).getValue();
           incr[1] = cell.get(units[1]).getValue();
@@ -2196,7 +2195,6 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 			
 		}*/
 		//cerr << "Post FT MAX arr "<< max(wtArr) << " min "<< min(wtArr) << endl;
-                cerr << "inpFov/pbFov " << (inpFov / pbFov) << endl;
                 supportAndNormalizeAFunc(support, arr, wtArr, (inpFov/pbFov >1) );
 		//cerr << "Post Norm MAX arr "<< max(arr) << " min "<< min(arr) << endl;
 		if(k==0){

@@ -127,11 +127,13 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       pbConvFunc_p->setVBUtil(vbutil_p);
     }
     std::vector<Double> freqs;
+    std::set<Int> fields;
     std::vector<Double> pAs;
     Double maxW=0.0;
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
+              fields.insert(vb.fieldId()(0));
               pbConvFunc_p->findUsefulChannels(chunkfreq, vb, frange);
               //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
               if (chunkfreq.size() > 0) {
@@ -156,7 +158,9 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     std::sort(freqs.begin(), freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
-    
+    //tell holder it is a single field or not
+    (*awConvs_p).setSingleField((fields.size()==1));
+
     Double paMax=0.0;
     if(pAs.size()>1){
       std::sort(pAs.begin(), pAs.end());

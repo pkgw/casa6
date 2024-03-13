@@ -454,12 +454,14 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     
     
     std::vector<Double> freqs;
+    std::set<Int> fields;
     std::vector<Double> pAs={0.0};
     //int validspw=-1;
     Double maxW=0.0;
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
+              fields.insert(vb.fieldId()(0));
               //matchChannel(vb);
               //cerr << "MAX chanMap" << chanMap << endl;
               //if (max(chanMap) > -1) 
@@ -494,9 +496,9 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
     std::sort(freqs.begin(),  freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
-    
-   
-    
+    // tell holder it is a single field or not
+    (*awConvs_p).setSingleField((fields.size() == 1));
+
     if (nWPlanes_p == 0)
       nWPlanes_p = 1;
     Vector<Double> wVals(nWPlanes_p,0);
