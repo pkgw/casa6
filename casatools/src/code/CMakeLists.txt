@@ -117,6 +117,7 @@ pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
 # HPG dependency
 find_package(hpg CONFIG)
 if(DEFINED hpg_FOUND AND ${hpg_FOUND})
+  message("USE_HPG set. ")
   add_definitions(-DUSE_HPG)
 endif()
 
