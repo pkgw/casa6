@@ -469,7 +469,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                     chanwt=chwgt,
                     mtname=basename,
                     reffreq=reffreq,
-                    nterms=nterms,
+                    nterms=num_terms,
                     dopsf=dopsf,
                 )
             else:
@@ -747,8 +747,8 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         From:
           sdint_helper.py
         """
-        if dopsf is True:
-            nterms = 2 * nterms - 1
+        #if dopsf is True:
+        #    nterms = 2 * nterms - 1
 
         pix = []
         for tt in range(0, nterms):

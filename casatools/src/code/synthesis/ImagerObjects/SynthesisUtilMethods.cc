@@ -514,8 +514,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
 	    }
 	    mt_subims[tt]->copyData(eachterm);
-	    //cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
-	  }
+            mt_subims[tt]->flush();
+            // cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
+          }
 	
       }// for pol
 
