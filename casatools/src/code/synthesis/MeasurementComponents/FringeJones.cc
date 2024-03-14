@@ -1226,7 +1226,6 @@ void smoothCTFringe(NewCalTable ct,
               const String& smtype,
               const Double& smtime,
               Vector<Int> selfields) {
-    cout << "USING FRINGEFIT JONES SMOOTHING" << "\n";
     
     // Complex parameters?
     Bool cmplx=ct.isComplex();
@@ -1320,7 +1319,7 @@ void smoothCTFringe(NewCalTable ct,
             newpOK.reference(newfparok(fblc,ftrc).reform(vec));
             int cycles = 0;
             
-            cout << "ipar: " << ipar << ", newp: " << newp << ", polId:" << polId << "\n" << endl;
+            //cout << "ipar: " << ipar << ", newp: " << newp << ", polId:" << polId << "\n" << endl;
             
             for (Int i=0;i<nSlot;++i) {
               vector<float> holder {0.0, 0.0, 0.0};
@@ -1358,20 +1357,16 @@ void smoothCTFringe(NewCalTable ct,
                     float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
                     
                     if (fcp > 1) {
-                      //FwCycles = 1;
                       FwCycles = (int)fcp;
                     }
                     else if (fcp < 0) {
-                      //FwCycles = -1;
                       FwCycles = (int)(fcp-1);
                     }
                     
                     if (bcp > 1) {
-                      //BwCycles = -1;
                       BwCycles = -(int)(bcp);
                     }
                     else if (bcp < 0) {
-                      //BwCycles = 1;
                       BwCycles = -(int)(bcp-1);
                     }
                     
@@ -1400,8 +1395,8 @@ void smoothCTFringe(NewCalTable ct,
           
         Vector<Bool> mask;
         
-        cout << "IPAR: " << ipar << "\n"
-        << "VAL: " << newp << "\n" << endl;
+        //cout << "IPAR: " << ipar << "\n"
+        //<< "VAL: " << newp << "\n" << endl;
 
         for (Int i=0;i<nSlot;++i) {
           // Make mask

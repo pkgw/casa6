@@ -28,6 +28,7 @@ import unittest
 
 from casatools import ctsys, table
 from casatasks import accor,smoothcal
+import numpy as np
 
 _tb = table()
 
@@ -50,6 +51,7 @@ class smoothcal_test(unittest.TestCase):
     msfile = 'ngc1333_ut.ms'
     gcal = 'ngc1333_ut_nct.gcal'   # New format caltables
     ref = 'ngc1333_ut_nct.ref'
+    fringecal = 'ngc1333_ut_fringefit.cal'
     res = None
     vlbams = 'ba123a.ms'
     accor = 'smoothcal_accor'
@@ -64,6 +66,7 @@ class smoothcal_test(unittest.TestCase):
         shutil.copytree(os.path.join(datapath,self.gcal), self.gcal)
         shutil.copytree(os.path.join(datapath,self.ref), self.ref)
         shutil.copytree(os.path.join(datapath,self.vlbams), self.vlbams)
+        shutil.copytree(os.path.join(datapath,self.fringecal), self.fringecal)
     
     def tearDown(self):
         if (os.path.exists(self.msfile)):
@@ -76,6 +79,8 @@ class smoothcal_test(unittest.TestCase):
             os.system('rm -rf ' + self.vlbams)
         if (os.path.exists(self.accor)):
             os.system('rm -rf ' + self.accor)
+        if (os.path.exists(self.fringecal)):
+            os.system('rm -rf ' + self.fringecal)
         if (os.path.exists(self.out)):
             os.system('rm -rf ' + self.out)
         
@@ -200,6 +205,18 @@ class smoothcal_test(unittest.TestCase):
         accor(vis=self.vlbams,caltable=self.accor,corrdepflags=True)
         self.res=smoothcal(vis=self.vlbams,tablein=self.accor,caltable=self.out)
         self.assertTrue(os.path.exists(self.out))
+        
+    def test_smooth_fringefit(self):
+      '''Test smooth fringefit: smooth all values in fringefit cal table with phase unwrapping '''
+      self.res = smoothcal(vis=self.msfile, tablein=self.fringecal, caltable=self.out, smoothtime=10000000000000)
+      
+      _tb.open(self.out)
+      pol1Mean = np.mean(_tb.getcol('FPARAM')[0,0,:])
+      pol2Mean = np.mean(_tb.getcol('FPARAM')[4,0,:])
+      _tb.close()
+      
+      self.assertTrue(np.isclose(pol1Mean, -0.02804, atol=1e-5))
+      self.assertTrue(np.isclose(pol2Mean, 0.08426, atol=1e-5))
 
 if __name__ == '__main__':
     unittest.main()
