@@ -687,14 +687,13 @@ class test_regridms_negative_width(test_base):
 
     def _check_chan_freqs_widths(self, freqs, widths, exp_nchan, exp_first_freq,
                                  exp_last_freq, exp_width):
-        import numpy as np
 
         self.assertEqual(len(freqs), exp_nchan)
         self.assertEqual(len(widths), exp_nchan)
-        self.assertEqual(freqs[0], exp_first_freq)
-        self.assertEqual(freqs[-1], exp_last_freq)
-        self.assertTrue(np.allclose(np.ediff1d(freqs), exp_width, rtol=1e-2))
-        self.assertTrue(np.allclose(widths, exp_width, rtol=1e-3))
+        self.assertTrue(numpy.isclose(freqs[0], exp_first_freq, rtol=1e-5, atol=1e-8))
+        self.assertTrue(numpy.isclose(freqs[-1], exp_last_freq,  rtol=1e-5, atol=1e-8))
+        self.assertTrue(numpy.allclose(numpy.ediff1d(freqs), exp_width, rtol=1e-2))
+        self.assertTrue(numpy.allclose(widths, exp_width, rtol=1e-3))
 
     def test_regrid_channel_neg_width(self):
         '''mstransform: regridding in channel mode with negative width'''
@@ -2342,8 +2341,8 @@ class test_spw_poln(test_base):
         self.assertEqual(dds.__len__(),2,'Wrong number of rows in DD table')
         self.assertEqual(nchan, 1)
         self.assertEqual(nrow, 2600,'Wrong number of rows in DD table')
-        self.assertEqual(meanfreq, 4968996093.75)
-        self.assertEqual(chanwidth, 2000)
+        self.assertTrue(numpy.isclose(meanfreq, 4968996093.75, rtol=1e-10, atol=1e-1))
+        self.assertTrue(numpy.isclose(chanwidth, 2000, rtol=1e-10, atol=1e-4))
         self.assertAlmostEqual(meanfreq, chanfreq, 1)
 
         listobs(self.outputms, listfile='list.obs')

@@ -3,13 +3,14 @@
 
 from __future__ import absolute_import
 
-from collections import defaultdict, namedtuple, MutableMapping
+from collections.abc import MutableMapping
+from collections import defaultdict, namedtuple
 from copy import copy, deepcopy
 from functools import wraps
 from pprint import pformat
 
-from cerberus.platform import PYTHON_VERSION
-from cerberus.utils import compare_paths_lt, quote_string
+from .platform import PYTHON_VERSION
+from .utils import compare_paths_lt, quote_string
 
 
 ErrorDefinition = namedtuple('cerberus_error', 'code, rule')
