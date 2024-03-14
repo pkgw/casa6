@@ -419,6 +419,14 @@ SDGrid::~SDGrid() {
   if (interpolator) delete interpolator; interpolator = 0;
 }
 
+void SDGrid::initUVWMachine(const vi::VisBuffer2& vb) {
+    // UVWMachine is not necessary for single dish imaging
+    if (uvwMachine_p) delete uvwMachine_p; uvwMachine_p = 0;
+    phaseShifter_p.reset();
+
+    doUVWRotation_p=false;
+}
+
 void SDGrid::findPBAsConvFunction(const ImageInterface<Complex>& image,
 				  const vi::VisBuffer2& vb) {
 
