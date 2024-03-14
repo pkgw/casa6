@@ -443,6 +443,7 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         : nChan > 0
           ? nChan
           : nPol;
+    //cout << "count " << count << endl;
     for (uint i=0; i<count; ++i) {
         if (nChan > 0) {
             channel = i % nChan;
@@ -450,13 +451,14 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         }
         if (nPol > 0) {
             polarization = nChan > 1
-                ? (i - channel) % nChan
+                ? i/nChan // integer arithmetic
                 : i;
             start[polAxis] = polarization;
         }
+        //cout << "channel " << channel << " polarization " << polarization << endl;
         casacore::Slicer slice(start, end);
         casacore::SubImage<T> subImage(imageIn, slice);
-        casacore::CoordinateSystem subCsys = subImage.coordinates();
+        auto subCsys = subImage.coordinates();
         if (subCsys.hasSpectralAxis()) {
             auto subRefPix = subCsys.referencePixel();
             subRefPix[specAxis] = 0;
@@ -563,7 +565,7 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         }
         {
             auto doMask = imageOut->isMasked() && imageOut->hasPixelMask();
-            Lattice<bool>* pMaskOut = 0;
+            Lattice<bool>* pMaskOut = nullptr;
             if (doMask) {
                 pMaskOut = &imageOut->pixelMask();
                 if (! pMaskOut->isWritable()) {
