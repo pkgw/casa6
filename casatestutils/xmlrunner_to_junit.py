@@ -25,6 +25,7 @@ def convert(filename, outfile):
     element1.set('name', "'{}'".format(name))
 
     tests, failures, errors, skipped = 0 , 0 , 0, 0
+ 
     runtime = 0.0
     for result in results:
         s = "{}{}{}".format(start, result, end)
@@ -32,25 +33,32 @@ def convert(filename, outfile):
         if "tests" in root.attrib.keys(): tests = tests + int(root.attrib['tests'])
         if "failures" in root.attrib.keys(): failures = failures + int(root.attrib['failures'])
         if "errors" in root.attrib.keys(): errors = errors + int(root.attrib['errors'])
-        if "skipped" in root.attrib.keys(): skipped = skipped + int(root.attrib['skipped'])
+        # if "skipped" in root.attrib.keys(): skipped = skipped + int(root.attrib['skipped'])
         runtime = runtime + float(root.attrib['time'])
 
         for i in range(len(root)):
             if not root[i].attrib: continue
-            #print(root[i].attrib['classname'])
+            #print(root[i].attrib)
             s_elem1 = ET.SubElement(element1, 'testcase')
             s_elem1.set('classname', "{}".format(name))
             s_elem1.set('name', "{}.{}".format(root[i].attrib['classname'],root[i].attrib['name']))
             s_elem1.set('time', root[i].attrib['time'])
 
-            #ss_elem1 = ET.SubElement(s_elem1, 'failure')
-            #ss_elem1.set('message', fMessage)
-            #ss_elem1.text = fMessage
+            if len(root[i].getchildren()) != 0:
+                for child in root[i].getchildren():
+                    if child.attrib['type'] == 'skip': 
+                        ss_elem1 = ET.SubElement(s_elem1, 'skipped')
+                        skipped = skipped + 1
+                    else:
+                        ss_elem1 = ET.SubElement(s_elem1, 'failure')
+                    fMessage = child.attrib['message']
+                    ss_elem1.set('message', fMessage)
+                    ss_elem1.text = fMessage
 
     element1.set('hostname', socket.gethostname())
     element1.set('timestamp', timestamp)
-    element1.set('errors', str(errors))
-    element1.set('failures', str(failures))
+    element1.set('errors', "0") # for Bamboo, Errors are treated as Failures
+    element1.set('failures', str(max(failures, errors))) # for Bamboo, Errors are treated as Failures
     element1.set('skipped', str(skipped))
     element1.set('tests', str(tests))
     element1.set('time', str(round(runtime, 3)))
