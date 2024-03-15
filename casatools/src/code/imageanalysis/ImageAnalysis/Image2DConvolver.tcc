@@ -443,7 +443,6 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         : nChan > 0
           ? nChan
           : nPol;
-    //cout << "count " << count << endl;
     for (uint i=0; i<count; ++i) {
         if (nChan > 0) {
             channel = i % nChan;
@@ -455,7 +454,6 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
                 : i;
             start[polAxis] = polarization;
         }
-        //cout << "channel " << channel << " polarization " << polarization << endl;
         casacore::Slicer slice(start, end);
         casacore::SubImage<T> subImage(imageIn, slice);
         auto subCsys = subImage.coordinates();
