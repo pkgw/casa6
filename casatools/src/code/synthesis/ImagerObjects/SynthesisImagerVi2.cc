@@ -288,8 +288,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       if(!fselections_p) fselections_p=new FrequencySelections();
       Matrix<Int> chanlist = thisSelection.getChanList(mss_p[mss_p.nelements()-1]);
       Matrix<Double> freqList=thisSelection.getChanFreqList(mss_p[mss_p.nelements()-1]);
-      //TT DEBUG
-      cerr << std::setprecision(12) << "FreqList " << freqList << endl;
+      //cerr << std::setprecision(12) << "FreqList " << freqList << endl;
       IPosition shape = freqList.shape();
       uInt nSelections = shape[0];
       ///temporary variable as we carry that for tunechunk...till we get rid of it
@@ -313,10 +312,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         Double lowfreq;
         Double topfreq;
       Vector<Int> fieldList=thisSelection.getFieldList(mss_p[mss_p.nelements()-1]);
-	  //TT DEBUG
-    cerr << "chanlist " << chanlist.column(0) << "\n fieldList " << fieldList << endl;
-  //TT DEBUG      
-	cerr << "selpars.freqframe " << selpars.freqframe << endl;
+	 // cerr << "chanlist " << chanlist.column(0) << "\n fieldList " << fieldList << endl;
+        
+	//cerr << "selpars.freqframe " << selpars.freqframe << endl;
         vi::FrequencySelectionUsingFrame channelSelector(selFreqFrame_p);
 	///temporary variable as we carry that for tunechunk
 		
@@ -435,8 +433,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   }
 void SynthesisImagerVi2::andChanSelection(const Int msId, const Int spwId, const Int startchan, const Int endchan){
-  //TT DEBUG<<endl;
-  cerr<<"in andCHanSelection !!!"<<endl;
+
 	map<Int, Vector<Int> > spwsel;
 	auto it=channelSelections_p.find(msId);
 	if(it !=channelSelections_p.end())
