@@ -1051,6 +1051,7 @@ void SingleDishMS::finalise_effective_nwave(std::vector<int> const &blparam_eff_
                                             string const &fftmethod,
                                             string const &fftthresh_str,
                                             std::vector<size_t> &blparam_eff) {
+  //why?
   blparam_eff.resize(blparam_eff_base.size());
   copy(blparam_eff_base.begin(), blparam_eff_base.end(), blparam_eff.begin());
 
@@ -1117,7 +1118,8 @@ void SingleDishMS::select_wavenumbers_via_fft(size_t const num_chan,
   } else {
     throw AipsError("fftmethod must be 'fft' for now.");
   }
-
+// Anything except fft and 3.0 is not used?
+// top, sigma are not documented
   int fourier_spec_size = static_cast<int>(fourier_spec.size());
   if (fftthresh_attr == "sigma") {
     float mean  = 0.0;
@@ -1178,6 +1180,7 @@ void SingleDishMS::exec_fft(size_t const num_chan,
       fourier_spec.push_back(imag(fftres[i]) * norm);
     }
   } else {
+    //not used?
     for (size_t i = 0; i < fftres.size(); ++i) {
       fourier_spec.push_back(abs(fftres[i]) * norm);
       if (!get_ampl_only) fourier_spec.push_back(arg(fftres[i]));
@@ -2797,6 +2800,14 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
   // parse fitting parameters in the text file
   BLParameterParser parser(param_file);
   std::vector<size_t> baseline_types = parser.get_function_types();
+  /* max_orders: 
+  { baseline type as from enum,
+   or poly/chebyshev: order
+   or cspline: npiece
+   or sinusoid: nwave.size()
+   }
+   Note: the biggest one of each?
+   */
   map<size_t const, uint16_t> max_orders;
   for (size_t i = 0; i < baseline_types.size(); ++i) {
     max_orders[baseline_types[i]] = parser.get_max_order(baseline_types[i]);
@@ -2806,7 +2817,7 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
     os << LogIO::DEBUG1 << "Max Orders:" << LogIO::POST;
     map<size_t const, uint16_t>::iterator iter = max_orders.begin();
     while (iter != max_orders.end()) {
-      os << LogIO::DEBUG1 << "- type " << (*iter).first << ": "
+      os << /*LogIO::DEBUG1 <<*/ "- type " << (*iter).first << ": "
          << (*iter).second << LogIO::POST;
       ++iter;
     }
@@ -3003,6 +3014,19 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
           case BaselineType_kCubicSpline:
             num_coeff = 4 * fit_param.npiece;
             break;
+          case BaselineType_kSinusoid: 
+            /*
+            From sakuralib docs:
+            The number of elements in the array coeff. 
+            If coeff is not null pointer, it must be ( num_nwave*2-1 ) or ( num_nwave*2 ) 
+            in cases nwave contains zero or not, respectively, and must not exceed num_data, 
+            while the value is not checked when coeff is null pointer.
+            */ 
+            if (fit_param.nwave[0] == 0) 
+              num_coeff = fit_param.nwave.size() * 2 - 1;
+            else
+              num_coeff = fit_param.nwave.size() * 2;
+            break;
           default:
             throw(AipsError("Unsupported baseline type."));
           }
@@ -3042,6 +3066,9 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
               break;
             case BaselineType_kCubicSpline:
               fpar_tmp = (Int)fit_param.npiece;
+              break;
+            case BaselineType_kSinusoid:
+              fpar_tmp = (Int)fit_param.nwave.size();
               break;
             default:
               throw(AipsError("Unsupported baseline type."));
@@ -3096,6 +3123,24 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
 
               get_coeff_funcname = "sakura_LSQFitCubicSplineFloat";
               break;
+            case BaselineType_kSinusoid:
+              status = LIBSAKURA_SYMBOL(LSQFitSinusoidFloat)(
+                context, fit_param.nwave.size(), &fit_param.nwave[0], num_chan, spec_data,
+                mask_data, fit_param.clip_threshold_sigma, fit_param.num_fitting_max,
+                num_coeff, coeff_data, nullptr, nullptr, mask_after_clipping_data,
+                &rms, &bl_status);
+              
+              for (size_t i = 0; i < num_chan; ++i) {
+                if (mask_data[i] == false) {
+                  final_mask[ipol] += 1;
+                }
+                if (mask_after_clipping_data[i] == false) {
+                  final_mask_after_clipping[ipol] += 1;
+                }
+              }
+
+              get_coeff_funcname = "sakura_LSQFitSinusoidFloat";
+              break;
             default:
               throw(AipsError("Unsupported baseline type."));
             }
@@ -3138,6 +3183,13 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
                   boundary_data, spec_data);
               subtract_funcname = "sakura_SubtractCubicSplineFloat";
               break;
+            case BaselineType_kSinusoid:
+              status = LIBSAKURA_SYMBOL(SubtractSinusoidFloat)(
+                context,
+                num_chan, spec_data, fit_param.nwave.size(), &fit_param.nwave[0], 
+                num_coeff, coeff_data, spec_data);
+              subtract_funcname = "sakura_SubtractSinusoidFloat";
+              break;
             default:
               throw(AipsError("Unsupported baseline type."));
             }
@@ -3175,6 +3227,14 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
                 nullptr, nullptr, spec_data,
                 mask_after_clipping_data, &rms, boundary_data, &bl_status);
               subtract_funcname = "sakura_LSQFitCubicSplineFloat";
+              break;
+            case BaselineType_kSinusoid:
+              status = LIBSAKURA_SYMBOL(LSQFitSinusoidFloat)(
+                context, fit_param.nwave.size(), &fit_param.nwave[0], num_chan, spec_data,
+                mask_data, fit_param.clip_threshold_sigma, fit_param.num_fitting_max,
+                num_coeff, nullptr, nullptr, spec_data, mask_after_clipping_data,
+                &rms, &bl_status);
+              subtract_funcname = "sakura_LSQFitSinusoidFloat";
               break;
             default:
               throw(AipsError("Unsupported baseline type."));
@@ -3313,6 +3373,8 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
               bltype_name = "chebyshev";
             } else if (bltype_mtx2(0, 0) == (uInt)2) {
               bltype_name = "cspline";
+            } else if (bltype_mtx2(0, 0) == (uInt)3) {
+              bltype_name = "sinusoid";
             }
 
             Matrix<Int> fpar_mtx2 = fpar_mtx;

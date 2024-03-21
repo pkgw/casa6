@@ -112,8 +112,7 @@ void BLParameterParser::parse(string const file_name)
     //Parameter summary output (Debugging purpose only)
     if (false) {
       os << "Summary of parsed Parameter" << LogIO::POST;
-      os << "[ROW" << row_idx << ", POL" << pol_idx << "]"
-	 << LogIO::POST;
+      os << "[ROW" << row_idx << ", POL" << pol_idx << "]" << LogIO::POST;
       bl_param->PrintSummary();
     }
     // update bealine_types_ list
@@ -183,18 +182,21 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
       throw(AipsError("Incorrect format for the nwave list. Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
     // Substract nwave list from the linestr, elements after "[" and before "]"
     std::string nwave_substr = linestr.substr(start_index + 1, end_index - start_index - 1);
+    if (nwave_substr.empty())
+      throw(AipsError("nwave list is empty. Please specify wave numbers. Ex. [1,2]"));
     // Split, convert and fill in the paramset_nwave
     std::vector<string> tmp_nwave;
     SplitLine(nwave_substr, ',',tmp_nwave);
     for(const auto& i : tmp_nwave)
       paramset.nwave.emplace_back(ConvertString<size_t>(i));
+    
     paramset.baseline_type = static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kSinusoid);
   }
   else
   { // poly or chebyshev
     if (svec[BLParameters_kOrder].size()==0)
       throw(AipsError("Baseline type 'poly' and 'chebyshev' require order value."));
-    paramset.baseline_type = bltype_str == "chebyshev" ?
+      paramset.baseline_type = bltype_str == "chebyshev" ?
       static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kChebyshev) :
       static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kPolynomial);
     paramset.order = ConvertString<uint16_t>(svec[BLParameters_kOrder]);
@@ -202,8 +204,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   // parse clipping parameters
   if (svec[BLParameters_kNumIteration].size() == 0)
     throw(AipsError("Number of maximum clip iteration is mandatory"));
-  paramset.num_fitting_max
-    = ConvertString<uint16_t>(svec[BLParameters_kNumIteration]) + 1;
+    paramset.num_fitting_max = ConvertString<uint16_t>(svec[BLParameters_kNumIteration]) + 1;
   if (svec[BLParameters_kClipThreshold].size()>0)
     paramset.clip_threshold_sigma
       = ConvertString<float>(svec[BLParameters_kClipThreshold]);
@@ -214,8 +215,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   { // use line finder
     if (svec[BLParameters_kLFThreshold].size()>0)
     {
-      lf_param.threshold
-	= ConvertString<float>(svec[BLParameters_kLFThreshold]);
+      lf_param.threshold = ConvertString<float>(svec[BLParameters_kLFThreshold]);
     }
     vector<size_t> edge(2,0);
     if (svec[BLParameters_kLeftEdge].size() > 0)
@@ -224,8 +224,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
       lf_param.edge[1] = ConvertString<size_t>(svec[BLParameters_kRightEdge]);
     if (svec[BLParameters_kChanAverageLim].size()>0)
     {
-      lf_param.chan_avg_limit
-	= ConvertString<size_t>(svec[BLParameters_kChanAverageLim]);
+      lf_param.chan_avg_limit = ConvertString<size_t>(svec[BLParameters_kChanAverageLim]);
     }
   }
 }
@@ -307,6 +306,13 @@ uint16_t BLTableParser::GetTypeOrder(size_t const &baseline_type,
       return static_cast<uint16_t>(npiece);
       break;
     }
+  case BaselineType_kSinusoid:
+  {
+    // probably same way?
+    return static_cast<uint16_t>(bt_->getFPar(irow, ipol));
+    break;
+  }
+// Previous comment:
 //   case BaselineType_kSinusoidal:
 //     return static_cast<size_t>(nwave.size());
 //     break;
