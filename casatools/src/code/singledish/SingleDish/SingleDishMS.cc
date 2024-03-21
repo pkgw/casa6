@@ -2817,7 +2817,7 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
     os << LogIO::DEBUG1 << "Max Orders:" << LogIO::POST;
     map<size_t const, uint16_t>::iterator iter = max_orders.begin();
     while (iter != max_orders.end()) {
-      os << /*LogIO::DEBUG1 <<*/ "- type " << (*iter).first << ": "
+      os << LogIO::DEBUG1 << "- type " << (*iter).first << ": "
          << (*iter).second << LogIO::POST;
       ++iter;
     }
