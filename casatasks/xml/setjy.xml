@@ -493,16 +493,9 @@ variable sources (3C48,3C138,3C147).
     <param type="bool" name="usescratch">
 <shortdescription>Will create if necessary and use the MODEL_DATA </shortdescription>
 <description>Will create if necessary and use the MODEL_DATA
-                     Default: False
-                     Options: False|True
+                     Default: True 
+                     Options: True|False
 
-                     * If False: 'virtual' model is created. The model
-                       information is saved either in the SOURCE_MODEL
-                       column in the SOURCE table (if one exists) or
-                       in the keyword of the main table in the MS and
-                       model visibilities are evaluated on the fly
-                       when calculating  calibration or plotting in
-                       plotms.
                      * If True: the model visibility will be evaluated
                        and saved on disk in the MODEL_DATA column.
                        This will increase your ms in size by a factor
@@ -514,6 +507,13 @@ variable sources (3C48,3C138,3C147).
                        using scans/time (and when use with intent
                        selection, please see WARNING section in the
                        intent parameter description).
+                     * If False: 'virtual' model is created. The model
+                       information is saved either in the SOURCE_MODEL
+                       column in the SOURCE table (if one exists) or
+                       in the keyword of the main table in the MS, and
+                       model visibilities are evaluated on the fly
+                       when calculating  calibration or plotting in
+                       plotms.
 
                      By running usescratch=T, it will remove the
                      existing virtual model from previous
@@ -533,7 +533,7 @@ variable sources (3C48,3C138,3C147).
                      virtual model column. Please use ephemerides source
                      models only with usescratch=True
 </description>
-      <value>False</value>
+      <value>True</value>
       </param>
 
     <param type="bool" name="ismms" subparam="true" visibility="hidden"><shortdescription>to be used internally for MMS</shortdescription><description>to be used internally for MMS</description>
