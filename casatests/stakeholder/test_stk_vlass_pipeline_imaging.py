@@ -114,29 +114,12 @@ import pprint
 import numpy
 import pylab as pl
 
-CASA6 = False
- 
-try:
-    from casatools import ctsys
-    from casatools import image as iatool
-    from casatasks import tclean, casalog
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    CASA6 = True
+from casatools import ctsys
+from casatools import image as iatool
+from casatasks import tclean
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 
-    # CASA6 doesn't need default
-    def default(atask):
-        pass
-
-    ctsys_resolve = ctsys.resolve
-except ImportError:
-    from __main__ import default
-    from tasks import *
-    from taskinit import *
-    from parallel.parallel_task_helper import ParallelTaskHelper
-
-    def ctsys_resolve(apath):
-        dataPath = os.path.join(os.environ['CASAPATH'].split()[0],'casatestdata/')
-        return os.path.join(dataPath,apath)
+ctsys_resolve = ctsys.resolve
 
 from casatestutils.imagerhelpers import TestHelpers
 th = TestHelpers()
@@ -719,10 +702,6 @@ class Test_vlass_1p1_row(test_base):
 
         self.assertTrue(th.check_final(pstr = report), msg = report)
 
-def suite():
-     return [Test_vlass_1p1_row] #[Test_tclean_ALMA]
-
-# Main #
 if __name__ == '__main__':
     unittest.main()
 

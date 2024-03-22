@@ -1963,7 +1963,7 @@ class test_mask(testref_base):
         final_sum = th.check_mask(self.img + '.mask')
 
         self.assertTrue((init_sum == 10000) and (final_sum == 0))
-        self.assertTrue(ret1['stopcode'] == 7)
+        self.assertTrue(ret1['stopcode'] == 3)
 
 
 
