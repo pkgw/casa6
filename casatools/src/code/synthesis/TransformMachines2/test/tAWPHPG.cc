@@ -349,7 +349,7 @@ Int main(int argc, char **argv)
   // -------------------------------------- Just the UI -------------------------------------------------------------------
   //
   system("rm -rf ./refim_mawproject.ms");
-  system("cp -r /home/casa/data/casatestdata/measurementset/evla/refim_mawproject.ms .");
+  system("cp -r /opt/casa/data/casatestdata/measurementset/evla/refim_mawproject.ms .");
   string MSNBuf="./refim_mawproject.ms";
   string ftmName="awphpg";
   string cfCache="test.cf";
