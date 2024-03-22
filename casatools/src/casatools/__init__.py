@@ -82,6 +82,7 @@ from .utils import utils as __utils
 import os as __os
 import sys as __sys
 from casaconfig import get_data_info, do_auto_updates, config
+from casaconfig import UnsetMeasurespath, AutoUpdatesNotAllowed, BadLock, BadReadme, NoReadme, RemoteError
 # useful to use here
 from casaconfig.private.print_log_messages import print_log_messages
 
@@ -97,25 +98,29 @@ user_measurespath = config.measurespath
 
 logger = logsink(config.logfile) if (hasattr(config,'logfile') and config.logfile is not None) else None
 
-# this uses config.measurespath, config.measures_auto_update and config.data_auto_update as appropriate
-do_auto_updates(config, logger)
-
 # data checks, only if user_measurespath is not None
 data_info = None
 data_ok = False
 measures_ok = False
+measures_found = False
 isSevere = False
 # accumuale messages, less confusing when the logger is being redirected to the terminal
 msgs = ['']
-if user_measurespath is not None:
+
+config_except = None
+
+try:
+    # this uses config.measurespath, config.measures_auto_update and config.data_auto_update as appropriate
+    do_auto_updates(config, logger)
+
     data_info = get_data_info(user_measurespath, logger)
     if data_info['casarundata'] is None:
         isSevere = True
         msgs.append('The expected casa data was not found at measurespath. CASA may still work if the data can be found in datapath.')
-    elif data_info['casarundata'] == 'invalid':
+    elif data_info['casarundata']['version'] == 'invalid':
         isSevere = True
-        msgs.append('The contents of measurespath do not appear to be casarundata. CASA will likely fail as a result')
-    elif data_info['casarundata'] == 'unknown':
+        msgs.append('The contents of measurespath do not appear to be casarundata. CASA may fail as a result unless datapath contains casarundata (not checked).')
+    elif data_info['casarundata']['version'] == 'unknown':
         isSevere = True
         msgs.append('The casa data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.')
     else:
@@ -124,24 +129,84 @@ if user_measurespath is not None:
     if data_info['measures'] is None:
         isSevere = True
         msgs.append('The expected measures data was not found at measurespath. CASA may still work if the data can be found in datapath.')
-    elif data_info['casarundata'] == 'invalid':
+    elif data_info['measures']['version'] == 'invalid':
         isSevere = True
-        msgs.append('The contents of measurespath do not appear to include measures data. CASA will likely fail as a result')
-    elif data_info['measures'] == 'unknown':
+        msgs.append('The contents of measurespath do not appear to include measures data. CASA may fail unless measures data is found in datapath.')
+    elif data_info['measures']['version'] == 'unknown':
         msgs.append('The measures data found at measurespath is not being maintained using casaconfig tools. CASA will still work but that data may be out of date.')
+        measures_found = True
     else:
+        measures_found = True
         measures_ok = True
 
-else:
-    msgs.append('measurespath is None, set this to the location where the measures IERS data is found, typically this also includes the casarundata')
-    msgs.append('Either set this in your personal config.py in ~/.casa or a site config file')
+except UnsetMeasurespath as exc:
+    print(str(exc))
+    isSevere = True
+    msgs.append('Either set measurespath in your personal config.py in ~/.casa or a site config file')
+    msgs.append('CASA may still work if the IERS data can be found in datapath, but this problem is likely to cause casatools to fail to load.')
     # ctsys initialize needs a string for measurespath, leave it empty, it might still work (probably not)
     user_measurespath = ""
+    config_except = exc
+
+except AutoUpdatesNotAllowed as exc:
+    print(str(exc))
+    msgs.append('Warning: measurespath must exist as a directory and it must be owned by the user.')
+    msgs.append('Warning: no measures auto update is possible on this measurespath by this user.')
+    # this is reraised only if the data isn't found in datapath
+    config_except = exc
+
+except BadLock as exc:
+    print(str(exc))
+    # this possibly indicates a serious problem, reraise this if the data can't be found
+    isSevere = True
+    config_except = exc
+
+except BadReadme as exc:
+    print(str(exc))
+    # this likely indicates a problem, reraise this if the data can't be found
+    print('No additional updates that may have been expected have been done.')
+    print('This indicates something went wrong on a previous update and the data should be reinstalled.')
+    print('Updates will continue to fail until the data are reinstalled')
+    print('If the IERSeop2000 table is found then casatools will import without additional errors.')
+    isSevere = True
+    config_except = exc
+
+except NoReadme as exc:
+    print(str(exc))
+    print('No additional updates that may have been expected have been done.')
+    print('This indicates that measurespath is not empty and does not contain casarundata or measuresdata or both.')
+    print('Updates can not be done on this measurespath.')
+    print('If the IERSeop2000 table is found in datapath, that will be used as measures and casatools will continue.')
+    config_except = exc
+
+except RemoteError as exc:
+    print(str(exc))
+    print('Either there is no network connection, there is no route to the remote server, or the remote server is offline')
+    print('If the data is found then casatools will import without any updates. Try again later for updates')
+    config_except = exc
+    
+except Exception as exc:
+    msgs.append('Unexpected exception while doing auto updates or checking on the status of the data at measurespath')
+    print(str(exc))
+    config_except = exc
 
 if (not data_ok) or (not measures_ok):
     msgs.append('visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
     msgs.append('')
     print_log_messages(msgs, logger, isSevere)
+
+# don't use user_measurespath here if not ok
+if not measures_found:
+    user_measurespath = ""
+else:
+    # always append measurespath to datapath if not already found there to be used by ctsys.initialize
+    add_mp = True
+    for apath in user_datapath:
+        if __os.path.samefile(apath, user_measurespath):
+            add_mp = False
+            break
+    if add_mp:
+        user_datapath.append(user_measurespath)
 
 ctsys = __utils( )
 ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui,
@@ -150,11 +215,31 @@ ctsys.initialize( __sys.executable, user_measurespath, user_datapath, user_nogui
 # try and find the IERS data
 __resolved_iers = ctsys.resolve('geodetic/IERSeop2000')
 if __resolved_iers == 'geodetic/IERSeop2000':
-    raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
-
-# and use this as rundata (measurespath) if the data_info for measures is None or the measures version is invalid
-if data_info['measures'] is None or data_info['measures']['version'] == "invalid":
-    ctsys.setrundata(__resolved_iers[:-21])
+    # this match means ctsys.resolve did not found it in datapath
+    # if there was a previously raised casaconfig exception, re-raise it here so that casashell can know what went wrong
+    if config_except is not None:
+        print("measures data is not available")
+        raise config_except
+    else:
+        raise ImportError('measures data is not available, visit https://casadocs.readthedocs.io/en/stable/notebooks/external-data.html for more information')
+else:
+    # if measures was not previously found, use this path as measurespath
+    if not measures_found:
+        # this removes the "geodetic/IERSeop2000" and the preceding "/" from the returned path, that's the measurespath to be used here
+        
+        user_measurespath = __resolved_iers[:-21]
+        ctsys.setmeasurespath(user_measurespath)
+        print_log_messages(["Using location of IERSeop2000 table found in datapath for measurespath %s" % user_measurespath], logger)
+    else:
+        # check that this path is the same as what is expected at measurespath
+        if not __os.path.samefile(__resolved_iers, __os.path.join(user_measurespath,'geodetic/IERSeop2000')):
+            print("The geodetic IERSeop2000 table found at measurespath is not at the same location found first in datapath.")
+            print("CASA should work in this configuration. The datapath list will be used to search for data needed by CASA.")
+            print("\nThe measurespath value is used to find that IERS table and this indicates that the")
+            print("measures tables present in datapath may be different from those found in measurespath.")
+            print("\nIf this was not expected you may want to use your config file (normally at ~/.casa/config.py) to")
+            print("set datapath to put measurespath first or set measurespath to include the measures data found in datapath.")
+            logger.post("WARNING: geodetic/IERSeop2000 found at measurespath is not the same table as found in datapath",'WARN')
 
 from .coercetype import coerce as __coerce
 
