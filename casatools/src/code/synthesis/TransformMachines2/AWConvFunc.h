@@ -90,14 +90,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // npix will be support on which the beam will be calculated
     // this can be used to rescale the beam along with the csys to the grid it is being 
     //applied
-    void makeAConvFunc(casacore::Array<casacore::Complex>& convFunc, 
-                       casacore::Array<casacore::Complex>& wtconv,
-                       casacore::CoordinateSystem& csys,
-                       casacore::Vector<casacore::Int>& asupport, 
-                       casacore::Int& npix,
-                       const casacore::Vector<casacore::Double>& freqlist, 
-                       const casacore::Bool dosquint=False,
-                       const casacore::Double& pa=0.0);
+    void makeAConvFunc(casacore::Array<casacore::Complex> &convFunc,
+                       casacore::Array<casacore::Complex> &wtconv,
+                       casacore::CoordinateSystem &csys,
+                       casacore::Vector<casacore::Int> &asupport,
+                       casacore::Int &npix,
+                       const casacore::Vector<casacore::Double> &freqlist,
+                       const casacore::Bool dosquint = False,
+                       const casacore::Double &pa = 0.0, const bool isSingleField=false);
     //Makes the combination of wvals along A terms freqScale
     //return shapes of convFunc as [convSize, convSize, 4, len(freq), len(Wvals)]
     //returned matrix support is of shape [len(freq], len(wVals)]
@@ -109,7 +109,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                        const casacore::Vector<casacore::Double>& freqlist, 
                        const casacore::Vector<casacore::Double>& wVals,
                        const casacore::Bool dosquint=False,
-                       const casacore::Double& pa=0.0);
+                       const casacore::Double& pa=0.0, const bool isSingleField=false);
     
     
     
@@ -223,7 +223,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //find support and normalize convfunc for A Term only
     casacore::Bool supportAndNormalizeAFunc(casacore::Int& sup, 
                                        casacore::Array<casacore::Complex>& conv,
-                                       casacore::Array<casacore::Complex>& wtconv);
+                                       casacore::Array<casacore::Complex>& wtconv, const bool widefield=false);
     //support returned is row is freq axis, col is w axis
     //It will reduce the array XY size to match largest support found 
     // aTermsup is just to make sure any support found is not smaller than support for

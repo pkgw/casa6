@@ -83,7 +83,10 @@ class AWConvFuncHolder{
   // Will be using for now only 1st row.
   Vector<Double> getPointingPhaseShift(const vi::VisBuffer2& vb, const bool usepointing=False);
   
-
+//help AWConvFunc decide if single field or not
+  void setSingleField(const bool isSingleField = false){
+    isSingleField_p = isSingleField;
+  };
  private:
    void appendConvFuncs(const casacore::Array<casacore::Complex>& awConv,  const casacore::Array<casacore::Complex>& aWwtConv,  const casacore::Matrix<casacore::Int>& awsupport, const casacore::Vector<casacore::Double>& newfreqs, const casacore::Double paval);
    
@@ -122,7 +125,7 @@ class AWConvFuncHolder{
   int oversamp_p;
   std::shared_ptr<EVLAAperture> aterm_p;
   std::shared_ptr<VisBufferUtil> vbutil_p;                 
-  
+  bool isSingleField_p;
 };
   
    }//# end namespace refim

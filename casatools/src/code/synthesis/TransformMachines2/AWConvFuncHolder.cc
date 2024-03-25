@@ -46,7 +46,7 @@ using namespace casa;
 using namespace casa::refim;
 using namespace std;
 
-AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, const int ny, const bool dosquint, const double paInc,  const String& obs,  const int& oversamp): painc_p(paInc),  dosquint_p(dosquint), outcsys_p(csys),  nx_p(nx),  ny_p(ny),  oversamp_p(oversamp) {
+AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, const int ny, const bool dosquint, const double paInc,  const String& obs,  const int& oversamp): painc_p(paInc),  dosquint_p(dosquint), outcsys_p(csys),  nx_p(nx),  ny_p(ny),  oversamp_p(oversamp), isSingleField_p(false) {
   
   convFunc_p.resize();
   wgtConvFunc_p.resize();
@@ -110,6 +110,7 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
     convSupport_p = other.convSupport_p;
     convSupportHPG_p = other.convSupportHPG_p;
     aterm_p = other.aterm_p;
+    isSingleField_p = other.isSingleField_p;
   }
   return *this;
 }
@@ -160,9 +161,11 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   for (uint k=0; k<paVals_p.nelements(); ++k){
     calcNpix_p = min(nx_p,  ny_p);
     calcCsys_p = outcsys_p;
-    a.makeAWConvFunc(aWConv, aWwtconv,calcCsys_p,awSupport, calcNpix_p, freqsToCalc, wVals_p, dosquint_p, paVals_p[k]);
-    //cerr << "######MAX awsupp " << max(awSupport) << endl;
-                                                   
+    a.makeAWConvFunc(aWConv, aWwtconv, calcCsys_p, awSupport, calcNpix_p,
+                     freqsToCalc, wVals_p, dosquint_p, paVals_p[k],
+                     isSingleField_p);
+    // cerr << "######MAX awsupp " << max(awSupport) << endl;
+
     appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
   }
   
@@ -220,20 +223,19 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
   
-  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
+ // cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
   Array<Complex> newAWConv;
   Array<Complex> newWtConv;
- if (factorX < 1.0 || factorY < 1.0)
-  {
-    newAWConv = m.resample(awConv, factorX, factorY);
-    newWtConv = m.resample(aWwtConv, factorX, factorY);
+  // For small images or factor less than 1.0  use linear interpolation
+  if ((factorX / oversamp_p) < 1.0 || (factorY / oversamp_p) < 1.0 ||
+      nx_p < 200 || ny_p < 200) {
+      newAWConv = m.resample(awConv, factorX, factorY);
+      newWtConv = m.resample(aWwtConv, factorX, factorY);
   }
   else {
-    newAWConv = m.resampleViaFFT(awConv, factorX, factorY);
-    newWtConv = m.resampleViaFFT(aWwtConv,  factorX, factorY);
-    
-     
+      newAWConv = m.resampleViaFFT(awConv, factorX, factorY);
+      newWtConv = m.resampleViaFFT(aWwtConv, factorX, factorY);
   }
   Float correcfac =
       float(awConv.shape()(0) * awConv.shape()(1) * oversamp_p * oversamp_p) /
