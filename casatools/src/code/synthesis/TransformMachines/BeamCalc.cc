@@ -67,7 +67,7 @@ namespace casa{
 
   BeamCalc* BeamCalc::instance_p = 0;
 
-  BeamCalc::BeamCalc():
+  BeamCalc::BeamCalc(const String repopath):
     obsName_p(""),
     antType_p(""),
     obsTime_p(),
@@ -75,12 +75,12 @@ namespace casa{
     BeamCalcGeometries_p(0),
     bandMinFreq_p(0),
     bandMaxFreq_p(0),
-    antRespPath_p(""){
+    antRespPath_p(""), repoPath_p(repopath){
   }
 
-  BeamCalc* BeamCalc::Instance(){
+  BeamCalc* BeamCalc::Instance(const String repopath){
     if(instance_p==0){
-      instance_p = new BeamCalc();
+      instance_p = new BeamCalc(repopath);
     }
     return instance_p;
   }
@@ -169,27 +169,30 @@ namespace casa{
         Bool found = False;
         String fullFileName;
         const std::list<std::string> &data_path = AppStateSource::fetch( ).dataPath( );
-        const std::string distrodata_path =casatools::get_state().distroDataPath( );
-        //cerr<<"distrodata_path="<<distrodata_path<<endl; 
-        //cerr<<"DATA PATH==="<< *data_path <<endl;
-        // The data path search need to be rewritten to adopt the recommanded setting via python
-        // file for CASA6. 
-        // For now, only the first path that actually exist will be set to the data path (TT 2018.12.10)
-        if (data_path.size() > 0 ) {
-          for ( std::list<std::string>::const_iterator it=data_path.begin(); ! found && it != data_path.end(); ++it ) {
-            Path lpath = Path(*it);
-            //os<<"Here to datapath="<<lpath<<LogIO::POST;
-            //Path lpath = Path(data_path);
-            String slpath = lpath.absoluteName();
-            String subdirname;
-            if(obsName_p=="VLA" || obsName_p=="EVLA") {
-                subdirname="/nrao/VLA";
-            }
-            else if(obsName_p=="ALMA"){
-                subdirname="/alma/response";
-            }
-            //Directory ddir(slpath+subdirname);
-            try {
+        const std::string distrodata_path = repoPath_p.size()> 0 ? repoPath_p :  casatools::get_state().distroDataPath( );
+        cerr<<"distrodata_path="<<distrodata_path<<endl;
+        cerr << "DATA PATH===";
+         for (auto l : data_path)
+           cerr << l << "  ";
+         cerr << endl;
+         // The data path search need to be rewritten to adopt the recommanded
+         // setting via python file for CASA6. For now, only the first path that
+         // actually exist will be set to the data path (TT 2018.12.10)
+         if (data_path.size() > 0 || distrodata_path.size() > 0) {
+           for (std::list<std::string>::const_iterator it = data_path.begin();
+                !found && it != data_path.end(); ++it) {
+             Path lpath = Path(*it);
+             // os<<"Here to datapath="<<lpath<<LogIO::POST;
+             // Path lpath = Path(data_path);
+             String slpath = lpath.absoluteName();
+             String subdirname;
+             if (obsName_p == "VLA" || obsName_p == "EVLA") {
+               subdirname = "/nrao/VLA";
+             } else if (obsName_p == "ALMA") {
+               subdirname = "/alma/response";
+             }
+             // Directory ddir(slpath+subdirname);
+             try {
                Directory ddir(slpath+subdirname);
                ddir.exists();
                found = True;
