@@ -168,10 +168,8 @@ namespace casa{
 
         Bool found = False;
         String fullFileName;
-        #const std::list<std::string> &data_path = AppStateSource::fetch( ).dataPath( );
-        #const std::string distrodata_path =casatools::get_state().distroDataPath( );
-        std::list<std::string> data_path={"/opt/casa/data/master", "/opt/casa/data/casatestdata"};
-        const std::string distrodata_path ="/opt/casa/data/master";
+        const std::list<std::string> &data_path = AppStateSource::fetch( ).dataPath( );
+        const std::string distrodata_path =casatools::get_state().distroDataPath( );
         //cerr<<"distrodata_path="<<distrodata_path<<endl; 
         //cerr<<"DATA PATH==="<< *data_path <<endl;
         // The data path search need to be rewritten to adopt the recommanded setting via python
