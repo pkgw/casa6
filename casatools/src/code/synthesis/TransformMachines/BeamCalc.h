@@ -195,7 +195,7 @@ namespace casa
   public:
 
     // This is a SINGLETON class
-    static BeamCalc* Instance();
+    static BeamCalc* Instance( const casacore::String repopath="");
 
     void setBeamCalcGeometries(const casacore::String& obsName, // (the observatory name, e.g. "ALMA" or "ACA")
 			       const casacore::String& antennaType = "STANDARD",
@@ -214,7 +214,7 @@ namespace casa
     casacore::Int calculateApertureLinPol(ApertureCalcParams *ap, const casacore::Int& whichStokes);
 
   protected:
-    BeamCalc();
+    BeamCalc(const casacore::String repopath="");
     
   private:
 
@@ -331,6 +331,7 @@ namespace casa
     casacore::Vector<casacore::Double> bandMinFreq_p; // in Hz
     casacore::Vector<casacore::Double> bandMaxFreq_p; // in Hz
     casacore::String antRespPath_p;
+    casacore::String repoPath_p;
 
     static const casacore::Double METER_INCH;
     static const casacore::Double INCH_METER;

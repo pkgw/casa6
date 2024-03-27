@@ -63,6 +63,7 @@
 #include <casacore/casa/System/ProgressMeter.h>
 #include <casacore/casa/OS/Timer.h>
 #include <msvis/MSVis/ViFrequencySelection.h>
+#include <casacore/casa/OS/EnvVar.h>
 #include <cstdlib>
 //#include <synthesis/TransformMachines2/HPGModelImage.h>
 
@@ -345,11 +346,22 @@ std::tuple<Vector<Int>, Vector<Int> > loadMS(const String& msname,
 
 Int main(int argc, char **argv)
 {
+
+  String casadata = EnvironmentVariable::get("CASADATA");
+  if (casadata.empty()) {
+    throw(AipsError(
+        "CASADATA env variable not defined and no file given in command line"));
+  }
+  //initialize beamCalc with repo path 
+  BeamCalc::Instance(String(casadata+"/../distro/"));
+  String source_input_ms =
+      casadata + "/measurementset/evla/refim_mawproject.ms";
   //
   // -------------------------------------- Just the UI -------------------------------------------------------------------
   //
   system("rm -rf ./refim_mawproject.ms");
-  system("cp -r /opt/casa/data/casatestdata/measurementset/evla/refim_mawproject.ms .");
+
+  system(String("cp -r  "+source_input_ms+" .").c_str());
   string MSNBuf="./refim_mawproject.ms";
   string ftmName="awphpg";
   string cfCache="test.cf";

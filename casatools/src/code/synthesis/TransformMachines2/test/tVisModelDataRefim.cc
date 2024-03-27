@@ -53,7 +53,7 @@ main(int argc, char **argv){
 
   if (argc<2) {
     cout <<"Usage: tVisModelData ms-table-name "<<endl;
-    exit(1);
+    exit(0);
   }
   try{
     
