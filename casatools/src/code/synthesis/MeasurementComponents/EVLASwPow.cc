@@ -377,7 +377,8 @@ void EVLASwPow::specify(const Record& specify) {
 	break;
       }
       case EVLASwPow::SWPWTS: {
-    good = allGT(currpsum, FLT_EPSILON);
+	good=(allGT(currpsum,FLT_EPSILON) &&
+	      allGT(currrq,FLT_EPSILON));
     break;
       }
       default: {
@@ -403,6 +404,11 @@ void EVLASwPow::specify(const Record& specify) {
 	++badcount(ispw,thisant);
       }
       else {
+
+	// Calculate "gain" and "tsys" for different modes
+	//  NB: gain includes correction for digital effects (loss and scale)
+	//  NB: No digital stuff in Tsys!  net dig losses included OTF
+	//      in syncWtScale
 	
 	switch (swptype) {
 	case EVLASwPow::SWPOW: {
@@ -412,8 +418,10 @@ void EVLASwPow::specify(const Record& specify) {
 	  break;
 	}
 	case EVLASwPow::RQ: {
-	  gain=currrq;    // RQ gain only!
-	  tsys=1.0;       // ignore Tsys
+	  gain=currrq;              // RQ gain only!
+	  gain*=dig;                // scale by net digital factor
+	  tsys=1.0;
+	  tsys/=square(currrq); // vis scale by rq req wt scale by 1/rq**2
 	  break;
 	}
 	case EVLASwPow::SWPOVERRQ: {
@@ -423,11 +431,12 @@ void EVLASwPow::specify(const Record& specify) {
 	  tsys=(currtcal*currpsum/currpdif/2.0);  // 'tsys'
 	  break;
 	}
-    case EVLASwPow::SWPWTS:{
-      gain=1.0;
-      tsys = currpsum/2.0;
-      break;
-    }
+	case EVLASwPow::SWPWTS:{
+	  gain=(currrq*dig);          // include digital stuff, as for RQ
+	  tsys = currpsum/2.0;
+	  tsys/=square(currrq);   // includ 1/rq**2, as for RQ
+	  break;
+	}
 	default: {
 	  throw(AipsError("Unrecognized EVLA Switched Power type"));
 	  break;
