@@ -190,7 +190,38 @@ class gencal_antpostest(unittest.TestCase):
         except URLError as err:
             print("Cannot access %s , skip this test" % evlabslncorrURL)
             self.res = True
-
+            
+    def test_antpos_manual_time_limit_evla(self):
+        """
+        gencal: test if time limit sets cutoff date for antpos corrections
+        """
+        # Mechanical test if time limit functions as expected, very short limit
+        gencal(vis=self.msfile2,
+               caltable=self.caltable,
+               caltype='antpos',
+               ant_pos_time_limit=400)
+        
+        _tb.open(self.caltable)
+        res = np.mean(_tb.getcol('FPARAM'))
+        _tb.close()
+        
+        self.assertTrue(np.isclose(res, -1.2345658040341035e-06, atol=1e-5))
+        
+        shutil.rmtree(self.caltable)
+               
+        # Test again with no time limit/ ant_pos_time_limit = 0
+        gencal(vis=self.msfile2,
+               caltable=self.caltable,
+               caltype='antpos',
+               ant_pos_time_limit=0)
+               
+        _tb.open(self.caltable)
+        res = np.mean(_tb.getcol('FPARAM'))
+        _tb.close()
+        
+        self.assertTrue(np.isclose(res, -5.308641580703818e-05, atol=1e-5))
+        
+        
 
 class test_gencal_antpos_alma(unittest.TestCase):
     """Tests the automatic generation of antenna position corrections for ALMA.
@@ -408,6 +439,7 @@ class gencal_test_tec_vla(unittest.TestCase):
     tecfile = msfile+'.IGS_TEC.im'
     rmstecfile = msfile+'.IGS_RMS_TEC.im'
     caltable = msfile+'_tec.cal'
+    newigsfile='IGS0OPSFIN_20233350000_01D_02H_GIM.INX'
 
     # NEAL: Please check that these setUp and tearDown functions are ok
 
@@ -426,6 +458,10 @@ class gencal_test_tec_vla(unittest.TestCase):
         shutil.rmtree(self.rmstecfile, ignore_errors=True)
         shutil.rmtree(self.caltable, ignore_errors=True)
 
+        # this file is created by a successful test
+        if os.path.exists(self.newigsfile):
+            os.remove(self.newigsfile)
+        
     def test_tec_maps(self):
         """
         gencal: very basic test of tec_maps and gencal(caltype='tecim')
@@ -447,6 +483,14 @@ class gencal_test_tec_vla(unittest.TestCase):
             self.assertTrue(nrows == 1577)
             self.assertTrue(dtecu < 1e-3)
 
+            # Test new CDDIS filename convention
+            #  (file with correct name is retrieved and uncompressed)
+            #  (CAS-14219, CAS-14192)
+            #  (tec_maps.create0 above tests the old filename convention)
+            a=tec_maps.get_IGS_TEC('2023/12/01')
+            self.assertTrue(os.path.exists(self.newigsfile))
+            self.assertTrue(a[9]=='IGS_Final_Product')
+            
         except:
             # should catch case of internet access failure?
             raise
@@ -622,6 +666,32 @@ class TestJyPerK(unittest.TestCase):
             for row in reader:
                 responses[row[0]] = row[1]
         return responses
+
+    @patch('casatasks.private.jyperk.JyPerKDatabaseClient._try_to_get_response')
+    def test_jyperk_gencal_for_web_api_error(self, mock_retrieve):
+        """Test to check that the factors from the web API are applied to the caltable.
+
+        The following arguments are required for this test.
+        * caltype='jyperk'
+        * endpoint='asdm'
+        """
+        error_message = "expected error"
+
+        def get_response(url):
+            # return failed response
+            response = '{"success": false, "error": "%s"}' % (error_message)
+            return response
+
+        mock_retrieve.side_effect = get_response
+
+        with self.assertRaisesRegex(RuntimeError, f'Failed to get Jy/K factors from DB: {error_message}'):
+            gencal(vis=self.vis,
+                   caltable=self.caltable,
+                   caltype='jyperk',
+                   endpoint='asdm',
+                   uniform=False)
+
+        self.assertTrue(mock_retrieve.called)
 
     @patch('casatasks.private.jyperk.JyPerKDatabaseClient._try_to_get_response')
     def test_jyperk_gencal_for_asdm_web_api(self, mock_retrieve):

@@ -1909,6 +1909,33 @@ of the image, and all pixels of other axes.
 </example>
 </method>
 
+<method name="fitsheader" type="function">
+  <shortdescription>Construct a record of FITS keywords from this image</shortdescription>
+  <input>
+    <param name="retstr" type="bool">
+      <description>return a string representing the FITS header instead of a record</description>
+      <value>false</value>
+    </param>
+    <param name="exclude" type="stringVec">
+      <description>Header fields to exclude from the return record. Fields cannot be excluded when ``retstr=True``.</description>
+      <value/>
+    </param>
+  </input>
+  <returns type="variant"/>
+<description>
+  This method constructs a FITS header dictionary which describes the current image. The
+  exclude parameter can either be a string or a list of strings. It indicates FITS header
+  keywords to exclude. This may be useful for the HISTORY keyword because the HISTORY can
+  be very long. If the retstr parameter is set to True, then a string will be returned
+  representing the FITS header. The exculde parameter has no effect when the header
+  information is returned as a single string. An new IMAGENME keyword is added to the
+  header. The value for IMAGENME is the string returned by name method, but the name is
+  truncated to the maximum size for a FITS header value, 68 characters. The image name
+  is truncated from the beginning of the string to reduce it to 68 characters, so the
+  value will contain either the full name or the final 68 characters of the name.
+</description>
+</method>
+
  
 <method name="fromshape" type="function">
    <shortdescription>Construct an empty \casa\ image from a shape</shortdescription>
@@ -9326,61 +9353,58 @@ method supports only real valued images.
 
 The names of the fields in the returned record are summarized below:
 
-\begin{itemize}
+- npts: the number of unmasked points used
 
-\item {\stfaf npts} - the number of unmasked points used
+- sum: the sum of the pixel values: $\sum I_i$
 
-\item {\stfaf sum} - the sum of the pixel values: $\sum I_i$
+- flux: flux or flux density, see below for details
 
-\item {\stfaf flux} - flux or flux density, see below for details
+- sumsq: the sum of the squares of the pixel values: $\sum I_i^2$
 
-\item {\stfaf sumsq} - the sum of the squares of the pixel values: $\sum I_i^2$
+- mean: the mean of pixel values: $\bar{I} = \sum I_i / n$
 
-\item {\stfaf mean} - the mean of pixel values: $\bar{I} = \sum I_i / n$
-
-\item {\stfaf sigma} - the standard deviation about the
+- sigma: the standard deviation about the
 mean: $\sigma^2 = (\sum I_i - \bar{I})^2 / (n-1)$
 
-\item {\stfaf rms} - the root mean square: $\sqrt {\sum I_i^2 / n}$
+- rms: the root mean square: $\sqrt {\sum I_i^2 / n}$
 
-\item  {\stfaf min} - minimum pixel value
+- min: minimum pixel value
 
-\item {\stfaf max} - the maximum pixel value
+- max: the maximum pixel value
 
-\item {\stfaf median} - the median pixel value (if {\stfaf robust=T})
+- median: the median pixel value (if {\stfaf robust=T})
 
-\item {\stfaf medabsdevmed} - the median of the absolute deviations from the median
+- medabsdevmed: the median of the absolute deviations from the median
 (if {\stfaf robust=T})
 
-\item {\stfaf quartile} - the inter-quartile range (if {\stfaf
+- quartile: the inter-quartile range (if {\stfaf
 robust=T}).  Find the points which are 25\% largest and 75\% largest
 (the median is 50\% largest).
 
-\item {\stfaf q1} - The first quartile. Reported only if robust=T.
+- q1: The first quartile. Reported only if robust=T.
 
-\item {\stfaf q3} - The third quartile. Reported only if robust=T.
+- q3: The third quartile. Reported only if robust=T.
 
-\item {\stfaf blc} - the absolute pixel coordinate of the bottom left
+- blc: the absolute pixel coordinate of the bottom left
 corner of the bounding box of the region of interest.  If 'region' is
 unset, this will be the bottom left corner of the whole image.
 
-\item {\stfaf blcf} - the formatted absolute world coordinate of the bottom left corner of the bounding box of the region of interest.
+- blcf: the formatted absolute world coordinate of the bottom left corner of the bounding box of the region of interest.
 
-\item {\stfaf trc} - the absolute pixel coordinate of the top right corner of the bounding box of the region of interest.
+- trc: the absolute pixel coordinate of the top right corner of the bounding box of the region of interest.
 
-\item {\stfaf trcf} - the formatted absolute world coordinate of the top right corner of the bounding box of the region of interest.
+- trcf: the formatted absolute world coordinate of the top right corner of the bounding box of the region of interest.
 
-\item {\stfaf minpos} - absolute pixel coordinate of minimum pixel value
+- minpos: absolute pixel coordinate of minimum pixel value
 
-\item {\stfaf maxpos} - absolute pixel coordinate of maximum pixel value
+- maxpos: absolute pixel coordinate of maximum pixel value
 
-\item {\stfaf minposf} - formatted string of the world coordinate of
+- minposf: formatted string of the world coordinate of
 the minimum pixel value
 
-\item  {\stfaf maxposf} - formatted string of the world coordinate of
+- maxposf: formatted string of the world coordinate of
 the maximum pixel value
 
-\end{itemize}
 
 The last four fields only appear if you evaluate the statistics over all
 axes in the image.  As an example, if the returned record is captured in
@@ -9997,20 +10021,22 @@ using the setrestfrequency() method().
 
 The keys of the returned dictionary are
 
-ndim          Dimension of the image.
-shape         Length of each axis in the image.
-tileshape     Shape of the chunk which is most efficient for I/O.
-axisnames     Name of each axis.
-refpix        Reference pixel for each axis (0-relative)
-refval        Reference value for each axis.
-incr          Increment for each axis.
-axisunits     Unit name for each axis.
-unit          Brightness units for the pixels.
-hasmask       True if the image has a mask.
-defaultmask   The name of the mask which is applied by default.
-masks         The names of all the masks stored in this image.
-restoringbeam The restoring beam(s) if present.
-imagetype     The image type.
+\begin{itemize}
+\item ndim: Dimension of the image.
+\item shape: Length of each axis in the image.
+\item tileshape: Shape of the chunk which is most efficient for I/O.
+\item axisnames: Name of each axis.
+\item refpix: Reference pixel for each axis (0-relative)
+\item refval: Reference value for each axis.
+\item incr: Increment for each axis.
+\item axisunits: Unit name for each axis.
+\item unit: Brightness units for the pixels.
+\item hasmask: True if the image has a mask.
+\item defaultmask: The name of the mask which is applied by default.
+\item masks: The names of all the masks stored in this image.
+\item restoringbeam: The restoring beam(s) if present.
+\item imagetype: The image type.
+\end{itemize}
 
 For an image with multiple beams, the restoringbeam field is a dictionary of
 dictionaries with keys of names &quot;\*&quot; followed by the channel number, if the image

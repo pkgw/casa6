@@ -81,8 +81,7 @@ if [[ "$NUMPY_INCLUDEDIR" ]]; then
             AC_LANG_SOURCE([[
                 #define PY_ARRAY_UNIQUE_SYMBOL my_array_symbol
                 #include <Python.h>
-                #include <numpy/oldnumeric.h>
-                #include <numpy/old_defines.h>
+                #include <numpy/ndarrayobject.h>
                 int main( int argc, char *argv[] ) {
                     &PyArray_FromDims;
                 }
