@@ -290,7 +290,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   Record SynthesisDeconvolver::initMinorCycle(std::shared_ptr<SIImageStore> imstor )
   {
     LogIO os( LogOrigin("SynthesisDeconvolver","initMinorCycle",WHERE) );
-    Record returnRecord;
+    Record returnRecord, execRecord;
     Timer timer;
     Timer tim;
     tim.mark();
@@ -298,6 +298,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       //os << "---------------------------------------------------- Init (?) Minor Cycles ---------------------------------------------" << LogIO::POST;
 
+      Int nSubChans, nSubPols;
+      nSubChans = imstor->getShape()(3);
+      nSubPols = imstor->getShape()(2);
       itsImages = imstor;
 
       // If a starting model exists, this will initialize the ImageStore with it. Will do this only once.
@@ -451,7 +454,31 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  itsLoopController.setMaskSum( -1.0 );
 	}
 
+
+      // CAS-14201 : Always initialize summaryminor, even when niter=0
+      for( Int chanid=0; chanid<nSubChans;chanid++) {
+        for( Int polid=0; polid<nSubPols; polid++) {
+            itsLoopController.addSummaryMinor(0, chanid, polid,
+                    0 /*cycleStartIteration */,
+                    0 /*startiteration */,
+                    0.0 /*startmodelflux */,
+                    itsImages->getPeakResidual() /*startpeakresidual */,
+                    itsImages->getPeakResidualWithinMask() /*startpeakresidualnomask */,
+                    itsImages->getModelFlux()/*modelflux */,
+                    itsImages->getPeakResidual() /*peakresidual */,
+                    itsImages->getPeakResidualWithinMask() /*peakresidualnomask */,
+                    masksum,
+                    0 /*rank */,
+                    0 /*stopCode */,
+                    itsFullSummary);
+        }
+      }
+
+      float psfsidelobelevel = itsImages->getPSFSidelobeLevel();
+
       returnRecord = itsLoopController.getCycleInitializationRecord();
+      //execRecord = itsLoopController.getCycleExecutionRecord();
+
       //cerr << "INIT record " << returnRecord << endl;
 
       //      itsImages->printImageStats();
