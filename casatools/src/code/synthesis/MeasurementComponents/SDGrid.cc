@@ -2169,7 +2169,7 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
     };
 
     if (weightSpec.nelements() == 0) {
-      auto const weightMat = vb.weightMat();
+      auto const &weightMat = vb.weightMat();
       ssize_t const npol = weightMat.shape()(0);
       if (npol == 1) {
         for (int k = 0; k < vb.nRow(); ++k) {

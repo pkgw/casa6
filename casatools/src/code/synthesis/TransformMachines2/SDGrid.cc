@@ -1848,7 +1848,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
     };
 
     if (weightSpec.nelements() == 0) {
-      auto const weightMat = vb.weight();
+      auto const &weightMat = vb.weight();
       ssize_t const npol = weightMat.shape()(0);
       if (npol == 1) {
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
