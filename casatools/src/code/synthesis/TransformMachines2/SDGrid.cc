@@ -1839,7 +1839,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
   if (useImagingWeight_p) {
     weight.reference(vb.imagingWeight());
   } else {
-    const Cube<Float> weightspec(vb.weightSpectrum());
+    const Cube<Float> weightSpec(vb.weightSpectrum());
     weight.resize(vb.nChannels(), vb.nRows());
 
     auto const toStokesWeight = [](float numerator, float denominator) {
@@ -1847,7 +1847,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
           return abs(denominator) < fmin ? 0.0f : 4.0f * numerator / denominator;
     };
 
-    if (weightspec.nelements() == 0) {
+    if (weightSpec.nelements() == 0) {
       auto const weightMat = vb.weight();
       ssize_t const npol = weightMat.shape()(0);
       if (npol == 1) {
@@ -1864,19 +1864,19 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
         }
       }
     } else {
-      ssize_t const npol = weightspec.shape()(0);
+      ssize_t const npol = weightSpec.shape()(0);
       if (npol == 1) {
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           for (int chan = 0; chan < vb.nChannels(); ++chan) {
-            weight(chan, k)=weightspec(0, chan, k);
+            weight(chan, k)=weightSpec(0, chan, k);
           }
         }
       } else {
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           for (int chan = 0; chan < vb.nChannels(); ++chan) {
             // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-            auto const denominator = weightspec(0, chan, k) + weightspec((npol-1), chan, k);
-            auto const numerator = weightspec(0, chan, k) * weightspec((npol-1), chan, k);
+            auto const denominator = weightSpec(0, chan, k) + weightSpec((npol-1), chan, k);
+            auto const numerator = weightSpec(0, chan, k) * weightSpec((npol-1), chan, k);
             weight(chan, k) = toStokesWeight(numerator, denominator);
           }
         }
