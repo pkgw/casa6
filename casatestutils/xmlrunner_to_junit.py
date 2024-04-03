@@ -3,8 +3,40 @@ import re
 import datetime
 import socket
 import argparse
-
+import os
 def convert(filename, outfile):
+    if not os.path.isfile(filename):
+        print("File {} does not exist. Generating:...".format(filename))
+        fMessage = "{} Not Generated. Check Log".format(filename)
+        name = filename.split(".py")[0].split("/")[-1].strip(".xml")
+        e = datetime.datetime.now()
+        timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+        data = ET.Element('testsuites')
+        element1 = ET.SubElement(data, 'testsuite')
+        element1.set('name', "'{}'".format(name))
+        element1.set('errors', "0")
+        element1.set('failures', "1")
+        element1.set('skipped', "0")
+        element1.set('tests', "1")
+        element1.set('time', "0.01")
+        element1.set('timestamp', timestamp)
+        element1.set('hostname', socket.gethostname())
+
+        s_elem1 = ET.SubElement(element1, 'testcase')
+        s_elem1.set('classname', "{}.SomeClass".format(name))
+        s_elem1.set('name', "{}".format(name))
+        s_elem1.set('time', "0.01")
+
+        ss_elem1 = ET.SubElement(s_elem1, 'failure')
+        ss_elem1.set('message', fMessage)
+        ss_elem1.text = fMessage
+        b_xml = ET.tostring(data)
+
+        with open(outfile, "wb") as f:
+            f.write(b_xml)
+        return
+
     print("Reading: ",filename )
     with open(filename, 'r') as f:
         data = f.read()
