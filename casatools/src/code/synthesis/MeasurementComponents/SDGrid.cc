@@ -2163,14 +2163,14 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
     const Cube<Float> weightSpec(vb.weightSpectrum());
     weight.resize(vb.nChannel(), vb.nRow());
 
-    auto const toStokesWeight = [](float numerator, float denominator) {
+    const auto toStokesWeight = [](float numerator, float denominator) {
           constexpr float fmin = std::numeric_limits<float>::min();
           return abs(denominator) < fmin ? 0.0f : 4.0f * numerator / denominator;
     };
 
     if (weightSpec.nelements() == 0) {
-      auto const &weightMat = vb.weightMat();
-      ssize_t const npol = weightMat.shape()(0);
+      const auto &weightMat = vb.weightMat();
+      const ssize_t npol = weightMat.shape()(0);
       if (npol == 1) {
         for (int k = 0; k < vb.nRow(); ++k) {
           weight.column(k).set(weightMat(0, k));
@@ -2179,13 +2179,13 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
         for (int k = 0; k < vb.nRow(); ++k) {
           //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
           // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-          auto const denominator = weightMat(0, k) + weightMat((npol-1), k);
-          auto const numerator = weightMat(0, k) * weightMat((npol-1), k);
+          const auto denominator = weightMat(0, k) + weightMat((npol-1), k);
+          const auto numerator = weightMat(0, k) * weightMat((npol-1), k);
           weight.column(k).set(toStokesWeight(numerator, denominator));
         }
       }
     } else {
-      ssize_t const npol = weightSpec.shape()(0);
+      const ssize_t npol = weightSpec.shape()(0);
       if (npol == 1) {
         for (int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
@@ -2196,8 +2196,8 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
         for (int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
             // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-            auto const denominator = weightSpec(0, chan, k) + weightSpec((npol-1), chan, k);
-            auto const numerator = weightSpec(0, chan, k) * weightSpec((npol-1), chan, k);
+            const auto denominator = weightSpec(0, chan, k) + weightSpec((npol-1), chan, k);
+            const auto numerator = weightSpec(0, chan, k) * weightSpec((npol-1), chan, k);
             weight(chan, k) = toStokesWeight(numerator, denominator);
           }
         }
