@@ -2172,15 +2172,18 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
       const auto &weightMat = vb.weightMat();
       const ssize_t npol = weightMat.shape()(0);
       if (npol == 1) {
+        const auto weight0 = weightMat.row(0);
         for (int k = 0; k < vb.nRow(); ++k) {
-          weight.column(k).set(weightMat(0, k));
+          weight.column(k).set(weight0(k));
         }
       } else if (npol == 2) {
+        const auto weight0 = weightMat.row(0);
+        const auto weight1 = weightMat.row(1);
         for (int k = 0; k < vb.nRow(); ++k) {
           //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
           // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-          const auto denominator = weightMat(0, k) + weightMat((npol-1), k);
-          const auto numerator = weightMat(0, k) * weightMat((npol-1), k);
+          const auto denominator = weight0(k) + weight1(k);
+          const auto numerator = weight0(k) * weight1(k);
           weight.column(k).set(toStokesWeight(numerator, denominator));
         }
       } else {
@@ -2191,17 +2194,15 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
     } else {
       const ssize_t npol = weightSpec.shape()(0);
       if (npol == 1) {
-        for (int k = 0; k < vb.nRow(); ++k) {
-          for (int chan = 0; chan < vb.nChannel(); ++chan) {
-            weight(chan, k) = weightSpec(0, chan, k);
-          }
-        }
+        weight = weightSpec.yzPlane(0);
       } else if (npol == 2) {
+        const auto weight0 = weightSpec.yzPlane(0);
+        const auto weight1 = weightSpec.yzPlane(1);
         for (int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
             // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-            const auto denominator = weightSpec(0, chan, k) + weightSpec((npol-1), chan, k);
-            const auto numerator = weightSpec(0, chan, k) * weightSpec((npol-1), chan, k);
+            const auto denominator = weight0(chan, k) + weight1(chan, k);
+            const auto numerator = weight0(chan, k) * weight1(chan, k);
             weight(chan, k) = toStokesWeight(numerator, denominator);
           }
         }
