@@ -59,6 +59,7 @@
 #include <casacore/coordinates/Coordinates/CoordinateUtil.h>
 #include <casacore/coordinates/Coordinates/Projection.h>
 #include <casacore/coordinates/Coordinates/ObsInfo.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 
 #include <components/ComponentModels/GaussianDeconvolver.h>
 

@@ -259,8 +259,13 @@ specified
     </param>
 
     <param name="refantmode" type="string">
-<shortdescription>Reference antenna mode</shortdescription>
+<shortdescription>Reference antenna mode (flex, strict)</shortdescription>
 <description>Reference antenna mode
+                     Default: 'flex'
+
+                   - 'flex': If the preferred or current refant drops out, switch to another. Alternate reference antennas will be chosen from the refant parameter (if a nontrivial list of antennas is specified), or according to proximity to the last-used refant. If and when the preferred refant returns, the referencing will switch back to it. 
+                   - 'strict': If the preferred or current refant is absent for a solution, flag all antennas at that solution. This mode ensures that the effective cross-hand phase will be maintained constant and equal to that of the chosen refant, and not subject to variation due to finite SNR when switching among reference antennas. If a list of antennas is specified in refant, only the first is used.
+
 </description>
         <value>flex</value>
         <allowed kind="enum">

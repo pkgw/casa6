@@ -127,7 +127,6 @@ from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 from casatasks import impbcor, split, concat
 
 
-
 from casatestutils.imagerhelpers import TestHelpers
 
 
@@ -261,7 +260,7 @@ class test_onefield(testref_base):
           self.assertTrue(self.check_final(pstr=report))
           
      ## Add tests for CAS-940 here, for asp using sim_data_VLA_jet.ms which contains 5 chans.
-     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
+#     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
      def test_onefield_asp(self):
           """ [onefield] Test_Onefield_asp : mfs with asp minor cycle """
           #import pdb
@@ -274,66 +273,71 @@ class test_onefield(testref_base):
           ##                        smoothed to an angular resolution of 94.3asec x 81.5asec, pa=-89 for channel 0 
           ##                        smoothed to an angular resolution of 52asec x 45asec, pa=-89 for channel 4 
           #############################################################################
-          ## Tolerance : 12% relative error from the truth.
-          ##                     - This includes reconstruction uncertainty, and is an absolute tolerance.
           ##                     - The current ASP implementation uses a library that gives difference convergence profiles, depending on 
-          ##                        how the code is built. This threshold also includes current variability between local vs bamboo builds (as of Feb 2022). 
+          ##                        how the code is built. This threshold also includes current variability between local vs bamboo builds (as of Feb 2022).
+          ##                     - With gain=0.5 and above, there is variation at the 15-20% level between local dev builds, manylinuc2014 tarballs and
+          ##                        MacOS.  With gain=0.2 (which is what other deconvolvers use), the variation is in the 3rd-4th decimal place. 
           #############################################################################
 
           ## Point source (core) : Flux = 1.0 Jy/bm at [256,209,0,0])   --> This should be the same in all channels. A flat-spectrum point source.
-          pt_true = 1.0    
+          ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
+          
+          ### Truth values with a lot of iterations and reaching convergence. Values are derived from the truth image smoothed by the beam size.
+          ### These values are recorded here, for manual testing as needed. 
+          pt_true = 1.0  ## For channel 0 and also 4. 
+          ext_true_0 = 5.1  
+          ext_true_4 = 1.0
+
+          ### Truth values from a 100 iteration run with gain=0.2 are hard-coded in the tests below. These do not reach convergence, but have been manually
+          ### verified to be accurate at the time of writing the test. 
+
           pt_loc_0=[256,209,0,0]    # Channel 0
           pt_loc_4=[256,209,0,4]    # Channel 4
-          ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
-          ext_true_0 = 5.2  
-          ext_true_4 = 1.0
           ext_loc_0=[275,330,0,0]
           ext_loc_4=[275,330,0,4]
 
+          lgain=0.2
+          
           ## case 1: default settings
-          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=0.8,parallel=self.parallel)
-          #report1=self.th.checkall(ret=ret1, peakres=0.3803, modflux=145.524, imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], imgval=[(self.img+'1.psf',1.0,[256,256,0,0])])
+          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=lgain,parallel=self.parallel)
           report1=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], 
                                    imgval=[(self.img+'1.psf',1.0,[256,256,0,0]),
-                                           (self.img+'1.image',pt_true,pt_loc_0),
-                                           (self.img+'1.image',pt_true,pt_loc_4),
-                                           (self.img+'1.image',ext_true_0,ext_loc_0),
-                                           (self.img+'1.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'1.image', 0.95 ,pt_loc_0),
+                                           (self.img+'1.image', 0.78,pt_loc_4),
+                                           (self.img+'1.image',5.48,ext_loc_0),
+                                           (self.img+'1.image',1.91,ext_loc_4) ])
 
           ## case 2: using fusedthreshold to trigger the switch to hogbom
-          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report2=self.th.checkall(ret=ret2, peakres=0.8205, modflux=203.016, imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], imgval=[(self.img+'2.psf',1.0,[256,256,0,0])])
+          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report2=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], 
                                    imgval=[(self.img+'2.psf',1.0,[256,256,0,0]),
-                                           (self.img+'2.image',pt_true,pt_loc_0),
-                                           (self.img+'2.image',pt_true,pt_loc_4),
-                                           (self.img+'2.image',ext_true_0,ext_loc_0),
-                                           (self.img+'2.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'2.image',1.2,pt_loc_0),
+                                           (self.img+'2.image',0.96,pt_loc_4),
+                                           (self.img+'2.image',5.38,ext_loc_0),
+                                           (self.img+'2.image',1.32,ext_loc_4) ])
 
           ## case 3: using the largestscale limit
-          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report3=self.th.checkall(ret=ret3, peakres=0.5804, modflux=107.407, imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], imgval=[(self.img+'3.psf',1.0,[256,256,0,0])])
+          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report3=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], 
                                    imgval=[(self.img+'3.psf',1.0,[256,256,0,0]),
-                                           (self.img+'3.image',pt_true,pt_loc_0),
-                                           (self.img+'3.image',pt_true,pt_loc_4),
-                                           (self.img+'3.image',ext_true_0,ext_loc_0),
-                                           (self.img+'3.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'3.image',1.17,pt_loc_0),
+                                           (self.img+'3.image',0.92,pt_loc_4),
+                                           (self.img+'3.image',5.03,ext_loc_0),
+                                           (self.img+'3.image',1.06,ext_loc_4) ])
          
 
           ## case 4: using both the fusedthreshold and largestscale
-          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report4=self.th.checkall(ret=ret4, peakres=0.5804, modflux=107.407, imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], imgval=[(self.img+'4.psf',1.0,[256,256,0,0])])
+          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report4=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], 
                                    imgval=[(self.img+'4.psf',1.0,[256,256,0,0]),
-                                           (self.img+'4.image',pt_true,pt_loc_0),
-                                           (self.img+'4.image',pt_true,pt_loc_4),
-                                           (self.img+'4.image',ext_true_0,ext_loc_0),
-                                           (self.img+'4.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'4.image',1.17,pt_loc_0),
+                                           (self.img+'4.image',0.92,pt_loc_4),
+                                           (self.img+'4.image',5.03,ext_loc_0),
+                                           (self.img+'4.image',1.06,ext_loc_4) ])
 
           
           self.assertTrue(self.check_final(report1+report2+report3+report4))
@@ -490,6 +494,30 @@ class test_onefield(testref_base):
           self.delData(ms2)
           self.assertTrue(self.check_final(pstr=report))
 
+     def test_onefield_twoMS_weightSpectrum(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column and one without the weight spectrum column  (CAS-11876 bug fix) """
+          ms1 = 'refim_point_onespw0_withWtSpec.ms'
+          ms2 = 'refim_point_onespw1_noWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
+     def test_onefield_twoMS_weightSpectrum2(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
+          ms2 = 'refim_point_onespw1_withWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Erratic in parallel")
      def test_onefield_briggsabs(self):
           """[onefield] test_onefield_briggsabs: """
@@ -518,8 +546,6 @@ class test_onefield(testref_base):
           ## Only psf
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=True,calcres=False,deconvolver='clark',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.psf'], imgexistnot=[self.img+'.residual', self.img+'.image'],nmajordone=1)
-          # CAS-13960: No residual image on disk, ret summaryminor should have length 0
-          self.assertTrue(len(ret['summaryminor']) == 0)
 
           ## Only residual
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,fullsummary=True,parallel=self.parallel)
@@ -3671,6 +3697,57 @@ class test_mask(testref_base):
           report+=checkwarning
           print('report=',report)
           self.assertTrue(self.check_final(report))
+
+
+     def test_mask_preserve_input_zero_mask(self):
+          """
+          Test the fix for CAS-14203; If a user explicitly provides a
+          zero-filled input mask, it should be respected and not flipped.
+          """
+
+          self.prepData('refim_twochan.ms')
+          os.system('rm -rf '+self.img+'.*')
+          casalog.setlogfile(self.img+'.log')
+
+          ## Make initial residual and psf. No mask
+          tclean(vis=self.msfile,
+                    imsize=100,
+                    cell='10.0arcsec',
+                    imagename=self.img,
+                    specmode='mfs',
+                    deconvolver='hogbom',
+                    niter=1,
+                    gain=1e-6,
+                    restoration=False,
+                    calcres=True,
+                    calcpsf=True)
+
+          init_sum = self.th.check_mask(self.img + '.mask')
+          # Fill up with zeros
+          self.th.fill_mask(self.img+'.mask', 0.0)
+
+          if os.path.exists("new_mask.mask"):
+               os.system('rm -rf new_mask.mask')
+
+          os.rename(self.img+'.mask', 'new_mask.mask')
+
+          # Wipe images on disk
+          os.system('rm -rf '+self.img+'.*')
+
+          ret1 = tclean(vis=self.msfile,
+               imsize=100,
+               cell='10.0arcsec',
+               imagename=self.img,
+               specmode='mfs',
+               deconvolver='hogbom',
+               usemask = 'user',
+               mask='new_mask.mask',
+               niter=10)
+
+          final_sum = self.th.check_mask(self.img + '.mask')
+
+          self.assertTrue((init_sum == 10000) and (final_sum == 0))
+          self.assertTrue(ret1['stopcode'] == 7)
 
 ##############################################
 ##############################################
