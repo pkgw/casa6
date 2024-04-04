@@ -300,7 +300,10 @@ To find the nearest optimal imsize to that desired by the user, please use the f
     <param type="any" name="phasecenter"> 
      <shortdescription>Phase center of the image</shortdescription>
 <description>Phase center of the image (string or field id); if the phasecenter is the name known major solar system object ('MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE', 'PLUTO', 'SUN', 'MOON') or is an ephemerides table then that source is tracked and the background sources get smeared. There is a special case, when phasecenter='TRACKFIELD', which will use the ephemerides or polynomial phasecenter in the FIELD table of the MS's as the source center to track.
-               example: phasecenter=6
+
+                             Note : If unspecified, tclean will use the phase-center from the first data field of the MS (or list of MSs) selected for imaging. 
+
+			example: phasecenter=6
                         phasecenter='J2000 19h30m00 -40d00m00'
                         phasecenter='J2000 292.5deg  -40.0deg'
                         phasecenter='J2000 5.105rad  -0.698rad'
@@ -1453,6 +1456,8 @@ to use the correct direction in which the antenna is pointing with respect to th
                      When the Asp Clean detects it is approaching convergence, it uses only the 0 scale for the following number of iterations for better computational efficiency. 
 
                      NumberIterationsInHogbom = 500 + 2 * (exp(0.05 * NthHogbom) - 1)
+
+                     Set 'fusedthreshold = -1' to make the Asp Clean deconvolver never "switch" to Hogbom Clean.
 
 
       </description>

@@ -12,7 +12,8 @@ if is_CASA6:
 
     ###some helper tools
     from casatasks import casalog
-    from casatools import table, quanta, msmetadata
+    from casatools import table, msmetadata
+    from casatools import quanta as qatool
     from casatools import ms as mstool
 
     ms = mstool()
@@ -56,11 +57,11 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
 
     If there are no differences in the setup of the MSs, the returned dictionary is empty.
 
-    If there are differences for an MS, there is a dictionary item for each table which has a different 
-    setup and the value is a dictionary with two lists of the names of the columns which are 
-    missing in the table of MS A (the first one in the list) and table of MS B (the one compared to). 
+    If there are differences for an MS, there is a dictionary item for each table which has a different
+    setup and the value is a dictionary with two lists of the names of the columns which are
+    missing in the table of MS A (the first one in the list) and table of MS B (the one compared to).
     "Missing" is to be understood as "present in the other table but not in this one".
-    Furthermore, the dictionary contains the items "present_a" and "present_b" which are True 
+    Furthermore, the dictionary contains the items "present_a" and "present_b" which are True
     if the given table is present at all in MS A and MS B respectively.
 
     The optional parameter "ignore_tables" defines the list of subtables of Main which
@@ -69,7 +70,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
 
     If the optional parameter testcontent==True, then for a column which is absent in one table
     it is tested in the other table whether the column actually contains data,
-    i.e. cell 0 can be read. If not, the absence of the column is ignored. 
+    i.e. cell 0 can be read. If not, the absence of the column is ignored.
 
     Independently from the value of testcontent, all optional Main table columns are
     tested as to whether they are present and if so whether they contain data.
@@ -90,7 +91,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             ignore_tables = [ignore_tables]
         else:
             raise ValueError('ignore_tables parameter needs to be a list of strings.')
-            
+
 
     if len(vis) == 1:
         try:
@@ -98,7 +99,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             ms.close()
         except:
             raise ValueError(vis[0]+' does not exist or is not a MeasurementSet.')
-            
+
         return rval
 
     haspointing = np.zeros(len(vis)) # track the presence of pointing tables
@@ -149,7 +150,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
                 tb.close()
                 mydesc['_name_'] = subtbpath[1]
                 subtbdescs_a.append(mydesc)
-                    
+
     casalog.post('Checking for unpopulated optional Main Table columns in first MS ...', 'INFO')
     opt_main_populated(descr_a) # ... in first MS
 
@@ -214,13 +215,13 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             compresult['Main'] = cmpres
 
         casalog.post('Checking for unpopulated optional Main Table columns ...', 'INFO')
-        opt_main_populated(descr_b) 
+        opt_main_populated(descr_b)
 
         # Subtables
         for i in range(len(subtbnames_a)): # loop over tables in first MS
             if not subtbnames_a[i] in subtbnames_b:
                 compresult[subtbnames_a[i]] = {'present_a': True, 'present_b': False}
-            else: # table is present in both MSs           
+            else: # table is present in both MSs
                 cmpres = comptbdescr(subtbdescs_a[i], subtbdescs_b[ subtbnames_b.index(subtbnames_a[i]) ],
                                      testcontent=testcontent)
                 if cmpres != {}:
@@ -235,7 +236,7 @@ def check_mslist(vis, ignore_tables=['SORTED_TABLE'], testcontent=True):
             rval[myvis] = compresult
 
     # evaluate haspointing array
-    if (1 in haspointing) and (False in ( haspointing == 1 )): 
+    if (1 in haspointing) and (False in ( haspointing == 1 )):
         casalog.post('Some but not all of the input MSs are lacking a populated POINTING table:', 'WARN')
         for i in range(len(haspointing)):
             if haspointing[i] == 0:
@@ -251,9 +252,9 @@ def comptbdescr(descr_a, descr_b, ignorecol=[], testcontent=True):
        - the absence of the columns listed in ignorecol is ignored
        - if testcontent==True, then for a column which is absent in one table
          it is tested in the other table whether the column actually contains data,
-         i.e. cell 0 can be read. If not, the absence of the column is ignored. 
+         i.e. cell 0 can be read. If not, the absence of the column is ignored.
          For this to work, the table path has to be added to the table description
-         as item "_name_". 
+         as item "_name_".
     """
     rval = {}
     mscol_a = []
@@ -339,8 +340,8 @@ def sort_mslist(vis, visweightscale=None):
         else:
             namestuples.append( (times[0], name, 0) )
 
-    sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0]) 
-    
+    sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0])
+
     for i in range(0,len(vis)):
         sortedvis.append(sorted_namestuples[i][1])
         sortedtimes.append(sorted_namestuples[i][0])
@@ -351,6 +352,41 @@ def sort_mslist(vis, visweightscale=None):
         return sortedvis, sortedtimes, sortedvisweightscale
     else:
         return sortedvis, sortedtimes
+
+
+def report_sort_result(sorted_vis, sorted_times, sorted_idx, mycasalog=None, priority='INFO'):
+    """Report result of MS sort.
+
+    Args:
+        sorted_vis (list): sorted list of MS
+        sorted_times (list): sorted list of observation start time
+        sorted_idx (list): list of indices of original order of MS list
+        mycasalog (logsink, optional): logsink instance for logging. Defaults to None.
+        priority (str, optional): priority for logging. Defaults to 'WARN'.
+    """
+    if len(sorted_vis) <= 1:
+        # trivial result. do nothing.
+        return
+
+    if mycasalog is None:
+        local_casalog = casalog
+    else:
+        local_casalog = mycasalog
+    qa = qatool()
+    header = 'Order {:>24s} {:>20s} Original_Order'.format('MS_Name', 'Start_Time')
+    local_casalog.post('Summary of the MS internal sort:', priority=priority)
+    local_casalog.post(header, priority=priority)
+    local_casalog.post('-' * len(header), priority=priority)
+    for isort, (iorig, v, t) in enumerate(zip(sorted_idx, sorted_vis, sorted_times)):
+        local_casalog.post(
+            '{:>3d} {:>26s} {:>20s} {:>3d}'.format(
+                isort,
+                os.path.basename(v.rstrip('/')),
+                qa.time(qa.quantity(t, 's'), form=['ymd', 'hms'])[0],
+                iorig
+            ),
+            priority=priority
+        )
 
 
 def opt_main_populated(descr, ignorecol=[]):

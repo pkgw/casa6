@@ -25,7 +25,7 @@ from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallel
 from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
 from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import  PyMtmfsViaCubeSynthesisImager
 from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-from casatasks.private.imagerhelpers.imager_return_dict import ReturnDictionary
+from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
 from .cleanhelper import write_tclean_history, get_func_params
 from casatools import table
 from casatools import image
@@ -567,8 +567,8 @@ def tclean(
             # If residual image does not exist, summaryminor will not be
             # populated.
             if niter==0:
-                rd = ReturnDictionary()
-                retrec = rd.constructResidualDict(paramList)
+                id = ImagingDict()
+                retrec = id.construct_residual_dict(paramList)
 
             ## Do deconvolution and iterations
 

@@ -170,6 +170,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/listobs.xml',
               'xml/flagdata.xml',
               'xml/flagcmd.xml',
+              'xml/getephemtable.xml',
               'xml/setjy.xml',
               'xml/cvel.xml',
               'xml/cvel2.xml',
@@ -211,8 +212,10 @@ xml_files = [ 'xml/imhead.xml',
               'xml/ft.xml',
               'xml/gaincal.xml',
               'xml/gencal.xml',
+              'xml/getantposalma.xml',
               'xml/testconcat.xml',
               'xml/apparentsens.xml',
+              'xml/getcalmodvla.xml',
               'xml/hanningsmooth.xml',
               'xml/imcollapse.xml',
               'xml/imcontsub.xml',
@@ -400,9 +403,9 @@ def generate_pyinit(moduledir,tasks):
         fd.write('        casalog.post("Python version " + platform.python_version())\n')
         fd.write('        casalog.post("CASA Version " + package_variant.upper() + " %s")\n' % casatasks_version)
         fd.write('    except:\n')
-        fd.write('        print("Error: the logfile is not writable")\n')  
+        fd.write('        print("Error: the logfile is not writable")\n')
         fd.write("\n")
-        
+
 
 class BuildCasa(build):
     description = "Description of the command"
@@ -439,7 +442,7 @@ class BuildCasa(build):
             proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
                           stdout=subprocess.PIPE )
         else:
-            xml_jar_file = 'xml-casa-assembly-1.81.jar'
+            xml_jar_file = 'xml-casa-assembly-1.83.jar'
             xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
             xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
             self.xml_jar_fetch(xml_jar_path, xml_jar_url)
@@ -458,7 +461,7 @@ class BuildCasa(build):
         mkpath(xmldir)
         for x in xml_files:
             copy2(x,xmldir)
-            
+
         os.makedirs(os.path.join(moduledir, 'tests'))
         f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
         f.close()
