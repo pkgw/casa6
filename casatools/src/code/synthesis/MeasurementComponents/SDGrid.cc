@@ -2175,7 +2175,7 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
         for (int k = 0; k < vb.nRow(); ++k) {
           weight.column(k).set(weightMat(0, k));
         }
-      } else {
+      } else if (npol == 2) {
         for (int k = 0; k < vb.nRow(); ++k) {
           //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
           // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
@@ -2183,6 +2183,10 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
           const auto numerator = weightMat(0, k) * weightMat((npol-1), k);
           weight.column(k).set(toStokesWeight(numerator, denominator));
         }
+      } else {
+        // It seems current code doesn't support 4 pol case. So, give up
+        // processing such data to avoid producing unintended result
+        throw AipsError("Imaging full-Stokes data (npol=4) is not supported.");
       }
     } else {
       const ssize_t npol = weightSpec.shape()(0);
@@ -2192,7 +2196,7 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
             weight(chan, k) = weightSpec(0, chan, k);
           }
         }
-      } else {
+      } else if (npol == 2) {
         for (int k = 0; k < vb.nRow(); ++k) {
           for (int chan = 0; chan < vb.nChannel(); ++chan) {
             // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
@@ -2201,6 +2205,10 @@ void SDGrid::pickWeights(const VisBuffer& vb, Matrix<Float>& weight){
             weight(chan, k) = toStokesWeight(numerator, denominator);
           }
         }
+      } else {
+        // It seems current code doesn't support 4 pol case. So, give up
+        // processing such data to avoid producing unintended result
+        throw AipsError("Imaging full-Stokes data (npol=4) is not supported.");
       }
     }
   }
