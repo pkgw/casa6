@@ -84,12 +84,10 @@ And for mtmfs
 # Imports #
 import os
 import glob
-import sys
 import subprocess
 import unittest
 import numpy
 import shutil
-import inspect
 import scipy
 import matplotlib.pyplot as pyplot
 import json
@@ -103,28 +101,13 @@ from casatestutils import add_to_dict
 from casatestutils import stats_dict
 from casatestutils.stakeholder import almastktestutils
 
+from casatools import ctsys, image
+from casatasks import tclean, immoments#, imview
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+#from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 
-CASA6 = False
-try:
-    from casatools import ctsys, quanta, measures, image, vpmanager, calibrater
-    from casatasks import casalog, delmod, imsubimage, tclean, uvsub, imhead, imsmooth, immath, widebandpbcor, immoments#, imview
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    CASA6 = True
-    _ia = image()
-    ctsys_resolve = ctsys.resolve
-
-except ImportError:
-    from __main__ import default  # reset given task to its default values
-    from tasks import *  # Imports all casa tasks
-    from taskinit import *  # Imports all casa tools
-    from parallel.parallel_task_helper import ParallelTaskHelper
-
-    _ia = iatool()
-    def ctsys_resolve(apath):
-        dataPath = os.path.join(os.environ['CASAPATH'].split()[0], 'casatestdata/')
-        return os.path.join(dataPath,apath)
+_ia = image()
+ctsys_resolve = ctsys.resolve
 
 # location of data
 data_path = ctsys_resolve('stakeholder/alma/')
@@ -176,14 +159,6 @@ class test_tclean_base(unittest.TestCase):
         del_files += img_files
         for f in del_files:
             shutil.rmtree(f)
-
-    def prepInputmask(self, maskname=""):
-        if maskname!="":
-            self.maskname=maskname
-        if (os.path.exists(self.maskname)):
-            shutil.rmtree(self.maskname)
-        shutil.copytree(refdatapath+self.maskname, self.maskname, symlinks=True)
-
 
     def check_dict_vals_beam(self, exp_dict, act_dict, suffix, epsilon=0.01):
         """ Compares expected dictionary with actual dictionary. Useful for comparing the restoring beam.
@@ -4957,10 +4932,6 @@ class Test_mosaic(test_tclean_base):
             msg = failed)
 
 # End of test_mosaic_mtmfs_eph
-
-
-def suite():
-    return [Test_standard, Test_mosaic]
 
 # Main #
 if __name__ == '__main__':

@@ -6,7 +6,7 @@
 
   <shortdescription>Wideband PB-correction on the output of the MS-MFS algorithm</shortdescription>
 
-  <description>WideBand Primary-beam correction. It computes a set of PBs at the specified frequencies, calculates Taylor-coefficient images that represent the PB spectrum, performs a polynomial division to PB-correct the output Taylor-coefficient images from clean(nterms&gt;1), and recompute spectral index (and curvature) using the PB-corrected Taylor-coefficient images </description>
+  <description>WideBand Primary-beam correction. It computes a set of PBs at the specified frequencies, calculates Taylor-coefficient images that represent the PB spectrum, performs a polynomial division to PB-correct the output Taylor-coefficient images from clean(nterms&gt;1), and recompute spectral index (and curvature) using the PB-corrected Taylor-coefficient images. </description>
 
   <input>
 

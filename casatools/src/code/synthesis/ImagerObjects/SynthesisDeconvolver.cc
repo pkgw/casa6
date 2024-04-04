@@ -1054,7 +1054,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         Bool emptyMask(False);
         if( itsImages->hasMask() )
           {
-            if (itsImages->getMaskSum()==0.0) {
+              // CAS-14203 - Check if mask is empty AND user didn't specify an empty mask
+            if (itsImages->getMaskSum()==0.0 && itsMaskList[0] != "") {
               emptyMask=True;
             }
           }

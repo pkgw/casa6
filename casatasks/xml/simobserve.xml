@@ -18,10 +18,9 @@ additional information on the multiple simobserve and simanalyze calls
 required to simulate an ALMA observation which may consist of 12m
 interferometric, 7m interferometric, and 12m total power data.
     
-More information and examples are availible at 
-http://casaguides.nrao.edu/index.php?title=Simulating_Observations_in_CASA
-Please contact the Helpdesk with any questions (see
-https://casa.nrao.edu/help_desk_all.shtml)
+More information and examples are availible in the CASA Guides (http://casaguides.nrao.edu) under Simulations.
+Please contact the CASA Team with any questions (see
+https://casa.nrao.edu/index_contact.shtml)
 </description>
 <example>
   </example>
@@ -113,10 +112,12 @@ https://casa.nrao.edu/help_desk_all.shtml)
     <param subparam="true" name="incenter" type="string">
       <shortdescription>Set new frequency of center channel e.g. 89GHz (required even for 2D model)</shortdescription>
 <description>Frequency to use for the center channel (or only channel,
-if the skymodel is 2D)
+if the skymodel is 2D).
                      Subparameter of skymodel
                      Default: '' (use whatever is in the image
                      already)
+
+		     This will also become the default rest frequency, e.g. when imaging with tclean.
 
                         Example: incenter='89GHz'
 </description>
@@ -545,9 +546,7 @@ model (in mm)
 <description>Zenith opacity at observing frequency
                       Subparameter of thermalnoise='tsys-manual'
 
-                      https://casaguides.nrao.edu/index.php/Corrupt
-                      for more information on noise, in particular how
-                      to add a phase screen using the toolkit
+                      See the Simulations CASA Guide (https://casaguides.nrao.edu) on 'Corrupting Simulated Data' for more information on noise, in particular how to add a phase screen using the toolkit
 </description><value>0.1</value>
       <allowed kind="range"><value range="min">0</value></allowed>
     </param>
@@ -648,8 +647,8 @@ magnitude (interferometer only)
     </default>
     <default type="stringVec" param="mapsize">
       <value type="vector">
-        <value type="string">''</value>
-        <value type="string">''</value>
+        <value type="string"></value>
+        <value type="string"></value>
       </value>
     </default>
     <default type="string" param="maptype">
