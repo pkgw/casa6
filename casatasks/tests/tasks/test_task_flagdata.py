@@ -3071,7 +3071,7 @@ class test_tsys(test_base):
         self.assertEqual(res['flagged'], 32256*2)
         
     def test_invalid_scan(self):
-        '''Flagdata: unsupported scan selection'''
+        '''Flagdata: selection of invalid scans only => error'''
         try:
             flagdata(vis=self.vis, scan='2', flagbackup=False)
         except RuntimeError as instance:
@@ -3638,7 +3638,34 @@ class test_newcal(test_base):
         self.assertEqual(res['scan']['27']['flagged'],0)
         # NOTE: data DOES not have all scans
         self.assertEqual(res['flagged'],108*14)
+
+    def test_manual_wrong_corr_rr(self):
+        """ flagdata: manual mode, wrong selection in correlation"""
+        flagdata(vis=self.vis, mode='manual', correlation="RR", flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        print(f"{res=}")
+        self.assertEqual(res['flagged'], 0)
+        self.assertEqual(res['total'], 2916)
+
+    def test_manual_wrong_antenna_corr_rr(self):
+        """ flagdata: manual mode, antenna selection + wrong selection in correlation"""
+        flagdata(vis=self.vis, mode='manual', antenna="VA01", correlation="bla", flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        print(f"{res=}")
+        self.assertEqual(res['flagged'], 0)
+        self.assertEqual(res['total'], 2916)
         
+    def test_manual_wrong_corr_rr_ll(self):
+        """ flagdata: manual mode, wrong selection in correlation"""
+        flagdata(vis=self.vis, mode='manual', correlation="RR, LL", flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        print(f"{res=}")
+        self.assertEqual(res['flagged'], 0)
+        self.assertEqual(res['total'], 2916)
+
     def test_newcal_clip(self):
         '''Flagdata: clip zeros in one solution'''
         flagdata(vis=self.vis, mode='clip', clipzeros=True, correlation='Sol2', 
