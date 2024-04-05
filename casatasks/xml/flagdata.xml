@@ -516,8 +516,8 @@ timerange parameters in flag commands.
                      For calibration tables, the solutions are:
                      'Sol1', 'Sol2', Sol3, Sol4.
                      When using the 'ARG' option, the values of
-                     parameters such as clipmin are expeced in units
-                     of radians.
+                     parameters such as clipminmax are expeced in
+                     units of radians.
 
                      NOTE: correlation selection is not supported for
                      modes other than clip, tfcrop or rflag in cal
