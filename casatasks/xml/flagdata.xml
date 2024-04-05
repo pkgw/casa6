@@ -509,11 +509,15 @@ timerange parameters in flag commands.
                         Example: correlation=&quot;XX,YY&quot;.
 
                      For modes clip, tfcrop or rflag, the default
-                     means ABS_ALL. If the input is cal table that
-                     does not contain a complex data column, the
-                     default will fall back to REAL_ALL.
+                     means ABS_ALL.
+                     If the input is cal table that does not contain
+                     a complex data column, the default will fall back
+                     to REAL_ALL.
                      For calibration tables, the solutions are:
                      'Sol1', 'Sol2', Sol3, Sol4.
+                     When using the 'ARG' option, the values of
+                     parameters such as clipmin are expeced in units
+                     of radians.
 
                      NOTE: correlation selection is not supported for
                      modes other than clip, tfcrop or rflag in cal
