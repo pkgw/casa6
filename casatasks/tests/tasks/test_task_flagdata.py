@@ -3666,6 +3666,29 @@ class test_newcal(test_base):
         self.assertEqual(res['flagged'], 0)
         self.assertEqual(res['total'], 2916)
 
+    def test_list_with_manual_wrong_corr_sel(self):
+        """ flagdata: list with a manual mode with wrong selection in corr """
+        fagents = ["mode='clip' clipminmax=[0,3] " "correlation='REAL_Sol1'"
+                   " datacolumn='CPARAM'"]
+        flagdata(vis=self.vis, mode='list', inpfile=fagents, flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        flagged_global = res['flagged']
+        self.assertEqual(flagged_global, 649)
+        flagged_sol1 = res['correlation']['Sol1']['flagged']
+        self.assertEqual(flagged_sol1, flagged_global)
+        flagged_sol2 = res['correlation']['Sol2']['flagged']
+        self.assertEqual(flagged_sol2, 0)
+
+        # Use same clip in list mode, together with a bogus manual with
+        # bogus corr selection. The bogus manual agent should have no effaect
+        fagents.append("mode='manual' correlation='RR' datacolumn='CPARAM'")
+        flagdata(vis=self.vis, mode='list', inpfile=fagents, flagbackup=False)
+        res2 = flagdata(vis=self.vis, mode='summary')
+        self.assertEqual(flagged_global, res2['flagged'])
+        self.assertEqual(flagged_sol1, res2['correlation']['Sol1']['flagged'])
+        self.assertEqual(flagged_sol2, res2['correlation']['Sol2']['flagged'])
+
     def test_newcal_clip(self):
         '''Flagdata: clip zeros in one solution'''
         flagdata(vis=self.vis, mode='clip', clipzeros=True, correlation='Sol2', 
