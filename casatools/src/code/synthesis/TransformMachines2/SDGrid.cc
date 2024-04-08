@@ -1842,7 +1842,10 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
     const Cube<Float> weightSpec(vb.weightSpectrum());
     weight.resize(vb.nChannels(), vb.nRows());
 
-    const auto toStokesWeight = [](float numerator, float denominator) {
+    // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
+    const auto toStokesWeight = [](float weight0, float weight1) {
+          const auto denominator = weight0 + weight1;
+          const auto numerator = weight0 * weight1;
           constexpr float fmin = std::numeric_limits<float>::min();
           return abs(denominator) < fmin ? 0.0f : 4.0f * numerator / denominator;
     };
@@ -1860,10 +1863,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
         const auto weight1 = weightMat.row(1);
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
-          // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-          const auto denominator = weight0(k) + weight1(k);
-          const auto numerator = weight0(k) * weight1(k);
-          weight.column(k).set(toStokesWeight(numerator, denominator));
+          weight.column(k).set(toStokesWeight(weight0(k), weight1(k)));
         }
       } else {
         // It seems current code doesn't support 4 pol case. So, give up
@@ -1879,10 +1879,7 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
         const auto weight1 = weightSpec.yzPlane(1);
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           for (int chan = 0; chan < vb.nChannels(); ++chan) {
-            // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
-            const auto denominator = weight0(chan, k) + weight1(chan, k);
-            const auto numerator = weight0(chan, k) * weight1(chan, k);
-            weight(chan, k) = toStokesWeight(numerator, denominator);
+            weight(chan, k) = toStokesWeight(weight0(chan, k), weight1(chan, k));
           }
         }
       } else {
