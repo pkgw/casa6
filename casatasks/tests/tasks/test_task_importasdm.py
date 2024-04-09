@@ -1850,7 +1850,8 @@ class asdm_import6(test_base):
                             print("ERROR for WEATHER table. Expected values of DEW_POINT_FLAG and PRESSURE_FLAG are not seen.")
                 
         self.assertTrue(retValue['success'],retValue['error_msgs'])
-        
+
+
 class asdm_import7(test_base):
 
     def setUp(self):
@@ -3355,6 +3356,60 @@ class asdm_import8(test_base):
         logLinesEnd = countlines(casalog.logfile())
 
         self.assertTrue(((logLinesEnd-logLinesMiddle) > (logLinesMiddle-logLinesStart)), 'verbose test failed, did not produce more lines')
+
+class asdm_import_asis(test_base):
+
+    def setUp(self):
+        self.setUp_12mex()
+        
+    def tearDown(self):
+        for myasdmname in ['uid___A002_X71e4ae_X317_short']:
+            os.unlink(myasdmname)
+            shutil.rmtree(myasdmname+".ms",ignore_errors=True)
+
+    def test_asis_caltables(self):
+        '''Asdm-import: Test importing good 12 m ASDM with asis parameter for some Cal Tables'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }    
+
+        myasdmname = 'uid___A002_X71e4ae_X317_short'
+        themsname = myasdmname+".ms"
+
+        self.res = importasdm(myasdmname, vis=themsname, asis='CalData CalDevice CalFlux CalPointing CalSeeing', flagbackup=False) 
+        self.assertEqual(self.res, None)
+        print("Successful importing! Checking ASIS tables in %s" % themsname)
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALDATA'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALDEVICE'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALFLUX'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALPOINTING'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALSEEING'))
+
+        # Compare CALDEVICE with ASDM_CALDEVICE in output MS
+        tblocal.open(themsname+'/CALDEVICE')
+        nrow_caldevice = tblocal.nrows()
+        tblocal.close
+        tblocal.open(themsname+'/ASDM_CALDEVICE')
+        nrow_asdm_caldevice = tblocal.nrows()
+        tblocal.close
+        self.assertEqual(nrow_caldevice,nrow_asdm_caldevice,'CalDevice table imported asis is not equal to CALDEVICE table')
+
+        # check that ASDM_CALSEEING has the same number of rows in output MS as in the XML file
+        tblocal.open(themsname+'/ASDM_CALSEEING')
+        nrow_asdm_calseeing = tblocal.nrows()
+        tblocal.close
+
+        from xml.dom import minidom
+        xmlseeing = minidom.parse(myasdmname + '/CalSeeing.xml')
+        rowlist = xmlseeing.getElementsByTagName('row')
+        self.assertEqual(nrow_asdm_calseeing,len(rowlist),'CalSeeing table imported asis does not match the nrows in the XML')
+
+        # check that ASDM_CALPOINTING has the same number of rows in output MS as in the XML file
+        tblocal.open(themsname+'/ASDM_CALPOINTING')
+        nrow_asdm_calpointing = tblocal.nrows()
+        tblocal.close
+
+        xmlpointing = minidom.parse(myasdmname + '/CalPointing.xml')
+        rowlist = xmlpointing.getElementsByTagName('row')
+        self.assertEqual(nrow_asdm_calpointing,len(rowlist),'CalPointing table imported asis does not match the nrows in the XML')
 
 if __name__ == '__main__':
     unittest.main()
