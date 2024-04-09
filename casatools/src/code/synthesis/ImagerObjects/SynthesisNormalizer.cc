@@ -324,7 +324,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsImages->releaseLocks();
 
   }
-
+  void SynthesisNormalizer::makePSFBeamset(){
+    LogIO os(LogOrigin("SynthesisNormalizer", "dividePSFByWeight", WHERE));
+    setupImagesOnDisk();
+    itsImages->makeImageBeamSet(itsPsfcutoff);
+    itsImages->releaseLocks();
+  }
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );

@@ -89,6 +89,7 @@ class SynthesisNormalizer
   void divideResidualByWeight();
   void divideResidualByWeightSD();
   void dividePSFByWeight();
+  void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
 

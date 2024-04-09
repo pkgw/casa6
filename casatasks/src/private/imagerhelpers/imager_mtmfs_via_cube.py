@@ -329,6 +329,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         suffixes = ["pb","psf", "sumwt"]
         for immod in range(0, self.NF):
             self.cube2tt(immod, suffixes=suffixes)
+            #now that we donot call dividepsfbyweight which did the fitting
+            #we have to do it now explicitly
+            self.mfsImager.PStools[immod].makepsfbeamset()
        
 #        for immod in range(0, self.NF):
 #            self.mfsImager.PStools[immod].gatherpsfweight()
