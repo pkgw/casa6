@@ -1678,6 +1678,47 @@ class test_stokes(testref_base):
           _ia.close()
           self.assertTrue(self.check_final(report))
 
+     # weighting test
+     # CAS-14324 : Beam sizes for IQUV should come out as expected.
+     def test_stokes_weighting(self):
+          """ [onefield] Test_Onefield_weighting : mfs with different weighting (natural, uniform, briggs, radial, superuniform)"""
+          self.prepData('refim_twochan.ms')
+          # default = natural
+          ret0 = tclean(vis=self.msfile,imagename=self.img+'0',imsize=100,cell='8.0arcsec',niter=10,weighting='natural', stokes='IQUV',parallel=self.parallel)
+          # uniform
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,weighting='uniform', stokes='IQUV', parallel=self.parallel)
+
+          # briggs r=-2
+          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=-2, stokes='IQUV', parallel=self.parallel)
+
+          # briggs r=0.5(default)
+          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=0.5, stokes='IQUV', parallel=self.parallel)
+
+          # briggs r=2
+          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=2, stokes='IQUV', parallel=self.parallel)
+
+          # radial
+          ret5 = tclean(vis=self.msfile,imagename=self.img+'5',imsize=100,cell='8.0arcsec',niter=10,weighting='radial',stokes='IQUV', parallel=self.parallel)
+
+          # superuniform
+          ret6 = tclean(vis=self.msfile,imagename=self.img+'6',imsize=100,cell='8.0arcsec',niter=10,weighting='superuniform',stokes='IQUV', parallel=self.parallel)
+
+          # briggs r=0.5(default) with mtmfs (to test SIImageStoreMultiTerm)
+          ret7 = tclean(vis=self.msfile,imagename=self.img+'7',imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs', weighting='briggs', robust=0.5,stokes='IQUV', parallel=self.parallel)
+
+
+          # beamareas: uniform < briggs-r=-2 < briggs r=0.5 < briggs r=+2 < natural, ...
+          # by default, it checks if im1's beam < im2's beam
+          print("Test beamarea of tst0.image (natural) is greater than beamarea of tst.image (uniform)")
+          self.assertTrue(self.th.check_beam_compare(self.img+'.image', self.img+'0.image'))
+          print("Test beamarea of tst2.image (briggs -2) is greater than beamarea of tst.image (uniform)")
+          self.assertTrue(self.th.check_beam_compare(self.img+'.image', self.img+'2.image'))
+          print("Test beamarea of tst3.image (briggs 0.5) is greater than beamarea of tst2.image (briggs -2))")
+          self.assertTrue(self.th.check_beam_compare(self.img+'2.image', self.img+'3.image'))
+          print("Test beamarea of tst4.image (briggs 2) is greater than beamarea of tst3.image (briggs 0.5))")
+          self.assertTrue(self.th.check_beam_compare(self.img+'3.image', self.img+'4.image'))
+
+
 
 #     def test_stokes_cube_I_flags(self):
 #          """ [onefield] Test_Stokes_cube_I_flags : cube with stokes I and only XY or YX flagged"""
