@@ -208,6 +208,19 @@ class testref_base(unittest.TestCase):
               self.textfile=textfile
               shutil.copy(os.path.join(refdatapath,self.textfile), self.textfile)
 
+
+     def get_beam(self, imname, stokes='I', chan='0'):
+        retv = imhead(imname)
+
+        stokes_ind_map = {'I':'*0', 'Q':'*1', 'U':'*2', 'V':'*3'}
+        stok = stokes_ind_map[stokes]
+
+        bmajor = retv['perplanebeams']['beams'][f'*{chan}'][stok]['major']['value']
+        bminor = retv['perplanebeams']['beams'][f'*{chan}'][stok]['minor']['value']
+        bpa = retv['perplanebeams']['beams'][f'*{chan}'][stok]['positionangle']['value']
+
+        return bmajor, bminor, bpa
+
         
 
 ##############################################
@@ -1684,28 +1697,103 @@ class test_stokes(testref_base):
           """ [onefield] Test_Onefield_weighting : mfs with different weighting (natural, uniform, briggs, radial, superuniform)"""
           self.prepData('refim_twochan.ms')
           # default = natural
-          ret0 = tclean(vis=self.msfile,imagename=self.img+'0',imsize=100,cell='8.0arcsec',niter=10,weighting='natural', stokes='IQUV',parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'0',imsize=100,cell='8.0arcsec',niter=10,weighting='natural', specmode='mfs', stokes='IQUV',parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'0.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'0.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'0.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'0.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
           # uniform
-          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,weighting='uniform', stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,weighting='uniform', specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
 
           # briggs r=-2
-          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=-2, stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=-2, specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'2.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'2.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'2.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'2.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
 
           # briggs r=0.5(default)
-          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=0.5, stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'3',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=0.5, specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'3.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'3.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'3.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'3.image', stokes='V')
 
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
           # briggs r=2
-          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=2, stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'4',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=2, specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'4.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'4.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'4.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'4.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
 
           # radial
-          ret5 = tclean(vis=self.msfile,imagename=self.img+'5',imsize=100,cell='8.0arcsec',niter=10,weighting='radial',stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'5',imsize=100,cell='8.0arcsec',niter=10,weighting='radial',specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'5.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'5.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'5.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'5.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
 
           # superuniform
-          ret6 = tclean(vis=self.msfile,imagename=self.img+'6',imsize=100,cell='8.0arcsec',niter=10,weighting='superuniform',stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'6',imsize=100,cell='8.0arcsec',niter=10,weighting='superuniform',specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'6.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'6.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'6.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'6.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
 
           # briggs r=0.5(default) with mtmfs (to test SIImageStoreMultiTerm)
-          ret7 = tclean(vis=self.msfile,imagename=self.img+'7',imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs', weighting='briggs', robust=0.5,stokes='IQUV', parallel=self.parallel)
+          tclean(vis=self.msfile,imagename=self.img+'7',imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs', weighting='briggs', robust=0.5,specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'7.image.tt0', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'7.image.tt0', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'7.image.tt0', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'7.image.tt0', stokes='V')
 
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+
+          # Cube + briggs weighting (to test BriggsCubeWeightor)
+          tclean(vis=self.msfile,imagename=self.img+'8',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=0, specmode='cube', stokes='IQUV',parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'8.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'8.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'8.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'8.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
 
           # beamareas: uniform < briggs-r=-2 < briggs r=0.5 < briggs r=+2 < natural, ...
           # by default, it checks if im1's beam < im2's beam
