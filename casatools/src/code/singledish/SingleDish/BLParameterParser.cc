@@ -243,8 +243,7 @@ uint16_t BLParameterParser::GetTypeOrder(BLParameterSet const &bl_param)
     return static_cast<uint16_t>(bl_param.npiece);
     break;
   case BaselineType_kSinusoid:
-    //needs to be checked later
-    return static_cast<size_t>(bl_param.nwave.size()); //<== must be max of nwave elements
+    return static_cast<uint16_t>(bl_param.nwave[bl_param.nwave.size() - 1]); //<== must be max of nwave elements
     break;
   default:
     throw(AipsError("Unsupported baseline type."));
