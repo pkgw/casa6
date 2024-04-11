@@ -326,8 +326,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   }
   void SynthesisNormalizer::makePSFBeamset(){
     LogIO os(LogOrigin("SynthesisNormalizer", "dividePSFByWeight", WHERE));
-    if(!itsImages){
-      itsImages = makeImageStore( itsImageName, false );
+    try{
+      if(!itsImages){
+        itsImages = makeImageStore( itsImageName, false );
+      }
+
+    }
+    catch(AipsError& x){
+
+      throw(AipsError("Programmers error no psf is made on disk and  trying to fit"));
     }
     itsImages->makeImageBeamSet(itsPsfcutoff);
     itsImages->releaseLocks();
