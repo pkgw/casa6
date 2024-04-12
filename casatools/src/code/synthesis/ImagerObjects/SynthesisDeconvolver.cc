@@ -290,7 +290,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   Record SynthesisDeconvolver::initMinorCycle(std::shared_ptr<SIImageStore> imstor )
   {
     LogIO os( LogOrigin("SynthesisDeconvolver","initMinorCycle",WHERE) );
-    Record returnRecord, execRecord;
+    Record returnRecord;
     Timer timer;
     Timer tim;
     tim.mark();
@@ -477,7 +477,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       float psfsidelobelevel = itsImages->getPSFSidelobeLevel();
 
       returnRecord = itsLoopController.getCycleInitializationRecord();
-      //execRecord = itsLoopController.getCycleExecutionRecord();
 
       //cerr << "INIT record " << returnRecord << endl;
 

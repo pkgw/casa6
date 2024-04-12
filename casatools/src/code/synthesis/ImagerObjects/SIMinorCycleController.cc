@@ -285,6 +285,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     returnRecord.define( RecordFieldId("nsigmathreshold"), itsNsigmaThreshold);
     returnRecord.define( RecordFieldId("nsigma"), itsNsigma);
     returnRecord.define( RecordFieldId("fullsummary"), itsFullSummary);
+    returnRecord.define(RecordFieldId("summaryminor"), itsSummaryMinor);
 
     /* Reset Counters and summary for the current set of minorcycle iterations */
     itsIterDone = 0;

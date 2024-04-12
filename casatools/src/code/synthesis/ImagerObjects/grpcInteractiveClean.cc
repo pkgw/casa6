@@ -802,6 +802,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                 std::function< void* ( void*, grpcInteractiveCleanState& )>(
                        [&]( void *dummy, grpcInteractiveCleanState &state ) -> void* {
 
+                           mergeMinorCycleSummary( initRecord.asArrayDouble( RecordFieldId("summaryminor")), state, 0 );
                            state.PeakResidual = max(state.PeakResidual, initRecord.asFloat(RecordFieldId("peakresidual")));
                            state.MaxPsfSidelobe =  max(state.MaxPsfSidelobe, initRecord.asFloat(RecordFieldId("maxpsfsidelobe")));
 
