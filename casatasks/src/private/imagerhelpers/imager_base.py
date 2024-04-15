@@ -308,7 +308,7 @@ class PySynthesisImager:
         for immod in range(0, self.NF):
             initrec = self.SDtools[immod].initminorcycle()
             # print('INIT Minor cycle dict {}'.format(initrec))
-            self.IBtool.mergeinitrecord(initrec)
+            self.IBtool.mergeinitrecord(initrec, immod)
 
         #         # Run interactive masking (and threshold/niter editors)
         #         self.runInteractiveGUI2()

@@ -795,14 +795,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                            return dummy; } ) );
 	}
 
-	void grpcInteractiveCleanManager::mergeCycleInitializationRecord( Record &initRecord ){
+	void grpcInteractiveCleanManager::mergeCycleInitializationRecord( Record &initRecord, casacore::Int immod ){
         LogIO os( LogOrigin("grpcInteractiveCleanManager",__FUNCTION__,WHERE) );
 
         access( (void*) 0,
                 std::function< void* ( void*, grpcInteractiveCleanState& )>(
                        [&]( void *dummy, grpcInteractiveCleanState &state ) -> void* {
 
-                           mergeMinorCycleSummary( initRecord.asArrayDouble( RecordFieldId("summaryminor")), state, 0 );
+                           mergeMinorCycleSummary( initRecord.asArrayDouble( RecordFieldId("summaryminor")), state, immod );
                            state.PeakResidual = max(state.PeakResidual, initRecord.asFloat(RecordFieldId("peakresidual")));
                            state.MaxPsfSidelobe =  max(state.MaxPsfSidelobe, initRecord.asFloat(RecordFieldId("maxpsfsidelobe")));
 
