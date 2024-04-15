@@ -425,7 +425,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
 
             else:
                 if not ( (self.weightpars['type'] ==  'natural') or (self.weightpars['type'] == 'radial'))   :    
-                    raise Exception("continuum imaging in parallel with outlier fields and briggs style weighting not supported")
+                    casalog.post("Parallel-Continuum-multifield  with briggs weighting will give different weighting schemes with number of processes used", "WARN")
 
 
 
