@@ -164,11 +164,13 @@ xml_files = [ 'xml/imhead.xml',
               'xml/bandpass.xml',
               'xml/blcal.xml',
               'xml/calstat.xml',
+              'xml/defintent.xml',
               'xml/concat.xml',
               'xml/split.xml',
               'xml/listobs.xml',
               'xml/flagdata.xml',
               'xml/flagcmd.xml',
+              'xml/getephemtable.xml',
               'xml/setjy.xml',
               'xml/cvel.xml',
               'xml/cvel2.xml',
@@ -210,8 +212,10 @@ xml_files = [ 'xml/imhead.xml',
               'xml/ft.xml',
               'xml/gaincal.xml',
               'xml/gencal.xml',
+              'xml/getantposalma.xml',
               'xml/testconcat.xml',
               'xml/apparentsens.xml',
+              'xml/getcalmodvla.xml',
               'xml/hanningsmooth.xml',
               'xml/imcollapse.xml',
               'xml/imcontsub.xml',
@@ -399,48 +403,9 @@ def generate_pyinit(moduledir,tasks):
         fd.write('        casalog.post("Python version " + platform.python_version())\n')
         fd.write('        casalog.post("CASA Version " + package_variant.upper() + " %s")\n' % casatasks_version)
         fd.write('    except:\n')
-        fd.write('        print("Error: the logfile is not writable")\n')  
+        fd.write('        print("Error: the logfile is not writable")\n')
         fd.write("\n")
-        fd.write("from datetime import datetime as _time\n")
-        fd.write("telemetry_starttime = str(_time.now())\n")
-        fd.write("import os\n")
-        fd.write("serial_run = mpi_env_found and not MPIEnvironment.is_mpi_enabled\n")
-        fd.write("mpi_run_client = mpi_env_found and MPIEnvironment.is_mpi_enabled and MPIEnvironment.is_mpi_client\n")
-        fd.write("nompi_or_serial_or_client = not mpi_env_found or serial_run or mpi_run_client\n")
-        fd.write("telemetry_available=False\n")
-        fd.write("if nompi_or_serial_or_client:\n")
-        fd.write("  try:\n")
-        fd.write("    import casatelemetry\n")
-        fd.write("    telemetry_available=True\n")
-        fd.write("  except:\n")
-        fd.write('    casalog.post("Can\'t import casatelemetry module.")\n')
-        fd.write("if telemetry_available and config.telemetry_enabled and nompi_or_serial_or_client:\n")
-        fd.write("  try:\n") 
-        fd.write("    telemetrylogdirectory = None\n") 
-        fd.write("    if config.rcdir != None:\n")
-        fd.write("      telemetrylogdirectory = config.rcdir\n")
-        fd.write("    if config.telemetry_log_directory != None:\n")
-        fd.write("      telemetrylogdirectory = casatasks.config.telemetry_log_directory\n")
-        fd.write("    telemetrylogger = casatelemetry.casatelemetry.telemetry(telemetrylogdirectory)\n")
-        fd.write("  except:\n")       
-        fd.write("    telemetrylogger = casatelemetry.casatelemetry.telemetry()\n")
-        fd.write("  def logstop():\n")
-        # Telemetry may be stopped during runtime so check if it is still enabled
-        fd.write('    if telemetrylogger.telemetry_enabled:\n')
-        fd.write("      telemetry_stoptime = str(_time.now())\n")            
-        fd.write('      telemetrylogger.logger.info(telemetry_stoptime + " :: " + str(os.getpid()) + " :: CASAStop :: Stopping CASA at: " + telemetry_stoptime + \n') 
-        fd.write('      " Version " + version_string() + " Platform: " + platform.platform() +  " Start time: " + telemetry_starttime + " Variant: " + package_variant)\n')
-        #fd.write('   print("mpi_env " + str(mpi_env_found))\n')
-        fd.write('  if not mpi_env_found or (mpi_env_found and MPIEnvironment.is_mpi_client):\n')
-        fd.write('    telemetrylogger.submitStatistics()\n')
-        fd.write('    if telemetrylogger.telemetry_enabled:\n')
-        fd.write('      telemetrylogger.logger.info(telemetry_starttime + " :: " + str(os.getpid()) + " :: CASAStart :: Starting CASA at: " + telemetry_starttime + \n') 
-        fd.write('      " Version " + version_string() + " Platform: " + platform.platform() + " Variant: " + package_variant)\n')
-        fd.write("    import atexit\n")
-        fd.write("    atexit.register(logstop)\n")
-        fd.write('if telemetry_available and config.crashreporter_enabled:\n')
-        fd.write("    casatelemetry.CrashReporter.init(config.logfile)\n")
-        
+
 
 class BuildCasa(build):
     description = "Description of the command"
@@ -477,7 +442,7 @@ class BuildCasa(build):
             proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
                           stdout=subprocess.PIPE )
         else:
-            xml_jar_file = 'xml-casa-assembly-1.77.jar'
+            xml_jar_file = 'xml-casa-assembly-1.83.jar'
             xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
             xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
             self.xml_jar_fetch(xml_jar_path, xml_jar_url)
@@ -496,6 +461,11 @@ class BuildCasa(build):
         mkpath(xmldir)
         for x in xml_files:
             copy2(x,xmldir)
+
+        os.makedirs(os.path.join(moduledir, 'tests'))
+        f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
+        f.close()
+        copy2('tests/test_casatasks.py',os.path.join(moduledir, 'tests'))
 
 class TestCasa(Command):
     user_options = []
@@ -672,7 +642,8 @@ setup( name=module_name,version=casatasks_version,
                   "%s.__xml__" % module_name,
                   "%s.private" % module_name,
                   "%s.private.parallel" % module_name,
-                  "%s.private.imagerhelpers" % module_name ],
+                  "%s.private.imagerhelpers" % module_name,
+                  "%s.tests" % module_name ],
        classifiers=[ 'Programming Language :: Python :: %s' % pyversion ],
        description="the CASA tasks",
        long_description="The CASAtasks are a collection of (mostly) stateless functions for\nthe analysis of radio astronomy observations.",

@@ -14,26 +14,17 @@ except:
     from sys import version_info
     is_python3 = version_info > (3,)
     is_CASA6 = is_python3
-if is_CASA6:
-    from casatasks import casalog
 
-    from casatools import image
-    from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from .cleanhelper import write_tclean_history, get_func_params
-    from casatools import synthesisimager
-    ia = image( )
-else:
-    from taskinit import *
+from casatasks import casalog
 
-    from imagerhelpers.imager_deconvolver import PyDeconvolver
-    from imagerhelpers.input_parameters import ImagerParameters
-    from imregrid import imregrid
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from cleanhelper import write_tclean_history, get_func_params
-    synthesisimager=casac.synthesisimager
-    ia = iatool( )
+from casatools import image
+from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+from .cleanhelper import write_tclean_history, get_func_params
+from casatools import synthesisimager
+ia = image( )
 
 try:
     if is_CASA6:
@@ -139,8 +130,7 @@ def deconvolve(
     ####### Deconvolution parameters
     deconvolver,#='hogbom',
     scales,#=[],
-    # TODO in CAS-13570: uncomment once test_multirun_mtmfs3x passes
-    # nterms,#=1,
+    nterms,#=1,
     smallscalebias,#=0.0
     # TODO in CAS-13570: uncomment once asp is working
     # fusedthreshold,#=0.0
@@ -198,9 +188,6 @@ def deconvolve(
         # TODO in CAS-13570: fix asp description and allow asp value once asp is working
         if deconvolver.lower() == "asp":
             raise RuntimeError("The "+deconvolver+" deconvolver currently has incorrect end-of-minor-cycle residual calculations and is therefore disabled. Please choose a different deconvolver.")
-        # TODO in CAS-13570: fix mtmfs description and allow mtmfs value once test_multirun_mtmfs3x passes
-        if deconvolver.lower() == "mtmfs":
-            raise RuntimeError("The "+deconvolver+" deconvolver currently has issues with the deconvolve task and is therefore disabled. Please choose a different deconvolver.")
 
         #####################################################
         #### Construct ImagerParameters
@@ -286,6 +273,8 @@ def deconvolve(
         decon.updateMask()
 
         isit = decon.hasConverged() # here in case updateMaskMinor() produces an all-false mask
+        runmin = not isit   ##  Are minor cycles going to be run or not ?  Will the return dictionary have summaryminor or not ?
+        ##print ("Runmin? " , runmin)
         if not isit:
             # print("running minor cycle");
             t0=time.time();
@@ -294,11 +283,23 @@ def deconvolve(
             casalog.post("***Time for minor cycle: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_deconvolve");
             isit = decon.hasConverged() # get the convergence state, to report back to the calling code
 
+
+        # Residual image needs to be computed for this to work
+        if niter==0 or runmin==False:
+            id = ImagingDict()
+            retrec1 = id.construct_residual_dict(paramList)
+
         ## Get summary from iterbot
         #if type(interactive) != bool and niter>0:
         # this requrirment should go...
-        if niter>0:
-            retrec=decon.getSummary(fullsummary);
+        #if niter>0:
+        retrec=decon.getSummary(fullsummary);
+
+        if niter==0 or runmin==False:
+            retrec['summaryminor'] = retrec1['summaryminor']  #CAS-14184
+            retrec['stopcode'] = retrec1['stopcode']
+            retrec['stopDescription'] = retrec1['stopDescription']
+
 
         #################################################
         #### Teardown
