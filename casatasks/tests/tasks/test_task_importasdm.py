@@ -214,6 +214,13 @@ class test_base(unittest.TestCase):
         datapath=os.path.join(rootpath,myasdmname)
         os.system('ln -sf '+datapath)
 
+
+    def setUp_12mex_bin(self):
+        res = None
+        myasdmname = 'uid___A002_X71e4ae_X317_short_bin' # 12m example ASDM with mixed pol/channelisation and binary Cal tables
+        datapath=os.path.join(rootpath,myasdmname)
+        os.system('ln -sf '+datapath)
+
     def setUp_eph(self):
         res = None
         myasdmname = 'uid___A002_X997a62_X8c-short' # 12m example ASDM with ephemerides
@@ -3361,9 +3368,10 @@ class asdm_import_asis(test_base):
 
     def setUp(self):
         self.setUp_12mex()
+        self.setUp_12mex_bin()
         
     def tearDown(self):
-        for myasdmname in ['uid___A002_X71e4ae_X317_short']:
+        for myasdmname in ['uid___A002_X71e4ae_X317_short', 'uid___A002_X71e4ae_X317_short_bin']:
             os.unlink(myasdmname)
             shutil.rmtree(myasdmname+".ms",ignore_errors=True)
 
@@ -3374,7 +3382,8 @@ class asdm_import_asis(test_base):
         myasdmname = 'uid___A002_X71e4ae_X317_short'
         themsname = myasdmname+".ms"
 
-        self.res = importasdm(myasdmname, vis=themsname, asis='CalData CalDevice CalFlux CalPointing CalSeeing', flagbackup=False) 
+        asisParam = 'CalData CalDevice CalFlux CalPointing CalSeeing Subscan'
+        self.res = importasdm(myasdmname, vis=themsname, asis=asisParam, flagbackup=False) 
         self.assertEqual(self.res, None)
         print("Successful importing! Checking ASIS tables in %s" % themsname)
         self.assertTrue(os.path.exists(themsname+'/ASDM_CALDATA'))
@@ -3383,33 +3392,51 @@ class asdm_import_asis(test_base):
         self.assertTrue(os.path.exists(themsname+'/ASDM_CALPOINTING'))
         self.assertTrue(os.path.exists(themsname+'/ASDM_CALSEEING'))
 
-        # Compare CALDEVICE with ASDM_CALDEVICE in output MS
+        # importasdm already uses CalDevice, compare with what asis produces for the same table
         tblocal.open(themsname+'/CALDEVICE')
         nrow_caldevice = tblocal.nrows()
-        tblocal.close
+        tblocal.close()
         tblocal.open(themsname+'/ASDM_CALDEVICE')
         nrow_asdm_caldevice = tblocal.nrows()
-        tblocal.close
+        tblocal.close()
         self.assertEqual(nrow_caldevice,nrow_asdm_caldevice,'CalDevice table imported asis is not equal to CALDEVICE table')
 
-        # check that ASDM_CALSEEING has the same number of rows in output MS as in the XML file
-        tblocal.open(themsname+'/ASDM_CALSEEING')
-        nrow_asdm_calseeing = tblocal.nrows()
-        tblocal.close
-
+        # check that each asis table has the same number of rows in the output MS as in the XML file
         from xml.dom import minidom
-        xmlseeing = minidom.parse(myasdmname + '/CalSeeing.xml')
-        rowlist = xmlseeing.getElementsByTagName('row')
-        self.assertEqual(nrow_asdm_calseeing,len(rowlist),'CalSeeing table imported asis does not match the nrows in the XML')
+        
+        for tabName in asisParam.split():
+            
+            tabName = tabName.strip()
+            xmlTabName = tabName + '.xml'
+            msTabName = 'ASDM_'+tabName.upper()
 
-        # check that ASDM_CALPOINTING has the same number of rows in output MS as in the XML file
-        tblocal.open(themsname+'/ASDM_CALPOINTING')
-        nrow_asdm_calpointing = tblocal.nrows()
-        tblocal.close
+            tblocal.open(themsname+'/'+msTabName)
+            nrow_ms_tab = tblocal.nrows()
+            tblocal.close()
 
-        xmlpointing = minidom.parse(myasdmname + '/CalPointing.xml')
-        rowlist = xmlpointing.getElementsByTagName('row')
-        self.assertEqual(nrow_asdm_calpointing,len(rowlist),'CalPointing table imported asis does not match the nrows in the XML')
+            xmlTabParsed = minidom.parse(myasdmname+'/'+xmlTabName)
+            rowlist = xmlTabParsed.getElementsByTagName('row')
+
+            self.assertEqual(nrow_ms_tab, len(rowlist), '%s table imported asis does not match the nrows in the XML' % tabName)
+
+    def test_asis_bin_caltables(self):
+        '''Asdm-import: Test importing good 12 m ASDM with asis parameter for some Cal Tables in binary format'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }    
+
+        myasdmname = 'uid___A002_X71e4ae_X317_short_bin'
+        themsname = myasdmname+".ms"
+
+        # some Cal tables that are in binary format
+        # this just tests that they fill without throwing an exception
+        
+        asisParam = 'CalData CalFlux CalPointing CalSeeing'
+        self.res = importasdm(myasdmname, vis=themsname, asis=asisParam, flagbackup=False) 
+        self.assertEqual(self.res, None)
+        print("Successful importing! Checking ASIS tables in %s" % themsname)
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALDATA'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALFLUX'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALPOINTING'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALSEEING'))
 
 if __name__ == '__main__':
     unittest.main()
