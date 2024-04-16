@@ -5085,7 +5085,7 @@ class test_hetarray_imaging(testref_base):
                                           (self.img+'_pcorr1_time1_2.pb' ,0.34,[1024,1024,0,2]), 
                                           ## Check that PB peak is at the expected location
                                           (self.img+'_pcorr1_time1_2.pb' ,1.0,[927,1124,0,0]) ] )   
-                                          (self.img+'_pcorr1_time1_2.pb' ,1.0,[1121,1124,0,0]) ] )   
+                                          #(self.img+'_pcorr1_time1_2.pb' ,1.0,[1121,1124,0,0]) ] )   
 
 
           ## Four corners : usepointing=True, pointingoffsetsigdev=[20,20], timerange='*', antenna='grp1,grp2' : PB = Sum of PB in all 4 corners (with no cross-terms). Flux/alpha are correct. 
