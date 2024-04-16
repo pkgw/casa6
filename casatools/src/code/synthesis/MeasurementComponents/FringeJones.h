@@ -159,6 +159,10 @@ public:
   virtual casacore::Array<casacore::Bool>& paramActive() { return paramActive_; }
   virtual casacore::Bool& concatSPWs() { return concatspws_; }
   
+  virtual void smooth(casacore::Vector<casacore::Int>& fields,
+                      const casacore::String& smtype,
+                      const casacore::Double& smtime);
+  
   // Apply reference antenna
   virtual void applyRefAnt();
 
