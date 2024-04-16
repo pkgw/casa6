@@ -313,7 +313,8 @@ def tocasatb(indata, outtable):
                     # VERSION stored in the output table may be incremented in the future.
                     # For now, it is fixed, but it may be incremented from 0003 to 0004 to indiate
                     # this new code is used to convert the jpl horizons data to a table.
-                    headerdict['VS_VERSION'] = '0004.000'
+                    # ver 0004.0001 - new keyword: ephemeris_source, posrefsys 'ICRF/J2000' -> "ICRS' 
+                    headerdict['VS_VERSION'] = '0004.0001'
                     # target object name
                 elif re.match(r'^[>\s]*Target body name', line):
                     m = re.match(r'^[>\s]*Target body name:\s+(\S+)\s+(\S*)\s+\{(\w+)\:\s*(\S+)\}', line)

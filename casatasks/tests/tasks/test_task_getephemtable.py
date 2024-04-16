@@ -82,10 +82,12 @@ class getephemtable_test(unittest.TestCase):
             _tb.open(intab)
             intabcols = _tb.colnames()
             intabnrows = _tb.nrows()
+            intabkeywds = _tb.getkeywords()
             _tb.close()
             _tb.open(reftab)
             reftabcols = _tb.colnames()
             reftabnrows = _tb.nrows()
+            reftabkeywds = _tb.getkeywords()
             _tb.close()
             if intabnrows != reftabnrows:
                print(f'Nrows of {intab} differs from that of {reftab}: {intabnrows} != {reftabnrows}')
@@ -97,6 +99,20 @@ class getephemtable_test(unittest.TestCase):
             if missingcols != []:
                 print(f'Missing column(s) in {intab}: {missingcols}')
                 retval = False   
+            missingkeys = []
+            for refkey in reftabkeywds.keys():
+                 if refkey not in intabkeywds:
+                     missingkeys.append(refkey)
+                 elif refkey == 'posrefsys':
+                     if intabkeywds[refkey] != 'ICRS':
+                         print(f'Wrong posrefsys label {intabkeywds[refky]} is detected.')
+                         retval = False
+            if missingkeys != []:
+                print(f'Missing keyword(s) in {intab}: {missingkeys}')
+                retval = False
+            for inkey in intabkeywds.keys():
+                if inkey not in reftabkeywds:
+                    print(f'{inkey} is not in reference table keywords')
         except Exception:
             print(f'Error occurred in checking content of {intab}') 
             retval = False
@@ -171,6 +187,15 @@ class getephemtable_test(unittest.TestCase):
         self.assertTrue(self.checkEphemTableContent(self.outfile, self.reftable))
         self.assertTrue(os.path.exists('saved_rawqueryresult.txt'))
 
+    @unittest.skipIf(isDatabaseURLunreachable(hostname),  "JPL-Horizons data server is not reachable")
+    def test_nonalphanumeric_name(self):
+        """Test object name extraction for the ojbect name contains nonalphanumeric characters"""
+        getephemtable(objectname='90000322', asis=True, timerange='2018/09/16/10:15:54~2018/09/22/13:16:21', outfile=self.outfile, overwrite=False)
+        self.assertTrue(os.path.exists(self.outfile))
+        _tb.open(self.outfile)
+        objname = _tb.getkeyword('NAME')
+        _tb.done()
+        self.assertTrue(objname=='21P/Giacobini-Zinner')
         
 if __name__ == '__main__':
     unittest.main()
