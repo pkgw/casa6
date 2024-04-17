@@ -5070,10 +5070,10 @@ class test_hetarray_imaging(testref_base):
 
           ## Antenna/time correction : usepointing=True, pointingoffsetsigdev=[20,2000], timerange='*', antenna='grp1' : PB = Mosaiced PB. 
 
-          tclean(vis=msname, imagename=self.img+'_pcorr1_time_1_2', specmode='cube', deconvolver='hogbom',
+          tclean(vis=msname, imagename=self.img+'_pcorr1_time1_2', specmode='cube', deconvolver='hogbom',
                    niter = 0, datacolumn='observed', imsize=2048, cell=5.0, nchan=3, start='1.9GHz',
                    width='0.4GHz', interpolation='nearest', pblimit=-0.01, gridder='awp2',
-                   usepointing=True, antenna=f"{baselines['grp1']}&")
+                   usepointing=True, antenna=f"{self.baselines['grp1']}&")
           report5=self.th.checkall(imgval=[
                                           ## Check source intensity
                                           (self.img+'_pcorr1_time1_2.image' ,0.56,[1024,1024,0,0]), 
