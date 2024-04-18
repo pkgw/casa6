@@ -1799,7 +1799,7 @@ void SingleDishMS::doSubtractBaseline(string const& in_column_name,
             } else if (bltype_mtx2(0, 0) == (uInt)3) {
               bltype_name = "sinusoid";
             }
-            // todo
+            // todo: csv output nwave? 
             Matrix<Int> fpar_mtx2 = fpar_mtx;
             if (bltype_mtx2(0, 0) == (uInt)3) {
               ofs_csv << bltype_name.c_str() << ',' << fpar_mtx2(ipol, 0);
@@ -3354,7 +3354,6 @@ void SingleDishMS::subtractBaselineVariable(string const& in_column_name,
                     << (uInt)data_spw[irow] << ',' << ipol << ','
                     << setprecision(12) << times[irow] << ',';
             ofs_csv << '[';
-            //todo
             for (size_t imasklist = 0; imasklist < num_masklist_max / 2; ++imasklist) {
               if (imasklist == 0) {
                 ofs_csv << '[' << masklist_mtx2(ipol, 2 * imasklist) << ';'
