@@ -26,6 +26,7 @@
 //# $Id$
 #include <fstream>
 #include <iostream>
+#include <regex>
 
 #include <casacore/casa/Utilities/Assert.h>
 #include <singledish/SingleDish/BLParameterParser.h>
@@ -173,23 +174,22 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   }
   else if (bltype_str == "sinusoid")
   {
-    // Find the index of the occurrences of "[" and "]"
-    size_t start_index = linestr.find("[");
-    size_t end_index = linestr.find("]");
-    if (start_index == std::string::npos || end_index == std::string::npos)
-      throw(AipsError("Incorrect format for the nwave list. Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
-    else if (start_index > end_index)
-      throw(AipsError("Incorrect format for the nwave list. Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
-    // Substract nwave list from the linestr, elements after "[" and before "]"
-    std::string nwave_substr = linestr.substr(start_index + 1, end_index - start_index - 1);
-    if (nwave_substr.empty())
-      throw(AipsError("nwave list is empty. Please specify wave numbers. Ex. [1,2]"));
+    //Find the occurrence of "[n1,n2...]"
+    std::regex pattern("\\[([\\d,]+)\\]");
+    std::smatch matches;
+    std::regex_search(linestr, matches, pattern);
+    if (matches.size()< 1)
+      throw(AipsError("Incorrect format or empty nwave list. Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
     // Split, convert and fill in the paramset_nwave
     std::vector<string> tmp_nwave;
-    SplitLine(nwave_substr, ',',tmp_nwave);
+    // regex result: matches[0] is the entire match 
+    // matches[1] is the content inside the square brackets
+    SplitLine(matches[1], ',',tmp_nwave);
     for(const auto& i : tmp_nwave)
       paramset.nwave.emplace_back(ConvertString<size_t>(i));
-    
+    //Sort just in case and erase duplicates
+    std::sort(paramset.nwave.begin(), paramset.nwave.end());
+    paramset.nwave.erase(std::unique(paramset.nwave.begin(),paramset.nwave.end()), paramset.nwave.end());
     paramset.baseline_type = static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kSinusoid);
   }
   else
