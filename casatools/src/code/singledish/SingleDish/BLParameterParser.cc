@@ -307,7 +307,7 @@ uint16_t BLTableParser::GetTypeOrder(size_t const &baseline_type,
     }
   case BaselineType_kSinusoid:
   {
-    // probably same way?
+    // TODO: revisit this line in CAS-13671
     return static_cast<uint16_t>(bt_->getFPar(irow, ipol));
     break;
   }

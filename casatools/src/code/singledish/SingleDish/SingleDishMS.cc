@@ -1799,7 +1799,7 @@ void SingleDishMS::doSubtractBaseline(string const& in_column_name,
             } else if (bltype_mtx2(0, 0) == (uInt)3) {
               bltype_name = "sinusoid";
             }
-            // todo: csv output nwave? 
+            // TODO: revisit this line in CAS-13671
             Matrix<Int> fpar_mtx2 = fpar_mtx;
             if (bltype_mtx2(0, 0) == (uInt)3) {
               ofs_csv << bltype_name.c_str() << ',' << fpar_mtx2(ipol, 0);
