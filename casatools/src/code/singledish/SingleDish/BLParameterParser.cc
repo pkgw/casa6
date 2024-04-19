@@ -196,7 +196,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   { // poly or chebyshev
     if (svec[BLParameters_kOrder].size()==0)
       throw(AipsError("Baseline type 'poly' and 'chebyshev' require order value."));
-      paramset.baseline_type = bltype_str == "chebyshev" ?
+    paramset.baseline_type = bltype_str == "chebyshev" ?
       static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kChebyshev) :
       static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kPolynomial);
     paramset.order = ConvertString<uint16_t>(svec[BLParameters_kOrder]);
@@ -204,7 +204,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   // parse clipping parameters
   if (svec[BLParameters_kNumIteration].size() == 0)
     throw(AipsError("Number of maximum clip iteration is mandatory"));
-    paramset.num_fitting_max = ConvertString<uint16_t>(svec[BLParameters_kNumIteration]) + 1;
+  paramset.num_fitting_max = ConvertString<uint16_t>(svec[BLParameters_kNumIteration]) + 1;
   if (svec[BLParameters_kClipThreshold].size()>0)
     paramset.clip_threshold_sigma
       = ConvertString<float>(svec[BLParameters_kClipThreshold]);
