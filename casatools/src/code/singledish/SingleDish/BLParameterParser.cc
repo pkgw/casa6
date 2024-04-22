@@ -175,7 +175,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   else if (bltype_str == "sinusoid")
   {
     //Find the occurrence of "[n1,n2...]"
-    std::regex pattern("\\[([\\d,]+)\\]");
+    std::regex pattern("\\[(\\d+(?:,\\d+)*)\\]");
     std::smatch matches;
     std::regex_search(linestr, matches, pattern);
     if (matches.size()< 1)
