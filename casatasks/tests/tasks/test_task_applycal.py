@@ -272,7 +272,7 @@ class applycal_test(unittest.TestCase):
         except RuntimeError:
             colmade = False
 
-        self.assertFalse(colmade, msg='No CORRECTED_DATA colun was made')
+        self.assertTrue(colmade, msg='No CORRECTED_DATA colun was made')
 
 
     def test_overwritten(self):
@@ -302,7 +302,7 @@ class applycal_test(unittest.TestCase):
         applycal(vis=datacopy, gaintable=[gCal], field='1')
         datamean = np.mean(getparam(datacopy, 'CORRECTED_DATA'))
 
-        self.assertFalse(np.isclose(datamean, 0.33317375198725724+0.028998389148771512j))
+        self.assertTrue(np.isclose(datamean, 0.33317375198725724+0.028998389148771512j))
 
     def test_spwSelect(self):
         '''
