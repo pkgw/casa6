@@ -184,7 +184,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
     std::vector<string> tmp_nwave;
     // regex result: matches[0] is the entire match 
     // matches[1] is the content inside the square brackets
-    SplitLine(matches[1], ',',tmp_nwave);
+    SplitLine(matches[1], ',', tmp_nwave);
     for(const auto& i : tmp_nwave)
       paramset.nwave.emplace_back(ConvertString<size_t>(i));
     //Sort just in case and erase duplicates
