@@ -179,7 +179,9 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
     std::smatch matches;
     std::regex_search(linestr, matches, pattern);
     if (matches.size()< 1)
-      throw(AipsError("Incorrect format or empty nwave list given: " + std::string(matches[0]) + ". Please specify wave numbers inside of [], as shown in example or refer sdbaseline documentation. Ex. [1,2]"));
+      throw(AipsError("Incorrect format or empty nwave list given: " + 
+      std::string(matches[0]) + 
+      ". Please refer the sdbaseline documentation. Ex. [1,2]"));
     // Split, convert and fill in the paramset_nwave
     std::vector<string> tmp_nwave;
     // regex result: matches[0] is the entire match 
