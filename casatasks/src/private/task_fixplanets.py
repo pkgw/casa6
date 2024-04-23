@@ -411,7 +411,7 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
                     mst.close()
 
 
-            if(fixuvw and (oldrefcol!=[]) and (thenewref>0)): 
+            if(fixuvw and (len(oldrefcol)!=0) and (thenewref>0)): 
                 # modify reference of phase dir for fixuvw
                 pcol = tbt.getcol('PhaseDir_Ref')
                 pcol[fld] = 0 # J2000
