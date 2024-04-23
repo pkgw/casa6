@@ -2325,12 +2325,12 @@ windows in the dataset and close the tool.
             </input>
             <returns type="doubleVec"/>
             <description>
-                Get an array of the unique times for the specified field.
+                 Get an array of the unique times associated with the specified field ID. The times correspond to those in the TIME column, so are values of the time system associated with that column and have units associated with that column. Only unique times are returned; duplicates are dropped. Providing a negative field ID will result in an exception being thrown.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
     # get the times associated with field 3
-    times = msmd.timesforfields(3)
+    times = msmd.timesforfield(3)
     msmd.done()
             </example>
         </method>
@@ -2345,7 +2345,7 @@ windows in the dataset and close the tool.
             </input>
             <returns type="doubleVec"/>
             <description>
-                Get an array of the unique times for the specified intent.
+                Get an array of the unique times associated with the specified intent.  The times correspond to those in the TIME column, so are values of the time system associated with that column and have units associated with that column. Only unique times are returned; duplicates are dropped.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -2409,7 +2409,7 @@ windows in the dataset and close the tool.
             </input>
             <returns type="doubleVec"/>
             <description>
-                Get an array of the unique times for the specified scan numbers, observation ID, and array ID.
+                Get an array of the unique times for the specified scan numbers, observation ID, and array ID.  The times correspond to those in the TIME column, so are values of the time system associated with that column and have units associated with that column. Only unique times are returned; duplicates are dropped. For the scans parameter, a single non-negative integer or a list of non-negative integers, all of which are valid scan numbers in the MS, must be supplied.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)

@@ -572,12 +572,30 @@ void SDGrid::collectPerfs(){
 // This is nasty, we should use CountedPointers here.
 SDGrid::~SDGrid() {
   //fclose(pfile);
-  if (imageCache) delete imageCache; imageCache = 0;
-  if (arrayLattice) delete arrayLattice; arrayLattice = 0;
-  if (wImage) delete wImage; wImage = 0;
-  if (wImageCache) delete wImageCache; wImageCache = 0;
-  if (wArrayLattice) delete wArrayLattice; wArrayLattice = 0;
-  if (interpolator) delete interpolator; interpolator = 0;
+  if (imageCache) {
+      delete imageCache;
+      imageCache = nullptr;
+  }
+  if (arrayLattice) {
+      delete arrayLattice;
+      arrayLattice = nullptr;
+  }
+  if (wImage) {
+      delete wImage;
+      wImage = nullptr;
+  }
+  if (wImageCache) {
+      delete wImageCache;
+      wImageCache = nullptr;
+  }
+  if (wArrayLattice) {
+      delete wArrayLattice;
+      wArrayLattice = nullptr;
+  }
+  if (interpolator) {
+      delete interpolator;
+      interpolator = nullptr;
+  }
 
   collectPerfs();
 }

@@ -6,46 +6,42 @@
           TBD
         </description>
         <input>
-                <param type="path" name="vis" mustexist="true"><shortdescription>Name of input visibility file (MS)</shortdescription><description>Name of input visibility file (MS)</description>
-                        
-                        <value/>
+                <param type="path" name="vis"
+		       mustexist="true">
+		  <shortdescription>Name of input MeasurementSet</shortdescription>
+		  <description>Name of input MS from which gaincal caltable in tablein originated.  Used to extract geometry information not available in the tablein caltable.</description>
+                  <value/>
                 </param>
 
-                <param type="path" name="tablein" mustexist="true"><shortdescription>Input calibration table</shortdescription><description>Input calibration table</description>
-                        
-                        <value/>
+                <param type="path" name="tablein" mustexist="true">
+		  <shortdescription>Input gain calibration table</shortdescription>
+		  <description>Input gain calibration table corresponding to MS specified in vis.</description>
+                  <value/>
                 </param>
 
-                <param type="string" name="caltable"><shortdescription>Output calibration table (forces polarization correction if specified)</shortdescription><description>Output calibration table (forces polarization correction if specified)</description>
-                        
-                        <value/>
+                <param type="string"
+		       name="caltable">
+		  <shortdescription>Optional output caltable (for polarization-corrected gains if specified)</shortdescription>
+		  <description>Optional output calibration table which will contain source polarization-corrected gains, if specified</description>
+                  <value/>
                 </param>
 
-                <param type="double" name="paoffset"><shortdescription>Manual position angle offset</shortdescription><description>Manual position angle offset</description>
-                        
-                        <value>0.0</value>
+                <param type="double" name="paoffset">
+		  <shortdescription>Manual feed position angle offset (clockwise, in deg)</shortdescription>
+		  <description>Manual position angle offset (clockwise, in deg); added to value stored in the MS FEED subtable.  Use with care, since downstream calibration operation using polfromgain results will change according to this position angle offset.</description>
+                  <value>0.0</value>
+                </param>
+
+                <param type="double"
+		       name="minpacov">
+		  <shortdescription>Minimum parallactic angle coverage (deg) required for Q,U estimation</shortdescription>
+		  <description>Minimum parallactic angle coverage (deg) required for Q,U estimation. Reliable Q,U estimation depends on adequate parallactic angle coverage, and this parameter enforces a minimum allowable range of parallactic angle (per antenna) for unflagged gain solutions before the Q,U esimation is attempted.  (If caltable is specified, gains for antennas failing the minpacov criteria will be corrected by the per-spw average of Q,U estimates from good antennas.)</description>
+                  <value>30.0</value>
                 </param>
 
         </input>
 <returns type="void"/>
 
-<example>
-
-
-        TBD...
-
-        Keyword arguments:
-        vis -- Name of input visibility file
-                default: none; 
-        tablein -- Input calibration table (G or T)
-                default: none; 
-        caltable -- Output calibration table
-                default: ''  (no new table)
-                if specified, new caltable with polarization removed is generated
-        paoffset -- Manual position angle offset
-              default: 0.0  (no extra offset)
-              example: paoffset=10.0  (10 degree offset)
-
- </example>
+<example> </example>
  </task>
  </casaxml>

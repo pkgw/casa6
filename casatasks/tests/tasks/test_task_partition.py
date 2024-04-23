@@ -328,7 +328,7 @@ class partition_test1(test_base):
         shutil.copytree(self.msfile, inpms)
         
         # First, run setjy to create the SOURCE_MODEL column
-        setjy(vis=inpms,field='0',fluxdensity=[23.0,0.,0.,0.],standard='manual', scalebychan=False)
+        setjy(vis=inpms,field='0',fluxdensity=[23.0,0.,0.,0.],standard='manual', scalebychan=False, usescratch=False)
         
         # Now create an MMS from it. The SOURCE_MODEL column should be there too
         partition(vis=inpms,outputvis=self.mmsfile, observation='1',spw='1',
