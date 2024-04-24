@@ -107,7 +107,7 @@ class getephemtable_test(unittest.TestCase):
                      if intabkeywds[refkey] != 'ICRS':
                          print(f'Wrong posrefsys label {intabkeywds[refky]} is detected.')
                          retval = False
-            if missingkeys != []:
+            if missingkeys:
                 print(f'Missing keyword(s) in {intab}: {missingkeys}')
                 retval = False
             for inkey in intabkeywds.keys():
