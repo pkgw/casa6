@@ -461,7 +461,7 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
             imt.close()
             imt = None
 
-            if((oldrefcol!=[]) and (thenewref>0)): 
+            if((len(oldrefcol)!=0) and (thenewref>0)): 
                 tbt.open(vis+'/FIELD', nomodify=False)
                 tbt.putcol('PhaseDir_Ref', oldrefcol)
                 tbt.close()
