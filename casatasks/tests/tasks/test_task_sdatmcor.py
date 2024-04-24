@@ -34,7 +34,7 @@ import numpy as np
 from casatasks import applycal, casalog, gencal, sdatmcor
 from casatasks.private.sdutil import (convert_antenna_spec_autocorr,
                                       get_antenna_selection_include_autocorr,
-                                      table_manager)
+                                      table_manager, table_selector)
 import casatasks.private.task_sdatmcor as sdatmcor_impl
 from casatools import calibrater, ctsys
 from casatools import ms as mstool
@@ -649,6 +649,61 @@ class test_sdatmcor(unittest.TestCase):
 
         # check output MS
         self.check_result({19: True, 23: True})
+
+
+class test_sdatmcor_smoothing(unittest.TestCase):
+    datapath = 'measurementset/almasd'
+    infile = 'X59ca_sel.ms'
+    outfile = infile + '.atmcor'
+
+    def setUp(self):
+        smart_remove(self.infile)
+        smart_remove(self.outfile)
+        datapath_to_ms = ctsys_resolve(os.path.join(self.datapath, self.infile))
+        shutil.copytree(datapath_to_ms, self.infile)
+
+    def tearDown(self):
+        smart_remove(self.infile)
+        smart_remove(self.outfile)
+
+    def _get_data(self, ms_name, spw):
+        with table_selector(ms_name, f'DATA_DESC_ID=={spw}') as tb:
+            data = tb.getcol('DATA').real
+
+        return data
+
+    def test_mitigation(self):
+        """Test if mitigation for boundary effect of convolution works."""
+        sdatmcor(
+            infile=self.infile,
+            outfile=self.outfile,
+            spw='17,19',
+            intent='OBSERVE_TARGET#ON_SOURCE',
+            datacolumn='corrected',
+            gainfactor={17: 41.49, 19: 41.48},
+            dtem_dh=-5.6,
+            h0=2.0,
+            atmtype=1
+        )
+
+        # Only check spectral data for spw 17 since it is severely suffered
+        # from the boundary effect. Values at edge channels should not drop
+        # below a certain threshold if mitigation worked properly.
+        # Here, threshold is evaluated as median - 3 * stddev.
+        data_spw17 = self._get_data(self.outfile, spw=17)
+        average_data_per_pol = data_spw17.mean(axis=2)
+        median_value_per_pol = np.median(average_data_per_pol, axis=1)
+        stddev_per_pol = average_data_per_pol.std(axis=1)
+        for ipol in range(data_spw17.shape[0]):
+            print(f'Examining pol {ipol}')
+            threshold = median_value_per_pol[ipol] - 3 * stddev_per_pol[ipol]
+            edge_data = average_data_per_pol[ipol, [0, -1]]
+            print('edge_data', edge_data)
+            print(f'threhsold = {threshold}')
+            self.assertTrue(
+                np.all(edge_data > threshold),
+                msg=f'Mitigation did not work for pol {ipol}'
+            )
 
 
 class ATMParamTest(unittest.TestCase):
