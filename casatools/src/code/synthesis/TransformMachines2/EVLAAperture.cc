@@ -208,29 +208,29 @@ Int EVLAAperture::getBandID(const Double &freq,
   return bandID;
 };
 String EVLAAperture::getVLABandName(const Double& freq,  const String& telescopeName) {
-  
+  double tol = FLT_EPSILON;
   String bandName = "EVLA_L";
   if (telescopeName == "VLA") {
 //    if ((freq >= 1.34E9) && (freq <= 1.73E9))
-    if((freq >= 9E8) && (freq <= 1.73E9))
+    if((freq >= (9E8-tol)) && (freq <= (1.73E9+tol)))
       bandName = "VLA_L";
-    else if ((freq >= 4.5E9) && (freq <= 5.0E9))
+    else if ((freq >= (4.5E9-tol)) && (freq <= (5.0E9+tol)))
       bandName = "VLA_C";
-    else if ((freq >= 8.0E9) && (freq <= 8.8E9))
+    else if ((freq >= (8.0E9-tol)) && (freq <= (8.8E9+tol)))
       bandName = "VLA_X";
-    else if ((freq >= 14.4E9) && (freq <= 15.4E9))
+    else if ((freq >= (14.4E9-tol)) && (freq <= (15.4E9+tol)))
       bandName = "VLA_U";
-    else if ((freq >= 22.0E9) && (freq <= 24.0E9))
+    else if ((freq >= (22.0E9-tol)) && (freq <= (24.0E9+tol)))
       bandName = "VLA_K";
-    else if ((freq >= 40.0E9) && (freq <= 50.0E9))
+    else if ((freq >= (40.0E9-tol)) && (freq <= (50.0E9+tol)))
       bandName = "VLA_Q";
-    else if ((freq >= 30E6) && (freq <= 100E6))
+    else if ((freq >= (30E6-tol)) && (freq <= (100E6+tol)))
       bandName = "VLA_4";
     else
       throw(
           AipsError("Don't know VLA band for frequency=" + String::toString(freq)));
   } else if (telescopeName == "EVLA") {
-    if (freq > 9e8 && freq <= 2.0e9)
+    if (freq > (9e8-tol) && freq <= 2.0e9)
       bandName = "EVLA_L";
     else if (freq > 2.0e9 && freq <= 4.0e9)
       bandName = "EVLA_S";
@@ -244,7 +244,7 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
       bandName = "EVLA_K";
     else if (freq > 26.e9 && freq <= 40.0e9)
       bandName = "EVLA_A";
-    else if (freq > 40.0e9 && freq <= 50.0e9)
+    else if (freq > 40.0e9 && freq <= (50.0e9+tol))
       bandName = "EVLA_Q";
     else
       throw(
