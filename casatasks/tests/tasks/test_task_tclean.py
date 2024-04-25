@@ -6565,12 +6565,13 @@ class test_ephemeris(testref_base):
      def test_multifield_cube_exttab_eph(self):
           " [ephemeris] test_multifield_cube_eph : multifield (mosaic gridder), cubesource mode "
 
-          self.prepData('venus_ephem_test.ms')
+          # use the multiple channel version of the venus data
+          self.prepData('venus_ephem_1spw12chan.ms')
           self.exttabname = refdatapath+'Venus_58491dUTC_JPLHorizons20230629.tab'
-          ret = tclean(vis=self.msfile, imagename=self.img, imsize=[480, 420], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='cubesource', gridder='mosaic', niter=0, parallel=False)
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=[480, 420], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='cubesource', gridder='mosaic', start=1, nchan=10, niter=0, weighting='briggsbwtaper', perchanweightdensity=True, parallel=False)
 
           # Retrieve original image and test image statistics
-          _ia.open(refdatapath+'venus_mos_extephem_test.residual')
+          _ia.open(refdatapath+'venus_mos_cube_extephem_test.residual')
           orig_stats = _ia.statistics()
           orig_freqavg = _ia.statistics(axes=[2])['sum']
           _ia.close()
