@@ -2502,7 +2502,7 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
             with table_manager(bloutput) as tb:
                 nrow_bltable = tb.nrows()
             self.assertTrue((nrow_bltable == nrow_data),
-                            msg="The baseline table is created and same size...")
+                            msg="The baseline table is not same size as the data...")
 
 
 
