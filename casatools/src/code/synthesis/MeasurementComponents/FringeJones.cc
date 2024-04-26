@@ -2161,8 +2161,6 @@ void FringeJones::smooth(Vector<Int>& fields,
                          const String& smtype,
                          const Double& smtime) {
     NewCalTable ct = *ct_;
-    // Complex parameters?
-    Bool cmplx=ct.isComplex();
 
     // half-width
     Double thw(smtime/2.0);
@@ -2219,100 +2217,98 @@ void FringeJones::smooth(Vector<Int>& fields,
         newfparok.assign(fparok);
         IPosition fsh(fpar.shape());
 
-      blc(1)=trc(1)=fblc(1)=ftrc(1)=0;
+        blc(1)=trc(1)=fblc(1)=ftrc(1)=0;
         
-          // get chan Freqs
-          Vector<Double> freqs;
-          msCol.chanFreq().get(ispw,freqs,True);
-          Double refFreq = freqs(0);
+        // get chan Freqs
+        Vector<Double> freqs;
+        msCol.chanFreq().get(ispw,freqs,True);
+        Double refFreq = freqs(0);
         
-          // For each param (pol)
-          counter = 0;
-          temp.clear();
-          vector<vector<float>> unwrap(2);
-          int polId = 0;
-          bool polReset = false;
+        // For each param (pol)
+        counter = 0;
+        temp.clear();
+        vector<vector<float>> unwrap(2);
+        int polId = 0;
+        bool polReset = false;
 
               
-          // Need a seperate iter over par to construct unwrapped phase estimates
-          for (Int ipar=0;ipar<fsh(0);++ipar) {
-            blc(0)=trc(0)=ipar;
-            fblc(0)=ftrc(0)=ipar/(cmplx?2:1);
+        // Need a seperate iter over par to construct unwrapped phase estimates
+        for (Int ipar=0;ipar<fsh(0);++ipar) {
+          blc(0)=trc(0)=ipar;
+          fblc(0)=ftrc(0)=ipar/1;
             
-            // Reference slices of par/parOK
-            p.reference(fpar(blc,trc).reform(vec));
-            newp.assign(p);
-            pOK.reference(fparok(fblc,ftrc).reform(vec));
-            newpOK.reference(newfparok(fblc,ftrc).reform(vec));
-            int cycles = 0;
+          // Reference slices of par/parOK
+          p.reference(fpar(blc,trc).reform(vec));
+          newp.assign(p);
+          pOK.reference(fparok(fblc,ftrc).reform(vec));
+          newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+          int cycles = 0;
             
-            //cout << "ipar: " << ipar << ", newp: " << newp << ", polId:" << polId << "\n" << endl;
-            
-            for (Int i=0;i<nSlot;++i) {
-              vector<float> holder {0.0, 0.0, 0.0};
-              if (ipar == 4 && !polReset) {
-                polId = 1;
-                counter = 0;
-                temp.clear();
-                polReset = true;
-              }
+          for (Int i=0;i<nSlot;++i) {
+            vector<float> holder {0.0, 0.0, 0.0};
+            if (ipar == 4 && !polReset) {
+              polId = 1;
+              counter = 0;
+              temp.clear();
+              polReset = true;
+            }
               
-              if (ipar == 0 || ipar == 4){
-                  // Save the phase values to use for the estimates
-                  holder[0] = newp(i);
-                  holder[2] = times(i);
-                  temp.push_back(holder);
-                }
-              else if (ipar == 2 || ipar == 6){
-                  // Now that we have the delay rates we can estimate the number of phase cycles
-                  temp[counter][1] = p(i);
-                  // if are at counter 0 you can't interpolate back. Just insert as starting value
-                  if (counter == 0) {
-                    unwrap[polId].push_back(temp[counter][0]);
-                  }
-                  else {
-                    // Get the time difference between two points
-                    float timeStep = temp[counter][2] - temp[counter-1][2];
-                    // Get Forwards and backwards predictions (in radians)
-                    float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
-                    float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
-                    // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
-                    int FwCycles = 0;
-                    int BwCycles = 0;
-                    
-                    float fcp = (((temp[counter-1][0]+M_PI)/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep));
-                    float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
-                    
-                    if (fcp > 1) {
-                      FwCycles = (int)fcp;
-                    }
-                    else if (fcp < 0) {
-                      FwCycles = (int)(fcp-1);
-                    }
-                    
-                    if (bcp > 1) {
-                      BwCycles = -(int)(bcp);
-                    }
-                    else if (bcp < 0) {
-                      BwCycles = -(int)(bcp-1);
-                    }
-                    
-                    cycles += (int)((fcp-bcp) / 2);
-                    unwrap[polId].push_back(temp[counter][0] + 2 * M_PI * cycles);
-                  }
-                  counter ++;
+            if (ipar == 0 || ipar == 4){
+              // Save the phase values to use for the estimates
+              holder[0] = newp(i);
+              holder[2] = times(i);
+              temp.push_back(holder);
+            }
+            else if (ipar == 2 || ipar == 6){
+              // Now that we have the delay rates we can estimate the number of phase cycles
+              temp[counter][1] = p(i);
+              // if are at counter 0 you can't interpolate back. Just insert as starting value
+              if (counter == 0) {
+                unwrap[polId].push_back(temp[counter][0]);
               }
+              else {
+                // Get the time difference between two points
+                float timeStep = temp[counter][2] - temp[counter-1][2];
+                // Get Forwards and backwards predictions (in radians)
+                float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
+                float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
+                // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
+                int FwCycles = 0;
+                int BwCycles = 0;
+                
+                float fcp = (((temp[counter-1][0]+M_PI)/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep));
+                float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
+                
+                if (fcp > 1) {
+                  FwCycles = (int)fcp;
+                }
+                else if (fcp < 0) {
+                  FwCycles = (int)(fcp-1);
+                }
+                
+                if (bcp > 1) {
+                  BwCycles = -(int)(bcp);
+                }
+                else if (bcp < 0) {
+                  BwCycles = -(int)(bcp-1);
+                }
+                
+                cycles += (int)((fcp-bcp) / 2);
+                unwrap[polId].push_back(temp[counter][0] + 2 * M_PI * cycles);
+              }
+              counter ++;
             }
           }
+        }
           
-          // Convert unwrap to casa Vector so we can use the same mean and masking functions
-          Vector<Float> unwrapPhasesPol1(unwrap[polId]);
-          Vector<Float> unwrapPhasesPol2(unwrap[polId]);
+      // Convert unwrap to casa Vector so we can use the same mean and masking functions
+      Vector<Float> unwrapPhasesPol1(unwrap[0]);
+      Vector<Float> unwrapPhasesPol2(unwrap[1]);
           
       // Regular ipar interation
       for (Int ipar=0;ipar<fsh(0);++ipar) {
         blc(0)=trc(0)=ipar;
-        fblc(0)=ftrc(0)=ipar/(cmplx?2:1);
+        fblc(0)=ftrc(0)=ipar;
         
         // Reference slices of par/parOK
         p.reference(fpar(blc,trc).reform(vec));
@@ -2379,10 +2375,7 @@ void FringeJones::smooth(Vector<Int>& fields,
       } // ipar
 
         // Put info back
-        if (cmplx)
-          ctiter.setcparam(RIorAPArray(fpar).c());
-        else
-          ctiter.setfparam(fpar);
+        ctiter.setfparam(fpar);
 
         ctiter.setflag(!newfparok);
 
