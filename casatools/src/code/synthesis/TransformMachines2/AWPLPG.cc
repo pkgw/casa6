@@ -158,7 +158,15 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     std::sort(freqs.begin(), freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
-    //tell holder it is a single field or not
+    if(freqs.size()==0){
+      cerr << "No matching frequency in data in freq range of image " +
+                  String::toString(f1) + " to " + String::toString(f2)
+           << endl;
+           //Falling in a gap...channels in image does not match any data used
+           //for now just calc pb for mid freq
+      freqs.push_back((f1 + f2) / 2.0);
+    }
+    // tell holder it is a single field or not
     (*awConvs_p).setSingleField((fields.size()==1));
 
     Double paMax=0.0;
