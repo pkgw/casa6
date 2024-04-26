@@ -2215,18 +2215,18 @@ void FringeJones::smooth(Vector<Int>& fields,
         times.assign(ctiter.time());
 
         // Extract Float info
-        if (cmplx)
-          fpar.assign(ctiter.casfparam("AP"));
-        else
-          fpar.assign(ctiter.fparam());
+        //if (cmplx)
+        //  fpar.assign(ctiter.casfparam("AP"));
+        //else
+        fpar.assign(ctiter.fparam());
 
         fparok.assign(!ctiter.flag());
         newfparok.assign(fparok);
         IPosition fsh(fpar.shape());
 
         // For each channel
-        for (int ichan=0;ichan<fsh(1);++ichan) {
-      blc(1)=trc(1)=fblc(1)=ftrc(1)=ichan;
+        //for (int ichan=0;ichan<fsh(1);++ichan) {
+      blc(1)=trc(1)=fblc(1)=ftrc(1)=0;
         
           // get chan Freqs
           Vector<Double> freqs;
@@ -2384,7 +2384,7 @@ void FringeJones::smooth(Vector<Int>& fields,
         // keep new ok info
         p=newp;
       } // ipar
-        } // ichan
+        //} // ichan
 
         // Put info back
         if (cmplx)
