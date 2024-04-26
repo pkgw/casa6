@@ -496,6 +496,9 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                                         nchan = MAX( bandwidth/(0.1*startfreq) ,  nterms+1 )
 
+                                                        Note: When running in parallel, the nchan selected may limit the speedup if it
+                                                        is smaller than the number of processes used.
+
                                                         The 'reffreq' is the reference frequency used for the Taylor polynomial expansion.
                                                         By default, in specmode='mvc', reffreq is set to the middle of the selected
                                                         frequency range. 
