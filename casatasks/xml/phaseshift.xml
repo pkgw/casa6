@@ -156,38 +156,38 @@ Multi-MS.
     	        <shortdescription>Direction coordinates of the desired center. MUST BE SPECIFIED</shortdescription>
                 <description>Direction coordinates of new phase center. It can be given as a
             string or as a dictionary of phase center strings per field.
-
+ 
             The phase center values must be specified as absolute world coordinates
             including frame, e.g.:
- 
+
                 phasecenter = 'J2000 19h53m50 40d06m00'
                 phasecenter = 'B1950 292.5deg -40.0deg'
                 phasecenter = 'ICRS 13:05:27.2780 -049.28.04.458'
                 phasecenter = 'GALACTIC 47.5rad -60.22rad'
 
             Time dependent systems (eg, AZEL) are not supported, nor are ephemeris objects.
-
+ 
             When phasecenter is given as a dictionary, the keys are field indices and the
             values are the phase center strings for the respective fields. For example:
-
-	        phasecenter = {"3": 'ICRS 13:05:27.2780 -049.28.04.458',
+ 
+                phasecenter = {"3": 'ICRS 13:05:27.2780 -049.28.04.458',
                                "5": 'J2000 19h53m50 40d06m00',
                                "6": 'J2000 19h54m52 30d09m10',
                               }
-
+ 
             When phasecenter is a single string, the phase shifting operation will be done
             for all selected fields using the same output phase center, so all fields in the
             output MeasurementSet will have as center the new location.
-
+ 
             When phasecenter is a dictionary, the output phase center can be specified
-	    separately for every field. If one or more input fields are not present in the
+            separately for every field. If one or more input fields are not present in the
             dictionary they will be included in the output unmodified. A subset of the fields
             from the input MeasurementSet can be selected using the field parameter.
-
+ 
             Phaseshift changes the phase of the baseline visibilities so that the final image
             is centered at the new location. Additionally the uvw coordinates and the
             PHASE_DIR column from the FIELD sub-table will be changed accordingly.
-
+ 
             The new phase center is not constrained to be located inside any images to be
             created.
                 </description>
