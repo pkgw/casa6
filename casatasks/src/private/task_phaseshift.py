@@ -1,18 +1,10 @@
 from __future__ import absolute_import
 
-# get is_CASA6, is_python3
-from casatasks.private.casa_transition import is_CASA6, is_python3
-if is_CASA6:
-    from .mstools import write_history
-    from casatools import table, ms, mstransformer
-    from casatools import measures as me
-    from casatasks import casalog
-    from .parallel.parallel_data_helper import ParallelDataHelper
-else:
-    from mstools import write_history
-    from taskinit import tbtool, mstool, mttool, metool
-    from taskinit import casalog
-    from parallel.parallel_data_helper import ParallelDataHelper
+from .mstools import write_history
+from casatools import table, ms, mstransformer
+from casatools import measures as me
+from casatasks import casalog
+from .parallel.parallel_data_helper import ParallelDataHelper
 
 
 def phaseshift(
@@ -54,17 +46,12 @@ def phaseshift(
         return
 
     # Create local copies of tools (has to be here, otherwise
-    # ParallelDataHelper has a porblem digest the locals
-    if is_CASA6:
-        tblocal = table()
-        mslocal = ms()
-        mtlocal = mstransformer()
-        melocal = me()
-    else:
-        tblocal = tbtool()
-        mslocal = mstool()
-        mtlocal = mttool()
-        melocal = metool()
+    # ParallelDataHelper has a problem digest the locals
+    tblocal = table()
+    mslocal = ms()
+    mtlocal = mstransformer()
+    melocal = me()
+
     # Actual task code starts here
     try:
         dirstr = phasecenter.split(' ')
@@ -124,11 +111,8 @@ def phaseshift(
             param_names = phaseshift.__code__.co_varnames[
                 :phaseshift.__code__.co_argcount
             ]
-            if is_python3:
-                vars = locals()
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals()
+            param_vals = [vars[p] for p in param_names]
             casalog.post('Updating the history in the output', 'DEBUG1')
             write_history(
                 mslocal, outputvis, 'phaseshift', param_names,
