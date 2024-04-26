@@ -457,13 +457,15 @@ reference frame (time-spacing not changed)
     </param>
 
     <param name="polyephem_tabtimestep" type="double">
-<shortdescription>Timestep (days) for the tabulation of polynomial ephemerides. A value &lt;= 0 disables tabulation.</shortdescription>
+<shortdescription>Timestep (days) for the tabulation of polynomial ephemerides. A value &lt;= 0 sets the timestep to 0.001 days.</shortdescription>
 <description>Timestep (days) for the tabulation of polynomial
-ephemerides. A value less than or equal to 0 disables tabulation.
+ephemerides. A value less than or equal to 0 sets the timestep to 0.001 days. 
                      Default: 0
 
                      Presently, VLA data can contain polynomial
                      ephemerides. ALMA data uses tabulated values.
+                     Polynomial ephemerides in the SDM are always tabulated using some timestep when the ephemeris tables attached to the MS are written.
+                     If a non-default value is used for tabulated values then importasdm will log a warning messages informing the user that that value is not used for tabulated values.
 </description>
     <value>0.</value>
     </param>

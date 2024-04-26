@@ -936,8 +936,6 @@ namespace casac {
 
         bool ac_xc_per_timestamp = false; // for the time being the option is 'preserve the old order'
 
-        bool      interpolate_ephemeris            = false; 
-        bool      tabulate_ephemeris_polynomials   = false;
         bool      checkRowUniqueness               = false; 
         string    scansOptionInfo;
         string    asisOption;
@@ -946,7 +944,6 @@ namespace casac {
         bool      processCalDevice                 = true;
         bool      processPointing                  = true;
         bool      withPointingCorrection           = false;
-        bool      processEphemeris                 = true;
         bool      checkdupints                     = true;
 
         LOGENTER("sdm::gen_ms( " + vis + " , ... )");
@@ -1144,29 +1141,9 @@ namespace casac {
             // always available because of defaults
             ac_xc_per_timestamp = false;
 
-            // Do we want to tabulate polynomial present in the ephemeris table ?
-            // This is inferred by seeing if the user specifically set this.
-            // But it's set at least once because of defaults, so, look for there being
-            // more than one of these in options.
-            tabulate_ephemeris_polynomials = polyephem_tabtimestep > 0;
-    
-            if (tabulate_ephemeris_polynomials) {
-                // If we tabluate then ignore all the other options about ephemeris    
-                //  infostream.str();
-                //  infostream << "The MS Ephemeris table(s) will be produced by tabulating the polynomials found in the columns 'dir', 'distance' and optionally 'radVel' with a timestep of '"
-                //		 << polyephem_tabtimestep << "' day, i.e. '"<< ((uint64_t) (polyephem_tabtimestep * 86400 * 1.e09)) <<"' nanoseconds."; 
-                // info(infostream.str());
-            } else {
-                // Do we want interpolate the values found in the ASDM Ephemeris table or not ?
-                // always available because of defaults
-                string intEphOpt = "no";
-                interpolate_ephemeris = false;
+            if (polyephem_tabtimestep <= 0.0) {
                 infostream.str("");
-                if (interpolate_ephemeris) {
-                    infostream << "the MS Ephemeris table(s) will be produced by interpolation of the values present in the ASDM Ephemeris table on a resampled time grid."; 
-                } else {
-                    infostream << "the MS Ephemeris tables(s) will be produced by simple copies of the values found in the ASDM Ephemeris table with just units conversion.";
-                }
+                infostream << "the MS Ephemeris tables(s) will be produced by simple copies of the values found in the ASDM Ephemeris table with just units conversion.";
                 info(infostream.str());
             }
 
@@ -1179,7 +1156,6 @@ namespace casac {
             processCalDevice = process_caldevice;
             processPointing = process_pointing;
             withPointingCorrection = with_pointing_correction;
-            processEphemeris = true;
         } catch (std::exception& e) {
             errstream.str("");
             errstream << e.what();
@@ -1358,7 +1334,6 @@ namespace casac {
         if (!processCalDevice)  infostream << "The CalDevice table will not be processed." << endl;
         if (!processPointing)   infostream << "The Pointing table will not be processed." << endl;
         if (processPointing && withPointingCorrection ) infostream << "The correction (encoder - pointingDirection) will be applied" << endl;
-        if (!processEphemeris)  infostream << "The Ephemeris table will not be processed." << endl;
         if (ac_xc_per_timestamp)
             infostream << "For each data description for each timestamp auto correlations followed by cross correlations will be written in the Main table" << endl;
         else 
@@ -1952,17 +1927,18 @@ namespace casac {
 
         // Process the Ephemeris table.
         //
-        // Create and fill the MS ephemeris table(s) with a time interpolation time step set to 86400000000 nanoseconds ( 1/1000 day).
-        if (processEphemeris) {
-            uint64_t timeStepInNanoSeconds = polyephem_tabtimestep * 86400 * 1.e09;
-            fillEphemeris(ds, timeStepInNanoSeconds, interpolate_ephemeris, telescopeName);
+        // Create and fill the MS ephemeris table(s) with a polynomial evaluation time step set to polyephem_tabtimestep converted to nano seconds
+        uint64_t timeStepInNanoSeconds = 0;
+        if (polyephem_tabtimestep > 0.0) {
+            timeStepInNanoSeconds = polyephem_tabtimestep * 86400 * 1.e09;
         }
+        fillEphemeris(ds, timeStepInNanoSeconds, telescopeName);
 
         // Process the Field table.
         // Now it respects the degree of the polynomials but it ignores the ephemerisId.
         // The ephemerisId will be processed during the call to fillEphemeris.
         //
-        fillField(ds, processEphemeris);
+        fillField(ds);
    
         // Process the FlagCmd table.
         //
@@ -3862,12 +3838,18 @@ namespace casac {
     }
 
     static std::map<int, double>ephemStartTime_m;
-    void sdm::fillEphemeris(ASDM* ds_p, uint64_t timeStepInNanoSecond, bool interpolate_ephemeris, string telescopeName) {
+    void sdm::fillEphemeris(ASDM* ds_p, uint64_t timeStepInNanoSecond, string telescopeName) {
         LOGENTER("fillEphemeris");
 
-        // division by timeStepInNanoSecond below causes FPE - ensure it's set to something non-zero
-        // default to 0.001s = 1e6 ns
-        timeStepInNanoSecond = (timeStepInNanoSecond == 0 ? 1e6 : timeStepInNanoSecond);
+        // remember if a time step was intentionally set to a value > 0 - for use in a logging warning later if necessary
+        bool timeStepSet = timeStepInNanoSecond > 0;
+        if (timeStepInNanoSecond <= 0) {
+            // timeStepInNanoSecond is needed for polynomial evaluation, default to 0.001 days if <= 0
+            timeStepInNanoSecond = 0.001 * 86400 * 1.e09;
+        }
+
+        // make sure the warning only happens once
+        bool polyephemWarn = false;
 
         try {
             // Retrieve the Ephemeris table's content.
@@ -3948,9 +3930,8 @@ namespace casac {
 
                 double mjd0 = ArrayTime(t0MS).getMJD();
      
-                double dmjd = interpolate_ephemeris ? 0.001 : ephRow_v[0]->getTimeInterval().getDuration().get() / 1000000000LL / 86400.0;
-                // Grid time step == 0.001 if ephemeris interpolation requested
-                // otherwise == the interval of time of the first element of ephemeris converted in days.
+                double dmjd = ephRow_v[0]->getTimeInterval().getDuration().get() / 1000000000LL / 86400.0;
+                // Grid time step == the interval of time of the first element of ephemeris converted in days.
                 // *SUPPOSEDLY* constant over all the ephemeris. 
  
                 // determine the position reference system
@@ -4195,13 +4176,21 @@ namespace casac {
                             }
                         }
                     }
-                    if (!interpolate_ephemeris && allNumPolyIsOne) {
-                        // interpolation is NOT requested and all possible polynomial columns are simple scalars, numPoly==1
-                        // Just copy ephemeris without any interpolation. Just adapt the units.
+                    if (allNumPolyIsOne) {
+                        // all possible polynomial columns are simple scalars, numPoly==1
+                        // Just copy ephemeris as is (it's not a polynomial to be evaluated). Just adapt the units.
                         infostream.str("");
                         infostream << "The MS Ephemeris table for ephemerisId = '" << ephemerisId
-                                   << "' will be produced by copying the values found in the ASDM with no interpolation";
+                                   << "' will be produced by copying the values found in the ASDM";
                         info(infostream.str());
+                        if (timeStepSet && !polyephemWarn) {
+                            // warn if a time step was set, not used for this case
+                            infostream.str("");
+                            infostream << "A polyephem_tabtimestep > 0 was set but is not used because the ephemeris does not contain polynomials to be evaluated";
+                            warning(infostream.str());
+                            // but only once
+                            polyephemWarn = true;
+                        }
                         for(const EphemerisRow *eR_p: ephRow_v) {
                             mjdMS_v.push_back(eR_p->getTimeInterval().getMidPoint().getMJD()); // MJD
                             vector<vector<double> > dir = eR_p->getDir();
@@ -4616,9 +4605,8 @@ namespace casac {
      * This function fills the MS Field table.
      * given :
      * @parameter ds_p a pointer to the ASDM dataset.
-     * @parameter considerEphemeris take into account the reference to Ephemeris table(s).
      */
-    void sdm::fillField(ASDM* ds_p, bool considerEphemeris) {
+    void sdm::fillField(ASDM* ds_p) {
         LOGENTER("fillField");
         vector<pair<int, int> > idxEphemerisId_v;
 
@@ -4713,7 +4701,7 @@ namespace casac {
                 }
             }
 
-            if (considerEphemeris && (idxEphemerisId_v.size() > 0)) 
+            if (idxEphemerisId_v.size() > 0)
                 for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
                       iter != msFillers.end(); ++iter) {
                     iter->second->updateEphemerisIdInField(idxEphemerisId_v);
