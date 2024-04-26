@@ -80,10 +80,12 @@ protected:
 	bool uvwMachineInitialized_p;
 	casacore::String phaseCenterName_p;
 	casacore::MDirection phaseCenter_p;
-	casacore::MSColumns *selectedInputMsCols_p;
+
+	// Set once from Vii/MS at init time, if wideFieldMode_p
 	casacore::MPosition observatoryPosition_p;
 	casacore::MEpoch referenceTime_p;
 	casacore::String referenceTimeUnits_p;
+
 	casacore::Matrix<casacore::Double> newUVW_p;
 	casacore::Vector<casacore::Double> phaseShift_p;
 };

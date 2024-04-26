@@ -44,7 +44,6 @@ PhaseShiftingTVI::PhaseShiftingTVI(	ViImplementation2 * inputVii,
 	// CAS-12706 Zero initialization for wide-field phase shifting algorithm
 	wideFieldMode_p = false;
 	phaseCenterName_p = "";
-	selectedInputMsCols_p = NULL;
 
 	// Parse and check configuration parameters
 	// Note: if a constructor finishes by throwing an exception, the memory
@@ -154,10 +153,10 @@ void PhaseShiftingTVI::initialize()
 	// Access observatory position and observation start (reference) time.
 	if (wideFieldMode_p)
 	{
-		selectedInputMsCols_p = new MSColumns(getVii()->ms());
-	    observatoryPosition_p = selectedInputMsCols_p->antenna().positionMeas()(0);
-	    referenceTime_p  = selectedInputMsCols_p->timeMeas()(0);
-	    referenceTimeUnits_p = selectedInputMsCols_p->timeQuant()(0).getUnit();
+	    const auto selectedInputMsCols = new MSColumns(getVii()->ms());
+	    observatoryPosition_p = selectedInputMsCols->antenna().positionMeas()(0);
+	    referenceTime_p  = selectedInputMsCols->timeMeas()(0);
+	    referenceTimeUnits_p = selectedInputMsCols->timeQuant()(0).getUnit();
 	}
 
 	return;
