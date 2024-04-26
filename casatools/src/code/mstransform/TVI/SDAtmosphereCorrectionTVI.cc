@@ -560,8 +560,9 @@ void SDAtmosphereCorrectionTVI::initializeAtmosphereCorrection(Record const &con
   MSMetaData msmd(&ms(), kNoCache);
   std::set<uInt> allSpwIds = msmd.getSpwIDs();
   std::set<uInt> nonProcessingSpws;
+  std::set<uInt> sortedProcessSpwList(processSpwList_.begin(), processSpwList_.end());
   std::set_difference(allSpwIds.begin(), allSpwIds.end(),
-                      processSpwList_.begin(), processSpwList_.end(),
+                      sortedProcessSpwList.begin(), sortedProcessSpwList.end(),
                       std::inserter(nonProcessingSpws, nonProcessingSpws.begin()));
   if (nonProcessingSpws.size() > 0) {
     os << LogIO::WARN << "SPW"
