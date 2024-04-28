@@ -3116,13 +3116,17 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     MDirection::Ref outref1(MDirection::AZEL, mframe);
     MDirection::Ref outref(outframe, mframe);
     MDirection tmpazel;
-    if(planetType >=MDirection::MERCURY && planetType <MDirection::COMET){
-      tmpazel=MDirection::Convert(trackDir, outref1)();
-    }
-    else{
+    // (TT) Switched the order of evaluation of if statement (if ephem table is readable
+    // one should use that. MDirection::getType will match MDirection::Types if a string conains and starts with
+    // one of the enum names in MDirection::Types. So the table name can be mistaken as a major planets in MDirection::Types
+    // if it is evaluated first.
+    if (Table::isReadable(ephemtab)){
       MeasComet mcomet(Path(ephemtab).absoluteName());
       mframe.set(mcomet);
       tmpazel=MDirection::Convert(MDirection(MDirection::COMET), outref1)();
+    }
+    else if (planetType >=MDirection::MERCURY && planetType <MDirection::COMET){
+      tmpazel=MDirection::Convert(trackDir, outref1)();
     }
     outdir=MDirection::Convert(tmpazel, outref)();
 
