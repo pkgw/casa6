@@ -78,7 +78,9 @@ Current antenna-based gencal options (caltype) are:
                            real ITRF offset parameters per antenna; spw,
                            pol selection will be ignored)
                            With antenna='', this triggers an automated
-                           lookup of antenna positions for EVLA and ALMA.
+                           lookup of antenna positions for EVLA. For ALMA
+                           an input file generated with getantposalma task
+                           can be input in paramter infile.
                         - 'antposvla' = antenna position corrections (m)
                            specified in the old VLA-centric coordinate
                            system
@@ -120,8 +122,8 @@ Current antenna-based gencal options (caltype) are:
    
    <param subparam="true" name="infile" type="string">
       <shortdescription>Input ancilliary file</shortdescription>
-      <description>Input ancilliary file.
-                     Subparameter of caltype='gc|gceff|tecim|jyperk|antpos'
+      <description>Input ancilliary file
+                     Subparameter of caltype='antpos|gc|gceff|tecim|jyperk'
                      Default: none
 
                      The format of the file in case of 'antpos' is JSON.
@@ -182,7 +184,8 @@ Current antenna-based gencal options (caltype) are:
    <param subparam="true" name="ant_pos_time_limit" type="int">
       <shortdescription>Days after observation to include correction in offset</shortdescription>
       <description>Maximum number of days beyond the observation for which a
-          correction should be included in the final offset
+          correction should be included in the final offset. This subparameter has only
+          an effect on VLA data.
                      Subparameter of caltype='antpos'
                      Default: 0
       </description>
