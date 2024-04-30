@@ -934,6 +934,18 @@ void BriggsCubeWeightor::initializeFTMachine(
     throw(AipsError(
         "BriggsCubeWeightor could not get the state of the ftmachine:" +
         error));
+  Record rec = inRec.asRecord("movingdir_rec");
+  MeasureHolder mh;
+  if(!mh.fromRecord(error, rec))
+    throw(AipsError(
+        "BriggsCubeWeightor could not get movingdir_rec from the state of the ftmachine:" +
+        error));
+  MDirection movingdir=mh.asMDirection();
+  if (inRec.isDefined("ephemeristable") && movingdir.getRefString().contains("COMET")) {
+     String ephemtabname;
+     inRec.get("ephemeristable", ephemtabname);
+     ft_p[index]->setMovingSource(ephemtabname);
+  }
   // remember to make the stokes I
   grids_p[index] = new TempImage<Float>(templateimage.shape(),
                                         templateimage.coordinates(), 0.0);
