@@ -84,9 +84,9 @@ def phaseshift(
 
             # Call MSTransform framework with tviphaseshift=True
             config['tviphaseshift'] = True
-            tviphaseshift_config = {}
-            tviphaseshift_config['phasecenter'] = phasecenter
-            config['tviphaseshiftlib'] = dict(tviphaseshift_config)
+            config['reindex'] = False
+            tviphaseshift_config = {'phasecenter': phasecenter}
+            config['tviphaseshiftlib'] = tviphaseshift_config
 
             # Configure the tool
             casalog.post(str(config), 'DEBUG1')
