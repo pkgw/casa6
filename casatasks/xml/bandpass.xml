@@ -312,7 +312,7 @@ pol, ant, and timestamp
                       as a function of frequency. Only one fit is made
                       for all specified spw, and edge channels should
                       be omitted.
-                      Use taskname=plotcal in order to compare the
+                      Use taskname=plotms in order to compare the
                       results from B and BPOLY.
 
                          Example: bandtype='BPOLY'

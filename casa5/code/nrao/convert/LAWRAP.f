@@ -17,7 +17,7 @@ C   along with this library; if not, write to the Free Software Foundation,
 C   Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 C
 C   Correspondence concerning AIPS++ should be addressed as follows:
-C          Internet email: aips2-request@nrao.edu.
+C          Internet email: casa-feedback@nrao.edu.
 C          Postal address: AIPS++ Project Office
 C                          National Radio Astronomy Observatory
 C                          520 Edgemont Road
