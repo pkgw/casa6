@@ -40,6 +40,9 @@ class CasaxmlutilTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create temporary directory and copy files for tests."""
+        # test if test data has properly been configured.
+        assert cls.testdata.datapath != cls._DUMMY, 'datapath was not properly configured'
+
         cls.curdir = os.getcwd()
         if os.path.exists(testdir):
             shutil.rmtree(testdir)
@@ -60,7 +63,6 @@ class CasaxmlutilTest(unittest.TestCase):
     def __init__(self, methodName: str):
         """Initialize an instance."""
         super().__init__(methodName)
-        self.assertNotEqual(self.testdata.datapath, self._DUMMY)
 
     def tearDown(self):
         """Reset casalog and clear temporary files."""
