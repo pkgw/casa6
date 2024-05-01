@@ -2167,7 +2167,7 @@ void FringeJones::smooth(Vector<Int>& fields,
 
     // Workspace
     Vector<Double> times;
-    Vector<Float> p,newp;
+    Vector<Float> p,newp,pRate;
     Vector<Float> d;
     Vector<Bool> pOK, newpOK;
     // Unwrapped
@@ -2228,76 +2228,63 @@ void FringeJones::smooth(Vector<Int>& fields,
         counter = 0;
         temp.clear();
         vector<vector<float>> unwrap(2);
-        int polId = 0;
+        //int polId = 0;
         bool polReset = false;
 
               
-        // Need a seperate iter over par to construct unwrapped phase estimates
-        for (Int ipar=0;ipar<fsh(0);++ipar) {
-          blc(0)=trc(0)=ipar;
-          fblc(0)=ftrc(0)=ipar/1;
-            
-          // Reference slices of par/parOK
+        // Need a seperate iter to construct unwrapped phase estimates
+        // Iterate over polId rather than ipar
+        for (Int polId=0; polId<2;++polId) {
+          temp.clear();
+          counter = 0;
+
+          blc(0)=trc(0)=polId * 4;
+          fblc(0)=ftrc(0)=(polId * 4) + 2;
+
+          // Reference slices of par twice. Once for pol and again for delay rates
           p.reference(fpar(blc,trc).reform(vec));
           newp.assign(p);
-          pOK.reference(fparok(fblc,ftrc).reform(vec));
-          newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+          pRate.reference(fpar(fblc,ftrc).reform(vec));
           int cycles = 0;
             
           for (Int i=0;i<nSlot;++i) {
-            vector<float> holder {0.0, 0.0, 0.0};
-            if (ipar == 4 && !polReset) {
-              polId = 1;
-              counter = 0;
-              temp.clear();
-              polReset = true;
-            }
-              
-            if (ipar == 0 || ipar == 4){
-              // Save the phase values to use for the estimates
-              holder[0] = newp(i);
-              holder[2] = times(i);
-              temp.push_back(holder);
-            }
-            else if (ipar == 2 || ipar == 6){
-              // Now that we have the delay rates we can estimate the number of phase cycles
-              temp[counter][1] = p(i);
-              // if are at counter 0 you can't interpolate back. Just insert as starting value
-              if (counter == 0) {
+            // holder for phase, delay, and time
+            vector<float> holder {0.0, 0.0, 0.0}; 
+            // Save the phase rate and time to use for the estimates
+            holder[0] = newp(i);
+            holder[1] = pRate(i);
+            holder[2] = times(i);
+
+            // array of phases delays and times to be used in the cycle estimations
+            temp.push_back(holder);
+
+            // Estimate the number of Phase cycles
+            if (counter == 0) {
+                // If we are at 0 we cant interpolate backwards. Just instert as starting value
                 unwrap[polId].push_back(temp[counter][0]);
-              }
-              else {
+            }
+            else {
                 // Get the time difference between two points
                 float timeStep = temp[counter][2] - temp[counter-1][2];
-                // Get Forwards and backwards predictions (in radians)
-                float predictFW = temp[counter-1][0] + (temp[counter-1][1] * refFreq * timeStep * 2*M_PI);
-                float predictBW = temp[counter][0] - (temp[counter][1] * refFreq * timeStep * 2*M_PI);
-                // Get number of cycles predicted by both and take the avg (backward has sign flipped so it matches direction)
-                int FwCycles = 0;
-                int BwCycles = 0;
-                
-                float fcp = (((temp[counter-1][0]+M_PI)/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep));
-                float bcp = (((temp[counter][0]+M_PI)/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep));
-                
-                if (fcp > 1) {
-                  FwCycles = (int)fcp;
+                // Get Forwards and backwards predictions (in cycles)
+                float predictFWDiff = ((temp[counter-1][0]/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep * 2)) - (temp[counter][0]/(2*M_PI));
+                float predictBWDiff = ((temp[counter][0]/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep * 2)) - (temp[counter-1][0]/(2*M_PI));
+                // Take the average prediction of cycles
+                float cycleDiff = ((predictFWDiff-predictBWDiff)/2);
+                // Adjust total cycle estimate
+                if (cycleDiff > 0.5) {
+                  cycles += (int)(floor(cycleDiff + 0.5));
                 }
-                else if (fcp < 0) {
-                  FwCycles = (int)(fcp-1);
+                if (cycleDiff < 0.5) {
+                  cycles -= (int)(floor(abs(cycleDiff) + 0.5));
                 }
-                
-                if (bcp > 1) {
-                  BwCycles = -(int)(bcp);
-                }
-                else if (bcp < 0) {
-                  BwCycles = -(int)(bcp-1);
-                }
-                
-                cycles += (int)((fcp-bcp) / 2);
+
+                // Add unwrapped phase values to array
                 unwrap[polId].push_back(temp[counter][0] + 2 * M_PI * cycles);
-              }
-              counter ++;
             }
+            
+            // increment counter
+            counter++;
           }
         }
           
