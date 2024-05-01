@@ -346,12 +346,13 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
                                     Array<Complex> &convFunc,
                                     Array<Complex> &wgtConvFunc,
                                     const vi::VisBuffer2 &vb,
-                                    const Matrix<Double> &rotuvw) {
+                                    const Matrix<Double> &rotuvw,
+                                    const Vector<Double> & interpFreqs) {
 
   Vector<Int> cmap;
   Vector<Int> pmap;
   Vector<Int> rmap;
-  getConvIndices(pmap, cmap, rmap, vb, rotuvw);
+  getConvIndices(pmap, cmap, rmap, vb, rotuvw, interpFreqs);
   //cerr << "pmap "<< pmap << endl;
   //cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
   std::vector<Int> pmapused = pmap.tovector();
@@ -449,7 +450,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   
 
 //////////////////////  
-void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw) {
+void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const Vector<Double>& interpFreqs) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
   polMap.resize(visPolMap.nelements());
@@ -465,9 +466,9 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
     }
   }
   // Lets do chanMap
-  chanMap.resize(vb.nChannels());
+  chanMap.resize(interpFreqs.nelements());
   chanMap.set(-1);
-  Vector<Double>visFreq = vb.getFrequencies(0);
+  Vector<Double>visFreq = interpFreqs;
   for (uint k = 0; k < chanMap.nelements(); ++k) {
     Double minDiff = 1e40;
     Int indexF = -1;

@@ -243,7 +243,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     //////
     } */  
     awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
-                             weightConvFunc_p, vb, rotuvw);
+                             weightConvFunc_p, vb, rotuvw, interpVisFreq_p);
     //double time1=omp_get_wtime();
     //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
@@ -271,15 +271,16 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
-    //cerr << "LENGTH aft " << rmapused.size() << "   " << cmapused.size() << "   " << pmapused.size() << endl;
-    //cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
-    pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
+   
+    pbConvFunc_p->rephaseConvFunc(
+        iimage, vb, convSampling, convFunc, weightConvFunc_p, pmapused,
+        cmapused, rmapused, MVDirection(-(movingDirShift_p.getAngle())),
+        fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
-   
-    
- }
  
+ }
+
   /////==============================================
   //// some fortran defn
 #define NEED_UNDERSCORES
