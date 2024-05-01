@@ -36,12 +36,13 @@ class CasaxmlutilTest(unittest.TestCase):
     _DUMMY = 'dummy'
     # testdata must be defined
     testdata = Testdata(_DUMMY, {}, {})
+    task = None
 
     @classmethod
     def setUpClass(cls):
         """Create temporary directory and copy files for tests."""
-        # test if test data has properly been configured.
         assert cls.testdata.datapath != cls._DUMMY, 'datapath was not properly configured'
+        assert cls.task is not None, 'task was not specified'
 
         cls.curdir = os.getcwd()
         if os.path.exists(testdir):
@@ -59,10 +60,6 @@ class CasaxmlutilTest(unittest.TestCase):
         os.chdir(cls.curdir)
         if os.path.exists(testdir):
             shutil.rmtree(testdir)
-
-    def __init__(self, methodName: str):
-        """Initialize an instance."""
-        super().__init__(methodName)
 
     def tearDown(self):
         """Reset casalog and clear temporary files."""
@@ -151,25 +148,22 @@ class SDCalTest(CasaxmlutilTest):
                          'otf': 'uid___A002_X6218fb_X264.ms.sel.otfraster'},
                         {'outfile': 'sdcal.out',
                          'applyfile': 'apply.cal'})
-
-    def __init__(self, methodName: str):
-        super().__init__(methodName)
-        self.sdcal = sdcal
-        self.success = SUCCESS
-        self.fail = FAIL
+    task = sdcal
+    success = SUCCESS
+    fail = FAIL
 
     def __test_sdcal(self, whether: bool, args: dict, desired: dict=None, prepare_data: bool=False):
         """Test sdcal with parameters, prepare input data if needed."""
         if prepare_data:
-            self.sdcal(infile=self.testdata.infiles['ps'], calmode='tsys',
+            self.task(infile=self.testdata.infiles['ps'], calmode='tsys',
                        outfile=self.testdata.tempfiles['applyfile'])
         if not args.get('outfile'):
             args['outfile'] = self.testdata.tempfiles['outfile']
         if whether is SUCCESS:
             self.assertIsNotNone(desired)
-            self.positive_test(self.sdcal, args, desired)
+            self.positive_test(self.task, args, desired)
         else:
-            self.negative_test(self.sdcal, args)
+            self.negative_test(self.task, args)
 
     def test_sdcal_ps(self):
         """Test sdcal(calmode=ps)."""
@@ -335,16 +329,20 @@ class SDFitTest(CasaxmlutilTest):
                         {'timebin': 'sdfit_tave.ms'},
                         {})
 
+    task = sdfit
+    success = SUCCESS
+    fail = FAIL
+
     def __test_sdfit(self, whether: bool, args: dict, desired: dict=None):
         """Test sdfit with arguments and desired output."""
         if whether is SUCCESS:
-            self.positive_test(sdfit, args, desired)
+            self.positive_test(self.task, args, desired)
         else:
-            self.negative_test(sdfit, args)
+            self.negative_test(self.task, args)
 
     def test_sdfit_timebin(self):
         """Test sdfit(timebin='1s'). If timebin is specified a value, then timespan is overridden by ''."""
-        self.__test_sdfit(SUCCESS,
+        self.__test_sdfit(self.success,
                           args={'infile': self.testdata.infiles['timebin'],
                                 'datacolumn': 'float_data',
                                 'nfit': [1], 'pol': 'XX',
@@ -353,7 +351,7 @@ class SDFitTest(CasaxmlutilTest):
 
     def test_sdfit_timebin_is_empty(self):
         """Test sdfit(timebin='')."""
-        self.__test_sdfit(FAIL,
+        self.__test_sdfit(self.fail,
                           args={'infile': self.testdata.infiles['timebin'],
                                 'datacolumn': 'float_data',
                                 'nfit': [1], 'pol': 'XX',
@@ -369,18 +367,14 @@ if casashell is not None:
     class CasashellSDCalTest(SDCalTest):
         """Test that all constraint applying processes of casatasks.private.sdcal are not executed."""
 
-        def __init__(self, methodName: str):
-            super().__init__(methodName)
-            self.sdcal = s_sdcal
-            self.success = FAIL
+        task = s_sdcal
+        success = FAIL
 
     class CasashellSDFitTest(SDFitTest):
         """Test that all constraint applying processes of casatasks.private.sdfit are not executed."""
 
-        def __init__(self, methodName: str):
-            super().__init__(methodName)
-            self.sdfit = s_sdfit
-            self.success = FAIL
+        task = s_sdfit
+        success = FAIL
 
 else:
     casalog.post('could not load tasks in casashell.private')
