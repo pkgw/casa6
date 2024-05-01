@@ -17,7 +17,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be addressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -212,6 +212,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/ft.xml',
               'xml/gaincal.xml',
               'xml/gencal.xml',
+              'xml/getantposalma.xml',
               'xml/testconcat.xml',
               'xml/apparentsens.xml',
               'xml/getcalmodvla.xml',
@@ -633,7 +634,7 @@ setup( name=module_name,version=casatasks_version,
        maintainer="Darrell Schiebel",
        maintainer_email="drs@nrao.edu",
        author="CASA development team",
-       author_email="aips2-request@nrao.edu",
+       author_email="casa-feedback@nrao.edu",
        url="https://open-bitbucket.nrao.edu/projects/CASA/repos/casatools/browse",
        download_url="https://casa.nrao.edu/download/",
        license="GNU Library or Lesser General Public License (LGPL)",
