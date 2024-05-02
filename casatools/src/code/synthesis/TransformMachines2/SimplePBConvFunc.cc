@@ -893,8 +893,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       Double spwfreqwidth = abs(Vector<Double>(vb.subtableColumns().spectralWindow().chanWidth()(spw))(0));
       if (tol < spwfreqwidth)
         tol = spwfreqwidth;
-      Double topFreq = max(spwfreq)+spwfreqwidth/2.0;
-      Double bottomFreq = min(spwfreq)-spwfreqwidth/2.0;
+      Double topFreq = max(spwfreq);
+      Double bottomFreq = min(spwfreq);
       uint nchan = std::round(topFreq - bottomFreq) / tol;
       if (nchan == 0)
         nchan = 1;
@@ -924,12 +924,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         fmin = std::get<0>(frange);
         fmax = std::get<1>(frange);
       }
-      
       for (auto f : freqsforvb) {
-        if (f >= (fmin-FLT_EPSILON) && f <= (fmax+FLT_EPSILON))
+        if (f >= fmin && f <= fmax)
           freqs.push_back(f);
       }
-      
+
+
     }
 
 

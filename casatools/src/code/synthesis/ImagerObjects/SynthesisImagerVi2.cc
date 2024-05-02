@@ -1087,27 +1087,30 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
      std::tie(procInfo, std::ignore, std::ignore) =
          nSubCubeFitInMemory(fudge_factor, imshape, padding);
 
-     // chanchunks auto-calculation block, for now still here for awproject (CAS-12204)
-     if(chanchunks<1)
-	{
-	  log_l << "Automatically calculated chanchunks";
-	  log_l << " using imshape : " << imshape << LogIO::POST;
+     // chanchunks auto-calculation block, for now still here for
+     // awproject (CAS-12204)
+     if (chanchunks < 1) {
+       log_l << "Automatically calculated chanchunks";
+       log_l << " using imshape : " << imshape << LogIO::POST;
 
-	  // Do calculation here.
-	  // This runs once per image field (for multi-field imaging)
-	  // This runs once per cube partition, and will see only its own partition's shape
-		//chanchunks=1;
+       // Do calculation here.
+       // This runs once per image field (for multi-field imaging)
+       // This runs once per cube partition, and will see only its own
+       // partition's shape
+       // chanchunks=1;
 
-                chanchunks = procInfo.chnchnks;
+       chanchunks = procInfo.chnchnks;
 
-		/*log_l << "Required memory " << required_mem / nlocal_procs / 1024. / 1024. / 1024.
-                 << "\nAvailable memory " << memory_avail / 1024. / 1024 / 1024.
-                 << " (rc: memory fraction " << usr_memfrac << "% rc memory " << usr_mem / 1024.
-                 << ")\n" << nlocal_procs << " other processes on node\n"
-                 << "Setting chanchunks to " << chanchunks << LogIO::POST;
-		*/
-	}
-	//record this in gridpars_p
+       /*log_l << "Required memory " << required_mem / nlocal_procs / 1024. /
+        1024. / 1024.
+        << "\nAvailable memory " << memory_avail / 1024. / 1024 / 1024.
+        << " (rc: memory fraction " << usr_memfrac << "% rc memory " << usr_mem
+        / 1024.
+        << ")\n" << nlocal_procs << " other processes on node\n"
+        << "Setting chanchunks to " << chanchunks << LogIO::POST;
+       */
+     }
+        //record this in gridpars_p
 	gridpars_p.chanchunks=chanchunks;
       if( imshape.nelements()==4 && imshape[3]<chanchunks )
 	{
@@ -1206,9 +1209,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 		std::stringstream ss(getenv("OMPI_COMM_WORLD_LOCAL_SIZE"));
 		ss >> nlocal_procs;
 	}
-        //cerr << "NUM_PROC " << nlocal_procs << endl;
-	// assumes all processes need the same amount of memory
-	required_mem *= nlocal_procs;
+	// assumes all processes need the same amount of memory with a 10% overhead
+	required_mem *= nlocal_procs*1.1;
 	Double usr_memfrac, usr_mem;
 	AipsrcValue<Double>::find(usr_memfrac, "system.resources.memfrac", 80.);
 	AipsrcValue<Double>::find(usr_mem, "system.resources.memory", -1.);
@@ -1292,7 +1294,6 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
             << ") => Subcubes: " << nsubcube
             << ". Processes on node: " << nlocal_procs << ".\n";
         log_l << oss.str() << LogIO::POST;
-
         TcleanProcessingInfo procInfo;
         procInfo.mpiprocs = nlocal_procs;
         procInfo.chnchnks = nsubcube;
