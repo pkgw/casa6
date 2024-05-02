@@ -901,5 +901,30 @@ class reference_frame_tests(unittest.TestCase):
             )
             self.__delete_intermediate_products()
 
+
+class phaseshift_phasecenter_test(unittest.TestCase):
+    """ Tests around the use of multi-field phasecenter values (dicts) """
+
+    def setUp(self):
+        shutil.copytree(datapath, datacopy)
+        self.outputvis = "test_vis_multi_field_phasecenter_dict.ms"
+
+    def tearDown(self):
+        shutil.rmtree(datacopy)
+
+        if os.path.exists(self.outputvis):
+            shutil.rmtree(self.outputvis)
+
+    def test_takes_phasecenter_dict(self):
+        ''' Check multiple field phasecenter(s) given as a dict '''
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter={'0': 'J2000 19h53m50 40d06m00',
+                                         '1': 'J2000 19h53m50 40d06m00',}
+                            )
+
+        self.assertEqual(result, None)
+        # TODO: check output /FIELD subtable
+
+
 if __name__ == '__main__':
     unittest.main()
