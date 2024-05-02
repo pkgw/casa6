@@ -224,11 +224,12 @@ class phaseshift_test(unittest.TestCase):
                     phasecenter='ICRS 00h06m14 -06d23m35',
                     datacolumn='MODEL'
             )
-            # running to completion indicates success in CASA 6
-            phaseshift(
-                datacopy_nep, outputvis=output,
-                phasecenter='ICRS 00h06m14 -06d23m35', datacolumn='DATA'
-            )
+
+        # running to completion indicates success in CASA 6
+        phaseshift(
+            datacopy_nep, outputvis=output,
+            phasecenter='ICRS 00h06m14 -06d23m35', datacolumn='DATA'
+        )
 
     def test_phasecenter(self):
         '''
