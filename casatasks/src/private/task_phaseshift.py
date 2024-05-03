@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import numpy as np
 from .mstools import write_history
 from casatools import table, ms, mstransformer
 from casatools import measures as me
@@ -128,7 +129,7 @@ def _get_col_names(vis: str):
     return colnames
 
 
-def _update_field_subtable(outputvis, phasecenter):
+def _update_field_subtable(outputvis, field, phasecenter):
     """ Update MS/FIELD subtable with shifted center(s). """
     try:
         tblocal = table()
@@ -138,9 +139,18 @@ def _update_field_subtable(outputvis, phasecenter):
 
         if isinstance(phasecenter, str):
             thenewra_rad, thenewdec_rad = _convert_to_ra_dec_j2000(phasecenter)
-            for row in range(0, tblocal.nrows()):
-                pcol[0][0][row] = thenewra_rad
-                pcol[1][0][row] = thenewdec_rad
+            if field:
+                try:
+                    field_id = int(field)
+                except ValueError as exc:
+                    fnames = tblocal.getcol('NAME')
+                    field_id = np.where(fnames == field)[0][0]
+                pcol[0][0][field_id] = thenewra_rad
+                pcol[1][0][field_id] = thenewdec_rad
+            else:
+                for row in range(0, tblocal.nrows()):
+                    pcol[0][0][row] = thenewra_rad
+                    pcol[1][0][row] = thenewdec_rad
 
         elif isinstance(phasecenter, dict):
             for field_id, field_center in phasecenter.items():
