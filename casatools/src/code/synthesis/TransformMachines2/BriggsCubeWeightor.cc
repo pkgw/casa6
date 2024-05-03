@@ -195,7 +195,7 @@ String BriggsCubeWeightor::initImgWeightCol(
       inOneGo = False;
          }
          
-     //cerr << "allSwingPad " << allSwingPad << " inOneGo " << inOneGo << " im shape "<<  templateimage.shape() << endl;
+     cerr << "allSwingPad " << allSwingPad << " inOneGo " << inOneGo << " im shape "<<  templateimage.shape() << endl;
   }
   ///////////////
   // cerr << "###fieldsInUSE " << Vector<pair<Int, Int> >(fieldsToUse) << endl;;
@@ -211,6 +211,8 @@ String BriggsCubeWeightor::initImgWeightCol(
     for (auto msiter = msInUse.begin(); msiter != msInUse.end(); ++msiter) {
       uInt swingpad = estimateSwingChanPad(vi, *msiter, cs,
                                            templateimage.shape()[3], ephemtab);
+      cerr << "nchan " << templateimage.shape()[3] << " ephem " << ephemtab
+           << " msid " << *msiter << " swingpad " << swingpad << endl;
       fillImgWeightCol(vi, inRec, *msiter, fieldsToUse, swingpad,
                        templateimage.shape(), cs);
     }
@@ -945,6 +947,9 @@ void BriggsCubeWeightor::initializeFTMachine(
      String ephemtabname;
      inRec.get("ephemeristable", ephemtabname);
      ft_p[index]->setMovingSource(ephemtabname);
+  }
+  else if(movingdir.getRefString().contains("APP")){
+    ft_p[index]->setMovingSource("TRACKFIELD");
   }
   // remember to make the stokes I
   grids_p[index] = new TempImage<Float>(templateimage.shape(),
