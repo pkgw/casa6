@@ -45,96 +45,87 @@ def phaseshift(
             raise RuntimeError(str(instance))
         return
 
-    # Create local copies of tools (has to be here, otherwise
-    # ParallelDataHelper has a problem digest the locals
-    tblocal = table()
-    mslocal = ms()
-    mtlocal = mstransformer()
 
     # Actual task code starts here
-    try:
-        try:
-            # Gather all the parameters in a dictionary.
-            config = {}
+    # Gather all the parameters in a dictionary.
+    config = {}
 
-            config = pdh.setupParameters(
-                inputms=vis, outputms=outputvis, field=field,
-                spw=spw, array=array, scan=scan, intent=intent,
-                observation=observation
-            )
+    config = pdh.setupParameters(
+        inputms=vis, outputms=outputvis, field=field,
+        spw=spw, array=array, scan=scan, intent=intent,
+        observation=observation
+    )
 
-            # Check if CORRECTED column exists, when requested
-            datacolumn = datacolumn.upper()
-            if datacolumn == 'CORRECTED':
-                tblocal.open(vis)
-                if 'CORRECTED_DATA' not in tblocal.colnames():
-                    casalog.post(
-                        'Input CORRECTED_DATA does not exist. Will use DATA',
-                        'WARN'
-                    )
-                    datacolumn = 'DATA'
-                tblocal.close()
 
-            casalog.post('Will use datacolumn = ' + datacolumn, 'DEBUG')
-            config['datacolumn'] = datacolumn
-
-            # Call MSTransform framework with tviphaseshift=True
-            config['tviphaseshift'] = True
-            config['reindex'] = False
-            tviphaseshift_config = {'phasecenter': phasecenter}
-            config['tviphaseshiftlib'] = tviphaseshift_config
-
-            # Configure the tool
-            casalog.post(str(config), 'DEBUG1')
-            mtlocal.config(config)
-
-            # Open the MS, select the data and configure the output
-            mtlocal.open()
-
-            # Run the tool
-            casalog.post('Shift phase center')
-            mtlocal.run()
-
-        except Exception as instance:
-            casalog.post(str(instance), 'ERROR')
-            raise RuntimeError(str(instance))
-
-        finally:
-            mtlocal.done()
-
-        # Write history to output MS, not the input ms.
-        try:
-            param_names = phaseshift.__code__.co_varnames[
-                :phaseshift.__code__.co_argcount
-            ]
-            vars = locals()
-            param_vals = [vars[p] for p in param_names]
-            casalog.post('Updating the history in the output', 'DEBUG1')
-            write_history(
-                mslocal, outputvis, 'phaseshift', param_names,
-                param_vals, casalog
-            )
-        except Exception as instance:
+    colnames = _get_col_names(vis)
+    # Check if CORRECTED column exists, when requested
+    datacolumn = datacolumn.upper()
+    if datacolumn == 'CORRECTED':
+        if 'CORRECTED_DATA' not in colnames:
             casalog.post(
-                "*** Error " + str(instance)
-                + " updating HISTORY", 'WARN'
+                'Input data column CORRECTED_DATA does not exist. Will use DATA',
+                'WARN'
             )
-            raise RuntimeError(str(instance))
+            datacolumn = 'DATA'
 
-        casalog.post('Updating the FIELD subtable of the output MeasurementSet with shifted'
-                     ' phase centers', 'INFO')
-        _update_field_subtable(outputvis, phasecenter)
+    casalog.post('Will use datacolumn = ' + datacolumn, 'DEBUG')
+    config['datacolumn'] = datacolumn
 
+
+    # Call MSTransform framework with tviphaseshift=True
+    config['tviphaseshift'] = True
+    config['reindex'] = False
+    tviphaseshift_config = {'phasecenter': phasecenter}
+    config['tviphaseshiftlib'] = tviphaseshift_config
+
+    # Configure the tool
+    casalog.post(str(config), 'DEBUG1')
+
+    mtlocal = mstransformer()
+    try:
+        mtlocal.config(config)
+
+        # Open the MS, select the data and configure the output
+        mtlocal.open()
+
+        # Run the tool
+        casalog.post('Shift phase center')
+        mtlocal.run()
     finally:
-        if tblocal:
-            tblocal.done()
-            tblocal = None
-        if mslocal:
-            mslocal.done()
-            mslocal = None
-        if mtlocal:
-            mtlocal.done()
-            mtlocal = None
+        mtlocal.done()
+
+    # Write history to output MS, not the input ms.
+    try:
+        mslocal = ms()
+        param_names = phaseshift.__code__.co_varnames[
+            :phaseshift.__code__.co_argcount
+        ]
+        vars = locals()
+        param_vals = [vars[p] for p in param_names]
+        casalog.post('Updating the history in the output', 'DEBUG1')
+        write_history(
+            mslocal, outputvis, 'phaseshift', param_names,
+            param_vals, casalog
+        )
+    except Exception as instance:
+        casalog.post(f"*** Error {instance} updating HISTORY", 'WARN')
+        raise RuntimeError(str(instance))
+    finally:
+        mslocal.done()
+
+    casalog.post('Updating the FIELD subtable of the output MeasurementSet with shifted'
+                 ' phase centers', 'INFO')
+    _update_field_subtable(outputvis, field, phasecenter)
+
+
+def _get_col_names(vis: str):
+    tblocal = table()
+    try:
+        tblocal.open(vis)
+        colnames = tblocal.colnames()
+    finally:
+        tblocal.done()
+    return colnames
 
 
 def _update_field_subtable(outputvis, phasecenter):
@@ -177,7 +168,7 @@ def _convert_to_ra_dec_j2000(phasecenter: str):
         thedir = melocal.direction(dirstr[0], dirstr[1], dirstr[2])
         if not thedir:
             raise RuntimeError(f"measures.direction() failed for phasecenter string:"
-                               " {phasecenter}")
+                               f" {phasecenter}")
         if (dirstr[0] != 'J2000'):
             # Convert to J2000
             thedir = melocal.measure(thedir, 'J2000')
