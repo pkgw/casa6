@@ -319,8 +319,8 @@ def do_generate_eop(vis, caltable, infile):
         else:
             new_eops = get_eops_from_casadata(mjd_min, mjd_max)
         if not new_eops:
-            msg = 'No updated EOPS found for MJD ' + mjd_min + '-' + mjd_max \
-                + ' in ' + infile
+            msg = 'No updated EOPS found for MJD ' + str(mjd_min) + '-' \
+                + str(mjd_max) + ' in ' + infile
             casalog.post(msg, 'SEVERE')
             continue
 
