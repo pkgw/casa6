@@ -757,20 +757,7 @@ class reference_frame_tests(unittest.TestCase):
                 vis=self.orig_ms, outputvis=self.pshift_ms,
                 phasecenter=pcenter, field=myfield
             )
-            md.open(self.pshift_ms)
-            exp_nfields = 2 if len(myfield) == 0 else 1
-            self.assertEqual(
-                md.nfields(), exp_nfields,
-                msg='Wrong number of fields for field ' + myfield
-            )
-            sep = me.separation(md.refdir(field=0), expdir)
-            md.done()
-            self.assertEqual(
-                qa.getvalue(sep), 0,
-                msg='Ref direction is wrong for field ' + myfield
-                + ' separation is ' + qa.tos(qa.convert(sep, 'arcsec'))
-            )
-            # check times and baselines
+
             field_id = ''
             if len(myfield) > 0:
                 try:
@@ -779,6 +766,27 @@ class reference_frame_tests(unittest.TestCase):
                     md.open(self.orig_ms)
                     field_id = md.fieldsforname(myfield)[0]
                     md.done()
+            if field_id:
+                separation_field = field_id
+            else:
+                separation_field = 0
+
+            md.open(self.pshift_ms)
+            # re-indexing disabled. Output FIELD subtable has all the original fields
+            exp_nfields = 2
+            self.assertEqual(
+                md.nfields(), exp_nfields,
+                msg='Wrong number of fields in FIELD subtable for field ' + myfield
+            )
+            sep = me.separation(md.refdir(field=separation_field), expdir)
+            md.done()
+            self.assertEqual(
+                qa.getvalue(sep), 0,
+                msg='Ref direction is wrong for field ' + myfield
+                + ' separation is ' + qa.tos(qa.convert(sep, 'arcsec'))
+            )
+
+            # check times and baselines
             if field_id == 0:
                 exp_ms = ctsys_resolve(
                     os.path.join(
