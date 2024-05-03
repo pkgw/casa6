@@ -902,7 +902,7 @@ class reference_frame_tests(unittest.TestCase):
             self.__delete_intermediate_products()
 
 
-class phaseshift_phasecenter_test(unittest.TestCase):
+class phaseshift_multi_phasecenter_test(unittest.TestCase):
     """ Tests around the use of multi-field phasecenter values (dicts) """
 
     def setUp(self):
@@ -915,15 +915,52 @@ class phaseshift_phasecenter_test(unittest.TestCase):
         if os.path.exists(self.outputvis):
             shutil.rmtree(self.outputvis)
 
-    def test_takes_phasecenter_dict(self):
-        ''' Check multiple field phasecenter(s) given as a dict '''
-        result = phaseshift(datacopy, outputvis=self.outputvis,
-                            phasecenter={'0': 'J2000 19h53m50 40d06m00',
-                                         '1': 'J2000 19h53m50 40d06m00',}
-                            )
+    def check_field_subtable(self, outputvis, new_center):
+        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+        ra_rad, dec_rad = _convert_to_ra_dec_j2000(new_center)
 
+        try:
+            tblocal = table()
+            tblocal.open(outputvis + '/FIELD', nomodify=True)
+            phase_col = tblocal.getcol('PHASE_DIR')
+        finally:
+            tblocal.done()
+
+        for row in range(0, phase_col.shape[-1]):
+            # The 0 in the middle is the 'NUM_POLY' axis
+            self.assertEqual(phase_col[0, 0, row], ra_rad)
+            self.assertEqual(phase_col[1, 0, row], dec_rad)
+
+    def test__convert_to_j2000(self):
+        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+        phasecenter = 'J2000 19h53m50 40d06m00'
+        fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
+        places = 6
+        self.assertAlmostEqual(fra, -1.074105, places=places)
+        self.assertAlmostEqual(fdec, 0.6998770, places=places)
+
+    def test__convert_to_j2000_wrong(self):
+        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+        phasecenter = 'BOGUS xxh53m50 40d06m00'
+        with self.assertRaisesRegex(RuntimeError, expected_regex="failed"):
+            fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
+
+    def test_phasecenter_dict_simple(self):
+        ''' Check multiple field phasecenter(s) given as a dict '''
+        new_center = 'J2000 19h53m50 40d06m00'
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter={'0': new_center,})
         self.assertEqual(result, None)
-        # TODO: check output /FIELD subtable
+
+        self.check_field_subtable(self.outputvis, new_center)
+
+    def test_phasecenter_dict_outofrange(self):
+        ''' Check handling of dict with unknown / too many fields '''
+        new_center = 'J2000 19h53m50 40d06m00'
+        with self.assertRaisesRegex(RuntimeError, "field IDs"):
+            result = phaseshift(datacopy, outputvis=self.outputvis,
+                                phasecenter={'0': new_center,
+                                             '1': new_center})
 
 
 if __name__ == '__main__':
