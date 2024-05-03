@@ -50,7 +50,6 @@ def phaseshift(
     tblocal = table()
     mslocal = ms()
     mtlocal = mstransformer()
-    melocal = me()
 
     # Actual task code starts here
     try:
@@ -99,12 +98,12 @@ def phaseshift(
             casalog.post('Shift phase center')
             mtlocal.run()
 
-            mtlocal.done()
-
         except Exception as instance:
-            mtlocal.done()
             casalog.post(str(instance), 'ERROR')
             raise RuntimeError(str(instance))
+
+        finally:
+            mtlocal.done()
 
         # Write history to output MS, not the input ms.
         try:
@@ -125,38 +124,9 @@ def phaseshift(
             )
             raise RuntimeError(str(instance))
 
-        # Update field table
-        try:
-
-            # Parse phase center string to obtain ra/dec
-            dirstr = phasecenter.split(' ')
-            try:
-                thedir = melocal.direction(dirstr[0], dirstr[1], dirstr[2])
-                if (dirstr[0] != 'J2000'):
-                    # Convert to J2000
-                    thedir = melocal.measure(thedir, 'J2000')
-                thenewra_rad = thedir['m0']['value']
-                thenewdec_rad = thedir['m1']['value']
-            except Exception as instance:
-                casalog.post(
-                    "*** Error " + str(instance)
-                    + " when interpreting parameter \'phasecenter\': ",
-                    'SEVERE'
-                )
-                raise RuntimeError(str(instance))
-
-            # modify FIELD table
-            tblocal.open(outputvis + '/FIELD', nomodify=False)
-            pcol = tblocal.getcol('PHASE_DIR')
-            for row in range(0, tblocal.nrows()):
-                pcol[0][0][row] = thenewra_rad
-                pcol[1][0][row] = thenewdec_rad
-            tblocal.putcol('PHASE_DIR', pcol)
-        except Exception as instance:
-            casalog.post(
-                "*** Error \'%s\' updating FIELD" + str(instance), 'WARN'
-            )
-            raise RuntimeError(str(instance))
+        casalog.post('Updating the FIELD subtable of the output MeasurementSet with shifted'
+                     ' phase centers', 'INFO')
+        _update_field_subtable(outputvis, phasecenter)
 
     finally:
         if tblocal:
@@ -168,7 +138,62 @@ def phaseshift(
         if mtlocal:
             mtlocal.done()
             mtlocal = None
-        if melocal:
-            melocal.done()
-            melocal = None
 
+
+def _update_field_subtable(outputvis, phasecenter):
+    """ Update MS/FIELD subtable with shifted center(s). """
+    try:
+        tblocal = table()
+        # modify FIELD table
+        tblocal.open(outputvis + '/FIELD', nomodify=False)
+        pcol = tblocal.getcol('PHASE_DIR')
+
+        if isinstance(phasecenter, str):
+            thenewra_rad, thenewdec_rad = _convert_to_ra_dec_j2000(phasecenter)
+            for row in range(0, tblocal.nrows()):
+                pcol[0][0][row] = thenewra_rad
+                pcol[1][0][row] = thenewdec_rad
+
+        elif isinstance(phasecenter, dict):
+            for field_id, field_center in phasecenter.items():
+                thenewra_rad, thenewdec_rad = _convert_to_ra_dec_j2000(field_center)
+                field_iidx = int(field_id)
+                pcol[0][0][field_iidx] = thenewra_rad
+                pcol[1][0][field_iidx] = thenewdec_rad
+
+        tblocal.putcol('PHASE_DIR', pcol)
+
+    except Exception as instance:
+        casalog.post(
+            "*** Error \'%s\' updating FIELD subtable" + str(instance),
+            'WARN')
+        raise RuntimeError(str(instance))
+    finally:
+        tblocal.done()
+
+
+def _convert_to_ra_dec_j2000(phasecenter: str):
+    """ Parse phase center string to obtain ra/dec (in rad) """
+    dirstr = phasecenter.split(' ')
+    try:
+        melocal = me()
+        thedir = melocal.direction(dirstr[0], dirstr[1], dirstr[2])
+        if not thedir:
+            raise RuntimeError(f"measures.direction() failed for phasecenter string:"
+                               " {phasecenter}")
+        if (dirstr[0] != 'J2000'):
+            # Convert to J2000
+            thedir = melocal.measure(thedir, 'J2000')
+        thenewra_rad = thedir['m0']['value']
+        thenewdec_rad = thedir['m1']['value']
+    except Exception as instance:
+        casalog.post(
+            "*** Error " + str(instance)
+            + " when interpreting parameter \'phasecenter\': ",
+            'SEVERE'
+        )
+        raise RuntimeError(str(instance))
+    finally:
+        melocal.done()
+
+    return thenewra_rad, thenewdec_rad
