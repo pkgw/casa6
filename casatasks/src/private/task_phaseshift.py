@@ -53,9 +53,6 @@ def phaseshift(
 
     # Actual task code starts here
     try:
-        dirstr = phasecenter.split(' ')
-        if not melocal.direction(dirstr[0], dirstr[1], dirstr[2]):
-            raise ValueError("Illegal phacecenter specification " + phasecenter)
         try:
             # Gather all the parameters in a dictionary.
             config = {}
