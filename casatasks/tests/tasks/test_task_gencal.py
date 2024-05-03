@@ -879,6 +879,9 @@ class TestJyPerK(unittest.TestCase):
 
 class gencal_eoptest(unittest.TestCase):
 
+    usno_finals_erp = os.path.join(datapath, 'usno_finals.erp')
+    eopc04_IAU2000 = os.path.join(datapath, 'eopc04_IAU2000.62-now')
+
     @classmethod
     def setUpClass(cls):
         shutil.copytree(os.path.join(datapath, evndata), evncopy)
@@ -903,6 +906,35 @@ class gencal_eoptest(unittest.TestCase):
 
         self.assertTrue(os.path.exists(caltab))
 
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_casa.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT']))
+
+    def test_eop_usno(self):
+        """Test calibration table produced when gencal is run using an
+           external file."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop',
+               infile=self.usno_finals_erp)
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_usno.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT']))
+
+    def test_eop_iers(self):
+        """Test calibration table produced when gencal is run using an
+           external file."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop',
+               infile=self.eopc04_IAU2000)
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_iers.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT']))
 
     def test_noeop(self):
         """Test that no calibration table is produced when gencal is run on an
