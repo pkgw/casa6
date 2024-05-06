@@ -409,9 +409,9 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
 
 
-    <param type="any" name="specmode" required="true">
+    <param type="string" name="specmode" required="true">
      <shortdescription>Spectral definition mode (mfs,cube,cubedata, cubesource,mvc)</shortdescription>
-<description>Spectral definition mode (mfs,cube,cubedata, cubesource)
+<description>Spectral definition mode (mfs,cube,cubedata, cubesource, mvc)
 
                        specmode='mfs' : Continuum imaging with only one output image channel.
                                                       (mode='cont' can also be used here)
