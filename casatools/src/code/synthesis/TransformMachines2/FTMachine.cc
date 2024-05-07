@@ -1811,8 +1811,8 @@ using namespace casa::vi;
     chanMap.set(-1);
     Vector<Double> lsrFreq(0);
 
-      //cerr << "doConve " << spw << "   " << doConversion_p[spw] << " freqframeval " << freqFrameValid_p << endl;
-//cerr <<"valid frame " << freqFrameValid_p << " polmap "<< polMap << endl;
+    //cerr << "doConve " << spw << "   " << doConversion_p[spw] << " freqframeval " << freqFrameValid_p << endl;
+    //cerr <<"valid frame " << freqFrameValid_p << " polmap "<< polMap << endl;
     //cerr << "spectral coord system " << spectralCoord_p.frequencySystem(False) << endl;
     if (freqFrameValid_p &&spectralCoord_p.frequencySystem(False)!=MFrequency::REST ) {
       lsrFreq=vb.getFrequencies(0,MFrequency::LSRK);
@@ -1821,17 +1821,22 @@ using namespace casa::vi;
       lsrFreq=vb.getFrequencies(0);
     }
     if (spectralCoord_p.frequencySystem(False)==MFrequency::REST && fixMovingSource_p) {
-      if(lastMSId_p != vb.msId()){
-	romscol_p=new MSColumns(vb.ms());
-	//if ms changed ...reset ephem table
-	if (upcase(movingDir_p.getRefString()).contains("APP")) {
-	  MeasComet mcomet(Path((romscol_p->field()).ephemPath(vb.fieldId()(0))).absoluteName());
-	  mFrame_p.resetComet(mcomet);
-	}
+      if (lastMSId_p != vb.msId()) {
+        romscol_p=new MSColumns(vb.ms());
+        //if ms changed ...reset ephem table
+        if (upcase(movingDir_p.getRefString()).contains("APP")) {
+          MeasComet mcomet(Path((romscol_p->field()).ephemPath(vb.fieldId()(0))).absoluteName());
+          mFrame_p.resetComet(mcomet);
+        }
       }
+      MEpoch e0 (Quantity(vb.time()(0), "s"));
+      mFrame_p.epoch() ? mFrame_p.resetEpoch(e0)
+                       : mFrame_p.set(e0);
 
-      mFrame_p.resetEpoch(MEpoch(Quantity(vb.time()(0), "s")));
-      mFrame_p.resetDirection(vbutil_p->getEphemDir(vb, phaseCenterTime_p));
+      const auto ephemDirection = vbutil_p->getEphemDir(vb, phaseCenterTime_p);
+      mFrame_p.direction() ? mFrame_p.resetDirection(ephemDirection)
+                           : mFrame_p.set(ephemDirection);
+
       shiftFreqToSource(lsrFreq);
     }
      //cerr << "lsrFreq " << lsrFreq.shape() << " nvischan " << nvischan << endl;

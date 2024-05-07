@@ -395,6 +395,7 @@ public:
 
   // For single-dish imaging
   casacore::String pointingDirCol;
+  casacore::String convertFirst;
   casacore::Float skyPosThreshold;
   casacore::Vector<casacore::Float> pointingOffsetSigDev;
   /* std::vector<float> pointingOffsetSigDev; */
