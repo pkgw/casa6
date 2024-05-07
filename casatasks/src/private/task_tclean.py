@@ -373,9 +373,10 @@ def tclean(
         cppparallel = True
         ###ignore chanchunk
         bparm['chanchunks']=1
-        if(gridder=='awphpg'):
-            localsi=synthesisimager()
-            localsi.inithpg()
+    ######awphpg case
+    if(gridder=='awphpg'):
+        localsi=synthesisimager()
+        localsi.inithpg()
     # catch non operational case (parallel cube tclean with interative=T)
     if pcube and interactive:
         casalog.post(

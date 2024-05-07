@@ -26,6 +26,7 @@
 #include <synthesis/ImagerObjects/SynthesisUtilMethods.h>
 
 #include <synthesisimager_cmpt.h>
+
 #ifdef USE_HPG
 #include <hpg/hpg.hpp>
 #endif
@@ -872,11 +873,20 @@ bool synthesisimager::inithpg()
 
   try 
     {
-    
 
+    
 #ifdef USE_HPG     
-      if (!hpg::is_initialized()) hpg::initialize();
-      rstat=true;
+    try{
+      
+      if (!hpg::is_initialized())
+        hpg::initialize();
+      auto devices = hpg::devices();
+      //cerr << "DEvices " << devices << endl;
+      rstat = true;
+    }
+    catch(...){
+      throw(AipsError("Trying to use GPU code with the wrong GPU or no GPU"));
+    }
 #endif       
       
       

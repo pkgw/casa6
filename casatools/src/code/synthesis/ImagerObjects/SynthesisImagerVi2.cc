@@ -104,7 +104,13 @@
 #include <thread>
 #include <synthesis/Parallel/Applicator.h>
 
-using namespace std;
+#ifdef USE_HPG
+#include <hpg/hpg.hpp>
+#include <dlfcn.h>
+#endif
+
+
+    using namespace std;
 
 using namespace casacore;
 
@@ -2650,9 +2656,22 @@ void SynthesisImagerVi2::unlockMSs()
 #ifndef USE_HPG
         throw(AipsError("Code has not been built with gpu libraries"));
 #else
-        cerr << "DOING HPG" << endl;
-        visResampler = new refim::AWVisResamplerHPG(false);
-        visResampler->setModelImage("");
+      try {
+        // test for cuda
+        void *cudalib = dlopen("libcuda.so", RTLD_LAZY);
+        if (!cudalib)
+          throw(AipsError("Cannot run hpg on this machine"));
+        else {
+          dlclose(cudalib);
+        }
+        if (!hpg::is_initialized())
+          hpg::initialize();
+      } catch (...) {
+        throw(AipsError("Trying to use GPU code with the wrong GPU or no GPU"));
+      }
+      cerr << "DOING HPG" << endl;
+      visResampler = new refim::AWVisResamplerHPG(false);
+      visResampler->setModelImage("");
 #endif
       }
     else
