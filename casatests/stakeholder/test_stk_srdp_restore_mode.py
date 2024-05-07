@@ -49,6 +49,7 @@ class Test_srdp_base(unittest.TestCase):
     """ Base class for all tests """
     @classmethod
     def setUpClass(cls) -> None:
+        cls.parallel = False
         if ParallelTaskHelper.isMPIEnabled():
             cls.parallel = True
 
