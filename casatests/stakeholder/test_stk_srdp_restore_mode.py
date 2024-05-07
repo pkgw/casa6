@@ -38,6 +38,7 @@ from casatasks import importasdm, flagdata, flagmanager, applycal, tclean, imsta
 from casatestutils import stats_dict
 from casatestutils import generate_weblog
 from casatestutils import add_to_dict
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatestutils.imagerhelpers import TestHelpers
 th = TestHelpers()
 
@@ -46,7 +47,11 @@ data_path = ctsys.resolve('stakeholder/srdp/')
 
 class Test_srdp_base(unittest.TestCase):
     """ Base class for all tests """
-    
+    @classmethod
+    def setUpClass(cls) -> None:
+        if ParallelTaskHelper.isMPIEnabled():
+            cls.parallel = True
+
     @classmethod
     def tearDownClass(cls) -> None:
        # Generate weblogs for the tests. An html file will be created in the local directory
@@ -185,7 +190,7 @@ class Test_srdp_alma_12m(Test_srdp_base):
 
         # Create the calibrator image and check the flux density and beam
         tclean(vis=self.output_ms,field='J0336+3218',imsize=256,cell='0.05arcsec',spw='19,21,23',
-               imagename=self.image_prefix,niter=5000,nsigma=3.0)
+               imagename=self.image_prefix,niter=5000,nsigma=3.0, parallel=self.parallel)
 
         # Check calibrator peak flux density matches <1% of flux: 1.251 Jy 
         flux = imstat(imagename=self.image_prefix+'.image')['flux']
@@ -305,7 +310,7 @@ class Test_srdp_alma_7m(Test_srdp_base):
 
         # Create the calibrator image and check the flux density and beam
         tclean(vis=self.output_ms,field='J0501-0159',imsize=256,cell='0.25arcsec',spw='16,18,20,22',
-               imagename=self.image_prefix,niter=5000,nsigma=3.0)
+               imagename=self.image_prefix,niter=5000,nsigma=3.0, parallel=self.parallel)
         
         # Check calibrator peak flux density matches <1% of flux: 1.251 Jy 
         flux = imstat(imagename=self.image_prefix+'.image')['flux']
@@ -449,7 +454,7 @@ class Test_srdp_vla(Test_srdp_base):
 
         # Create calibrator image
         tclean(vis=self.output_ms, field='J1820-2528', imsize=256, cell='1.0arcsec', spw='0~15',
-        imagename=self.image_prefix, niter=5000, nsigma=5.0)
+        imagename=self.image_prefix, niter=5000, nsigma=5.0, parallel=self.parallel)
 
         # Calibrator flux density and beam: 0.7645 Jy/beam, 21.292" x 9.361" 1.405 degrees
         flux = imstat(imagename=self.image_prefix+'.image')['flux']
