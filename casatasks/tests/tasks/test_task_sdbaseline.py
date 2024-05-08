@@ -2161,6 +2161,7 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
                     (2) in row 2, entirely flagged for pol 0, also pol 1 is unselected
                     (3) in row 2, entirely flagged for pol 1, also pol 0 is unselected
     test304 : same as test303, but for blfunc='variable'
+    test304 : blmode='fit', bloutput!='', dosubtract=True, blfunc='sinusoid'
 
     Note: input data is generated from a single dish regression data,
     'OrionS_rawACSmod', as follows:
@@ -2180,29 +2181,29 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
     ftype = {'poly': 0, 'chebyshev': 1, 'cspline': 2, 'sinusoid': 3}
 
     def setUp(self):
-        if os.path.exists(self.infile):
-            shutil.rmtree(self.infile)
-        if os.path.exists(self.sin_infile):
-            shutil.rmtree(self.sin_infile)
-        # if os.path.exists(self.sin_blparam):
-        #     shutil.rmtree(self.sin_blparam)
-        shutil.copytree(os.path.join(self.datapath, self.infile), self.infile)
-        shutil.copytree(os.path.join(self.datapath, self.sin_infile), self.sin_infile)
+        dirs_to_copy = [self.infile, self.sin_infile]
+        for directory in dirs_to_copy:
+            if os.path.exists(directory):
+                shutil.rmtree(directory, ignore_errors=True)
+    
+        shutil.copytree(os.path.join(self.datapath, self.infile), self.infile, dirs_exist_ok=False)
+        shutil.copytree(os.path.join(self.datapath, self.sin_infile), self.sin_infile, dirs_exist_ok=False)
         shutil.copyfile(os.path.join(self.datapath, self.sin_blparam), self.sin_blparam)
-        #shutil.copyfile
 
-        if os.path.exists(self.infile + '_blparam.txt'):
-            os.remove(self.infile + '_blparam.txt')
-        if os.path.exists(self.infile + '_blparam.csv'):
-            os.remove(self.infile + '_blparam.csv')
-        if os.path.exists(self.infile + '_blparam.btable'):
-            shutil.rmtree(self.infile + '_blparam.btable')
-        if os.path.exists(self.sin_infile + '_blparam.txt'):
-            os.remove(self.sin_infile + '_blparam.txt')
-        if os.path.exists(self.sin_infile + '_blparam.csv'):
-            os.remove(self.sin_infile + '_blparam.csv')
-        if os.path.exists(self.sin_infile + '_blparam.btable'):
-            shutil.rmtree(self.sin_infile + '_blparam.btable')
+        files_to_remove = [
+            self.infile + '_blparam.txt',
+            self.infile + '_blparam.csv',
+            self.infile + '_blparam.btable',
+            self.sin_infile + '_blparam.txt',
+            self.sin_infile + '_blparam.csv',
+            self.sin_infile + '_blparam.btable'
+        ]
+        for file_path in files_to_remove:
+            if os.path.exists(file_path):
+                if os.path.isdir(file_path):
+                    shutil.rmtree(file_path, ignore_errors=True)
+                else:
+                    os.remove(file_path)
 
     def tearDown(self):
         remove_single_file_dir(self.infile)
