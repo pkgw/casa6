@@ -2497,7 +2497,7 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
                             blfunc=blfunc, blparam=blparam,
                             dosubtract=dosubtract, outfile=outfile)
         self.assertEqual(result, None,
-                            msg="The task returned '" + str(result) + "' instead of None")
+                            msg=f"Expected return code: None, got: {result}")
         with table_manager(self.sin_infile) as tb:
             nrow_data = tb.nrows()
             with table_manager(bloutput) as tb:
