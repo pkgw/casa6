@@ -441,12 +441,13 @@ class Test_srdp_vla(Test_srdp_base):
                                valname='flags_applycal')
 
         # Get weigth statistics
-        # TODO: get a tolerance for the statwt comparisons
         stats = statwt(vis=self.output_ms, minsamp=8, datacolumn='corrected')
 
-        # These values are using the default th.check_val tolerance of 0.05
-        status, report4 = th.check_val(stats['mean'], self.exp_statwt['mean'], exact=False, valname='statwt_mean')
-        status, report5 = th.check_val(stats['variance'], self.exp_statwt['variance'], exact=False, valname='statwt_variance')
+        # TODO: get a tolerance for the statwt comparisons
+        status, report4 = th.check_val(stats['mean'], self.exp_statwt['mean'], exact=False, epsilon=self.exp_tol, \
+                                       valname='statwt_mean')
+        status, report5 = th.check_val(stats['variance'], self.exp_statwt['variance'], exact=False, epsilon=self.exp_tol, \
+                                       valname='statwt_variance')
 
         # Check the statwt flags
         flags_statwt = flagdata(vis=self.output_ms, mode='summary', name='after statwt')
