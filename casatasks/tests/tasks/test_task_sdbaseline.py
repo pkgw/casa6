@@ -2950,8 +2950,7 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
         self.infile = 'sinusoidal.ms'
         self.paramfile = 'blparam_variable_sin.txt'
         output_reference = "variable_sin_bloutput.csv"
-        #self._copy(output_reference)
-        self._refetch_files([self.infile, self.paramfile], self.datapath)
+        self._refetch_files([self.infile, self.paramfile, output_reference], self.datapath)
 
         blformat = 'csv'
         bloutput = self.infile + '_blparam.' + 'csv'
@@ -2971,7 +2970,7 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
                     self.assertEqual(ref_all, list_all,
                                     msg='Parameter values of the output csv file are \
                                         not equivalent to referece values!')
-        #remove_single_file_dir(output_reference)
+        remove_single_file_dir(output_reference)
 
 class sdbaseline_bloutputTest(sdbaseline_unittest_base):
     """
