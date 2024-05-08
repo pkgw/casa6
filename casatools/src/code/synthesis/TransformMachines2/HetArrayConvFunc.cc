@@ -649,8 +649,15 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
                     //subim2.copyData((LatticeExpr<Complex>) (iif(abs(subim2)> 25e-4, subim2, 0)));
 
 					//wtime0=omp_get_wtime();
-					ft_p.c2cFFTInDouble(subim);
-					ft_p.c2cFFTInDouble(subim2);
+
+                    //make sure fft2d plan shape is the same or else recalculate it
+                    auto [ftx, fty] = ft_p.getShape();
+                    if(ftx >0 && fty >0 && (ftx != subim.shape()(0)) && (fty != subim.shape()(1))){
+                      ft_p = FFT2D(true);
+                    }
+
+                    ft_p.c2cFFTInDouble(subim);
+                    ft_p.c2cFFTInDouble(subim2);
 					//ft_p.c2cFFT(subim);
 					//ft_p.c2cFFT(subim2);
 					//wtime2+=omp_get_wtime()-wtime0;
