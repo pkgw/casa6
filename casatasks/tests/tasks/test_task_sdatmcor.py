@@ -108,8 +108,10 @@ def environment_variable_manager(var_name):
 
 def get_end_pos_for(logfile: str) -> int:
     with open(logfile, 'r') as f:
-        pos = f.seek(0, 2)
+        f.seek(0, 2)
+        pos = f.tell()
     return pos
+
 
 class test_sdatmcor(unittest.TestCase):
     datapath = ctsys_resolve('measurementset/almasd')
