@@ -350,7 +350,7 @@ class test_tsys(test_base):
         agentUnflag={'apply':True,'mode':'unflag'}
         agentClip={'apply':True,'mode':'clip','clipzeros':True,'clipminmax':[0.,600.],'datacolumn':datacolumn,'correlation':'Sol1'}
         agentExtension={'apply':True,'mode':'extend','extendpols':True,'growfreq':0.0, 'growtime':0.0}
-        agentSummary={'apply':True,'mode':'summary','correlation':'""'}
+        agentSummary={'apply':True,'mode':'summary','correlation':''}
         aflocal.parseagentparameters(agentUnflag)
         aflocal.parseagentparameters(agentClip)
         aflocal.parseagentparameters(agentExtension)
