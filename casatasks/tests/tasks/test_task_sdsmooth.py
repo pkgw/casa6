@@ -40,7 +40,7 @@ tb = table()
 
 def gaussian_kernel(nchan, kwidth):
     sigma = kwidth / (2.0 * math.sqrt(2.0 * math.log(2.0)))
-    g = signal.gaussian(nchan, sigma, False)
+    g = signal.windows.gaussian(nchan, sigma, False)
     g /= g.sum()
     g0 = g[0]
     g[:-1] = g[1:]

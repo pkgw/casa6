@@ -843,6 +843,11 @@ class ia_convolve2d_test(ImageBase):
                 os.unlink(self.imagename)
             else:
                 shutil.rmtree(self.imagename)
+        f = "jk.im"
+        if os.path.isfile(f):
+            os.unlink(f)
+        elif os.path.isdir(f):
+            shutil.rmtree(f)
 
         self.assertTrue(len(self.tb.showcache()) == 0, 'table cache is not empty')
 
@@ -1100,6 +1105,34 @@ class ia_convolve2d_test(ImageBase):
             if i == 1:
                 self.assertEqual(npts[0], 10000, 'wrong number of pts')
         conv.done()
+
+    def test_multi_channel_multi_pol(self):
+        """
+        Verify fix for CAS-14301, images with multiple channels and multiple
+        polarizations are convolved correctly
+        """
+        yy = iatool()
+        yy.fromshape("jk.im", [100,100,4,5])
+        yy.addnoise()
+        yy.setbrightnessunit("Jy/beam")
+        for chan in range(5):
+            for stokes in range(4):
+                print("chan", chan, "stokes", stokes)
+                maj = 4 + chan/10 + stokes/100
+                yy.setrestoringbeam(
+                    major=f"{maj}arcmin", minor="3arcmin", pa="20deg",
+                    channel=chan, polarization=stokes
+                )
+        yy.done()
+        yy.open("jk.im")
+        z = yy.convolve2d("", major="5arcmin", minor="4arcmin", pa="20deg")
+        stats = z.statistics(axes=[0, 1])
+        z.done()
+        for i in range(4):
+            for j in range(5):
+                print(stats["sumsq"][i, j])
+                self.assertTrue(stats["sumsq"][i, j] > 0, f"Plane {i},{j} was not convolved")
+
 
 # Tests for image.coordmeasures
 class ia_coordmeasures_test(ImageBase):

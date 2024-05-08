@@ -704,8 +704,8 @@ class sdimaging_test0(sdimaging_unittest_base):
         print('existing file', file=f)
         f.close()
         self.task_param['overwrite'] = False
-        msg = 'Output file \'{0}\' exists.'.format(outfile)
-        self.run_exception_case(self.task_param, msg)
+        expected_task_err_msg = f"Output file exists: '{outfile}'"
+        self.run_exception_case(self.task_param, expected_task_err_msg)
 
     def test009(self):
         """Test009: Bad phasecenter string."""
@@ -748,9 +748,9 @@ class sdimaging_test0(sdimaging_unittest_base):
     def test012(self):
         """Test012: Bad imsize."""
         self.task_param['imsize'] = [1, 0]
-        msg = 'Error in building Coordinate System and Image Shape : ' + \
-              'Internal Error : Image shape is invalid :'
-        self.run_exception_case(self.task_param, msg)
+        cpp_err_msg = ( 'Error in building Coordinate System and Image Shape: '
+                        'Internal Error : Image shape is invalid :' )
+        self.run_exception_case(self.task_param, cpp_err_msg)
 
     def test013(self):
         """Test013: Bad cell size."""
@@ -3527,7 +3527,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
 #
 ###
 class sdimaging_test_interp(sdimaging_unittest_base):
-    """Unit tests for sdimaging (interporation).
+    """Unit tests for sdimaging (interpolation).
 
     tests:
     test_spline_interp_single_infiles: check if spline interpolation works for single MS
