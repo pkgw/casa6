@@ -2181,14 +2181,14 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
     ftype = {'poly': 0, 'chebyshev': 1, 'cspline': 2, 'sinusoid': 3}
 
     def setUp(self):
-        dirs_to_copy = [self.infile, self.sin_infile]
+        dirs_to_copy = [self.infile, self.sin_infile, self.sin_blparam]
         for directory in dirs_to_copy:
             if os.path.exists(directory):
                 shutil.rmtree(directory, ignore_errors=True)
-    
-        shutil.copytree(os.path.join(self.datapath, self.infile), self.infile, dirs_exist_ok=False)
-        shutil.copytree(os.path.join(self.datapath, self.sin_infile), self.sin_infile, dirs_exist_ok=False)
-        shutil.copyfile(os.path.join(self.datapath, self.sin_blparam), self.sin_blparam)
+            if directory == self.sin_blparam:
+                shutil.copyfile(os.path.join(self.datapath, directory), directory)
+            else:
+                shutil.copytree(os.path.join(self.datapath, directory), directory, dirs_exist_ok=False)
 
         files_to_remove = [
             self.infile + '_blparam.txt',
