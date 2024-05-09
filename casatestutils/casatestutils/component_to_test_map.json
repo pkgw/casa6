@@ -191,16 +191,6 @@
             "comment":""
         },
         {
-            "testScript":"test_task_antpos",
-            "testType":"casatasks",
-            "maintainer":"Dave Mehringer",
-            "maintainerEmail":"dmehringnrao.edu",
-            "testOptions":[],
-            "testGroup":["antpos"],
-            "timeout":0,
-            "comment":""
-        },
-        {
             "testScript":"test_task_applycal",
             "testType":"casatasks",
             "maintainer":"George Moellenbrock",
@@ -237,26 +227,6 @@
             "maintainerEmail":"nschweig@nrao.edu",
             "testOptions":[],
             "testGroup":["blcal","Calibration"],
-            "timeout":0,
-            "comment":""
-        },
-        {
-            "testScript":"test_task_getcalmodvla",
-            "testType":"casatasks",
-            "maintainer":"Dave Mehringer",
-            "maintainerEmail":"dmehring@nrao.edu",
-            "testOptions":[],
-            "testGroup":["getcalmodvla"],
-            "timeout":0,
-            "comment":""
-        },
-        {
-            "testScript":"test_task_getantposalma",
-            "testType":"casatasks",
-            "maintainer":"Dave Mehringer",
-            "maintainerEmail":"dmehring@nrao.edu",
-            "testOptions":[],
-            "testGroup":["getantposalma"],
             "timeout":0,
             "comment":""
         },
@@ -507,6 +477,16 @@
             "maintainerEmail":"gmoellen@nrao.edu",
             "testOptions":[],
             "testGroup":["atmosphere","Calibration","gencal"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_task_getantposalma",
+            "testType":"casatasks",
+            "maintainer":"Dave Mehringer",
+            "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["Calibration","getantposalma"],
             "timeout":0,
             "comment":""
         },
