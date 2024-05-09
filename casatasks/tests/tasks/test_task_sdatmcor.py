@@ -111,8 +111,7 @@ def get_end_pos_for(logfile: str) -> int:
         offset = 0
         from_end_of_file = os.SEEK_END
         f.seek(offset, from_end_of_file)
-        pos = f.tell()
-    return pos
+        return f.tell()
 
 
 class test_sdatmcor(unittest.TestCase):
