@@ -2970,7 +2970,7 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
                     ref_all = [row for row in csv.reader(ref_file)]
                     self.assertEqual(ref_all, list_all,
                                     msg='Parameter values of the output csv file are \
-                                        not equivalent to referece values!')
+                                        not equivalent to reference values!')
         remove_single_file_dir(output_reference)
 
 class sdbaseline_bloutputTest(sdbaseline_unittest_base):
