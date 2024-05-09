@@ -250,7 +250,13 @@ class test_sdatmcor(unittest.TestCase):
         # this log message must present
         self.assertEqual(len(log_corrected), 1)
         # extract list of spws from the log, and compare with expected list
-        spw_corrected_from_log = eval(log_corrected[0].split('=')[1].strip())
+        try:
+            # the string to be evaluated should be a list like '[17, 19, 21, 23]'
+            spw_list_str = log_corrected[0].split('=')[1].strip()
+            spw_corrected_from_log = eval(spw_list_str)
+        except Exception as e:
+            print(str(e))
+            self.fail(f'Unexpected log format: {spw_list_str}')
         self.assertEqual(spw_corrected_from_log, spw_corrected)
 
     def __check_casalog_spw_not_corrected(self, striplog: list, spwprocess: dict):
