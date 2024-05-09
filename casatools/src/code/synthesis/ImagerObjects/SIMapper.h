@@ -74,6 +74,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   ///// Major Cycle Functions
   virtual void initializeGrid(vi::VisBuffer2& vb, casacore::Bool dopsf, casacore::Bool firstaccess=false);
+  virtual void handleNewMs(const casacore::MeasurementSet &ms);
   virtual void grid(vi::VisBuffer2& vb, casacore::Bool dopsf, refim::FTMachine::Type col, const casacore::Int whichFTM=-1);
   virtual void finalizeGrid(vi::VisBuffer2& vb, casacore::Bool dopsf);
   virtual void initializeDegrid(vi::VisBuffer2& vb, casacore::Int row=-1);
