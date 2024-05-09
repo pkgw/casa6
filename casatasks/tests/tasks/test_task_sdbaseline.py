@@ -2955,23 +2955,24 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
 
         blformat = 'csv'
         bloutput = self.infile + '_blparam.' + 'csv'
-
-        sdbaseline(infile=self.infile,
-                   datacolumn='float_data',
-                   blformat=blformat,
-                   bloutput=bloutput,
-                   dosubtract=False,
-                   blfunc='variable',
-                   blparam=self.paramfile)
-        
-        with open(bloutput, 'r') as file:
-                list_all = [row for row in csv.reader(file)]
-                with open(output_reference, 'r') as ref_file:
-                    ref_all = [row for row in csv.reader(ref_file)]
-                    self.assertEqual(ref_all, list_all,
-                                    msg='Parameter values of the output csv file are \
-                                        not equivalent to reference values!')
-        remove_single_file_dir(output_reference)
+        try: 
+            sdbaseline(infile=self.infile,
+                    datacolumn='float_data',
+                    blformat=blformat,
+                    bloutput=bloutput,
+                    dosubtract=False,
+                    blfunc='variable',
+                    blparam=self.paramfile)
+            
+            with open(bloutput, 'r') as file:
+                    list_all = [row for row in csv.reader(file)]
+                    with open(output_reference, 'r') as ref_file:
+                        ref_all = [row for row in csv.reader(ref_file)]
+                        self.assertEqual(ref_all, list_all,
+                                        msg='Parameter values of the output csv file are \
+                                            not equivalent to reference values!')
+        finally:
+            remove_single_file_dir(output_reference)
 
 class sdbaseline_bloutputTest(sdbaseline_unittest_base):
     """
