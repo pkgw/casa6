@@ -290,6 +290,10 @@ class test_sdatmcor(unittest.TestCase):
                         while values indicate whether each spw is
                         corrected (True) or not (False).
         """
+        # WARNING
+        # Current code may result in intermittent and non-deterministic test failures,
+        # in case the expected log lines have not yet been flushed.
+        # If such failures occur, please consider to make it possible to: casalog.flush()
         with open(casalog.logfile(), 'r') as f:
             f.seek(self.casalog_seek_pos, 0)
             log = f.read()
