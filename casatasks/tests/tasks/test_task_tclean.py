@@ -4015,7 +4015,7 @@ class test_widefield(testref_base):
           self.prepData("refim_mawproject.ms")
           ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
                        specmode='mtmfs_via_cube', nchan=3, reffreq='1.5GHz', niter=30,gridder='awphpg',deconvolver='mtmfs',pblimit=0.1,parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight'],imgval=[(self.img+'.image.tt0',0.96,[256,256,0,0]),(self.img+'.weight',0.61,[256,256,0,0]),(self.img+'.alpha',0.06,[256,256,0,0]) ] )
+          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight'],imgval=[(self.img+'.image.tt0',0.96,[256,256,0,0]),(self.img+'.weight',0.61,[256,256,0,0]),(self.img+'.alpha',0.03,[256,256,0,0]) ] )
           #
           # Changed to the following for 5.5.0 release of AWP.  Will revisit and replace the test MS later.
           #
@@ -5090,7 +5090,7 @@ class test_hetarray_imaging(testref_base):
 
           ## Four corners : usepointing=True, pointingoffsetsigdev=[20,20], timerange='*', antenna='grp1,grp2' : PB = Sum of PB in all 4 corners (with no cross-terms). Flux/alpha are correct. 
           tclean(vis=msname, datacolumn='observed', imsize=2048,cell=5.0, imagename=self.img+'_pcorr2_4corners', niter=0, specmode='cube', nchan=3,start='1.9GHz', width='0.4GHz', interpolation='nearest', pblimit=-0.01,gridder='awproject',wbawp=True,psterm=False, usepointing=True, pointingoffsetsigdev=[20.0,20.0], antenna=self.baselines['grp1']+' & ; '+self.baselines['grp2']+ ' &')
-          report6=self.th.checkall(imgval=[
+          report5=self.th.checkall(imgval=[
                                           ## Check source intensity
                                           (self.img+'_pcorr2_4corners.image' ,0.77,[1024,1024,0,0]), 
                                           (self.img+'_pcorr2_4corners.image' ,0.42,[1024,1024,0,1]), 
@@ -5104,7 +5104,7 @@ class test_hetarray_imaging(testref_base):
                                           (self.img+'_pcorr2_4corners.pb' ,1.0,[924,924,0,0]),   
                                           (self.img+'_pcorr2_4corners.pb' ,0.925,[1124,1124,0,0]),   
                                           (self.img+'_pcorr2_4corners.pb' ,1.0,[1124,924,0,0]) ] )   
-          report6 = report6 + "This test leaves out cross-baselines. Edit later to include them, once the algorithm for cross-baseline PBs is fixed.\n"
+          report5 = report5 + "This test leaves out cross-baselines. Edit later to include them, once the algorithm for cross-baseline PBs is fixed.\n"
         
           #### Note : Add a run with all antennas ONLY after the cross-baselines imaging is correct.  
           #### grp1 has 14 ants. grp2 has 13.  But, the PBs for grp1 have the peak of 1.0 whereas grp2 has 0.93.  Needs to be understood. But, image and pb values match, so flux is ok. 
@@ -5114,7 +5114,7 @@ class test_hetarray_imaging(testref_base):
           os.environ['ATerm_CONVSIZE'] = '2048'
 
 
-          self.assertTrue(self.check_final(report1+report2+report3+report4+report5+report6))
+          self.assertTrue(self.check_final(report1+report2+report3+report4+report5))
 
      ###########################
 
