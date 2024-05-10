@@ -1,4 +1,4 @@
-## CASA 6 
+## CASA 6
 
 CASA 6 marks a major new chapter in CASA's development. With CASA 6, tools and
 tasks will be available as Python wheels from a [PyPI repository](https://casa-pip.nrao.edu/).
@@ -124,6 +124,7 @@ casa and look for memory mismanagement:
 > --log-file=valgrind.log "${LITHDIR}/lib/py/bin/python3" -m casashell --nogui --log2term -c <yourpythonfile>.py
 ```
 Now in another terminal, attach gdb:
+
 ```
 -bash-4.2$ PATH="$EXTPATH" gdb "${LITHDIR}/lib/py/bin/python3"
 (gdb) target remote | /usr/bin/vgdb
