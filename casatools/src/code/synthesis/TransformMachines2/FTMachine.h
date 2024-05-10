@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -158,6 +158,11 @@ public:
 
   virtual void initializeToVisNew(const vi::VisBuffer2& vb,
 					     casacore::CountedPtr<SIImageStore> imstore);
+
+  // Provide derived classes with a mean to perform initialization tasks
+  // each time the Visibility Iterator starts iterating over a new MeasurementSet
+  virtual void handleNewMs(const casacore::MeasurementSet &ms,
+               casacore::CountedPtr<SIImageStore> imstore) {}
 
   //-------------------------------------------------------------------------------------
   // Finalize transform to Visibility plane
