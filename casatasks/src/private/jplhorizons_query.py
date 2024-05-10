@@ -214,10 +214,10 @@ def tocasatb(indata, outtable):
                 'comment': 'date in MJD',
                 'unit': 'd'},
         'RA': {'header': 'R.A.',
-               'comment': 'astrometric Right Ascension (ICRF/J2000)',
+               'comment': 'astrometric Right Ascension (ICRF)',
                'unit': 'deg'},
         'DEC': {'header': 'DEC',
-                'comment': 'astrometric Declination (ICRF/J2000)',
+                'comment': 'astrometric Declination (ICRF)',
                 'unit': 'deg'},
         'Rho': {'header': 'delta',
                 'comment': 'geocentric distance',
@@ -313,12 +313,15 @@ def tocasatb(indata, outtable):
                     # VERSION stored in the output table may be incremented in the future.
                     # For now, it is fixed, but it may be incremented from 0003 to 0004 to indiate
                     # this new code is used to convert the jpl horizons data to a table.
-                    headerdict['VS_VERSION'] = '0004.000'
+                    # ver 0004.0001 - new keyword: ephemeris_source, posrefsys 'ICRF/J2000' -> "ICRS' 
+                    headerdict['VS_VERSION'] = '0004.0001'
                     # target object name
                 elif re.match(r'^[>\s]*Target body name', line):
-                    m = re.match(r'^[>\s]*Target body name:\s+\d*\s*(\w+)', line)
+                    m = re.match(r'^[>\s]*Target body name:\s+(\S+)\s+(\S*)\s+\{(\w+)\:\s*(\S+)\}', line)
                     if m:
                         headerdict['NAME'] = m[1]
+                        if len(m.groups())==4 and m[3]=='source':
+                            headerdict['ephemeris_source'] = m[4]
                 # start time (of the requested time range)
                 elif re.search(r'Start time', line):
                     m = re.match(r'^[>\s]*Start time\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\w+)', line)
@@ -371,7 +374,9 @@ def tocasatb(indata, outtable):
                     m = re.match(r'^[>\s]*Center-site name:\s+(\w+)', line)
                     if m:
                         headerdict['obsloc'] = m[1]
-                        headerdict['posrefsys'] =  'ICRF/J2000.0'
+                        # Assume the query is made in ICRF reference frame
+                        # and for casacore measures, this will be 'ICRS'
+                        headerdict['posrefsys'] =  'ICRS'
                 elif re.search(r'Target radii', line):
                     m = re.match(r'^[>\s]*Target radii\s*:\s*([0-9.]+\s*x\s*[0-9.]+\s*x\s*[0-9.]+)\s*km.*|'
                                  '^[>/s]*Target radii\s*:\s*([0-9.]+)\s*km', line)
@@ -673,7 +678,7 @@ def _fill_keywords_from_dict(keydict, colkeys, tablename):
     # call mod version of mean_radius_with_known_theta
     orderedmainkeys = ['VS_CREATE','VS_DATE','VS_TYPE','VS_VERSION','NAME',
                        'MJD0','dMJD','GeoDist','GeoLat','GeoLong','obsloc',
-                       'posrefsys','earliest','latest','radii',
+                       'posrefsys','ephemeris_source','earliest','latest','radii',
                        'meanrad','orb_per','rot_per','T_mean']
     try:
         _tb.open(tablename, nomodify=False)

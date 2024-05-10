@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -70,6 +70,7 @@ class SIMapperCollection
   void initializeGrid(vi::VisBuffer2& vb, casacore::Bool dopsf=false,const casacore::Int mapperid=-1);
   ///This version is for initializing BriggsCubeWeightor
   void initializeGrid(vi::VisibilityIterator2& vi, casacore::Bool dopsf=false, const casacore::Int mapperid=-1);
+  void handleNewMs(const casacore::MeasurementSet &ms, const casacore::Int mapperid=-1);
   void grid(vi::VisBuffer2& vb, casacore::Bool dopsf=false, refim::FTMachine::Type col=refim::FTMachine::CORRECTED,
 	    const casacore::Int mapperid=-1);
   void finalizeGrid(vi::VisBuffer2& vb, casacore::Bool dopsf=false,const casacore::Int mapperid=-1);

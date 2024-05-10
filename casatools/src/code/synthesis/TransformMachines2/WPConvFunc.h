@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -90,20 +90,29 @@ namespace refim{// namespace for imaging refactoring
 			    casacore::Vector<casacore::Int>& convSupport,
 			    casacore::Double& wScale);
 
-      casacore::Bool findSupport(casacore::Array<casacore::Complex>& /*func*/, casacore::Float& /*threshold*/,casacore::Int& /*origin*/, casacore::Int& /*R*/) 
-    {throw(casacore::AipsError("IlluminationConvFunc::findSupport() not implemented"));};
+      
       virtual casacore::Bool makeAverageResponse(const vi::VisBuffer2& /*vb*/,
 				       const casacore::ImageInterface<casacore::Complex>& /*image*/,
 				     //				     casacore::TempImage<casacore::Float>& theavgPB,
 				       casacore::ImageInterface<casacore::Float>& /*theavgPB*/,
 				       casacore::Bool /*reset=true*/)
     {throw(casacore::AipsError("WPConvFunc::makeAverageRes() called"));};
+    ///Make full WConfFunction, despite it being circularly symmetric; can be used along 
+    // with A-term convolution for a Vector of W values
+    // is the coordinateSystem to get the scale of pixels
+    // csys is the image based csys it will be returned in the UV domain
+    casacore::Bool makeWConvFuncs(casacore::Cube<casacore::Complex>& wconv, casacore::Vector<casacore::Int>& supports,  casacore::CoordinateSystem& cs, const casacore::Int& npix, const casacore::Vector<casacore::Double>& wVals); 
+    
+    // wVal is the w-value in lambda
+    casacore::Bool makeSkyWFunc(casacore::Matrix<casacore::Complex>& wSkyFunc, const casacore::CoordinateSystem& cs, const casacore::Int& npix, const casacore::Double& wVal); 
+    
       //Serialization
       casacore::Bool toRecord(casacore::RecordInterface& rec);
       casacore::Bool fromRecord(casacore::String& err, const casacore::RecordInterface& rec);
     private:
       casacore::Bool checkCenterPix(const casacore::ImageInterface<casacore::Complex>& image);
       void makeGWplane(casacore::Matrix<casacore::Complex>& screen, const casacore::Int iw, casacore::Double s0, casacore::Double s1, casacore::Float *& wsaveptr, casacore::Int& lsav, casacore::Int& inner, casacore::Complex*& cor, casacore::Double&cpWscale);
+      casacore::Int findSupport(casacore::Matrix<casacore::Complex>& scr); 
       casacore::Block <casacore::CountedPtr<casacore::Cube<casacore::Complex> > > convFunctions_p;
       casacore::Block <casacore::CountedPtr<casacore::Vector<casacore::Int> > > convSupportBlock_p;
       std::map <casacore::String, casacore::Int> convFunctionMap_p;
