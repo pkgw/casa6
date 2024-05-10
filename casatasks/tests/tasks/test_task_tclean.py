@@ -4878,6 +4878,9 @@ class test_hetarray_imaging(testref_base):
      -- test_het_antenna_mosaic_cube_vptable_float 
      -- test_het_antenna_mosaic_cube_vptable_complex
 
+     ## added to verify CAS-14255: list of MSes, ALMA 7m and 12m mosaic when 12m data occurs earlier
+     -- test_het_alma_mosaic_mfs_CAS14255fix - niter=0 only
+
      ######### Tests to add later : 
      test_het_pointing_offsets_mosaic_cube :   With CAS-11191  :  Test antenna-dependent and time-dependent pointing offset correct
      test_het_pointing_offsets_mosaic_mtmfs :    With CAS-11191  :  Test antenna-dependent and time-dependent pointing offset correct
@@ -5393,7 +5396,26 @@ class test_hetarray_imaging(testref_base):
         
           self.assertTrue(self.check_final(pstr=report1+report2+report3))
 
+     def test_het_mosaic_mfs_alma_listofms_CAS14255fix(self):
+         '''
+         Test alma 7m and 12m list of MSes. The dataset consists of two MSes, a simulated ACA(7m) ms
+         and a simulated ALMA(12) ms. The reference time of the 12m data was intentionary made earlier
+         as it was a condition to trigger the original bug. Runs only niter=0. 
+         '''
+         #Truth values on CAS-14255 branch
+         peak = 0.96906537
+         peakpos = [264, 248,   0,   0]
 
+         ms1 = 'alma-sim.cycle10.1.ms'
+         ms2 = 'aca-sim.cycle10.ms'
+         self.prepData(ms1)
+         self.prepData(ms2)
+         tclean(vis=[ms1,ms2], datacolumn='corrected', imsize=512, cell='0.8arcsec', phasecenter='J2000 13h47m31.0s -11d45m13.0s', 
+                imagename=self.img+'_listofms', niter=0, specmode='mfs', gridder='mosaic', weighting='briggs')
+
+
+         report=self.th.checkall(imgexist=[self.img+'_listofms.residual'],imgval=[(self.img+'_listofms.residual' ,peak, peakpos)]) 
+         self.assertTrue(self.check_final(pstr=report))
 
 #####################################################
 #####################################################
