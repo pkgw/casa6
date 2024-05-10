@@ -151,6 +151,16 @@
             "comment":""
         },
         {
+            "testScript":"test_stk_srdp_restore_mode.py",
+            "testType":"stakeholder",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":[""],
+            "testGroup":["stakeholder"],
+            "timeout":5000,
+            "comment":""
+        },
+        {
             "testScript":"test_stk_vla_users_continuum_from_SDM",
             "testType":"stakeholder",
             "maintainer":"Sandra Castro",
