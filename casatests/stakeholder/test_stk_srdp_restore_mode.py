@@ -103,7 +103,7 @@ class Test_srdp_alma_12m(Test_srdp_base):
     def setUp(self) -> None:
         # Reference criteria using casa-6.5.4-9-pipeline-2023.1.0.125
         # flux density in Jy; major, minor in arcsec and position angle in deg
-        self.exp_flags = {'flags_importasdm':3900108.0, 'flags_restored':159843772.0, 'flags_final':159843772.0}
+        self.exp_flags = {'flags_importasdm':3900108.0, 'flags_restored':159843772.0, 'flags_applycal':159843772.0}
         self.exp_total_vis = 1092709620.0
         self.exp_flux = 1.360
         self.exp_beam = {'major':0.615,'minor':0.350,"positionangle":-18.632}
@@ -185,9 +185,9 @@ class Test_srdp_alma_12m(Test_srdp_base):
                  applymode='calflagstrict', flagbackup=True)
 
         # Check that applycal did not flag anything
-        flags_final = flagdata(vis=self.output_ms, mode='summary', name='applycal')
-        status, report3 = th.check_val(flags_final['flagged'], self.exp_flags['flags_final'], exact=True, \
-                               valname='flags_final')
+        flags_applycal = flagdata(vis=self.output_ms, mode='summary', name='applycal')
+        status, report3 = th.check_val(flags_applycal['flagged'], self.exp_flags['flags_applycal'], exact=True, \
+                               valname='flags_applycal')
 
         # Create the calibrator image and check the flux density and beam
         tclean(vis=self.output_ms,field='J0336+3218',imsize=256,cell='0.05arcsec',spw='19,21,23',
