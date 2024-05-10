@@ -910,37 +910,11 @@ class reference_frame_tests(unittest.TestCase):
             self.__delete_intermediate_products()
 
 
-class phaseshift_multi_phasecenter_test(unittest.TestCase):
-    """ Tests around the use of multi-field phasecenter values (dicts) """
-
-    def setUp(self):
-        shutil.copytree(datapath, datacopy)
-        self.outputvis = "test_vis_multi_field_phasecenter_dict.ms"
-
-    def tearDown(self):
-        shutil.rmtree(datacopy)
-
-        if os.path.exists(self.outputvis):
-            shutil.rmtree(self.outputvis)
-
-    def check_field_subtable(self, outputvis, new_center):
-        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
-        ra_rad, dec_rad = _convert_to_ra_dec_j2000(new_center)
-
-        try:
-            tblocal = table()
-            tblocal.open(outputvis + '/FIELD', nomodify=True)
-            phase_col = tblocal.getcol('PHASE_DIR')
-        finally:
-            tblocal.done()
-
-        for row in range(0, phase_col.shape[-1]):
-            # The 0 in the middle is the 'NUM_POLY' axis
-            self.assertEqual(phase_col[0, 0, row], ra_rad)
-            self.assertEqual(phase_col[1, 0, row], dec_rad)
+class phaseshift_subfunctions_test(unittest.TestCase):
 
     def test__convert_to_j2000(self):
         from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+
         phasecenter = 'J2000 19h53m50 40d06m00'
         fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
         places = 6
@@ -949,18 +923,78 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
 
     def test__convert_to_j2000_wrong(self):
         from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+
         phasecenter = 'BOGUS xxh53m50 40d06m00'
         with self.assertRaisesRegex(RuntimeError, expected_regex="failed"):
             fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
 
-    def test_phasecenter_dict_simple(self):
-        ''' Check multiple field phasecenter(s) given as a dict '''
-        new_center = 'J2000 19h53m50 40d06m00'
-        result = phaseshift(datacopy, outputvis=self.outputvis,
-                            phasecenter={'0': new_center,})
-        self.assertEqual(result, None)
 
-        self.check_field_subtable(self.outputvis, new_center)
+class phaseshift_multi_phasecenter_test(unittest.TestCase):
+    """ Tests around the use of multi-field phasecenter values (dicts) """
+
+    # Other candidates, could have been:
+    # uid___A002_X30a93d_X43e_small.ms: 3 fields, but only 3 scans, and >240MB
+    # uid___X02_X3d737_X1_01_small.ms: 3 fields, but only 3 scans
+    # twocenteredpointsources.ms: simulated, 2 fields, only 2 scans, (fixvis)
+    datadir_multifield = os.path.join('measurementset', 'alma')
+    ms_multifield = "uid___A002_X1c6e54_X223-thinned.ms"
+    datapath_multifield = ctsys_resolve(os.path.join(datadir_multifield,
+                                                     ms_multifield))
+
+    def setUp(self):
+        shutil.copytree(self.datapath_multifield, datacopy)
+        self.outputvis = "test_vis_multi_field_phasecenter_dict.ms"
+
+    def tearDown(self):
+        shutil.rmtree(datacopy)
+
+        if os.path.exists(self.outputvis):
+            shutil.rmtree(self.outputvis)
+
+    def check_field_subtable(self, outputvis, inputvis, new_centers):
+        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+
+        def get_expected_output_ra_dec(row, new_centers, input_phase_col):
+            field_id = str(row)
+            if isinstance(new_centers, dict):
+                if field_id in new_centers:
+                    ra_rad, dec_rad = _convert_to_ra_dec_j2000(
+                        new_centers[field_id])
+                else:
+                    ra_rad = input_phase_col[0, 0, row]
+                    dec_rad = input_phase_col[1, 0, row]
+            else:
+                ra_rad, dec_rad = _convert_to_ra_dec_j2000(new_centers)
+
+            return ra_rad, dec_rad
+
+        def get_field_subt_phasedir_col(vis_path):
+            try:
+                tblocal = table()
+                tblocal.open(vis_path + '/FIELD', nomodify=True)
+                phase_col = tblocal.getcol('PHASE_DIR')
+            finally:
+                tblocal.done()
+
+            return phase_col
+
+
+        phase_col = get_field_subt_phasedir_col(outputvis)
+        if isinstance(new_centers, dict):
+            input_phase_col = get_field_subt_phasedir_col(inputvis)
+
+        for row in range(0, phase_col.shape[-1]):
+            ra_rad, dec_rad = get_expected_output_ra_dec(row, new_centers,
+                                                         input_phase_col)
+
+            # The 0 in the middle is the 'NUM_POLY' axis
+            self.assertEqual(phase_col[0, 0, row], ra_rad,
+                             f"unexpected PHASE_DIR ra value in row {row} "
+                             f"(with {new_centers=})")
+            self.assertEqual(phase_col[1, 0, row], dec_rad,
+                             f"unexpected PHASE_DIR dec value in row {row} "
+                             f"(with {new_centers=})")
+
 
     def test_phasecenter_dict_outofrange(self):
         ''' Check handling of dict with unknown / too many fields '''
@@ -968,7 +1002,29 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "field IDs"):
             result = phaseshift(datacopy, outputvis=self.outputvis,
                                 phasecenter={'0': new_center,
-                                             '1': new_center})
+                                             '3': new_center})
+
+    def test_phasecenter_dict_simple(self):
+        ''' Check multiple field phasecenter(s) given as a dict '''
+        new_center = 'J2000 19h53m50 40d06m00'
+        phasecenter = {'0': new_center,}
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter=phasecenter)
+        self.assertEqual(result, None)
+
+        self.check_field_subtable(self.outputvis, datacopy, phasecenter)
+
+    def test_phasecenter_dict_one_out(self):
+        ''' Check multiple field phasecenter(s) given as a dict '''
+        new_centerA = 'J2000 19h53m50 40d06m00'
+        new_centerB = 'J2000 22h01m02 40d04m03'
+        phasecenter = {'0': new_centerA,
+                       '2' : new_centerB}
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter=phasecenter)
+        self.assertEqual(result, None)
+
+        self.check_field_subtable(self.outputvis, datacopy, phasecenter)
 
 
 if __name__ == '__main__':
