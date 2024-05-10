@@ -58,7 +58,7 @@ namespace casa{
 
     void loadFromImage(casacore::String &fileName);
     void getIdealConvFunc(casacore::Array<casacore::Complex>& buf);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid);
     void ftAperture() {ftAperture(convFunc_p); pbRead_p=true;};
     void storePB(casacore::String& fileName);
 

@@ -81,6 +81,7 @@
 #include <synthesis/TransformMachines2/AWProjectFT.h>
 #include <synthesis/TransformMachines2/HetArrayConvFunc.h>
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
+#include <synthesis/TransformMachines2/AWPLPG.h>
 #include <synthesis/TransformMachines2/MultiTermFTNew.h>
 #include <synthesis/TransformMachines2/AWProjectWBFTNew.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
@@ -98,6 +99,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iomanip>
+#include <thread>
 #include <synthesis/Parallel/Applicator.h>
 
 using namespace std;
@@ -152,8 +154,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      
 	      String mes=x.getMesg();
 	      if(mes.contains("FilebufIO::readBlock") || mes.contains("SOURCE")){
-		sleep(0.05);
-		os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
 	      }
 	      else
 		throw(AipsError("Error in selectdata: "+mes));
@@ -592,18 +594,55 @@ Bool SynthesisImagerVi2::defineImage(
     try {
       os << "Define image coordinates for [" << impars.imageName << "] : "
          << LogIO::POST;
+	os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
+	//    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
+	//    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+	csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
+	//use the location defined for coordinates frame;
+	mLocation_p=impars_p.obslocation;
+	IPosition imshape = impars_p.shp();
 
-      csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
-      //use the location defined for coordinates frame;
-      mLocation_p = impars_p.obslocation;
-      IPosition imshape = impars_p.shp();
-
-      os << "Impars: start " << impars_p.start << LogIO::POST;
-      os << "Shape: " << imshape
+	
+         os << "Impars: start " << impars_p.start << LogIO::POST;
+         os << "Shape: " << imshape
          << " Spectral: " << csys.spectralCoordinate().referenceValue()
          << " at " << csys.spectralCoordinate().referencePixel()
          << " with increment " << csys.spectralCoordinate().increment()
          << LogIO::POST;
+
+	if( (itsMappers.nMappers()==0) || 
+	    (impars_p.imsize[0]*impars_p.imsize[1] > itsMaxShape[0]*itsMaxShape[1]))
+	  {
+	    itsMaxShape=imshape;
+	    itsMaxCoordSys=csys;
+	  }
+        itsNchan = imshape[3];
+        itsCsysRec = impars_p.getcsys();
+	/*
+	os << "Define image  [" << impars.imageName << "] : nchan : " << impars.nchan 
+	   //<< ", freqstart:" << impars.freqStart.getValue() << impars.freqStart.getUnit() 
+	   << ", start:" << impars.start
+	   <<  ", imsize:" << impars.imsize 
+	   << ", cellsize: [" << impars.cellsize[0].getValue() << impars.cellsize[0].getUnit() 
+	   << " , " << impars.cellsize[1].getValue() << impars.cellsize[1].getUnit() 
+	   << LogIO::POST;
+	*/
+        // phasecenter
+        if (impars_p.phaseCenterFieldId == -1) {
+          // user-specified
+          phaseCenter_p = impars_p.phaseCenter;
+        } else if (impars_p.phaseCenterFieldId >= 0) {
+          // FIELD_ID
+          auto const msobj = mss_p[0];
+          MSFieldColumns msfield(msobj->field());
+          phaseCenter_p=msfield.phaseDirMeas(impars_p.phaseCenterFieldId);
+        } else {
+          // use default FIELD_ID (0)
+          auto const msobj = mss_p[0];
+          MSFieldColumns msfield(msobj->field());
+          phaseCenter_p=msfield.phaseDirMeas(0);
+        }
+
 
       if ( (itsMappers.nMappers() == 0) or
            (impars_p.imsize[0]*impars_p.imsize[1] > itsMaxShape[0]*itsMaxShape[1])
@@ -674,6 +713,7 @@ Bool SynthesisImagerVi2::defineImage(
       os << "Error in setting up FTMachine(): " << x.getMesg() << LogIO::EXCEPTION;
     }
 
+
     try {
       appendToMapperList(
         impars_p.imageName, csys, impars_p.shp(),
@@ -712,6 +752,7 @@ Bool SynthesisImagerVi2::defineImage(
         SynthesisParamsImage& impars,
         const SynthesisParamsGrid& gridpars)
   {
+    gridpars_p=gridpars;
     Int id = itsMappers.nMappers();
     CoordinateSystem csys = imstor->getCSys();
     IPosition imshape = imstor->getShape();
@@ -2408,6 +2449,7 @@ void SynthesisImagerVi2::unlockMSs()
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
 
+
     if (ftname == "gridft") {
       if (facets >1) {
         theFT = new refim::GridFT(
@@ -2457,6 +2499,11 @@ void SynthesisImagerVi2::unlockMSs()
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
       static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
+
+    else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT" || ftname == "awp2"){
+
+      createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
+    } 
     else if ((ftname.at(0,3)=="awp") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
 			 padding, useAutocorr, useDoublePrec, gridFunction,
@@ -2464,6 +2511,7 @@ void SynthesisImagerVi2::unlockMSs()
 			 usePointing, pointingOffsetSigDev, doPBCorr, conjBeams, computePAStep,
 			 rotatePAStep, cache,tile,imageNamePrefix);
     }
+
     else if ( ftname == "mosaic" or
               ftname == "mosft" or
               ftname == "mosaicft" or
@@ -2743,8 +2791,25 @@ void SynthesisImagerVi2::unlockMSs()
     vpman->getvp(rec, telescop);
     */
 
-   refim::VPSkyJones* vps=NULL;
+   refim::VPSkyJones* vps= nullptr;
    //cerr << "rec " << rec << " kpb " << kpb << endl;
+   //cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
+   if (!gridpars_p.ftmachine.contains("mos")) {
+     cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+     bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  
+    //  TESTOO
+    dosquint = False;
+    ///////
+    
+    cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
+     theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
+      static_cast<refim::AWPLPG &>(*theFT).setConvFunc(mospb);
+      static_cast<refim::AWPLPG &>(*theIFT).setConvFunc(mospb);
+      
+   }
+   else{
     if(rec.asString("name")=="COMMONPB" && kpb !=PBMath::UNKNOWN ){
       vps= new refim::VPSkyJones(msc, true, Quantity(rotatePAStep, "deg"), BeamSquint::GOFIGURE, Quantity(360.0, "deg"));
       /////Don't know which parameter has pb threshold cutoff that the user want 
@@ -2774,8 +2839,7 @@ void SynthesisImagerVi2::unlockMSs()
     }
     ///////////////////make sure both FTMachine share the same conv functions.
     theIFT= new refim::MosaicFTNew(static_cast<refim::MosaicFTNew &>(*theFT));
-
-    
+   }
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
