@@ -651,6 +651,23 @@ class test_sdatmcor(unittest.TestCase):
         self.check_result({19: True, 23: True})
 
 
+def set_data_to_zero(infile: str, spw: int):
+    myms = mstool()
+    myms.open(infile)
+    myms.msselect({'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'})
+    msidx = myms.msselectedindices()
+    ddid = msidx['spwdd'][0]
+    stateid = list(msidx['stateid'])
+    taql = f'DATA_DESC_ID == {ddid} && STATE_ID IN {stateid}'
+
+    with table_selector(infile, taql=taql, nomodify=False) as tb:
+        for colname in ['CORRECTED_DATA', 'DATA', 'FLOAT_DATA']:
+            if colname in tb.colnames():
+                cdata = tb.getcol(colname)
+                cdata[::] = 0
+                tb.putcol(colname, cdata)
+
+
 class test_sdatmcor_smoothing(unittest.TestCase):
     datapath = 'measurementset/almasd'
     infile = 'X59ca_sel.ms'
@@ -674,6 +691,13 @@ class test_sdatmcor_smoothing(unittest.TestCase):
 
     def test_mitigation(self):
         """Test if mitigation for boundary effect of convolution works."""
+        # Set data zero to get correction factor
+        # In sdatmcor, correction factor is subtracted from the data
+        # so we can get correction factor if we set data all zero
+        # (output_data = 0 - correction_factor).
+        set_data_to_zero(self.infile, spw=17)
+
+        # Apply correction with smoothing
         sdatmcor(
             infile=self.infile,
             outfile=self.outfile,
@@ -686,22 +710,24 @@ class test_sdatmcor_smoothing(unittest.TestCase):
             atmtype=1
         )
 
-        # Only check spectral data for spw 17 since it is severely suffered
-        # from the boundary effect. Values at edge channels should not drop
-        # below a certain threshold if mitigation worked properly.
-        # Here, threshold is evaluated as median - 3 * stddev.
-        data_spw17 = self._get_data(self.outfile, spw=17)
-        average_data_per_pol = data_spw17.mean(axis=2)
-        median_value_per_pol = np.median(average_data_per_pol, axis=1)
-        stddev_per_pol = average_data_per_pol.std(axis=1)
-        for ipol in range(data_spw17.shape[0]):
+        # Resulting data should be -correction_factor. Only check spectral
+        # data for spw 17 since it is severely suffered from the boundary
+        # effect. If mitigation didn't work, there will be steep increase
+        # or decrease at edge channels. In that case, the slope should be
+        # order of magnitude larger.
+        correction_factor_spw17 = self._get_data(self.outfile, spw=17)
+        average_factor_per_pol = correction_factor_spw17.mean(axis=2)
+        # average derivative excluding edge channels
+        delta = average_factor_per_pol[:, 1:] - average_factor_per_pol[:, :-1]
+        average_delta = delta[:, 10:-10].mean()
+        threshold = abs(average_delta) * 10
+        for ipol in range(correction_factor_spw17.shape[0]):
             print(f'Examining pol {ipol}')
-            threshold = median_value_per_pol[ipol] - 3 * stddev_per_pol[ipol]
-            edge_data = average_data_per_pol[ipol, [0, -1]]
-            print('edge_data', edge_data)
+            edge_delta = np.abs(delta[ipol, [0, -1]])
+            print('edge_data', edge_delta)
             print(f'threhsold = {threshold}')
             self.assertTrue(
-                np.all(edge_data > threshold),
+                np.all(edge_delta < threshold),
                 msg=f'Mitigation did not work for pol {ipol}'
             )
 
