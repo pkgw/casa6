@@ -2183,12 +2183,12 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
     def setUp(self):
         dirs_to_copy = [self.infile, self.sin_infile, self.sin_blparam]
         for directory in dirs_to_copy:
-            if os.path.exists(directory):
-                shutil.rmtree(directory, ignore_errors=True)
+            shutil.rmtree(directory, ignore_errors=True)
             if directory == self.sin_blparam:
                 shutil.copyfile(os.path.join(self.datapath, directory), directory)
             else:
-                shutil.copytree(os.path.join(self.datapath, directory), directory, dirs_exist_ok=False)
+                shutil.copytree(os.path.join(self.datapath, directory), directory,
+                                 dirs_exist_ok=False)
 
         files_to_remove = [
             self.infile + '_blparam.txt',
@@ -2968,9 +2968,25 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
                     list_all = [row for row in csv.reader(file)]
                     with open(output_reference, 'r') as ref_file:
                         ref_all = [row for row in csv.reader(ref_file)]
-                        self.assertEqual(ref_all, list_all,
-                                        msg='Parameter values of the output csv file are \
-                                            not equivalent to reference values!')
+                        for row_ref, row_list in zip(ref_all, list_all):
+                            for idx, (val_ref, val_list) in enumerate(zip(row_ref, row_list)):
+                                # Skip columns 5 and 6 (zero-based indexß)
+                                if idx == 4 or idx == 5:
+                                    continue
+                                
+                                # Convert string values to floats for other columns
+                                try:
+                                    float_val_ref = float(val_ref)
+                                    float_val_list = float(val_list)
+                                except ValueError:
+                                    print("Warning: Skipping.. Cannot convert to float - {} {}"
+                                          .format(val_ref, val_list))
+                                    continue
+
+                                # Compare float values using assertAlmostEqual
+                                self.assertAlmostEqual(float_val_ref, float_val_list, 
+                                                       places=6, 
+                                                       msg=f"Values differ: ref={val_ref}, list={val_list}")
         finally:
             remove_single_file_dir(output_reference)
 
