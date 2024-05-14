@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -68,7 +68,8 @@ namespace casa
   typedef struct 
   {
     casacore::Int oversamp;			/* average this many points per cell */
-    casacore::TempImage<casacore::Complex> *aperture;	/* Jones planes [Nx,Ny,NStokes,NFreq]*/
+    casacore::ImageInterface<casacore::Complex> *aperture=nullptr;	/* Jones planes [Nx,Ny,NStokes,NFreq]*/
+    std::shared_ptr<casacore::ImageInterface<casacore::Complex> > apertureptr;
     casacore::Double x0, y0;			/* center of cell 0, 0, meters */
     casacore::Double dx, dy;			/* increment in meters */
     casacore::Int nx, ny;			/* calculation plane size in cells */

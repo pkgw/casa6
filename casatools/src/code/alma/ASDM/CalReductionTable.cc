@@ -155,10 +155,10 @@ namespace asdm {
 		entity.setInstanceVersion("1");
 		
 		// Archive XML
-		archiveAsBin = false;
+		archiveAsBin = true;
 		
 		// File XML
-		fileAsBin = false;
+		fileAsBin = true;
 		
 		// By default the table is considered as present in memory
 		presentInMemory = true;

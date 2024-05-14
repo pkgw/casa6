@@ -829,6 +829,13 @@ FlagAgentBase::setDataSelection(Record config)
 		}
 
 
+		else if (flagDataHandler_p->tableTye_p == FlagDataHandler::CALIBRATION_TABLE and
+			 mode_p != "clip" and mode_p != "tfcrop" and mode_p != "rflag") {
+
+			AipsError corrSelExc(String("With calibration tables, correlation selection is not supported for modes other than 'clip', 'tfcrop', or 'rflag'. 'correlation' given: " + polarizationSelection_p));
+		  throw(corrSelExc);
+
+		}
 		// Only process the polarization selection as in-row selection if there is no complex operator
 		else if ((polarizationSelection_p.find("REAL") == string::npos) and
 				(polarizationSelection_p.find("IMAG") == string::npos) and
