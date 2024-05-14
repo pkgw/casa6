@@ -654,7 +654,7 @@ class test_sdatmcor(unittest.TestCase):
 def set_data_to_zero(infile: str, spw: int):
     myms = mstool()
     myms.open(infile)
-    myms.msselect({'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'})
+    myms.msselect({'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'}, onlyparse=True)
     msidx = myms.msselectedindices()
     ddid = msidx['spwdd'][0]
     stateid = list(msidx['stateid'])
