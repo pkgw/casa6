@@ -100,12 +100,28 @@ class phaseshift_test(unittest.TestCase):
         if os.path.exists(output):
             shutil.rmtree(output)
 
+    def check_nrows(self, vis, expected_nrows):
+        """ Simple check to ensure the correct number of rows has been produced in the main
+        table of an (output) MS. Checks the vis exists on disk and looks at the number of
+        rows of the TIME column. """
+        tbt = table()
+        try:
+            tbt.open(output)
+            nrows = len(tbt.getcol('TIME'))
+        finally:
+            tbt.close()
+
+        self.assertTrue(os.path.exists(vis), f"MeasurementSet not found: {vis}")
+        self.assertEqual(nrows, expected_nrows,
+                         f"Incorrect number of rows found in MS: {vis}")
+
     def test_takesVis(self):
         ''' Check that the task requires a valid input MS '''
         result = phaseshift(
             datacopy, outputvis=output,
             phasecenter='J2000 19h53m50 40d06m00'
         )
+        self.check_nrows(output, 63180)
 
     def test_outvis(self):
         '''
@@ -116,7 +132,7 @@ class phaseshift_test(unittest.TestCase):
             phasecenter='J2000 19h53m50 40d06m00'
         )
 
-        self.assertTrue(os.path.exists(output))
+        self.check_nrows(output, 63180)
 
     def test_fieldSelect(self):
         ''' Check the field selection parameter '''
@@ -124,11 +140,8 @@ class phaseshift_test(unittest.TestCase):
             datacopy_Itziar, outputvis=output,
             phasecenter='J2000 00h00m01 -29d55m40', field='2'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('FIELD_ID'))
-        tb.close()
 
-        self.assertTrue(data_selected == 6125)
+        self.check_nrows(output, 6125)
 
     def test_spwSelect(self):
         ''' Check the spw selection parameter '''
@@ -140,7 +153,7 @@ class phaseshift_test(unittest.TestCase):
         data_selected = len(tb.getcol('TIME'))
         tb.close()
 
-        self.assertTrue(data_selected == 13338, msg=data_selected)
+        self.check_nrows(output, 13338)
 
     def test_intentSelect(self):
         ''' Check the intent selection parameter '''
@@ -148,11 +161,8 @@ class phaseshift_test(unittest.TestCase):
             datacopy_nep, outputvis=output,
             phasecenter='ICRS 00h06m14 -06d23m35', intent='*FLUX*'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('TIME'))
-        tb.close()
 
-        self.assertTrue(data_selected == 570)
+        self.check_nrows(output, 570)
 
     def test_arraySelect(self):
         ''' Check the array selection parameter '''
@@ -163,18 +173,13 @@ class phaseshift_test(unittest.TestCase):
                     phasecenter='ICRS 00h06m14 -06d23m35',
                     array='1'
             )
+
         phaseshift(
             datacopy_nep, outputvis=output,
             phasecenter='ICRS 00h06m14 -06d23m35', array='0'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('TIME'))
-        tb.close()
 
-        self.assertTrue(
-            data_selected == 6270,
-            "Incorrect number of rows found"
-        )
+        self.check_nrows(output, 6270)
 
     def test_observationSelect(self):
         ''' Check the observation selection parameter '''
@@ -189,13 +194,8 @@ class phaseshift_test(unittest.TestCase):
             datacopy_nep, outputvis=output,
             phasecenter='ICRS 00h06m14 -06d23m35', observation='0'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('TIME'))
-        tb.close()
 
-        self.assertTrue(
-            data_selected == 6270, "Incorrect number of rows found"
-        )
+        self.check_nrows(output, 6270)
 
     def test_keepsMMS(self):
         '''
@@ -211,6 +211,7 @@ class phaseshift_test(unittest.TestCase):
         ms.close()
 
         self.assertFalse(is_mms)
+        self.check_nrows(output, 1080)
 
     def test_datacolumn(self):
         '''
@@ -231,6 +232,8 @@ class phaseshift_test(unittest.TestCase):
             phasecenter='ICRS 00h06m14 -06d23m35', datacolumn='DATA'
         )
 
+        self.check_nrows(output, 6270)
+
     def test_phasecenter(self):
         '''
         Check that this parameter sets the sky coordinates of the new
@@ -247,6 +250,8 @@ class phaseshift_test(unittest.TestCase):
             datacopy_nep, outputvis=output,
             phasecenter='ICRS 00h06m14 -08d23m35'
         )
+
+        self.check_nrows(output, 6270)
         tb.open(output)
         data_mean = np.mean(tb.getcol('DATA'))
         tb.close()
