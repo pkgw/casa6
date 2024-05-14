@@ -651,21 +651,49 @@ class test_sdatmcor(unittest.TestCase):
         self.check_result({19: True, 23: True})
 
 
-def set_data_to_zero(infile: str, spw: int):
-    myms = mstool()
-    myms.open(infile)
-    myms.msselect({'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'}, onlyparse=True)
-    msidx = myms.msselectedindices()
-    ddid = msidx['spwdd'][0]
-    stateid = list(msidx['stateid'])
-    taql = f'DATA_DESC_ID == {ddid} && STATE_ID IN {stateid}'
+def set_data_to_zero(infile: str, spw: int) -> np.ndarray:
+    """Set ON_SOURCE CORRECTED_DATA to zero for given spw.
 
-    with table_selector(infile, taql=taql, nomodify=False) as tb:
-        for colname in ['CORRECTED_DATA', 'DATA', 'FLOAT_DATA']:
-            if colname in tb.colnames():
-                cdata = tb.getcol(colname)
-                cdata[::] = 0
-                tb.putcol(colname, cdata)
+    This is implemented by TaQL and is intended to do the
+    same with the following code snippet.
+
+        ms.open(infile)
+        ms.msselect(
+            {'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'},
+            onlyparse=True
+        )
+        msidx = myms.msselectedindices()
+        ddid = msidx['spwdd'][0]
+        stateid = list(msidx['stateid'])
+        taql = f'DATA_DESC_ID == {ddid} && STATE_ID IN {stateid}'
+
+        with table_selector(infile, taql=taql, nomodify=False) as tb:
+            cdata = tb.getcol('CORRECTED_DATA')
+            cdata[::] = 0
+            tb.putcol(colname, cdata)
+        return cdata
+
+    Args:
+        infile: Input MS name
+        spw: Spectral window Id
+
+    Returns:
+        Data array manipulated by this function
+    """
+    with table_manager(infile) as tb:
+        taql_string = f'''
+        USING STYLE PYTHON
+        UPDATE "{infile}" SET CORRECTED_DATA = 0
+        WHERE
+          DATA_DESC_ID IN
+            [SELECT ROWID() FROM ::DATA_DESCRIPTION WHERE SPECTRAL_WINDOW_ID == {spw}]
+          && STATE_ID IN
+            [SELECT ROWID() FROM ::STATE WHERE OBS_MODE ~ p/OBSERVE_TARGET#ON_SOURCE/]
+        '''
+        t = tb.taql(taql_string)
+        cdata = t.getcol('CORRECTED_DATA')
+        t.close()
+    return cdata.real
 
 
 class test_sdatmcor_smoothing(unittest.TestCase):
@@ -695,7 +723,8 @@ class test_sdatmcor_smoothing(unittest.TestCase):
         # In sdatmcor, correction factor is subtracted from the data
         # so we can get correction factor if we set data all zero
         # (output_data = 0 - correction_factor).
-        set_data_to_zero(self.infile, spw=17)
+        zero_data = set_data_to_zero(self.infile, spw=17)
+        self.assertTrue(np.all(zero_data == 0))
 
         # Apply correction with smoothing
         sdatmcor(
