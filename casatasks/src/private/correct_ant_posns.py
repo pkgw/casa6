@@ -110,6 +110,11 @@ def correct_ant_posns_alma_json(vis_name, json_file):
             differential_pos.append(corrected_abspos[0] - nominal_abspos[0][tb_idx])
             differential_pos.append(corrected_abspos[1] - nominal_abspos[1][tb_idx])
             differential_pos.append(corrected_abspos[2] - nominal_abspos[2][tb_idx])
+        else:
+            raise ValueError("Antenna {} could not be found in input MS".format(corrected_antenna_name))
+    if (len(differential_pos) == 0) :
+        raise ValueError("The list of antenna positions in JSON file is empty")
+
 
     return antennas_to_correct, differential_pos
 

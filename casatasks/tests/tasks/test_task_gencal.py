@@ -226,6 +226,9 @@ class test_gencal_antpos_alma(unittest.TestCase):
 
     ALMA_MODIFIED_POINT_SOURCE_MS = 'uid___A002_Xdbc154_X50bd_modified_point_source.ms'
     ALMA_ANTENNA_FAKE_POSITIONS = 'antenna_fake_positions.json'
+    ALMA_ANTENNA_NON_EXISTING = 'antenna_non_existing.json'
+    ALMA_ANTENNA_EMPTY = 'antenna_empty.json'
+    ALMA_ANTENNA_NOTALMA = 'antenna_notalma.json'
     CAL_TYPE = 'antpos'
     OUT_CALTABLE = 'uid___A002_Xdbc154_X50bd_modified_point_source.ms.cal'
     REF_CALTABLE = os.path.join(datapath, 'alma_reference/uid___A002_Xdbc154_X50bd_antpos_reference.cal')
@@ -250,12 +253,33 @@ class test_gencal_antpos_alma(unittest.TestCase):
             shutil.rmtree(self.OUT_CALTABLE)
         if (os.path.exists(self.ALMA_ANTENNA_FAKE_POSITIONS)):
             os.remove(self.ALMA_ANTENNA_FAKE_POSITIONS)
+        if (os.path.exists(self.ALMA_ANTENNA_NON_EXISTING)):
+            os.remove(self.ALMA_ANTENNA_NON_EXISTING)
+        if (os.path.exists(self.ALMA_ANTENNA_EMPTY)):
+            os.remove(self.ALMA_ANTENNA_EMPTY)
+        if (os.path.exists(self.ALMA_ANTENNA_NOTALMA)):
+            os.remove(self.ALMA_ANTENNA_NOTALMA)
 
     def create_fake_antenna_json(self):
-        """ Creates a JSON file with some modified positions"""
+        """ Creates JSON files with some modified positions"""
         antenna_json_map = {'data': {'DA57': [2225188.291082358, -5440190.333712143, -2481301.9766639145], 'DA56': [2224943.8476697714, -5439974.666278855, -2482014.485205257], 'DA55': [2225052.614710198, -5440046.804298845, -2481737.049418094], 'DA54': [2225287.7654479267, -5439952.665663545, -2481718.7996364096], 'DA51': [2225085.7614180557, -5440062.100071216, -2481674.2369584036], 'DA50': [2225029.5940700597, -5440081.848538211, -2481682.2747704606], 'DV11': [2225093.791947928, -5440090.106591557, -2481604.305180936], 'DV12': [2225196.572533947, -5439865.589890478, -2482003.1711576893], 'DV13': [2225090.6956029134, -5440083.263062006, -2481622.447347566], 'DV14': [2224759.171832559, -5440069.4735431, -2481944.5729209166], 'DV15': [2225070.98396082, -5440031.731295895, -2481752.2387204156], 'DV16': [2224942.993180323, -5440088.424202303, -2481748.384453158], 'DV17': [2225074.4229963943, -5440002.263817599, -2481815.3772309585], 'DV19': [2225269.6690117344, -5439908.284361401, -2481832.203728896], 'DA48': [2225270.7369890315, -5440073.089656675, -2481471.418744986], 'DA46': [2225024.5299670226, -5440089.535013906, -2481670.03996153], 'DA45': [2225082.2254641117, -5440048.017236954, -2481708.046694106], 'DA44': [2225070.07414655, -5440067.186890746, -2481677.1332974513], 'DA43': [2225075.354086505, -5440059.362042112, -2481689.4740548218], 'DA65': [2224981.097100461, -5440131.251717349, -2481621.066842173], 'DA42': [2225053.230759497, -5440093.368435207, -2481635.630547281], 'DA64': [2225119.129949429, -5440069.216680659, -2481628.004886443], 'DA63': [2224948.593711863, -5440040.069551125, -2481852.6256770953], 'DA62': [2225193.4484411315, -5439993.761547387, -2481722.5395953925], 'DA61': [2224774.742715025, -5440235.548074935, -2481577.8152244966], 'DA60': [2225109.1404872905, -5440027.983339809, -2481726.421739189], 'DV20': [2225199.2537456006, -5440058.162041458, -2481571.8029956906], 'DV22': [2224946.2488416233, -5440207.495062985, -2481489.4745832346], 'DV01': [2225031.876371435, -5440052.000290567, -2481745.463977669], 'DV23': [2225069.766534102, -5440092.184458731, -2481621.6963312705], 'DV02': [2225088.4062740593, -5440026.489261174, -2481746.862259024], 'DV24': [2225078.2504491988, -5440185.64380042, -2481414.9495449723], 'DV25': [2225376.499595644, -5439991.419010953, -2481543.23362462], 'DV04': [2225064.8108568713, -5440109.239943672, -2481588.4482270624], 'DV05': [2225117.8101813397, -5440052.283765855, -2481665.80127241], 'DV06': [2225010.2945872336, -5440077.490336823, -2481707.649867947], 'DV07': [2225113.7092840783, -5440059.309074434, -2481653.1234815717], 'DV08': [2225095.82453017, -5440034.295320967, -2481723.2508713044], 'DV09': [2225176.481477592, -5439963.820396381, -2481800.5291207368], 'DA59': [2224910.667195755, -5440129.817686593, -2481689.08632993], 'DA58': [2224799.014454588, -5440161.72949903, -2481726.2117059752]}, 'metadata': {'caltype': 'ALMA antenna positions', 'description': 'ALMA ITRF antenna positions in meters', 'product_code': 'antposalma', 'outfile': 'test.json', 'hosts': ['https://asa.alma.cl/uncertainties-service/uncertainties/versions/last/measurements/casa/'], 'asdm': 'uid://A002/Xdbc154/X50bd', 'search': 'both_latest', 'successful_url': 'manual test data', 'timestamp': '2024-05-07 15:01:28.954651'}}
         import json
         with open(self.ALMA_ANTENNA_FAKE_POSITIONS, 'w') as f:
+            json.dump(antenna_json_map, f)
+
+        antenna_json_map = {'data': {'NON_EXISTENT': [2225188.291082358, -5440190.333712143, -2481301.9766639145], 'DA56': [2224943.8476697714, -5439974.666278855, -2482014.485205257]}, 'metadata': {'caltype': 'ALMA antenna positions', 'description': 'ALMA ITRF antenna positions in meters', 'product_code': 'antposalma', 'outfile': 'test.json', 'hosts': ['https://asa.alma.cl/uncertainties-service/uncertainties/versions/last/measurements/casa/'], 'asdm': 'uid://A002/Xdbc154/X50bd', 'search': 'both_latest', 'successful_url': 'manual test data', 'timestamp': '2024-05-07 15:01:28.954651'}}
+        import json
+        with open(self.ALMA_ANTENNA_NON_EXISTING, 'w') as f:
+            json.dump(antenna_json_map, f)
+
+        antenna_json_map = {'data': {}, 'metadata': {'caltype': 'ALMA antenna positions', 'description': 'ALMA ITRF antenna positions in meters', 'product_code': 'antposalma', 'outfile': 'test.json', 'hosts': ['https://asa.alma.cl/uncertainties-service/uncertainties/versions/last/measurements/casa/'], 'asdm': 'uid://A002/Xdbc154/X50bd', 'search': 'both_latest', 'successful_url': 'manual test data', 'timestamp': '2024-05-07 15:01:28.954651'}}
+        import json
+        with open(self.ALMA_ANTENNA_EMPTY, 'w') as f:
+            json.dump(antenna_json_map, f)
+
+        antenna_json_map = {'data': {}, 'metadata': {'caltype': 'ALMA antenna positions', 'description': 'ALMA ITRF antenna positions in meters', 'product_code': 'otherproduct', 'outfile': 'test.json', 'hosts': ['https://asa.alma.cl/uncertainties-service/uncertainties/versions/last/measurements/casa/'], 'asdm': 'uid://A002/Xdbc154/X50bd', 'search': 'both_latest', 'successful_url': 'manual test data', 'timestamp': '2024-05-07 15:01:28.954651'}}
+        import json
+        with open(self.ALMA_ANTENNA_NOTALMA, 'w') as f:
             json.dump(antenna_json_map, f)
 
     def test_antpos_alma_fake_positions(self) :
@@ -291,6 +315,70 @@ class test_gencal_antpos_alma(unittest.TestCase):
         cdph=np.absolute(np.angle(tb.getcol('CORRECTED_DATA')))
         tb.close()
         self.assertTrue(np.all(cdph<1e-5))
+
+    def test_antpos_alma_non_existing_antenna(self) :
+        """This test checks that an exception is thrown
+           if the name of any of the antennas in the JSON file
+           is not found in the MS"""
+
+        # Call gencal with a JSON that has a non-existing antenna
+        with self.assertRaises(ValueError) :
+            gencal(vis=self.ALMA_MODIFIED_POINT_SOURCE_MS,
+                caltable=self.OUT_CALTABLE,
+                caltype=self.CAL_TYPE,
+                infile=self.ALMA_ANTENNA_NON_EXISTING)
+
+    def test_antpos_alma_empty(self) :
+        """This test checks that an exception is thrown
+           if the name of any of the antennas in the JSON file
+           is not found in the MS"""
+
+        # Call gencal with a JSON that has no antennas
+        with self.assertRaises(ValueError) :
+            gencal(vis=self.ALMA_MODIFIED_POINT_SOURCE_MS,
+                caltable=self.OUT_CALTABLE,
+                caltype=self.CAL_TYPE,
+                infile=self.ALMA_ANTENNA_EMPTY)
+
+    def test_antpos_alma_overspecify(self) :
+        """This test checks when the JSON file is used there are
+           no other parameters being set like the antenna parameter"""
+
+        # Call gencal with infile and antenna should fail
+        with self.assertRaises(ValueError) :
+            gencal(vis=self.ALMA_MODIFIED_POINT_SOURCE_MS,
+                caltable=self.OUT_CALTABLE,
+                caltype=self.CAL_TYPE,
+                infile=self.ALMA_ANTENNA_FAKE_POSITIONS,
+                antenna='DA57,DA56')
+
+        # Call gencal with infile and pol should fail
+        with self.assertRaises(ValueError) :
+            gencal(vis=self.ALMA_MODIFIED_POINT_SOURCE_MS,
+                caltable=self.OUT_CALTABLE,
+                caltype=self.CAL_TYPE,
+                infile=self.ALMA_ANTENNA_FAKE_POSITIONS,
+                pol='R,L')
+
+        # Call gencal with infile and parameter should fail
+        with self.assertRaises(ValueError) :
+            gencal(vis=self.ALMA_MODIFIED_POINT_SOURCE_MS,
+                caltable=self.OUT_CALTABLE,
+                caltype=self.CAL_TYPE,
+                infile=self.ALMA_ANTENNA_FAKE_POSITIONS,
+                parameter=[0.01,0.02,0.03, -0.03,-0.01,-0.02])
+
+    def test_antpos_alma_notalma(self) :
+        """This test checks when the JSON file is used there are
+           no other parameters being set like the antenna parameter"""
+
+        # Call gencal with a JSON that does not have product_code = "antposalma"
+        with self.assertRaises(ValueError) :
+            gencal(vis=self.ALMA_MODIFIED_POINT_SOURCE_MS,
+                caltable=self.OUT_CALTABLE,
+                caltype=self.CAL_TYPE,
+                infile=self.ALMA_ANTENNA_NOTALMA)
+
 
 class gencal_test_tec_vla(unittest.TestCase):
 
