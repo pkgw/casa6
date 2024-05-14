@@ -724,8 +724,8 @@ class test_sdatmcor_smoothing(unittest.TestCase):
         for ipol in range(correction_factor_spw17.shape[0]):
             print(f'Examining pol {ipol}')
             edge_delta = np.abs(delta[ipol, [0, -1]])
-            print('edge_data', edge_delta)
-            print(f'threhsold = {threshold}')
+            print('edge_delta', edge_delta)
+            print(f'threshold = {threshold}')
             self.assertTrue(
                 np.all(edge_delta < threshold),
                 msg=f'Mitigation did not work for pol {ipol}'
