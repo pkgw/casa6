@@ -107,6 +107,7 @@ class PySynthesisImager:
             self.fillCFCache();
             self.reloadCFCache();
         
+
     def initializeImagers(self):
 
         ## Initialize the tool for the current node
@@ -128,9 +129,10 @@ class PySynthesisImager:
         # If cfcache directory already exists, assume that it is
         # usable and is correct.  makeCFCache call then becomes a
         # NoOp.
+
         cfCacheName=''
         exists=False
-        if(self.allgridpars['0']['gridder'].startswith('awp')):
+        if(self.allgridpars['0']['gridder'].startswith('awpr') or self.allgridpars['0']['gridder'].startswith('awph') ):
             cfCacheName=self.allgridpars['0']['cfcache'];
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
@@ -142,6 +144,8 @@ class PySynthesisImager:
             
         for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
+
+            # print(f'####allimpars={self.allimpars[str(fld)]} \n    allgridpars={self.allgridpars[str(fld)]}')
             self.SItool.defineimage(
                 self.allimpars[str(fld)], self.allgridpars[str(fld)]
             )
@@ -152,6 +156,7 @@ class PySynthesisImager:
         ###commenting this out so that tuneSelect is done after weighting
         ###CAS-11687
         # For cube imaging:  align the data selections and image setup
+
         #if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
         #   self.SItool.tuneselectdata()
         ###For cubes create cfcache ahead of each partition trying
@@ -228,8 +233,6 @@ class PySynthesisImager:
     def pbcorImages(self):
         for immod in range(0, self.NF):
             self.SDtools[immod].pbcor()
-
-    #############################################
 
     def getSummary(self,fullsummary,fignum=1):
         summ = self.IBtool.getiterationsummary()
@@ -431,18 +434,24 @@ class PySynthesisImager:
 
     #############################################
     def makePSF(self):
-
         self.makePSFCore()
-        divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs'
+        divideInPython = (
+            self.allimpars["0"]["specmode"] == "mfs"
+            or self.allimpars["0"]["deconvolver"] == "mtmfs"
+        )
+
         ### Gather PSFs (if needed) and normalize by weight
         for immod in range(0, self.NF):
             # for cube normalization is done in C++
             if divideInPython:
                 self.PStools[immod].gatherpsfweight()
                 self.PStools[immod].dividepsfbyweight()
-            if self.SDtools != []:
-                if immod <= len(self.SDtools) - 1:
-                    self.SDtools[immod].checkrestoringbeam()
+            self.check_psf(immod)
+
+    def check_psf(self, immod):
+        if self.SDtools != []:
+            if immod <= len(self.SDtools) - 1:
+                self.SDtools[immod].checkrestoringbeam()
 
     #############################################
     def calcVisAppSens(self):
@@ -457,7 +466,11 @@ class PySynthesisImager:
             lastcycle = self.IBtool.cleanComplete(lastcyclecheck=True) > 0
         else:
             lastcycle = True
-        divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs'
+
+        divideInPython = (
+            self.allimpars["0"]["specmode"] == "mfs"
+            or self.allimpars["0"]["deconvolver"] == "mtmfs"
+        )
         ##norm is done in C++ for cubes
         if not divideInPython:
             self.runMajorCycleCore(lastcycle)
@@ -750,7 +763,7 @@ class PySynthesisImager:
             )
             return summ
 
-        import pylab as pl
+        import matplotlib.pyplot as pl
         from numpy import max as amax
 
         # 0 : iteration number (within deconvolver, per cycle)

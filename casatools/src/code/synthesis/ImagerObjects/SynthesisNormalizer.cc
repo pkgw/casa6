@@ -324,7 +324,21 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsImages->releaseLocks();
 
   }
+  void SynthesisNormalizer::makePSFBeamset(){
+    LogIO os(LogOrigin("SynthesisNormalizer", "dividePSFByWeight", WHERE));
+    try{
+      if(!itsImages){
+        itsImages = makeImageStore( itsImageName, false );
+      }
 
+    }
+    catch(AipsError& x){
+
+      throw(AipsError("Programmers error no psf is made on disk and  trying to fit"));
+    }
+    itsImages->makeImageBeamSet(itsPsfcutoff);
+    itsImages->releaseLocks();
+  }
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );
@@ -622,12 +636,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   }// end of setupImagesOnDisk
 
 
-  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename )
+  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename , const bool useweightimage)
   {
+    //The constructors use ignoresumwt  so use the !useweightimage
     if( itsMapperType == "multiterm" )
-      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true ));   }
+      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true, !useweightimage ));   }
     else
-      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true ));   }
+      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true /*ignorefacets*/, !useweightimage ));   }
     itsImages->releaseLocks();
   }
 

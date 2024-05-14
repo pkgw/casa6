@@ -1035,10 +1035,15 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
 
 
   MDirection VisBufferUtil::getEphemBasedPhaseDir(const vi::VisBuffer2& vb, const String& ephemPath, const MDirection&refDir,  const Double t){
-    MEpoch ep(Quantity(t, "s"), vb.getVi()->getImpl()->getEpoch().getRef());
-    mframe_.resetEpoch(ep);
+    
+    
     if(!Table::isReadable(ephemPath, False))
       return refDir;
+    if(!(vb.getVi()->getImpl())){
+      throw(AipsError("VisibilityIterator is not attached to an ms"));
+    }
+    MEpoch ep(Quantity(t, "s"), vb.getVi()->getImpl()->getEpoch().getRef());
+    mframe_.resetEpoch(ep);
     MeasComet mcomet(Path(ephemPath).absoluteName());
     mframe_.set(mcomet);
     MDirection::Ref outref1(MDirection::AZEL, mframe_);
