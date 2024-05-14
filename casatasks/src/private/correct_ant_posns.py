@@ -36,7 +36,6 @@ def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
                      parameter=antenna_offsets[2])
 
     For specific details for the EVLA see correct_ant_posns_evla.
-    For specific details for ALMA see correct_ant_posns_alma.
     """
     _tb.open(vis_name+'/OBSERVATION')
     # specific code for different telescopes
@@ -44,10 +43,8 @@ def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
     _tb.close()
     if tel_name == 'EVLA' or tel_name == 'VLA':
         return _correct_ant_posns_evla(vis_name, print_offsets, time_limit)
-    elif tel_name == 'ALMA':
-        return _correct_ant_posns_alma(vis_name, print_offsets)
     else:
-        msg = 'Currently only work for EVLA or ALMA observations'
+        msg = 'Currently only work for EVLA observations'
         if (print_offsets):
             print(msg)
         else:
