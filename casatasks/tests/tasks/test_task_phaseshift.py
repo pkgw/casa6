@@ -945,6 +945,7 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
     ms_multifield = "uid___A002_X1c6e54_X223-thinned.ms"
     datapath_multifield = ctsys_resolve(os.path.join(datadir_multifield,
                                                      ms_multifield))
+    relevant_ddis_multifield = ['0', '1']
 
     def setUp(self):
         shutil.copytree(self.datapath_multifield, datacopy)
@@ -957,6 +958,11 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
             shutil.rmtree(self.outputvis)
 
     def check_field_subtable(self, outputvis, inputvis, new_centers):
+        """
+        Ensures that the field subtable of outputvis has the expected phase centers
+        (from 'new_centers' passed to the phasecenter parameter of phaseshift),
+        comparing also unmodified ('passthrough') fields with the 'inputvis'.
+        """
         from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
 
         def get_expected_output_ra_dec(row, new_centers, input_phase_col):
@@ -985,8 +991,7 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
 
 
         phase_col = get_field_subt_phasedir_col(outputvis)
-        if isinstance(new_centers, dict):
-            input_phase_col = get_field_subt_phasedir_col(inputvis)
+        input_phase_col = get_field_subt_phasedir_col(inputvis)
 
         for row in range(0, phase_col.shape[-1]):
             ra_rad, dec_rad = get_expected_output_ra_dec(row, new_centers,
@@ -1000,6 +1005,53 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
                              f"unexpected PHASE_DIR dec value in row {row} "
                              f"(with {new_centers=})")
 
+    def get_col_for_field(self, vis, field, ddi, col_name='DATA',):
+        """
+        Get the visibilities from a data column (specified in param 'col_name'),
+        given a field ID and a DDI ID.
+
+        Note: orders the vis values by TIME col, using TaQL, to prevent
+        re-ordering seen for example with uid___A002_X1c6e54_X223-thinned.ms
+        (It might have needed to reorder by ANTENNA1, ANTENNA2, SCAN_NUMBER,
+         etc. but that was not needed)
+        """
+        tbt = table()
+
+        try:
+            tbt.open(vis)
+
+            if field is None:
+                col = tbt.getcol(col_name)
+            else:
+                query_str = ('FIELD_ID in [{}] AND DATA_DESC_ID in [{}]'
+                             ' ORDERBY TIME'.format(field, ddi))
+
+                try:
+                    query_col = tbt.query(query_str, columns=col_name,
+                                          style='python')
+                    col = query_col.getcol(col_name)
+                finally:
+                    query_col.done()
+                    if len(col) == 0:
+                        raise RuntimeError('Unexpected empty column/query, '
+                                           'check test setup')
+        finally:
+            tbt.done()
+
+        return col
+
+    def check_field_unchanged(self, inputvis, outputvis, field, ddi='0'):
+        """ Compare the visibility values between the input and output
+        MSs, given one field ID and DDI ID and ensure that the values are
+        close (for unchanged / 'passthrough' fields) . """
+        vis_in = self.get_col_for_field(datacopy, field=field, ddi=ddi)
+
+        vis_out = self.get_col_for_field(outputvis, field=field, ddi=ddi)
+
+        m1 = np.mean(vis_in)
+        m2 = np.mean(vis_out)
+        self.assertEqual(m1, m2)
+        np.testing.assert_allclose(vis_in, vis_out, rtol=1e-7)
 
     def test_phasecenter_dict_outofrange(self):
         ''' Check handling of dict with unknown / too many fields '''
@@ -1010,17 +1062,29 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
                                              '3': new_center})
 
     def test_phasecenter_dict_simple(self):
-        ''' Check multiple field phasecenter(s) given as a dict '''
+        ''' Check multiple field phasecenter(s) given as a dict, one field '''
         new_center = 'J2000 19h53m50 40d06m00'
         phasecenter = {'0': new_center,}
         result = phaseshift(datacopy, outputvis=self.outputvis,
                             phasecenter=phasecenter)
-        self.assertEqual(result, None)
 
+        self.assertEqual(result, None)
         self.check_field_subtable(self.outputvis, datacopy, phasecenter)
 
+        for field in ['1', '2']:
+            for ddi in self.relevant_ddis_multifield:
+                self.check_field_unchanged(datacopy, self.outputvis, ddi=ddi,
+                                           field=field)
+
+    def test_test_nodict(self):
+        new_center = 'J2000 19h53m50 40d06m00'
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter=new_center)
+
+        self.check_field_subtable(self.outputvis, datacopy, new_center)
+
     def test_phasecenter_dict_one_out(self):
-        ''' Check multiple field phasecenter(s) given as a dict '''
+        ''' Check multiple field phasecenter(s) given as a dict, skip one field '''
         new_centerA = 'J2000 19h53m50 40d06m00'
         new_centerB = 'J2000 22h01m02 40d04m03'
         phasecenter = {'0': new_centerA,
@@ -1030,6 +1094,10 @@ class phaseshift_multi_phasecenter_test(unittest.TestCase):
         self.assertEqual(result, None)
 
         self.check_field_subtable(self.outputvis, datacopy, phasecenter)
+
+        for ddi in self.relevant_ddis_multifield:
+            self.check_field_unchanged(datacopy, self.outputvis, ddi=ddi,
+                                       field='1')
 
 
 if __name__ == '__main__':
