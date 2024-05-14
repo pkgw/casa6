@@ -2161,7 +2161,7 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
                     (2) in row 2, entirely flagged for pol 0, also pol 1 is unselected
                     (3) in row 2, entirely flagged for pol 1, also pol 0 is unselected
     test304 : same as test303, but for blfunc='variable'
-    test304 : blmode='fit', bloutput!='', dosubtract=True, blfunc='sinusoid'
+    test305 : blmode='fit', bloutput!='', dosubtract=True, blfunc='variable(sinusoid)'
 
     Note: input data is generated from a single dish regression data,
     'OrionS_rawACSmod', as follows:
@@ -2682,6 +2682,8 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
     06: duplicated fitting parameter in blparam file (the last one is adopted)
     10: check if baseline function names are correctly output in text file
     11: check if the numbers of baseline coefficients are correctly output in text/csv
+    12: check if the numbers of sinusoid baseline coefficients are correctly output in csv
+        and length is same, some differences are acceptable due to ManyLinux nuance
     NOT IMPLEMENTED YET
     * line finder
     * edge flagging
@@ -2968,10 +2970,14 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
                     list_all = [row for row in csv.reader(file)]
                     with open(output_reference, 'r') as ref_file:
                         ref_all = [row for row in csv.reader(ref_file)]
+                        # Compare lengths of the lists
+                        self.assertEqual(list_all, ref_all, 
+                                        msg=f"Output lengths differ: ref={ref_all}, list={val_list}" )
+
                         for row_ref, row_list in zip(ref_all, list_all):
                             for idx, (val_ref, val_list) in enumerate(zip(row_ref, row_list)):
-                                # Skip columns 5 and 6 (zero-based indexß)
-                                if idx == 4 or idx == 5:
+                                # Skip columns 5 and 6 (zero-based index)
+                                if idx == 5 or idx == 6:
                                     continue
                                 
                                 # Convert string values to floats for other columns
@@ -2983,10 +2989,10 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
                                           .format(val_ref, val_list))
                                     continue
 
-                                # Compare float values using assertAlmostEqual
-                                self.assertAlmostEqual(float_val_ref, float_val_list, 
-                                                       places=6, 
-                                                       msg=f"Values differ: ref={val_ref}, list={val_list}")
+                        # Compare float values using assertAlmostEqual
+                        self.assertAlmostEqual(float_val_ref, float_val_list, 
+                                                places=6, 
+                                                msg=f"Values differ: ref={val_ref}, list={val_list}")
         finally:
             remove_single_file_dir(output_reference)
 
