@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -333,7 +333,7 @@ namespace casa{
 	  }
 	tmpAperture += *(ap.aperture);
       }
-    *(ap.aperture) = tmpAperture;
+    (ap.aperture)->copyData( tmpAperture);
     tmpAperture.resize(IPosition(1,1));//Release temp. store.
 
     StokesCoordinate polnCoord(poln);
@@ -636,7 +636,7 @@ namespace casa{
       }
   }
   
-  void ALMACalcIlluminationConvFunc::ftAperture(TempImage<Complex>& uvgrid)
+  void ALMACalcIlluminationConvFunc::ftAperture(ImageInterface<Complex>& uvgrid)
   {
     //
     // Make SkyJones

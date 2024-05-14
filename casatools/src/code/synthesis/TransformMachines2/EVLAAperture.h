@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -31,6 +31,7 @@
 
 #include <synthesis/TransformMachines2/Utils.h>
 #include <casacore/images/Images/ImageInterface.h>
+#include <synthesis/TransformMachines/BeamCalc.h>
 //#include <synthesis/MeasurementComponents/ATerm.h>
 #include <synthesis/TransformMachines2/AzElAperture.h>
 #include <casacore/coordinates/Coordinates/CoordinateSystem.h>
@@ -48,7 +49,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
   public:
     //    EVLAAperture(): ATerm(), polMap_p(), feedStokes_p() {};
-    EVLAAperture(): AzElAperture(), polMap_p(), feedStokes_p() {};
+    EVLAAperture();
     ~EVLAAperture() {};
     EVLAAperture& operator=(const EVLAAperture& other);
     //
@@ -78,11 +79,23 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			  const casacore::Int& cfKey,
 			  const casacore::Int& muellerTerm,
 			  const casacore::Double freqVal=-1.0);
+    //Average RR and LL beam 
+    //This is the best to avoid considering the squint of the VLA R and L receptors 
+    void applyAvgSkyJones(casacore::ImageInterface<casacore::Complex> &outImages);
+    //This will generate  the diagonal BeamSkyJones (RR, RL, LR, LL) including the squint at given pa
+    // This returns the diagonal Mueller terms PB in the 4 planes  (i.e Mueller term 0, 5, 10 , 15)
+    // this is not for heterogenous antennas R and L are assumed to come from exactly similar
+    //  antennas
+    void applyDiagSkyJones(casacore::ImageInterface<casacore::Complex>& outImages,
+                                                 const casacore::Double pa);
 
+    // you have to call the following to set between VLA and EVLA (otherwise default is EVLA)
     void cacheVBInfo(const casacore::String& telescopeName, const casacore::Float& diameter);
     void cacheVBInfo(const VisBuffer2& vb);
-    casacore::Int getBandID(const casacore::Double& freq, const casacore::String& telescopeName, const casacore::String& bandName="");
-
+    casacore::Int getBandID(const casacore::Double& freq, const casacore::String& telescopeName, const casacore::String& bandName);
+    //As this is a specialization for VLA or EVLA
+    static casacore::String getVLABandName(const casacore::Double& freq, const casacore::String& tel="EVLA");
+    casacore::Int getBandID(const casacore::Double& freq, const casacore::String& bandname="");
     virtual casacore::Vector<casacore::Int> vbRow2CFKeyMap(const VisBuffer2& vb, casacore::Int& nUnique)
     {casacore::Vector<casacore::Int> tmp; tmp.resize(vb.nRows()); tmp=0; nUnique=1; return tmp;}
 
@@ -104,6 +117,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			 const casacore::CoordinateSystem& skyCoord,
 			 const casacore::Int& skyNx, const casacore::Int& skyNy,
 			 casacore::CoordinateSystem& feedCoord);
+    void setApertureParams(ApertureCalcParams& ap,
+			   const casacore::Float& Freq, const casacore::Float& pa, 
+			   const casacore::Int& bandID,
+			   const casacore::IPosition& skyShape,
+			   const casacore::Vector<casacore::Double>& uvIncr);
 
   private:
     casacore::Vector<casacore::Int> polMap_p;
