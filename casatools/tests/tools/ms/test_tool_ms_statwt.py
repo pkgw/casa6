@@ -259,6 +259,7 @@ class statwt_test(unittest.TestCase):
         if type(gwtsp) != type(None) and type(ewtsp) != type(None):
             self.assertTrue(
                 np.allclose(gwtsp, ewtsp), 'WEIGHT_SPECTRUM comparison failed'
+                f"max diff {np.max(np.abs(gwtsp - ewtsp))}"
             )
         self.assertTrue((gflag == eflag).all(), 'FLAG comparison failed')
         self.assertTrue((gfrow == efrow).all(), 'FLAG_ROW comparison failed')
