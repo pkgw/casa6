@@ -2,7 +2,7 @@
 //#
 //#  CASA - Common Astronomy Software Applications (http://casa.nrao.edu/)
 //#  Copyright (C) Associated Universities, Inc. Washington DC, USA 2011, All rights reserved.
-//#  Copyright (C) European Southern Observatory, 2011, All rights reserved.
+//#  Copyright (C) European Southern Observatory, 2011-2024, All rights reserved.
 //#
 //#  This library is free software; you can redistribute it and/or
 //#  modify it under the terms of the GNU Lesser General Public
@@ -43,28 +43,165 @@ PhaseShiftingTVI::PhaseShiftingTVI(	ViImplementation2 * inputVii,
 
 	// CAS-12706 Zero initialization for wide-field phase shifting algorithm
 	wideFieldMode_p = false;
-	phaseCenterName_p = "";
 
 	// Parse and check configuration parameters
 	// Note: if a constructor finishes by throwing an exception, the memory
 	// associated with the object itself is cleaned up — there is no memory leak.
-	if (not parseConfiguration(configuration))
-	{
-		throw AipsError("Error parsing PhaseShiftingTVI configuration");
-	}
+	parseConfiguration(configuration);
 
 	initialize();
 
 	return;
 }
 
+/**
+ * Get max valid FIELD IDs for this iterator. MSv2 uses the FIELD
+ * table row index as FIELD ID.
+ */
+rownr_t PhaseShiftingTVI::getMaxMSFieldID() const
+{
+  const auto &fieldsTable = getVii()->fieldSubtablecols();
+  return fieldsTable.nrow() - 1;
+}
+
+/**
+ * Parses the phase center parameter, whether given as a single string or
+ * as a dictionary/record of per-field strings.
+ * Populates the phaseCenterSpec_p map.
+ *
+ * @param config TVI configuration object
+ */
+void PhaseShiftingTVI::parsePhasecenter(const Record &config)
+{
+  auto exists = config.fieldNumber ("phasecenter");
+  if (exists < 0)
+    return;
+
+  // phasecenter can be given as a string or as a dict (per-field centers)
+  bool isStr = false;
+  casacore::String phaseCenterStr;
+  try {
+    config.get(exists, phaseCenterStr);
+    isStr = true;
+    logger_p << LogIO::NORMAL << LogOrigin("PhaseShiftingTVI", __FUNCTION__)
+	     << "Interpreting phasecenter as a single string, to be applied"
+	     " to all input (selected) fields."<< LogIO::POST;
+  } catch(const AipsError &exc) {
+    // ignore "RecordRep::get_pointer - incorrect data type String used...
+    //   for field phasecenter with type Record" and similar, try record type
+    logger_p << LogIO::NORMAL << LogOrigin("PhaseShiftingTVI", __FUNCTION__)
+	     << "Interpreting phasecenter as a dictionary of field->center."
+	     << "Using following phase centers:" << LogIO::POST;
+  }
+
+  if (isStr) {
+    const auto &phaseCenterDir = checkPhaseCenterStr(phaseCenterStr);
+    phaseCenterSpec_p.insert({-1, phaseCenterDir});
+  } else {
+    parsePhasecenterDict(config);
+  }
+}
+
+/**
+ * Parses the phase center strings in the items of a dict/record.
+ * Populates the phaseCenterSpec_p map.
+ *
+ * @param config TVI configuration object
+ */
+void PhaseShiftingTVI::parsePhasecenterDict(const Record &config)
+{
+  const auto &inPhasecenter = config.asRecord("phasecenter");
+  if (inPhasecenter.empty()) {
+    throw AipsError("The dictionary 'phasecenter' is empty.");
+  }
+
+  const auto maxMSField = getMaxMSFieldID();
+  std::set<unsigned int> fieldsSeen;
+  // Go through items in the input dict/record
+  for (unsigned int rid=0; rid < inPhasecenter.nfields(); ++rid) {
+    const std::string fieldStr = inPhasecenter.name(RecordFieldId(rid));
+    const auto fid = std::stoi(fieldStr);
+    if (fid < 0 || static_cast<unsigned int>(fid) > maxMSField) {
+      throw AipsError("Wrong field ID given: " + std::to_string(fid) +
+		      ". This MeasurementSet has field IDs between 0 and " +
+		      std::to_string(maxMSField));
+    }
+    if (fieldsSeen.insert(fid).second == false) {
+      throw AipsError("Field " + std::to_string(fid) + " is given multiple times");
+    }
+
+    std::string center;
+    try {
+      center = inPhasecenter.asString(RecordFieldId(rid));
+    } catch (const AipsError &exc) {
+      throw AipsError("For field " + std::to_string(fid) + ", cannot interpret "
+		      "phasecenter value as a string: " +
+		      std::string(exc.getMesg()));
+    }
+    const auto strFieldID = std::to_string(fid);
+    const auto &phaseCenterDir = checkPhaseCenterStr(center, strFieldID);
+    phaseCenterSpec_p.insert({fid, phaseCenterDir});
+  }
+}
+
+/**
+ * Checks that a phase center string can be correctly converted to a
+ * MDirection object, and checks that the ref frame is supported.
+ *
+ * @param phasecenter center string as given in the 'phasecenter' param
+ * @param fieldInfo more info to print about the field
+ *
+ * @returns direction as an MDirection
+ */
+MDirection PhaseShiftingTVI::checkPhaseCenterStr(const String &phasecenter,
+						 const string &fieldInfo)
+{
+  // casaMDirection requires a variant
+  casac::variant phaseCenterVar(phasecenter);
+  casacore::MDirection phaseCenterDir;
+  if(!casaMDirection(phaseCenterVar, phaseCenterDir)) {
+    throw AipsError("Cannot interpret phase center string as a direction object: "
+		    + phasecenter);
+  } else {
+    const auto myFrame = phaseCenterDir.getRefString();
+    MDirection::Types mdtype;
+    MDirection::getType(mdtype, myFrame);
+    ThrowIf(
+	    mdtype == MDirection::HADEC || mdtype == MDirection::AZEL
+	    || mdtype == MDirection::AZELSW || mdtype == MDirection::AZELNE
+	    || mdtype == MDirection::AZELGEO || mdtype == MDirection::AZELSWGEO
+	    || mdtype == MDirection::MECLIPTIC || mdtype == MDirection::TECLIPTIC
+	    || mdtype == MDirection::TOPO,
+	    myFrame + " is a time dependent reference frame and so is not supported"
+	    );
+    ThrowIf(
+	    mdtype == MDirection::MERCURY || mdtype == MDirection::VENUS
+	    || mdtype == MDirection::MARS || mdtype == MDirection::JUPITER
+	    || mdtype == MDirection::SATURN || mdtype == MDirection::URANUS
+	    || mdtype == MDirection::NEPTUNE || mdtype == MDirection::PLUTO
+	    || mdtype == MDirection::SUN || mdtype == MDirection::MOON
+	    || mdtype == MDirection::COMET,
+	    myFrame + " denotes an ephemeris object and so is not supported"
+	    );
+
+    auto msg = "Phase center '" + std::string(phasecenter) +
+      "' successfully parsed";
+    if (not fieldInfo.empty()) {
+      msg +=  " for field " + fieldInfo;
+    }
+    logger_p << LogIO::NORMAL << LogOrigin("PhaseShiftingTVI", __FUNCTION__)
+	     << msg << LogIO::POST;
+  }
+
+  return phaseCenterDir;
+}
+
 // -----------------------------------------------------------------------
 //
 // -----------------------------------------------------------------------
-Bool PhaseShiftingTVI::parseConfiguration(const Record &configuration)
+void PhaseShiftingTVI::parseConfiguration(const Record &configuration)
 {
 	int exists = -1;
-	Bool ret = true;
 
 	exists = -1;
 	exists = configuration.fieldNumber ("XpcOffset");
@@ -87,49 +224,42 @@ Bool PhaseShiftingTVI::parseConfiguration(const Record &configuration)
 	}
 
 	// CAS-12706 Add support for shifting across large offset/angles
-	exists = -1;
-	exists = configuration.fieldNumber ("phasecenter");
-	if (exists >= 0)
-	{
-		configuration.get (exists, phaseCenterName_p);
-		// casaMDirection requires a variant
-		casac::variant phaseCenterVar(phaseCenterName_p);
+	parsePhasecenter(configuration);
+	wideFieldMode_p = true;
 
-		if(!casaMDirection(phaseCenterVar, phaseCenter_p))
-		{
-    		logger_p << LogIO::SEVERE << LogOrigin("PhaseShiftingTVI", __FUNCTION__)
-    				<< "Cannot interpret phase center " << phaseCenterName_p << LogIO::POST;
-    		ret = false;
-		}
-		else
-		{
-            MDirection::Types mdtype;
-            const auto myFrame = phaseCenter_p.getRefString();
-            MDirection::getType(mdtype, myFrame);
-            ThrowIf(
-                mdtype == MDirection::HADEC || mdtype == MDirection::AZEL
-                || mdtype == MDirection::AZELSW || mdtype == MDirection::AZELNE
-                || mdtype == MDirection::AZELGEO || mdtype == MDirection::AZELSWGEO
-                || mdtype == MDirection::MECLIPTIC || mdtype == MDirection::TECLIPTIC
-                || mdtype == MDirection::TOPO,
-                myFrame + " is a time dependent reference frame and so is not supported" 
-            );
-            ThrowIf(
-                mdtype == MDirection::MERCURY || mdtype == MDirection::VENUS
-                || mdtype == MDirection::MARS || mdtype == MDirection::JUPITER
-                || mdtype == MDirection::SATURN || mdtype == MDirection::URANUS
-                || mdtype == MDirection::NEPTUNE || mdtype == MDirection::PLUTO
-                || mdtype == MDirection::SUN || mdtype == MDirection::MOON
-                || mdtype == MDirection::COMET,
-                myFrame + " denotes an ephemeris object and so is not supported" 
-            );
-            wideFieldMode_p = true;
-			logger_p << LogIO::NORMAL << LogOrigin("PhaseShiftingTVI", __FUNCTION__)
-					<< "Phase center " << phaseCenterName_p << " successfully parsed"<< LogIO::POST;
-		}
-	}
+}
 
-	return ret;
+/**
+ * Finds the phase center (converted as MDirection object) for the current
+ * field, converting the ref frame if needed to match the current Vis Buffer
+ * ref frame.
+ *
+ * @returns whether any shift should be applied (if an output phasecenter is
+ *          defined for this field + phase center to shift to, for current
+ *          field
+ */
+std::pair<bool, MDirection>
+PhaseShiftingTVI::findConvertedPhaseCenter() const
+{
+  const auto *vb = getVii()->getVisBuffer();
+
+  auto centerIt = phaseCenterSpec_p.find(-1);
+  if (centerIt == phaseCenterSpec_p.end()) {
+    auto fieldID = vb->fieldId()[0];
+    centerIt = phaseCenterSpec_p.find(fieldID);
+    if (centerIt == phaseCenterSpec_p.end()) {
+      return {false, MDirection()};
+    }
+  }
+  auto convertedPhaseCenter = centerIt->second;
+
+  if (convertedPhaseCenter.getRefString() != vb->phaseCenter().getRefString()) {
+    MDirection::Types mdtype;
+    MDirection::getType(mdtype, vb->phaseCenter().getRefString());
+    convertedPhaseCenter = MDirection::Convert(convertedPhaseCenter, mdtype)();
+  }
+
+  return {true, convertedPhaseCenter};
 }
 
 // -----------------------------------------------------------------------
@@ -171,11 +301,13 @@ void PhaseShiftingTVI::shiftUVWPhases()
 	// Get input VisBuffer
 	VisBuffer2 *vb = getVii()->getVisBuffer();
 
-	auto convertedPhaseCenter = phaseCenter_p;
-	if (phaseCenter_p.getRefString() != vb->phaseCenter().getRefString()) {
-		MDirection::Types mdtype;
-		MDirection::getType(mdtype, vb->phaseCenter().getRefString());
-        convertedPhaseCenter = MDirection::Convert(phaseCenter_p, mdtype)();
+	bool doShift = false;
+	MDirection convertedPhaseCenter;
+	std::tie(doShift, convertedPhaseCenter) = findConvertedPhaseCenter();
+	if (not doShift) {
+	  phaseShift_p.resize(0, false);
+	  newUVW_p = vb->uvw();
+	  return;
 	}
 
 	// Initialize epoch corresponding to current buffer
@@ -190,7 +322,7 @@ void PhaseShiftingTVI::shiftUVWPhases()
 	// Obtain phase shift and new uvw coordinates
 	Vector<Double> dummy(3,0.0);
 	double phase2radPerHz = -2.0 * C::pi / C::c;
-	for (uInt row=0;row<vb->nRows();row++)
+	for (rownr_t row=0; row<vb->nRows(); row++)
 	{
 		// Copy current uvw coordinates so that they are not modified
 		// Note: Columns in uvw correspond to rows in the main table/VisBuffer!
@@ -389,17 +521,13 @@ void PhaseShiftingTVI::visibilityModel (Cube<Complex> & vis) const
 // -----------------------------------------------------------------------
 void PhaseShiftingTVI::uvw (casacore::Matrix<double> & uvw) const
 {
-	if (wideFieldMode_p)
-	{
-		uvw.resize(newUVW_p.shape(),false);
-		uvw = newUVW_p;
-	}
-	else
-	{
-		getVii()->uvw (uvw);
-	}
-
-	return;
+    if (wideFieldMode_p) {
+	uvw.resize(newUVW_p.shape(),false);
+	uvw = newUVW_p;
+    }
+    else {
+      getVii()->uvw (uvw);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -544,6 +672,12 @@ template<class T> void WideFieldPhaseShiftingTransformEngine<T>::transformCore(	
 	// Get input/output data
 	Vector<T> &inputVector = inputData->getVector<T>(MS::DATA);
 	Vector<T> &outputVector = outputData->getVector<T>(MS::DATA);
+
+	if (phaseShift_p.shape() == 0) {
+	  // no shift, bypass data as 'passthrough' field
+	  outputVector = inputVector;
+	  return;
+	}
 
 	// Main loop
 	Double phase_i;
