@@ -86,6 +86,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   //convSampling = 1;
   // TESTOO
   
+
   CoordinateSystem cs=image->coordinates();
    
   SpectralCoordinate spCS = cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
@@ -133,6 +134,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
+
               fields.insert(vb.fieldId()(0));
               pbConvFunc_p->findUsefulChannels(chunkfreq, vb, frange);
               //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
@@ -169,6 +171,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     // tell holder it is a single field or not
     (*awConvs_p).setSingleField((fields.size()==1));
 
+
     Double paMax=0.0;
     if(pAs.size()>1){
       std::sort(pAs.begin(), pAs.end());
@@ -182,6 +185,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       }
     }
     
+
     if (nw_p == 0)
       nw_p = 1;
     Vector<Double> wVals(nw_p,0);
@@ -191,7 +195,9 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         wVals[k]=Double(k*k)*st;
     }
     (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, paMax);
+
     pbConvFunc_p->setAWConvFuncHolder(awConvs_p);
+
   }
   
 }
@@ -199,6 +205,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
  void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
   //
   // pbConvFunc_p.phasegradient
+
   //double time0=omp_get_wtime();
   //Complex *oWgtPtr, *oConPtr;
   //Bool isCopy;
@@ -242,6 +249,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       lastplaneW.put(weightConvFunc_p(elblc,  eltrc).nonDegenerate());
     //////
     } */  
+
     awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
                              weightConvFunc_p, vb, rotuvw, interpVisFreq_p);
     //double time1=omp_get_wtime();
@@ -250,6 +258,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
+
     //awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
     //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
     //cerr << "LENGTHS bef" << convRowMap_p.size() << "  " << convChanMap_p.size()   << "   " << convPolMap_p.size() << endl;
@@ -279,7 +288,19 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
  
+
  }
+ 
+  /////==============================================
+  //// some fortran defn
+#define NEED_UNDERSCORES
+#if defined(NEED_UNDERSCORES)
+#define sectgmosd3 sectgmosd3_
+#define sectdmos3 sectdmos3_
+#define gmoswgtd2 gmoswgtd2_
+#define locuvw locuvw_
+#endif
+
 
   /////==============================================
   //// some fortran defn
@@ -290,6 +311,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
 #define gmoswgtd2 gmoswgtd2_
 #define locuvw locuvw_
 #endif
+
 
 extern "C" { 
   void locuvw(const Double*, const Double*, const Double*, const Int*, const Double*, const Double*, const Int*, 

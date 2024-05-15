@@ -62,6 +62,7 @@ AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, c
   convSupport_p.resize();
   aterm_p = std::make_shared<refim::EVLAAperture>();
   aterm_p->cacheVBInfo(obs,  25.0);
+  
 }
 AWConvFuncHolder::AWConvFuncHolder(const AWConvFuncHolder& other) {
  operator = (other);
@@ -139,6 +140,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
      paVals_p = pavals;
    else if ((paVals_p.nelements()) != pavals.nelements())
      throw(AipsError("Cannot change number of PA's in between"));
+
  }
   std::shared_ptr<refim::WPConvFunc>wptr;
   AWConvFunc a(aterm_p, wptr);
@@ -233,6 +235,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   Float correcfac =
       float(awConv.shape()(0) * awConv.shape()(1) * oversamp_p * oversamp_p) /
       float(newAWConv.shape()(0) * newAWConv.shape()(1));
+
   newAWConv *= correcfac;
   newWtConv *= correcfac;
   
@@ -256,6 +259,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
       //cerr << "aft npix " << npix << endl;
+
       IPosition elshp=newAWConv.shape();
       elshp[0]=npix;
       elshp[1]=npix;
@@ -268,6 +272,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     }
     else{
       npix=2*(max(awsupport)+1)*oversamp_p;
+
       convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
     }
@@ -339,6 +344,7 @@ Vector<Int> AWConvFuncHolder::getConvSupports() {
   
  return convSupport_p; 
 }
+
 
 /////////////////////
 void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,

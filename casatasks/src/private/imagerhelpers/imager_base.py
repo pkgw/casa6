@@ -6,8 +6,8 @@ import string
 import time
 import re
 import copy
+from typing import TYPE_CHECKING
 from casatasks.private.casa_transition import is_CASA6
-
 
 
 from casatools import (
@@ -21,7 +21,9 @@ from casatools import (
 )
 from casatasks import casalog
 from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-
+ if TYPE_CHECKING:
+        from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+        
 ctsys_hostinfo = ctsys.hostinfo
 _tb = table()
 _ia = image()
@@ -36,7 +38,8 @@ Summary...
 
 #############################################
 class PySynthesisImager:
-    def __init__(self, params):
+
+    def __init__(self,params: 'ImagerParameters'):
         ################ Tools
         self.initDefaults()
 
@@ -433,6 +436,7 @@ class PySynthesisImager:
                 # continuum A style gridders need their .weight divided by sumwt except for awphpg 
                 if(("awphpg" not in self.allgridpars['0']['gridder'])):
                     self.PStools[immod].divideweightbysumwt()
+                    
             self.check_psf(immod)
 
     def check_psf(self, immod):

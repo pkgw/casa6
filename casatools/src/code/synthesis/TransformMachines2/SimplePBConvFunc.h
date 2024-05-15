@@ -154,9 +154,11 @@ namespace refim{ //namespace for imaging refactor
                                  const std::vector<casacore::Int>& cmap, 
                                  const std::vector<casacore::Int>& rmap, 
                                  const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
+
     // Just holding AWPConvFuncHolder so as ftmachines don't need to re-create them
      void setAWConvFuncHolder(std::shared_ptr<AWConvFuncHolder> awptr);                            
      std::shared_ptr<AWConvFuncHolder> getAWConvFuncHolder();
+
 
     protected:
       SkyJones* sj_p;

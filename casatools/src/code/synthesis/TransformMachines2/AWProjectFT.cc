@@ -1380,6 +1380,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void AWProjectFT::finalizeToVis()
   {
     visResampler_p->runTimeDG_p=0.0;
+
     logIO() << LogOrigin("AWProjectFT", "finalizeToVis")  << LogIO::NORMAL;
     logIO()<< LogIO::WARN << "Time degrid " << timedegrid_p << LogIO::POST;
     timedegrid_p=0.0;
@@ -1703,7 +1704,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     else
       {
 	log_l << "Sum of weights: " << weights << " " << max(griddedData2) << " " << min(griddedData2) << LogIO::POST;
-	cerr << "Sum of weights: " << setprecision(20) << weights << endl;
+	//cerr << "Sum of weights: " << setprecision(20) << weights << endl;
       }
     // UUU else
       {

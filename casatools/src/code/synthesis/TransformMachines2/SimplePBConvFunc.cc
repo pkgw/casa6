@@ -98,6 +98,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ft_p = FFT2D(true);
       usePointingTable_p = False;
     }
+
     SimplePBConvFunc::SimplePBConvFunc(const RecordInterface& rec, const Bool calcfluxneeded)
       : nchan_p(-1), npol_p(-1), pointToPix_p(), directionIndex_p(-1), thePix_p(0), filledFluxScale_p(false),
       doneMainConv_p(0),
@@ -931,6 +932,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 
     }
+
 
 
 

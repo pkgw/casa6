@@ -169,7 +169,8 @@ namespace casa{
         Bool found = False;
         String fullFileName;
         const std::list<std::string> &data_path = AppStateSource::fetch( ).dataPath( );
-        const std::string distrodata_path =casatools::get_state().distroDataPath( );
+
+        const std::string distrodata_path = casatools::get_state().distroDataPath( );
         //cerr<<"distrodata_path="<<distrodata_path<<endl; 
         //cerr<<"DATA PATH==="<< *data_path <<endl;
         // The data path search need to be rewritten to adopt the recommanded setting via python
@@ -679,6 +680,7 @@ namespace casa{
     
     freq = ap->freq;
     if(freq <= 0.0) freq = geom->reffreq;
+
 
     df = freq-geom->reffreq;
     x = 1.0;

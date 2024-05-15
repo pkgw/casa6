@@ -212,7 +212,9 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
   String bandName = "EVLA_L";
   if (telescopeName == "VLA") {
 //    if ((freq >= 1.34E9) && (freq <= 1.73E9))
+
     if((freq >= (9E8-tol)) && (freq <= (1.73E9+tol)))
+
       bandName = "VLA_L";
     else if ((freq >= (4.5E9-tol)) && (freq <= (5.0E9+tol)))
       bandName = "VLA_C";
