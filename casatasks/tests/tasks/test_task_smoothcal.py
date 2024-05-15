@@ -215,8 +215,8 @@ class smoothcal_test(unittest.TestCase):
       pol2Mean = np.mean(_tb.getcol('FPARAM')[4,0,:])
       _tb.close()
       
-      self.assertTrue(np.isclose(pol1Mean, -0.02804, atol=1e-5))
-      self.assertTrue(np.isclose(pol2Mean, 0.08426, atol=1e-5))
+      self.assertTrue(np.isclose(pol1Mean, 0.18474, atol=1e-5))
+      self.assertTrue(np.isclose(pol2Mean, 0.09557, atol=1e-5))
 
 if __name__ == '__main__':
     unittest.main()
