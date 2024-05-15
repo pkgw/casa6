@@ -688,7 +688,7 @@ def set_data_to_zero(infile: str, spw: int) -> np.ndarray:
           DATA_DESC_ID IN
             [SELECT ROWID() FROM ::DATA_DESCRIPTION WHERE SPECTRAL_WINDOW_ID == {spw}]
           && STATE_ID IN
-            [SELECT ROWID() FROM ::STATE WHERE OBS_MODE ~ p/OBSERVE_TARGET#ON_SOURCE/]
+            [SELECT ROWID() FROM ::STATE WHERE OBS_MODE ~ m/^OBSERVE_TARGET#ON_SOURCE/]
         '''
         t = tb.taql(taql_string)
         cdata = t.getcol('CORRECTED_DATA')
