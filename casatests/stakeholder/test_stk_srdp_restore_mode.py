@@ -105,8 +105,9 @@ class Test_srdp_alma_12m(Test_srdp_base):
         # flux density in Jy; major, minor in arcsec and position angle in deg
         self.exp_flags = {'flags_importasdm':3900108.0, 'flags_restored':159843772.0, 'flags_applycal':159843772.0}
         self.exp_total_vis = 1092709620.0
-        self.exp_flux = 1.360
-        self.exp_beam = {'major':0.615,'minor':0.350,"positionangle":-18.632}
+        #self.exp_flux = 1.360
+        #self.exp_beam = {'major':0.615,'minor':0.350,"positionangle":-18.632}
+        self.exp_image = {'flux_max':1.251,'major':0.615,'minor':0.350,"positionangle":-18.632}
         self.exp_tol = 0.01 # within 1%
 
         # Input data
@@ -150,8 +151,7 @@ class Test_srdp_alma_12m(Test_srdp_base):
         report = []
         importasdm(asdm=self.asdm_name, vis=self.output_ms, createmms=False, ocorr_mode='ca', lazy=False,
                    asis='SBSummary ExecBlock Antenna Station Receiver Source CalAtmosphere CalWVR CalPointing',
-                   process_caldevice=False, process_flags=True, applyflags=False, savecmds=False,
-                   overwrite=False, bdfflags=True, with_pointing_correction=False)
+                   process_caldevice=False, savecmds=False, overwrite=False, bdfflags=True, with_pointing_correction=False)
 
         # Get the flags summary and compare with the expected values
         flags_importasdm = flagdata(vis=self.output_ms, mode='summary', name='before-flagmanager')
@@ -194,19 +194,19 @@ class Test_srdp_alma_12m(Test_srdp_base):
                imagename=self.image_prefix,niter=5000,nsigma=3.0, parallel=self.parallel)
 
         # Check calibrator peak flux density matches <1% of exp_flux
-        flux = imstat(imagename=self.image_prefix+'.image')['flux']
-        status, report4 = th.check_val(flux, self.exp_flux, exact=False, epsilon=self.exp_tol, \
-                               valname='flux')
+        flux_max = imstat(imagename=self.image_prefix+'.image')['max']
+        status, report4 = th.check_val(flux_max, self.exp_image['flux_max'], exact=False, epsilon=self.exp_tol, \
+                               valname='flux_max')
  
         # Check that the beam maj/minor is within 1% of exp_beam
         beam = imhead(imagename=self.image_prefix+'.image')['restoringbeam']
-        status, report5 = th.check_val(beam['major']['value'], self.exp_beam['major'], exact=False, epsilon=self.exp_tol, \
+        status, report5 = th.check_val(beam['major']['value'], self.exp_image['major'], exact=False, epsilon=self.exp_tol, \
                                        valname='beam_major')
 
-        status, report6 = th.check_val(beam['minor']['value'], self.exp_beam['minor'], exact=False, epsilon=self.exp_tol, \
+        status, report6 = th.check_val(beam['minor']['value'], self.exp_image['minor'], exact=False, epsilon=self.exp_tol, \
                                        valname='beam_minor')
         
-        status, report7 = th.check_val(beam['positionangle']['value'], self.exp_beam['positionangle'], exact=False, \
+        status, report7 = th.check_val(beam['positionangle']['value'], self.exp_image['positionangle'], exact=False, \
                                        epsilon=self.exp_tol, valname='positionangle') 
         
         report = report0 + report1 + report2 + report3 + report4 + report5 + report6 + report7
@@ -224,8 +224,9 @@ class Test_srdp_alma_7m(Test_srdp_base):
         # Reference criteria using casa-6.5.4-9-pipeline-2023.1.0.125
         self.exp_flags = {'flags_importasdm':2160.0, 'flags_restored':125159272.0, 'flags_applycal':125159272.0}
         self.exp_total_vis = 378548640.0
-        self.exp_flux = 1.556 #Jy
-        self.exp_beam = {'major':4.845,'minor':2.898,"positionangle":78.954}
+        #self.exp_flux = 1.556 #Jy
+        #self.exp_beam = {'major':4.845,'minor':2.898,"positionangle":78.954}
+        self.exp_image = {'flux_max':1.553,'major':4.845,'minor':2.898,"positionangle":78.954}
         self.exp_tol = 0.01 # within 1%
 
         # Input data
@@ -309,19 +310,19 @@ class Test_srdp_alma_7m(Test_srdp_base):
                imagename=self.image_prefix,niter=5000,nsigma=3.0, parallel=self.parallel)
         
         # Check calibrator peak flux density matches <1% of exp_flux
-        flux = imstat(imagename=self.image_prefix+'.image')['flux']
-        status, report4 = th.check_val(flux, self.exp_flux, exact=False, epsilon=self.exp_tol, \
-                               valname='flux')
+        flux_max = imstat(imagename=self.image_prefix+'.image')['max']
+        status, report4 = th.check_val(flux_max, self.exp_image['flux_max'], exact=False, epsilon=self.exp_tol, \
+                               valname='flux_max')
 
         # Check that the beam maj/minor are within 1% of exp_beam
         beam = imhead(imagename=self.image_prefix+'.image')['restoringbeam']
-        status, report5 = th.check_val(beam['major']['value'], self.exp_beam['major'], exact=False, 
+        status, report5 = th.check_val(beam['major']['value'], self.exp_image['major'], exact=False, 
                                        epsilon=self.exp_tol, valname='beam_major')
 
-        status, report6 = th.check_val(beam['minor']['value'], self.exp_beam['minor'], exact=False, 
+        status, report6 = th.check_val(beam['minor']['value'], self.exp_image['minor'], exact=False, 
                                        epsilon=self.exp_tol, valname='beam_minor')
         
-        status, report7 = th.check_val(beam['positionangle']['value'], self.exp_beam['positionangle'], 
+        status, report7 = th.check_val(beam['positionangle']['value'], self.exp_image['positionangle'], 
                                        exact=False, epsilon=self.exp_tol, valname='positionangle') 
 
         # Concatenate the string returned by each report into a single string
@@ -347,7 +348,9 @@ class Test_srdp_vla(Test_srdp_base):
 
         # Flux density in Jy/beam; major, minor in arcsec and position angle in deg
         self.exp_statwt = {'mean':117.4724849592063,"variance":7477.419096555837}
-        self.exp_image = {'flux':0.774,'major':21.723,'minor':9.354,"positionangle":1.248}
+        #self.exp_image = {'flux':0.774,'major':21.723,'minor':9.354,"positionangle":1.248}
+        self.exp_image = {'flux_max':0.7645,'major':21.723,'minor':9.354,"positionangle":1.248}
+
         self.exp_tol = 0.01 # within 1%
 
         # Input data
@@ -453,9 +456,9 @@ class Test_srdp_vla(Test_srdp_base):
         imagename=self.image_prefix, niter=5000, nsigma=5.0, parallel=self.parallel)
 
         # Calibrator flux density and beam: 0.7645 Jy/beam, 21.292" x 9.361" 1.405 degrees
-        flux = imstat(imagename=self.image_prefix+'.image')['flux']
-        status, report7 = th.check_val(flux, self.exp_image['flux'], exact=False, epsilon=self.exp_tol, \
-                               valname='flux')
+        flux_max = imstat(imagename=self.image_prefix+'.image')['max']
+        status, report7 = th.check_val(flux_max, self.exp_image['flux_max'], exact=False, epsilon=self.exp_tol, \
+                               valname='flux_max')
         beam = imhead(imagename=self.image_prefix+'.image')['restoringbeam']
         status, report8 = th.check_val(beam['major']['value'], self.exp_image['major'], exact=False, epsilon=self.exp_tol, \
                                valname='beam_major')
