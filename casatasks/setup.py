@@ -344,7 +344,7 @@ def generate_pyinit(moduledir,tasks):
         for task in tasks:
             fd.write("            '%s',\n" % task)
         fd.write("          ]\n\n")
-        fd.write("""from . import config\n""")
+        fd.write("""from casaconfig import config\n""")
         fd.write("""casalog = _logsink( config.logfile )\n\n""")
         for task in tasks:
             fd.write("from .%s import %s\n" % (task,task))

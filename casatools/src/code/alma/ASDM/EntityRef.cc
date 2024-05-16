@@ -172,14 +172,18 @@ namespace asdm {
 	}
 
 	EntityRef EntityRef::fromBin(EndianIStream& eis) {
-		return EntityRef(eis.readString(), eis.readString(), eis.readString(), eis.readString());
+            std::string entityId = eis.readString();
+            std::string partId = eis.readString();
+            std::string entityTypeName = eis.readString();
+            std::string instanceVersion = eis.readString();
+            return EntityRef(entityId, partId, entityTypeName, instanceVersion);
 	}
 
 	vector<EntityRef> EntityRef::from1DBin(EndianIStream & eis) {
 		int dim1 = eis.readInt();
 		vector<EntityRef> result;
 		for (int i = 0; i < dim1; i++)
-			result.push_back(EntityRef(eis.readString(), eis.readString(), eis.readString(), eis.readString()));
+			result.push_back(EntityRef::fromBin(eis));
 		return result;
 	}
 

@@ -714,7 +714,7 @@ using namespace casa::vi;
         weight.reference(wt);
         interpVisFreq_p.resize();
         interpVisFreq_p=lsrFreq_p;
-
+        //cerr << "INTERPTOGRID " << interpVisFreq_p.nelements() << " vb.nchan  " << vb.nChannels() << endl;
         return false;
       }
 
@@ -997,6 +997,8 @@ using namespace casa::vi;
     if((imageFreq_p.nelements()==1) ||
        (vb.nChannels()==1) ||
        (freqInterpMethod_p== InterpolateArray1D<Double, Complex>::nearestNeighbour) ){
+      interpVisFreq_p=visFreq;
+      //cerr << "INTERPFROMGRID " << interpVisFreq_p << " vb.nchan " << vb.nChannels() << endl;
         origdata->reference(data);
         interpVisFreq_p=visFreq;
         return false;
@@ -1811,8 +1813,8 @@ using namespace casa::vi;
     chanMap.set(-1);
     Vector<Double> lsrFreq(0);
 
-      //cerr << "doConve " << spw << "   " << doConversion_p[spw] << " freqframeval " << freqFrameValid_p << endl;
-//cerr <<"valid frame " << freqFrameValid_p << " polmap "<< polMap << endl;
+    //cerr << "doConve " << spw << "   " << doConversion_p[spw] << " freqframeval " << freqFrameValid_p << endl;
+    //cerr <<"valid frame " << freqFrameValid_p << " polmap "<< polMap << endl;
     //cerr << "spectral coord system " << spectralCoord_p.frequencySystem(False) << endl;
     if (freqFrameValid_p &&spectralCoord_p.frequencySystem(False)!=MFrequency::REST ) {
       lsrFreq=vb.getFrequencies(0,MFrequency::LSRK);
@@ -1821,17 +1823,22 @@ using namespace casa::vi;
       lsrFreq=vb.getFrequencies(0);
     }
     if (spectralCoord_p.frequencySystem(False)==MFrequency::REST && fixMovingSource_p) {
-      if(lastMSId_p != vb.msId()){
-	romscol_p=new MSColumns(vb.ms());
-	//if ms changed ...reset ephem table
-	if (upcase(movingDir_p.getRefString()).contains("APP")) {
-	  MeasComet mcomet(Path((romscol_p->field()).ephemPath(vb.fieldId()(0))).absoluteName());
-	  mFrame_p.resetComet(mcomet);
-	}
+      if (lastMSId_p != vb.msId()) {
+        romscol_p=new MSColumns(vb.ms());
+        //if ms changed ...reset ephem table
+        if (upcase(movingDir_p.getRefString()).contains("APP")) {
+          MeasComet mcomet(Path((romscol_p->field()).ephemPath(vb.fieldId()(0))).absoluteName());
+          mFrame_p.resetComet(mcomet);
+        }
       }
+      MEpoch e0 (Quantity(vb.time()(0), "s"));
+      mFrame_p.epoch() ? mFrame_p.resetEpoch(e0)
+                       : mFrame_p.set(e0);
 
-      mFrame_p.resetEpoch(MEpoch(Quantity(vb.time()(0), "s")));
-      mFrame_p.resetDirection(vbutil_p->getEphemDir(vb, phaseCenterTime_p));
+      const auto ephemDirection = vbutil_p->getEphemDir(vb, phaseCenterTime_p);
+      mFrame_p.direction() ? mFrame_p.resetDirection(ephemDirection)
+                           : mFrame_p.set(ephemDirection);
+
       shiftFreqToSource(lsrFreq);
     }
      //cerr << "lsrFreq " << lsrFreq.shape() << " nvischan " << nvischan << endl;
@@ -2854,8 +2861,12 @@ void FTMachine::findGridSector(const Int& nxp, const Int& nyp, const Int& ixsub,
 	  elrow-=1;
 	}
       }
-
-
+      if( (y0+nysub) >= nyp){
+        nysub = nyp-y0-1;
+      }
+       if( (x0+nxsub) >= nxp){
+        nxsub = nxp-x0-1;
+      }
       y0+=1;
       x0+=1;
       //cerr << icounter << " x0, y0 " << x0 << "  " << y0 << "  ixsub, iysub " <<  nxsub << "   " << nysub << endl;
