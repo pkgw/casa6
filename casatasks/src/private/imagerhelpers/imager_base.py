@@ -21,9 +21,9 @@ from casatools import (
 )
 from casatasks import casalog
 from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
- if TYPE_CHECKING:
-        from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-        
+if TYPE_CHECKING:
+    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+
 ctsys_hostinfo = ctsys.hostinfo
 _tb = table()
 _ia = image()
