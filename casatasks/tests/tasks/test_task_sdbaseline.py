@@ -2972,7 +2972,7 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
                         ref_all = [row for row in csv.reader(ref_file)]
                         # Compare lengths of the lists
                         self.assertEqual(len(list_all), len(ref_all), 
-                                        msg=f"Output lengths differ: ref={ref_all}, list={val_list}" )
+                                        msg=f"Output lengths differ: ref={ref_all}, list={list_all}" )
 
                         for row_ref, row_list in zip(ref_all, list_all):
                             for idx, (val_ref, val_list) in enumerate(zip(row_ref, row_list)):
