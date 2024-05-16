@@ -284,7 +284,7 @@ class fluxscale_test(unittest.TestCase):
         res1 = fluxscale(vis=datacopy, caltable=gCal, fluxtable=fluxout, reference=['0'], fitorder=40)
         res2 = fluxscale(vis=datacopy, caltable=gCal, fluxtable=fluxout2, reference=['0'])
         
-        self.assertFalse(np.all(res1['1']['spidx'] == res2['1']['spidx']))
+        self.assertFalse(len(res1['1']['spidx']) == len(res2['1']['spidx']))
         
     # Merged test cases from test_fluxscale
     # ----------------------------------------------

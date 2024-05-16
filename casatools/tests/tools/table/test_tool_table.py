@@ -98,6 +98,7 @@ class TableGetcoliterTest(TableBase):
                       self.tb.getcoliter( ['TIME','DATA'], 0, 7, 100, torecord=True ) )
         self.assertTrue( all(map(lambda x: type(x[0]) is tuple and type(x[1]) is dict, sample)) )
         self.assertTrue( all(map(lambda x: x[0][0] == x[1]['TIME'] and x[0][1] == x[1]['DATA'], sample)) )
+
     def test_values(self):
         comparison = [[32.179157, 0.5079209, 0.5079209, 32.2391],
                       [1.850586, 0.057572834, 0.072714314, 1.8670243],
@@ -109,17 +110,34 @@ class TableGetcoliterTest(TableBase):
         for v in zip( map(np.abs, self.tb.getcoliter( 'DATA', 0, 7, 100 )), comparison ):
             self.assertTrue( all(np.isclose(list(map(np.sum,v[0])), v[1])) )
     def test_errors(self):
-        def test_element_mismatch( table ):
-            return table.getcol( 'TIME', 0, 18, 100 ) == table.getcoliter( 'TIME', 0, 7, 100 )
         def test_bad_column_name( table ):
             return table.getcoliter( 'data' )
         def test_unopened_table( ):
             tx = table( )
             return tx.getcoliter( 'oops' )
         parms = { 'table': self.tb }
-        self.exception_check( test_element_mismatch, parms, 'attempted iteration beyond the end of iterator', exc=StopIteration )
         self.exception_check( test_bad_column_name, parms, 'column "data" does not exist', exc=RuntimeError )
         self.exception_check( test_unopened_table, { }, 'no opened table available', exc=RuntimeError )
+
+    def test_element_match(self):
+        """ Test element match using direct comparison and StopIteration assertion. """
+        full_data = self.tb.getcol(columnname='TIME', startrow=0, nrow=18, rowincr=100 )
+        iter_data = []
+
+        try:
+            # Iterate through and save to an array
+            for chunk in self.tb.getcoliter(columnname='TIME', startrow=0, nrow=8, rowincr=100 ):
+                iter_data.append(chunk)
+                last_chunk = chunk  # Save last fetched chunk for additional checks if necessary
+        except StopIteration:
+            pass
+
+        iter_data = np.concatenate(iter_data, axis=0)  # Concatenate all chunks to form full array
+
+        # Check that concatenated data from iterator matches the directly fetched full data
+        print(full_data)
+        print(iter_data)
+        np.testing.assert_array_equal(full_data, iter_data, err_msg="Data mismatch between full fetch and iterator fetch.")
 
 class TableRowTest(TableBase):
     def test_get(self):
