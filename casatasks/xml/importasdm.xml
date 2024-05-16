@@ -464,8 +464,13 @@ ephemerides. A value less than or equal to 0 sets the timestep to 0.001 days.
 
                      Presently, VLA data can contain polynomial
                      ephemerides. ALMA data uses tabulated values.
-                     Polynomial ephemerides in the SDM are always tabulated using some timestep when the ephemeris tables attached to the MS are written.
-                     If a non-default value is used for tabulated values then importasdm will log a warning messages informing the user that that value is not used for tabulated values.
+                     Polynomial ephemerides in the SDM are always
+                     tabulated using some timestep when the ephemeris
+                     tables attached to the MS are written. If a non-default
+                     value is used and the ASDM contains tabulated values
+                     then importasdm will log a warning messages informing
+                     the user that polyephem_tabtimestep is not used for
+                     tabulated ephemerides.
 </description>
     <value>0.</value>
     </param>
