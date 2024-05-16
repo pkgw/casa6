@@ -186,7 +186,7 @@ directly (faster import, smaller MS).
     </param>
 
     <param name="asis" type="string">
-<shortdescription>Creates verbatim copies of the ASDMtables in the ouput measurement set. Value given must be a string of table names separated by spaces; A * wildcard is allowed.</shortdescription>
+<shortdescription>Creates verbatim copies of the ASDMtables in the output MeasurementSet. Value given must be a string of table names separated by spaces; A * wildcard is allowed.</shortdescription>
 <description>Creates verbatim copies of the ASDM tables in the output
 measurement set.
                      Default: none
