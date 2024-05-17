@@ -339,16 +339,16 @@ void BLTableParser::parse()
 	static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(bt_->getBaselineType(irow, ipol));
       bool new_type = true;
       for (size_t i = 0; i < baseline_types_.size(); ++i){
-	if (curr_type_idx == baseline_types_[i]){
-	  new_type = false;
-	  break;
-	}
+        if (curr_type_idx == baseline_types_[i]){
+          new_type = false;
+          break;
+        }
       }
       if (new_type) baseline_types_.push_back(curr_type_idx);
       // update max_orders_
       size_t curr_order = GetTypeOrder(curr_type_idx, irow, ipol);
       if (curr_order > max_orders_[curr_type_idx]) {
-	max_orders_[curr_type_idx] = curr_order;
+	      max_orders_[curr_type_idx] = curr_order;
       }
     }
   }
