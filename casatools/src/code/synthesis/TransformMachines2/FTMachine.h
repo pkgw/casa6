@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -88,24 +88,24 @@ namespace casa{ //# namespace casa
 // FTMachine is a Machine for Fourier Transforms
 // </etymology>
 //
-// <synopsis> 
+// <synopsis>
 // The <linkto class=SkyEquation>SkyEquation</linkto> needs to be able
 // to perform Fourier transforms on visibility data. FTMachine
-// allows efficient Fourier Transform processing using a 
+// allows efficient Fourier Transform processing using a
 // <linkto class=VisBuffer>VisBuffer</linkto> which encapsulates
 // a chunk of visibility (typically all baselines for one time)
 // together with all the information needed for processing
 // (e.g. UVW coordinates).
-// </synopsis> 
+// </synopsis>
 //
 // <example>
-// A simple example of a FTMachine is found in 
+// A simple example of a FTMachine is found in
 // <linkto class=GridFT>GridFT</linkto>.
 // See the example for <linkto class=SkyModel>SkyModel</linkto>.
 // </example>
 //
 // <motivation>
-// Define an interface to allow efficient processing of chunks of 
+// Define an interface to allow efficient processing of chunks of
 // visibility data
 //
 // Note that the image must be Complex. It must contain the
@@ -123,7 +123,7 @@ class FTMachine {
 public:
 
   //# Enumerations
-  // Types of known Images that may be made using the makeImage method 
+  // Types of known Images that may be made using the makeImage method
   enum Type {
     OBSERVED=0,		// From OBSERVED visibility data (default)
     MODEL,		// From MODEL visibility data
@@ -148,7 +148,7 @@ public:
   void setBasePrivates(const FTMachine& other){FTMachine::operator=(other);}
 
   virtual ~FTMachine();
-  
+
 
   //clone copy
   //should make it pure virtual forcing every ftm to have a cloner
@@ -159,6 +159,11 @@ public:
   virtual void initializeToVisNew(const vi::VisBuffer2& vb,
 					     casacore::CountedPtr<SIImageStore> imstore);
 
+  // Provide derived classes with a mean to perform initialization tasks
+  // each time the Visibility Iterator starts iterating over a new MeasurementSet
+  virtual void handleNewMs(const casacore::MeasurementSet &ms,
+               casacore::CountedPtr<SIImageStore> imstore) {}
+
   //-------------------------------------------------------------------------------------
   // Finalize transform to Visibility plane
   // This is mostly a no-op, and is not-even called from CubeSkyEquation.
@@ -168,13 +173,13 @@ public:
 
   //-------------------------------------------------------------------------------------
   // Initialize transform to Sky plane
-  
+
   virtual void initializeToSky(casacore::ImageInterface<casacore::Complex>& image,
   			       casacore::Matrix<casacore::Float>& weight, const vi::VisBuffer2& vb) = 0;
-  
 
-  virtual void initializeToSkyNew(const casacore::Bool dopsf, 
-				  const vi::VisBuffer2& vb, 
+
+  virtual void initializeToSkyNew(const casacore::Bool dopsf,
+				  const vi::VisBuffer2& vb,
 				  casacore::CountedPtr<SIImageStore> imstore);
 
   //-------------------------------------------------------------------------------------
@@ -182,21 +187,21 @@ public:
   //Cube weighting scheme
   virtual void initBriggsWeightor(vi::VisibilityIterator2& vi);
 
-  
+
   // Finalize transform to Sky plane
   virtual void finalizeToSky() = 0;
 
   virtual void finalizeToSky(casacore::ImageInterface<casacore::Complex>& iimage){(void)iimage;};
 
- 
-  virtual void finalizeToSkyNew(casacore::Bool dopsf, 
+
+  virtual void finalizeToSkyNew(casacore::Bool dopsf,
 				const vi::VisBuffer2& vb,
 					   casacore::CountedPtr<SIImageStore> imstore  );
   //Do the finalization for A projection weight images
   virtual void finalizeToWeightImage(const vi::VisBuffer2& vb,
 					   casacore::CountedPtr<SIImageStore> imstore  );
 
-  
+
   //-------------------------------------------------------------------------------------
 
   // Get actual coherence from grid
@@ -205,28 +210,28 @@ public:
   // Put coherence to grid
   virtual void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false,
   		   refim::FTMachine::Type type= refim::FTMachine::OBSERVED)=0;
-  
+
   // Non const vb version - so that weights can be modified in-place
   // Currently, used only by MultiTermFT
-  virtual void put(vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
+  virtual void put(vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false,
   	           refim::FTMachine::Type type= refim::FTMachine::OBSERVED)
   {put((const vi::VisBuffer2&)vb,row,dopsf,type);};
 
   // This is needed for A-term FTMachines. Others it is effectively a NOP
   // Or sumweights on all pixels
   virtual void gridImgWeights(const vi::VisBuffer2& /*vb*/) { return;   };
-  
+
   //-------------------------------------------------------------------------------------
-  virtual void correlationToStokes(casacore::ImageInterface<casacore::Complex>& compImage, 
-				   casacore::ImageInterface<casacore::Float>& resImage, 
+  virtual void correlationToStokes(casacore::ImageInterface<casacore::Complex>& compImage,
+				   casacore::ImageInterface<casacore::Float>& resImage,
 				   const casacore::Bool dopsf);
- 
+
   virtual void stokesToCorrelation(casacore::ImageInterface<casacore::Float>& modelImage,
 				   casacore::ImageInterface<casacore::Complex>& compImage);
 
   /*
-  virtual void normalizeSumWeight(casacore::ImageInterface<casacore::Float>& inOutImage, 
-			       casacore::ImageInterface<casacore::Float>& weightImage, 
+  virtual void normalizeSumWeight(casacore::ImageInterface<casacore::Float>& inOutImage,
+			       casacore::ImageInterface<casacore::Float>& weightImage,
 			       const casacore::Bool dopsf);
   */
 
@@ -243,7 +248,7 @@ public:
 
   // All FTMachines that fill weightimage, need to set this.
   // TODO : Make this pure virtual.
-  virtual casacore::Bool useWeightImage(){return false;}; 
+  virtual casacore::Bool useWeightImage(){return false;};
   virtual casacore::Bool isSkyJonesSet(){return (sj_p.nelements()>0) && !( sj_p[0]).null()  ;}
   virtual casacore::Bool isSkyJonesChanged(vi::VisBuffer2& vb, casacore::Int row){if(sj_p.nelements()>0){return sj_p[0]->changed(vb,row);} else {return false;} };
 
@@ -252,7 +257,7 @@ public:
   // set in a casacore::Vector of size 0.
   // The pointers have to be handled by the caller ..no delete happening here
   virtual void setSkyJones(casacore::Vector<casacore::CountedPtr<SkyJones> >& sj);
-  
+
   casacore::Bool changedSkyJonesLogic(const vi::VisBuffer2& vb, casacore::Bool& firstRow, casacore::Bool& internalRow);
 
 
@@ -281,7 +286,7 @@ public:
   // Useful for A-projection style gridders
 
   virtual void setWeightImage(casacore::ImageInterface<casacore::Float>& /*weightImage*/){ /*do nothing for gridders that don't use this in degridding*/ };
-  // Get a flux (divide by this to get a flux density correct image) 
+  // Get a flux (divide by this to get a flux density correct image)
   // image if there is one
   virtual void getFluxImage(casacore::ImageInterface<casacore::Float>& image){(void)image;};
 
@@ -308,11 +313,11 @@ public:
   	       const casacore::Vector<casacore::Int>& ant2,
   	       casacore::Vector<casacore::Double>& dphase, const vi::VisBuffer2& vb);
   //helper function for openmp to call ...no private dependency
-  static void locateuvw(const casacore::Double*& uvw, const casacore::Double*&dphase, const casacore::Double*& freq, const casacore::Int& nchan, const casacore::Double*& scale, const casacore::Double*& offset,  const casacore::Int& sampling, casacore::Int*& loc,casacore::Int*& off, casacore::Complex*& phasor, const casacore::Int& row, const casacore::Bool& doW=false); 
-		 
+  static void locateuvw(const casacore::Double*& uvw, const casacore::Double*&dphase, const casacore::Double*& freq, const casacore::Int& nchan, const casacore::Double*& scale, const casacore::Double*& offset,  const casacore::Int& sampling, casacore::Int*& loc,casacore::Int*& off, casacore::Complex*& phasor, const casacore::Int& row, const casacore::Bool& doW=false);
+
 
   // Save and restore the FTMachine to and from a record
-  virtual casacore::Bool toRecord(casacore::String& error, casacore::RecordInterface& outRecord, 
+  virtual casacore::Bool toRecord(casacore::String& error, casacore::RecordInterface& outRecord,
 			casacore::Bool withImage=false, const casacore::String diskimagename="");
   virtual casacore::Bool fromRecord(casacore::String& error, const casacore::RecordInterface& inRecord);
 
@@ -329,17 +334,17 @@ public:
 
   // To make sure no padding is used in certain gridders
   virtual void setNoPadding(casacore::Bool nopad){(void)nopad;};
-  
+
   // Return the name of the machine
 
   virtual casacore::String name() const =0;// { return "None";};
- 
-  // set and get the location used for frame 
+
+  // set and get the location used for frame
   virtual void setLocation(const casacore::MPosition& loc);
   virtual casacore::MPosition& getLocation();
 
   // set a moving source aka planets or comets =>  adjust phase center
-  // on the fly for gridding 
+  // on the fly for gridding
   virtual void setMovingSource(const casacore::String& sourcename, const casacore::String& ephemtable="");
   virtual void setMovingSource(const casacore::MDirection& mdir);
 
@@ -383,14 +388,14 @@ public:
   virtual casacore::Bool dryRun() {return isDryRun;}
   virtual casacore::Bool isUsingCFCache() {return (cfCache_p.nrefs()!=0);}
 
-  virtual const casacore::CountedPtr<refim::FTMachine>& getFTM2(const casacore::Bool ) 
+  virtual const casacore::CountedPtr<refim::FTMachine>& getFTM2(const casacore::Bool )
   {throw(casacore::AipsError("FTMachine::getFTM2() called directly!"));}
 
   casacore::Bool isDryRun;
   void setPseudoIStokes(casacore::Bool pseudoI){isPseudoI_p=pseudoI;};
 
-   //set and get Time to calculate phasecenter  -1.0 means using the time available at 
-  //each iteration..this is used when the phasecenter in the field table is either 
+   //set and get Time to calculate phasecenter  -1.0 means using the time available at
+  //each iteration..this is used when the phasecenter in the field table is either
   //a polynomial or has a ephemerides tables associated with it
   //Using double in the units and epoch-frame of the ms(s) ..caller is responsible for conversion
   void setPhaseCenterTime(const casacore::Double time){phaseCenterTime_p=time;};
@@ -437,7 +442,7 @@ protected:
   casacore::Bool fixMovingSource_p;
   casacore::String ephemTableName_p;
   casacore::MDirection firstMovingDir_p;
-  // This will hold the angular difference between movingDir and firstMovingDir with 
+  // This will hold the angular difference between movingDir and firstMovingDir with
   // the frame conversion done properly etc..
   casacore::MVDirection movingDirShift_p;
 
@@ -452,7 +457,9 @@ protected:
   casacore::Bool useDoubleGrid_p;
 
   virtual void initMaps(const vi::VisBuffer2& vb);
-  
+
+  virtual void initUVWMachine(const vi::VisBuffer2& vb);
+
   virtual void initPolInfo(const vi::VisBuffer2& vb);
 
   // Sum of weights per polarization and per chan
@@ -476,19 +483,19 @@ protected:
   virtual void ok();
 
   // check if image is big enough for gridding
-  
+
   virtual void gridOk (casacore::Int gridsupport);
 
-  
+
   // setup multiple spectral window for cubes
   //casacore::Block <casacore::Vector <casacore::Int> > multiChanMap_p;
   //casacore::Vector<casacore::Int> selectedSpw_p;
   casacore::Vector<casacore::Int> nVisChan_p;
-  casacore::Bool matchChannel(const casacore::Int& spw, 
+  casacore::Bool matchChannel(const casacore::Int& spw,
 		    const VisBuffer& vb);
   casacore::Bool matchChannel(const vi::VisBuffer2& vb);
   casacore::Bool matchPol(const vi::VisBuffer2& vb);
-  //redo all spw chan match especially if ms has changed underneath 
+  //redo all spw chan match especially if ms has changed underneath
   casacore::Bool matchAllSpwChans(const VisBuffer& vb);
   //casacore::Bool matchAllSpwChans(const vi::VisBuffer2& vb);
   //interpolate visibility data of vb to grid frequency definition
@@ -521,7 +528,7 @@ protected:
   casacore::Bool recoverMovingSourceState(casacore::String& error, const casacore::RecordInterface& inRecord);
   casacore::Matrix<casacore::Double> negateUV(const vi::VisBuffer2& vb);
 
-  // Private variables needed for spectral frame conversion 
+  // Private variables needed for spectral frame conversion
   casacore::SpectralCoordinate spectralCoord_p;
   casacore::Vector<casacore::Stokes::StokesTypes> visPolMap_p;
   //casacore::Vector<casacore::Bool> doConversion_p;
@@ -546,7 +553,7 @@ protected:
   casacore::Bool canComputeResiduals_p;
   casacore::Bool toVis_p;
   casacore::Int numthreads_p;
-  
+
   // casacore::Array for non-tiled gridding
   // These are common to most FTmachines
   casacore::Array<casacore::Complex> griddedData;
@@ -564,9 +571,9 @@ protected:
   casacore::Int doneThreadPartition_p;
   casacore::Vector<casacore::Int> xsect_p, ysect_p, nxsect_p, nysect_p;
   casacore::CountedPtr<refim::BriggsCubeWeightor> briggsWeightor_p;
-  virtual void   findGridSector(const casacore::Int& nxp, const casacore::Int& nyp, const casacore::Int& ixsub, const casacore::Int& iysub, const casacore::Int& minx, const casacore::Int& miny, const casacore::Int& icounter, casacore::Int& x0, casacore::Int& y0, casacore::Int& nxsub, casacore::Int& nysub, const casacore::Bool linear); 
-  
-  virtual void tweakGridSector(const casacore::Int& nx, const casacore::Int& ny, 
+  virtual void   findGridSector(const casacore::Int& nxp, const casacore::Int& nyp, const casacore::Int& ixsub, const casacore::Int& iysub, const casacore::Int& minx, const casacore::Int& miny, const casacore::Int& icounter, casacore::Int& x0, casacore::Int& y0, casacore::Int& nxsub, casacore::Int& nysub, const casacore::Bool linear);
+
+  virtual void tweakGridSector(const casacore::Int& nx, const casacore::Int& ny,
 			       const casacore::Int& ixsub, const casacore::Int& iysub);
   void initSourceFreqConv();
   void shiftFreqToSource(casacore::Vector<casacore::Double>& freqs);
@@ -582,10 +589,10 @@ protected:
  private:
   virtual casacore::Bool isSD() const {return false;}
 
-  //Some temporary wasteful function for swapping axes because we don't 
-  //Interpolation along the second axis...will need to implement 
-  //interpolation on y axis of a cube. 
-  
+  //Some temporary wasteful function for swapping axes because we don't
+  //Interpolation along the second axis...will need to implement
+  //interpolation on y axis of a cube.
+
   void swapyz(casacore::Cube<casacore::Complex>& out, const casacore::Cube<casacore::Complex>& in);
   void swapyz(casacore::Cube<casacore::Complex>& out, const casacore::Cube<casacore::Bool>& outFlag, const casacore::Cube<casacore::Complex>& in);
   void swapyz(casacore::Cube<casacore::Bool>& out, const casacore::Cube<casacore::Bool>& in);

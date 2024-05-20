@@ -87,14 +87,16 @@ void Complex::toBin(const vector< vector<vector<Complex> > >& cmplx,  EndianOSSt
 }
 
 Complex Complex::fromBin(EndianIStream & eis) {
-	return Complex(eis.readDouble(), eis.readDouble());
+    double re = eis.readDouble();
+    double im = eis.readDouble();
+    return Complex(re, im);
 }
 
 vector<Complex> Complex::from1DBin(EndianIStream & eis) {
 	int dim1 = eis.readInt();
 	vector<Complex> result;
 	for (int i = 0; i < dim1; i++)
-		result.push_back(Complex(eis.readDouble(),  eis.readDouble()));
+            result.push_back(Complex::fromBin(eis));
 	return result;	
 }
 
@@ -106,7 +108,7 @@ vector<vector<Complex > > Complex::from2DBin(EndianIStream & eis) {
 	for (int i = 0; i < dim1; i++) {
 		aux.clear();
 		for (int j = 0; j < dim2; j++)
-			aux.push_back(Complex(eis.readDouble(), eis.readDouble()));
+                    aux.push_back(Complex::fromBin(eis))                                 ;
 		result.push_back(aux);
 	}
 	return result;	
@@ -124,7 +126,7 @@ vector<vector<vector<Complex > > > Complex::from3DBin(EndianIStream & eis) {
 		for (int j = 0; j < dim2; j++) {
 			aux2.clear();
 			for (int k = 0; k < dim3; k++)
-				aux2.push_back(Complex(eis.readDouble(), eis.readDouble()));
+                            aux2.push_back(Complex::fromBin(eis));
 			aux1.push_back(aux2);
 		}
 		result.push_back(aux1);
