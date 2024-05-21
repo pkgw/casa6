@@ -4119,7 +4119,7 @@ class test_widefield(testref_base):
 
           self.prepData("refim_mawproject.ms")
           ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
-                       specmode='mtmfs_via_cube', nchan=3, reffreq='1.5GHz', niter=30,gridder='awphpg',deconvolver='mtmfs',pblimit=0.1,parallel=self.parallel)
+                       specmode='mvc', nchan=3, reffreq='1.5GHz', niter=30,gridder='awphpg',deconvolver='mtmfs',pblimit=0.1,parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight'],imgval=[(self.img+'.image.tt0',0.96,[256,256,0,0]),(self.img+'.weight',0.61,[256,256,0,0]),(self.img+'.alpha',0.06,[256,256,0,0]) ] )
           #
           # Changed to the following for 5.5.0 release of AWP.  Will revisit and replace the test MS later.

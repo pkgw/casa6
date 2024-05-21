@@ -4010,33 +4010,37 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
 
 
-      if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
+      else if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
            (wprojplanes>1 || wprojplanes==-1) ) {
         ftmachine = "wprojectft";
       }
         //facetting alone use gridft
-       else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
+      else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
           {ftmachine=="gridft";}
       
-      if (gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" ) {
+      else if (gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" ) {
         ftmachine = "mosaicft";
       }
 
-      if (gridder=="imagemosaic") {
+      else if (gridder=="imagemosaic") {
         mType = "imagemosaic";
         if (wprojplanes>1 || wprojplanes==-1) {
           ftmachine = "wprojectft";
         }
       }
 
-      if (gridder=="awproject" || gridder=="awprojectft" || gridder=="awp") {
+      else if (gridder=="awproject" || gridder=="awprojectft" || gridder=="awp") {
         ftmachine = "awprojectft";
       }
 
-      if (gridder=="singledish") {
+      else if (gridder=="singledish") {
         ftmachine = "sd";
       }
-
+      else{
+        ftmachine=gridder;
+        ftmachine.downcase();
+        
+      }
       String deconvolver;
       err += readVal( inrec, String("deconvolver"), deconvolver );
       if (deconvolver=="mtmfs") {
