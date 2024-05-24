@@ -662,7 +662,8 @@ def set_data_to_zero(infile: str, spw: int) -> np.ndarray:
             {'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'},
             onlyparse=True
         )
-        msidx = myms.msselectedindices()
+        msidx = ms.msselectedindices()
+        ms.close()
         ddid = msidx['spwdd'][0]
         stateid = list(msidx['stateid'])
         taql = f'DATA_DESC_ID == {ddid} && STATE_ID IN {stateid}'
