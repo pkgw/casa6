@@ -215,6 +215,481 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 
 
+  // Evaluate a polynomial from Taylor coefficients and expand to a Cube.
+  // Since this funcion is primarily for use with mtmfs_via_cube, this step applies only to 
+  // the multiterm.model.ttx images and the cube.model image cube.  
+  Bool SynthesisUtilMethods::taylorCoeffsToCube(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "taylorCoeffsToCube"));
+
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, nterms, true, true )); 
+
+    // Check that .model exists. 
+    try{
+      cube_imstore->model();
+      for(Int i=0;i<nterms;i++)
+	mt_imstore->model(i);
+	}
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\nModel images must exist on disk." ));
+      }
+    
+    // Get/check shapes
+    IPosition cube_shp( cube_imstore->model()->shape() );
+    IPosition mt_shp( mt_imstore->model(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    // Read reference frequency
+    Quantity reffreq_qa;
+    Quantity::read( reffreq_qa, reffreq );
+    Double refval = reffreq_qa.getValue("Hz");
+    
+    //cout << "ref freq : " << refval << endl;
+
+    //Get the frequency list for the cube
+    CoordinateSystem csys ( cube_imstore->getCSys() );
+    Vector<Double> freqlist( cube_shp[3] );
+
+    for(uInt i=0; i<csys.nCoordinates(); i++)
+    {
+      if( csys.type(i) == Coordinate::SPECTRAL )
+	{
+	  SpectralCoordinate speccoord(csys.spectralCoordinate(i));
+
+	  for(Int ch=0;ch<cube_shp[3];ch++)
+	    {
+	      Double freq;
+	      Bool ret = speccoord.toWorld( freq, ch );
+	      if(ret==False) throw(AipsError("Cannot read channel frequency"));
+	      freqlist[ch] = freq;
+	      
+	      //cout << "freq " << ch << "  is " << freq << endl;
+	    }
+
+	}
+    }
+
+
+    // Reset the Cube values to zero. 
+    //cube_imstore->model()->set(0.0);
+
+    //For each pol, do the Taylor-to-Cube calculation.    
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+	Vector< CountedPtr <ImageInterface<Float> > > mt_subims(nterms);
+	for(Int i=0;i<nterms;i++)
+	  {
+	    mt_subims[i] = mt_imstore->makeSubImage(0,1, 
+								       0, cube_shp[3],
+								       pol, cube_shp[2], 
+								       *mt_imstore->model(i) );
+	  }
+
+	for(Int chan=0; chan<cube_shp[3]; chan++)
+	  {
+	    CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+								       chan, cube_shp[3],
+								       pol, cube_shp[2], 
+								       *cube_imstore->model() );
+	
+	    Double wt = (freqlist[chan] - refval) / refval;
+
+	    cube_subim->set(0.0);
+	    for(Int tt=0;tt<nterms;tt++)
+	      {
+		Double fac = pow(wt,tt);
+		LatticeExpr<Float> oneterm = LatticeExpr<Float>( *cube_subim + (fac) * (*mt_subims[tt])) ;
+		cube_subim->copyData(oneterm);
+	      }
+	    
+
+	  }//for chan
+      }// for pol
+
+    return True;
+
+  }//end of func
+
+
+  // Calculate the RHS of the Normal equations for a linear least squares fit of a Taylor polynomial (per pixel). 
+  // This function is primarily for use with mtmfs_via_cube, and may be used for the PSF (2nterms-1), the residual (nterms) 
+  // and the primary beam (nterms=1).  
+  // imtype=0 : PSF with 2nterms-1 terms
+  // imtype=1 : residual with nterms terms
+  // imtype=2 : pb with 1 term
+  // imtype=3 : sumwt with 2nterms-1 terms
+  Bool SynthesisUtilMethods::cubeToTaylorSum(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq, const Int imtype, const Float pblimit)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "cubeToTaylorSum"));
+
+    //cout << "imtype : " << imtype << endl;
+    if(imtype <0 || imtype >3)
+      {
+	throw( AipsError("cubeToTaylorSum currently only supports 'psf','residual','pb', 'sumwt' options"));
+      }
+    
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, nterms, true, true )); 
+    //For psf   avg pb has to be done already
+    // doing residual too for sensitivity  this is independent of beam spectral index removal
+    Float maxPB=1.0;
+    if(imtype < 2){
+      LatticeExprNode elnod( max( *(mt_imstore->pb(0)) ) );
+      maxPB=elnod.getFloat();
+      if(maxPB == 0.0){
+       throw(AipsError("Programmers error: should do tt psf images after making average PB")); 
+        
+      }
+     
+    }
+    //    cerr << "imtype " << imtype << " MAX PB " << maxPB << endl;
+    // If dopsf=True, calculate 2n-1 terms.
+    Int out_nterms=nterms; // for residual
+    if(imtype==0 || imtype==3){out_nterms=2 * nterms - 1;} // the psfs fill the upper triangle of the Hessian with 2 nterms-1 elements. Also sumwt.
+    if(imtype==2){out_nterms=1;} // For the PB, for mtmfs_via_cube, we need only tt0.  Later, if we need all terms to calculate PB alpha, then change this to nterms, and add the invHesian math (elsewhere) to later convert the RHS vector into the coefficients. 
+
+    CountedPtr <ImageInterface<Float> > use_cube, use_mt;
+    // If dopsf=True, check that .psf cube and mt's exist.  If dopsf=False, check residual images. 
+    try{
+      switch(imtype)
+	{
+	case 0: use_cube=cube_imstore->psf();break; 
+	case 1: use_cube=cube_imstore->residual();break;
+	case 2: use_cube=cube_imstore->pb();break;
+	case 3: use_cube=cube_imstore->sumwt();break;
+	}
+      cube_imstore->sumwt();
+      for(Int i=0;i<out_nterms;i++)
+	{
+	  switch(imtype)
+	    {
+	    case 0:mt_imstore->psf(i);break; 
+	    case 1:mt_imstore->residual(i);break;
+	    case 2:mt_imstore->pb(i);break;
+	    case 3:mt_imstore->sumwt(i);break;
+	    }
+	}
+    }
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\n " + imtype + " images must exist on disk." ));
+      }
+
+    // Get/check shapes ( Assume that the PSF always exists in the imstore... A valid assumption in the context of mtmfs_via_cube )
+    IPosition cube_shp( cube_imstore->psf()->shape() );
+    IPosition mt_shp( mt_imstore->psf(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    // Read reference frequency
+    Quantity reffreq_qa;
+    Quantity::read( reffreq_qa, reffreq );
+    Double refval = reffreq_qa.getValue("Hz");
+    
+    //cout << "ref freq : " << refval << endl;
+
+    //Get the frequency list for the cube
+    CoordinateSystem csys ( cube_imstore->getCSys() );
+    Vector<Double> freqlist( cube_shp[3] );
+
+    for(uInt i=0; i<csys.nCoordinates(); i++)
+    {
+      if( csys.type(i) == Coordinate::SPECTRAL )
+	{
+	  SpectralCoordinate speccoord(csys.spectralCoordinate(i));
+
+	  for(Int ch=0;ch<cube_shp[3];ch++)
+	    {
+	      Double freq;
+	      Bool ret = speccoord.toWorld( freq, ch );
+	      if(ret==False) throw(AipsError("Cannot read channel frequency"));
+	      freqlist[ch] = freq;
+	      // cout << "freq " << ch << "  is " << freq << endl;
+	    }
+
+	}
+    }
+
+
+    // Reset the Taylor Sum values to zero. 
+    for(Int i=0;i<out_nterms;i++)
+      {
+	switch(imtype)
+	  {
+	  case 0:mt_imstore->psf(i)->set(0.0);break;
+	  case 1:mt_imstore->residual(i)->set(0.0);break;
+	  case 2:mt_imstore->pb(i)->set(0.0);break;
+	  case 3:mt_imstore->sumwt(i)->set(0.0);break;
+	  }
+      }
+
+    // Get the sumwt spectrum.
+    Array<Float> lsumwt;
+    cube_imstore->sumwt()->get(lsumwt, False);
+
+    // Sum the weights ( or just use accumulate...) 
+    LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
+    Float wtsum = msum.getFloat();
+
+    //cerr << "perchansumwt : shape "<< lsumwt.shape() << "  "  << lsumwt << " sumwt "<< wtsum << endl;
+
+    //Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
+
+    //For each pol, do the Cube-To-Taylor calculation.    
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+	Vector< CountedPtr <ImageInterface<Float> > > mt_subims(out_nterms);
+	for(Int i=0;i<out_nterms;i++)
+	  {
+	  switch(imtype)
+	    {
+	    case 0:use_mt=mt_imstore->psf(i);break; 
+	    case 1:use_mt=mt_imstore->residual(i);break;
+	    case 2:use_mt=mt_imstore->pb(i);break;
+	    case 3:use_mt=mt_imstore->sumwt(i);break;
+	    }
+	    	    mt_subims[i] = mt_imstore->makeSubImage(0,1, 
+	    					    0, cube_shp[3],
+	    					    pol, cube_shp[2], 
+	    					    *use_mt );
+	  }
+
+	for(Int chan=0; chan<cube_shp[3]; chan++)
+	  {
+	    CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *use_cube);
+        if(imtype < 2){
+          CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *(cube_imstore->pb()));
+          CountedPtr<ImageInterface<Float> > tmplat = new TempImage<Float>(cube_subim->shape(), cube_subim->coordinates());
+          tmplat->copyData(LatticeExpr<Float>((*pb_subim) *(*cube_subim)));
+          cube_subim = tmplat;
+          
+        }
+
+	    IPosition pos(4,0,0,pol,chan);
+	    
+	    Double wt = (freqlist[chan] - refval) / refval;
+
+	    for(Int tt=0;tt<out_nterms;tt++)
+	      {
+		Double fac = pow(wt,tt);
+		//cerr <<  "BEF accum " <<  max(mt_subims[tt]->get()) << " for imtype " << imtype <<  endl;
+		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + ((fac) * (*cube_subim) * lsumwt(pos)))  ;
+		mt_subims[tt]->copyData(eachterm);
+		//cerr <<" AFT accum :  chan " <<  chan  <<  " tt " <<  tt <<  " fac " << fac <<  " lsumwt " <<  lsumwt(pos) <<  " pos " << pos << " max " <<  max(mt_subims[tt]->get()) <<  endl;
+	      }
+	    
+
+	  }//for chan
+
+		
+	// Divide by sum of weights.
+	for(Int tt=0;tt<out_nterms;tt++)
+	  {
+	    //cerr << "bef div : tt " <<  tt << " : " <<   max(mt_subims[tt]->get()) << " for imtype " << imtype << endl; 
+	    
+	    LatticeExpr<Float> eachterm;
+	    if (imtype < 2) {
+	      eachterm = LatticeExpr<Float>( iif( (*(mt_imstore->pb(0))) > pblimit , (*mt_subims[tt]) / wtsum/(*(mt_imstore->pb(0))),  0.0));
+	    }
+	    else{
+	      eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+	    }
+	    mt_subims[tt]->copyData(eachterm);
+            mt_subims[tt]->flush();
+            // cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
+          }
+	
+      }// for pol
+
+
+    // Set the T/F mask, for PB images. Without this, the PB is fully masked, for aproj /mosaic gridders.
+    if( imtype==2 )
+      {
+	mt_imstore->removeMask( mt_imstore->pb(0) );
+	{
+	  //MSK//	
+	  LatticeExpr<Bool> pbmask( iif( *mt_imstore->pb(0) > fabs(pblimit) , True , False ) );
+	  //MSK// 
+	  mt_imstore->createMask( pbmask, mt_imstore->pb(0) );
+	  mt_imstore->pb(0)->pixelMask().unlock();
+	}
+	
+      }
+    
+    return True;
+
+  }//end of func
+
+
+  Bool SynthesisUtilMethods::removeFreqDepPB(const String& cubename, const String& mtname, const Float pblimit)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "removeFreqDepPB"));
+
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, 1, true, true )); 
+
+    try{
+      cube_imstore->residual();  // Residual Cube
+      cube_imstore->pb(); // PB cube
+      mt_imstore->pb(0); // avgPB in the tt0 pb. 
+    }
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\n Residual cube, PB cube, and multiterm PB.tt0 must exist on disk." ));
+      }
+    
+    // Get/check shapes
+    IPosition cube_shp( cube_imstore->residual()->shape() );
+    IPosition mt_shp( mt_imstore->pb(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    //For each pol, do the freq-dep PB math.//////////////////////////
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+
+	CountedPtr<ImageInterface<Float> >  mt_subim = mt_imstore->makeSubImage(0,1, 
+										0, cube_shp[3],
+										pol, cube_shp[2], 
+										(*mt_imstore->pb(0)) );
+
+	LatticeExprNode mtpbmax( max( *mt_subim ) );
+	Float mtpbmaxval = mtpbmax.getFloat();
+	if(mtpbmaxval <=0.0){os << LogIO::WARN << "pb.tt0 max is < or = zero" << LogIO::POST;}
+
+
+	for(Int chan=0; chan<cube_shp[3]; chan++)
+	  {
+	    CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *cube_imstore->residual() );
+	    CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *cube_imstore->pb() );
+
+	    LatticeExprNode pbmax( max( *pb_subim ) );
+	    Float pbmaxval = pbmax.getFloat();
+	    if( pbmaxval<=0.0 )
+	      {
+		os << LogIO::WARN << "pb max is zero for chan" << chan << LogIO::POST;
+	      }
+	    else
+	      {
+		LatticeExpr<Float> thepbcor( iif( *(pb_subim) > pblimit , (*mt_subim)*(*(cube_subim))/(*(pb_subim)) , 0.0 ) );
+		cube_subim->copyData( thepbcor );
+	      }// if not zero
+	    
+	  }//for chan
+      }// for pol
+
+    return True;
+
+  }//end of func
+
+
+
+  Bool SynthesisUtilMethods::applyFreqDepPB(const String& cubename, const String& mtname, const Float pblimit)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "applyFreqDepPB"));
+
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, 1, true, true )); 
+
+    try{
+      cube_imstore->model();  // Model Cube
+      cube_imstore->pb(); // PB cube
+      mt_imstore->pb(0); // avgPB in the tt0 pb. 
+    }
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\n Model cube, PB cube, and multiterm PB.tt0 must exist on disk." ));
+      }
+    
+    // Get/check shapes
+    IPosition cube_shp( cube_imstore->model()->shape() );
+    IPosition mt_shp( mt_imstore->pb(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    //For each pol, do the freq-dep PB math.//////////////////////////
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+	CountedPtr<ImageInterface<Float> >  mt_subim = mt_imstore->makeSubImage(0,1, 
+										0, cube_shp[3],
+										pol, cube_shp[2], 
+										(*mt_imstore->pb(0)) );
+
+	LatticeExprNode mtpbmax( max( *mt_subim ) );
+	Float mtpbmaxval = mtpbmax.getFloat();
+	if(mtpbmaxval <=0.0)
+	  {os << LogIO::SEVERE << "pb.tt0 max is < or = zero. Cannot divide model image ! ERROR" << LogIO::POST;}
+	else
+	  {
+	    
+	    for(Int chan=0; chan<cube_shp[3]; chan++)
+	      {
+		CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+											 chan, cube_shp[3],
+											 pol, cube_shp[2], 
+											 *cube_imstore->model() );
+		CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										       chan, cube_shp[3],
+										       pol, cube_shp[2], 
+										       *cube_imstore->pb() );
+		
+		
+		LatticeExprNode pbmax( max( *pb_subim ) );
+		Float pbmaxval = pbmax.getFloat();
+		if( pbmaxval<=0.0 )
+		  {
+		    os << LogIO::WARN << "pb max is zero for chan" << chan << LogIO::POST;
+		  }
+		else
+		  {
+		    LatticeExpr<Float> thepbcor( iif( *(pb_subim) > pblimit , (*(cube_subim)) *(*(pb_subim)) / (*mt_subim) , 0.0 ) );
+		    cube_subim->copyData( thepbcor );
+		  }// if not zero
+		
+	      }//for chan
+	  }// if mtpb >0
+      }// for pol
+
+    return True;
+
+  }//end of func
+
+
 
 
   /***make a record of synthesisimager::weight parameters***/
@@ -3524,6 +3999,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       err += readVal( inrec, String("vptable"), vpTable );
 
+
       // convert 'gridder' to 'ftmachine' and 'mtype'
       ftmachine = "gridft";
       mType = "default";
@@ -3535,7 +4011,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
            (wprojplanes>1 || wprojplanes==-1) ) {
         ftmachine = "wprojectft";
       }
-
+        //facetting alone use gridft
+       else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
+          {ftmachine=="gridft";}
+      
       if (gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" ) {
         ftmachine = "mosaicft";
       }
@@ -3632,20 +4111,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Check for valid FTMachine type.
     // Valid other params per FTM type, etc... ( check about nterms>1 )
 
+
     if ( imageName == "" ) {
       err += "Please supply an image name\n";
     }
-
-    if ( ftmachine != "gridft" and ftmachine != "wprojectft" and
-         ftmachine != "mosaicft" and ftmachine != "awprojectft" and
-         ftmachine != "mawprojectft" and ftmachine != "protoft" and
-         ftmachine != "sd" ) {
+    if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
+	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
+	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
+	(ftmachine != "sd"))
+     {
       err += "Invalid ftmachine name. Must be one of"
         " 'gridft', 'wprojectft',"
         " 'mosaicft', 'awprojectft',"
         " 'mawpojectft', 'protoft',"
         " 'sd'\n";
     }
+
 
     if ( ( ftmachine == "mosaicft"    and mType == "imagemosaic" ) or
          ( ftmachine == "awprojectft" and mType == "imagemosaic" ) ) {
