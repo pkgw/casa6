@@ -877,5 +877,78 @@ class TestJyPerK(unittest.TestCase):
 
         self.assertEqual(cm.exception.args[0], 'The infile argument should be str or None.')
 
+class gencal_eoptest(unittest.TestCase):
+
+    usno_finals_erp = os.path.join(datapath, 'usno_finals.erp')
+    eopc04_IAU2000 = os.path.join(datapath, 'eopc04_IAU2000.62-now')
+
+    @classmethod
+    def setUpClass(cls):
+        shutil.copytree(os.path.join(datapath, evndata), evncopy)
+        shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        rmtables(caltab)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(evncopy)
+        shutil.rmtree(vlbacopy)
+
+    def test_eop(self):
+        """Test calibration table produced when gencal is run on an MS
+           with an EARTH_ORIENTATION table."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop')
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_casa.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+
+    def test_eop_usno(self):
+        """Test calibration table produced when gencal is run using an
+           external file."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop',
+               infile=self.usno_finals_erp)
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_usno.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+
+    def test_eop_iers(self):
+        """Test calibration table produced when gencal is run using an
+           external file."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop',
+               infile=self.eopc04_IAU2000)
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_iers.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+
+    def test_noeop(self):
+        """Test that no calibration table is produced when gencal is run on an
+           MS without an EARTH_ORIENTATION table.
+
+        """
+
+        try:
+            gencal(vis=evncopy, caltable=caltab, caltype='eop')
+        except:
+            pass
+
+        self.assertFalse(os.path.exists(caltab))
+
+
 if __name__ == '__main__':
     unittest.main()
