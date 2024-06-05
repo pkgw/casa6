@@ -255,7 +255,10 @@ class statwt_test(unittest.TestCase):
             etimes, ewt, ewtsp, eflag, efrow, edata, esigma, esisp
         ] = _get_table_cols(mytb)
         mytb.done()
-        self.assertTrue(np.allclose(gwt, ewt), 'WEIGHT comparison failed')
+        self.assertTrue(
+            np.allclose(gwt, ewt),
+            f'WEIGHT comparison failed. max diff {np.max(np.abs(gwt - ewt))}'
+        )
         if type(gwtsp) != type(None) and type(ewtsp) != type(None):
             self.assertTrue(
                 np.allclose(gwtsp, ewtsp), 'WEIGHT_SPECTRUM comparison failed'
