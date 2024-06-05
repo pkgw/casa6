@@ -156,6 +156,7 @@ import glob, pylab, os, datetime
 import numpy as np
 from matplotlib import rc
 import matplotlib.pyplot as plt
+import ftplib
 
 from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
@@ -308,6 +309,8 @@ def create0(ms_name,tec_server='IGS',plot_vla_tec=False,im_name='',username='',u
 
     print('IGS files required for: '+str(day_list))
 
+    # plot name declared here to avoid potential reference before assignment error
+    plot_name = ''
     ## Runs the IGS methods
     if tec_server == 'IGS':
         ymd_date_num = 0
@@ -494,6 +497,14 @@ def get_IGS_TEC(ymd_date):
     CDDIS = 'ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/'  # new, more secure ftp-ssl server (2020Nov01)
     file_location = CDDIS+str(year)+'/'+str(dayofyear)+'/'
     curlcmd='curl -u anonymous:casa-feedback@nrao.edu --ftp-ssl-reqd '
+    #ftps login and navigation
+    try:
+        ftps = ftplib.FTP_TLS(host = 'gdc.cddis.eosdis.nasa.gov/gps/products/ionex') # ftp-ssl version
+        ftps.login(user='anonymous', passwd='casa-feedback@nrao.edu')
+        ftps.prot_p()
+        ftps.cwd(file_location)
+    except ftplib.all_errors as e:
+        print('Failed to connect with error: ', e)
 
     ## The name of the IONEX file you require.  
     igs_file='igsg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSFIN_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
@@ -505,8 +516,10 @@ def get_IGS_TEC(ymd_date):
         print('Attempting retrieval of IGS Final product file: '+str(get_file))
         get_path = file_location+get_file
         if test_IONEX_connection(get_path):
-            os.system(curlcmd+get_path+' > '+workDir+get_file)
-            os.system('gunzip '+get_file)
+            #os.system(curlcmd+get_path+' > '+workDir+get_file)
+            #os.system('gunzip '+get_file)
+            #ftps version
+            ftps.retrbinary("RETR " + get_file, open(get_file, 'wb').write)
         else:
             # IGS final product file does not exist; try rapid product file
             igs_file='igrg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
@@ -516,8 +529,10 @@ def get_IGS_TEC(ymd_date):
                 print('Attempting retrieval of IGS Rapid product file: '+str(get_file))
                 get_path = file_location+get_file
                 if test_IONEX_connection(get_path):
-                    os.system(curlcmd+get_path+' > '+workDir+get_file)
-                    os.system('gunzip '+get_file)
+                    #os.system(curlcmd+get_path+' > '+workDir+get_file)
+                    #os.system('gunzip '+get_file)
+                    #ftps version
+                    ftps.retrbinary("RETR " + get_file, open(get_file, 'wb').write)
                 else:
                     #igs_file = igs_file.replace('igr','jpr')
                     igs_file= 'jprg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if (gpsweek<2274.5) else 'JPL0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
@@ -527,8 +542,10 @@ def get_IGS_TEC(ymd_date):
                         print('Attempting retrieval of JPL Rapid product file: '+str(igs_file))
                         get_path = file_location+get_file
                         if test_IONEX_connection(get_path):
-                            os.system(curlcmd+get_path+' > '+workDir+get_file)
-                            os.system('gunzip '+get_file)
+                            #os.system(curlcmd+get_path+' > '+workDir+get_file)
+                            #os.system('gunzip '+get_file)
+                            #ftps version
+                            ftps.retrbinary("RETR " + get_file, open(get_file, 'wb').write)
                         else:
                             print('\nNo data products available. You may try to manually'+\
                                   ' download the products at:\n'+\
