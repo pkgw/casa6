@@ -28,6 +28,7 @@ Current antenna-based gencal options (caltype) are:
     - 'gceff' = Gain curve and efficiency (VLA only)
     - 'tecim' = Time-dep TEC image specified in infile
     - 'jyperk'= Jy/K factor via Jy/K DB Web API
+    - 'eop' = EOP corrections
 </description>
 <input>
    <param mustexist="true" name="vis" type="path">
@@ -60,12 +61,12 @@ Current antenna-based gencal options (caltype) are:
    </param>
    
    <param name="caltype" type="string">
-      <shortdescription>The calibration type: (amp, ph, sbd, mbd, antpos, antposvla, tsys, evlagain, opac, gc, gceff, eff, tecim, jyperk)</shortdescription>
+      <shortdescription>The calibration type: (amp, ph, sbd, mbd, antpos, antposvla, tsys, evlagain, opac, gc, gceff, eff, tecim, jyperk, eop)</shortdescription>
       <description>The calibration parameter type being specified
                         Default: none
                         Options: 'amp', 'ph', 'sbd', 'mbd', 'antpos',
                         'antposvla', 'tsys', 'evlagain', 'opac', 'gc',
-                        'gceff', 'eff', 'tecim', 'jyperk'
+                        'gceff', 'eff', 'tecim', 'jyperk', 'eop'
    
                         - 'amp' = gain (G) amplitude (1 real parameter
                            per pol, antenna, spw)
@@ -95,6 +96,7 @@ Current antenna-based gencal options (caltype) are:
                            (auto-lookup)
                         - 'eff' = Antenna efficiency (auto-lookup)
                         - 'jyperk' = Jy/K factor via Jy/K DB Web API
+                        - 'eop' = EOP corrections
    
                            Example: caltype='ph'
       </description>
@@ -118,6 +120,7 @@ Current antenna-based gencal options (caltype) are:
          <value>eff</value>
          <value>tecim</value>
          <value>jyperk</value>
+         <value>eop</value>
       </allowed>
    </param>
    
@@ -298,6 +301,9 @@ Current antenna-based gencal options (caltype) are:
          </equals>
          <equals value="antpos">
             <default param="ant_pos_time_limit"><value type="int">0</value></default>
+         </equals>
+         <equals value="eop">
+            <default param="infile"><value type="string"/></default>
          </equals>
       </when>
    </constraints>

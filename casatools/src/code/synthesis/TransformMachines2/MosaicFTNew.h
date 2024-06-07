@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -53,7 +53,7 @@ public:
 	    casacore::Long cachesize, casacore::Int tilesize=16, 
 	      casacore::Bool usezero=true, casacore::Bool useDoublePrec=false, casacore::Bool useConjFreqBeam=false, casacore::Bool usePointing=false):
   MosaicFT(sj,mloc,stokes,cachesize,tilesize,usezero,useDoublePrec, useConjFreqBeam, usePointing){}
-
+  MosaicFTNew& operator=(const MosaicFTNew& other);
     // Construct from a casacore::Record containing the MosaicFT state
     MosaicFTNew(const casacore::RecordInterface& stateRec);
 

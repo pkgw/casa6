@@ -23,7 +23,7 @@ A set of common helper functions for unit tests:
    compVarColTables - Compare a variable column of two tables
    DictDiffer - a class with methods to take a difference of two 
                 Python dictionaries
-   verify_ms - Function to verify spw and channels information in an MS   
+   verifyMS - Function to verify spw and channels information in an MS   
    create_input - Save the string in a text file with the given name           
 '''
 
@@ -330,7 +330,7 @@ def verifyMS(msname, expnumspws, expnumchan, inspw, expchanfreqs=[], ignoreflags
         msg = "Found "+ str(dimdata) +", expected "+str(expnumchan)+" channels in FLAG column in "+msname
         return [False,msg]
 
-    if not (expchanfreqs==[]):
+    if not (len(expchanfreqs)==0):
         print("Testing channel frequencies ...")
 #        print(cf)
 #        print(expchanfreqs)

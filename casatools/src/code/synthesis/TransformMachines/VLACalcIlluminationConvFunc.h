@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -61,8 +61,8 @@ namespace casa{
     void loadFromImage(casacore::String &fileName);
     void getIdealConvFunc(casacore::Array<casacore::Complex>& buf);
     //void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid, casacore::Bool makeMueller);
-    void ftAperture(casacore::TempImage<casacore::Complex>& uvgrid, casacore::Int makeMuerller=0);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid, casacore::Bool makeMueller);
+    void ftAperture(casacore::ImageInterface<casacore::Complex>& uvgrid, casacore::Int makeMuerller=0);
     void ftAperture() {ftAperture(convFunc_p); pbRead_p=true;};
     void storePB(casacore::String& fileName);
 

@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -26,7 +26,7 @@
 //#
 //# $Id$
 //
-#include <synthesis/TransformMachines2/Utils.h>
+
 
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/AWProjectFT.h>
@@ -43,6 +43,9 @@
 #include <synthesis/TransformMachines2/VLACalcIlluminationConvFunc.h>
 #include <synthesis/TransformMachines2/ConvolutionFunction.h>
 #include <synthesis/TransformMachines2/PolOuterProduct.h>
+
+#include <synthesis/TransformMachines2/EVLAAperture.h>
+#include <synthesis/TransformMachines2/WPConvFunc.h>
 #include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
 #include <casacore/coordinates/Coordinates/LinearCoordinate.h>
 #include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
@@ -71,7 +74,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 			 const casacore::Bool wbAWP,
 			 const casacore::Bool conjPB):
     ConvolutionFunction(),aTerm_p(aTerm),psTerm_p(psTerm), wTerm_p(wTerm), pixFieldGrad_p(), 
-    wbAWP_p(wbAWP), conjPB_p(conjPB), baseCFB_p()
+    wbAWP_p(wbAWP), conjPB_p(conjPB), baseCFB_p(), atermMaker_p(nullptr), wtermMaker_p(nullptr)
   {
     if (psTerm->isNoOp() && aTerm->isNoOp())
       {
@@ -87,6 +90,14 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
     pixFieldGrad_p.resize(2);pixFieldGrad_p(0)=0.0; pixFieldGrad_p(1)=0.0;
   }
 
+  AWConvFunc::AWConvFunc(std::shared_ptr<EVLAAperture> aterm, std::shared_ptr<WPConvFunc> wterm){
+	  atermMaker_p=aterm;
+	  wtermMaker_p=wterm;
+	  
+	  
+  }
+  
+  
   //
   //----------------------------------------------------------------------
   //
@@ -97,6 +108,9 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 	aTerm_p = other.aTerm_p;
 	psTerm_p = other.psTerm_p;
 	wTerm_p = other.wTerm_p;
+	atermMaker_p=other.atermMaker_p;
+	wtermMaker_p=other.wtermMaker_p;
+	  
       }
     return *this;
 
@@ -245,7 +259,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 		//   IPosition dummy; 
 		//   Vector<Double> dummyoffset;
 		//   Double pss = -1;
-		//   //cerr << "############ " << freqValues(inu) << " " << skyIncr << skyNX << " " << uvScale_l << endl;
+		//   // << "############ " << freqValues(inu) << " " << skyIncr << skyNX << " " << uvScale_l << endl;
 		//   psTerm.reinit(dummy, uvScale_l, dummyoffset,pss);
 		// }
 		
@@ -1655,7 +1669,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 				       Bool conjBeams)
 
   {
-    LogIO log_l(LogOrigin("AWConvFunc2", "fillConvFuncBuffer2[R&D]"));
+    LogIO log_l(LogOrigin("Moluscs", "fillConvFuncBuffer2[R&D]"));
     Complex cfNorm, cfWtNorm;
     Complex cpeak;
     {
@@ -1670,6 +1684,8 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       cfb.getParams(cs_l, sampling, xSupport, ySupport, bandName,
 		    miscInfo.freqValue,miscInfo.wValue, //The address of CFCell as physical co-ords
 		    miscInfo.muellerElement);
+	  
+      //cerr << "FCFB2: frq "  << miscInfo.freqValue << " cs_l " << cs_l.toWorld(IPosition(4, 0,0,0,0)) << endl;
       aTerm.setBandName(bandName);
       //
       // Cache the A-Term for this polarization and frequency
@@ -1684,26 +1700,41 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       Bool doSquint=true; 
       ftATerm_l.set(Complex(1.0,0.0));   ftATermSq_l.set(Complex(1.0,0.0));
       Double freq_l=miscInfo.freqValue;
-      // {
-      // 	Vector<String> csList;
-      // 	IPosition dummy;
+      //TESTOO
+	  {
+      	Vector<String> csList;
+       	IPosition dummy;
       // 	cout << "CoordSys:===================== ";
       // 	//      	csList = ftATermSq_l.coordinates().list(log_l,MDoppler::RADIO,dummy,dummy);
 
-      // 	csList = cs_l.list(log_l,MDoppler::RADIO,dummy,dummy);
-      // 	cout << csList << endl;
+       	csList = cs_l.list(log_l,MDoppler::RADIO,dummy,dummy);
+	//cerr << csList << endl;
       // 	csList = conjPolCS_l.list(log_l,MDoppler::RADIO,dummy,dummy);
       // 	cout << csList << endl;
-      // }
+      }
 
       //if (!isDryRun)
-      // cerr << "#########$$$$$$ " << pbshp << " " << nx << " " << freq_l << " " << conjFreq << endl;
-      {
+	  //cerr <<"applying ATERM for " << freq_l << endl;
+	//TESTOO
+	CoordinateSystem lalacs=cs_l;
+	//
+	  
+	  // cerr << "#########$$$$$$ " << pbshp << " " << nx << " " << freq_l << " " << conjFreq << endl;
+	{
+	
 	aTerm.applySky(ftATerm_l, vbPA, doSquint, 0, miscInfo.muellerElement,freq_l);//freqHi);
 	if (conjBeams) aTerm.applySky(ftATermSq_l, vbPA, doSquint, 0, miscInfo.muellerElement, conjFreq);//freqHi);
 	else aTerm.applySky(ftATermSq_l, vbPA, doSquint, 0,miscInfo.muellerElement,freq_l);
       }
 
+	//TESTOO
+	{
+	PagedImage<Complex> lala(ftATerm_l.shape(), lalacs, "ATERMFCFB2.im");
+	lala.copyData(ftATerm_l);
+	
+	}
+	////
+      
       Vector<Double> cellSize;
       // {
       // 	Int linIndex=cs_l.findCoordinate(Coordinate::LINEAR);
@@ -1927,7 +1958,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 				     const Bool aTermOn,
 				     const Bool conjBeams)
   {
-    LogIO log_l(LogOrigin("AWConvFunc2", "makeConvFunction2[R&D]"));
+    LogIO log_l(LogOrigin("crustaceans", "makeConvFunction2[R&D]"));
     Int convSize, convSampling;//, polInUse;
     Array<Complex> convFunc_l, convWeights_l;
     //  
@@ -1942,7 +1973,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       skyNX=skyImage_l.shape()(0);
       skyNY=skyImage_l.shape()(1);
       CoordinateSystem skyCoords(skyImage_l.coordinates());
-
+	skyCoords.list(log_l, MDoppler::RADIO, skyImage_l.shape(), skyImage_l.shape(), True);
       Int directionIndex=skyCoords.findCoordinate(Coordinate::DIRECTION);
       DirectionCoordinate dc=skyCoords.directionCoordinate(directionIndex);
       skyIncr = dc.increment();
@@ -1963,6 +1994,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 	    cfwtb_p=cfwts2.getCFBuffer(iPA,iB);
 
 	    IPosition cfbShape = cfb_p->shape();
+		//cerr << "@@@CFBSHAPE " <<cfbShape << endl; 
 	    for (int iNu=0; iNu<cfbShape(0); iNu++)       // Frequency axis
 	      for (int iPol=0; iPol<cfbShape(2); iPol++)     // Polarization axis
 		for (int iW=0; iW<cfbShape(1); iW++)   // W axis
@@ -2077,10 +2109,433 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
     else os=psTerm.getOversampling();
     return os;
   }
+void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
+							   Array<Complex>& wtConvFunc, CoordinateSystem& csys,
+							   Vector<Int>& asupport, Int& npix,
+							   const Vector<Double>& freqlist, const Bool doSquint, 
+							   const Double& pa){
+	
+	//Assuming first freq is lowest
+	Quantity cell;
+	Int convnx=0;
+	asupport.resize(freqlist.nelements());
+	if(!atermMaker_p)
+		throw(AipsError("Programmer Error: AWConvFunc has to be constructed with a EVLAAperture"));
+	String bandname=EVLAAperture::getVLABandName(freqlist[int(freqlist.nelements()/2)], atermMaker_p->getTelescopeName());
+//	cerr << "BANDNAME " << bandname << " telescip " << atermMaker_p->getTelescopeName()  << " csys tel " << csys.obsInfo().telescope() << endl;
+	std::tie(cell,convnx)=getBeamCellSize(bandname);
+//	cerr << "@@@cell " << cell <<  " npix " <<  convnx << endl;
+	csys_p=csys;
+	Vector<String> units=csys_p.worldAxisUnits();
+	Vector<Double> incr=csys_p.increment();
+	Double inpFov=fabs(incr[0]*npix);
+	incr[0]=cell.get(units[0]).getValue();
+	incr[1]=cell.get(units[1]).getValue();
+	//cerr <<  "###inp fov" <<  inpFov <<  " conv fov " << fabs(incr[0]*Double(convnx)) <<  endl;
+	Double pbFov= fabs(incr[0]*Double(convnx));
+	/*if(inpFov < fabs(incr[0]*Double(convnx))){
+		//incr = csys_p.increment();
+		npix=int(std::ceil(incr[0]*Double(convnx)/inpFov/2.0))*2;
+		//npix remains the same and csys used for beam calc stays
+	}
+	else{
+	 npix = convnx;                                            // return the npix used to calc beam
+	}*/
+	npix=convnx;
+	if((inpFov/pbFov) < 1.0){
+		npix=int(std::ceil(inpFov/pbFov*Double(convnx)/2.0))*2;
+		//cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
+	}
+	Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};
+	StokesCoordinate stokesCoords(stoks);
+	Quantum<Vector<Double> > freqs(freqlist, "Hz");
+	SpectralCoordinate specCoord(MFrequency::TOPO, freqs);
+	CoordinateSystem csysA=csys_p;
+	csysA.setIncrement(incr);
+	Vector<Double> refpix=csysA.referencePixel();
+	refpix[0]=refpix[1]=Double(convnx)/2.0;
+	csysA.setReferencePixel(refpix);
+	csysA.replaceCoordinate(stokesCoords, 1);
+	csysA.replaceCoordinate(specCoord,2);
+	csys=csysA; //return the coordinate used for doing the beam
+	IPosition shp(4, convnx, convnx, 4,1);
+	Int support=0;
+    //aa.cacheVBInfo("EVLA", 25.0);
+	IPosition blc(4,0,0,0,0);
+	IPosition trc(4,0,0,3,0);
+	FFT2D ftm;
+	Bool isCopy, isWtCopy;
+	uInt nchans=freqlist.nelements();
+	MathUtils m;
+	Record miscInfo;
+	miscInfo.define("bandname", bandname);
+	//cerr << "MISCINFO " << miscInfo << endl;
+	for (uInt k=0; k < nchans; ++k){
+		//higest freq will have largest supp ..so going through freqlist backwards
+		Quantum<Vector<Double> > lefreq(Vector<Double>(1, freqlist[nchans-k-1]), "Hz");
+		SpectralCoordinate specplane(MFrequency::TOPO, lefreq);
+		CoordinateSystem csysPlane=csysA;
+		csysPlane.replaceCoordinate(specplane,2);
+		TempImage<Complex> pbim(shp, csysPlane);
+		pbim.setMiscInfo(miscInfo);
+		pbim.set(1.0);
+		if(doSquint)
+			atermMaker_p->applyDiagSkyJones(pbim, pa);
+		else
+			atermMaker_p->applyAvgSkyJones(pbim);
+		Array<Complex> arr;
+		if(inpFov >= pbFov){
+			arr=pbim.getSlice(IPosition(4,0), IPosition(4, convnx, convnx, 4,1), False);
+		}
+		else{
+			arr=pbim.getSlice(IPosition(4,(convnx-npix)/2, (convnx-npix)/2, 0, 0), IPosition(4, npix, npix, 4,1), False);
+		}
+		//cerr << "MAX arr "<< max(arr) << " min "<< min(arr) << endl;
+		Array<Complex> wtArr=arr*conj(arr);
+		Complex * arrptr=arr.getStorage(isCopy);
+		Complex * wtarrptr=wtArr.getStorage(isWtCopy);
+		for(uint j=0; j <4; ++j){ 
+			Complex* arrplane= arrptr+j*npix*npix;
+			Complex* wtarrplane=wtarrptr+j*npix*npix;
+			ftm.c2cFFT(arrplane, npix, npix, True);
+			ftm.c2cFFT(wtarrplane, npix, npix, True);
+		}
+		
+		arr.putStorage(arrptr, isCopy);
+		
+		wtArr.putStorage(wtarrptr, isWtCopy);
+		/*if(inpFov < pbFov){
+			Double fac= (inpFov/pbFov);
+			incr[0]/=fac;
+			incr[1]/=fac;
+			csys.setIncrement(incr);
+			Array<Complex>newArr= m.resampleViaFFT(arr, fac, fac);
+			arr.set(0.0);
+			cerr << "@@@neArr shape "<< newArr.shape() << endl;
+			m.putMiddle(arr, newArr);
+			newArr.resize();
+			newArr=m.resampleViaFFT(wtArr, fac, fac);
+			wtArr.set(0.0);
+			m.putMiddle(wtArr, newArr);
+			
+			
+		}*/
+		//cerr << "Post FT MAX arr "<< max(wtArr) << " min "<< min(wtArr) << endl;
+		supportAndNormalizeAFunc(support, arr, wtArr);
+		//cerr << "Post Norm MAX arr "<< max(arr) << " min "<< min(arr) << endl;
+		if(k==0){
+		
+			IPosition tmpShape=shp;
+			tmpShape[3]=freqlist.nelements();
+			//This is going to be returned to allow resacling etc later
+			//csys=refim::SynthesisUtils::makeUVCoords(csysA, tmpShape);
+			IPosition convShp(4, 2*support, 2*support, 4, freqlist.nelements());
+			refpix[0]=refpix[1]=support;
+			csys.setReferencePixel(refpix);
+			convFunc.resize(convShp);
+			//convShp[0]=convShp[1]=2*support;
+			wtConvFunc.resize(convShp);
+			blc[0]=blc[1]=npix/2-support;
+			trc[0]=trc[1]=npix/2+support-1;
+			
+		}
+		asupport[nchans-k-1]=support;
+		IPosition blcChanplane=IPosition(4, 0,0,0,nchans-k-1);
+		IPosition trcChanplane=IPosition(4, convFunc.shape()[0]-1,convFunc.shape()[1]-1,3,nchans-k-1);
+		
+		convFunc(blcChanplane, trcChanplane)=arr(blc,trc);
+		wtConvFunc(blcChanplane, trcChanplane)=wtArr(blc, trc);
+		
+	}
+	//cerr << "Post Slicing MAX arr "<< max(wtConvFunc) << " min "<< min(wtConvFunc) << endl;
+	//cerr << "@@@support " << max(asupport) << endl;
+}
+
+void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc, 
+                       Array<Complex>& wtconv,
+                       CoordinateSystem& csys,
+                       Matrix<Int>& awsupport, Int& npix, const Vector<Double>& freqlist, 
+                       const Vector<Double>& wVals, const Bool dosquint, const Double& pa){
 
 
+	Array<Complex> pbFT;
+	Array<Complex> pbWFT;
+	Vector<Int> aTsup;
+	makeAConvFunc(pbFT, pbWFT, csys, aTsup, npix, freqlist, dosquint, pa);
+	//cerr << "In AW wtConv "<< max(pbWFT) << " min "<< min(pbWFT) << endl;
+	/////TESTOO
+	//{
+	//	cerr << "ATSUP " << aTsup << endl;
+	//PagedImage<Complex> booltaq(pbFT.shape(), csys, "BOOLTAQ");
+	//booltaq.put(pbFT);
+	//}
+	/////
+	WPConvFunc wpc;
+	Cube<Complex> wCon;
+	Vector<int> wTsup;
+	Int nfreq=freqlist.nelements();
+	Int nw=wVals.nelements();
+	wpc.makeWConvFuncs(wCon, wTsup, csys, npix, wVals);
+	//cerr << "AWC wcon shape "<< wCon.shape() << " pbFT " << pbFT.shape() << endl; 
+	Int newNx=max(wCon.shape()[0], pbFT.shape()[0]);
+// Let's start with this size..we can reduce this later
+	convFunc.resize(IPosition(5, newNx, newNx, 4, nfreq, nw));
+	IPosition blcW(2, (newNx-wCon.shape()[0])/2, (newNx-wCon.shape()[1])/2);
+	IPosition trcW(2, (newNx+wCon.shape()[0])/2-1, (newNx+wCon.shape()[1])/2-1);
+	IPosition blcA(4, (newNx-pbFT.shape()[0])/2, (newNx-pbFT.shape()[1])/2, 0, 0);
+	IPosition trcA(4, (newNx+pbFT.shape()[0])/2-1, (newNx+pbFT.shape()[1])/2-1, 3, nfreq-1);
+	FFT2D ftm;
+	//IPosition blcOut(5, 0, 0, 0, 0, 0);
+	//IPosition trcOut(5, newNx-1, newNx-1, 4, nfreq-1, 0);
+	ArrayIterator<Complex> itOut(convFunc, 
+								 IPosition(4,0,1,2,3));
+	itOut.origin();
+	for (Int k=0; k < nw; ++k){
+		Matrix<Complex> w(newNx, newNx,0);
+		w(blcW, trcW)=wCon.xyPlane(k);
+		Bool isCopy;
+		Complex* wptr=w.getStorage(isCopy);
+		ftm.c2cFFT(wptr, newNx, newNx, False);
+		w.putStorage(wptr, isCopy);
+		Array<Complex> pb(IPosition(4, newNx, newNx, 4, nfreq));
+		pb.set(0.0);
+		pb(blcA, trcA)=pbFT;
+		ArrayIterator<Complex> it(pb, IPosition(3,0,1,2));
+		it.origin();
+		for (Int j = 0; j < nfreq; ++j){
+			//IPosition blcf(4, 0, 0, 0, j);
+			//IPosition trcf(4, newNx-1, newNx-1, 3,j);
+			Cube<Complex> aPB(it.array());
+			for (Int pol=0; pol<4; ++pol){
+				Matrix<Complex> aPBplane=aPB.xyPlane(pol);
+				Complex* pbptr=aPBplane.getStorage(isCopy);
+				ftm.c2cFFT(pbptr, newNx, newNx, False);
+				aPBplane.putStorage(pbptr, isCopy);
+				aPBplane *= w;
+				pbptr=aPBplane.getStorage(isCopy);
+				ftm.c2cFFT(pbptr, newNx, newNx, True);
+				aPBplane.putStorage(pbptr, isCopy);
+				
+			}
+			it.next();
+		}
+		//blcOut[4]=k;
+		//trcOut[4]=k;
+		//convFunc(blcOut, trcOut)=pb;
+		itOut.array()=pb;
+		/////TESTOO
+		//{
+		//PagedImage<Complex> booltaq(pb.shape(), csys, "BOOLTAQ2");
+		//booltaq.put(pb);
+		//}
+		/////
+		itOut.next();
+	}
+	//cerr << "BEFORE convshape "<< convFunc.shape() << endl;
+	supportResizeAWConv(awsupport, convFunc,  aTsup);
+	//For now we will copy the weightConvFunc to all W's just to keep indexing the same
+	wtconv.resize(convFunc.shape());
+	wtconv.set(0.0);
+	ArrayIterator<Complex>itw(wtconv, IPosition(4,0,1,2,3));
+	newNx=wtconv.shape()[0];
+	Int nx=pbWFT.shape()[0];
+	itw.origin();
+	IPosition blcw(4, (newNx-nx)/2, (newNx-nx)/2, 0, 0);
+	IPosition trcw(4, (newNx+nx)/2-1, (newNx+nx)/2-1, 3, nfreq-1);
+	for (int k=0; k < nw; ++k){
+		//cerr <<  "@@@ w " <<  k <<  " shape " << itw.array()(blcw,trcw).shape() <<  "  " << pbWFT.shape() <<  endl; 
+		itw.array()(blcw,trcw)=pbWFT;
+		itw.next();
+	}
+	//cerr << "AFTER convshape "<< convFunc.shape() << endl;
+	//cerr <<  "wtconv " <<  max(wtconv) <<  "   " << min(wtconv) <<  endl;
+	////TESTOO
+	/*{
+		Vector<Double>pixW(wVals.nelements());
+		indgen(pixW);
+		CoordinateSystem fiveAxis=csys;
+		TabularCoordinate tab(pixW, wVals, "m", "W");
+		fiveAxis.addCoordinate(tab);
+		PagedImage<Complex> noo(convFunc.shape(), fiveAxis, "AWConvVals");
+		noo.put(convFunc);
+	
+	}*/
+	////
+	//cerr << "aWSup " << awsupport << endl;
+	//cerr << "aTsup " << aTsup << endl;
+	
+}
+//
+
+Bool AWConvFunc::supportResizeAWConv(Matrix<Int>& sup, Array<Complex>& conv, const Vector<Int>& ATsup){
+
+	Int convSize=conv.shape()[0];
+	sup.resize(conv.shape()[3], conv.shape()[4]);
+	sup.set(0);
+	Float maxAbsConvFunc, minAbsConvFunc;
+	IPosition minpos, maxpos;
+	ArrayIterator<Complex> it(conv, IPosition(2,0,1));
+	//The w=0 will determine the sum under conv func for normalization
+	Vector<Double> sumUnder(conv.shape()[3], 0.0);
+	it.origin();
+	for (Int w=0; w < conv.shape()[4]; ++w){
+		for (Int chan=0; chan < conv.shape()[3]; ++chan){
+			Matrix<Complex> convPlane(it.array());
+			minMax(minAbsConvFunc, maxAbsConvFunc, minpos, maxpos, amplitude(convPlane));
+			//cerr << "minMAX " << minAbsConvFunc << "   " << maxAbsConvFunc << endl;
+			Bool found=false;
+			Int trial=0;
+			for (trial=convSize/2-2; trial>0; --trial) {
+				//Searching down a diagonal
+					if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (1.0e-2*maxAbsConvFunc) ) {
+					found=true;
+					trial=Int(sqrt(2.0*Float(trial*trial)));
+		
+					break;
+				}
+			}
+			if(trial < 5)
+				trial=5;
+			if(found){
+				sup(chan, w)=trial;
+			}
+			else{
+				sup(chan,w)=5;
+			}
+			if(sup(chan, w) < ATsup(chan)){
+				//cerr << chan << " w " << w << "sup " << sup(chan,w) << " ATsup " << ATsup(chan) << endl;
+				sup(chan,w)=ATsup(chan);
+			}
+			if(w==0){
+				IPosition blc(2,-sup(chan,0)+convSize/2, -sup(chan,0)+convSize/2);
+				IPosition trc(2, sup(chan,0)+convSize/2-1, sup(chan, 0)+convSize/2-1);
+				//cerr << "chan " << chan << " blc " << blc << " trc " << trc << "  sup "<< sup(chan,0) << endl;
+				sumUnder(chan)=real(sum(convPlane(blc,trc)));
+			
+			}
+			for (Int pol=0; pol < 4; ++pol) //skip to the next pol RR plane of next chan, w
+				it.next(); 
+			//cerr << "POSITION " << it.pos() << endl;	
+		}
+	}
+	//Some thing to expt here as we are limiting w's in a beam or slightly moer
+	Int newConvSize = 2*max(sup);
+	//Int newConvSize = 2*mean(sup);
+	if(newConvSize < convSize){
+		Array<Complex> newConv(IPosition(4, newConvSize, newConvSize, 4, conv.shape()[3], conv.shape()[4]));
+		IPosition blc(5,(-newConvSize+convSize)/2, (-newConvSize+convSize)/2, 0, 0, 0);
+		IPosition trc(2, (newConvSize+convSize)/2-1, (newConvSize+convSize)/2-1, 3, conv.shape()[3]-1, conv.shape()[4]-1);
+		newConv=conv(blc,trc);
+		conv.resize();
+		conv.assign(newConv);
+	}
+	else 
+		newConvSize=convSize;
+	ArrayIterator<Complex> it2(conv, IPosition(3, 0, 1, 2));
+	it2.origin();
+	for (Int w=0; w< conv.shape()[4]; ++w){
+		for (Int chan=0; chan < conv.shape()[3]; ++chan){
+			if(sumUnder(chan) >0.0){
+				Complex mult(1.0/sumUnder(chan));
+				it2.array() *= mult;
+ 				//cerr << std::setprecision(12) << "it2.shape " << it2.array().shape() << " //pos " << it2.pos() << "chan " << chan << " sumUnder " << sumUnder(chan) << " w " << w << endl; 
+			}
+			it2.next();
+		}
+		
+	}
+	return True;	
+	
+}
+Bool AWConvFunc::supportAndNormalizeAFunc(Int& sup, Array<Complex>& conv, Array<Complex>& wtconv){
+	sup=-1;
+	IPosition begin(4, 0, 0, 0, 0);
+    IPosition end=conv.shape()-1;
+	Int convSize=conv.shape()[0];
+	end[2]=0;
+	Matrix<Complex> convPlane(wtconv(begin,end).reform(IPosition(2, convSize, convSize))); 
+    Float maxAbsConvFunc, minAbsConvFunc;
+	IPosition minpos, maxpos;
+	minMax(minAbsConvFunc, maxAbsConvFunc, minpos, maxpos, amplitude(convPlane));
+    Bool found=false;
+    Int trial=0;
+    for (trial=convSize/2-2; trial>0; trial--) {
+        //Searching down a diagonal
+        if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (1.0e-2*maxAbsConvFunc) ) {
+            found=true;
+            trial=Int(sqrt(2.0*Float(trial*trial)));
+	   
+            break;
+        }
+    }
+    if(!found) {
+        if((maxAbsConvFunc-minAbsConvFunc) > (1.0e-2*maxAbsConvFunc))
+            found=true;
+        // if it drops by more than 2 magnitudes per pixel
+        trial= (convSize >10) ? 5 : (convSize/2 - 4);
+    }
 
 
+    if(found) {
+        if(trial < 5)
+            trial= ( (convSize >10 ) ? 5 : (convSize/2 - 4));
+        sup=trial+1;
+        //support is really over the edge
+        if( (sup >= convSize/2)) {
+            sup=convSize/2-1;
+        }
+        
+		ArrayIterator<Complex> pbIt(conv, IPosition(2, 0,1));
+		ArrayIterator<Complex> wtIt(wtconv,  IPosition(2, 0,1));
+		IPosition blc(2,-sup+convSize/2, -sup+convSize/2);
+		IPosition trc(2, sup+convSize/2, sup+convSize/2);
+		Double pbSum=0.0;
+		//Iterate of pol
+		while(!pbIt.pastEnd()){
+			Matrix<Complex> pbplane(pbIt.array());
+			Matrix<Complex> wtplane(wtIt.array());
+			pbSum=real(sum(wtplane(blc, trc)));
+			//cerr << "pbSumWt "<< pbSum << endl;
+			if(pbSum > 0.0){
+				wtplane=wtplane*Complex(1.0/pbSum, 0.0);
+				pbSum=real(sum(pbplane(blc,trc)));
+				//cerr << "pbSum "<< pbSum << endl;
+				pbplane=pbplane*Complex(1.0/pbSum,0.0);
+			}
+			pbIt.next();
+			wtIt.next();
+		
+		}
+	}
+	
+	return found;
+}
+ std::pair<Quantity, int> AWConvFunc::getBeamCellSize(const String& band){
+	 
+	 Quantity fov(0.024,"rad"); //fov at 1 GHz for VLA
+	 Quantity cell=fov/256;
+	 if(band=="EVLA_S")
+		 cell=cell/2.0;
+	 else if(band=="EVLA_C" || band=="VLA_C")
+		 cell=cell/4.0;
+	 else if(band=="EVLA_X" || band=="VLA_X")
+		 cell=cell/8.0;
+	 else if(band=="EVLA_U" || band=="VLA_U")
+		 cell=cell/12.0;
+	 else if(band=="EVLA_K" || band == "VLA_K")
+		 cell = cell/18.0;
+	 else if(band == "EVLA_A")
+		 cell = cell/26.0;
+	 else if(band == "EVLA_Q" || band == "VLA_Q")
+		 cell=cell/40.0;
+	 
+	 //we can optimize this later but we'll use 512 pixels for nRow
+	 //ahem....BeamCalc starts deviating if we want to make VP and PB 
+	 //that are highly oversampled
+	 
+	 return std::pair<Quantity, int>(cell, 512);
+	 
+ }
 
   //
   //----------------------------------------------------------------------

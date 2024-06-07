@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -71,15 +71,16 @@ namespace casa{
 				       //degenerate (len=1).  This is
 				       //set to 2 if cross-hand
 				       //functions are requested.
-    ap.aperture = new TempImage<Complex>();
+    ap.aperture = new TempImage<Complex> ();
+
     if (maximumCacheSize() > 0) ap.aperture->setMaximumCacheSize(maximumCacheSize());
     ap.aperture->resize(shape);
 
   }
 
 
-  CoordinateSystem VLACalcIlluminationConvFunc::makeUVCoords(CoordinateSystem& imageCoordSys,
-							     IPosition& shape,
+  CoordinateSystem VLACalcIlluminationConvFunc::makeUVCoords(const CoordinateSystem& imageCoordSys,
+							     const IPosition& shape,
 							     Double /*refFreq*/)
   {
     CoordinateSystem FTCoords = imageCoordSys;
@@ -89,6 +90,7 @@ namespace casa{
     if (dirIndex >= 0) return FTCoords; 
 
     dirIndex=FTCoords.findCoordinate(Coordinate::DIRECTION);
+    //cerr << "DIRIndex " << dirIndex << " shape " << shape << endl;
     DirectionCoordinate dc=imageCoordSys.directionCoordinate(dirIndex);
     Vector<Bool> axes(2); axes=true;
     Vector<Int> dirShape(2); dirShape(0)=shape(0);dirShape(1)=shape(1);
@@ -234,7 +236,6 @@ namespace casa{
   void VLACalcIlluminationConvFunc::setApertureParams(ApertureCalcParams& ap,
 						      const Float& Freq, const Float& pa, 
 						      const Int& bandID,
-						      const Int& /*inStokes*/,
 						      const IPosition& skyShape,
 						      const Vector<Double>& uvIncr)
   {
@@ -246,6 +247,7 @@ namespace casa{
     ap.nx = skyShape(0);           ap.ny = skyShape(1);
     ap.dx = abs(uvIncr(0)*Lambda); ap.dy = abs(uvIncr(1)*Lambda);
     ap.x0 = -(ap.nx/2)*ap.dx;      ap.y0 = -(ap.ny/2)*ap.dy;
+    //cerr << "pa= " << ap.pa << " band " << ap.band << " freq " << ap.freq << " nx ny " << ap.nx << "  " << ap.ny << " dx dy " << ap.dx << "  " << ap.dy << endl;
     //
     // If cross-hand pols. are requested, we need to compute both
     // the parallel-hand aperture illuminations.
@@ -253,6 +255,7 @@ namespace casa{
       //if ((inStokes == Stokes::RL) || (inStokes == Stokes::LR))
       {
 	IPosition apShape(ap.aperture->shape());
+	//cerr << "APshape " << apShape << endl;
 	apShape(3)=4;
 	ap.aperture->resize(apShape);
       }
@@ -265,6 +268,7 @@ namespace casa{
   {
     IPosition apertureShape(ap.aperture->shape());
     apertureShape(0) = ap.nx;  apertureShape(1) = ap.ny;
+    //cerr << "new aperture shape " << apertureShape << " old " << (ap.aperture->shape())<< endl;
     ap.aperture->resize(apertureShape);
     ap.aperture->set(0.0);
     //BeamCalc::Instance()->calculateAperture(&ap,inStokes);
@@ -272,6 +276,7 @@ namespace casa{
 
     // If full-pol. imaging, compute all 4 pols., else only the one given by inStokes.
     BeamCalc::Instance()->calculateAperture(&ap);// The call in the absence of instokes allows the computation of all
+    //cerr << "Min max of Aperture " << min(ap.aperture->get()) << "     " << max(ap.aperture->get()) << endl;
     //BeamCalc::Instance()->calculateAperture(&ap,inStokes);// The call in the absence of instokes allows the computation of all
                                                             // the four jones parameters at one time.
 }
@@ -333,12 +338,13 @@ namespace casa{
     //Double Lambda = C::c/freqHi;
     
     index = uvCoords.findCoordinate(Coordinate::STOKES);
+    //cerr << "STOKES index " << index << endl;
     Int inStokes = uvCoords.stokesCoordinate(index).stokes()(0);
     
     //Vector<Int> intSkyShape=skyShape.asVector();
-    setApertureParams(ap, Freq, pa, bandID, inStokes,
+    setApertureParams(ap, Freq, pa, bandID, 
 		      skyShape, uvIncr);
-    
+    (ap.aperture)->setCoordinateInfo(uvCoords);
     regridApertureEngine(ap, inStokes);
     IPosition apertureShape(ap.aperture->shape());
 
@@ -373,7 +379,11 @@ namespace casa{
 		  val = ap.aperture->getAt(tndx);
 		  Rval = ap.aperture->getAt(PolnRIndex);
 		  //Lval = ap.aperture->getAt(PolnLIndex);
-		  phase = arg(Rval);  Rval=Complex(cos(phase),sin(phase));
+		  phase = arg(Rval);  Rval=Complex(cos(phase),sin(phase)); // Isn't this garbage ?
+          //So when tndx(3)=0 and tndx(2)=0 polnRindex and tndx are the same ...thus then
+          // first plane is Ae^(-i\Rval)*e^(iRval) which is just A of each pixel
+          // when tndx(3) and (2) moves to 1 ...now Rval is 0
+          //After the first plane phase is zeroed i.e done modular...then the next planes are being multiplied by conj (0) 
 		  //phase = arg(Lval);  Lval=Complex(cos(phase),sin(phase));
 		  
 		  // if      (tndx(2)==0) ap.aperture->putAt(val*conj(Rval),tndx);
@@ -381,6 +391,7 @@ namespace casa{
 		  // else if (tndx(2)==2) ap.aperture->putAt(val*conj(Rval),tndx);
 		  // else if (tndx(2)==3) ap.aperture->putAt(val*conj(Lval),tndx);
 		  ap.aperture->putAt(val*conj(Rval),tndx);
+          //cerr << "no squint " << val << "  " << Rval << endl;
 		}
       }
 //    cout<<"Completed the regrid Aperture step"; 
@@ -454,7 +465,7 @@ namespace casa{
     
     TempImage<Complex> tmpAperture;tmpAperture.resize(apertureShape);
     if (maximumCacheSize() > 0) tmpAperture.setMaximumCacheSize(maximumCacheSize());
-    
+    tmpAperture.set(0.0);
     ap.dx = abs(incr(0)*Lambda); ap.dy = abs(incr(1)*Lambda);
     //	cout << ap.dx << " " << incr(0) << endl;
     //	ap.x0 = -(25.0/(2*ap.dx)+1)*ap.dx; ap.y0 = -(25.0/(2*ap.dy)+1)*ap.dy;
@@ -520,7 +531,7 @@ namespace casa{
 	  }
 	tmpAperture += *(ap.aperture);
       }
-    *(ap.aperture) = tmpAperture;
+    (ap.aperture)->copyData(tmpAperture);
     tmpAperture.resize(IPosition(1,1));//Release temp. store.
     Vector<Int> poln(4);
     poln(0) = Stokes::RR;
@@ -531,8 +542,10 @@ namespace casa{
     SpectralCoordinate spectralCoord(MFrequency::TOPO,Freq,1.0,0.0);
     //    uvCoords.addCoordinate(dirCoord);
     index = uvCoords.findCoordinate(Coordinate::STOKES);
+    //cerr << "STOKES index " << index << endl;
     uvCoords.replaceCoordinate(polnCoord,index);
     index = uvCoords.findCoordinate(Coordinate::SPECTRAL);
+    //cerr << "Spectral index " << index << endl;
     uvCoords.replaceCoordinate(spectralCoord,index);
     
     ap.aperture->setCoordinateInfo(uvCoords);
@@ -560,7 +573,7 @@ namespace casa{
     IPosition inShape(inImg.shape()),inNdx;
     Vector<Int> inStokes,outStokes;
     Int index,s,index1;
-    
+    //cerr << "Complex IMAGENAME " << outImg.name() << "  " << max(inImg.get()) << "   " << min(inImg.get()) << endl;
     // Timer tim;
     // tim.mark();
     index = inImg.coordinates().findCoordinate(Coordinate::STOKES);
@@ -593,6 +606,7 @@ namespace casa{
 		inNdx = ndx; inNdx(2)=s;
 		cval = inImg.getAt(inNdx);
 		if (Square) cval = cval*conj(cval);
+       // cerr << "Complex " << ndx << " val " << cval << endl;
 		outImg.putAt(cval*outImg.getAt(ndx),ndx);
 	      }
 	  }
@@ -604,6 +618,8 @@ namespace casa{
 					   ImageInterface<Float>& outImg,
 					   Bool Square)
   {
+    
+     //cerr << "REAL IMAGENAME " << outImg.name() << "  " << max(inImg.get()) << "   " << min(inImg.get()) << endl;
     IPosition imsize(outImg.shape());
     IPosition ndx(outImg.shape());
     IPosition inShape(inImg.shape()),inNdx;
@@ -638,7 +654,7 @@ namespace casa{
 		  cval/2;
 		  
 		  if (Square) cval = cval*conj(cval);
-		  
+		  //cerr << "I " << ndx << " val " << cval << endl;
 		  outImg.putAt(abs(cval*outImg.getAt(ndx)),ndx);
 		}
 	  }
@@ -656,6 +672,7 @@ namespace casa{
 		  inNdx = ndx; inNdx(2)=s;
 		  cval = inImg.getAt(inNdx);
 		  if (Square) cval = cval*conj(cval);
+          cerr << "Corr "<< ndx << " val" << cval << endl; 
 		  outImg.putAt(abs(cval*outImg.getAt(ndx)),ndx);
 		}
 	  }
@@ -700,7 +717,7 @@ namespace casa{
   */
   
 //  void VLACalcIlluminationConvFunc::ftAperture(TempImage<Complex>& uvgrid, Bool makeMueller)
-  void VLACalcIlluminationConvFunc::ftAperture(TempImage<Complex>& uvgrid, Int muellerTerm)
+  void VLACalcIlluminationConvFunc::ftAperture(ImageInterface<Complex>& uvgrid, Int muellerTerm)
   {
     //
     // Make SkyJones
@@ -710,6 +727,7 @@ namespace casa{
        //storeImg(name,uvgrid);
     // }
     LatticeFFT::cfft2d(uvgrid);
+    //cerr <<"FTap mueller = " << muellerTerm << " " << max(uvgrid.get()) << "    " << min(uvgrid.get()) << " shape " << uvgrid.shape() << endl;
 //    {
 //      Int index = uvgrid.coordinates().findCoordinate(Coordinate::STOKES);
 //      Int inStokes = uvgrid.coordinates().stokesCoordinate(index).stokes()(0);
@@ -736,6 +754,7 @@ namespace casa{
       skyMuller(uvgrid,muellerTerm);
     else
       skyMuller(uvgrid,-1);
+    //cerr <<"FTap post skymuller " << max(uvgrid.get()) << "    " << min(uvgrid.get()) << endl;
   }
   
   void VLACalcIlluminationConvFunc::loadFromImage(String& /*fileName*/)
@@ -821,7 +840,10 @@ namespace casa{
   void VLACalcIlluminationConvFunc::skyMuller(ImageInterface<Complex>& skyJones, Int muellerTerm)
   {
     Int index = skyJones.coordinates().findCoordinate(Coordinate::STOKES);
+    //cerr << "STOKES index in skymuller " << index << " shape " << skyJones.shape() << endl;
     Int inStokes = skyJones.coordinates().stokesCoordinate(index).stokes()(0);
+    //PagedImage<Complex> lala(skyJones.shape(), skyJones.coordinates(), "BEFORESKYMULL.im");
+    //lala.copyData(skyJones);
     Array<Complex> buf=skyJones.get(),tmp;
     IPosition shape=skyJones.shape();
     if(muellerTerm == -1)
@@ -852,7 +874,7 @@ namespace casa{
     
     IPosition t(4,0,0,0,0),n0(4,0,0,0,0),n1(4,0,0,0,0);
     
-    skyJones.put(buf);
+    skyJones.put(buf); ////?????????????
 //    ostringstream tt;
 //    String name("skyjones.im");
 //    tt << name << "_"<< inStokes;
@@ -873,7 +895,7 @@ namespace casa{
 	for(t(3)=0;t(3)<shape(3);t(3)++) // The freq axis each one of 4 chans contains a jones element
 	    for(t(1)=0;t(1)<shape(1);t(1)++)
 		for(t(0)=0;t(0)<shape(0);t(0)++)
-		    if((t(0)== midx)&&(t(1)==midy))
+		    if((t(0)== midx)&&(t(1)==midy)) //?????Seriously quite a bogus looping..this is not a tape !
 			Normalizesq = Normalizesq + abs(buf(t)*buf(t))/2.0; // This needs to be changed so that Normalizesq stays complex 
 
 
@@ -888,7 +910,8 @@ namespace casa{
 		   	tmp(t)=conj(tmp(t)/sqrt(Normalizesq));
 	
 //  cout<<"The Jones Matrix has been normalized using:"<< sqrt(Normalizesq)<<"\n";
-    skyJones.put(tmp);
+    skyJones.put(tmp); //Why ??
+    //cerr << "after weird normalization " << max(tmp) << "   " << min(tmp) << endl;
    // ostringstream tt1;
    // String name1("skyjones_normalized_conj.im");
    // tt1 << name1 << "_"<< inStokes;
@@ -918,7 +941,7 @@ namespace casa{
 
     Jp(s0)=tmp(s0);Jpq(s0)=tmp(s1);
     Jqp(s0)=tmp(s2);Jq(s0)=tmp(s3);
-    M0=M1=M2=M3=tmp;
+    M0=M1=M2=M3=tmp; //what an unnecessary mem copy 
 //  We will initialize the Mueller rows to zero as per need and then slice and return with only the first slice with written values
       
     M0(s0)=Jp*conj(Jp); M0(s1)=Jp*conj(Jpq); M0(s2)=Jpq*conj(Jp); M0(s3)=Jpq*conj(Jpq);
@@ -929,7 +952,7 @@ namespace casa{
 //    cout<<"Mueller row selection in place is :" << muellerTerm << "\n";
     if (muellerTerm <= 3)
       {
-          M0=0;
+          M0=0; // ??????? all these multiplication up there is just to warm the CPU !
           if (muellerTerm==0) {
               M0(s0)=Jp*conj(Jp);
           }
@@ -942,9 +965,10 @@ namespace casa{
           else {
               M0(s0)=Jpq*conj(Jpq);
           }
+          //cerr << "after M0 " << max(M0) << "    " << min(M0) << endl;
           skyJones.put(M0);
-          // String name2("M0.im");
-          // storeImg(name2,skyJones);
+          //String name2("M0.im");
+          //storeImg(name2,skyJones);
 	  // cout<<"Writing M0 to disk, muellerTerm : "<< muellerTerm <<"\n";
           M0.resize();
       }

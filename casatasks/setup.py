@@ -17,7 +17,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be addressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -344,7 +344,7 @@ def generate_pyinit(moduledir,tasks):
         for task in tasks:
             fd.write("            '%s',\n" % task)
         fd.write("          ]\n\n")
-        fd.write("""from . import config\n""")
+        fd.write("""from casaconfig import config\n""")
         fd.write("""casalog = _logsink( config.logfile )\n\n""")
         for task in tasks:
             fd.write("from .%s import %s\n" % (task,task))
@@ -634,7 +634,7 @@ setup( name=module_name,version=casatasks_version,
        maintainer="Darrell Schiebel",
        maintainer_email="drs@nrao.edu",
        author="CASA development team",
-       author_email="aips2-request@nrao.edu",
+       author_email="casa-feedback@nrao.edu",
        url="https://open-bitbucket.nrao.edu/projects/CASA/repos/casatools/browse",
        download_url="https://casa.nrao.edu/download/",
        license="GNU Library or Lesser General Public License (LGPL)",
@@ -650,5 +650,5 @@ setup( name=module_name,version=casatasks_version,
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi', 'pyerfa' ]
 )

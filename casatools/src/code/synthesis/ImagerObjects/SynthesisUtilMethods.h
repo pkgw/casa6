@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -134,6 +134,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     static casacore::Int getOptimumSize(const casacore::Int npix);
 
     static casacore::Bool fitPsfBeam(const casacore::String& imagename="", const casacore::Int nterms=1, const casacore::Float psfcutoff=0.35);
+
+    ///The following 4 functions are for mtmfs via cube.
+    //convert from/to cube to/from Taylor term images
+    static casacore::Bool taylorCoeffsToCube(const casacore::String& cubename="",const casacore::String& mtname="",  const casacore::Int nterms=1, const casacore::String& reffreq="");
+    static casacore::Bool cubeToTaylorSum(const casacore::String& cubename="",const casacore::String& mtname="",  const casacore::Int nterms=1, const casacore::String& reffreq="", const casacore::Int imtype=0, const casacore::Float pblimit=0.2);
+    ///convert from/to cube pb to reference freq pb on the images
+    static casacore::Bool removeFreqDepPB(const casacore::String& cubename="", const casacore::String& mtname="", const casacore::Float pblimit=0.2);
+    static casacore::Bool applyFreqDepPB(const casacore::String& cubename="", const casacore::String& mtname="", const casacore::Float pblimit=0.2);
 
     static void getResource(casacore::String label="", casacore::String fname="");
     
@@ -395,6 +403,7 @@ public:
 
   // For single-dish imaging
   casacore::String pointingDirCol;
+  casacore::String convertFirst;
   casacore::Float skyPosThreshold;
   casacore::Vector<casacore::Float> pointingOffsetSigDev;
   /* std::vector<float> pointingOffsetSigDev; */
