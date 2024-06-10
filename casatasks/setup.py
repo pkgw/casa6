@@ -650,5 +650,5 @@ setup( name=module_name,version=casatasks_version,
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi', 'pyerfa' ]
 )

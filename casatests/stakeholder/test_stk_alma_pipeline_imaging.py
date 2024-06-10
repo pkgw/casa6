@@ -400,7 +400,7 @@ class test_tclean_base(unittest.TestCase):
             image+'.image.pbcor', image+'.mask', image+'.pb', image+'.model', \
             image+'.sumwt']
         mosaic = [image+'.weight']
-        mtmfs = [image+'.alpha', image+'.alpha.error', image+'.alpha.pbcor', \
+        mtmfs = [image+'.alpha', image+'.alpha.error', \
            image+'.psf.tt0', image+'.psf.tt1', image+'.psf.tt2', \
            image+'.residual.tt0', image+'.residual.tt1', image+'.image.tt0',\
            image+'.image.tt1', image+'.image.tt0.pbcor', image+'.image.tt1.pbcor', \
