@@ -1085,5 +1085,80 @@ class test_importfitsidi(unittest.TestCase):
                 
         self.assertTrue(retValue['success'])
     
+    def test8(self):
+        '''fitsidi-import: Test import of EOPs'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }
+
+        self.res = importfitsidi(my_dataset_names[5], msname,
+                                 constobsid=True, scanreindexgap_s=5)
+        print(myname, ": Success! Now checking output ...")
+        mscomponents = set(["table.dat",
+#                            "table.f0",
+                            "table.f1",
+                            "table.f2",
+                            "table.f3",
+                            "table.f4",
+                            "table.f5",
+                            "table.f6",
+                            "table.f7",
+                            "table.f8",
+                            "ANTENNA/table.dat",
+                            "DATA_DESCRIPTION/table.dat",
+                            "FEED/table.dat",
+                            "FIELD/table.dat",
+                            "FLAG_CMD/table.dat",
+                            "HISTORY/table.dat",
+                            "OBSERVATION/table.dat",
+                            "POINTING/table.dat",
+                            "POLARIZATION/table.dat",
+                            "PROCESSOR/table.dat",
+                            "SPECTRAL_WINDOW/table.dat",
+                            "STATE/table.dat",
+                            "ANTENNA/table.f0",
+                            "DATA_DESCRIPTION/table.f0",
+                            "EARTH_ORIENTATION/table.f0",
+                            "FEED/table.f0",
+                            "FIELD/table.f0",
+                            "FLAG_CMD/table.f0",
+                            "HISTORY/table.f0",
+                            "OBSERVATION/table.f0",
+                            "POINTING/table.f0",
+                            "POLARIZATION/table.f0",
+                            "PROCESSOR/table.f0",
+                            "SPECTRAL_WINDOW/table.f0",
+                            "STATE/table.f0"
+                            ])
+        for name in mscomponents:
+            if not os.access(msname+"/"+name, os.F_OK):
+                print(myname, ": Error  ", msname+"/"+name, "doesn't exist ...")
+                retValue['success']=False
+                retValue['error_msgs']=retValue['error_msgs']+msname+'/'+name+' does not exist'
+            else:
+                print(myname, ": ", name, "present.")
+        print(myname, ": MS exists. All tables present. Try opening as MS ...")
+        try:
+            _ms.open(msname)
+        except:
+            print(myname, ": Error  Cannot open MS table", tablename)
+            retValue['success']=False
+            retValue['error_msgs']=retValue['error_msgs']+'Cannot open MS table '+tablename
+        else:
+            _ms.close()
+            print(myname, ": OK. Checking tables in detail ...")
+            retValue['success']=True
+
+            name = "EARTH_ORIENTATION"
+            expected = [ ['TIME',           4, 5108572800, 0],
+                         ['OBSERVATION_ID', 4, 0, 0],
+                         ['UT1_UTC',        4, -0.172797, 1E-8],
+                         ['PM',      4, [9.20370292E-7, 1.55251885E-6], 1E-14],
+                         ]
+            results = checktable(name, expected)
+            if not results:
+                retValue['success']=False
+                retValue['error_msgs']=retValue['error_msgs']+'Check of table '+name+' failed'
+
+        self.assertTrue(retValue['success'])
+
 if __name__ == '__main__':
     unittest.main()
