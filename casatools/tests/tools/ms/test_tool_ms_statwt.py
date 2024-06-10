@@ -273,7 +273,7 @@ class statwt_test(unittest.TestCase):
             self.assertTrue(np.allclose(
                 gsisp, esisp), 'SIGMA_SPECTRUM comparison failed'
             )
-
+ 
     def test_algorithm(self):
         """ Test the algorithm, includes excludechans tests"""
         dst = "ngc5921.split.ms"
