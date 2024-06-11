@@ -496,47 +496,16 @@ class statwt_test(unittest.TestCase):
         combine = "corr"
         timebin = "300s"
         wtrange = [1, 2]
-        """
-        row_to_rows = []
-        for i in range(10):
-            row_to_rows.append([0, 10])
-        for i in range(2):
-            row_to_rows.append([10, 12])
-        for i in range(5):
-            row_to_rows.append([12, 17])
-        for i in range(5):
-            row_to_rows.append([17, 22])
-        for i in range(5):
-            row_to_rows.append([22, 27])
-        for i in range(5):
-            row_to_rows.append([27, 32])
-        for i in range(1):
-            row_to_rows.append([32, 33])
-        for i in range(2):
-            row_to_rows.append([33, 35])
-        for i in range(3):
-            row_to_rows.append([35, 38])
-        for i in range(5):
-            row_to_rows.append([38, 43])
-        for i in range(5):
-            row_to_rows.append([43, 48])
-        for i in range(5):
-            row_to_rows.append([48, 53])
-        for i in range(3):
-            row_to_rows.append([53, 56])
-        for i in range(4):
-            row_to_rows.append([56, 60])
-        """
-        for i in [0, 1]:
-            shutil.copytree(src, dst) 
-            myms.open(dst, nomodify=False)
-            myms.statwt(timebin=timebin, combine=combine, wtrange=wtrange)
-            myms.done()
-            self.compare(dst, ref)
-            # self._check_weights(
-            #    dst, row_to_rows, 'c', None, True, None, wtrange
-            # )
-            shutil.rmtree(dst)
+        # for i in [0, 1]:
+        shutil.copytree(src, dst) 
+        myms.open(dst, nomodify=False)
+        myms.statwt(timebin=timebin, combine=combine, wtrange=wtrange)
+        myms.done()
+        self.compare(dst, ref)
+        # self._check_weights(
+        #    dst, row_to_rows, 'c', None, True, None, wtrange
+        # )
+        shutil.rmtree(dst)
 
     def test_preview(self):
         """Test preview mode"""
