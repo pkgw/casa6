@@ -506,7 +506,7 @@ class statwt_test(unittest.TestCase):
         #    dst, row_to_rows, 'c', None, True, None, wtrange
         # )
         shutil.rmtree(dst)
-
+ 
     def test_preview(self):
         """Test preview mode"""
         dst = "ngc5921.split.preview.ms"
