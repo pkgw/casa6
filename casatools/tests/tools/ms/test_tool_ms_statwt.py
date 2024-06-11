@@ -901,7 +901,7 @@ class statwt_test(unittest.TestCase):
             "variance is incorrect"
         )
         shutil.rmtree(dst)
-        
+         
     @unittest.skip("temporary skip for debugging one test") 
     def test_multi_spw_no_spectrum_columns(self):
         "Test multi spw with no sigma nor weight spectrum columns works"
