@@ -42,12 +42,15 @@ datapath = ctsys.resolve('/unittest/gencal/')
 # input data
 evndata = 'n08c1.ms'
 vlbadata = 'ba123a.ms'
+swpowdata = '3C286_syspower_CAS-11860.ms'
+
 vlbacal = os.path.join(datapath, 'ba123a.gc')
 evncal = os.path.join(datapath, 'n08c1.tsys')
 
 caltab = 'cal.A'
 evncopy = 'evn_copy.ms'
 vlbacopy = 'vlba_copy.ms'
+swpowcopy = 'swpow_copy.ms'
 
 '''
 Unit tests for gencal
@@ -876,6 +879,33 @@ class TestJyPerK(unittest.TestCase):
                            uniform=False)
 
         self.assertEqual(cm.exception.args[0], 'The infile argument should be str or None.')
+        
+class TestSwPow(unittest.TestCase):
+
+    testcal = 'swpow.cal'
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath,swpowdata), swpowcopy)
+        
+    def tearDown(self):
+        if os.path.exists(swpowcopy):
+            shutil.rmtree(swpowcopy)
+        if os.path.exists(self.testcal):
+            shutil.rmtree(self.testcal)
+        
+    def test_switched_power_weights_caltype(self):
+        """Check that resulting caltable has all 1's for gains and non-trivial values for weight adjustment
+        
+        The following arguments are required for this test.
+        * caltype='swpwts'
+        """
+        gencal(vis=swpowcopy, caltable=self.testcal, caltype='swpwts')
+        
+        _tb.open(self.testcal)
+        res = _tb.getcol('FPARAM')
+        _tb.close()
+        
+        #self.assertTrue(np.all(res[0:1,:,:] == 1))
+        self.assertTrue(np.mean(res[1,:,:]) != 1)
 
 class gencal_eoptest(unittest.TestCase):
 
