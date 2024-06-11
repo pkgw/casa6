@@ -235,7 +235,7 @@ else:
     # always append measurespath to datapath if not already found there to be used by ctsys.initialize
     add_mp = True
     for apath in user_datapath:
-        if __os.path.samefile(apath, user_measurespath):
+        if __os.path.exists(apath) and __os.path.samefile(apath, user_measurespath):
             add_mp = False
             break
     if add_mp:
