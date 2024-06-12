@@ -55,6 +55,11 @@ StatWtTVI::StatWtTVI(ViImplementation2 * inputVii, const Record &configuration)
         "Error parsing StatWtTVI configuration"
     );
     LogIO log(LogOrigin("StatWtTVI", __func__));
+    // debug
+    omp_set_num_threads(1);
+    log << LogIO::WARN << "using " << omp_get_num_threads() << " threads" << LogIO::POST; 
+
+
     log << LogIO::NORMAL << "Using " << StatWtTypes::asString(_column)
         << " to compute weights" << LogIO::POST;
     // FIXME when the TVI framework has methods to
