@@ -579,8 +579,15 @@ clipminmax -- Clip minimum and maximum value from each pixel.
               encompassed by expected image.
         default: False
         option: True, False
-interpolation -- Interpolation method.
-
+interpolation -- Interpolation mode in frequency. Frequency data is interpolated
+                 when converting the spectral reference frame from TOPO or other to LSRK.
+                 'linear' is linear interpolation, 'nearest' is nearest neighborhood
+                 interpolation, and 'cubic' is cubic spline interpolation.
+                 Note that if the observation date of MSes has a long difference,
+                 some problems merely occur in frequency channel matching
+                 when neighborhood interpolation.
+        option: 'linear', 'nearest', 'cubic'
+        default: 'linear'
 -----------------
 Gridding Kernel
 -----------------
