@@ -388,8 +388,8 @@ values. See description below for details of gridfunction available.
         </param>
 
         <param type="string" name="interpolation">
-            <shortdescription>Interpolation method in frequency [&quot;linear&quot;(default), &quot;nearest&quot;, &quot;cube&quot;]</shortdescription>
-            <description>Interpolation mode in frequency. Frequency data would interpolate when converting the spectral reference frame from TOPO or other to LSRK, and when the observation date of MSes has a long difference, some problems merely occur in frequency channel matching when neighborhood interpolation.  &quot;linear&quot; is linear interpolation, &quot;nearest&quot; is nearest neighborhood interpolation, and &quot;cube&quot; is cubic spline interpolation. Default to &quot;linear&quot;.</description>
+            <shortdescription>Interpolation method in frequency [&quot;linear&quot;(default), &quot;nearest&quot;, &quot;cubic&quot;]</shortdescription>
+            <description>Interpolation mode in frequency. Frequency data is interpolated when converting the spectral reference frame from TOPO or other to LSRK. &quot;linear&quot; is linear interpolation, &quot;nearest&quot; is nearest neighborhood interpolation, and &quot;cubic&quot; is cubic spline interpolation. Note that if the observation date of MSes has a long difference, some problems merely occur in frequency channel matching when neighborhood interpolation. </description>
                 <value>linear</value>
                 <allowed kind="enum">
                     <value>linear</value>
