@@ -274,7 +274,6 @@ class statwt_test(unittest.TestCase):
                 gsisp, esisp), 'SIGMA_SPECTRUM comparison failed'
             )
     
-    @unittest.skip("temporary skip for debugging one test") 
     def test_algorithm(self):
         """ Test the algorithm, includes excludechans tests"""
         dst = "ngc5921.split.ms"
@@ -311,7 +310,6 @@ class statwt_test(unittest.TestCase):
                 shutil.rmtree(dst)
                 c += 1               
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_timebin(self):
         """Test time binning"""
         dst = "ngc5921.split.timebin.ms"
@@ -325,7 +323,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
             
-    @unittest.skip("temporary skip for debugging one test") 
     def test_chanbin(self):
         """Test channel binning"""
         dst = "ngc5921.split.chanbin_0.ms"
@@ -367,7 +364,6 @@ class statwt_test(unittest.TestCase):
                         ref = refdir + 'ngc5921_statwt_ref_test_chanbin_combine_corr.ms'
                     shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_minsamp(self):
         """Test minimum number of points"""
         dst = "ngc5921.split.minsamp.ms"
@@ -410,7 +406,6 @@ class statwt_test(unittest.TestCase):
                 )
             shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_default_boundaries(self):
         """Test default scan, field, etc boundaries"""
         dst = "ngc5921.split.normalbounds.ms"
@@ -442,7 +437,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_no_scan_boundaries(self):
         """Test no scan boundaries"""
         dst = "ngc5921.no_scan_bounds.ms"
@@ -457,7 +451,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_no_scan_nor_field_boundaries(self):
         """Test no scan nor field boundaries"""
         dst = "ngc5921.no_scan_nor_field_bounds.ms"
@@ -472,7 +465,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_statalg(self):
         """Test statalg"""
         # just testing inputs
@@ -515,7 +507,6 @@ class statwt_test(unittest.TestCase):
         # )
         shutil.rmtree(dst)
  
-    @unittest.skip("temporary skip for debugging one test") 
     def test_preview(self):
         """Test preview mode"""
         dst = "ngc5921.split.preview.ms"
@@ -541,7 +532,6 @@ class statwt_test(unittest.TestCase):
         )
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_data_col(self):
         """Test using data column"""
         dst = "ngc5921.split.data.ms"
@@ -566,7 +556,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_sliding_time_window(self):
         """Test sliding time window"""
         dst = "ngc5921.split.sliding_time_window.ms"
@@ -645,7 +634,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_sliding_window_timebin_int(self):
         """Test sliding window with timebin as int specified"""
         dst = "ngc5921.split.sliding_time_window.ms"
@@ -801,7 +789,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual(self):
         """Test using corrected_data - model_data column"""
         dst = "ngc5921.split.residualwmodel.ms"
@@ -820,7 +807,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual_no_model(self):
         """Test datacolumn='residual' in the absence of a MODEL_DATA column"""
         dst = "ngc5921.split.residualwoutmodel.ms"
@@ -839,7 +825,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual_data(self):
         """Test using data - model_data column"""
         dst = "ngc5921.split.residualdatawmodel.ms"
@@ -858,7 +843,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual_data_no_model(self):
         """Test using residual data in absence of MODEL_DATA"""
         dst = "ngc5921.split.residualdatawoutmodel.ms"
@@ -884,7 +868,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_returned_stats(self):
         """Test returned stats, CAS-10881"""
         dst = "ngc5921.split.statstest.ms"
@@ -902,7 +885,6 @@ class statwt_test(unittest.TestCase):
         )
         shutil.rmtree(dst)
          
-    @unittest.skip("temporary skip for debugging one test") 
     def test_multi_spw_no_spectrum_columns(self):
         "Test multi spw with no sigma nor weight spectrum columns works"
         for tb in [1, "5s"]:
