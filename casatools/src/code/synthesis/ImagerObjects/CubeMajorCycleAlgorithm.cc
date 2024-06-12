@@ -71,7 +71,7 @@ void CubeMajorCycleAlgorithm::get() {
 	/// Fill the private variables
 	for (Int k=0; k < Int(dataSel_p.nelements()); ++k){
 		(dataSel_p[k]).fromRecord(vecSelParsRec.asRecord(String::toString(k)));
-		//cerr << k << "datasel " << vecSelParsRec.asRecord(String::toString(k)) << endl;
+	//	cerr << k << "datasel " << vecSelParsRec.asRecord(String::toString(k)) << endl;
 	}
 	//imsel and gridsel should be the same numbers (number of image fields)
 	Int nmajorcycles=0;

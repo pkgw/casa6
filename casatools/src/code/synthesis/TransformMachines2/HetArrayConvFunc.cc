@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -438,6 +438,10 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         return;
 
     }
+    /////TESTOO elkey
+    String elkey=String::toString(vb.msId())+String("_")+String::toString(vb.spectralWindows()[0])+String("_")+String::toString(visFreq.nelements());
+
+    /////////////////
     actualConvIndex_p=convIndex(vb, visFreq.nelements());
     //cerr << "actual conv index " << actualConvIndex_p << " doneMainconv " << doneMainConv_p << endl;
     if(doneMainConv_p.shape()[0] < (actualConvIndex_p+1)) {
@@ -457,7 +461,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
     ////Trap for cases when the selection seem to have changed
     if(doneMainConv_p[actualConvIndex_p]){
-      if(nBeamChans != (*convFunctions_p[actualConvIndex_p]).shape()[3])
+      if(nBeamChans > (*convFunctions_p[actualConvIndex_p]).shape()[3])
 	doneMainConv_p[actualConvIndex_p]=False;
       
     }
@@ -799,7 +803,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         Int lattSize=convFuncTemp.shape()(0);
         (*convSupportBlock_p[actualConvIndex_p])=convSupport_p;
         LogIO os(LogOrigin("HetArrConvFunc", "findConvFunction", WHERE));
-        os << "convolution function support: " << convSupport_p  << LogIO::POST;
+        os << "convolution function support: " << convSupport_p<< "ELKEY " << elkey  << " actualConvInd "<< actualConvIndex_p <<  " pointer " << this << LogIO::POST;
 
         if(newConvSize < lattSize) {
             IPosition blc(5, (lattSize/2)-(newConvSize/2),
@@ -945,6 +949,43 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
 
 }
+  void HetArrayConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
+					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
+					 Array<Complex>& weightConvFunc, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap, const MVDirection& extraShift, const Bool useExtraShift){
+    storeImageParams(iimage,vb);
+     toPix(vb, extraShift, useExtraShift);
+    Vector<Double> pixFieldDir(2);
+    pixFieldDir=thePix_p;
+     pixFieldDir(0)=pixFieldDir(0)- Double(nx_p / 2);
+    pixFieldDir(1)=pixFieldDir(1)- Double(ny_p / 2);
+    pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx_p)/Double(convSampling);
+    pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny_p)/Double(convSampling);
+    Int nconvrow=convFunc.shape()(4);
+    Int nconvchan=convFunc.shape()(3);
+    Int nconvpol=convFunc.shape()(2);
+    Int convsize=convFunc.shape()(0);
+    Bool delc;
+    Bool delw;
+    Double dirX=pixFieldDir(0);
+    Double dirY=pixFieldDir(1);
+    Complex *convstor=convFunc.getStorage(delc);
+    Complex *weightstor=weightConvFunc.getStorage(delw);
+    //Vector<Int> pmap(polmap);
+    //Vector<Int> cmap(chanmap);
+    //Vector<Int> rmap(rowmap);
+#pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol) shared(polmap, chanmap, rowmap)
+    {
+      
+        #pragma omp for
+        for(Int iy=0; iy<convsize; ++iy) {
+	  applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol, polmap, chanmap, rowmap);
+
+        }
+    }///End of pragma
+    convFunc.putStorage(convstor, delc);
+    weightConvFunc.putStorage(weightstor, delw);
+    
+  }
 
 typedef unsigned long long ooLong;
 
@@ -971,6 +1012,37 @@ void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunction
 
     }
 }
+void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunctions, Complex*& convWeights, const Double pixXdir, const Double pixYdir, Int convSize, const Int ndishpair, const Int nChan, const Int nPol, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap ) {
+    Double cy, sy;
+
+    SINCOS(Double(iy-convSize/2)*pixYdir, sy, cy);
+    Complex phy(cy,sy) ;
+    for (Int ix=0; ix<convSize; ix++) {
+        Double cx, sx;
+        SINCOS(Double(ix-convSize/2)*pixXdir, sx, cx);
+        Complex phx(cx,sx) ;
+        for (uint p=0; p< polmap.size(); ++p) {
+        //for (uint p=0; p < nPol; ++p) {
+            Int ipol=polmap[p];
+            //Int ipol=p;
+            for (uint c=0; c < chanmap.size(); ++c) {
+            //for (uint c=0; c < nChan; ++c) {
+                Int ichan=chanmap[c];
+                //Int ichan=c;
+                for (uint z=0; z < rowmap.size(); ++z) {
+                //for (uint z=0; z < ndishpair; ++z) {
+                    Int iz=rowmap[z];
+                    //Int iz=z;
+                    ooLong index=((ooLong(iz*nChan+ichan)*nPol+ipol)*ooLong(convSize)+ooLong(iy))*ooLong(convSize)+ooLong(ix);
+                    convFunctions[index]= convFunctions[index]*phx*phy;
+                    convWeights[index]= convWeights[index]*phx*phy;
+                }
+            }
+        }
+
+    }
+}
+
 Int  HetArrayConvFunc::conjSupport(const casacore::Vector<casacore::Double>& freqs){
   Double centerFreq=SpectralImageUtil::worldFreq(csys_p, 0.0);
   Double maxRatio=-1.0;
