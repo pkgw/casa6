@@ -901,7 +901,8 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
                nchan, start, width, veltype,
                specmode, outframe,
                gridfunction, convsupport, truncate, gwidth, jwidth, imsize, cell, phasecenter,
-               projection, pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax):
+               projection, pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax,
+               interpolation):
 
     origin = 'tsdimaging'
     imager = None
@@ -1023,7 +1024,8 @@ def tsdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent, t
             clipminmax=clipminmax,
             # normalizer
             normtype='flatsky',
-            pblimit=pblimit
+            pblimit=pblimit,
+            interpolation=interpolation
         )
 
         # handle brightnessunit (CAS-11503)

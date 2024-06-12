@@ -336,6 +336,17 @@ values. See description below for details of gridfunction available.
                         <value>False</value>
         </param>
 
+    <param type="string" name="interpolation">
+        <shortdescription>Interpolation method in frequency [&quot;linear&quot;(default), &quot;nearest&quot;, &quot;cube&quot;]</shortdescription>
+        <description>Interpolation mode in frequency. Frequency data would interpolate when converting the spectral reference frame from TOPO or other to LSRK, and when the observation date of MSes has a long difference, some problems merely occur in frequency channel matching when neighborhood interpolation.  &quot;linear&quot; is linear interpolation, &quot;nearest&quot; is nearest neighborhood interpolation, and &quot;cube&quot; is cubic spline interpolation. Default to &quot;linear&quot;.</description>
+            <value>linear</value>
+            <allowed kind="enum">
+                <value>linear</value>
+                <value>nearest</value>
+                <value>cubic</value>
+            </allowed>
+    </param>
+
     <constraints>
             <when param="mode">
                 <equals value="channel">
@@ -653,7 +664,7 @@ clipminmax -- Clip minimum and maximum value from each pixel.
               encompassed by expected image.
         default: False
         option: True, False
-
+interpolation -- interpolation method.
 
 -----------------
 Gridding Kernel

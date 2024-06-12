@@ -20,7 +20,8 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               imsize, cell, phasecenter, projection, ephemsrcname,
               pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax,
               # Performances optimization options
-              enablecache, convertfirst):
+              enablecache, convertfirst,
+              interpolation):
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()
@@ -912,7 +913,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         casalog.post(f"Using phasecenter {self.imager_param['phasecenter']}", "INFO")
 
         self.imager.defineimage(**self.imager_param)  # self.__get_param())
-        self.imager.setoptions(ftmachine='sd', gridfunction=self.gridfunction)
+        self.imager.setoptions(ftmachine='sd', gridfunction=self.gridfunction, freqinterp=self.interpolation)
         self.imager.setsdoptions(
             pointingcolumntouse=self.pointingcolumn,
             convsupport=self.convsupport,
