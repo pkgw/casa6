@@ -497,18 +497,20 @@ def get_IGS_TEC(ymd_date):
     CDDIS = 'ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/'  # new, more secure ftp-ssl server (2020Nov01)
     file_location = CDDIS+str(year)+'/'+str(dayofyear)+'/'
     curlcmd='curl -u anonymous:casa-feedback@nrao.edu --ftp-ssl-reqd '
+
+
+    ## The name of the IONEX file you require.  
+    igs_file='igsg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSFIN_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
+    get_file=igs_file + ('.Z' if gpsweek<2238 else '.gz')
+
+    print('\nFor '+ymd_date+', the required IGS file is called: '+igs_file)
+
     #ftps login and navigation
     try:
         ftps = ftplib.FTP_TLS(host = 'gdc.cddis.eosdis.nasa.gov/gps/products/ionex') # ftp-ssl version
         ftps.login(user='anonymous', passwd='casa-feedback@nrao.edu')
         ftps.prot_p()
         ftps.cwd(file_location)
-
-        ## The name of the IONEX file you require.  
-        igs_file='igsg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSFIN_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
-        get_file=igs_file + ('.Z' if gpsweek<2238 else '.gz')
-
-        print('\nFor '+ymd_date+', the required IGS file is called: '+igs_file)
 
         if len(glob.glob(igs_file))<1:     # file does not yet exist locally
             print('Attempting retrieval of IGS Final product file: '+str(get_file))
