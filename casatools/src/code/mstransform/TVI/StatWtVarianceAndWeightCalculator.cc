@@ -94,7 +94,6 @@ Double StatWtVarianceAndWeightCalculator::computeVariance(
     // place
     uInt updateSecond = False;
     if (varSum > 0) {
-    log << LogIO::WARN << "using " << omp_get_num_threads() << " threads" << LogIO::POST; 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
@@ -108,13 +107,13 @@ Double StatWtVarianceAndWeightCalculator::computeVariance(
             updateSecond = ratio > 1.5 || inverse > 1.5;
         }
         if (updateSecond) {
-    log << LogIO::WARN << "using " << omp_get_num_threads() << " threads" << LogIO::POST; 
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
             ++((*_samples)[spw].second);
         }
     }
+    log << LogIO::WARN << "varSum " << varSum << LogIO::POST; 
     return varSum/2;
 }
 
