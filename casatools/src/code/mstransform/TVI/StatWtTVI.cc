@@ -174,6 +174,9 @@ Bool StatWtTVI::_parseConfiguration(const Record& config) {
             );
             auto iter = rangeset.begin();
             _wtrange.reset(new std::pair<Double, Double>(*iter, *(++iter)));
+            LogIO log(LogOrigin("StatWtTVI", __func__));
+            log << LogIO::WARN << "wtrange " << _wtrange->first << " to " << _wtrange->second << LogIO::POST;
+
         }
     }
     auto excludeChans = False;

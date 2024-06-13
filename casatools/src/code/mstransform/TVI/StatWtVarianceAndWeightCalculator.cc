@@ -113,7 +113,7 @@ Double StatWtVarianceAndWeightCalculator::computeVariance(
             ++((*_samples)[spw].second);
         }
     }
-    log << LogIO::WARN << "varSum " << varSum << LogIO::POST; 
+    // log << LogIO::WARN << "varSum " << varSum << LogIO::POST; 
     return varSum/2;
 }
 
