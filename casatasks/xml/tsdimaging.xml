@@ -388,14 +388,23 @@ values. See description below for details of gridfunction available.
         </param>
 
         <param type="string" name="interpolation">
-            <shortdescription>Interpolation method in frequency [&quot;linear&quot;(default), &quot;nearest&quot;, &quot;cubic&quot;]</shortdescription>
-            <description>Interpolation mode in frequency. Frequency data is interpolated when converting the spectral reference frame from TOPO or other to LSRK. &quot;linear&quot; is linear interpolation, &quot;nearest&quot; is nearest neighborhood interpolation, and &quot;cubic&quot; is cubic spline interpolation. Note that if the observation date of MSes has a long difference, some problems merely occur in frequency channel matching when neighborhood interpolation. </description>
+            <shortdescription>Spectral interpolation [&quot;nearest&quot;, &quot;linear&quot;, &quot;cubic&quot;]</shortdescription>
+            <description>Spectral interpolation [&quot;nearest&quot;, &quot;linear&quot;, &quot;cubic&quot;]
+                    Interpolation rules to use when binning data channels onto image channels and evaluating visibility values at the centers of image channels.
+                    Note :
+                    - &quot;linear&quot; and &quot;cubic&quot; interpolation requires data points on both sides of each image frequency.
+                        Errors are therefore possible at edge channels, or near flagged data channels.
+                        When image channel width is much larger than the data channel width there is nothing much to be gained
+                        using linear or cubic thus not worth the extra computation involved.
+                    - If there are significant differences in observing dates of input MSes, some problems merely occur
+                        in frequency channel matching when &quot;nearest&quot; interpolation.
+            </description>
+            <value type="string">linear</value>
+            <allowed kind="enum">
+                <value>nearest</value>
                 <value>linear</value>
-                <allowed kind="enum">
-                    <value>linear</value>
-                    <value>nearest</value>
-                    <value>cubic</value>
-                </allowed>
+                <value>cubic</value>
+            </allowed>
         </param>
 
         <constraints>
@@ -715,13 +724,16 @@ clipminmax -- Clip minimum and maximum value from each pixel.
               encompassed by expected image.
         default: False
         option: True, False
-interpolation -- Interpolation mode in frequency. Frequency data is interpolated
-                 when converting the spectral reference frame from TOPO or other to LSRK.
-                 'linear' is linear interpolation, 'nearest' is nearest neighborhood
-                 interpolation, and 'cubic' is cubic spline interpolation.
-                 Note that if the observation date of MSes has a long difference,
-                 some problems merely occur in frequency channel matching
-                 when neighborhood interpolation.
+interpolation -- Spectral interpolation.
+                 Interpolation rules to use when binning data channels onto image channels and
+                 evaluating visibility values at the centers of image channels.
+                 Note :
+                  - 'linear' and 'cubic' interpolation requires data points on both sides of each image frequency.
+                    Errors are therefore possible at edge channels, or near flagged data channels.
+                    When image channel width is much larger than the data channel width there is nothing much to be gained
+                    using linear or cubic thus not worth the extra computation involved.
+                  - If there are significant differences in observing dates of input MSes, some problems merely occur
+                    in frequency channel matching when 'nearest' interpolation.
         option: 'linear', 'nearest', 'cubic'
         default: 'linear'
 
