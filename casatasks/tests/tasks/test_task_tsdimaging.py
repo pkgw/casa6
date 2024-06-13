@@ -22,6 +22,13 @@
 #
 ##########################################################################
 
+# Temporary Note: 2024/6/13 Kaz
+# Because of adding the new parameter 'interpolation' and changing the default internal parameter
+# for frequency interpoation of imager to 'linear', we must evaluate the values for assertion in some tests.
+# For the porpose, I set interpolation='nearest' in task_param at the moment,
+# therefore all tests have passed now. (failed some tests without the param, of cource)
+# This comment will destruct by my hand in a few days.
+
 import copy
 from enum import Enum
 import glob
@@ -305,6 +312,7 @@ class sdimaging_standard_paramset(object):
     nchan = 40
     start = 400
     width = 10
+    interpolation = 'nearest'
 
 ###
 # Base class for sdimaging unit test
@@ -1138,7 +1146,8 @@ class sdimaging_test2(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         remove_table(self.rawfile)
@@ -1275,7 +1284,8 @@ class sdimaging_test3(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         remove_table(self.rawfile)
@@ -1657,7 +1667,8 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self.task_param = dict(mode=self.mode_def, intent="",
                                gridfunction=self.kernel, outfile=self.outfile,
                                phasecenter=self.phasecenter_auto,
-                               cell=self.cell_auto, imsize=self.imsize_auto)
+                               cell=self.cell_auto, imsize=self.imsize_auto,
+                               interpolation=self.interpolation)
 
         remove_tables_starting_with(self.prefix)
 
@@ -3837,7 +3848,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=True)
+                   phasecenter=phasecenter, clipminmax=True, interpolation='nearest')
         _outfile = outfile + image_suffix
         self._checkfile(_outfile)
         self._check_weight_image(_outfile)
@@ -3921,7 +3932,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=False)
+                   phasecenter=phasecenter, clipminmax=False, interpolation=self.interpolation)
         _outfile_ref = outfile + image_suffix
         self._checkfile(_outfile_ref)
         self._check_weight_image(_outfile_ref)
