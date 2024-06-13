@@ -73,7 +73,7 @@ using namespace casa::refim;
 using namespace casacore;
 using namespace std;
 //using namespace casa::test;
-
+/*
 void createAWPFTMachine(const String ftmName,
 			const String modelImageName,
 			CountedPtr<refim::FTMachine>& theFT, CountedPtr<refim::FTMachine>& theIFT, 
@@ -168,11 +168,11 @@ void createAWPFTMachine(const String ftmName,
       theFT = new refim::AWProjectWBFTNew(wprojPlane, cache/2, 
 				      cfCacheObj, awConvFunc, 
 				      visResampler,
-				      /*true */doPointing, posigdev, doPBCorr, 
+				      true */ /*doPointing, posigdev, doPBCorr, 
 				      tile, computePAStep, pbLimit_l, true,conjBeams,
 				      useDoublePrec);
     }
-  /*cfCacheObj = new refim::CFCache();
+  cfCacheObj = new refim::CFCache();
   cfCacheObj->setCacheDir(cfCache.data());                             /////TESTOO LAZY FILL ?
     cfCacheObj->setLazyFill(False);
 
@@ -187,7 +187,6 @@ void createAWPFTMachine(const String ftmName,
   static_cast<refim::AWProjectWBFTNew &>(*theFT).setPAIncrement(Quantity(computePAStep,"deg"),rotateOTF);
   
   theIFT = new refim::AWProjectWBFTNew(static_cast<refim::AWProjectWBFTNew &>(*theFT));
-  */
   //// Send in Freq info.
   // os << "Sending frequency selection information " <<  mssFreqSel_p  <<  " to AWP FTM." << LogIO::POST;
   // theFT->setSpwFreqSelection( mssFreqSel_p );
@@ -343,10 +342,10 @@ std::tuple<Vector<Int>, Vector<Int> > loadMS(const String& msname,
 //
 //-------------------------------------------------------------------------
 //
-
+*/
 Int main(int argc, char **argv)
 {
-
+/*
   String casadata = EnvironmentVariable::get("CASADATA");
   if (casadata.empty()) {
     throw(AipsError(
@@ -589,7 +588,8 @@ Int main(int argc, char **argv)
         }
         */
 	//	cerr << "image.shape: " << cgrid.shape() << endl;
-	refim::SimpleComponentFTMachine cft;
+    /*
+    refim::SimpleComponentFTMachine cft;
 	
 	timer.mark();
 	int n=0;
@@ -709,5 +709,6 @@ Int main(int argc, char **argv)
   cerr <<"OK" << endl;
   hpg::finalize();
   exit(0);
+*/
 }
 
