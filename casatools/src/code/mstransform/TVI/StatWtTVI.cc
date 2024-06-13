@@ -151,11 +151,13 @@ Bool StatWtTVI::_parseConfiguration(const Record& config) {
     }
     field = "wtrange";
     if (config.isDefined(field)) {
+            LogIO log(LogOrigin("StatWtTVI", __func__));
         ThrowIf(
             config.type(config.fieldNumber(field)) != TpArrayDouble,
             "Unsupported type for field '" + field + "'"
         );
         auto myrange = config.asArrayDouble(field);
+        log << LogIO::WARN << "myrange " << myrange << LogIO::POST;
         if (! myrange.empty()) {
             ThrowIf(
                 myrange.size() != 2,
@@ -168,13 +170,14 @@ Bool StatWtTVI::_parseConfiguration(const Record& config) {
                 + "' array must be non-negative"
             );
             std::set<Double> rangeset(myrange.begin(), myrange.end());
+            log << LogIO::WARN << "rangeset " << rangeset << LogIO::POST;
             ThrowIf(
                 rangeset.size() == 1, "Values specified in '" + field
                 + "' array must be unique"
             );
             auto iter = rangeset.begin();
+            log << LogIO::WARN << "*iter " << *iter << LogIO::POST;
             _wtrange.reset(new std::pair<Double, Double>(*iter, *(++iter)));
-            LogIO log(LogOrigin("StatWtTVI", __func__));
             log << LogIO::WARN << "wtrange " << _wtrange->first << " to " << _wtrange->second << LogIO::POST;
 
         }
