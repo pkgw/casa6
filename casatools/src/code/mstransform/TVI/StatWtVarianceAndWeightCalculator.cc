@@ -23,9 +23,6 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/Cube.h>
 
-// debug
-#include <casacore/casa/Logging/LogIO.h>
-
 // DEBUG
 #include <casacore/casa/IO/ArrayIO.h>
 
@@ -55,7 +52,6 @@ Double StatWtVarianceAndWeightCalculator::computeVariance(
     const Cube<Bool>& flags, const Vector<Double>& exposures,
     casacore::uInt spw
 ) const {
-    LogIO log(LogOrigin("StatWtVarianceAndWeightCalculator", __func__));
     const auto npts = data.size();
     if ((Int)npts < _minSamp || (Int)nfalse(flags) < _minSamp) {
         // not enough points, trivial
@@ -113,7 +109,6 @@ Double StatWtVarianceAndWeightCalculator::computeVariance(
             ++((*_samples)[spw].second);
         }
     }
-    // log << LogIO::WARN << "varSum " << varSum << LogIO::POST; 
     return varSum/2;
 }
 

@@ -20,9 +20,6 @@
 
 #include <mstransform/TVI/StatWtFloatingWindowDataAggregator.h>
 
-// debug
-#include <casacore/casa/Logging/LogIO.h>
-
 #include <casacore/scimath/StatsFramework/ClassicalStatistics.h>
 
 #include <msvis/MSVis/ViImplementation2.h>
@@ -203,8 +200,6 @@ void StatWtFloatingWindowDataAggregator::aggregate() {
         subChunkToTimeStamp.push_back(subchunkTime);
         subchunkStartRowNum += nrows;
     }
-    LogIO log(LogOrigin("StatWtFloatingWindowDataAggregator", __func__));
-            log << LogIO::WARN << "Calling _computeWeights at " << __LINE__ << LogIO::POST;
     _computeWeights(
         chunkData, chunkFlags, Vector<Double>(exposures), rowMap, spw
     );
@@ -303,9 +298,6 @@ void StatWtFloatingWindowDataAggregator::_computeWeights(
             auto citer = chanBins.begin();
             auto cend = chanBins.end();
             auto iChanBin = 0;
-            LogIO log(LogOrigin("StatWtFloatingWindowDataAggregator", __func__));
-            log << LogIO::WARN << "Calling _computeWeight at " << __LINE__ << LogIO::POST;
-
             for (; citer!=cend; ++citer, ++iChanBin) {
                 intraChunkSliceStart[1] = citer->start;
                 intraChunkSliceEnd[1] = citer->end;

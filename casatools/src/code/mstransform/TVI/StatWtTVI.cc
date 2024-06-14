@@ -55,11 +55,6 @@ StatWtTVI::StatWtTVI(ViImplementation2 * inputVii, const Record &configuration)
         "Error parsing StatWtTVI configuration"
     );
     LogIO log(LogOrigin("StatWtTVI", __func__));
-    // debug
-    omp_set_num_threads(1);
-    log << LogIO::WARN << "using " << omp_get_num_threads() << " threads" << LogIO::POST; 
-
-
     log << LogIO::NORMAL << "Using " << StatWtTypes::asString(_column)
         << " to compute weights" << LogIO::POST;
     // FIXME when the TVI framework has methods to
@@ -151,13 +146,11 @@ Bool StatWtTVI::_parseConfiguration(const Record& config) {
     }
     field = "wtrange";
     if (config.isDefined(field)) {
-            LogIO log(LogOrigin("StatWtTVI", __func__));
         ThrowIf(
             config.type(config.fieldNumber(field)) != TpArrayDouble,
             "Unsupported type for field '" + field + "'"
         );
         auto myrange = config.asArrayDouble(field);
-        log << LogIO::WARN << "myrange " << myrange << LogIO::POST;
         if (! myrange.empty()) {
             ThrowIf(
                 myrange.size() != 2,
@@ -170,19 +163,12 @@ Bool StatWtTVI::_parseConfiguration(const Record& config) {
                 + "' array must be non-negative"
             );
             std::set<Double> rangeset(myrange.begin(), myrange.end());
-            log << LogIO::WARN << "rangeset " << rangeset << LogIO::POST;
             ThrowIf(
                 rangeset.size() == 1, "Values specified in '" + field
                 + "' array must be unique"
             );
             auto iter = rangeset.begin();
-            log << LogIO::WARN << "*iter " << *iter << LogIO::POST;
-            auto first = *iter;
-            auto second = *(++iter);
-            // _wtrange.reset(new std::pair<Double, Double>(*iter, *(++iter)));
-            _wtrange.reset(new std::pair<Double, Double>(first, second));
-            log << LogIO::WARN << "wtrange " << _wtrange->first << " to " << _wtrange->second << LogIO::POST;
-
+            _wtrange.reset(new std::pair<Double, Double>(*iter, *(++iter)));
         }
     }
     auto excludeChans = False;
