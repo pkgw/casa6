@@ -256,8 +256,8 @@ class statwt_test(unittest.TestCase):
         ] = _get_table_cols(mytb)
         mytb.done()
         self.assertTrue(
--           np.allclose(gwt, ewt),
--           f'WEIGHT comparison failed. max diff {np.max(np.abs(gwt - ewt))}'
+            np.allclose(gwt, ewt),
+            f'WEIGHT comparison failed. max diff {np.max(np.abs(gwt - ewt))}'
         )
         if type(gwtsp) != type(None) and type(ewtsp) != type(None):
             self.assertTrue(
