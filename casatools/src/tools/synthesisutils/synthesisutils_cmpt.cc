@@ -340,6 +340,86 @@ synthesisutils::~synthesisutils()
 
   return rstat;
 }
+
+
+  bool  synthesisutils::taylor_coeffs_to_cube(const string& cubename, 
+					      const string& mtname,
+					      const long nterms, 
+					      const string& reffreq)
+{
+   int rstat(false);
+
+  try
+    {
+      rstat = SynthesisUtilMethods::taylorCoeffsToCube(cubename, mtname, nterms, reffreq);
+    }
+  catch  (AipsError x)
+    {
+      RETHROW(x);
+    }
+
+  return rstat;
+}
+
+
+  bool  synthesisutils::cube_to_taylor_sum(const string& cubename, 
+					      const string& mtname,
+					      const long nterms, 
+					   const string& reffreq,
+					   const long imtype,
+					   const float pblimit)
+{
+   int rstat(false);
+
+  try
+    {
+      rstat = SynthesisUtilMethods::cubeToTaylorSum(cubename, mtname, nterms, reffreq,imtype,pblimit);
+    }
+  catch  (AipsError x)
+    {
+      RETHROW(x);
+    }
+
+  return rstat;
+}
+
+
+  bool  synthesisutils::remove_freq_dep_pb(const string& cubename, 
+					   const string& mtname,
+					   const float pblimit)
+{
+   int rstat(false);
+
+  try
+    {
+      rstat = SynthesisUtilMethods::removeFreqDepPB(cubename, mtname, pblimit);
+    }
+  catch  (AipsError x)
+    {
+      RETHROW(x);
+    }
+
+  return rstat;
+}
+
+
+  bool  synthesisutils::apply_freq_dep_pb(const string& cubename, 
+					   const string& mtname,
+					   const float pblimit)
+{
+   int rstat(false);
+
+  try
+    {
+      rstat = SynthesisUtilMethods::applyFreqDepPB(cubename, mtname, pblimit);
+    }
+  catch  (AipsError x)
+    {
+      RETHROW(x);
+    }
+
+  return rstat;
+}
   
 
 

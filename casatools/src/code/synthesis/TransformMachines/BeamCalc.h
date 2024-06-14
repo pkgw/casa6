@@ -68,7 +68,8 @@ namespace casa
   typedef struct 
   {
     casacore::Int oversamp;			/* average this many points per cell */
-    casacore::TempImage<casacore::Complex> *aperture;	/* Jones planes [Nx,Ny,NStokes,NFreq]*/
+    casacore::ImageInterface<casacore::Complex> *aperture=nullptr;	/* Jones planes [Nx,Ny,NStokes,NFreq]*/
+    std::shared_ptr<casacore::ImageInterface<casacore::Complex> > apertureptr;
     casacore::Double x0, y0;			/* center of cell 0, 0, meters */
     casacore::Double dx, dy;			/* increment in meters */
     casacore::Int nx, ny;			/* calculation plane size in cells */

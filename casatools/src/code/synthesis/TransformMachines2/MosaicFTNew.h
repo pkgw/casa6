@@ -53,7 +53,7 @@ public:
 	    casacore::Long cachesize, casacore::Int tilesize=16, 
 	      casacore::Bool usezero=true, casacore::Bool useDoublePrec=false, casacore::Bool useConjFreqBeam=false, casacore::Bool usePointing=false):
   MosaicFT(sj,mloc,stokes,cachesize,tilesize,usezero,useDoublePrec, useConjFreqBeam, usePointing){}
-
+  MosaicFTNew& operator=(const MosaicFTNew& other);
     // Construct from a casacore::Record containing the MosaicFT state
     MosaicFTNew(const casacore::RecordInterface& stateRec);
 

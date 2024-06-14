@@ -485,7 +485,8 @@ C
       real ::  wt
 
       logical :: onmosgrid
-
+      logical :: doconj
+      
       integer :: iloc(2)
       integer :: iiloc(2)
       integer, intent(in) ::  rbeg, rend
@@ -499,7 +500,8 @@ C
 
 
       do irow=rbeg, rend
-         aconvplane=convplanemap(irow)+1
+         aconvplane=abs(convplanemap(irow))+1
+         doconj = (convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then 
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -533,7 +535,9 @@ C     write(*,*)off
                                        xind2=sampling*ix+(convsize)/2+1
                                        yind2=sampling*iy+(convsize)/2+1
                                        cwt=convweight(xind2, 
-     $                        yind2, aconvpol, aconvchan, aconvplane)
+     $                                      yind2, aconvpol,
+     $                                  aconvchan, aconvplane)
+                                       
                                        iiloc(1)=nx/2+1+ix
                                        iiloc(2)=ny/2+1+iy
                                        weightgrid(iiloc(1),iiloc(2),
@@ -555,6 +559,124 @@ C     write(*,*)off
       return
       end
 
+
+C same as gmoswgtd except with varying support
+       subroutine gmoswgtd2 (nvispol, nvischan,
+     $     flag, rflag, weight, nrow, 
+     $     nx, ny, npol, nchan, 
+     $     supports, convsize, sampling, 
+     $     chanmap, polmap,
+     $      weightgrid, sumwt, convweight, convplanemap, 
+     $     convchanmap, convpolmap, 
+     $     nconvplane, nconvchan, nconvpol, rbeg, 
+     $     rend, loc, off, phasor)
+
+      implicit none
+      integer, intent(in) :: nx,ny,npol,nchan, nvispol, nvischan, nrow
+ 
+      
+      integer, intent(in)  :: loc(2, nvischan, nrow)
+      integer, intent(in) :: off(2, nvischan, nrow) 
+      complex, intent(in) :: phasor(nvischan, nrow)
+      integer, intent(in) :: flag(nvispol, nvischan, nrow)
+      integer, intent(in) ::  rflag(nrow)
+      real, intent(in) :: weight(nvischan, nrow)
+      
+      integer, intent(in) ::  chanmap(nchan), polmap(npol)
+      double complex, intent(inout) ::  weightgrid(nx, ny, npol, nchan)
+      double precision, intent(inout) :: sumwt(npol, nchan)
+      double complex :: nweight
+      integer, intent(in) :: convsize, sampling
+      integer, intent(in) ::  nconvplane, nconvchan, nconvpol
+      integer, intent(in) ::  convplanemap(nrow)
+      integer, intent(in) ::  convchanmap(nvischan)
+      integer, intent(in) ::  convpolmap(nvispol)
+      complex :: cwt
+      complex, intent(in) :: convweight(convsize, convsize, nconvpol, 
+     $     nconvchan, nconvplane)
+      integer, intent(in) :: supports(nconvplane)
+
+      real :: norm
+      real ::  wt
+      complex :: cfunc(convsize, convsize)
+      logical :: onmosgrid
+      
+      integer :: iloc(2)
+      integer :: iiloc(2)
+      integer, intent(in) ::  rbeg, rend
+      integer :: ix, iy, iz, ipol, ichan, xind, yind
+      integer :: apol, achan, aconvplane, irow
+      integer :: aconvpol, aconvchan, xind2, yind2
+      integer :: posx, posy, msupportx, msupporty, psupportx, psupporty
+      logical :: centin
+      integer :: support
+   
+
+
+      do irow=rbeg, rend
+         aconvplane=abs(convplanemap(irow))+1
+         support=supports(aconvplane)
+         if(rflag(irow).eq.0) then 
+            do ichan=1, nvischan
+               achan=chanmap(ichan)+1
+               aconvchan=convchanmap(ichan)+1
+               if((achan.ge.1).and.(achan.le.nchan).and.
+     $              (weight(ichan,irow).ne.0.0)) then
+                  if (onmosgrid(loc(1, ichan, irow), nx, ny, 1, 1, 
+     $                 nx, ny, support, msupportx, msupporty,
+     $                 psupportx, psupporty, centin)) then
+                     do ipol=1, nvispol
+                        apol=polmap(ipol)+1
+                        aconvpol=convpolmap(ipol)+1
+                        if((flag(ipol,ichan,irow).ne.1).and.
+     $                       (apol.ge.1).and.(apol.le.npol)) then
+C     If we are making a PSF then we don't want to phase
+C     rotate but we do want to reproject uvw
+                          
+                           
+                           nweight=cmplx(weight(ichan,irow))
+                           sumwt(apol, achan)=sumwt(apol, achan)+
+     $                          weight(ichan, irow)
+                           
+C     norm will be the value we would get for the peak
+C     at the phase center. We will want to normalize 
+C     the final image by this term.
+                           norm=0.0
+C     write(*,*)off
+               cfunc=convweight(:,:,aconvpol, aconvchan, aconvplane)
+                           do iy=msupporty, psupporty
+                                 do ix=msupportx, psupportx
+                                   
+                                       xind2=sampling*ix+(convsize)/2+1
+                                       yind2=sampling*iy+(convsize)/2+1
+                                       cwt=cfunc(xind2, 
+     $                                      yind2)
+                                       
+                                       iiloc(1)=nx/2+1+ix
+                                       iiloc(2)=ny/2+1+iy
+                                       weightgrid(iiloc(1),iiloc(2),
+     $                                      apol,achan)= weightgrid(
+     $                                   iiloc(1),iiloc(2),apol,achan)
+     $                                + nweight*cwt
+
+                                  
+                                 end do
+                              end do
+                           
+                        end if
+                     end do
+                  end if
+               end if
+            end do
+         end if
+      end do
+      return
+      end
+
+
+
+
+      
 C Single precision weight grid image...Damn you fortran...no templates
       subroutine gmoswgts (nvispol, nvischan,
      $     flag, rflag, weight, nrow, 
@@ -717,12 +839,14 @@ C     write(*,*)off
       integer :: aconvpol, aconvchan, xind2, yind2
       integer :: posx, posy, msupportx, msupporty, psupportx, psupporty
       logical :: centin
-
+      logical :: doconj
    
 
 
       do irow=rbeg, rend
-         aconvplane=convplanemap(irow)+1
+C     sign of convplanemap determines if to use conjg
+         aconvplane=abs(convplanemap(irow))+1
+         doconj = (convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then 
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -760,7 +884,8 @@ C     the final image by this term.
      $                                   off(1, ichan, irow)
                                     xind=iloc(1)+(convsize)/2+1
                                     cwt=convfunc(xind, yind, 
-     $                                  aconvpol, aconvchan, aconvplane)
+     $                                aconvpol, aconvchan, aconvplane)
+                                    if(doconj) cwt=conjg(cwt)
 C                          write(*,*) support, iloc
 C      write(*,*) loc(1, ichan, irow)+ix,loc(2, ichan, irow)+iy,xind,yind
                                     grid(loc(1, ichan, irow)+ix,
@@ -903,7 +1028,132 @@ C                          write(*,*) support, iloc
       end
 C
 
+C   Same as sectgmosd2 except for varrying support across rows
+      subroutine sectgmosd3 (values, nvispol, nvischan,
+     $     dopsf, flag, rflag, weight, nrow, 
+     $     grid, nx, ny, npol, nchan, 
+     $     supports, convsize, sampling, convfunc, 
+     $     chanmap, polmap,
+     $     sumwt, convplanemap, 
+     $     convchanmap, convpolmap, 
+     $     nconvplane, nconvchan, nconvpol, x0, y0, nxsub, nysub, rbeg, 
+     $     rend, loc, off, phasor)
 
+      implicit none
+      integer, intent(in) :: nx,ny,npol,nchan, nvispol, nvischan, nrow
+      complex, intent(in) :: values(nvispol, nvischan, nrow)
+      double complex, intent(inout) ::  grid(nx, ny, npol, nchan)
+      
+      integer, intent(in) :: x0, y0, nxsub, nysub
+      integer, intent(in)  :: loc(2, nvischan, nrow)
+      integer, intent(in) :: off(2, nvischan, nrow) 
+      complex, intent(in) :: phasor(nvischan, nrow)
+      integer, intent(in) :: flag(nvispol, nvischan, nrow)
+      integer, intent(in) ::  rflag(nrow)
+      real, intent(in) :: weight(nvischan, nrow)
+      double precision, intent(inout) ::  sumwt(npol, nchan)
+      integer, intent(in) ::  chanmap(nchan), polmap(npol)
+      integer,  intent(in) :: dopsf
+
+      double complex :: nvalue
+      integer, intent(in) :: convsize, sampling
+      integer, intent(in) ::  nconvplane, nconvchan, nconvpol
+      integer, intent(in) ::  convplanemap(nrow)
+      integer, intent(in) ::  convchanmap(nvischan)
+      integer, intent(in) ::  convpolmap(nvispol)
+      complex, intent(in) :: convfunc(convsize, convsize, nconvpol, 
+     $     nconvchan,  nconvplane)
+      integer, intent(in) :: supports(nconvplane)
+      complex :: cwt
+      complex :: cfunc(convsize, convsize)
+      integer :: support
+      real :: norm
+      real ::  wt
+
+      logical :: onmosgrid
+
+      integer :: iloc(2)
+      integer :: iiloc(2)
+      integer, intent(in) ::  rbeg, rend
+      integer :: ix, iy, iz, ipol, ichan, xind, yind
+      integer :: apol, achan, aconvplane, irow
+      integer :: aconvpol, aconvchan, xind2, yind2
+      integer :: posx, posy, msupportx, msupporty, psupportx, psupporty
+      logical :: centin
+      logical :: doconj
+   
+
+
+      do irow=rbeg, rend
+C     sign of convplanemap determines if to use conjg
+         aconvplane=abs(convplanemap(irow))+1
+         support=supports(aconvplane)
+C         write(*,*) 'support', support, 'acpl', aconvplane, convsize
+         doconj = (convplanemap(irow) < 0)
+         if(rflag(irow).eq.0) then 
+            do ichan=1, nvischan
+               achan=chanmap(ichan)+1
+               aconvchan=convchanmap(ichan)+1
+               if((achan.ge.1).and.(achan.le.nchan).and.
+     $              (weight(ichan,irow).ne.0.0)) then
+                  if (onmosgrid(loc(1, ichan, irow), nx, ny, x0, y0, 
+     $                 nxsub, nysub, support, msupportx, msupporty,
+     $                 psupportx, psupporty, centin)) then
+                     do ipol=1, nvispol
+                        apol=polmap(ipol)+1
+                        aconvpol=convpolmap(ipol)+1
+                        if((flag(ipol,ichan,irow).ne.1).and.
+     $                       (apol.ge.1).and.(apol.le.npol)) then
+C     If we are making a PSF then we don't want to phase
+C     rotate but we do want to reproject uvw
+                           if(dopsf.eq.1) then
+                              nvalue=cmplx(weight(ichan,irow))
+                           else
+                              nvalue=weight(ichan,irow)*
+     $                  (values(ipol,ichan,irow)*phasor(ichan, irow))
+                           end if
+                          
+                 cfunc=convfunc(:,:, aconvpol, aconvchan, aconvplane)
+C     norm will be the value we would get for the peak
+C     at the phase center. We will want to normalize 
+C     the final image by this term.
+                           norm=0.0
+                           do iy=msupporty, psupporty
+                                 iloc(2)=(sampling*iy)+
+     $                                off(2, ichan, irow)
+                                 yind=iloc(2)+(convsize)/2+1
+                                 do ix=msupportx, psupportx
+                                    iloc(1)=(sampling*ix)+
+     $                                   off(1, ichan, irow)
+                                    xind=iloc(1)+(convsize)/2+1
+                                    cwt=cfunc(xind, yind)
+                                    if(doconj) cwt=conjg(cwt)
+C                          write(*,*) support, iloc
+C      write(*,*) loc(1, ichan, irow)+ix,loc(2, ichan, irow)+iy,xind,yind
+                                    grid(loc(1, ichan, irow)+ix,
+     $                           loc(2, ichan, irow)+iy,apol,achan)=
+     $                             grid(loc(1, ichan, irow)+ix,
+     $                           loc(2, ichan, irow)+iy,apol,achan)+
+     $                                   nvalue*cwt
+                                 end do
+                              end do
+                           if(centin) then
+                              sumwt(apol, achan)= sumwt(apol,achan)+
+     $                             weight(ichan,irow)
+                           endif
+                        end if
+                     end do
+C if onmos
+                  end if
+               end if
+            end do
+         end if
+      end do
+      return
+      end
+
+
+      
       subroutine gmoss (uvw, dphase, values, nvispol, nvischan,
      $     dopsf, flag, rflag, weight, nrow, rownum,
      $     scale, offset, grid, nx, ny, npol, nchan, freq, c,
@@ -1543,7 +1793,7 @@ C
       integer, intent(in) ::  flag(nvispol, nvischan, nrow)
       integer, intent(in) ::  rflag(nrow)
       integer, intent(in) ::  support
-      integer, intent(in) :: chanmap(nchan), polmap(npol)
+      integer, intent(in) :: chanmap(*), polmap(*)
       integer, intent(in) :: convplanemap(nrow), convchanmap(nvischan)
       integer, intent(in) ::  convpolmap(nvispol)
       complex :: nvalue
@@ -1559,7 +1809,7 @@ C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
       real :: norm, phase
 
       logical :: omos
-
+      logical :: doconj
     
       integer, intent(in) :: loc(2, nvischan, nrow), 
      $     off(2,nvischan,nrow)
@@ -1569,10 +1819,16 @@ C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
       integer :: apol, achan, aconvplane, irow
       integer :: aconvchan, aconvpol
       real :: wt, wtx, wty
+
       
+C      write(*,*) 'polmap, ', polmap
+C      write(*,*) 'convpm,', convpolmap
+C      write(*,*) 'chanmp,', chanmap
+C      write(*,*) 'convcm,', convchanmap
 
       do irow=rbeg, rend
-         aconvplane=convplanemap(irow)+1
+         aconvplane=abs(convplanemap(irow))+1
+         doconj=(convplanemap(irow) < 0)
          if(rflag(irow).eq.0) then
             do ichan=1, nvischan
                achan=chanmap(ichan)+1
@@ -1599,6 +1855,106 @@ C        write(*,*) 'iloc(2)', iloc(2), off(2), yind
 C        write(*,*) 'iloc(1)', iloc(1), off(1), xind
                                     cwt=convfunc(xind, yind, aconvpol,
      $                                   aconvchan,aconvplane)
+                                    if(doconj) cwt=conjg(cwt)
+                                    nvalue=nvalue+cwt*
+     $                                   grid(loc(1, ichan, irow)+ix,
+     $                                   loc(2, ichan, irow)+iy,
+     $                                   apol,achan)
+                                 end do
+                              end do
+                          
+                           values(ipol,ichan,irow)=nvalue*conjg(
+     $                         phasor(ichan, irow))
+                       end if
+                     end do
+                  end if
+               end if
+            end do
+         end if
+      end do
+      return
+      end
+C
+C same as sectdmos2 except with varying support
+      subroutine sectdmos3 (values, nvispol, nvischan,
+     $     flag, rflag,
+     $     nrow, grid, nx, ny, npol, nchan, 
+     $     supports, convsize, sampling, convfunc,
+     $    chanmap, polmap, convplanemap, convchanmap, convpolmap, 
+     $    nconvplane, nconvchan, nconvpol, rbeg,rend,loc,off,phasor)
+
+      implicit none
+      integer, intent(in) ::  nx, ny,npol,nchan,nvispol, nvischan, nrow
+      integer, intent(in) ::  nconvplane, nconvchan, nconvpol
+      complex, intent(inout) :: values(nvispol, nvischan, nrow)
+      complex, intent(in) :: grid(nx, ny, npol, nchan)
+      complex, intent(in) :: phasor(nvischan, nrow)
+      integer, intent(in) ::  flag(nvispol, nvischan, nrow)
+      integer, intent(in) ::  rflag(nrow)
+      integer, intent(in) :: chanmap(*), polmap(*)
+      integer, intent(in) :: convplanemap(nrow), convchanmap(nvischan)
+      integer, intent(in) ::  convpolmap(nvispol)
+      complex :: nvalue
+
+      integer, intent(in) :: convsize, sampling
+      complex, intent(in) ::  convfunc(convsize, convsize, nconvpol, 
+     $     nconvchan, nconvplane)
+      integer, intent(in) ::  supports(nconvplane)
+      complex :: cwt, crot
+      
+C      complex sconv(-(support+1)*sampling:(support+1)*sampling, 
+C     $     -(support+1)*sampling:(support+1)*sampling, nconvplane)
+      complex cfunc(convsize, convsize)
+      real :: norm, phase
+      integer :: support
+      logical :: omos
+      logical :: doconj
+    
+      integer, intent(in) :: loc(2, nvischan, nrow), 
+     $     off(2,nvischan,nrow)
+      integer :: iloc(2)
+      integer, intent(in) ::  rbeg, rend
+      integer :: ix, iy, iz, ipol, ichan, xind, yind
+      integer :: apol, achan, aconvplane, irow
+      integer :: aconvchan, aconvpol
+      real :: wt, wtx, wty
+
+      
+C      write(*,*) 'polmap, ', polmap
+C      write(*,*) 'convpm,', convpolmap
+C      write(*,*) 'chanmp,', chanmap
+C      write(*,*) 'convcm,', convchanmap
+
+      do irow=rbeg, rend
+         aconvplane=abs(convplanemap(irow))+1
+         support=supports(aconvplane)
+         doconj=(convplanemap(irow) < 0)
+         if(rflag(irow).eq.0) then
+            do ichan=1, nvischan
+               achan=chanmap(ichan)+1
+               aconvchan=convchanmap(ichan)+1
+               if((achan.ge.1).and.(achan.le.nchan)) then
+                  if (omos(nx, ny, loc(1, ichan,irow),support)) then
+                     do ipol=1, nvispol
+                        apol=polmap(ipol)+1
+                        aconvpol=convpolmap(ipol)+1
+                        if((flag(ipol,ichan,irow).ne.1).and.
+     $                       (apol.ge.1).and.(apol.le.npol)) then
+C          write(*,*) 'aindices', aconvplane, aconvchan, aconvpol
+                           nvalue=0.0
+                           norm=0.0
+                    cfunc=convfunc(:,:,aconvpol, aconvchan, aconvplane)      
+                              do iy=-support,support
+                                 iloc(2)=sampling*iy+off(2, ichan, irow)
+                                 yind=iloc(2)+(convsize)/2+1
+C        write(*,*) 'iloc(2)', iloc(2), off(2), yind
+                                 do ix=-support,support
+                                    iloc(1)=ix*sampling
+     $                                   +off(1, ichan, irow)
+                                    xind=iloc(1)+(convsize)/2+1
+C        write(*,*) 'iloc(1)', iloc(1), off(1), xind
+                                    cwt=cfunc(xind, yind)
+                                    if(doconj) cwt=conjg(cwt)
                                     nvalue=nvalue+cwt*
      $                                   grid(loc(1, ichan, irow)+ix,
      $                                   loc(2, ichan, irow)+iy,

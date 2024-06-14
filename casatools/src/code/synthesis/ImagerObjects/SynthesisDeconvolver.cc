@@ -220,7 +220,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         itsFastNoise = decpars.fastnoise;
 	      itsIsInteractive = decpars.interactive;
         itsNsigma = decpars.nsigma;
-        itsNoRequireSumwt = decpars.noRequireSumwt;
+        itsNoRequireSumwt = true; //decpars.noRequireSumwt;
         itsFullSummary = decpars.fullsummary;
       }
     catch(AipsError &x)
@@ -396,6 +396,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         Double minval, maxval;
         IPosition minpos, maxpos;
         //Double maxrobustrms = max(robustrms);
+        if(robustrms.empty())
+          throw(AipsError("No valid values to deconvolve"));
+          
         minMax(minval, maxval, minpos, maxpos, robustrms);
 
         //Float nsigmathresh = nsigma * (Float)robustrms(IPosition(1,0));

@@ -344,7 +344,7 @@ def generate_pyinit(moduledir,tasks):
         for task in tasks:
             fd.write("            '%s',\n" % task)
         fd.write("          ]\n\n")
-        fd.write("""from . import config\n""")
+        fd.write("""from casaconfig import config\n""")
         fd.write("""casalog = _logsink( config.logfile )\n\n""")
         for task in tasks:
             fd.write("from .%s import %s\n" % (task,task))
@@ -650,5 +650,5 @@ setup( name=module_name,version=casatasks_version,
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi', 'pyerfa' ]
 )
