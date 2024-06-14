@@ -392,12 +392,8 @@ values. See description below for details of gridfunction available.
             <description>Spectral interpolation [&quot;nearest&quot;, &quot;linear&quot;, &quot;cubic&quot;]
                     Interpolation rules to use when binning data channels onto image channels and evaluating visibility values at the centers of image channels.
                     Note :
-                    - &quot;linear&quot; and &quot;cubic&quot; interpolation requires data points on both sides of each image frequency.
-                        Errors are therefore possible at edge channels, or near flagged data channels.
-                        When image channel width is much larger than the data channel width there is nothing much to be gained
-                        using linear or cubic thus not worth the extra computation involved.
-                    - If there are significant differences in observing dates of input MSes, some problems merely occur
-                        in frequency channel matching when &quot;nearest&quot; interpolation.
+                    - &quot;linear&quot; and &quot;cubic&quot; interpolation requires data points on both sides of each image frequency. Errors are therefore possible at edge channels, or near flagged data channels. When image channel width is much larger than the data channel width there is nothing much to be gained using linear or cubic thus not worth the extra computation involved.
+                    - If there are significant differences in observing dates of input MSes, some problems merely occur in frequency channel matching when &quot;nearest&quot; interpolation.
             </description>
             <value type="string">linear</value>
             <allowed kind="enum">

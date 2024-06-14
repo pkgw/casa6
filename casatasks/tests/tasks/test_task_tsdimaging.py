@@ -3848,7 +3848,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=True, interpolation='nearest')
+                   phasecenter=phasecenter, clipminmax=True, interpolation=self.interpolation)
         _outfile = outfile + image_suffix
         self._checkfile(_outfile)
         self._check_weight_image(_outfile)
