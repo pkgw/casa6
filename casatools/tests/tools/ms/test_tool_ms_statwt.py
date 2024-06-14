@@ -255,14 +255,10 @@ class statwt_test(unittest.TestCase):
             etimes, ewt, ewtsp, eflag, efrow, edata, esigma, esisp
         ] = _get_table_cols(mytb)
         mytb.done()
-        self.assertTrue(
-            np.allclose(gwt, ewt),
-            f'WEIGHT comparison failed. max diff {np.max(np.abs(gwt - ewt))}'
-        )
+        self.assertTrue(np.allclose(gwt, ewt), 'WEIGHT comparison failed')
         if type(gwtsp) != type(None) and type(ewtsp) != type(None):
             self.assertTrue(
                 np.allclose(gwtsp, ewtsp), 'WEIGHT_SPECTRUM comparison failed'
-                f"max diff {np.max(np.abs(gwtsp - ewtsp))}"
             )
         self.assertTrue((gflag == eflag).all(), 'FLAG comparison failed')
         self.assertTrue((gfrow == efrow).all(), 'FLAG_ROW comparison failed')
@@ -273,8 +269,7 @@ class statwt_test(unittest.TestCase):
             self.assertTrue(np.allclose(
                 gsisp, esisp), 'SIGMA_SPECTRUM comparison failed'
             )
-    
-    @unittest.skip("temporary skip for debugging one test") 
+
     def test_algorithm(self):
         """ Test the algorithm, includes excludechans tests"""
         dst = "ngc5921.split.ms"
@@ -311,7 +306,6 @@ class statwt_test(unittest.TestCase):
                 shutil.rmtree(dst)
                 c += 1               
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_timebin(self):
         """Test time binning"""
         dst = "ngc5921.split.timebin.ms"
@@ -325,7 +319,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
             
-    @unittest.skip("temporary skip for debugging one test") 
     def test_chanbin(self):
         """Test channel binning"""
         dst = "ngc5921.split.chanbin_0.ms"
@@ -367,7 +360,6 @@ class statwt_test(unittest.TestCase):
                         ref = refdir + 'ngc5921_statwt_ref_test_chanbin_combine_corr.ms'
                     shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_minsamp(self):
         """Test minimum number of points"""
         dst = "ngc5921.split.minsamp.ms"
@@ -410,7 +402,6 @@ class statwt_test(unittest.TestCase):
                 )
             shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_default_boundaries(self):
         """Test default scan, field, etc boundaries"""
         dst = "ngc5921.split.normalbounds.ms"
@@ -441,8 +432,7 @@ class statwt_test(unittest.TestCase):
             myms.done()
             self.compare(dst, ref)
             shutil.rmtree(dst)
- 
-    @unittest.skip("temporary skip for debugging one test") 
+        
     def test_no_scan_boundaries(self):
         """Test no scan boundaries"""
         dst = "ngc5921.no_scan_bounds.ms"
@@ -457,7 +447,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_no_scan_nor_field_boundaries(self):
         """Test no scan nor field boundaries"""
         dst = "ngc5921.no_scan_nor_field_bounds.ms"
@@ -472,7 +461,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_statalg(self):
         """Test statalg"""
         # just testing inputs
@@ -504,18 +492,48 @@ class statwt_test(unittest.TestCase):
         combine = "corr"
         timebin = "300s"
         wtrange = [1, 2]
-        # for i in [0, 1]:
-        shutil.copytree(src, dst) 
-        myms.open(dst, nomodify=False)
-        myms.statwt(timebin=timebin, combine=combine, wtrange=wtrange)
-        myms.done()
-        self.compare(dst, ref)
-        # self._check_weights(
-        #    dst, row_to_rows, 'c', None, True, None, wtrange
-        # )
-        shutil.rmtree(dst)
- 
-    @unittest.skip("temporary skip for debugging one test") 
+        """
+        row_to_rows = []
+        for i in range(10):
+            row_to_rows.append([0, 10])
+        for i in range(2):
+            row_to_rows.append([10, 12])
+        for i in range(5):
+            row_to_rows.append([12, 17])
+        for i in range(5):
+            row_to_rows.append([17, 22])
+        for i in range(5):
+            row_to_rows.append([22, 27])
+        for i in range(5):
+            row_to_rows.append([27, 32])
+        for i in range(1):
+            row_to_rows.append([32, 33])
+        for i in range(2):
+            row_to_rows.append([33, 35])
+        for i in range(3):
+            row_to_rows.append([35, 38])
+        for i in range(5):
+            row_to_rows.append([38, 43])
+        for i in range(5):
+            row_to_rows.append([43, 48])
+        for i in range(5):
+            row_to_rows.append([48, 53])
+        for i in range(3):
+            row_to_rows.append([53, 56])
+        for i in range(4):
+            row_to_rows.append([56, 60])
+        """
+        for i in [0, 1]:
+            shutil.copytree(src, dst) 
+            myms.open(dst, nomodify=False)
+            myms.statwt(timebin=timebin, combine=combine, wtrange=wtrange)
+            myms.done()
+            self.compare(dst, ref)
+            # self._check_weights(
+            #    dst, row_to_rows, 'c', None, True, None, wtrange
+            # )
+            shutil.rmtree(dst)
+
     def test_preview(self):
         """Test preview mode"""
         dst = "ngc5921.split.preview.ms"
@@ -541,7 +559,6 @@ class statwt_test(unittest.TestCase):
         )
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_data_col(self):
         """Test using data column"""
         dst = "ngc5921.split.data.ms"
@@ -566,7 +583,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_sliding_time_window(self):
         """Test sliding time window"""
         dst = "ngc5921.split.sliding_time_window.ms"
@@ -645,7 +661,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_sliding_window_timebin_int(self):
         """Test sliding window with timebin as int specified"""
         dst = "ngc5921.split.sliding_time_window.ms"
@@ -801,7 +816,6 @@ class statwt_test(unittest.TestCase):
             self.compare(dst, ref)
             shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual(self):
         """Test using corrected_data - model_data column"""
         dst = "ngc5921.split.residualwmodel.ms"
@@ -820,7 +834,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual_no_model(self):
         """Test datacolumn='residual' in the absence of a MODEL_DATA column"""
         dst = "ngc5921.split.residualwoutmodel.ms"
@@ -839,7 +852,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual_data(self):
         """Test using data - model_data column"""
         dst = "ngc5921.split.residualdatawmodel.ms"
@@ -858,7 +870,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
 
-    @unittest.skip("temporary skip for debugging one test") 
     def test_residual_data_no_model(self):
         """Test using residual data in absence of MODEL_DATA"""
         dst = "ngc5921.split.residualdatawoutmodel.ms"
@@ -884,7 +895,6 @@ class statwt_test(unittest.TestCase):
         self.compare(dst, ref)
         shutil.rmtree(dst)
         
-    @unittest.skip("temporary skip for debugging one test") 
     def test_returned_stats(self):
         """Test returned stats, CAS-10881"""
         dst = "ngc5921.split.statstest.ms"
@@ -901,8 +911,7 @@ class statwt_test(unittest.TestCase):
             "variance is incorrect"
         )
         shutil.rmtree(dst)
-         
-    @unittest.skip("temporary skip for debugging one test") 
+        
     def test_multi_spw_no_spectrum_columns(self):
         "Test multi spw with no sigma nor weight spectrum columns works"
         for tb in [1, "5s"]:
