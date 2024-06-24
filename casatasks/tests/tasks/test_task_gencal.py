@@ -528,8 +528,7 @@ class gencal_gaincurve_test(unittest.TestCase):
         gencal(vis=vlacopy, caltable=vlacaltab, caltype='gc')
 
         self.assertTrue(os.path.exists(vlacaltab))
-        # @Neal:  Need to put vlacaltab into DR reference
-        #self.assertTrue(th.compTables(vlacaltab, vlacal, ['WEIGHT']))
+        self.assertTrue(th.compTables(vlacaltab, vlacal, ['WEIGHT']))
 
     def test_gainCurveVLBA(self):
         ''' Test calibration table produced when gencal is run on a VLBA MS with an internal GAIN_CURVE table '''
