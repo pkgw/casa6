@@ -52,7 +52,8 @@ vlbacopy = 'vlba_copy.ms'
 # these are for test_gainCurveVLA
 vladata = 'tdem0003gencal.ms'
 vlacopy = 'vla_copy.ms'
-vlacaltab = 'vla.gc'
+vlacal = 'vla.gc'
+vlacaltab = os.path.join(datapath, 'gencalGaincurveRef.gc')
 
 
 
@@ -513,7 +514,7 @@ class gencal_gaincurve_test(unittest.TestCase):
         pass
 
     def tearDown(self):
-        rmtables(vlacaltab)
+        rmtables(vlacal)
         rmtables(caltab)
 
     @classmethod
@@ -525,7 +526,7 @@ class gencal_gaincurve_test(unittest.TestCase):
     def test_gainCurveVLA(self):
         ''' Test calibration table produced when gencal is run on a *VLA* MS and relying on data/nrao/VLA/GainCurves '''
 
-        gencal(vis=vlacopy, caltable=vlacaltab, caltype='gc')
+        gencal(vis=vlacopy, caltable=vlacal, caltype='gc')
 
         self.assertTrue(os.path.exists(vlacaltab))
         self.assertTrue(th.compTables(vlacaltab, vlacal, ['WEIGHT']))
