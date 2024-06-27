@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -66,9 +66,11 @@ EVLASwPow::SPType EVLASwPow::sptype(const String name) {
     return EVLASwPow::SWPOW;
   if (utype.contains("RQ"))
     return EVLASwPow::RQ;
+  if (utype.contains("SWPWTS"))
+    return EVLASwPow::SWPWTS;
 
   // Only get here if name unrecognized
-  throw(AipsError(name+" is not among recognized EVLA Switched Power types ('swpow','evlagain','rq','swp/rq')"));
+  throw(AipsError(name+" is not among recognized EVLA Switched Power types ('swpow','evlagain','rq','swp/rq', 'swpwts')"));
 
   // Should never reach here, but this is accurate (and avoids compiler warning)
   return EVLASwPow::NONE;
@@ -87,6 +89,10 @@ String EVLASwPow::sptype(EVLASwPow::SPType sptype) {
   }
   case EVLASwPow::SWPOVERRQ: {
     return String("swpow/rq");
+    break;
+  }
+  case EVLASwPow::SWPWTS: {
+    return String("swpwts");
     break;
   }
   case EVLASwPow::NONE:
@@ -370,6 +376,11 @@ void EVLASwPow::specify(const Record& specify) {
 	good=allGT(currrq,FLT_EPSILON);
 	break;
       }
+      case EVLASwPow::SWPWTS: {
+	good=(allGT(currpsum,FLT_EPSILON) &&
+	      allGT(currrq,FLT_EPSILON));
+    break;
+      }
       default: {
 	throw(AipsError("Unrecognized EVLA Switched Power type"));
 	break;
@@ -393,6 +404,11 @@ void EVLASwPow::specify(const Record& specify) {
 	++badcount(ispw,thisant);
       }
       else {
+
+	// Calculate "gain" and "tsys" for different modes
+	//  NB: gain includes correction for digital effects (loss and scale)
+	//  NB: No digital stuff in Tsys!  net dig losses included OTF
+	//      in syncWtScale
 	
 	switch (swptype) {
 	case EVLASwPow::SWPOW: {
@@ -402,8 +418,10 @@ void EVLASwPow::specify(const Record& specify) {
 	  break;
 	}
 	case EVLASwPow::RQ: {
-	  gain=currrq;    // RQ gain only!
-	  tsys=1.0;       // ignore Tsys
+	  gain=currrq;              // RQ gain only!
+	  gain*=dig;                // scale by net digital factor
+	  tsys=1.0;
+	  tsys/=square(currrq); // vis scale by rq req wt scale by 1/rq**2
 	  break;
 	}
 	case EVLASwPow::SWPOVERRQ: {
@@ -411,6 +429,12 @@ void EVLASwPow::specify(const Record& specify) {
 	  gain/=currrq;                     // remove rq effect
 	  gain*=dig;                        // scale by net digital factor
 	  tsys=(currtcal*currpsum/currpdif/2.0);  // 'tsys'
+	  break;
+	}
+	case EVLASwPow::SWPWTS:{
+	  gain=(currrq*dig);          // include digital stuff, as for RQ
+	  tsys = currpsum/2.0;
+	  tsys/=square(currrq);   // includ 1/rq**2, as for RQ
 	  break;
 	}
 	default: {

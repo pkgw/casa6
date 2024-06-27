@@ -81,6 +81,7 @@
 #include <synthesis/TransformMachines2/AWProjectFT.h>
 #include <synthesis/TransformMachines2/HetArrayConvFunc.h>
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
+#include <synthesis/TransformMachines2/AWPLPG.h>
 #include <synthesis/TransformMachines2/MultiTermFTNew.h>
 #include <synthesis/TransformMachines2/AWProjectWBFTNew.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
@@ -98,6 +99,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iomanip>
+#include <thread>
 #include <synthesis/Parallel/Applicator.h>
 
 using namespace std;
@@ -152,8 +154,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      
 	      String mes=x.getMesg();
 	      if(mes.contains("FilebufIO::readBlock") || mes.contains("SOURCE")){
-		sleep(0.05);
-		os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            os << LogIO::WARN << "#####CATCHING a sleep because "<< mes<< LogIO::POST;
 	      }
 	      else
 		throw(AipsError("Error in selectdata: "+mes));
@@ -519,8 +521,7 @@ void SynthesisImagerVi2::andChanSelection(const Int msId, const Int spwId, const
 
   }
 
-  void SynthesisImagerVi2::tuneChunk(const Int gmap){
-    
+  void SynthesisImagerVi2::tuneChunk(const Int gmap) {
 
     CoordinateSystem cs=itsMappers.imageStore(gmap)->getCSys();
     IPosition imshape=itsMappers.imageStore(gmap)->getShape();
@@ -573,19 +574,16 @@ void SynthesisImagerVi2::andChanSelection(const Int msId, const Int spwId, const
     freqBegs_p=copyFreqBegs;
     freqEnds_p=copyFreqEnds;
     freqSpws_p=copyFreqSpws;
-    
-
-
-
   }
 
 
-Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars, 
-			   const SynthesisParamsGrid& gridpars)
+Bool SynthesisImagerVi2::defineImage(
+        SynthesisParamsImage& impars,
+        const SynthesisParamsGrid& gridpars)
   {
+    LogIO os( LogOrigin("SynthesisImagerVi2", "defineImage", WHERE) );
 
-    LogIO os( LogOrigin("SynthesisImagerVi2","defineImage",WHERE) );
-    if(mss_p.nelements() ==0)
+    if (mss_p.nelements() == 0)
       os << "SelectData has to be run before defineImage" << LogIO::EXCEPTION;
 
     CoordinateSystem csys;
@@ -593,19 +591,24 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
     impars_p = impars;
     gridpars_p = gridpars; 
 
-    try
-      {
-	
-
+    try {
+      os << "Define image coordinates for [" << impars.imageName << "] : "
+         << LogIO::POST;
 	os << "Define image coordinates for [" << impars.imageName << "] : " << LogIO::POST;
-
+	//    cerr <<  "DEFIM " <<  gridpars_p.ftmachine <<  endl;
+	//    cerr <<  "###### gridpars compute " <<  gridpars.computePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
 	csys = impars_p.buildCoordinateSystem( *vi_p, channelSelections_p, mss_p );
 	//use the location defined for coordinates frame;
 	mLocation_p=impars_p.obslocation;
 	IPosition imshape = impars_p.shp();
 
-	os << "Impars : start " << impars_p.start << LogIO::POST;
-	os << "Shape : " << imshape << "Spectral : " << csys.spectralCoordinate().referenceValue() << " at " << csys.spectralCoordinate().referencePixel() << " with increment " << csys.spectralCoordinate().increment() << LogIO::POST;
+	
+         os << "Impars: start " << impars_p.start << LogIO::POST;
+         os << "Shape: " << imshape
+         << " Spectral: " << csys.spectralCoordinate().referenceValue()
+         << " at " << csys.spectralCoordinate().referencePixel()
+         << " with increment " << csys.spectralCoordinate().increment()
+         << LogIO::POST;
 
 	if( (itsMappers.nMappers()==0) || 
 	    (impars_p.imsize[0]*impars_p.imsize[1] > itsMaxShape[0]*itsMaxShape[1]))
@@ -640,144 +643,199 @@ Bool SynthesisImagerVi2::defineImage(SynthesisParamsImage& impars,
           phaseCenter_p=msfield.phaseDirMeas(0);
         }
 
-      }
-    catch(AipsError &x)
-      {
-	os << "Error in building Coordinate System and Image Shape : " << x.getMesg() << LogIO::EXCEPTION;
-      }
 
-	
-    try
-      {
-	os << "Set Gridding options for [" << impars_p.imageName << "] with ftmachine : " << gridpars.ftmachine << LogIO::POST;
-
-	itsVpTable=gridpars.vpTable;
-	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-		             gridpars.ftmachine.contains("awprojectft") )?False:True;
-
-	//cerr << "DEFINEimage " << impars_p.toRecord() << endl; 				 
-					 
-	createFTMachine(ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType, 
-			gridpars.facets, gridpars.wprojplanes,
-			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
-			gridpars.convFunc,
-			gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
-			gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,gridpars.pointingOffsetSigDev.tovector(),
-			gridpars.doPBCorr,gridpars.conjBeams,
-			gridpars.computePAStep,gridpars.rotatePAStep,
-			gridpars.interpolation, impars_p.freqFrameValid, 1000000000,  16, impars_p.stokes,
-			impars_p.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
-			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-			gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi);
-
+      if ( (itsMappers.nMappers() == 0) or
+           (impars_p.imsize[0]*impars_p.imsize[1] > itsMaxShape[0]*itsMaxShape[1])
+         ) {
+        itsMaxShape = imshape;
+        itsMaxCoordSys = csys;
       }
-    catch(AipsError &x)
-      {
-	os << "Error in setting up FTMachine() : " << x.getMesg() << LogIO::EXCEPTION;
-      }
+      itsNchan = imshape[3];
+      itsCsysRec = impars_p.getcsys();
 
-    try
-      {
+      // os << "Define image  [" << impars.imageName << "] : nchan : " << impars.nchan
+      //    //<< ", freqstart:" << impars.freqStart.getValue() << impars.freqStart.getUnit()
+      //    << ", start:" << impars.start
+      //    <<  ", imsize:" << impars.imsize
+      //    << ", cellsize: [" << impars.cellsize[0].getValue() << impars.cellsize[0].getUnit()
+      //    << " , " << impars.cellsize[1].getValue() << impars.cellsize[1].getUnit()
+      //    << LogIO::POST;
 
-		appendToMapperList(impars_p.imageName,  csys,  impars_p.shp(),
-			   ftm, iftm,
-			   gridpars.distance, gridpars.facets, gridpars.chanchunks,impars_p.overwrite,
-			   gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel);
-	
-	imageDefined_p=true;
+      // phasecenter
+      if (impars_p.phaseCenterFieldId == -1) { // user-specified
+        phaseCenter_p = impars_p.phaseCenter;
+      } else if (impars_p.phaseCenterFieldId >= 0) { // FIELD_ID
+        auto const msobj = mss_p[0];
+        MSFieldColumns msfield(msobj->field());
+        phaseCenter_p = msfield.phaseDirMeas(impars_p.phaseCenterFieldId);
+      } else { // use default FIELD_ID (0)
+        auto const msobj = mss_p[0];
+        MSFieldColumns msfield(msobj->field());
+        phaseCenter_p = msfield.phaseDirMeas(0);
       }
-    catch(AipsError &x)
-      {
-	os << "Error in adding Mapper : "+x.getMesg() << LogIO::EXCEPTION;
-      }
-	imparsVec_p.resize(imparsVec_p.nelements()+1, true);
-	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
-	///For now cannot deal with cube and mtmfs in C++ parallel mode
-	if(imparsVec_p[0].deconvolver=="mtmfs") setCubeGridding(False);
-	//cerr <<"DECONV " << imparsVec_p[0].deconvolver << " cube gridding " << doingCubeGridding_p << endl;
-	gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
-	gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
-	//For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
-	//if(gridparsVec_p[0].ftmachine.contains("awproject"))
-	 //  setCubeGridding(False);
-        itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
-                     (gridparsVec_p[0].ftmachine.at(0,3)=="awp") )?False:True;
+    }
+    catch (AipsError &x) {
+      os << "Error in building Coordinate System and Image Shape: "
+         << x.getMesg()
+         << LogIO::EXCEPTION;
+    }
+
+    try {
+      os << "Set Gridding options for [" << impars_p.imageName << "]"
+         << " with ftmachine: " << gridpars.ftmachine
+         << LogIO::POST;
+
+      itsVpTable = gridpars.vpTable;
+      itsMakeVP = ( gridpars.ftmachine.contains("mosaicft") or
+                    gridpars.ftmachine.contains("awprojectft") ) ?
+                  False : True;
+
+      //cerr << "DEFINEimage " << impars_p.toRecord() << endl;
+
+      createFTMachine(
+        ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType,
+        gridpars.facets, gridpars.wprojplanes,
+        gridpars.padding, gridpars.useAutoCorr, gridpars.useDoublePrec,
+        gridpars.convFunc,
+        gridpars.aTermOn, gridpars.psTermOn, gridpars.mTermOn,
+        gridpars.wbAWP, gridpars.cfCache, gridpars.usePointing, gridpars.pointingOffsetSigDev.tovector(),
+        gridpars.doPBCorr, gridpars.conjBeams,
+        gridpars.computePAStep, gridpars.rotatePAStep,
+        gridpars.interpolation, impars_p.freqFrameValid, 1000000000, 16, impars_p.stokes,
+        impars_p.imageName,
+        gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
+        gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
+        gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi
+      );
+
+    }
+    catch (AipsError &x) {
+      os << "Error in setting up FTMachine(): " << x.getMesg() << LogIO::EXCEPTION;
+    }
+
+
+    try {
+      appendToMapperList(
+        impars_p.imageName, csys, impars_p.shp(),
+        ftm, iftm,
+        gridpars.distance, gridpars.facets, gridpars.chanchunks, impars_p.overwrite,
+        gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel
+      );
+
+      imageDefined_p = true;
+    }
+    catch(AipsError &x) {
+      os << "Error in adding Mapper: " + x.getMesg() << LogIO::EXCEPTION;
+    }
+
+    imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+    imparsVec_p[imparsVec_p.nelements()-1] = impars_p;
+    ///For now cannot deal with cube and mtmfs in C++ parallel mode
+    if (imparsVec_p[0].deconvolver == "mtmfs") setCubeGridding(False);
+    // cerr << "DECONV " << imparsVec_p[0].deconvolver
+    //      << " cube gridding " << doingCubeGridding_p << endl;
+    gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+    gridparsVec_p[imparsVec_p.nelements()-1] = gridpars_p;
+    // For now as awproject does not work with the c++ mpi cube gridding
+    // make sure it works the old way as mfs
+    // if ( gridparsVec_p[0].ftmachine.contains("awproject") )
+    //   setCubeGridding(False);
+    itsMakeVP =
+      (  gridparsVec_p[0].ftmachine.contains("mosaicft") or
+        (gridparsVec_p[0].ftmachine.at(0,3) == "awp")
+      ) ? False : True;
     return true;
   }
-Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
-			   const SynthesisParamsGrid& gridpars){
-	
-	Int id=itsMappers.nMappers();
-    CoordinateSystem csys =imstor->getCSys();
-    IPosition imshape=imstor->getShape();
+
+Bool SynthesisImagerVi2::defineImage(
+        CountedPtr<SIImageStore> imstor,
+        SynthesisParamsImage& impars,
+        const SynthesisParamsGrid& gridpars)
+  {
+    gridpars_p=gridpars;
+    Int id = itsMappers.nMappers();
+    CoordinateSystem csys = imstor->getCSys();
+    IPosition imshape = imstor->getShape();
     Int nx=imshape[0], ny=imshape[1];
-    if( (id==0) || (nx*ny > itsMaxShape[0]*itsMaxShape[1]))
-      {
-	itsMaxShape=imshape;
-	itsMaxCoordSys=csys;
-      }
-  
+    if ( (id==0) || (nx*ny > itsMaxShape[0]*itsMaxShape[1]) ) {
+      itsMaxShape=imshape;
+      itsMaxCoordSys=csys;
+    }
     mLocation_p=impars.obslocation;
     // phasecenter
-    if (impars.phaseCenterFieldId == -1) {
-          // user-specified
-          phaseCenter_p = impars.phaseCenter;
-        } else if (impars.phaseCenterFieldId >= 0) {
-          // FIELD_ID
-          auto const msobj = mss_p[0];
-          MSFieldColumns msfield(msobj->field());
-          phaseCenter_p=msfield.phaseDirMeas(impars.phaseCenterFieldId);
-        } else {
-          // use default FIELD_ID (0)
-          auto const msobj = mss_p[0];
-          MSFieldColumns msfield(msobj->field());
-          phaseCenter_p=msfield.phaseDirMeas(0);
-        }
-	itsVpTable=gridpars.vpTable;
-	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
-                     (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
-	CountedPtr<refim::FTMachine> ftm, iftm;
-         
+    if (impars.phaseCenterFieldId == -1) { // user-specified
+      phaseCenter_p = impars.phaseCenter;
+    }
+    else if (impars.phaseCenterFieldId >= 0) { // FIELD_ID
+      auto const msobj = mss_p[0];
+      MSFieldColumns msfield(msobj->field());
+      phaseCenter_p = msfield.phaseDirMeas(impars.phaseCenterFieldId);
+    }
+    else { // use default FIELD_ID (0)
+      auto const msobj = mss_p[0];
+      MSFieldColumns msfield(msobj->field());
+      phaseCenter_p = msfield.phaseDirMeas(0);
+    }
 
-	createFTMachine(ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType, 
-			gridpars.facets, gridpars.wprojplanes,
-			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
-			gridpars.convFunc,
-			gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
-			gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,
-			gridpars.pointingOffsetSigDev.tovector(),
-			gridpars.doPBCorr,gridpars.conjBeams,
-			gridpars.computePAStep,gridpars.rotatePAStep,
-			gridpars.interpolation, impars.freqFrameValid, 1000000000,  16, impars.stokes,
-			impars.imageName, gridpars.pointingDirCol, gridpars.skyPosThreshold,
-			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-			gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);  
-       
-        
-	if(gridpars.facets >1)
-	{
-	      // Make and connect the list.
-		Block<CountedPtr<SIImageStore> > imstorList = createFacetImageStoreList( imstor, gridpars.facets );
-		for( uInt facet=0; facet<imstorList.nelements(); facet++)
-		{
-		  CountedPtr<refim::FTMachine> new_ftm, new_iftm;
-		  if(facet==0){ new_ftm = ftm;  new_iftm = iftm; }
-		  else{ new_ftm=ftm->cloneFTM();  new_iftm=iftm->cloneFTM(); }
-		  itsMappers.addMapper(createSIMapper( gridpars.mType, imstorList[facet], new_ftm, new_iftm));
-		}
-	}
-	else{
-		itsMappers.addMapper(  createSIMapper( gridpars.mType, imstor, ftm, iftm ) );	
-	}
-        impars_p=impars;
-        gridpars_p=gridpars;
-	imageDefined_p=true;
-        imparsVec_p.resize(imparsVec_p.nelements()+1, true);
-	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
-        gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
-	gridparsVec_p[gridparsVec_p.nelements()-1]=gridpars_p;
-	return true;
+    itsVpTable = gridpars.vpTable;
+    itsMakeVP = (  gridpars.ftmachine.contains("mosaicft") or
+                  (gridpars.ftmachine.at(0,3) == "awp")
+                ) ? False : True;
+    CountedPtr<refim::FTMachine> ftm, iftm;
+
+    createFTMachine(
+      ftm, iftm, gridpars.ftmachine, impars.nTaylorTerms, gridpars.mType,
+      gridpars.facets, gridpars.wprojplanes,
+      gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
+      gridpars.convFunc,
+      gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
+      gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,
+      gridpars.pointingOffsetSigDev.tovector(),
+      gridpars.doPBCorr,gridpars.conjBeams,
+      gridpars.computePAStep,gridpars.rotatePAStep,
+      gridpars.interpolation, impars.freqFrameValid, 1000000000, 16, impars.stokes,
+      impars.imageName,
+      gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
+      gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
+      gridpars.minWeight, gridpars.clipMinMax, impars.pseudoi);
+
+  if (gridpars.facets >1) {
+    // Make and connect the list.
+    Block<CountedPtr<SIImageStore> > imstorList =
+      createFacetImageStoreList( imstor, gridpars.facets );
+    for( uInt facet=0; facet<imstorList.nelements(); facet++) {
+      CountedPtr<refim::FTMachine> new_ftm, new_iftm;
+      if (facet == 0) {
+        new_ftm = ftm;
+        new_iftm = iftm;
+      }
+      else {
+        new_ftm = ftm->cloneFTM();
+        new_iftm = iftm->cloneFTM();
+      }
+      itsMappers.addMapper(
+        createSIMapper( gridpars.mType, imstorList[facet], new_ftm, new_iftm)
+      );
+    }
+  }
+  else {
+    itsMappers.addMapper(
+      createSIMapper( gridpars.mType, imstor, ftm, iftm)
+    );
+  }
+  impars_p = impars;
+  gridpars_p = gridpars;
+  imageDefined_p = true;
+
+  imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+  imparsVec_p[imparsVec_p.nelements()-1] = impars_p;
+
+  gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+  gridparsVec_p[gridparsVec_p.nelements()-1] = gridpars_p;
+
+  return true;
 }
+
 Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, 
 				    const String& ftmachine)
   {
@@ -1937,7 +1995,7 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","makeSdImage",WHERE) );
 
-//    Bool dopsf=false;
+    // Bool dopsf=false;
     if(datacol_p==FTMachine::PSF) dopsf=true;
 
     {
@@ -1955,7 +2013,9 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
       itsMappers.initializeGrid(*vi_p,dopsf);
       for (vi_p->originChunks(); vi_p->moreChunks(); vi_p->nextChunk())
       {
-
+        if (vi_p->getImpl()->isNewMs()) {
+          itsMappers.handleNewMs(vi_p->ms());
+        }
         for (vi_p->origin(); vi_p->more(); vi_p->next())
         {
           itsMappers.grid(*vb, dopsf, (refim::FTMachine::Type)datacol_p);
@@ -2341,85 +2401,109 @@ void SynthesisImagerVi2::unlockMSs()
 	if(!(ms_l->weather().isNull()))    ms_l->weather().unlock();
       }
   }
-  void SynthesisImagerVi2::createFTMachine(CountedPtr<refim::FTMachine>& theFT, 
-					   CountedPtr<refim::FTMachine>& theIFT, 
-					   const String& ftname,
-					   const uInt nTaylorTerms,
-					   const String mType,
-					   const Int facets,            //=1
-					   //------------------------------
-					   const Int wprojplane,        //=1,
-					   const Float padding,         //=1.0,
-					   const Bool useAutocorr,      //=false,
-					   const Bool useDoublePrec,    //=true,
-					   const String gridFunction,   //=String("SF"),
-					//------------------------------
-					   const Bool aTermOn,          //= true,
-					   const Bool psTermOn,         //= true,
-					   const Bool mTermOn,          //= false,
-					const Bool wbAWP,            //= true,
-					   const String cfCache,        //= "",
-					   const Bool usePointing,       //= false,
-					   // const Vector<Float> pointingOffsetSigDev, //= 10.0,
-					   const vector<float> pointingOffsetSigDev,// = {10,10}
-					   const Bool doPBCorr,         //= true,
-					   const Bool conjBeams,        //= true,
-					const Float computePAStep,         //=360.0
-					   const Float rotatePAStep,          //=5.0
-					   const String interpolation,  //="linear"
-					   const Bool freqFrameValid, //=true
-					   const Int cache,             //=1000000000,
-					   const Int tile,               //=16
-					   const String stokes, //=I
-					   const String imageNamePrefix,
-					   //---------------------------
-					   const String &pointingDirCol,
-					   const Float skyPosThreshold,
-					   const Int convSupport,
-					   const Quantity &truncateSize,
-					   const Quantity &gwidth,
-					   const Quantity &jwidth,
-					   const Float minWeight,
-					   const Bool clipMinMax,
-					   const Bool pseudoI
-					   )
+  void SynthesisImagerVi2::createFTMachine(
+            CountedPtr<refim::FTMachine>& theFT,
+            CountedPtr<refim::FTMachine>& theIFT,
+            const String& ftname,
+            const uInt nTaylorTerms,
+            const String mType,
+            const Int facets,            //=1
+            //------------------------------
+            const Int wprojplane,        //=1,
+            const Float padding,         //=1.0,
+            const Bool useAutocorr,      //=false,
+            const Bool useDoublePrec,    //=true,
+            const String gridFunction,   //=String("SF"),
+            //------------------------------
+            const Bool aTermOn,          //= true,
+            const Bool psTermOn,         //= true,
+            const Bool mTermOn,          //= false,
+            const Bool wbAWP,            //= true,
+            const String cfCache,        //= "",
+            const Bool usePointing,      //= false,
+            // const Vector<Float> pointingOffsetSigDev, //= 10.0,
+            const vector<float> pointingOffsetSigDev, // = {10,10}
+            const Bool doPBCorr,         //= true,
+            const Bool conjBeams,        //= true,
+            const Float computePAStep,   //=360.0
+            const Float rotatePAStep,    //=5.0
+            const String interpolation,  //="linear"
+            const Bool freqFrameValid,   //=true
+            const Int cache,             //=1000000000,
+            const Int tile,              //=16
+            const String stokes,         //=I
+            const String imageNamePrefix,
+            //---------------------------
+            const String &pointingDirCol,
+            const String &convertFirst,
+            const Float skyPosThreshold,
+            const Int convSupport,
+            const Quantity &truncateSize,
+            const Quantity &gwidth,
+            const Quantity &jwidth,
+            const Float minWeight,
+            const Bool clipMinMax,
+            const Bool pseudoI
+           )
 
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
 
-    if(ftname=="gridft"){
-      if(facets >1){
-	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
-	theIFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, phaseCenter_p, padding, useAutocorr, useDoublePrec);
 
+    if (ftname == "gridft") {
+      if (facets >1) {
+        theFT = new refim::GridFT(
+            cache, tile,
+            gridFunction, mLocation_p, phaseCenter_p, padding,
+            useAutocorr, useDoublePrec
+        );
+        theIFT = new refim::GridFT(
+            cache, tile,
+            gridFunction, mLocation_p, phaseCenter_p, padding,
+            useAutocorr, useDoublePrec
+        );
       }
-      else{
-	theFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, padding, useAutocorr, useDoublePrec);
-	theIFT=new refim::GridFT(cache, tile, gridFunction, mLocation_p, padding, useAutocorr, useDoublePrec);
+      else {
+        theFT = new refim::GridFT(
+            cache, tile,
+            gridFunction, mLocation_p, padding,
+            useAutocorr, useDoublePrec
+        );
+        theIFT = new refim::GridFT(
+            cache, tile,
+            gridFunction, mLocation_p, padding,
+            useAutocorr, useDoublePrec
+        );
       }
     }
-    else if(ftname== "wprojectft"){
-     Double maxW=-1.0;
-     Double minW=-1.0;
-     Double rmsW=-1.0;
-     if(wprojplane <1)
-       casa::refim::WProjectFT::wStat(*vi_p, minW, maxW, rmsW);
-    if(facets >1){
-      theFT=new refim::WProjectFT(wprojplane,  phaseCenter_p, mLocation_p,
-			   cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
-      theIFT=new refim::WProjectFT(wprojplane,  phaseCenter_p, mLocation_p,
-			    cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
-    }
-    else{
-      theFT=new refim::WProjectFT(wprojplane,  mLocation_p,
-			   cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
-      theIFT=new refim::WProjectFT(wprojplane,  mLocation_p,
-			    cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
-    }
-    CountedPtr<refim::WPConvFunc> sharedconvFunc=static_cast<refim::WProjectFT &>(*theFT).getConvFunc();
+    else if (ftname == "wprojectft") {
+      Double maxW = -1.0;
+      Double minW = -1.0;
+      Double rmsW = -1.0;
+      if (wprojplane < 1)
+        casa::refim::WProjectFT::wStat(*vi_p, minW, maxW, rmsW);
+      if (facets > 1) {
+        theFT = new refim::WProjectFT(wprojplane, phaseCenter_p, mLocation_p,
+         cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+        theIFT = new refim::WProjectFT(wprojplane, phaseCenter_p, mLocation_p,
+          cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+      }
+      else {
+        theFT = new refim::WProjectFT(wprojplane, mLocation_p,
+          cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+        theIFT = new refim::WProjectFT(wprojplane, mLocation_p,
+          cache/2, tile, useAutocorr, padding, useDoublePrec, minW, maxW, rmsW);
+      }
+      CountedPtr<refim::WPConvFunc> sharedconvFunc =
+        static_cast<refim::WProjectFT &>(*theFT).getConvFunc();
       //static_cast<WProjectFT &>(*theFT).setConvFunc(sharedconvFunc);
-    static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
+      static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
+
+    else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT" || ftname == "awp2"){
+
+      createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
+    } 
     else if ((ftname.at(0,3)=="awp") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
 			 padding, useAutocorr, useDoublePrec, gridFunction,
@@ -2427,69 +2511,74 @@ void SynthesisImagerVi2::unlockMSs()
 			 usePointing, pointingOffsetSigDev, doPBCorr, conjBeams, computePAStep,
 			 rotatePAStep, cache,tile,imageNamePrefix);
     }
-    else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT"){
 
-      createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
-    } else if (ftname == "sd") {
-      createSDFTMachine(theFT, theIFT, pointingDirCol, skyPosThreshold, doPBCorr, rotatePAStep,
-          gridFunction, convSupport, truncateSize, gwidth, jwidth,
-          minWeight, clipMinMax, cache, tile, stokes);
+    else if ( ftname == "mosaic" or
+              ftname == "mosft" or
+              ftname == "mosaicft" or
+              ftname == "MosaicFT" ) {
+      createMosFTMachine(
+        theFT, theIFT,
+        padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams
+      );
     }
-    else
-      {
-	throw( AipsError( "Invalid FTMachine name : " + ftname ) );
-      }
-    /* else if(ftname== "MosaicFT"){
+    else if ( ftname == "sd" ) {
+      createSDFTMachine(
+        theFT, theIFT,
+        pointingDirCol, convertFirst,
+        skyPosThreshold, doPBCorr, rotatePAStep,
+        gridFunction, convSupport, truncateSize, gwidth, jwidth,
+        minWeight, clipMinMax, cache, tile, stokes
+      );
+    }
+    else {
+      throw( AipsError( "Invalid FTMachine name : " + ftname ) );
+    }
 
-       }*/
+    // Now, clone and pack the chosen FT into a MultiTermFT if needed.
+    if( mType == "multiterm" ) {
+      AlwaysAssert( nTaylorTerms>=1 , AipsError );
 
+      CountedPtr<refim::FTMachine> theMTFT =
+        new refim::MultiTermFTNew( theFT, nTaylorTerms, true /*forward*/ );
+      CountedPtr<refim::FTMachine> theMTIFT =
+        new refim::MultiTermFTNew( theIFT, nTaylorTerms, false /*forward*/ );
 
+      theFT = theMTFT;
+      theIFT = theMTIFT;
+    }
 
-    ///////// Now, clone and pack the chosen FT into a MultiTermFT if needed.
-    if( mType=="multiterm" )
-      {
-	AlwaysAssert( nTaylorTerms>=1 , AipsError );
+    // Now, set the SkyJones if needed, and if not internally generated.
+    if ( mType == "imagemosaic" and
+        ( ftname != "awprojectft" and
+          ftname != "mawprojectft" and
+          ftname != "proroft" ) ) {
+      CountedPtr<refim::SkyJones> vp;
+      MSColumns msc(*(mss_p[0]));
+      Quantity parang(0.0,"deg");
+      Quantity skyposthreshold(0.0,"deg");
+      vp = new refim::VPSkyJones(
+        msc, true,  parang, BeamSquint::NONE, skyposthreshold
+      );
 
-	CountedPtr<refim::FTMachine> theMTFT = new refim::MultiTermFTNew( theFT , nTaylorTerms, true/*forward*/ );
-	CountedPtr<refim::FTMachine> theMTIFT = new refim::MultiTermFTNew( theIFT , nTaylorTerms, false/*forward*/ );
+      Vector<CountedPtr<refim::SkyJones> > skyJonesList(1);
+      skyJonesList(0) = vp;
+      theFT->setSkyJones( skyJonesList );
+      theIFT->setSkyJones( skyJonesList );
+    }
 
-	theFT = theMTFT;
-	theIFT = theMTIFT;
-      }
-
-
-
-
-    ////// Now, set the SkyJones if needed, and if not internally generated.
-    if( mType=="imagemosaic" && 
-	(ftname != "awprojectft" && ftname != "mawprojectft" && ftname != "proroft") )
-      {
-	CountedPtr<refim::SkyJones> vp;
-	MSColumns msc(*(mss_p[0]));
-	Quantity parang(0.0,"deg");
-	Quantity skyposthreshold(0.0,"deg");
-	vp = new refim::VPSkyJones(msc, true,  parang, BeamSquint::NONE,skyposthreshold);
-
-	Vector<CountedPtr<refim::SkyJones> > skyJonesList(1);
-	skyJonesList(0) = vp;
-	theFT->setSkyJones(  skyJonesList );
-	theIFT->setSkyJones(  skyJonesList );
-
-      }
-
-    //// For mode=cubedata, set the freq frame to invalid..
+    // For mode=cubedata, set the freq frame to invalid.
     // get this info from buildCoordSystem
-    //theFT->setSpw( tspws, false );
-    //theIFT->setSpw( tspws, false );
+    // theFT->setSpw( tspws, false );
+    // theIFT->setSpw( tspws, false );
     theFT->setFrameValidity( freqFrameValid );
     theIFT->setFrameValidity( freqFrameValid );
 
-    //// Set interpolation mode
+    // Set interpolation mode
     theFT->setFreqInterpolation( interpolation );
     theIFT->setFreqInterpolation( interpolation );
 
-    ///Set tracking of moving source if any
-    if(movingSource_p != ""){
+    // Set tracking of moving source if any
+    if (movingSource_p != "") {
       theFT->setMovingSource(movingSource_p);
       theIFT->setMovingSource(movingSource_p);
     }
@@ -2500,8 +2589,7 @@ void SynthesisImagerVi2::unlockMSs()
     */
 
     // Set pseudo-I if requested.
-    if(pseudoI==true)
-    {
+    if (pseudoI == true) {
       os << "Turning on Pseudo-I gridding" << LogIO::POST;
       theFT->setPseudoIStokes(true);
       theIFT->setPseudoIStokes(true);
@@ -2703,8 +2791,25 @@ void SynthesisImagerVi2::unlockMSs()
     vpman->getvp(rec, telescop);
     */
 
-   refim::VPSkyJones* vps=NULL;
+   refim::VPSkyJones* vps= nullptr;
    //cerr << "rec " << rec << " kpb " << kpb << endl;
+   //cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
+   if (!gridpars_p.ftmachine.contains("mos")) {
+     cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+     bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  
+    //  TESTOO
+    dosquint = False;
+    ///////
+    
+    cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
+     theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, rotatePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+     CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
+      static_cast<refim::AWPLPG &>(*theFT).setConvFunc(mospb);
+      static_cast<refim::AWPLPG &>(*theIFT).setConvFunc(mospb);
+      
+   }
+   else{
     if(rec.asString("name")=="COMMONPB" && kpb !=PBMath::UNKNOWN ){
       vps= new refim::VPSkyJones(msc, true, Quantity(rotatePAStep, "deg"), BeamSquint::GOFIGURE, Quantity(360.0, "deg"));
       /////Don't know which parameter has pb threshold cutoff that the user want 
@@ -2734,14 +2839,14 @@ void SynthesisImagerVi2::unlockMSs()
     }
     ///////////////////make sure both FTMachine share the same conv functions.
     theIFT= new refim::MosaicFTNew(static_cast<refim::MosaicFTNew &>(*theFT));
-
-    
+   }
   }
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   void SynthesisImagerVi2::createSDFTMachine(CountedPtr<refim::FTMachine>& theFT,
       CountedPtr<refim::FTMachine>& theIFT,
       const String &pointingDirCol,
+      const String &convertFirst,
       const Float skyPosThreshold,
       const Bool /*doPBCorr*/,
       const Float rotatePAStep,
@@ -2831,6 +2936,8 @@ void SynthesisImagerVi2::unlockMSs()
                         convSupport, minWeight, clipMinMax);
     }
     theFT->setPointingDirColumn(pointingDirCol);
+    static_cast<refim::SDGrid*>(theFT.get())->setConvertFirst(convertFirst);
+    static_cast<refim::SDGrid*>(theIFT.get())->setConvertFirst(convertFirst);
 
     // turn on Pseudo Stokes mode if necessary
     if (pseudoI || stokes == "XX" || stokes == "YY" || stokes == "XXYY"

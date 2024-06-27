@@ -1,29 +1,37 @@
-from __future__ import absolute_import
 import shutil
 import os
 import string
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from . import JPLephem_reader2 as jplreader
-    from casatools import ms as mstool
-    from casatools import table as tbtool
-    from casatools import imager as imtool
-    from casatools import measures, quanta
-    from casatasks import casalog
-    from .mstools import write_history
-    _qa = quanta( )
-    _me = measures( )
-else:
-    from taskinit import *
-    from mstools import write_history
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    import recipes.ephemerides.JPLephem_reader2 as jplreader
-    # not really local copies
-    _qa = qa
-    _me = me
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from casatools import ms as mstool
+from casatools import table as tbtool
+from casatools import imager as imtool
+from casatools import measures, quanta
+from casatasks import casalog
+from .mstools import write_history
+_qa = quanta( )
+_me = measures( )
+
+def _checkinternalephemtab(vis, field):
+    """
+    This function checks if there is an ephemeris table attached in the MS for
+    the field selected. It will returned table names found under FIELD table.
+
+    """
+    import glob
+    from casatools import table, ms
+    _tb = table()
+    _ms = ms() 
+    fids = _ms.msseltoindex(vis=vis,field=field)['field']
+    _tb.open(vis+'/FIELD')
+    ephemnames = []
+    if 'EPHEMERIS_ID' in _tb.colnames():
+        for i in fids:
+            ephemid = _tb.getcell('EPHEMERIS_ID',i)
+            if ephemid != -1:
+                ephemnames.append(glob.glob(f'{vis}/FIELD/EPHEM{ephemid}*/')[0])
+    _tb.close()
+    return list(set(ephemnames))
 
 def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'):
     """
@@ -46,14 +54,11 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
     direction  -- if set, don't use pointing table but set direction to this value.
                   The direction can either be given explicitly or as the path
                   to a JPL Horizons ephemeris (for an example of the format,
-                  see directory data/ephemerides/JPL-Horizons/).
-                  Alternatively, the ephemeris table can also be provided as mime format file,
-                  i.e. a saved email as obtained via the commands (for example):
-                  import recipes.ephemerides.request as jplreq
-                  jplreq.request_from_JPL(objnam='Mars',startdate='2012-01-01',enddate='2014-12-31',
-                       date_incr='0.1 d', get_axis_orientation=False, get_axis_ang_orientation=True,
-                       get_sub_long=True, use_apparent=False, get_sep=False,
-                       return_address='YOUR_EMAIL_ADDESS', mailserver='YOUR_MAIL_SERVER_ADDRESS')
+                  ephemerides/JPL-Horizons/ in the local data directory or "External Data" section 
+                  of the current CASADocs).
+                  Alternatively, the ephemeris table can also be obtained using
+                  getephemtable task.
+ 
                   example: 'J2000 19h30m00 -40d00m00', default= '' (use pointing table)
 
     refant     -- if using pointing table information, use it from this antenna
@@ -257,25 +262,25 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
                     if len(dirstr)==1: # an ephemeris table was given
                         if(os.path.exists(dirstr[0])):
                             if os.path.isfile(dirstr[0]): # it is a file, i.e. not a CASA table
-                                try: # a mime file maybe?
-                                    outdict=jplreader.readJPLephem(dirstr[0], '1.0')
-                                    if not jplreader.ephem_dict_to_table(outdict, dirstr[0]+".tab"):
-                                        raise ValueError("Error converting dictionary to ephem table")
-                                except: # no it is not a mime file either
-                                    msg = "*** Error when interpreting parameter \'direction\':\n File given is not a valid JPL email mime format file."
-                                    raise RuntimeError(msg)
-                                else:
-                                    theephemeris = dirstr[0]+".tab"
-                                    casalog.post('Successfully converted mime format ephemeris to table '+theephemeris+'.\n Will use it with offset (0,0)', 'NORMAL')
+                                msg = "*** Error when interpreting parameter \'direction\':\n  A file is given. Use of the JPL-Horizons "+\
+                                     "MIME format file is deprecated."
+                                raise RuntimeError(msg)
                             else: # not a file, assume it is a CASA table
                                 theephemeris = dirstr[0]
+                                # add a check if it is going to replace the existing table in the MS
+                                existingephemtab = _checkinternalephemtab(vis, field)
+                                if existingephemtab != []:
+                                    casalog.post(f'Will replace existing ephemeris table {existingephemtab} in the MS with {direction}. '+\
+                                         'Ephemeris tables attached in the MS are assumed to be the ones used by the correlator and attaching' +\
+                                         ' a different ephemeris table may lead to scientifically wrong results.','WARN') 
+
                                 casalog.post('Will use ephemeris table '+theephemeris+' with offset (0,0)', 'NORMAL')
                             
                             thenewra_rad = 0.
                             thenewdec_rad = 0.
 
                         else:
-                            msg = "*** Error when interpreting parameter \'direction\':\n string is neither a direction nor an existing file or table."
+                            msg = "*** Error when interpreting parameter \'direction\':\n string is neither a direction nor a table."
                             raise RuntimeError(msg)
                     else:
                         if len(dirstr)==2: # a direction without ref frame was given
@@ -406,7 +411,7 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
                     mst.close()
 
 
-            if(fixuvw and (oldrefcol!=[]) and (thenewref>0)): 
+            if(fixuvw and (len(oldrefcol)!=0) and (thenewref>0)): 
                 # modify reference of phase dir for fixuvw
                 pcol = tbt.getcol('PhaseDir_Ref')
                 pcol[fld] = 0 # J2000
@@ -430,10 +435,10 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
 
             for i in range(0,tbt.nrows()):
                 if(sname[i]==planetname):
-                    # casalog.post('i old dir ' + i + " " + sdir[0][i] + sdir[1][i])
+                    #casalog.post('i old dir ' + i + " " + sdir[0][i] + sdir[1][i])
                     newsdir[0][i] = newsra_rad
                     newsdir[1][i] = newsdec_rad
-                    # casalog.post('  new dir ' + newsdir[0][i] + newsdir[1][i])
+                    #casalog.post('  new dir ' + newsdir[0][i] + newsdir[1][i])
             tbt.putcol('DIRECTION', newsdir)
             tbt.close()
             casalog.post("SOURCE table DIRECTION column changed.", 'NORMAL')
@@ -456,7 +461,7 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
             imt.close()
             imt = None
 
-            if((oldrefcol!=[]) and (thenewref>0)): 
+            if((len(oldrefcol)!=0) and (thenewref>0)): 
                 tbt.open(vis+'/FIELD', nomodify=False)
                 tbt.putcol('PhaseDir_Ref', oldrefcol)
                 tbt.close()
@@ -476,11 +481,8 @@ def fixplanets(vis, field, fixuvw=False, direction='', refant=0, reftime='first'
     # Write history to MS
     try:
         param_names = fixplanets.__code__.co_varnames[:fixplanets.__code__.co_argcount]
-        if is_python3:
-            vars = locals()
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        vars = locals()
+        param_vals = [vars[p] for p in param_names]
         write_history(mstool(), vis, 'fixplanets', param_names,
                       param_vals, casalog)
     except Exception as instance:

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -89,6 +89,7 @@ class SynthesisNormalizer
   void divideResidualByWeight();
   void divideResidualByWeightSD();
   void dividePSFByWeight();
+  void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
 
@@ -101,7 +102,7 @@ protected:
   casacore::Bool setupImagesOnDisk();
   casacore::Bool doImagesExist( casacore::String imagename );
 
-  std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename );
+  std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename, const bool useweightimage=true);
   std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename,
                                            const casacore::PagedImage<casacore::Float> &part,
                                            casacore::Bool useweightimage );
