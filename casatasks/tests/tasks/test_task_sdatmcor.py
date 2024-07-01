@@ -34,7 +34,7 @@ import numpy as np
 from casatasks import applycal, casalog, gencal, sdatmcor
 from casatasks.private.sdutil import (convert_antenna_spec_autocorr,
                                       get_antenna_selection_include_autocorr,
-                                      table_manager)
+                                      table_manager, table_selector)
 import casatasks.private.task_sdatmcor as sdatmcor_impl
 from casatools import calibrater, ctsys
 from casatools import ms as mstool
@@ -649,6 +649,117 @@ class test_sdatmcor(unittest.TestCase):
 
         # check output MS
         self.check_result({19: True, 23: True})
+
+
+def set_data_to_zero(infile: str, spw: int) -> np.ndarray:
+    """Set ON_SOURCE CORRECTED_DATA to zero for given spw.
+
+    This is implemented by TaQL and is intended to do the
+    same with the following code snippet.
+
+        ms.open(infile)
+        ms.msselect(
+            {'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'},
+            onlyparse=True
+        )
+        msidx = ms.msselectedindices()
+        ms.close()
+        ddid = msidx['spwdd'][0]
+        stateid = list(msidx['stateid'])
+        taql = f'DATA_DESC_ID == {ddid} && STATE_ID IN {stateid}'
+
+        with table_selector(infile, taql=taql, nomodify=False) as tb:
+            cdata = tb.getcol('CORRECTED_DATA')
+            cdata[::] = 0
+            tb.putcol(colname, cdata)
+        return cdata
+
+    Args:
+        infile: Input MS name
+        spw: Spectral window Id
+
+    Returns:
+        Data array manipulated by this function
+    """
+    with table_manager(infile) as tb:
+        taql_string = f'''
+        USING STYLE PYTHON
+        UPDATE "{infile}" SET CORRECTED_DATA = 0
+        WHERE
+          DATA_DESC_ID IN
+            [SELECT ROWID() FROM ::DATA_DESCRIPTION WHERE SPECTRAL_WINDOW_ID == {spw}]
+          && STATE_ID IN
+            [SELECT ROWID() FROM ::STATE WHERE OBS_MODE ~ m/^OBSERVE_TARGET#ON_SOURCE/]
+        '''
+        t = tb.taql(taql_string)
+        cdata = t.getcol('CORRECTED_DATA')
+        t.close()
+    return cdata.real
+
+
+class test_sdatmcor_smoothing(unittest.TestCase):
+    datapath = 'measurementset/almasd'
+    infile = 'X59ca_sel.ms'
+    outfile = infile + '.atmcor'
+
+    def setUp(self):
+        smart_remove(self.infile)
+        smart_remove(self.outfile)
+        datapath_to_ms = ctsys_resolve(os.path.join(self.datapath, self.infile))
+        shutil.copytree(datapath_to_ms, self.infile)
+
+    def tearDown(self):
+        smart_remove(self.infile)
+        smart_remove(self.outfile)
+
+    def _get_data(self, ms_name, spw):
+        with table_selector(ms_name, f'DATA_DESC_ID=={spw}') as tb:
+            data = tb.getcol('DATA').real
+
+        return data
+
+    def test_mitigation(self):
+        """Test if mitigation for boundary effect of convolution works."""
+        # Set data zero to get correction factor
+        # In sdatmcor, correction factor is subtracted from the data
+        # so we can get correction factor if we set data all zero
+        # (output_data = 0 - correction_factor).
+        zero_data = set_data_to_zero(self.infile, spw=17)
+        self.assertTrue(np.all(zero_data == 0))
+
+        # Apply correction with smoothing
+        sdatmcor(
+            infile=self.infile,
+            outfile=self.outfile,
+            spw='17,19',
+            intent='OBSERVE_TARGET#ON_SOURCE',
+            datacolumn='corrected',
+            gainfactor={17: 41.49, 19: 41.48},
+            dtem_dh=-5.6,
+            h0=2.0,
+            atmtype=1
+        )
+
+        # Resulting data should be -correction_factor. Only check spectral
+        # data for spw 17 since it is severely suffered from the boundary
+        # effect. If mitigation didn't work, there will be steep increase
+        # or decrease at edge channels. In that case, the slope should be
+        # order of magnitude larger.
+        correction_factor_spw17 = self._get_data(self.outfile, spw=17)
+        average_factor_per_pol = correction_factor_spw17.mean(axis=2)
+        # average derivative excluding edge channels
+        delta = average_factor_per_pol[:, 1:] - average_factor_per_pol[:, :-1]
+        average_delta = delta[:, 10:-10].mean()
+        threshold = abs(average_delta) * 10
+        for ipol in range(correction_factor_spw17.shape[0]):
+            print(f'Examining pol {ipol}')
+            edge_delta = np.abs(delta[ipol, [0, -1]])
+            print('edge_delta', edge_delta)
+            print(f'threshold = {threshold}')
+            self.assertTrue(
+                np.all(edge_delta < threshold),
+                msg=f'Mitigation did not work for pol {ipol}'
+            )
 
 
 class ATMParamTest(unittest.TestCase):
