@@ -386,13 +386,13 @@ class imfit_test(unittest.TestCase):
                 pixelmask = ""
             elif (i == 1):
                 mask = ''
-                includepix = [40,400]
+                includepix = [40.0,400.0]
                 excludepix = []
                 pixelmask = ""
             elif (i == 2):
                 mask = ''
                 includepix = []
-                excludepix = [-10,40]
+                excludepix = [-10.0,40.0]
                 pixelmask = ""
             elif (i == 3):
                 mask = ''
