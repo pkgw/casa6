@@ -22,7 +22,7 @@ import os
 import hashlib
 import shutil
 import unittest
-import numpy
+import numpy as np
 
 from casatools import ctsys, table, image, quanta, componentlist, regionmanager, functional
 from casatools.platform import str2bytes
@@ -368,10 +368,8 @@ class imfit_test(unittest.TestCase):
     
     def test_fit_using_range(self):
         '''Imfit: Fit using range'''
-        success = True
-        global msgs
+        epsilon = 2e-8
         for i in range(4):
-            test = 'fit_using_range, loop #' + str(i) + ': '
             # the ranges and mask defined all define the same pixels to be used
             # so that the results are the same for each loop (which makes the
             # code more compact)
@@ -386,13 +384,13 @@ class imfit_test(unittest.TestCase):
                 pixelmask = ""
             elif (i == 1):
                 mask = ''
-                includepix = [40.0,400.0]
+                includepix = [40.0, 400.0]
                 excludepix = []
                 pixelmask = ""
             elif (i == 2):
                 mask = ''
                 includepix = []
-                excludepix = [-10.0,40.0]
+                excludepix = [-10.0, 40.0]
                 pixelmask = ""
             elif (i == 3):
                 mask = ''
@@ -413,59 +411,59 @@ class imfit_test(unittest.TestCase):
             for code in [run_fitcomponents, run_imfit]:
                 res = code()
                 clist = res['results']
-                if (not res['converged'][0]):
-                    success = False
-                    msgs += method + "fit did not converge unexpectedly"
-                epsilon = 1e-5
+                self.assertTrue(res[
+                    "converged"][0], f"fit did not converge unexpectedly. i={i}"
+                ) 
                 # I flux test
                 got = clist['component0']['flux']['value'][0]
                 expected = 60354.3232
-                if (not near(got, expected, epsilon)):
-                    success = False
-                    msgs += test + "I flux density test failure, got " + str(got) \
-                        + " expected " + str(expected) + "\n"
+                self.assertTrue(
+                    np.isclose(got, expected, epsilon),
+                    f"I flux density test failure, {got}, expected {expected}, i={i}"
+                ) 
                 # Q flux test
                 got = clist['component0']['flux']['value'][1]
                 expected = 0
-                if (got != expected):
-                    success = False
-                    msgs += test + "Q flux density test failure, got " + str(got) \
-                        + " expected " + str(expected) + "\n"
+                self.assertEqual(
+                    got, expected, 
+                    f"Q flux density test failure, got {got}, expected {expected}, i={i}"
+                )
                 # RA test
                 got = clist['component0']['shape']['direction']['m0']['value']
                 expected = 0.000213391
-                if (not near(got, expected, epsilon)):
-                    success = False
-                    msgs += test + "RA test failure, got " + str(got) + " expected " + str(expected) + "\n"
+                self.assertTrue(
+                    np.isclose(got, expected, epsilon),
+                    f"RA test failure, {got}, expected {expected}, i={i}"
+                )
                 # Dec test
                 got = clist['component0']['shape']['direction']['m1']['value']
                 expected = 1.93449e-05
-                if (not near(got, expected, epsilon)):
-                    success = False
-                    msgs += test + "Dec test failure, got " + str(got) + " expected " + str(expected) + "\n"
+                self.assertTrue(
+                    np.isclose(got, expected, epsilon),
+                    f"Dec test failure, {got}, expected {expected}, i={i}"
+                )
                 # Major axis test
                 got = clist['component0']['shape']['majoraxis']['value']
                 expected = 23.541712
-                epsilon = 1e-7
-                if (not near(got, expected, epsilon)):
-                    success = False
-                    msgs += test + "Major axis test failure, got " + str(got) + " expected " + str(expected) + "\n"
+                self.assertTrue(
+                    np.isclose(got, expected, epsilon),
+                    f"Major axis test failure, {got}, expected {expected}, i={i}"
+                )
                 # Minor axis test
                 got = clist['component0']['shape']['minoraxis']['value']
                 expected = 18.882029
-                if (not near(got, expected, epsilon)):
-                    success = False
-                    msgs += test + "Minor axis test failure, got " + str(got) + " expected " + str(expected) + "\n"
+                self.assertTrue(
+                    np.isclose(got, expected, epsilon),
+                    f"Minor axis test failure, {got}, expected {expected}, i={i}"
+                )
                 # Position angle test
                 got = clist['component0']['shape']['positionangle']['value']
                 expected = 119.769648
-                if (not near(got, expected, epsilon)):
-                    success = False
-                    msgs += test + "Position angle test failure, got " + str(got) + \
-                        " expected " + str(expected) + "\n"
-    
-        self.assertTrue(success,msgs)
-    
+                self.assertTrue(
+                    np.isclose(got, expected, epsilon),
+                    f"Position angle test failure, {got}, expected {expected}, i={i}"
+                )
+   
     
     # Test writing of residual and model images 
     def test_residual_and_model(self):
@@ -1240,20 +1238,20 @@ class imfit_test(unittest.TestCase):
                 all(res['converged']),
                 "One or more of the converged elements are False"
             )
-            self.assertTrue(numpy.isclose(
+            self.assertTrue(np.isclose(
                 res['results']['component0']['pixelcoords'], [24.30, 46.43],
                 atol=0.01).all()
             )
-            self.assertTrue(numpy.isclose(
+            self.assertTrue(np.isclose(
                 res['results']['component1']['pixelcoords'], [26.71, 44.39],
                 atol=0.01).all()
             )
-            self.assertTrue(numpy.isclose(
+            self.assertTrue(np.isclose(
                 res['results']['component2']['pixelcoords'], [54.74, 40.89],
                 atol=0.01).all()
             )
             self.assertTrue(
-                numpy.isclose(res['pixelsperarcsec'], 1.0/60).all()
+                np.isclose(res['pixelsperarcsec'], 1.0/60).all()
             )
 
     def test_xx_fit(self):
@@ -1840,7 +1838,7 @@ class imfit_test(unittest.TestCase):
         g2d = myfn.gaussian2d(1, [50,60], [20,10], "-20deg")
         nxpix = 120
         nypix = 100
-        pixels = numpy.zeros([nxpix, nypix], dtype=numpy.float64)
+        pixels = np.zeros([nxpix, nypix], dtype=np.float64)
         for x in range(nxpix):
             for y in range(nypix):
                 pixels[x, y] = g2d.f([x, y])
