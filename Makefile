@@ -197,6 +197,7 @@ casatasks-wheel: venv-build
 		. $(CASAVENVDIR)/bin/activate ; \
 		pip install --upgrade setuptools ; \
 		pip install --upgrade wheel ; \
+		mkdir -p $(HOME)/.casa/data ; \
 		cd $(CASASRC)/casatasks ; \
 		./setup.py bdist_wheel ; \
 		pip uninstall -y casatasks ; \
