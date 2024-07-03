@@ -534,7 +534,6 @@ Please note that this procedure might be affected by the PYTHONPATH variable. Co
     $ pip uninstall casatools
     $ pip install $CASAINSTALL/dist/casatools*whl
     $ pip install casatestutils
-    $ pip install casadata
 ```
 3. Run the tests.
 ```
@@ -552,33 +551,33 @@ The casatasks wheel creation and installation has not changed in the modular bui
 ```
     $ rm -rf dist
 ```
-3. Create casatasks wheel. The resulting wheel file is stored under $CASASRC/casatasks/dist. Requires the Python wheel module (question). Note that one should deactivate the test_env (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
+3.    Ensure that the data directory for CASA exists (CASA will populate it the first time)
+```
+    $ mkdir -p $HOME/.casa/data
+```
+4. Create casatasks wheel. The resulting wheel file is stored under `$CASASRC/casatasks/dist`. Requires the Python wheel module (question). Note that one should deactivate the `test_env` (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
 ```
     $ if [ `command -v deactivate` ] ; then deactivate ; fi # This ensures that no previous Python environment is still active
     $ . $CASABUILD/casatools/build_env/bin/activate
     $ ./setup.py bdist_wheel
 ```
 
-4. This creates a casatasks wheel under `$CASASRC/casatasks/dist`. The current status of the casatasks setup.py is not fully PEP-517 compatible, that's why it is not possible to get the wheel under `$CASAINSTALL/dist` like the casatools case.
+5. This creates a casatasks wheel under `$CASASRC/casatasks/dist`. The current status of the casatasks setup.py is not fully PEP-517 compatible, that's why it is not possible to get the wheel under `$CASAINSTALL/dist` like the casatools case.
 
 #### Test casatasks (Optional)
 
 It is assumed that the steps to test casatools (see above) have already been performed.
 
-1.     (Optional). Activate the same virtual environment that was used to test casatools (see above). Omit this step if you prefer to install in your $HOME. Note that one should deactivate the test_env (if used in the prior casatools test process) and reactivate the python build environment in ` $CASABUILD/casatools `.
+1. (Optional). Activate the same virtual environment that was used to test casatools (see above). Omit this step if you prefer to install in your `$HOME`. Note that one should deactivate build environment if active before making sure the `test_env` is activated.
 ```
     $ if [ `command -v deactivate` ] ; then deactivate ; fi # This ensures that no previous Python environment is still active
     $ . $CASATESTDIR/test_env/bin/activate 
 ```
-2.    Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
+2. Install casatasks wheel. NOTE: The uninstall command ensures that a potential previous installation is uninstalled first. Otherwise pip install won't install the new one if it thinks it has the same version. The pip uninstall command is harmless if this is the first time casatasks is installed.
 ```
     $ cd $CASASRC/casatasks
     $ pip uninstall casatasks
     $ pip install ./dist/casatasks*whl
-```
-3.    Optionally install casadata or point to a given location of casadata in your $HOME/.casa/config.py
-```
-    $ pip install casadata
 ```
 4.    Run the tests:
 ```
