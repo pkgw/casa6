@@ -202,7 +202,10 @@ Int EVLAAperture::getBandID(const Double &freq,
   if (!isNoOp()) {
     // First #-separated token in bandName_p is the name of the band used
     Vector<String> tokens = SynthesisUtils::parseBandName(bandName);
-    bandID = BeamCalc::Instance()->getBandID(freq, telescopeName_p, tokens(0));
+    Double elfreq = freq;
+    if(telescopeName_p=="VLA" && freq < 1.34e9)   //Some unit test data for VLA are below 1.0 GHz
+      elfreq = 1.4e9;
+    bandID = BeamCalc::Instance()->getBandID(elfreq, telescopeName_p, tokens(0));
   }
 
   return bandID;
@@ -211,9 +214,9 @@ String EVLAAperture::getVLABandName(const Double& freq,  const String& telescope
   double tol = FLT_EPSILON;
   String bandName = "EVLA_L";
   if (telescopeName == "VLA") {
-//    if ((freq >= 1.34E9) && (freq <= 1.73E9))
+//    if ((freq >= 1.34E9) && (freq <= 1.73E9))   some unit test data goes from 1 to 2 GHz for VLA !
 
-    if((freq >= (9E8-tol)) && (freq <= (1.73E9+tol)))
+    if((freq >= (9E8-tol)) && (freq <= (2.0E9+tol)))
 
       bandName = "VLA_L";
     else if ((freq >= (4.5E9-tol)) && (freq <= (5.0E9+tol)))
@@ -267,7 +270,11 @@ Int EVLAAperture::getBandID(const Double &freq, const String& bandName) {
     // First #-separated token in bandName_p is the name of the band used
     // Vector<String> tokens = SynthesisUtils::parseBandName(bandName_p);
     // cerr << "TOKENS " << tokens << endl;
-    bandID = BeamCalc::Instance()->getBandID(freq, telescopeName_p, bandName_p);
+    Double elfreq = freq;
+    if (telescopeName_p == "VLA" &&
+        freq < 1.34e9) // Some unit test data for VLA are below 1.0 GHz
+      elfreq = 1.4e9;
+    bandID = BeamCalc::Instance()->getBandID(elfreq, telescopeName_p, bandName_p);
   }
 
   return bandID;

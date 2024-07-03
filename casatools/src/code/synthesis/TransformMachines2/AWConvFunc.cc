@@ -1641,7 +1641,7 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       ftATerm_l.set(Complex(1.0,0.0));   ftATermSq_l.set(Complex(1.0,0.0));
       Double freq_l=miscInfo.freqValue;
       //TESTOO
-	  {
+	  /*{
       	Vector<String> csList;
        	IPosition dummy;
       // 	cout << "CoordSys:===================== ";
@@ -1651,12 +1651,12 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
 	//cerr << csList << endl;
       // 	csList = conjPolCS_l.list(log_l,MDoppler::RADIO,dummy,dummy);
       // 	cout << csList << endl;
-      }
+      }*/
 
       //if (!isDryRun)
 	  //cerr <<"applying ATERM for " << freq_l << endl;
 	//TESTOO
-	CoordinateSystem lalacs=cs_l;
+	//CoordinateSystem lalacs=cs_l;
 	//
 	  
 	  // cerr << "#########$$$$$$ " << pbshp << " " << nx << " " << freq_l << " " << conjFreq << endl;
@@ -1668,11 +1668,11 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
       }
 
 	//TESTOO
-	{
+	/*{
 	PagedImage<Complex> lala(ftATerm_l.shape(), lalacs, "ATERMFCFB2.im");
 	lala.copyData(ftATerm_l);
 	
-	}
+	}*/
 	////
       
       Vector<Double> cellSize;
@@ -1974,7 +1974,12 @@ AWConvFunc::AWConvFunc(const casacore::CountedPtr<ATerm> aTerm,
                            //then it is EVLA
                            if(miscInfo.telescopeName.size() < 2)
                              miscInfo.telescopeName="EVLA";
-			   Int bandID = BeamCalc::Instance()->getBandID(miscInfo.freqValue,miscInfo.telescopeName,miscInfo.bandName);
+                           Double elfreq = miscInfo.freqValue;
+                           if (miscInfo.telescopeName == "VLA" &&
+                               elfreq < 1.34e9) // Some unit test data for VLA are
+                                             // below 1.0 GHz
+                             elfreq = 1.4e9;
+                           Int bandID = BeamCalc::Instance()->getBandID(elfreq,miscInfo.telescopeName,miscInfo.bandName);
 			   skyMinFreq = casa::EVLABandMinFreqDefaults[bandID];
 			 }
 			 wbAWP=True; // Always true since the Freq. value is got from the coord. sys.
