@@ -177,7 +177,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
         #
         cfCacheName=''
         cfcExists=False
-        if(self.allgridpars['0']['gridder'].startswith('awp')):
+        if(self.allgridpars['0']['gridder'].startswith('awpr')):
             cfCacheName=self.allgridpars['0']['cfcache']
         else:
             self.allgridpars['0']['cfcache']=''
