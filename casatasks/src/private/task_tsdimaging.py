@@ -924,6 +924,7 @@ def tsdimaging(
         outframe, # velocity frame
         mode, nchan, start, width, veltype, # gridding type
         specmode, # Doppler handling
+        interpolation, # interpolation mode
         # Output images definition: spatial axes
         pointingcolumn, convertfirst,
         projection,
@@ -937,8 +938,7 @@ def tsdimaging(
         minweight,
         # Single-dish image: metadata
         brightnessunit,
-        restfreq, # rest frequency to assign to image
-        interpolation # interpolation mode
+        restfreq # rest frequency to assign to image
     ):
 
     origin = 'tsdimaging'
