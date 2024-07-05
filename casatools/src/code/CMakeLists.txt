@@ -59,6 +59,7 @@ set(CMAKE_CXX_STANDARD 14)
 message (STATUS "CMAKE_CXX_STANDARD ${CMAKE_CXX_STANDARD}")
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
 
 ## Set definitions global to the whole project
 add_definitions(-DCASACORE_NEEDS_RETHROW)
