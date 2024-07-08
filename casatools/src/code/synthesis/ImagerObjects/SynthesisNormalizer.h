@@ -89,6 +89,7 @@ class SynthesisNormalizer
   void divideResidualByWeight();
   void divideResidualByWeightSD();
   void dividePSFByWeight();
+  void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
 
@@ -101,7 +102,7 @@ protected:
   casacore::Bool setupImagesOnDisk();
   casacore::Bool doImagesExist( casacore::String imagename );
 
-  std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename );
+  std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename, const bool useweightimage=true);
   std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename,
                                            const casacore::PagedImage<casacore::Float> &part,
                                            casacore::Bool useweightimage );
