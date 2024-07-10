@@ -951,7 +951,7 @@ class gencal_eoptest(unittest.TestCase):
 
         # Compare with reference file from the repository
         reference = os.path.join(datapath, 'ba123a_usno.eop')
-        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
 
     def test_eop_iers(self):
         """Test calibration table produced when gencal is run using an
@@ -964,7 +964,7 @@ class gencal_eoptest(unittest.TestCase):
 
         # Compare with reference file from the repository
         reference = os.path.join(datapath, 'ba123a_iers.eop')
-        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
 
     def test_noeop(self):
         """Test that no calibration table is produced when gencal is run on an
