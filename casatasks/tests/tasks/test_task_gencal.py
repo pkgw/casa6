@@ -52,6 +52,14 @@ evncopy = 'evn_copy.ms'
 vlbacopy = 'vlba_copy.ms'
 swpowcopy = 'swpow_copy.ms'
 
+# these are for test_gainCurveVLA
+vladata = 'tdem0003gencal.ms'
+vlacopy = 'vla_copy.ms'
+vlacal = 'vla.gc'
+vlacaltab = os.path.join(datapath, 'gencalGaincurveRef.gc')
+
+
+
 '''
 Unit tests for gencal
 '''
@@ -500,6 +508,8 @@ class gencal_gaincurve_test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        
+        shutil.copytree(os.path.join(datapath, vladata), vlacopy)
         shutil.copytree(os.path.join(datapath, evndata), evncopy)
         shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
 
@@ -507,23 +517,33 @@ class gencal_gaincurve_test(unittest.TestCase):
         pass
 
     def tearDown(self):
+        rmtables(vlacal)
         rmtables(caltab)
 
     @classmethod
     def tearDownClass(cls):
+        shutil.rmtree(vlacopy)
         shutil.rmtree(evncopy)
         shutil.rmtree(vlbacopy)
 
-    def test_gainCurve(self):
-        ''' Test calibration table produced when gencal is run on an MS with a GAIN_CURVE table '''
+    def test_gainCurveVLA(self):
+        ''' Test calibration table produced when gencal is run on a *VLA* MS and relying on data/nrao/VLA/GainCurves '''
+
+        gencal(vis=vlacopy, caltable=vlacal, caltype='gc')
+
+        self.assertTrue(os.path.exists(vlacaltab))
+        self.assertTrue(th.compTables(vlacaltab, vlacal, ['WEIGHT']))
+
+    def test_gainCurveVLBA(self):
+        ''' Test calibration table produced when gencal is run on a VLBA MS with an internal GAIN_CURVE table '''
 
         gencal(vis=vlbacopy, caltable=caltab, caltype='gc')
 
         self.assertTrue(os.path.exists(caltab))
         self.assertTrue(th.compTables(caltab, vlbacal, ['WEIGHT']))
 
-    def test_noGainCurve(self):
-        ''' Test that when gencal is run on an MS with no GAIN_CURVE table it creates no calibration table '''
+    def test_noGainCurveEVN(self):
+        ''' Test that when gencal is run on an EVN MS with no GAIN_CURVE table it creates no calibration table '''
 
         try:
             gencal(vis=evncopy, caltable=caltab, caltype='gc')
