@@ -160,15 +160,16 @@ FluxStdSrcs::Source FluxStdSrcs::srcNameToEnum(const String& srcName, const MDir
       String resolvepath = casatools::get_state( ).resolve("nrao/VLA/standards/"+tabName);
       if (resolvepath != "nrao/VLA/standards/"+tabName) {
           fcaldatapath = resolvepath;
-      } else if(!Aipsrc::findDir(fcaldatapath,"./"+tabName)) {
-          if(!Aipsrc::findDir(fcaldatapath, Aipsrc::aipsRoot()+"/data/nrao/VLA/standards/"+tabName)) {
-              //LogIO os(LogOrigin("FluxStdSrcs", "srcNameToEnum", WHERE));
-               os << LogIO::NORMAL
-                  << "No flux calibrator table: " <<  tabName
-                  << " ./ or in ~/data/nrao/VLA/standards/. Skip a cone search "
-                  << LogIO::POST;
-               return srcEnum;
-          }
+      }
+      else {
+          fcaldatapath = "./"+tabName;
+      }
+      if (!Table::isReadable(fcaldatapath)) {
+          os << LogIO::NORMAL
+             << "No flux calibrator table: " <<  tabName
+             << " ./ or in ~/data/nrao/VLA/standards/. Skip a cone search "
+             << LogIO::POST;
+          return srcEnum;
       }
       // input source coordinates (input dir must be in J2000)
       Quantum<Vector<Double> > radec = dir.getAngle();
