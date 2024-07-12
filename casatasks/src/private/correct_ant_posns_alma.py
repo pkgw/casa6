@@ -1,18 +1,11 @@
-from __future__ import absolute_import
 import time
 import numpy as np
 import sys
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table
-    from casatasks import casalog
+from casatools import table
+from casatasks import casalog
 
-    tb_tool = table( )
-else:
-    from taskinit import *
-
-    (tb_tool,) = gentools(['tb'])
+tb_tool = table( )
     
 def _fetch_tmcdb_info(ant_names, obs_time):
     use_soap = False

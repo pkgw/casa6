@@ -1,28 +1,14 @@
-from __future__ import absolute_import
 import os
 import time
 import numpy as np
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .. import casalog
-    from .callibrary import *
-    from . import flaghelper as fh
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from .mstools import write_history
-    from casatools import ms, calibrater
-else:
-    from taskinit import *
-    from mstools import write_history
-    from callibrary import *
-    import flaghelper as fh
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from parallel.parallel_task_helper import ParallelTaskHelper
-
-    calibrater = cbtool
-    ms = mstool
+from .. import casalog
+from .callibrary import *
+from . import flaghelper as fh
+from .parallel.parallel_data_helper import ParallelDataHelper
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mstools import write_history
+from casatools import ms, calibrater
 
 def applycal(
     vis=None,
@@ -198,11 +184,9 @@ def applycal(
         try:
             param_names = \
                           applycal.__code__.co_varnames[:applycal.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            local_vars = locals( )
+            param_vals = [local_vars[p] for p in param_names]
+            
             write_history(
                 ms(),
                 vis,

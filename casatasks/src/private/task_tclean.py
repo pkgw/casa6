@@ -5,8 +5,6 @@
 #
 ################################################
 
-from __future__ import absolute_import
-
 import os
 import shutil
 import numpy
@@ -14,10 +12,6 @@ import copy
 import filecmp
 import time
 import pdb
-
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-
 
 from casatasks import casalog
 

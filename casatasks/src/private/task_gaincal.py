@@ -1,17 +1,9 @@
-from __future__ import absolute_import
 import os
 import numpy as np
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from .callibrary import *
-    from casatools import calibrater
-    from casatasks import casalog
-else:
-    from callibrary import *
-    from taskinit import *
-
-    calibrater = cbtool
+from .callibrary import *
+from casatools import calibrater
+from casatasks import casalog
 
 def gaincal(vis=None,caltable=None,
             field=None,spw=None,intent=None,
