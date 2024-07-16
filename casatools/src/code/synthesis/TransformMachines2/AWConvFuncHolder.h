@@ -89,7 +89,8 @@ private:
                        const casacore::Array<casacore::Complex> &aWwtConv,
                        const casacore::Matrix<casacore::Int> &awsupport,
                        const casacore::Vector<casacore::Double> &newfreqs,
-                       const casacore::Double paval);
+                       const casacore::Double paval,
+                       const int startrow=0);
 
   double painc_p;
   bool dosquint_p;

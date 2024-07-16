@@ -82,10 +82,12 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
  convSampling=(max(nx, ny) < 100) ? 100: Int(ceil(10000.0/max(nx, ny)));
   if(convSampling <4) 
     convSampling=4;
- // TESTOO
-  //convSampling = 1;
+  //For multiple pa angle reduce mem consumed
+  if(doSquint_p)
+    convSampling = 2;
   // TESTOO
-  
+  // convSampling = 1;
+  // TESTOO
 
   CoordinateSystem cs=image->coordinates();
    

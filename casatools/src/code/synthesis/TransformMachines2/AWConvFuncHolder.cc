@@ -37,7 +37,7 @@
 #include <synthesis/TransformMachines2/EVLAAperture.h>
 #include <synthesis/TransformMachines2/AWConvFuncHolder.h>
 #include <iomanip>
-
+#include <casacore/casa/OS/Timer.h>
 namespace casa {  //# CASA namespace
 namespace refim { //# namespace refactor imaging
 
@@ -144,30 +144,37 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
  }
   std::shared_ptr<refim::WPConvFunc>wptr;
   AWConvFunc a(aterm_p, wptr);
-  Array<Complex> aWConv;
-  Array<Complex> aWwtconv;
-  Matrix<Int> awSupport;
+  //Array<Complex> aWConv;
+  //Array<Complex> aWwtconv;
+  //Matrix<Int> awSupport;
   calcCsys_p = outcsys_p;
   calcNpix_p = min(nx_p,  ny_p);
   //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
   //cerr << "FREQS " << freqsToCalc << endl;
-  for (uint k=0; k<paVals_p.nelements(); ++k){
+  for (uint k = 0; k < paVals_p.nelements(); ++k) {
     calcNpix_p = min(nx_p,  ny_p);
     calcCsys_p = outcsys_p;
+    Array<Complex> aWConv;
+    Array<Complex> aWwtconv;
+    Matrix<Int> awSupport;
     a.makeAWConvFunc(aWConv, aWwtconv, calcCsys_p, awSupport, calcNpix_p,
                      freqsToCalc, wVals_p, dosquint_p, paVals_p[k],
                      isSingleField_p);
     //cerr << "######MAX awsupp " << max(awSupport) << endl;
-                                                   
-    appendConvFuncs(aWConv,  aWwtconv,  awSupport,  freqsToCalc,  paVals_p[k]);
+    int startrow = k * wVals_p.nelements();
+    appendConvFuncs(aWConv, aWwtconv, awSupport, freqsToCalc, paVals_p[k], startrow);
+    // Let's resize for all paVals as resizing is costly
+    if (k == 0 && paVals_p.nelements() > 1) {
+      IPosition shp = convFunc_p.shape();
+      shp[4] = wVals.nelements() * paVals_p.nelements();
+      convFunc_p.resize(shp, true);
+      wgtConvFunc_p.resize(shp, true);
+    }
   }
-  
-  
- 
- 
+
  return true;;
 }
-void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Array<Complex>& aWwtConv,  const Matrix<Int>& awsupport,  const Vector<Double>& newFreqs,  const Double paVal) {
+void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Array<Complex>& aWwtConv,  const Matrix<Int>& awsupport,  const Vector<Double>& newFreqs,  const Double paVal, const int startrow) {
   Int nfreqs = awConv.shape()[3];
   // Make sure the polVals are in the stokes used in making convfun
   polVals_p.resize(4);
@@ -216,7 +223,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
   factorX = Float(nx_p) *Float(oversamp_p)/Float(calcNpix_p)/factorX;
   factorY = Float(ny_p) *Float(oversamp_p)/Float(calcNpix_p)/factorY;
   
- // cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
+  //cerr <<  "factors " <<  factorX <<  "   " <<  factorY <<  "nx,  ny" <<  nx_p << "   " << ny_p << " calcNpix " << calcNpix_p << " oversamp " << oversamp_p << endl;
   MathUtils m;
   Array<Complex> newAWConv;
   Array<Complex> newWtConv;
@@ -238,8 +245,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
 
   newAWConv *= correcfac;
   newWtConv *= correcfac;
-  
- 
+
   /*{ 
       ////TESTOO
       IPosition elshp = newAWConv.shape().getFirst(4);
@@ -253,8 +259,9 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     //////
     }*/       
   // have to slice if not zero
+ 
   if (convFunc_p.nelements() == 0) {
-    Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
+    Int npix = min(newAWConv.shape()[0], newAWConv.shape()[1]);
     //cerr << "####npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
     if(npix < (2*max(awsupport+1)*oversamp_p)){
       npix=2*(max(awsupport)+1)*oversamp_p;
@@ -276,7 +283,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
       convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
     }
-    convSizes_p.resize(trc[0]+1);
+    convSizes_p.resize(trc[0] + 1);
     convSizes_p.set(npix);
     convSupport_p.resize(trc[0]+1);
     convSupport_p = awsupport.row(nfreqs-1);
@@ -285,45 +292,63 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     // Appending PA changing only
     IPosition newshp = convFunc_p.shape();
     // asumming same freqs for now
-    newshp(4) = newshp(4)+awConv.shape()(4);
+    newshp(4) = startrow+awConv.shape()(4);
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
     //cerr << "Npix " << npix << " newShp " << convFunc_p.shape() << endl;
     //if (npix > newshp[0]) {
 
     //  cerr << "npix is not the same for a different PA" << endl;
 
-    //} 
-    if(npix <= newshp[0]){
-      IPosition blcadded(5, 0, 0, 0, 0, convFunc_p.shape()[4]);
+    //}
+    if (npix <= newshp[0]) {
+      IPosition blcadded(5, 0, 0, 0, 0, startrow);
       IPosition trcadded = newshp - 1;
-      convFunc_p.resize(newshp, True);
-      wgtConvFunc_p.resize(newshp, True);
+      /**
+      Array<Complex> c(IPosition(5, newshp[0], newshp[1], newshp[2], newshp[3],
+                                 awConv.shape()[4]),
+                       Complex(0.0));
+      Array<Complex> d(c.shape(), Complex(0.0));
+      MathUtils::putMiddle(c, newAWConv);
+      MathUtils::putMiddle(d, newWtConv);
+      cerr << "shpe bef " << convFunc_p.shape() << endl;
+      Array<Complex> cCont(concatenateArray(convFunc_p, c));
+      Array<Complex> wCont(concatenateArray(wgtConvFunc_p, d));
+      convFunc_p.reference(cCont);
+      wgtConvFunc_p.reference(wCont);
+      cerr << "shpe aft " << convFunc_p.shape() << endl;
+      */
+      if(convFunc_p.shape()(4)< newshp[4]){
+        convFunc_p.resize(newshp, True);  
+        wgtConvFunc_p.resize(newshp, True);
+      }
       convFunc_p(blcadded, trcadded).set(0.0);
       wgtConvFunc_p(blcadded, trcadded).set(0.0);
-Array<Complex> c=convFunc_p(blcadded, trcadded);
+      Array<Complex> c = convFunc_p(blcadded, trcadded);
       MathUtils::putMiddle(c, newAWConv);
       Array<Complex> d=wgtConvFunc_p(blcadded, trcadded);
       MathUtils::putMiddle(d, newWtConv);
+      
       convSizes_p.resize(trc[0]+1, true);
       convSizes_p(blc,  trc).set(newshp[0]);
       convSupport_p.resize(trc[0]+1, true);
       convSupport_p(blc, trc)= awsupport.row(nfreqs-1);
-
-
-    }
-    else {
-      IPosition blcadded(5,  0,  0,  0,  0, convFunc_p.shape()[4]);
+    } else {
+      IPosition blcadded(5, 0, 0, 0, 0, startrow);
       if(newshp.product()>0 && newshp[0] < npix)
         npix=newshp[0];
       IPosition trcadded = newshp-1;
-      convFunc_p.resize(newshp,  True);
-      wgtConvFunc_p.resize(newshp,  True);
-      convFunc_p(blcadded,  trcadded) = MathUtils::getMiddle(newAWConv,  npix,  npix);
-      wgtConvFunc_p(blcadded, trcadded) = MathUtils::getMiddle(newWtConv,  npix,  npix);
-      convSizes_p.resize(trc[0]+1, true);
-      convSizes_p(blc,  trc).set(npix);
-      convSupport_p.resize(trc[0]+1, true);
-      convSupport_p(blc, trc)= awsupport.row(nfreqs-1);
+      if (convFunc_p.shape()(4) < newshp[4]) {
+        convFunc_p.resize(newshp, True);
+        wgtConvFunc_p.resize(newshp, True);
+      }
+      convFunc_p(blcadded, trcadded) =
+          MathUtils::getMiddle(newAWConv, npix, npix);
+      wgtConvFunc_p(blcadded, trcadded) =
+            MathUtils::getMiddle(newWtConv, npix, npix);
+      convSizes_p.resize(trc[0] + 1, true);
+      convSizes_p(blc, trc).set(npix);
+      convSupport_p.resize(trc[0] + 1, true);
+      convSupport_p(blc, trc) = awsupport.row(nfreqs - 1);
     }
   }
   
