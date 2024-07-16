@@ -29,7 +29,7 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
 
 def is_string_type(val):
     """Return True if the argument is string type."""
-    return type(val) in [str, numpy.bytes_]
+    return type(val) in [str, numpy.str_]
 
 
 def smart_remove(path):
