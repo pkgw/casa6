@@ -47,6 +47,7 @@
 #include <casacore/scimath/Functionals/ScalarSampledFunctional.h>
 #include <casacore/scimath/Functionals/Interpolate1D.h>
 #include <casacore/scimath/Mathematics/Combinatorics.h>
+#include <casatools/Config/State.h>
 
 #include <sstream>
 
@@ -200,7 +201,7 @@ void EGainCurve::setSpecify(const Record& specify) {
   } 
   // If VLA, use standard file
   else if (telescope.contains("VLA")) {
-    gainCurveSrc_=Aipsrc::aipsRoot() + "/data/nrao/VLA/GainCurves";
+    gainCurveSrc_=casatools::get_state( ).resolve("nrao/VLA/GainCurves");
     if ( !Table::isReadable(gainCurveSrc_) )
       throw(AipsError("Standard VLA gain curve table "+gainCurveSrc_+" is unreadable or absent."));
 
