@@ -160,10 +160,10 @@ class importfits_test(unittest.TestCase):
         self.assertTrue(beamresult['positionangle']['value'] == 25.0)
 
     def test_zeroblanks(self):
-        """Check that the zeroblanks parameter changes NaN values to zeros"""
+        """Check that the zeroblanks parameter changes nan values to zeros"""
 
         # Generate an image full of nans
-        genarray = ia.makearray(v=np.NaN, shape=[64, 64, 4, 128])
+        genarray = ia.makearray(v=np.nan, shape=[64, 64, 4, 128])
         result = ia.fromarray(outfile=outpath, pixels=genarray)
         ia.done()
         # Convert to fits
