@@ -936,6 +936,9 @@ if __name__ == "__main__":
     if args.test_group is not None:
         components = args.test_group
         components = [x.strip() for x in components.split(",")]
+        if len(components) == 1 and not components[0]:
+            print("Component list is empty. Using component 'default'")
+            components = ["default"]
         print("Testing Components" + str(components))
         print("")
 
