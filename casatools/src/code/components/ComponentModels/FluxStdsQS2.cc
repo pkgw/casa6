@@ -227,7 +227,7 @@ Bool FluxStdPerleyButler2013::setSourceCoeffs()
   if (!Table::isReadable(stddatapath)) {
       ostringstream oss;
       oss << "The coefficient data for Perley-Butler 2013," <<  stdTabName
-          << " is not found in the current directory or in datapth.";
+          << " is not found in the current directory or in datapth/measurespath.";
       throw(AipsError(String(oss)));
   }
   //cerr<<"use stddatapath="<<stddatapath<<endl;
@@ -287,7 +287,7 @@ Bool FluxStdScaifeHeald2012::setSourceCoeffs()
   if (!Table::isReadable(stddatapath)) {
       ostringstream oss;
       oss << "The coefficient data for Scaife-Heald 2012," <<  stdTabName
-          << " is not found in the current directory or in datapth.";
+          << " is not found in the current directory or in datapth/measurespath.";
       throw(AipsError(String(oss)));
   }
   //cerr<<"use stddatapath="<<stddatapath<<endl;
@@ -361,7 +361,7 @@ Bool FluxStdPerleyButler2017::setSourceCoeffs()
   if (!Table::isReadable(stddatapath)) {
       ostringstream oss;
       oss << "The coefficient data for Perley-Butler 2017, " <<  stdTabName
-          << " is not found in the current directory or in datapth.";
+          << " is not found in the current directory or in datapth/measurespath.";
       throw(AipsError(String(oss)));
   }
   LogIO os(LogOrigin("FluxStdPerleyButler2017", "setSourceCoeffs", WHERE));

@@ -167,7 +167,7 @@ FluxStdSrcs::Source FluxStdSrcs::srcNameToEnum(const String& srcName, const MDir
       if (!Table::isReadable(fcaldatapath)) {
           os << LogIO::NORMAL
              << "No flux calibrator table: " <<  tabName
-             << " ./ or in ~/data/nrao/VLA/standards/. Skip a cone search "
+             << " in the current directory or in datapath/measurespath. Skip a cone search "
              << LogIO::POST;
           return srcEnum;
       }
