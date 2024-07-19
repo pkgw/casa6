@@ -298,6 +298,7 @@ def tocasatb(indata, outtable):
             ###
             lcnt = 0
             # for lnum, line in enumerate(infile):
+            print(type(ephemdata))
             for lnum, line in enumerate(ephemdata.split('\n')):
                 # JPL-Horizons data should contain this line at the beginning
                 if re.search(r'JPL/HORIZONS', line):
