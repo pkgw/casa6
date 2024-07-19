@@ -381,9 +381,7 @@ def tocasatb(indata, outtable):
                         headerdict['GeoDist'] = float(long_lat_alt[2])
                         # obs location
                 elif re.search(r'Center-site name', line):
-                    #m = re.match(r'^[>\s]*Center-site name:\s+(\S+', line)
                     m = re.match(r'^[>\s]*Center-site name:(\s*)([a-zA-Z\s*\/\-\(\)]+)', line)
-                    print(m)
                     if m:
                         # For the topocentric location, currently only ALMA, VLA and GBT are translated 
                         # to the proper observatory name which recongnized by Measures.
