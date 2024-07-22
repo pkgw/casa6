@@ -2975,7 +2975,23 @@ namespace casac {
         // And then finally process the state and the main table.
         //
         if (lazy) {
-            fillMainLazily(dsName, ds, selected_eb_scan_m,effectiveBwPerDD_m,e_query_cm,checkdupints);
+            try {
+                fillMainLazily(dsName, ds, selected_eb_scan_m,effectiveBwPerDD_m,e_query_cm,checkdupints);
+            } catch (SDMMSTooLargeException& e) {
+                // this needs to exit with an exception, but some cleanup should happen first
+                // clean up the fillers
+                for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
+                      iter != msFillers.end(); ++iter )
+                    iter->second->end();
+  
+                for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
+                      iter != msFillers.end(); ++iter )
+                    delete iter->second;
+
+                infostream.str("");
+                infostream << e.getMessage();
+                error(infostream.str());
+            }
         } else {
 
             const MainTable&		mainT  = ds->getMain();
@@ -3155,10 +3171,12 @@ namespace casac {
                                 infostream << vmsDataPtr->v_antennaId1.size()  << " MS Main rows." << endl;
                                 info(infostream.str());
                                 numberOfMSMainRows += vmsDataPtr->v_antennaId1.size();
-                                infostream.str("");
-                                infostream << "ASDM Main row #" << mainRowIndex[i] << "produced a total of " << numberOfMSMainRows << " MS Main rows." << endl;
+
                             }
                         }
+                        infostream.str("");
+                        infostream << "ASDM Main row #" << mainRowIndex[i] << " produced a total of " << numberOfMSMainRows << " MS Main rows." << endl;
+                        info(infostream.str());
                     }
                 } catch ( ConversionException& e) {
                     infostream.str("");
@@ -3579,13 +3597,21 @@ namespace casac {
     }
 
     // if adding numNewRows to the MS in use by filler will exceed the max uint32 value then this throws an SDMMSTooLargeException
+    // The code has been update to use rownr_t and size_t as appropriate instead of 32 bit integers that were used in some place and
+    // there remain problems when an attempt is made to exceed the uint32 maximum for the number of rows. Specifically TSMCube::makeCache
+    // tries to dereference a pointer (fileptr_p) that has a value of 0. The cause of that bug has not been identified. Additionally,
+    // the bdf flagging code (which happens after the fill step) has not been examined closely for remaining uint32 issues and the
+    // asdm storage manager used in lazy filling has not been updated to allow for rows past the uint32 limit. The decision has been
+    // made to not fix these problems so an exception is thrown (previously it would crash, leaving the MS completely unusable without
+    // a clear explanation as to the cause). Documentation exists describing work arounds (filling fewer ASDM rows at a time, basically).
+    
     void sdm::checkMSSize(ASDM2MSFiller *filler, std::size_t numNewRows) {
         if (filler && filler->ms()) {
             casacore::rownr_t newSize = filler->ms()->nrow()+numNewRows;
             if (newSize > std::numeric_limits<unsigned int>::max()) {
                 ostringstream oss;
                 oss << "MS would exceed the row limit. Adding " << numNewRows << " to " << filler->ms()->tableName()
-                    << " would exceed the limit of " << std::numeric_limits<unsigned int>::max() << "rows" << endl;
+                    << " would exceed the limit of " << std::numeric_limits<unsigned int>::max() << " rows" << endl;
                 throw SDMMSTooLargeException(oss.str());
             }
         }
