@@ -25,6 +25,7 @@ import unittest
 
 from casatasks import cvel, split, importuvfits
 from casatools import ctsys, table, quanta, ms
+from casatestutils import testhelper as th
 
 _tb = table( )
 _qa = quanta( )
@@ -41,40 +42,6 @@ vis_e = 'evla-highres-sample-thinned.ms'
 vis_f = 'test_cvel1.ms'
 vis_g = 'jup.ms'
 outfile = 'cvel-output.ms'
-
-def verify_ms(msname, expnumspws, expnumchan, inspw, expchanfreqs=[]):
-    msg = ''
-    _tb.open(msname+'/SPECTRAL_WINDOW')
-    nc = _tb.getcell("NUM_CHAN", inspw)
-    nr = _tb.nrows()
-    cf = _tb.getcell("CHAN_FREQ", inspw)
-    _tb.close()
-    _tb.open(msname)
-    dimdata = _tb.getcell("FLAG", 0)[0].size
-    _tb.close()
-    if not (nr==expnumspws):
-        msg =  "Found "+str(nr)+", expected "+str(expnumspws)+" spectral windows in "+msname
-        return [False,msg]
-    if not (nc == expnumchan):
-        msg = "Found "+ str(nc) +", expected "+str(expnumchan)+" channels in spw "+str(inspw)+" in "+msname
-        return [False,msg]
-    if not (dimdata == expnumchan):
-        msg = "Found "+ str(dimdata) +", expected "+str(expnumchan)+" channels in FLAG column in "+msname
-        return [False,msg]
-
-    if not (expchanfreqs==[]):
-        print("Testing channel frequencies ...")
-        print(cf)
-        print(expchanfreqs)
-        if not (expchanfreqs.size == expnumchan):
-            msg =  "Internal error: array of expected channel freqs should have dimension ", expnumchan
-            return [False,msg]
-        df = (cf - expchanfreqs)/expchanfreqs
-        if not (abs(df) < 1E-8).all:
-            msg = "channel frequencies in spw "+str(inspw)+" differ from expected values by (relative error) "+str(df)
-            return [False,msg]
-
-    return [True,msg]
 
 class cvel_test(unittest.TestCase):
 
@@ -170,7 +137,7 @@ class cvel_test(unittest.TestCase):
         os.system('ln -sf ' + myvis + ' myinput.ms')
         rval = cvel(vis = 'myinput.ms', outputvis = outfile)
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 64, 0)
+        ret = th.verifyMS(outfile, 1, 64, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test4(self):
@@ -179,7 +146,7 @@ class cvel_test(unittest.TestCase):
         os.system('ln -sf ' + myvis + ' myinput.ms')
         rval = cvel(vis = 'myinput.ms', outputvis = outfile, field = '1')
         self.assertNotEqual(rval,False)
-        ret = (verify_ms(outfile, 1, 64, 0))
+        ret = (th.verifyMS(outfile, 1, 64, 0))
         self.assertTrue(ret[0],ret[1])
 
     def test5(self):
@@ -193,7 +160,7 @@ class cvel_test(unittest.TestCase):
                     passall = True
                     )
         self.assertNotEqual(rval,False)
-        ret = (verify_ms(outfile, 1, 64, 0))
+        ret = (th.verifyMS(outfile, 1, 64, 0))
         self.assertTrue(ret[0],ret[1])
 
     def test6(self):
@@ -210,7 +177,7 @@ class cvel_test(unittest.TestCase):
             passall = True
             )
         self.assertNotEqual(rval,False)
-        ret = (verify_ms(outfile, 2, 32, 0))
+        ret = (th.verifyMS(outfile, 2, 32, 0))
         self.assertTrue(ret[0],ret[1])
 
     ## # Tests with more than one spectral window ###################
@@ -228,7 +195,7 @@ class cvel_test(unittest.TestCase):
                 passall = False
                 )
         self.assertNotEqual(rval,False)
-        ret = (verify_ms(outfile, 1, 2, 0))
+        ret = (th.verifyMS(outfile, 1, 2, 0))
         self.assertTrue(ret[0],ret[1])
 
     def test8(self):
@@ -246,7 +213,7 @@ class cvel_test(unittest.TestCase):
             width = 2
             )
         self.assertNotEqual(rval,False)
-        ret = (verify_ms(outfile, 1, 1, 0))
+        ret = (th.verifyMS(outfile, 1, 1, 0))
         self.assertTrue(ret[0],ret[1])
    
     def test9(self):
@@ -265,7 +232,7 @@ class cvel_test(unittest.TestCase):
             start = 1
             )
         self.assertNotEqual(rval,False)
-        ret = (verify_ms(outfile, 1, 1, 0))
+        ret = (th.verifyMS(outfile, 1, 1, 0))
         self.assertTrue(ret[0],ret[1])
     
     def test10(self):
@@ -284,7 +251,7 @@ class cvel_test(unittest.TestCase):
             width = '50MHz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 1, 0)
+        ret = th.verifyMS(outfile, 1, 1, 0)
         self.assertTrue(ret[0],ret[1])
 
     
@@ -306,7 +273,7 @@ class cvel_test(unittest.TestCase):
             outframe = 'lsrk'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 1, 0)
+        ret = th.verifyMS(outfile, 1, 1, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test12(self):
@@ -327,7 +294,7 @@ class cvel_test(unittest.TestCase):
             outframe = ''
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 2, 0)
+        ret = th.verifyMS(outfile, 1, 2, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test13(self):
@@ -349,7 +316,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = 1
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 2, 0)
+        ret = th.verifyMS(outfile, 1, 2, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test14(self):
@@ -372,7 +339,7 @@ class cvel_test(unittest.TestCase):
                 phasecenter = 12
                 )
             self.assertNotEqual(rval,False)
-            ret = verify_ms(outfile, 1, 2, 0)
+            ret = th.verifyMS(outfile, 1, 2, 0)
             self.assertTrue(ret[0],ret[1])
         except:
             print("*** Expected error ***")
@@ -394,7 +361,7 @@ class cvel_test(unittest.TestCase):
             outframe = ''
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 1, 0)
+        ret = th.verifyMS(outfile, 1, 1, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test16(self):
@@ -414,7 +381,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = 2
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test17(self):
@@ -434,7 +401,7 @@ class cvel_test(unittest.TestCase):
             outframe = 'lsrd',
             phasecenter = 2)
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
         
     def test18(self):
@@ -455,7 +422,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = 'J2000 12h56m43.88s +21d41m00.1s'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
 
         
@@ -498,7 +465,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -516,7 +483,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 111, 0)
+        ret = th.verifyMS(outfile, 1, 111, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test21(self):
@@ -533,7 +500,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 21, 0)
+        ret = th.verifyMS(outfile, 1, 21, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -551,7 +518,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 210, 0)
+        ret = th.verifyMS(outfile, 1, 210, 0)
         self.assertTrue(ret[0],ret[1])
         os.system('mv '+outfile+' xxx.ms')
     
@@ -574,7 +541,7 @@ class cvel_test(unittest.TestCase):
             veltype = 'radio'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 30, 0)
+        ret = th.verifyMS(outfile, 1, 30, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -597,7 +564,7 @@ class cvel_test(unittest.TestCase):
             veltype = 'radio'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 35, 0)
+        ret = th.verifyMS(outfile, 1, 35, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test25(self):
@@ -622,7 +589,7 @@ class cvel_test(unittest.TestCase):
             veltype = 'optical'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 40, 0)
+        ret = th.verifyMS(outfile, 1, 40, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test26(self):
@@ -647,7 +614,7 @@ class cvel_test(unittest.TestCase):
             veltype = 'optical'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 41, 0)
+        ret = th.verifyMS(outfile, 1, 41, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test27(self):
@@ -660,7 +627,7 @@ class cvel_test(unittest.TestCase):
             outputvis = outfile
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 2440, 0)
+        ret = th.verifyMS(outfile, 1, 2440, 0)
         self.assertTrue(ret[0],ret[1])
     
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -677,7 +644,7 @@ class cvel_test(unittest.TestCase):
             nchan=30
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 30, 0)
+        ret = th.verifyMS(outfile, 1, 30, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -694,7 +661,7 @@ class cvel_test(unittest.TestCase):
             nchan=31
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 31, 0)
+        ret = th.verifyMS(outfile, 1, 31, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test30(self):
@@ -708,7 +675,7 @@ class cvel_test(unittest.TestCase):
             )
         
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 2425, 0)
+        ret = th.verifyMS(outfile, 1, 2425, 0)
         self.assertTrue(ret[0],ret[1])
     
     def test31(self):
@@ -723,7 +690,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 2440, 0)
+        ret = th.verifyMS(outfile, 1, 2440, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test32(self):
@@ -739,7 +706,7 @@ class cvel_test(unittest.TestCase):
             hanning = True
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 2440, 0)
+        ret = th.verifyMS(outfile, 1, 2440, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test33(self):
@@ -755,7 +722,7 @@ class cvel_test(unittest.TestCase):
             hanning = True
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 128, 0)
+        ret = th.verifyMS(outfile, 1, 128, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test34(self):
@@ -769,7 +736,7 @@ class cvel_test(unittest.TestCase):
             restfreq  = '6035.092MHz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 260, 0)
+        ret = th.verifyMS(outfile, 1, 260, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test35(self):
@@ -789,7 +756,7 @@ class cvel_test(unittest.TestCase):
             width=1
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test36(self):
@@ -809,7 +776,7 @@ class cvel_test(unittest.TestCase):
             width=-1
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test37(self):
@@ -830,7 +797,7 @@ class cvel_test(unittest.TestCase):
             width=str(a[2]-a[1])+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test38(self):
@@ -851,7 +818,7 @@ class cvel_test(unittest.TestCase):
             width='-'+str(a[2]-a[1])+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test39(self):
@@ -879,7 +846,7 @@ class cvel_test(unittest.TestCase):
             restfreq=str(restf)+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test39_veltype_uppercase(self):
@@ -907,7 +874,7 @@ class cvel_test(unittest.TestCase):
             restfreq=str(restf)+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test40(self):
@@ -935,7 +902,7 @@ class cvel_test(unittest.TestCase):
             restfreq=str(restf)+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test41(self):
@@ -967,7 +934,7 @@ class cvel_test(unittest.TestCase):
             restfreq=str(restf)+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test42(self):
@@ -999,7 +966,7 @@ class cvel_test(unittest.TestCase):
             restfreq=str(restf)+'Hz'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -1017,7 +984,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -1035,7 +1002,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -1053,7 +1020,7 @@ class cvel_test(unittest.TestCase):
             phasecenter = "J2000 18h25m56.09 -12d04m28.20"
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test46(self):
@@ -1069,7 +1036,7 @@ class cvel_test(unittest.TestCase):
             nchan = 100
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 100, 0)
+        ret = th.verifyMS(outfile, 1, 100, 0)
         self.assertTrue(ret[0],ret[1])
 
     @unittest.skip('Skip, this produces an exception since release 4.7.2 as per CAS-9798')
@@ -1086,7 +1053,7 @@ class cvel_test(unittest.TestCase):
             width=3
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 10, 0)
+        ret = th.verifyMS(outfile, 1, 10, 0)
         self.assertTrue(ret[0],ret[1])
 
     def test48(self):
@@ -1107,7 +1074,7 @@ class cvel_test(unittest.TestCase):
             interpolation = 'fftshift'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test48_interpolation_uppercase(self):
@@ -1128,7 +1095,7 @@ class cvel_test(unittest.TestCase):
             interpolation = 'FFTSHIFT'
             )
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 3, 0, b)
+        ret = th.verifyMS(outfile, 1, 3, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test49(self):
@@ -1146,7 +1113,7 @@ class cvel_test(unittest.TestCase):
                 interpolation = 'fftshift'
                 )
             self.assertNotEqual(rval,False)
-            ret = verify_ms(outfile, 1, 2, 0)
+            ret = th.verifyMS(outfile, 1, 2, 0)
             self.assertTrue(ret[0],ret[1])
         except:
             print("*** Expected error ***")
@@ -1188,7 +1155,7 @@ class cvel_test(unittest.TestCase):
             )
 
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 150, 0, b)
+        ret = th.verifyMS(outfile, 1, 150, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test51(self):
@@ -1225,7 +1192,7 @@ class cvel_test(unittest.TestCase):
             )
 
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 150, 0, b)
+        ret = th.verifyMS(outfile, 1, 150, 0, b)
         self.assertTrue(ret[0],ret[1])
 
     def test52(self):
@@ -1266,7 +1233,7 @@ class cvel_test(unittest.TestCase):
             )
 
         self.assertNotEqual(rval,False)
-        ret = verify_ms(outfile, 1, 150, 0, b)
+        ret = th.verifyMS(outfile, 1, 150, 0, b)
         self.assertTrue(ret[0],ret[1])
 
 

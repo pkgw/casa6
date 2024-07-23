@@ -225,7 +225,7 @@ class TestHelpers:
         for k in range(nchan):
             beam2[k] = _ia.beamarea(k,0)['arcsec2']
         _ia.close()
-        return numpy.alltrue(op(beam1, beam2))
+        return numpy.all(op(beam1, beam2))
 
     def image_exists(self, imname):
         """ Image exists """
@@ -301,6 +301,8 @@ class TestHelpers:
         if 'summaryminor' in summ:
             idx = self._get_chanstoke_withiters_cycleN(summ)
             peakres = summ['summaryminor'][0][idx[0]][idx[1]]['peakRes'][idx[2]]
+        else:
+            casalog.post("Error! no 'summaryminor' in tclean return value "+str(summ)[:2000], "SEVERE", "TestHelpers")
         return peakres
 
     def check_peak_res(self, summ,correctres, epsilon=0.05):
@@ -546,27 +548,59 @@ class TestHelpers:
  
         
     def check_val(self, val, correctval, valname='Value', exact=False, epsilon=0.05, testname = "check_val"):
+        """Check that a value is equal to a reference value using a tolerance or not. 
+           
+            Parameters
+            ----------
+            val: float
+                Value should be a number to compare with a reference given in 'correctval'
+            correctval: float
+                Reference value to be compared with "value"
+            valname: string
+                The name of the parameter that identifies "value". (optional)
+            exact: Bool
+                If False, it will compare within the tolerance given by "epsilon"
+            epsilon: Float
+                Default is 0.05. It is only used if "exact" is False
+            testname: string
+                This function name
+
+            Return
+            ----------
+            (out, pstr): (Bool,string)
+                It returns a tuple with a Bool and a string. When the comparison of val and correctval does not
+                succed it returns False and a string saying:
+                
+                [ check_val ] beam_major is 4.845038414001465 ( Fail : should be 5.035, Epsilon: 0.01)
+            -----
+  
+        """
+
         pstr = ''
         out = True
-        if numpy.isnan(val) or numpy.isinf(val):
-            out = False
-        if correctval == None and val != None:
-            out = False
-        if correctval != None and val == None:
-            out = False
-        if out==True and val != None:
-            if exact==True:
-                if correctval != val:
-                    out = False
+        try:
+            if numpy.isnan(val) or numpy.isinf(val):
+                out = False
+            if correctval == None and val != None:
+                out = False
+            if correctval != None and val == None:
+                out = False
+            if out==True and val != None:
+                if exact==True:
+                    if correctval != val:
+                        out = False
+                else:
+                    if abs(correctval - val)/abs(correctval) > epsilon:
+                        out=False
+            if exact == True:
+                pstr = "[ {} ] {} is {} ( {} : should be {}, Exact: True )\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval) )
             else:
-                if abs(correctval - val)/abs(correctval) > epsilon:
-                    out=False
-        if exact == True:
-            pstr = "[ {} ] {} is {} ( {} : should be {}, Exact: True )\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval) )
-        else:
-            pstr = "[ {} ] {} is {} ( {} : should be {}, Epsilon: {})\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval), str(epsilon) )
-        logging.info(pstr)
-        return out, pstr
+                pstr = "[ {} ] {} is {} ( {} : should be {}, Epsilon: {})\n".format(testname, valname, str(val), TestHelpers().verdict(out), str(correctval), str(epsilon) )
+            logging.info(pstr)
+            return out, pstr
+        except TypeError:
+            casalog.post("Error! TypeError for val "+str(val)+", correctval "+str(correctval), "SEVERE", "TestHelpers")
+            raise
 
     def check_val_less_than(self, val, bound, valname='Value',testname ="check_val_less_than"):
         pstr = ''
@@ -1284,3 +1318,19 @@ class TestHelpers:
             if isinstance(v, dict):
                 return self.checkKeyInNestedDict(k,v)
         return None
+
+    def check_mask(self, mname=''):
+        if os.path.exists(mname):
+            _ia.open(mname)
+            ss = _ia.statistics()['sum']
+            _ia.close()
+        else:
+            ss = -1
+        return ss
+
+    def fill_mask(self, mname='',val=0.0):
+        _ia.open(mname)
+        pix = _ia.getchunk()
+        pix.fill(val)
+        _ia.putchunk(pix)
+        _ia.close()

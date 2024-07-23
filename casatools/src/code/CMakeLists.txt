@@ -54,9 +54,19 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     STRING "Choose the type of build." FORCE)
 endif()
 
-# Set C++ standard to c++11
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
+
+message (STATUS "CMAKE_CXX_STANDARD ${CMAKE_CXX_STANDARD}")
+
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+
+#if (APPLE)
+#  if (${CMAKE_CXX_COMPILER_VERSION} MATCHES "^15.*")
+#    message("Adding -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION preprocessor definition")
+#    add_compile_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
+#  endif()
+#endif()
 
 ## Set definitions global to the whole project
 add_definitions(-DCASACORE_NEEDS_RETHROW)

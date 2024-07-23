@@ -108,7 +108,7 @@
 # List of test classes
 #
 # [test_onefield, test_iterbot, test_multifield,test_stokes, test_modelvis, test_cube, test_mask, test_startmodel, test_widefield,
-# test_pbcor, test_mosaic_mtmfs, test_mosaic_cube, test_ephemeris, test_hetarray_imaging, test_wproject, test_errors_failures]
+# test_pbcor, test_mosaic_mtmfs, test_mosaic_cube, test_ephemeris, test_hetarray_imaging, test_wproject, test_errors_failures,test_mtmfsviacube]
 #
 ##########################################################################
 import os
@@ -125,7 +125,6 @@ from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
 from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 from casatasks import impbcor, split, concat
-
 
 
 from casatestutils.imagerhelpers import TestHelpers
@@ -202,7 +201,11 @@ class testref_base(unittest.TestCase):
               self.maskname=maskname
           if (os.path.exists(self.maskname)):
               os.system('rm -rf ' + self.maskname)
-          shutil.copytree(os.path.join(refdatapath,self.maskname), self.maskname)
+          origmask = os.path.join(refdatapath,self.maskname)
+          if os.path.isfile(origmask):
+              shutil.copyfile(origmask, self.maskname)
+          else:
+              shutil.copytree(origmask, self.maskname)
 
      def prepInputTextFile(self, textfile=""):
           if textfile!="":
@@ -261,7 +264,7 @@ class test_onefield(testref_base):
           self.assertTrue(self.check_final(pstr=report))
           
      ## Add tests for CAS-940 here, for asp using sim_data_VLA_jet.ms which contains 5 chans.
-     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
+#     @unittest.skipIf(sys.platform == "darwin", "test_onefield_asp is disabled on macOS due to intermittent failures.")
      def test_onefield_asp(self):
           """ [onefield] Test_Onefield_asp : mfs with asp minor cycle """
           #import pdb
@@ -274,66 +277,71 @@ class test_onefield(testref_base):
           ##                        smoothed to an angular resolution of 94.3asec x 81.5asec, pa=-89 for channel 0 
           ##                        smoothed to an angular resolution of 52asec x 45asec, pa=-89 for channel 4 
           #############################################################################
-          ## Tolerance : 12% relative error from the truth.
-          ##                     - This includes reconstruction uncertainty, and is an absolute tolerance.
           ##                     - The current ASP implementation uses a library that gives difference convergence profiles, depending on 
-          ##                        how the code is built. This threshold also includes current variability between local vs bamboo builds (as of Feb 2022). 
+          ##                        how the code is built. This threshold also includes current variability between local vs bamboo builds (as of Feb 2022).
+          ##                     - With gain=0.5 and above, there is variation at the 15-20% level between local dev builds, manylinuc2014 tarballs and
+          ##                        MacOS.  With gain=0.2 (which is what other deconvolvers use), the variation is in the 3rd-4th decimal place. 
           #############################################################################
 
           ## Point source (core) : Flux = 1.0 Jy/bm at [256,209,0,0])   --> This should be the same in all channels. A flat-spectrum point source.
-          pt_true = 1.0    
+          ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
+          
+          ### Truth values with a lot of iterations and reaching convergence. Values are derived from the truth image smoothed by the beam size.
+          ### These values are recorded here, for manual testing as needed. 
+          pt_true = 1.0  ## For channel 0 and also 4. 
+          ext_true_0 = 5.1  
+          ext_true_4 = 1.0
+
+          ### Truth values from a 100 iteration run with gain=0.2 are hard-coded in the tests below. These do not reach convergence, but have been manually
+          ### verified to be accurate at the time of writing the test. 
+
           pt_loc_0=[256,209,0,0]    # Channel 0
           pt_loc_4=[256,209,0,4]    # Channel 4
-          ## Extended source (lobe) : Flux : 5.1 Jy/bm at [275,330,0,0], 1.0 Jy/bm at [275,330,0,4]  --> Steep spectrum.... it changes with channel.
-          ext_true_0 = 5.2  
-          ext_true_4 = 1.0
           ext_loc_0=[275,330,0,0]
           ext_loc_4=[275,330,0,4]
 
+          lgain=0.2
+          
           ## case 1: default settings
-          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=0.8,parallel=self.parallel)
-          #report1=self.th.checkall(ret=ret1, peakres=0.3803, modflux=145.524, imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], imgval=[(self.img+'1.psf',1.0,[256,256,0,0])])
+          ret1 = tclean(vis=self.msfile,imagename=self.img+'1',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',gain=lgain,parallel=self.parallel)
           report1=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'1.psf', self.img+'1.residual', self.img+'1.image',self.img+'1.model'], 
                                    imgval=[(self.img+'1.psf',1.0,[256,256,0,0]),
-                                           (self.img+'1.image',pt_true,pt_loc_0),
-                                           (self.img+'1.image',pt_true,pt_loc_4),
-                                           (self.img+'1.image',ext_true_0,ext_loc_0),
-                                           (self.img+'1.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'1.image', 0.95 ,pt_loc_0),
+                                           (self.img+'1.image', 0.78,pt_loc_4),
+                                           (self.img+'1.image',5.48,ext_loc_0),
+                                           (self.img+'1.image',1.91,ext_loc_4) ])
 
           ## case 2: using fusedthreshold to trigger the switch to hogbom
-          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report2=self.th.checkall(ret=ret2, peakres=0.8205, modflux=203.016, imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], imgval=[(self.img+'2.psf',1.0,[256,256,0,0])])
+          ret2 = tclean(vis=self.msfile,imagename=self.img+'2',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report2=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'2.psf', self.img+'2.residual', self.img+'2.image',self.img+'2.model'], 
                                    imgval=[(self.img+'2.psf',1.0,[256,256,0,0]),
-                                           (self.img+'2.image',pt_true,pt_loc_0),
-                                           (self.img+'2.image',pt_true,pt_loc_4),
-                                           (self.img+'2.image',ext_true_0,ext_loc_0),
-                                           (self.img+'2.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'2.image',1.2,pt_loc_0),
+                                           (self.img+'2.image',0.96,pt_loc_4),
+                                           (self.img+'2.image',5.38,ext_loc_0),
+                                           (self.img+'2.image',1.32,ext_loc_4) ])
 
           ## case 3: using the largestscale limit
-          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report3=self.th.checkall(ret=ret3, peakres=0.5804, modflux=107.407, imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], imgval=[(self.img+'3.psf',1.0,[256,256,0,0])])
+          ret3 = tclean(vis=self.msfile,imagename=self.img+'3',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',largestscale=10,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report3=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'3.psf', self.img+'3.residual', self.img+'3.image',self.img+'3.model'], 
                                    imgval=[(self.img+'3.psf',1.0,[256,256,0,0]),
-                                           (self.img+'3.image',pt_true,pt_loc_0),
-                                           (self.img+'3.image',pt_true,pt_loc_4),
-                                           (self.img+'3.image',ext_true_0,ext_loc_0),
-                                           (self.img+'3.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'3.image',1.17,pt_loc_0),
+                                           (self.img+'3.image',0.92,pt_loc_4),
+                                           (self.img+'3.image',5.03,ext_loc_0),
+                                           (self.img+'3.image',1.06,ext_loc_4) ])
          
 
           ## case 4: using both the fusedthreshold and largestscale
-          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=0.8,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
-#          report4=self.th.checkall(ret=ret4, peakres=0.5804, modflux=107.407, imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], imgval=[(self.img+'4.psf',1.0,[256,256,0,0])])
+          ret4 = tclean(vis=self.msfile,imagename=self.img+'4',imsize=512,cell='12.0arcsec',specmode='cube',interpolation='nearest',nchan=5,start='1.0GHz',width='0.2GHz',pblimit=-1e-05,niter=100,deconvolver='asp',fusedthreshold=0.05,largestscale=10,gain=lgain,mask='circle[[256pix,256pix],150pix]',parallel=self.parallel)
           report4=self.th.checkall(ret=ret1, 
                                    imgexist=[self.img+'4.psf', self.img+'4.residual', self.img+'4.image',self.img+'4.model'], 
                                    imgval=[(self.img+'4.psf',1.0,[256,256,0,0]),
-                                           (self.img+'4.image',pt_true,pt_loc_0),
-                                           (self.img+'4.image',pt_true,pt_loc_4),
-                                           (self.img+'4.image',ext_true_0,ext_loc_0),
-                                           (self.img+'4.image',ext_true_4,ext_loc_4) ], epsilon=0.12)
+                                           (self.img+'4.image',1.17,pt_loc_0),
+                                           (self.img+'4.image',0.92,pt_loc_4),
+                                           (self.img+'4.image',5.03,ext_loc_0),
+                                           (self.img+'4.image',1.06,ext_loc_4) ])
 
           
           self.assertTrue(self.check_final(report1+report2+report3+report4))
@@ -344,7 +352,6 @@ class test_onefield(testref_base):
           self.prepData('refim_twochan.ms')
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs',parallel=self.parallel)
           report=self.th.checkall(ret=ret, peakres=0.392, modflux=0.732, iterdone=10, imgexist=[self.img+'.psf.tt0', self.img+'.residual.tt0', self.img+'.image.tt0', self.img+'.model.tt0',self.img+'.model.tt1',self.img+'.alpha'], imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.psf.tt1',1.039e-05,[50,50,0,0])])
-          ## iterdone=11 only because of the return (iterdone_p+1) in MultiTermMatrixCleaner::mtclean() !
           self.assertTrue(self.check_final(pstr=report))
 
      def test_onefield_autonames(self):
@@ -490,6 +497,30 @@ class test_onefield(testref_base):
           self.delData(ms2)
           self.assertTrue(self.check_final(pstr=report))
 
+     def test_onefield_twoMS_weightSpectrum(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum : One field, two input MSs, one with the weight spectrum column and one without the weight spectrum column  (CAS-11876 bug fix) """
+          ms1 = 'refim_point_onespw0_withWtSpec.ms'
+          ms2 = 'refim_point_onespw1_noWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
+     def test_onefield_twoMS_weightSpectrum2(self):
+          """ [onefield] Test_Onefield_twoMS_weightSpectrum2 : One field, two input MSs, one has the weight spectrum column with no data and one has the weight spectrum column with proper data  (CAS-11833 bug fix) """
+          ms1 = 'refim_point_onespw0.ms' # 0 row for WEIGHT_SPECTRUM 
+          ms2 = 'refim_point_onespw1_withWtSpec.ms'
+          self.prepData(ms1)
+          self.prepData(ms2)
+          ret = tclean(vis=[ms1,ms2],field='0',spw=['0','0'], imagename=self.img,imsize=100,cell='8.0arcsec',deconvolver='hogbom',niter=10,parallel=self.parallel)
+          report=self.th.checkall(peakres=0.368101, modflux=0.804904, imgexist=[self.img+'.psf',self.img+'.residual'])
+          self.delData(ms1)
+          self.delData(ms2)
+          self.check_final(pstr=report)
+
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. Erratic in parallel")
      def test_onefield_briggsabs(self):
           """[onefield] test_onefield_briggsabs: """
@@ -518,8 +549,6 @@ class test_onefield(testref_base):
           ## Only psf
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=True,calcres=False,deconvolver='clark',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.psf'], imgexistnot=[self.img+'.residual', self.img+'.image'],nmajordone=1)
-          # CAS-13960: No residual image on disk, ret summaryminor should have length 0
-          self.assertTrue(len(ret['summaryminor']) == 0)
 
           ## Only residual
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=0,calcpsf=False,calcres=True,deconvolver='clark',restoration=False,fullsummary=True,parallel=self.parallel)
@@ -673,7 +702,6 @@ class test_onefield(testref_base):
           self.prepData('refim_point.ms')
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs',nterms=1,parallel=self.parallel)
           report=self.th.checkall(ret=ret, peakres=0.369, modflux=0.689, iterdone=10, imgexist=[self.img+'.psf.tt0', self.img+'.residual.tt0', self.img+'.image.tt0', self.img+'.model.tt0'], imgval=[(self.img+'.psf.tt0',1.0,[50,50,0,0]),(self.img+'.image.tt0',1.05,[50,50,0,0])])
-          ## iterdone=11 only because of the return (iterdone_p+1) in MultiTermMatrixCleaner::mtclean() !
           self.assertTrue(self.check_final(pstr=report))
           
      def test_onefield_mtmfs_smallscalebias(self):
@@ -3137,7 +3165,6 @@ class test_cube(testref_base):
           report=self.th.checkall(imgexist=[self.img+'.model.tt0'], imgval=[(self.img+'.model.tt0', 0.00530, [10,10,0,1])], \
                                   imgvalexact=[(self.img+'.model.tt0', 0, [1,1,0,0]), (self.img+'.model.tt0', 0, [10,10,0,0])])#, epsilon=0.2)
           self.assertTrue(self.check_final(pstr=report))
-
 ##############################################
 ##############################################
 
@@ -3671,6 +3698,57 @@ class test_mask(testref_base):
           report+=checkwarning
           print('report=',report)
           self.assertTrue(self.check_final(report))
+
+
+     def test_mask_preserve_input_zero_mask(self):
+          """
+          Test the fix for CAS-14203; If a user explicitly provides a
+          zero-filled input mask, it should be respected and not flipped.
+          """
+
+          self.prepData('refim_twochan.ms')
+          os.system('rm -rf '+self.img+'.*')
+          casalog.setlogfile(self.img+'.log')
+
+          ## Make initial residual and psf. No mask
+          tclean(vis=self.msfile,
+                    imsize=100,
+                    cell='10.0arcsec',
+                    imagename=self.img,
+                    specmode='mfs',
+                    deconvolver='hogbom',
+                    niter=1,
+                    gain=1e-6,
+                    restoration=False,
+                    calcres=True,
+                    calcpsf=True)
+
+          init_sum = self.th.check_mask(self.img + '.mask')
+          # Fill up with zeros
+          self.th.fill_mask(self.img+'.mask', 0.0)
+
+          if os.path.exists("new_mask.mask"):
+               os.system('rm -rf new_mask.mask')
+
+          os.rename(self.img+'.mask', 'new_mask.mask')
+
+          # Wipe images on disk
+          os.system('rm -rf '+self.img+'.*')
+
+          ret1 = tclean(vis=self.msfile,
+               imsize=100,
+               cell='10.0arcsec',
+               imagename=self.img,
+               specmode='mfs',
+               deconvolver='hogbom',
+               usemask = 'user',
+               mask='new_mask.mask',
+               niter=10)
+
+          final_sum = self.th.check_mask(self.img + '.mask')
+
+          self.assertTrue((init_sum == 10000) and (final_sum == 0))
+          self.assertTrue(ret1['stopcode'] == 7)
 
 ##############################################
 ##############################################
@@ -4706,7 +4784,7 @@ class test_pbcor(testref_base):
                         niter=10, specmode='mfs', vptable='evlavp.tab', pbcor=True,parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.pb', self.img+'.image.pbcor'], imgval=[(self.img+'.pb',0.7,[256,256,0,0]),(self.img+'.image.pbcor',1.0,[256,256,0,0])])
           self.assertTrue(self.check_final(report))
-
+     @unittest.skipIf(True, "mfs+mtmfs+pbcor no longer recommended")
      def test_pbcor_mtmfs(self):
           """ [pbcor] Test pbcor with mtmfs"""
           self.prepData('refim_mawproject.ms')
@@ -5319,6 +5397,310 @@ class test_hetarray_imaging(testref_base):
 
 #####################################################
 #####################################################
+
+class test_mtmfsviacube(testref_base):
+
+     ## Tests for mvc : Standard Gridder -- single tclean call
+     def test_mtmfsviacube_standard(self):
+         """ [mtmfsviacube] Tests specmode='mvc' """
+         ######################################################################################
+         # Test specmode='mvc' for completion.
+         ######################################################################################
+         self.prepData('refim_oneshiftpoint.mosaic.ms')
+         ret = tclean(vis=self.msfile,
+                      imagename=self.img,
+                      imsize=512,
+                      cell='10.0arcsec',
+                      niter=10,
+                      gain=0.1,
+                      cycleniter=5,
+                      specmode='mvc',
+                      nchan=3,
+                      deconvolver='mtmfs',
+                      scales=[0],
+                      threshold="0.1mJy",
+                      nterms=2,
+                      interactive=False,
+                      field='0',
+                      reffreq='1.5GHz',
+                      pblimit=-0.1,
+                      gridder='standard',
+                      phasecenter='J2000 19h59m28.523 +40d54m01.152',
+                      parallel=self.parallel)
+         # major/minor cycle inputs/outputs
+         maj_outputs = [self.img+'.psf',
+                        self.img+'.residual',
+                        self.img+'.pb']
+         min_inputs  = [self.img+'.psf.tt0', self.img+'.psf.tt1', self.img+'.psf.tt2',
+                        self.img+'.residual.tt0', self.img+'.residual.tt1',
+                        self.img+'.pb.tt0',
+                        self.img+'.model.tt0', self.img+'.model.tt1']
+         min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
+         maj_inputs  = [self.img+'.model']
+         src=256
+         report=self.th.checkall(ret=ret, peakres=0.172, modflux=0.32, iterdone=10,
+                                 imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs,
+                                 imgval=[(self.img+'.psf.tt0',1.0,[src,src,0,0]),(self.img+'.psf.tt1',0.0,[src,src,0,0]),(self.img+'.image.tt0',0.5,[src,src,0,0]),(self.img+'.alpha',-0.52,[src,src,0,0])  ])
+         casalog.post(report,"SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+     ## Tests for mvc : Standard Gridder -- Use of startmodel, to check correct "startmodel" scaling.
+     def test_mtmfsviacube_standard_startmodel(self):
+         """ [mtmfsviacube] Tests specmode='mvc',startmodel='try.model' """
+         ######################################################################################
+         # Test specmode='mvc',startmodel='try.model' for completion.
+         ######################################################################################
+         self.prepData('refim_oneshiftpoint.mosaic.ms')
+         # create the model image
+         tclean( vis=self.msfile,
+                 imagename=self.img,
+                 imsize=512,
+                 cell='10.0arcsec',
+                 niter=5,
+                 gain=0.1,
+                 specmode='mvc',
+                 nchan=3,
+                 deconvolver='mtmfs',
+                 scales=[0],
+                 threshold="0.1mJy",
+                 nterms=2,
+                 interactive=False,
+                 field='0',
+                 reffreq='1.5GHz',
+                 pblimit=-0.1,
+                 gridder='standard',
+                 phasecenter='J2000 19h59m28.523 +40d54m01.152',
+                 parallel=self.parallel)
+         shutil.copytree(self.img+'.model.tt0', self.img+'start.model.tt0')
+         shutil.copytree(self.img+'.model.tt1', self.img+'start.model.tt1')
+         os.system('rm -rf ' + self.img+'.model.tt*')
+         # evaluate with the pre-existing model image
+         ret = tclean(vis=self.msfile,
+                      imagename=self.img,
+                      imsize=512,
+                      cell='10.0arcsec',
+                      niter=5,
+                      gain=0.1,
+                      specmode='mvc',
+                      nchan=3,
+                      deconvolver='mtmfs',
+                      scales=[0],
+                      threshold="0.1mJy",
+                      nterms=2,
+                      interactive=False,
+                      field='0',
+                      reffreq='1.5GHz',
+                      pblimit=-0.1,
+                      gridder='standard',
+                      phasecenter='J2000 19h59m28.523 +40d54m01.152',
+                      parallel=self.parallel,
+                      startmodel=[self.img+'start.model.tt0', self.img+'start.model.tt1'])
+         src=256
+         report=self.th.checkall(ret=ret, peakres=0.172, modflux=0.32, iterdone=5, imgexist=[self.img+'.model',self.img+'.model.tt0',self.img+'.model.tt1'],
+                                 imgval=[(self.img+'.psf.tt0',1.0,[src,src,0,0]),(self.img+'.psf.tt1',0.0,[src,src,0,0]),(self.img+'.image.tt0',0.5,[src,src,0,0]),(self.img+'.alpha',-0.52,[src,src,0,0])  ])
+         casalog.post(report,"SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+         
+     ## Tests for mvc : Mosaic gridder
+     def test_mtmfsviacube_mosaic(self):
+          """[mtmfsviacube]  test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          ################################## ##
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms', imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152',
+                       imsize=512,    
+                       cell='10.0arcsec', 
+                       specmode='mvc', 
+                       gridder='mosaic',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=10, 
+                       pbcor=True)
+
+          report=self.th.checkall(
+               imgexist=['tst.psf.tt0',
+                         'tst.residual.tt0',
+                         'tst.image.tt0',
+                         'tst.image.tt1',
+                         'tst.alpha'], 
+               imgval=[('tst.psf.tt0', 1.0, [256,256,0,0]),
+                       ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
+                       ('tst.alpha', -0.5, [256,256,0,0]),  
+                       ('tst.image.tt0.pbcor', 1.0, [256,256,0,0]), # Sky : point source with alpha=-0.5
+               ]
+          )  
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
+
+     ## Tests for mvc : AWProject gridder
+     def test_mtmfsviacube_awproject(self):
+          """ [mtmfsviacube] test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          ###########################################
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152', 
+                       imsize=512,    
+                       cell='10.0arcsec', 
+                       specmode='mvc', 
+                       gridder='awproject',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=100, 
+                       pbcor=True)
+
+          report=self.th.checkall(
+               imgexist=['tst.psf.tt0',
+                         'tst.residual.tt0',
+                         'tst.image.tt0',
+                         'tst.image.tt1',
+                         'tst.alpha'], 
+               imgval=[('tst.psf.tt0', 1.0, [256,256,0,0]),
+                       ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
+                       ('tst.alpha', -0.56, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
+                       ('tst.image.tt0.pbcor', 1.0, [256,256,0,0]), # Sky : point source with alpha=-0.5
+               ]
+          )  
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
+
+     ## Tests for mvc : AWProject gridder
+     @unittest.skip('Skip test of "awp2" gridder until it comes in via CAS-14146.')
+     def test_mtmfsviacube_awp2(self):
+          """ [mtmfsviacube] test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          ###########################################
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152', 
+                       imsize=512,    
+                       cell='10.0arcsec', 
+                       specmode='mvc', 
+                       gridder='awp2',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=100, 
+                       pbcor=True)
+
+          report=self.th.checkall(
+               imgexist=['tst.psf.tt0',
+                         'tst.residual.tt0',
+                         'tst.image.tt0',
+                         'tst.image.tt1',
+                         'tst.alpha'], 
+               imgval=[('tst.psf.tt0', 1.0, [256,256,0,0]),
+                       ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
+                       ('tst.alpha', -0.5, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
+                       ('tst.image.tt0.pbcor', 1.05, [256,256,0,0]), # Sky : point source with alpha=-0.5
+               ]
+          )  
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
+
+
+               ## Tests for mvc : Standard Gridder -- single tclean call
+     def test_mtmfsviacube_wproject(self):
+         """ [mtmfsviacube] Tests specmode='mvc' """
+
+         self.prepData('refim_oneshiftpoint.mosaic.ms')
+         ret = tclean(vis=self.msfile,
+                      imagename=self.img,
+                      imsize=512,
+                      cell='10.0arcsec',
+                      niter=10,
+                      gain=0.1,
+                      cycleniter=5,
+                      specmode='mvc',
+                      nchan=3,
+                      deconvolver='mtmfs',
+                      scales=[0],
+                      threshold="0.1mJy",
+                      nterms=2,
+                      interactive=False,
+                      field='0',
+                      reffreq='1.5GHz',
+                      pblimit=-0.1,
+                      gridder='wproject',
+                      wprojplanes=4,
+                      phasecenter='J2000 19h59m28.523 +40d54m01.152',
+                      parallel=self.parallel)
+         # major/minor cycle inputs/outputs
+         maj_outputs = [self.img+'.psf',
+                        self.img+'.residual',
+                        self.img+'.pb']
+         min_inputs  = [self.img+'.psf.tt0', self.img+'.psf.tt1', self.img+'.psf.tt2',
+                        self.img+'.residual.tt0', self.img+'.residual.tt1',
+                        self.img+'.pb.tt0',
+                        self.img+'.model.tt0', self.img+'.model.tt1']
+         min_outputs = []#[self.img+'.model.tt0', self.img+'.model.tt1']
+         maj_inputs  = [self.img+'.model']
+         src=256
+         report=self.th.checkall(ret=ret, peakres=0.172, modflux=0.32, iterdone=10,
+                                 imgexist=maj_outputs+min_inputs+min_outputs+maj_inputs,
+                                 imgval=[(self.img+'.psf.tt0',1.0,[src,src,0,0]),(self.img+'.psf.tt1',0.0,[src,src,0,0]),(self.img+'.image.tt0',0.5,[src,src,0,0]),(self.img+'.alpha',-0.52,[src,src,0,0])  ])
+         casalog.post(report,"SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+
+     ## Tests for mvc : Compare with 'mfs' for a point source at the phase center, where PB does not matter.
+     def test_mtmfsviacube_compare_with_mfs(self):
+         """ [mtmfsviacube] test_mvc_compare_with_mfs: tests mfs via cube with 
+         classical mfs nterms=2. With mpicasa, one will use the cube-parallelization, and the other will use continuum parallelization. 
+         """
+         self.prepData('refim_point.ms')
+         outimname1 = 'tst.mfs'
+         outimname2 = 'tst.mvc'
+
+         ret2 = tclean(vis='refim_point.ms',
+                       imagename=outimname1,
+                       imsize=200,
+                       cell='10.0arcsec',
+                       reffreq='1.5GHz',
+                       specmode='mfs',
+                       niter=10,
+                       cycleniter=5,
+                       gridder='standard',
+                       deconvolver='mtmfs',
+                       nterms=2,
+                       scales=[0],
+                       parallel=self.parallel)
+
+         ret2 = tclean(vis='refim_point.ms',
+                       imagename=outimname2,
+                       imsize=200,
+                       cell='10.0arcsec',
+                       nchan=20,
+                       reffreq='1.5GHz',
+                       specmode='mvc',
+                       niter=10,
+                       cycleniter=5,
+                       gridder='standard',
+                       deconvolver='mtmfs',
+                       nterms=2,
+                       scales=[0])
+
+         report=self.th.checkall(imgexist=[outimname1+'.psf.tt0', outimname1+'.image.tt0',
+                    outimname2+'.psf.tt0', outimname2+'.image.tt0'], 
+                    imgval=[(outimname1+'.psf.tt0', 1.0, [100,100,0,0]),
+                            (outimname2+'.psf.tt0', 1.0, [100,100,0,0]),
+                            (outimname1+'.image.tt0', 1.04, [100,100,0,0]),
+                            (outimname2+'.image.tt0', 1.04, [100,100,0,0]),
+                            (outimname1+'.alpha', -1.06, [100,100,0,0]),
+                            (outimname2+'.alpha', -1.06, [100,100,0,0]) ])
+         casalog.post(report, "SEVERE")
+         self.assertTrue(self.check_final(pstr=report))
+
+
+
+
 #####################################################
 #####################################################
 class test_mosaic_mtmfs(testref_base):
@@ -6159,6 +6541,53 @@ class test_ephemeris(testref_base):
           self.assertTrue(self.check_final(pstr=report))
 
 
+     def test_onefield_mfs_eph_internaltb_outside(self):
+          " [ephemeris] test_onefield_mfs_eph_internaltb_outside: single field (standard gridder), mfs mode with explicitly specifying internal ephem table moved to outside"
+          # Essentially the same test as test_onefield_mfs_eph but test the plumbing of phasecenter (CAS-13593). Should get the same numerical results as test_onefiled_mfs_eph
+          self.prepData('venus_ephem_test.ms')
+          shutil.copytree('venus_ephem_test.ms/FIELD/EPHEM0_Venus_58491.4.tab', 'Venus_58491.4.tab')
+          ret = tclean(vis=self.msfile, field='0', imagename=self.img, imsize=[288, 288], cell=['0.14arcsec'], phasecenter='Venus_58491.4.tab', specmode='mfs', gridder='standard', niter=0, parallel=self.parallel)
+          shutil.rmtree('Venus_58491.4.tab')
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_sf_ephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          report = report1 + report2 + report3
+          self.assertTrue(self.check_final(pstr=report))
+
+
      def test_onefield_cube_eph(self):
           " [ephemeris] test_onefield_cube_eph : single field (standard gridder), cubesource mode "
 
@@ -6293,6 +6722,252 @@ class test_ephemeris(testref_base):
           report = report1 + report2 + report3
           self.assertTrue(self.check_final(pstr=report))
 
+     def test_onefield_mfs_exttab_eph(self):
+          " [ephemeris] test_onefield_mfs_exttab_eph: single field (standard gridder), mfs mode using an external ephemeris table"
+
+          # use the table created in 2020.06.29 querying JPL-Horizons 
+          # As this is the updated ephemeredes of Venus it will be different from the one attached to the MS.
+          # Since this is a mixed use of ephem table for fixed position
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = refdatapath+'Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, field='0', imagename=self.img, imsize=[288, 288], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='mfs', gridder='standard', niter=0, parallel=self.parallel)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_sf_extephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          
+          # The external ephemeris table has updated ephemeris data values which are  
+          # different from the attached one that is used to track the source at the time
+          # of the observation. 
+          # The external table will be used to image the source in the fixed coordinates. 
+          # Since there is difference in the data(positions) in the ephemeris tables the emisson of the source 
+          # won't be centered as the phase centers were tracked with the attached ephemeris
+          # table.  Shifting of the phase centers are required to put the source in the 
+          # center when the exteral ephemeris table which is different from the one used 
+          # in the obvservation. 
+          
+          # Test the image center is based on the external ephemeris table
+          _ia.open(self.img+'.residual')
+          cencoord = _ia.toworld([144.5, 144.5, 0, 0])['numeric']
+          _ia.close()
+          # the source position at t0 from the external ephemeris table 
+          # t0 = 58491.4746311111
+          ref_cen_ra = 4.17778246
+          ref_cen_dec = -2.96088470e-01 
+          #ref_cen_ra = 4.17781081 
+          #ref_cen_dec = -2.96080103e-01
+          _, report4 = self.th.check_val(cencoord[0], ref_cen_ra, valname="The image center RA coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+          _, report5 = self.th.check_val(cencoord[1], ref_cen_dec, valname="The image center DEC coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+          # internal ephem
+          # cen : 15:57:29.022, 22:52:08.606
+          #  4.17781081e+00, -2.96080103e-01
+          # ext tab
+          # cen : 15:57:28.633, 22:52:08.491
+          #   4.17778246e+00, -2.96088470e-01 (rad)
+          # --
+          # internal ephem nearest t0 index => 6 
+          #    dir0_inephem = _me.direction('J2000', '4.177752946218525rad','-0.2960678077424548rad')
+          # external tabl
+          #    dir0_extephem = _me.direction('J2000', '4.177723595598271rad','-0.2960762580449165rad')
+          # angsep_from_ephem = _me.separation(dir0_inephem,dir0_extephem) ==> {'unit': 'deg', 'value': 0.0016797858787556046}
+          report = report1 + report2 + report3 + report4 + report5
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_onefield_cube_exttab_eph(self):
+          " [ephemeris] test_onefield_cube_exttab_eph : single field (standard gridder), cubesource mode using an external epehemeris table"
+
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = refdatapath+'Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, field='0', imagename=self.img, imsize=[288, 288], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='cubesource', gridder='standard', niter=0, parallel=False)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_sf_extephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          _ia.open(self.img+'.residual')
+          cencoord = _ia.toworld([144.5, 144.5, 0, 0])['numeric']
+          _ia.close()
+          ref_cen_ra = 4.17778246
+          ref_cen_dec = -2.96088470e-01 
+          _, report4 = self.th.check_val(cencoord[0], ref_cen_ra, valname="The image center RA coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+          _, report5 = self.th.check_val(cencoord[1], ref_cen_dec, valname="The image center DEC coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+
+          report = report1 + report2 + report3 + report4 + report5
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_multifield_mfs_exttab_eph(self):
+          " [ephemeris] test_multifield_mfs_eph : multifield (mosaic gridder), mfs mode "
+
+          self.prepData('venus_ephem_test.ms')
+          self.exttabname = refdatapath+'Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=[480, 420], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='mfs', gridder='mosaic', niter=0, parallel=self.parallel)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_mos_extephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          _ia.open(self.img+'.residual')
+          cencoord = _ia.toworld([240.5, 210.5, 0, 0])['numeric']
+          _ia.close()
+          # for mosaic
+          ref_cen_ra = 4.17776162
+          ref_cen_dec = -2.96084082e-01 
+          _, report4 = self.th.check_val(cencoord[0], ref_cen_ra, valname="The image center RA coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+          _, report5 = self.th.check_val(cencoord[1], ref_cen_dec, valname="The image center DEC coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+
+          report = report1 + report2 + report3 + report4 + report5
+          self.assertTrue(self.check_final(pstr=report))
+
+     def test_multifield_cube_exttab_eph(self):
+          " [ephemeris] test_multifield_cube_eph : multifield (mosaic gridder), cubesource mode "
+
+          # use the multiple channel version of the venus data
+          self.prepData('venus_ephem_1spw12chan.ms')
+          self.exttabname = refdatapath+'Venus_58491dUTC_JPLHorizons20230629.tab'
+          ret = tclean(vis=self.msfile, imagename=self.img, imsize=[480, 420], cell=['0.14arcsec'], phasecenter=self.exttabname, specmode='cubesource', gridder='mosaic', start=1, nchan=10, niter=0, weighting='briggsbwtaper', perchanweightdensity=True, parallel=False)
+
+          # Retrieve original image and test image statistics
+          _ia.open(refdatapath+'venus_mos_cube_extephem_test.residual')
+          orig_stats = _ia.statistics()
+          orig_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          _ia.open(self.img+'.residual')
+          test_stats = _ia.statistics()
+          test_freqavg = _ia.statistics(axes=[2])['sum']
+          _ia.close()
+
+          # Determine metrics for testing
+          # Check 1: tests flux stays within 1% of original image
+          if (test_stats['sum'] - orig_stats['sum'])/orig_stats['sum'] < 0.01:
+               result = True
+          else:
+               result = False
+          _, report1 = self.th.check_val(result, True, valname='Flux within 1% of original', exact=True)
+
+          # Check 2: tests positions shifts stays within 1% of original image
+          if np.sum(np.absolute(test_freqavg - orig_freqavg)) / np.sum(np.absolute(orig_freqavg)) < 0.01:
+               result = True
+          else:
+               result = False
+          _, report2 = self.th.check_val(result, True, valname='Position shift within 1% of original', exact=True)
+
+          # Check 3: tests position shifts are less than 10% of angular resolution; distance in pixels multiplied by cell size in arcsecs; PSF beam width calculated using lambda/max_baseline
+          psf_beam_width = 1.176
+          distance = np.sqrt((orig_stats['maxpos'][0] - test_stats['maxpos'][0])**2 + (orig_stats['maxpos'][1] - test_stats['maxpos'][1])**2)*0.14
+          if distance/psf_beam_width < 0.1:
+               result = True
+          else:
+               result = False
+          _, report3 = self.th.check_val(result, True, valname='Position shift lass than 10% of angular resolution', exact=True)
+
+          _ia.open(self.img+'.residual')
+          cencoord = _ia.toworld([240.5, 210.5, 0, 0])['numeric']
+          _ia.close()
+          # for mosaic 
+          ref_cen_ra = 4.17776162
+          ref_cen_dec = -2.96084082e-01 
+          _, report4 = self.th.check_val(cencoord[0], ref_cen_ra, valname="The image center RA coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+          _, report5 = self.th.check_val(cencoord[1], ref_cen_dec, valname="The image center DEC coordinate agree within 0.0001%", exact=False, epsilon=1e-6)
+
+          report = report1 + report2 + report3 + report4 + report5
+          self.assertTrue(self.check_final(pstr=report))
 
 class test_errors_failures(testref_base):
 

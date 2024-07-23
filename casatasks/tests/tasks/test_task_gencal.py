@@ -42,12 +42,23 @@ datapath = ctsys.resolve('/unittest/gencal/')
 # input data
 evndata = 'n08c1.ms'
 vlbadata = 'ba123a.ms'
+swpowdata = '3C286_syspower_CAS-11860.ms'
+
 vlbacal = os.path.join(datapath, 'ba123a.gc')
 evncal = os.path.join(datapath, 'n08c1.tsys')
 
 caltab = 'cal.A'
 evncopy = 'evn_copy.ms'
 vlbacopy = 'vlba_copy.ms'
+swpowcopy = 'swpow_copy.ms'
+
+# these are for test_gainCurveVLA
+vladata = 'tdem0003gencal.ms'
+vlacopy = 'vla_copy.ms'
+vlacal = 'vla.gc'
+vlacaltab = os.path.join(datapath, 'gencalGaincurveRef.gc')
+
+
 
 '''
 Unit tests for gencal
@@ -187,7 +198,38 @@ class gencal_antpostest(unittest.TestCase):
         except URLError as err:
             print("Cannot access %s , skip this test" % evlabslncorrURL)
             self.res = True
-
+            
+    def test_antpos_manual_time_limit_evla(self):
+        """
+        gencal: test if time limit sets cutoff date for antpos corrections
+        """
+        # Mechanical test if time limit functions as expected, very short limit
+        gencal(vis=self.msfile2,
+               caltable=self.caltable,
+               caltype='antpos',
+               ant_pos_time_limit=400)
+        
+        _tb.open(self.caltable)
+        res = np.mean(_tb.getcol('FPARAM'))
+        _tb.close()
+        
+        self.assertTrue(np.isclose(res, -1.2345658040341035e-06, atol=1e-5))
+        
+        shutil.rmtree(self.caltable)
+               
+        # Test again with no time limit/ ant_pos_time_limit = 0
+        gencal(vis=self.msfile2,
+               caltable=self.caltable,
+               caltype='antpos',
+               ant_pos_time_limit=0)
+               
+        _tb.open(self.caltable)
+        res = np.mean(_tb.getcol('FPARAM'))
+        _tb.close()
+        
+        self.assertTrue(np.isclose(res, -5.308641580703818e-05, atol=1e-5))
+        
+        
 
 class test_gencal_antpos_alma(unittest.TestCase):
     """Tests the automatic generation of antenna position corrections for ALMA.
@@ -405,6 +447,7 @@ class gencal_test_tec_vla(unittest.TestCase):
     tecfile = msfile+'.IGS_TEC.im'
     rmstecfile = msfile+'.IGS_RMS_TEC.im'
     caltable = msfile+'_tec.cal'
+    newigsfile='IGS0OPSFIN_20233350000_01D_02H_GIM.INX'
 
     # NEAL: Please check that these setUp and tearDown functions are ok
 
@@ -423,6 +466,10 @@ class gencal_test_tec_vla(unittest.TestCase):
         shutil.rmtree(self.rmstecfile, ignore_errors=True)
         shutil.rmtree(self.caltable, ignore_errors=True)
 
+        # this file is created by a successful test
+        if os.path.exists(self.newigsfile):
+            os.remove(self.newigsfile)
+        
     def test_tec_maps(self):
         """
         gencal: very basic test of tec_maps and gencal(caltype='tecim')
@@ -444,6 +491,14 @@ class gencal_test_tec_vla(unittest.TestCase):
             self.assertTrue(nrows == 1577)
             self.assertTrue(dtecu < 1e-3)
 
+            # Test new CDDIS filename convention
+            #  (file with correct name is retrieved and uncompressed)
+            #  (CAS-14219, CAS-14192)
+            #  (tec_maps.create0 above tests the old filename convention)
+            a=tec_maps.get_IGS_TEC('2023/12/01')
+            self.assertTrue(os.path.exists(self.newigsfile))
+            self.assertTrue(a[9]=='IGS_Final_Product')
+            
         except:
             # should catch case of internet access failure?
             raise
@@ -453,6 +508,8 @@ class gencal_gaincurve_test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        
+        shutil.copytree(os.path.join(datapath, vladata), vlacopy)
         shutil.copytree(os.path.join(datapath, evndata), evncopy)
         shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
 
@@ -460,23 +517,33 @@ class gencal_gaincurve_test(unittest.TestCase):
         pass
 
     def tearDown(self):
+        rmtables(vlacal)
         rmtables(caltab)
 
     @classmethod
     def tearDownClass(cls):
+        shutil.rmtree(vlacopy)
         shutil.rmtree(evncopy)
         shutil.rmtree(vlbacopy)
 
-    def test_gainCurve(self):
-        ''' Test calibration table produced when gencal is run on an MS with a GAIN_CURVE table '''
+    def test_gainCurveVLA(self):
+        ''' Test calibration table produced when gencal is run on a *VLA* MS and relying on data/nrao/VLA/GainCurves '''
+
+        gencal(vis=vlacopy, caltable=vlacal, caltype='gc')
+
+        self.assertTrue(os.path.exists(vlacaltab))
+        self.assertTrue(th.compTables(vlacaltab, vlacal, ['WEIGHT']))
+
+    def test_gainCurveVLBA(self):
+        ''' Test calibration table produced when gencal is run on a VLBA MS with an internal GAIN_CURVE table '''
 
         gencal(vis=vlbacopy, caltable=caltab, caltype='gc')
 
         self.assertTrue(os.path.exists(caltab))
         self.assertTrue(th.compTables(caltab, vlbacal, ['WEIGHT']))
 
-    def test_noGainCurve(self):
-        ''' Test that when gencal is run on an MS with no GAIN_CURVE table it creates no calibration table '''
+    def test_noGainCurveEVN(self):
+        ''' Test that when gencal is run on an EVN MS with no GAIN_CURVE table it creates no calibration table '''
 
         try:
             gencal(vis=evncopy, caltable=caltab, caltype='gc')
@@ -832,6 +899,106 @@ class TestJyPerK(unittest.TestCase):
                            uniform=False)
 
         self.assertEqual(cm.exception.args[0], 'The infile argument should be str or None.')
+        
+class TestSwPow(unittest.TestCase):
+
+    testcal = 'swpow.cal'
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath,swpowdata), swpowcopy)
+        
+    def tearDown(self):
+        if os.path.exists(swpowcopy):
+            shutil.rmtree(swpowcopy)
+        if os.path.exists(self.testcal):
+            shutil.rmtree(self.testcal)
+        
+    def test_switched_power_weights_caltype(self):
+        """Check that resulting caltable has all 1's for gains and non-trivial values for weight adjustment
+        
+        The following arguments are required for this test.
+        * caltype='swpwts'
+        """
+        gencal(vis=swpowcopy, caltable=self.testcal, caltype='swpwts')
+        
+        _tb.open(self.testcal)
+        res = _tb.getcol('FPARAM')
+        _tb.close()
+        
+        #self.assertTrue(np.all(res[0:1,:,:] == 1))
+        self.assertTrue(np.mean(res[1,:,:]) != 1)
+
+class gencal_eoptest(unittest.TestCase):
+
+    usno_finals_erp = os.path.join(datapath, 'usno_finals.erp')
+    eopc04_IAU2000 = os.path.join(datapath, 'eopc04_IAU2000.62-now')
+
+    @classmethod
+    def setUpClass(cls):
+        shutil.copytree(os.path.join(datapath, evndata), evncopy)
+        shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        rmtables(caltab)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(evncopy)
+        shutil.rmtree(vlbacopy)
+
+    def test_eop(self):
+        """Test calibration table produced when gencal is run on an MS
+           with an EARTH_ORIENTATION table."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop')
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_casa.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
+
+    def test_eop_usno(self):
+        """Test calibration table produced when gencal is run using an
+           external file."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop',
+               infile=self.usno_finals_erp)
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_usno.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
+
+    def test_eop_iers(self):
+        """Test calibration table produced when gencal is run using an
+           external file."""
+
+        gencal(vis=vlbacopy, caltable=caltab, caltype='eop',
+               infile=self.eopc04_IAU2000)
+
+        self.assertTrue(os.path.exists(caltab))
+
+        # Compare with reference file from the repository
+        reference = os.path.join(datapath, 'ba123a_iers.eop')
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
+
+    def test_noeop(self):
+        """Test that no calibration table is produced when gencal is run on an
+           MS without an EARTH_ORIENTATION table.
+
+        """
+
+        try:
+            gencal(vis=evncopy, caltable=caltab, caltype='eop')
+        except:
+            pass
+
+        self.assertFalse(os.path.exists(caltab))
+
 
 if __name__ == '__main__':
     unittest.main()

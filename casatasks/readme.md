@@ -37,6 +37,9 @@ Please refer to the toplevel [readme](../readme.md)
 | ft            | Insert a source model as a visibility set                                                                                       |
 | gaincal       | Determine temporal gains from calibrator observations                                                                           |
 | gencal        | Specify Calibration Values of Various Types                                                                                     |
+| getantposalma | Retrieve antenna position information from ALMA web service                                                                     |
+| getcalmodval  | web service client to retrieve VLA calibrator model data                                                                        |
+| getephemtable | Get ephemeris data of a specific ephemeris object from JPL-Horizons system                                                      |
 | hanningsmooth | Hanning smooth frequency channel data to remove Gibbs ringing                                                                   |
 | imcollapse    | Collapse image along one axis, aggregating pixel values along that axis.                                                        |
 | imcontsub     | Estimates and subtracts continuum emission from an image cube                                                                   |

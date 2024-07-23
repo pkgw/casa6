@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -26,6 +26,7 @@
 //# $Id$
 #include <fstream>
 #include <iostream>
+#include <regex>
 
 #include <casacore/casa/Utilities/Assert.h>
 #include <singledish/SingleDish/BLParameterParser.h>
@@ -112,8 +113,7 @@ void BLParameterParser::parse(string const file_name)
     //Parameter summary output (Debugging purpose only)
     if (false) {
       os << "Summary of parsed Parameter" << LogIO::POST;
-      os << "[ROW" << row_idx << ", POL" << pol_idx << "]"
-	 << LogIO::POST;
+      os << "[ROW" << row_idx << ", POL" << pol_idx << "]" << LogIO::POST;
       bl_param->PrintSummary();
     }
     // update bealine_types_ list
@@ -121,8 +121,8 @@ void BLParameterParser::parse(string const file_name)
     bool new_type = true;
     for (size_t i=0; i<baseline_types_.size(); ++i){
       if (bl_param->baseline_type==baseline_types_[i]){
-	new_type = false;
-	break;
+        new_type = false;
+        break;
       }
     }
     if (new_type) baseline_types_.push_back(bl_param->baseline_type);
@@ -174,8 +174,25 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   }
   else if (bltype_str == "sinusoid")
   {
-    // sinusoid is not supported yet
-    throw(AipsError("Unsupported baseline type, sinusoid"));
+    //Find the occurrence of "[n1,n2...]"
+    std::regex pattern("\\[(\\d+(?:,\\d+)*)\\]");
+    std::smatch matches;
+    std::regex_search(linestr, matches, pattern);
+    if (matches.size()< 1)
+      throw(AipsError("Incorrect format or empty nwave list given: " + 
+      std::string(matches[0]) + 
+      ". Please refer the sdbaseline documentation. Ex. [1,2]"));
+    // Split, convert and fill in the paramset_nwave
+    std::vector<string> tmp_nwave;
+    // regex result: matches[0] is the entire match 
+    // matches[1] is the content inside the square brackets
+    SplitLine(matches[1], ',', tmp_nwave);
+    for(const auto& i : tmp_nwave)
+      paramset.nwave.emplace_back(ConvertString<size_t>(i));
+    //Sort just in case and erase duplicates
+    std::sort(paramset.nwave.begin(), paramset.nwave.end());
+    paramset.nwave.erase(std::unique(paramset.nwave.begin(),paramset.nwave.end()), paramset.nwave.end());
+    paramset.baseline_type = static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(BaselineType_kSinusoid);
   }
   else
   { // poly or chebyshev
@@ -189,8 +206,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   // parse clipping parameters
   if (svec[BLParameters_kNumIteration].size() == 0)
     throw(AipsError("Number of maximum clip iteration is mandatory"));
-  paramset.num_fitting_max
-    = ConvertString<uint16_t>(svec[BLParameters_kNumIteration]) + 1;
+  paramset.num_fitting_max = ConvertString<uint16_t>(svec[BLParameters_kNumIteration]) + 1;
   if (svec[BLParameters_kClipThreshold].size()>0)
     paramset.clip_threshold_sigma
       = ConvertString<float>(svec[BLParameters_kClipThreshold]);
@@ -201,8 +217,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
   { // use line finder
     if (svec[BLParameters_kLFThreshold].size()>0)
     {
-      lf_param.threshold
-	= ConvertString<float>(svec[BLParameters_kLFThreshold]);
+      lf_param.threshold = ConvertString<float>(svec[BLParameters_kLFThreshold]);
     }
     vector<size_t> edge(2,0);
     if (svec[BLParameters_kLeftEdge].size() > 0)
@@ -211,8 +226,7 @@ void BLParameterParser::ConvertLineToParam(string const &linestr,
       lf_param.edge[1] = ConvertString<size_t>(svec[BLParameters_kRightEdge]);
     if (svec[BLParameters_kChanAverageLim].size()>0)
     {
-      lf_param.chan_avg_limit
-	= ConvertString<size_t>(svec[BLParameters_kChanAverageLim]);
+      lf_param.chan_avg_limit = ConvertString<size_t>(svec[BLParameters_kChanAverageLim]);
     }
   }
 }
@@ -230,9 +244,9 @@ uint16_t BLParameterParser::GetTypeOrder(BLParameterSet const &bl_param)
     AlwaysAssert(bl_param.npiece<=USHRT_MAX, AipsError);//UINT16_MAX);
     return static_cast<uint16_t>(bl_param.npiece);
     break;
-//   case BaselineType_kSinusoidal:
-//     return static_cast<size_t>(bl_param.nwave.size()); <== must be max of nwave elements
-//     break;
+  case BaselineType_kSinusoid:
+    return static_cast<uint16_t>(bl_param.nwave[bl_param.nwave.size() - 1]); //<== must be max of nwave elements
+    break;
   default:
     throw(AipsError("Unsupported baseline type."));
   }
@@ -293,6 +307,13 @@ uint16_t BLTableParser::GetTypeOrder(size_t const &baseline_type,
       return static_cast<uint16_t>(npiece);
       break;
     }
+  case BaselineType_kSinusoid:
+  {
+    // TODO: revisit this line in CAS-13671
+    return static_cast<uint16_t>(bt_->getFPar(irow, ipol));
+    break;
+  }
+// Previous comment:
 //   case BaselineType_kSinusoidal:
 //     return static_cast<size_t>(nwave.size());
 //     break;
@@ -318,16 +339,16 @@ void BLTableParser::parse()
 	static_cast<LIBSAKURA_SYMBOL(LSQFitType)>(bt_->getBaselineType(irow, ipol));
       bool new_type = true;
       for (size_t i = 0; i < baseline_types_.size(); ++i){
-	if (curr_type_idx == baseline_types_[i]){
-	  new_type = false;
-	  break;
-	}
+        if (curr_type_idx == baseline_types_[i]){
+          new_type = false;
+          break;
+        }
       }
       if (new_type) baseline_types_.push_back(curr_type_idx);
       // update max_orders_
       size_t curr_order = GetTypeOrder(curr_type_idx, irow, ipol);
       if (curr_order > max_orders_[curr_type_idx]) {
-	max_orders_[curr_type_idx] = curr_order;
+	      max_orders_[curr_type_idx] = curr_order;
       }
     }
   }

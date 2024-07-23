@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -220,7 +220,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         itsFastNoise = decpars.fastnoise;
 	      itsIsInteractive = decpars.interactive;
         itsNsigma = decpars.nsigma;
-        itsNoRequireSumwt = decpars.noRequireSumwt;
+        itsNoRequireSumwt = true; //decpars.noRequireSumwt;
         itsFullSummary = decpars.fullsummary;
       }
     catch(AipsError &x)
@@ -396,6 +396,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         Double minval, maxval;
         IPosition minpos, maxpos;
         //Double maxrobustrms = max(robustrms);
+        if(robustrms.empty())
+          throw(AipsError("No valid values to deconvolve"));
+          
         minMax(minval, maxval, minpos, maxpos, robustrms);
 
         //Float nsigmathresh = nsigma * (Float)robustrms(IPosition(1,0));
@@ -1051,7 +1054,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         Bool emptyMask(False);
         if( itsImages->hasMask() )
           {
-            if (itsImages->getMaskSum()==0.0) {
+              // CAS-14203 - Check if mask is empty AND user didn't specify an empty mask
+            if (itsImages->getMaskSum()==0.0 && itsMaskList[0] != "") {
               emptyMask=True;
             }
           }

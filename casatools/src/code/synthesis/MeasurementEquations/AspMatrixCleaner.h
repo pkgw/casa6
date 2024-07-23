@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -35,6 +35,7 @@
 #include <deque>
 #include <casacore/coordinates/Coordinates/CoordinateSystem.h>
 #include <casacore/coordinates/Coordinates/SpectralCoordinate.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 
 namespace casa { //# NAMESPACE CASA - BEGIN
 
@@ -178,6 +179,7 @@ private:
   unsigned int itsNumNoChange; // number of times peakres rarely changes
   float itsLargestInitScale; // estimated largest initial scale
   float itsUserLargestScale; // user-specified largest initial scale
+  casacore::IPosition blcDirty, trcDirty;
 };
 
 } //# NAMESPACE CASA - END

@@ -11,6 +11,7 @@ if is_CASA6:
     from casatools import calibrater
     from . import correct_ant_posns as getantposns
     from .jyperk import gen_factor_via_web_api, JyPerKReader4File
+    from .eop import generate_eop
 
     _cb = calibrater()
 else:
@@ -21,7 +22,7 @@ else:
 
 
 def gencal(vis=None, caltable=None, caltype=None, infile='None',
-           endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+           endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
            spw=None, antenna=None, pol=None,
            parameter=None, uniform=None):
     """Externally specify calibration solutions of various types.
@@ -61,7 +62,7 @@ def gencal(vis=None, caltable=None, caltype=None, infile='None',
     if not ((type(vis) == str) and (os.path.exists(vis))):
         raise ValueError('Visibility data set not found - please verify the name')
 
-    if caltype not in ['antpos', 'jyperk']:
+    if caltype not in ['antpos', 'jyperk', 'eop']:
         gencal_type = 'general'
     else:
         gencal_type = caltype
@@ -71,13 +72,13 @@ def gencal(vis=None, caltable=None, caltype=None, infile='None',
     gencal = __gencal_factory[gencal_type]
     gencal.gencal(vis=vis, caltable=caltable, caltype=caltype, infile=infile,
                   endpoint=endpoint, timeout=timeout, retry=retry, retry_wait_time=retry_wait_time,
-                  spw=spw, antenna=antenna, pol=pol, parameter=parameter, uniform=uniform)
+                  ant_pos_time_limit=ant_pos_time_limit, spw=spw, antenna=antenna, pol=pol, parameter=parameter, uniform=uniform)
 
 
 class GeneralGencal():
     @classmethod
     def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
-               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
                spw=None, antenna=None, pol=None,
                parameter=None, uniform=None):
         try:
@@ -97,7 +98,7 @@ class GeneralGencal():
 class AntposGencal():
     @classmethod
     def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
-               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
                spw=None, antenna=None, pol=None,
                parameter=None, uniform=None):
         try:
@@ -108,7 +109,7 @@ class AntposGencal():
             if antenna == '':
                 casalog.post(" Determine antenna position offsets from the baseline correction database")
                 # correct_ant_posns returns a list , [return_code, antennas, offsets]
-                antenna_offsets = getantposns.correct_ant_posns(vis, False)
+                antenna_offsets = getantposns.correct_ant_posns(vis, False, ant_pos_time_limit)
                 if ((len(antenna_offsets) == 3) and
                         (int(antenna_offsets[0]) == 0) and
                         (len(antenna_offsets[1]) > 0)):
@@ -138,7 +139,7 @@ class JyperkGencal():
 
     @classmethod
     def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
-               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5,
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
                spw=None, antenna=None, pol=None,
                parameter=None, uniform=None):
         """Generate calibration table."""
@@ -221,9 +222,35 @@ class JyperkGencal():
 
         return pol
 
+class EOPGencal():
+    """A class to generate caltable from update EOP values.
+
+    This class will be called if the caltype is 'eop'.
+    """
+
+    @classmethod
+    def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
+               spw=None, antenna=None, pol=None,
+               parameter=None, uniform=None):
+        """Generate calibration table."""
+        try:
+            # don't need scr col for this
+            _cb.open(filename=vis, compress=False, addcorr=False, addmodel=False)
+            _cb.createcaltable(caltable=caltable, partype='Real', caltype='Fringe Jones', singlechan=True)
+            _cb.close()
+            generate_eop(vis, caltable, infile)
+
+        except UserWarning as instance:
+            casalog.post('*** UserWarning *** %s' % instance, 'WARN')
+
+        finally:
+            _cb.close()
+
 
 __gencal_factory = {
     'general': GeneralGencal,
     'antpos': AntposGencal,
     'jyperk': JyperkGencal,
+    'eop': EOPGencal,
 }
