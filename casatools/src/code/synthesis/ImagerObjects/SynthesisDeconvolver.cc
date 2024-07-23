@@ -457,7 +457,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  itsLoopController.setMaskSum( -1.0 );
 	}
 
-
       // CAS-14201 : Always initialize summaryminor, even when niter=0
       for( Int chanid=0; chanid<nSubChans;chanid++) {
         for( Int polid=0; polid<nSubPols; polid++) {
@@ -465,18 +464,17 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                     0 /*cycleStartIteration */,
                     0 /*startiteration */,
                     0.0 /*startmodelflux */,
-                    itsImages->getPeakResidual() /*startpeakresidual */,
-                    itsImages->getPeakResidualWithinMask() /*startpeakresidualnomask */,
+                    itsImages->getPeakResidualWithinMask() /*startpeakresidual */,
+                    itsImages->getPeakResidual() /*startpeakresidualnomask */,
                     itsImages->getModelFlux()/*modelflux */,
-                    itsImages->getPeakResidual() /*peakresidual */,
-                    itsImages->getPeakResidualWithinMask() /*peakresidualnomask */,
+                    itsImages->getPeakResidualWithinMask() /*peakresidual */,
+                    itsImages->getPeakResidual() /*peakresidualnomask */,
                     masksum,
                     0 /*rank */,
                     0 /*stopCode */,
                     itsFullSummary);
         }
       }
-
       float psfsidelobelevel = itsImages->getPSFSidelobeLevel();
 
       returnRecord = itsLoopController.getCycleInitializationRecord();
@@ -1033,6 +1031,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO os( LogOrigin("SynthesisDeconvolver","setupMask",WHERE) );
     if(!itsImages)
       throw(AipsError("Initminor Cycle has not been called yet"));
+
     Bool maskchanged=False;
     //debug
     if( itsIsMaskLoaded==false ) {
@@ -1059,6 +1058,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           }
           ***/
         }
+
         //else if( itsMaskType=="user" && itsMaskList[0] != "" ) {
         if( itsMaskType=="user" && itsMaskList[0] != "" ) {
 	  os << "[" << itsImages->getName() << "] Setting up a mask from " << itsMaskList  <<  ((itsPBMask>0.0)?" within PB mask limit ":"") << LogIO::POST;
@@ -1075,34 +1075,33 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	os << "----------------------------------------------------------------------------------------------------------------------------------------" << LogIO::POST;
 
-      } else {
-
-        // new im statistics creates an empty mask and need to take care of that case
-        Bool emptyMask(False);
-        if( itsImages->hasMask() )
-          {
-              // CAS-14203 - Check if mask is empty AND user didn't specify an empty mask
-            if (itsImages->getMaskSum()==0.0 && itsMaskList[0] != "") {
-              emptyMask=True;
+        }
+        else {
+            // new im statistics creates an empty mask and need to take care of that case
+            Bool emptyMask(False);
+            if( itsImages->hasMask() )
+            {
+                // CAS-14203 - Check if mask is empty AND user didn't specify an empty mask
+                if (itsImages->getMaskSum()==0.0 && itsMaskList[0] != "") {
+                    emptyMask=True;
+                }
             }
-          }
-	if( ! itsImages->hasMask() || emptyMask ) // i.e. if there is no existing mask to re-use...
-	  {
-            LatticeLocker lock1 (*(itsImages->mask()), FileLocker::Write);
-	    if( itsIsInteractive ) itsImages->mask()->set(0.0);
-	    else itsImages->mask()->set(1.0);
-	    os << "[" << itsImages->getName() << "] Initializing new mask to " << (itsIsInteractive?"0.0 for interactive drawing":"1.0 for the full image") << LogIO::POST;
-	  }
-	else {
-	  os << "[" << itsImages->getName() << "] Initializing to existing mask" << LogIO::POST;
-	}
-
-      }
+            if( ! itsImages->hasMask() || emptyMask ) // i.e. if there is no existing mask to re-use...
+            {
+                LatticeLocker lock1 (*(itsImages->mask()), FileLocker::Write);
+                if( itsIsInteractive ) itsImages->mask()->set(0.0);
+                else itsImages->mask()->set(1.0);
+                os << "[" << itsImages->getName() << "] Initializing new mask to " << (itsIsInteractive?"0.0 for interactive drawing":"1.0 for the full image") << LogIO::POST;
+            }
+            else {
+                os <<  "hasMask " << itsImages->hasMask() << " masksum " << itsImages->getMaskSum() << " masklist " << itsMaskList[0] << " emptyMask " << emptyMask << endl;
+                os << "[" << itsImages->getName() << "] Initializing to existing mask" << LogIO::POST;
+            }
+        }
 
       // If anything other than automasking, don't re-make the mask here.
       if ( itsAutoMaskAlgorithm == "" )
         {	itsIsMaskLoaded=true; }
-
 
       // Get the number of mask pixels (sum) and send to the logger.
       Float masksum = itsImages->getMaskSum();
