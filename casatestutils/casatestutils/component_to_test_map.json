@@ -151,7 +151,7 @@
             "comment":""
         },
         {
-            "testScript":"test_stk_srdp_restore_mode.py",
+            "testScript":"test_stk_srdp_restore_mode",
             "testType":"stakeholder",
             "maintainer":"Sandra Castro",
             "maintainerEmail":"scastro@eso.org",

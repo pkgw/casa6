@@ -60,6 +60,14 @@ message (STATUS "CMAKE_CXX_STANDARD ${CMAKE_CXX_STANDARD}")
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+#if (APPLE)
+#  if (${CMAKE_CXX_COMPILER_VERSION} MATCHES "^15.*")
+#    message("Adding -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION preprocessor definition")
+#    add_compile_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
+#  endif()
+#endif()
+
 ## Set definitions global to the whole project
 add_definitions(-DCASACORE_NEEDS_RETHROW)
 add_definitions(-DAIPS_DEBUG)
