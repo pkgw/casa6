@@ -44,6 +44,7 @@
 #include <casacore/casa/OS/File.h>
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/Utilities/Sort.h>
+#include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/Utilities/BinarySearch.h>
 #include <casacore/measures/Measures/Stokes.h>
 #include <casacore/scimath/Functionals/Interpolate1D.h>
@@ -480,6 +481,7 @@ void SDAtmosphereCorrectionTVI::initializeAtmosphereCorrection(Record const &con
        << LogIO::EXCEPTION;
   }
   processSpwList_ = configuration.asArrayInt("processspw");
+  GenSort<Int>::sort(processSpwList_, Sort::Ascending, Sort::NoDuplicates);
   os << "processspw (input) = " << processSpwList_ << LogIO::POST;
 
   // gain factor
@@ -578,8 +580,9 @@ void SDAtmosphereCorrectionTVI::initializeAtmosphereCorrection(Record const &con
   MSMetaData msmd(&ms(), kNoCache);
   std::set<uInt> allSpwIds = msmd.getSpwIDs();
   std::set<uInt> nonProcessingSpws;
+  std::set<uInt> sortedProcessSpwList(processSpwList_.begin(), processSpwList_.end());
   std::set_difference(allSpwIds.begin(), allSpwIds.end(),
-                      processSpwList_.begin(), processSpwList_.end(),
+                      sortedProcessSpwList.begin(), sortedProcessSpwList.end(),
                       std::inserter(nonProcessingSpws, nonProcessingSpws.begin()));
   if (nonProcessingSpws.size() > 0) {
     os << LogIO::WARN << "SPW"

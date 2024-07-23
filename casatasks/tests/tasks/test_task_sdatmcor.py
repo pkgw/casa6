@@ -106,6 +106,14 @@ def environment_variable_manager(var_name):
             os.environ[var_name] = var_org
 
 
+def get_end_pos_for(logfile: str) -> int:
+    with open(logfile, 'r') as f:
+        offset = 0
+        from_end_of_file = os.SEEK_END
+        f.seek(offset, from_end_of_file)
+        return f.tell()
+
+
 class test_sdatmcor(unittest.TestCase):
     datapath = ctsys_resolve('measurementset/almasd')
     infile = 'X320b_sel2.ms'
@@ -113,6 +121,8 @@ class test_sdatmcor(unittest.TestCase):
     caltable = infile + '.k2jycal'
 
     local_unit_test = False
+
+    casalog_seek_pos = 0
 
     def setUp(self):
         # default Args
@@ -126,6 +136,8 @@ class test_sdatmcor(unittest.TestCase):
         smart_remove(self.outfile)
         smart_remove(self.caltable)
         shutil.copytree(os.path.join(self.datapath, self.infile), self.infile)
+
+        self.casalog_seek_pos = get_end_pos_for(casalog.logfile())
 
     def tearDown(self):
         smart_remove(self.infile)
@@ -219,6 +231,86 @@ class test_sdatmcor(unittest.TestCase):
         else:
             self.assertTrue(np.all(data_after == data_before))
 
+    def __check_casalog_spw_corrected(self, striplog: list, spwprocess: dict):
+        """Test if casalog contains proper log message for list of corrected spws.
+
+        Expected log message is,
+
+            "processspw (input) = [XX, YY, ...]",
+
+        where [XX, YY, ...] is a list of corrected spw ids.
+
+        Args:
+            striplog: Log message
+            spwprocess: Dictionary describing input parameter
+        """
+        log_corrected = [line for line in striplog if line.startswith('processspw (input) = ')]
+        spw_corrected = sorted([k for k, v in spwprocess.items() if v])
+        # corrected spws must be non-zero
+        self.assertGreater(len(spw_corrected), 0)
+        # this log message must present
+        self.assertEqual(len(log_corrected), 1)
+        # extract list of spws from the log, and compare with expected list
+        try:
+            # the string to be evaluated should be a list like '[17, 19, 21, 23]'
+            spw_list_str = log_corrected[0].split('=')[1].strip()
+            spw_corrected_from_log = eval(spw_list_str)
+        except Exception as e:
+            print(str(e))
+            self.fail(f'Unexpected log format: {spw_list_str}')
+        self.assertEqual(spw_corrected_from_log, spw_corrected)
+
+    def __check_casalog_spw_not_corrected(self, striplog: list, spwprocess: dict):
+        """Test if casalog contains proper log message for list of *not* corrected spws.
+
+        Expected log message is either,
+
+            "SPWs XX YY ... are output but not corrected", or
+            "SPW XX is output but not corrected",
+
+        where XX YY ... or XX are a list of *not* corrected spw ids.
+
+        Args:
+            striplog: Log message
+            spwprocess: Dictionary to describe spw selection
+        """
+        log_not_corrected = [line for line in striplog if line.endswith(' output but not corrected')]
+        spw_not_corrected = sorted([k for k, v in spwprocess.items() if not v])
+        if len(spw_not_corrected) > 0:
+            # not corrected spws present, so log message must present
+            self.assertEqual(len(log_not_corrected), 1)
+            # extract list of spws from the log, and compare with expected list
+            spw_not_corrected_from_log = [int(v) for v in log_not_corrected[0].split()[1:-5]]
+            self.assertEqual(spw_not_corrected_from_log, spw_not_corrected)
+        else:
+            # all the spws are corrected, so log message must not present
+            self.assertEqual(len(log_not_corrected), 0)
+
+    def _check_casalog(self, spwprocess: dict):
+        """Test if casalog contains expected log messages.
+
+        See CAS-14171 for the purpose of the test.
+
+        Args:
+            spwprocess: Dictionary to describe spw selection.
+                        Keys are the list of spws selected (outputspw)
+                        while values indicate whether each spw is
+                        corrected (True) or not (False).
+        """
+        # WARNING
+        # Current code may result in intermittent and non-deterministic test failures,
+        # in case the expected log lines have not yet been flushed.
+        # If such failures occur, please consider to make it possible to: casalog.flush()
+        with open(casalog.logfile(), 'r') as f:
+            f.seek(self.casalog_seek_pos, 0)
+            log = f.read()
+        lines = log.split('\n')
+        # strip meta data, only keep body of the log
+        striplog = [line.split('\t')[-1] for line in lines]
+        self.assertGreater(len(log), 0)
+        self.__check_casalog_spw_corrected(striplog, spwprocess)
+        self.__check_casalog_spw_not_corrected(striplog, spwprocess)
+
     def check_result(self, spwprocess, on_source_only=False):
         """Check Result.
 
@@ -235,6 +327,9 @@ class test_sdatmcor(unittest.TestCase):
 
         # test OpenMP related stuff
         self.assertEqual(casalog.ompGetNumThreads(), OMP_NUM_THREADS_INITIAL)
+
+        # test casalog messages
+        self._check_casalog(spwprocess)
 
     def test_sdatmcor_normal(self):
         """Test normal usage of sdatmcor."""
