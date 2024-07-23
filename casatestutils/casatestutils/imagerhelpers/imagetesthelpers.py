@@ -225,7 +225,7 @@ class TestHelpers:
         for k in range(nchan):
             beam2[k] = _ia.beamarea(k,0)['arcsec2']
         _ia.close()
-        return numpy.alltrue(op(beam1, beam2))
+        return numpy.all(op(beam1, beam2))
 
     def image_exists(self, imname):
         """ Image exists """
