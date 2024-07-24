@@ -23,7 +23,7 @@ A set of common helper functions for unit tests:
    compVarColTables - Compare a variable column of two tables
    DictDiffer - a class with methods to take a difference of two 
                 Python dictionaries
-   verify_ms - Function to verify spw and channels information in an MS   
+   verifyMS - Function to verify spw and channels information in an MS   
    create_input - Save the string in a text file with the given name           
 '''
 
@@ -101,30 +101,27 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
                 if not (a==b).all():
                     for i in range(0,len(a)):
                         if (isinstance(a[i],float)):
-                            if ((mode=="percentage") and (abs(a[i]-b[i]) > tolerance*abs(a[i]))) or ((mode=="absolute") and (abs(a[i]-b[i]) > tolerance)):
+                            if ((mode=="percentage") and not math.isclose(a[i], b[i], rel_tol=tolerance)) or ((mode=="absolute") and not math.isclose(a[i], b[i], abs_tol=tolerance)):
                                 print("Column " + c + " differs")
                                 print("Row=" + str(i))
                                 print("Reference file value: " + str(a[i]))
                                 print("Input file value: " + str(b[i]))
                                 if (mode=="percentage"):
                                     print("Tolerance is {0}%; observed difference was {1} %".format (tolerance * 100, 100*abs(a[i]-b[i])/abs(a[i])))
+                                    rval = math.isclose(a[i], b[i], rel_tol=tolerance)
                                 else:
                                     print("Absolute tolerance is {0}; observed difference: {1}".format (tolerance, (abs(a[i]-b[i]))))
+                                    rval = math.isclose(a[i], b[i], abs_tol=tolerance)
                                 differs = True
-                                rval = False
                                 break
                         elif (isinstance(a[i],int) or isinstance(a[i],np.int32)):
-                            if (abs(a[i]-b[i]) > 0):
+                            if not math.isclose(a[i], b[i], abs_tol=tolerance):
                                 print("Column " + c + " differs")
                                 print("Row=" + str(i))
                                 print("Reference file value: " + str(a[i]))
                                 print("Input file value: " + str(b[i]))
-                                if (mode=="percentage"):
-                                    print("tolerance in % should be " + str(100*abs(a[i]-b[i])/abs(a[i])))
-                                else:
-                                    print("absolute tolerance should be " + str(abs(a[i]-b[i])))
+                                rval = math.isclose(a[i], b[i], abs_tol=tolerance)
                                 differs = True
-                                rval = False
                                 break
                         elif (isinstance(a[i],str) or isinstance(a[i],np.bool_)):
                             if not (a[i]==b[i]):
@@ -143,17 +140,18 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
                             for j in range(0,len(a[i])):
                                 if differs: break
                                 if ((isinstance(a[i][j],float)) or (isinstance(a[i][j],int))):
-                                    if ((mode=="percentage") and (abs(a[i][j]-b[i][j]) > tolerance*abs(a[i][j]))) or ((mode=="absolute") and (abs(a[i][j]-b[i][j]) > tolerance)):
+                                    if ((mode=="percentage") and not math.isclose(a[i][j], b[i][j], rel_tol=tolerance)) or ((mode=="absolute") and not math.isclose(a[i][j], b[i][j], abs_tol=tolerance)):
                                         print("Column " + c + " differs")
                                         print("(Row,Element)=(" + str(j) + "," + str(i) + ")")
                                         print("Reference file value: " + str(a[i][j]))
                                         print("Input file value: " + str(b[i][j]))
                                         if (mode=="percentage"):
                                             print("Tolerance in % should be " + str(100*abs(a[i][j]-b[i][j])/abs(a[i][j])))
+                                            rval = math.isclose(a[i], b[i], rel_tol=tolerance)
                                         else:
                                             print("Absolute tolerance should be " + str(abs(a[i][j]-b[i][j])))
+                                            rval = math.isclose(a[i], b[i], abs_tol=tolerance)
                                         differs = True
-                                        rval = False
                                         break
                                 elif (isinstance(a[i][j],list)) or (isinstance(a[i][j],np.ndarray)):
                                     it = range(0,len(a[i][j]))
@@ -183,14 +181,13 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
                                                 print("Unknown comparison mode: ",mode)
                                             differs = True
                                             rval = False
-                                            break                                          
-                                            
+                                            break
                         else:
                             print("Unknown data type: ",type(a[i]))
                             differs = True
                             rval = False
                             break
-                
+
                 if not differs: print("Column " + c + " PASSED")
     finally:
         tb_local.close()
@@ -330,7 +327,7 @@ def verifyMS(msname, expnumspws, expnumchan, inspw, expchanfreqs=[], ignoreflags
         msg = "Found "+ str(dimdata) +", expected "+str(expnumchan)+" channels in FLAG column in "+msname
         return [False,msg]
 
-    if not (expchanfreqs==[]):
+    if not (len(expchanfreqs)==0):
         print("Testing channel frequencies ...")
 #        print(cf)
 #        print(expchanfreqs)

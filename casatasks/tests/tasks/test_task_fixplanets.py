@@ -82,7 +82,10 @@ def compRows(vis1, vis2, subtable):
     res2 = tb.getcol(subtable)
     tb.close()
     
-    return np.all(res1 == res2)
+    if len(res1) == len(res2):
+      return np.all(res1 == res2)
+    else:
+      return False
     
     
 class fixplanets_test(unittest.TestCase):
@@ -326,14 +329,15 @@ class fixplanets_test(unittest.TestCase):
             self.assertTrue(self.verify(myms, 'Titan', 'APP'))
 
     def test_ephemerisMimeFormat(self):
-        '''test9: Does a fixplanets with an ephemeris in mime format work'''
+        '''test9: Test task fixplanets raises an exception when ephemeris data is given in MIME format'''
         os.system('cp ' + os.path.join(datapath, 'titan.eml') + ' .')
         for myms in [outms, outms2]:
             os.system("rm -rf titan.eml.tab")
-            fixplanets(vis=myms, field='Titan', fixuvw=True, direction='titan.eml')
+            with self.assertRaisesRegex(RuntimeError, r'Use of the JPL-Horizons MIME format file is deprecated'):
+                fixplanets(vis=myms, field='Titan', fixuvw=True, direction='titan.eml')
 
-            self.assertTrue(os.path.exists(myms + '/FIELD/EPHEM0_Titan.tab'))
-            self.assertTrue(self.verify(myms, 'Titan', 'J2000'))
+            #self.assertTrue(os.path.exists(myms + '/FIELD/EPHEM0_Titan.tab'))
+            #self.assertTrue(self.verify(myms, 'Titan', 'J2000'))
 
 if __name__ == "__main__":
     unittest.main()

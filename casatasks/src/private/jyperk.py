@@ -340,7 +340,7 @@ class MeanElevation():
         """Get elevations aveage."""
         stateid = cls._get_stateid(vis)
         science_dd = cls._get_science_dd(vis)
-        rows = cls._query_rows(vis, science_dd, stateid, antenna_id)
+        rows = cls._query_rows(vis, science_dd, stateid.tolist(), antenna_id)
 
         return cls._calc_elevation_mean(rows, vis)
 
