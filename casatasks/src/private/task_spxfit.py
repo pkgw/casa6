@@ -112,7 +112,7 @@ def spxfit(
         try:
             param_names = spxfit.__code__.co_varnames[:spxfit.__code__.co_argcount]
             local_vars = locals( )
-            param_vals = [vars[p] for p in param_names]
+            param_vals = [local_vars[p] for p in param_names]
             ims = [model, residual]
             for x in [spxsol, spxerr]:
                 if x:
