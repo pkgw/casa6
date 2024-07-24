@@ -121,11 +121,11 @@ def defintent(vis='', intent='', mode='append',
     # mstool query version
     toJoin = []
     if len(selectedIndex['field']) > 0:
-        toJoin.append(f"FIELD_ID in {list(selectedIndex['field'])}")
+        toJoin.append(f"FIELD_ID in {selectedIndex['field'].tolist()}")
     if len(selectedIndex['scan']) > 0:
-        toJoin.append(f"SCAN_NUMBER in {list(selectedIndex['scan'])}")
+        toJoin.append(f"SCAN_NUMBER in {selectedIndex['scan'].tolist()}")
     if len(selectedIndex['observationid']) > 0:
-        toJoin.append(f"OBSERVATION_ID in {list(selectedIndex['observationid'])}")
+        toJoin.append(f"OBSERVATION_ID in {selectedIndex['observationid'].tolist()}")
     # join into query string
     taskQuery = " && ".join(toJoin)
     
