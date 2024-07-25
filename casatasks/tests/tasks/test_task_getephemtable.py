@@ -71,10 +71,10 @@ class getephemtable_test(unittest.TestCase):
         self.jdtimerange = 'JD2460189.33333~2460189.88542'
         self.mjdtimerange = 'MJD60188.83333~60189.38542'
         self.reftable = datapath+'titan_jplhorizons_eph_ref.tab'
-        tmppath = '/Users/ttsutsum/SWDevel/casa/imaging/ephemimaging/getephemtable-test/'
-        self.inALMAtextfile = tmppath+'titan_jplhorizons_eph_alma.txt'
-        self.inVLAtextfile = tmppath+'titan_jplhorizons_eph_vla.txt'
-        self.inGBTtextfile = tmppath+'titan_jplhorizons_eph_gbt.txt'
+        #tmppath = '/Users/ttsutsum/SWDevel/casa/imaging/ephemimaging/getephemtable-test/'
+        self.inALMAtextfile =datapath+'titan_jplhorizons_eph_alma.txt'
+        self.inVLAtextfile = datapath+'titan_jplhorizons_eph_vla.txt'
+        self.inGBTtextfile = datapath+'titan_jplhorizons_eph_gbt.txt'
         self.otheroutputs = ['saved_rawqueryresult.txt', 
                              'titan_eph_from_ALMAtextdata.tab',
                              'titan_eph_from_VLAtextdata.tab',
