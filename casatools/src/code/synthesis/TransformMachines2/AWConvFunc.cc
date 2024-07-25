@@ -2085,9 +2085,9 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
         String bandname = EVLAAperture::getVLABandName(
             freqlist[int(freqlist.nelements() / 2)],
             atermMaker_p->getTelescopeName());
-        //	cerr << "BANDNAME " << bandname << " telescip " <<
-        //atermMaker_p->getTelescopeName()  << " csys tel " <<
-        //csys.obsInfo().telescope() << endl;
+        cerr << "BANDNAME " << bandname << " telescip " <<
+        	atermMaker_p->getTelescopeName()  << " csys tel " <<
+        	csys.obsInfo().telescope() << endl;
 	std::tie(cell,convnx)=getBeamCellSize(bandname);
     if(!isSingleField){
 		//For mosaic we'll use 512 pix
@@ -2105,14 +2105,15 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
 	Double pbFov= fabs(cell.get(units[0]).getValue()*Double(convnx));
-    //cerr << "@@inpfov " << inpFov << " pbFov " << pbFov << endl;
+    cerr << "@@inpfov " << inpFov << " pbFov " << pbFov << " isSingleField "<< isSingleField << endl;
         if (inpFov > 0.125 * pbFov) {
           incr[0] = cell.get(units[0]).getValue();
           incr[1] = cell.get(units[1]).getValue();
           //For small fov post fft resampling is not good enough...create alarge fov 
 		  // here to resample finer at calculation
 		  // doing squint that may be a memory hog ...so avoiding it for that case
-		  if(( (inpFov < pbFov && !isSingleField) || isSingleField)){
+		  //pbFov goes into sidelobes
+		  if(( (inpFov < 0.25*pbFov && !isSingleField) || isSingleField)){
 			incr[0]*=2.0;
 			incr[1]*=2.0;
 			convnx *=2.0;
@@ -2272,8 +2273,7 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
     Int nfreq = freqlist.nelements();
     Int nw = wVals.nelements();
     wpc.makeWConvFuncs(wCon, wTsup, csys, npix, wVals);
-    // cerr << "AWC wcon shape "<< wCon.shape() << " pbFT " << pbFT.shape() <<
-    // endl;
+     cerr << "AWC wcon shape "<< wCon.shape() << " pbFT " << pbFT.shape() << endl;
     Int newNx = max(wCon.shape()[0], pbFT.shape()[0]);
     // Let's start with this size..we can reduce this later
     convFunc.resize(IPosition(5, newNx, newNx, 4, nfreq, nw));
@@ -2371,8 +2371,9 @@ Bool AWConvFunc::supportResizeAWConv(Matrix<Int>& sup, Array<Complex>& conv, con
 	Int convSize=conv.shape()[0];
 	sup.resize(conv.shape()[3], conv.shape()[4]);
 	sup.set(0);
-	Float maxAbsConvFunc, minAbsConvFunc;
-	IPosition minpos, maxpos;
+        Vector<Float> maxAbsConvFunc(conv.shape()[3], -1e99);
+        Float minAbsConvFunc;
+        IPosition minpos, maxpos;
 	ArrayIterator<Complex> it(conv, IPosition(2,0,1));
 	//The w=0 will determine the sum under conv func for normalization
 	Vector<Double> sumUnder(conv.shape()[3], 0.0);
@@ -2380,13 +2381,15 @@ Bool AWConvFunc::supportResizeAWConv(Matrix<Int>& sup, Array<Complex>& conv, con
 	for (Int w=0; w < conv.shape()[4]; ++w){
 		for (Int chan=0; chan < conv.shape()[3]; ++chan){
 			Matrix<Complex> convPlane(it.array());
-			minMax(minAbsConvFunc, maxAbsConvFunc, minpos, maxpos, amplitude(convPlane));
-			//cerr << "minMAX " << minAbsConvFunc << "   " << maxAbsConvFunc << endl;
+			//need the peak for w=0 fall chans for subsequent w's
+			if(w==0){
+				minMax(minAbsConvFunc, maxAbsConvFunc[chan], minpos, maxpos, amplitude(convPlane));
+			}
 			Bool found=false;
 			Int trial=0;
 			for (trial=convSize/2-2; trial>0; --trial) {
 				//Searching down a diagonal
-					if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (1.0e-2*maxAbsConvFunc) ) {
+					if(abs(convPlane(convSize/2-trial,convSize/2-trial)) >  (1.0e-2*maxAbsConvFunc[chan]) ) {
 					found=true;
 					trial=Int(sqrt(2.0*Float(trial*trial)));
 		
@@ -2401,11 +2404,12 @@ Bool AWConvFunc::supportResizeAWConv(Matrix<Int>& sup, Array<Complex>& conv, con
 			else{
 				sup(chan,w)=5;
 			}
-			if(sup(chan, w) < ATsup(chan)){
-				//cerr << chan << " w " << w << "sup " << sup(chan,w) << " ATsup " << ATsup(chan) << endl;
-				sup(chan,w)=ATsup(chan);
-			}
-			if(w==0){
+            if (sup(chan, w) < ATsup(chan)) {
+                // cerr << chan << " w " << w << "sup " << sup(chan,w)
+                // << " ATsup " << ATsup(chan) << endl;
+                          sup(chan, w) = ATsup(chan);
+            }
+            if(w==0){
 				IPosition blc(2,-sup(chan,0)+convSize/2, -sup(chan,0)+convSize/2);
 				IPosition trc(2, sup(chan,0)+convSize/2-1, sup(chan, 0)+convSize/2-1);
 				//cerr << "chan " << chan << " blc " << blc << " trc " << trc << "  sup "<< sup(chan,0) << endl;
