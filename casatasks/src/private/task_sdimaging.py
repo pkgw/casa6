@@ -30,7 +30,7 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
 
 def is_string_type(val):
     """Return True if the argument is string type."""
-    return type(val) in [str, numpy.string_]
+    return type(val) in [str, numpy.str_]
 
 
 def smart_remove(path):
@@ -1004,7 +1004,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         casalog.filter()  # set logging back to normal
 
         casalog.filter()  # set logging back to normal
-        imsize = numpy.product(my_ia.shape())
+        imsize = numpy.prod(my_ia.shape())
         my_ia.close()
         # Modify default mask
         my_ia.open(self.outfile)
