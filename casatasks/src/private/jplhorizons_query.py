@@ -271,7 +271,6 @@ def tocasatb(indata, outtable):
             ephemdata = indata['result']
         elif isinstance(indata, str):
             if os.path.exists(indata):
-                print("input data is a file")
                 with open(indata, 'r') as infile:
                     #ephemdata = infile.readlines()
                     ephemdata = infile.read()
@@ -298,7 +297,6 @@ def tocasatb(indata, outtable):
             ###
             lcnt = 0
             # for lnum, line in enumerate(infile):
-            print(type(ephemdata))
             for lnum, line in enumerate(ephemdata.split('\n')):
                 # JPL-Horizons data should contain this line at the beginning
                 if re.search(r'JPL/HORIZONS', line):
@@ -381,20 +379,18 @@ def tocasatb(indata, outtable):
                         headerdict['GeoDist'] = float(long_lat_alt[2])
                         # obs location
                 elif re.search(r'Center-site name', line):
-                    m = re.match(r'^[>\s]*Center-site name:(\s*)([a-zA-Z\s*\/\-\(\)]+)', line)
+                    m = re.match(r'^[>\s]*Center-site name:(\s*)([a-zA-Z\s*\/\-\(\)\,]+)', line)
                     if m:
                         # For the topocentric location, currently only ALMA, VLA and GBT are translated 
                         # to the proper observatory name which recongnized by Measures.
                         # The key part is the name used by JPL-Horizons.
                         observatories = {'ALMA':'ALMA', 'VLA':'VLA', 'Green Bank':'GBT'} 
-                        if m[2] != '':
+                        if m[2]:
+                           headerdict['obsloc'] = m[2] 
                            for obs in observatories:
                                if obs in m[2]:
                                    headerdict['obsloc'] = observatories[obs]
                                    break
-                               else:
-                                   # leave it as is
-                                   headerdict['obsloc'] = m[2] 
                         # Assume the query is made in ICRF reference frame
                         # and for casacore measures, this will be 'ICRS'
                         headerdict['posrefsys'] =  'ICRS'
@@ -577,34 +573,34 @@ def tocasatb(indata, outtable):
                             'try calendar date+time string for the time range.') 
                         outline += str(mjd['value']) + sep
                         # position
-                        rad = tempdata[cols['RA']['index']+extraindexoffset]
-                        decd = tempdata[cols['DEC']['index']+extraindexoffset]
+                        rad = tempdata[cols['RA']['index'] + extraindexoffset]
+                        decd = tempdata[cols['DEC']['index'] + extraindexoffset]
                         outline += rad + sep + decd + sep
                         # geocentric dist. (Rho)
-                        delta = tempdata[cols['Rho']['index']+extraindexoffset]
+                        delta = tempdata[cols['Rho']['index'] + extraindexoffset]
                         outline += delta + sep
                         # geocentric range rate (RadVel)
-                        valinkmps = tempdata[cols['RadVel']['index']+extraindexoffset]
+                        valinkmps = tempdata[cols['RadVel']['index'] + extraindexoffset]
                         deldot = _qa.convert(_qa.quantity(valinkmps+'km/s'), 'AU/d' )['value']
                         outline += str(deldot) + sep
                         # NP_ang & NP_dist
-                        npang = tempdata[cols['NP_ang']['index']+extraindexoffset]
-                        npdist = tempdata[cols['NP_dist']['index']+extraindexoffset]
+                        npang = tempdata[cols['NP_ang']['index'] + extraindexoffset]
+                        npdist = tempdata[cols['NP_dist']['index'] + extraindexoffset]
                         outline += npang + sep + npdist + sep
                         # DiskLong & DiskLat
-                        disklong = tempdata[cols['DiskLong']['index']+extraindexoffset]
-                        disklat = tempdata[cols['DiskLat']['index']+extraindexoffset]
+                        disklong = tempdata[cols['DiskLong']['index'] + extraindexoffset]
+                        disklat = tempdata[cols['DiskLat']['index'] + extraindexoffset]
                         outline += disklong + sep + disklat + sep
                         # sub-long & sub-lat
-                        sllon = tempdata[cols['Sl_lon']['index']+extraindexoffset]
-                        sllat = tempdata[cols['Sl_lat']['index']+extraindexoffset]
+                        sllon = tempdata[cols['Sl_lon']['index'] + extraindexoffset]
+                        sllat = tempdata[cols['Sl_lat']['index'] + extraindexoffset]
                         outline += sllon + sep + sllat + sep
                         # r, rot
-                        r = tempdata[cols['r']['index']+extraindexoffset]
-                        rdot = tempdata[cols['rdot']['index']+extraindexoffset]
+                        r = tempdata[cols['r']['index'] + extraindexoffset]
+                        rdot = tempdata[cols['rdot']['index'] + extraindexoffset]
                         outline += r + sep + rdot + sep
                         # S-T-O
-                        phang = tempdata[cols['phang']['index']+extraindexoffset]
+                        phang = tempdata[cols['phang']['index'] + extraindexoffset]
                         outline += phang
                         outf.write(outline + '\n')
 
