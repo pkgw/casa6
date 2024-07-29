@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <exception>
 #include <sstream>
+#include <string.h>  // for strerror
 
 #include <alma/ASDMBinaries/CommonDefines.h>
 
