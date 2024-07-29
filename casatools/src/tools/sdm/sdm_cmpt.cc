@@ -2988,6 +2988,8 @@ namespace casac {
                       iter != msFillers.end(); ++iter )
                     delete iter->second;
 
+                delete ds;
+
                 infostream.str("");
                 infostream << e.getMessage();
                 error(infostream.str());
@@ -3212,6 +3214,8 @@ namespace casac {
                     for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
                           iter != msFillers.end(); ++iter )
                         delete iter->second;
+
+                    delete ds;
 
                     infostream.str("");
                     infostream << e.getMessage();
@@ -5205,13 +5209,13 @@ namespace casac {
         // This holds the most recent last integration time for each configDescriptionId - but only for Radiometer data.
         map<Tag, double> lastTimeMap;
 
+        // reuses the SDMDataObjectStreamReader previously used above - now closed, so that it can be closed on irregular exists (exceptions)
         try {
             unsigned int mainRowIndex;
             vector<MainRowCUStruct>::iterator iter;
             for (iter=mRCU_s_v.begin(), mainRowIndex=0; iter!=mRCU_s_v.end(); iter++, mainRowIndex++) {
                 MainRow* mR_p = iter->mR_p;
 
-                SDMDataObjectStreamReader sdosr;
                 sdosr.open(iter->bdfName);
                 LOG("Processing " + iter->bdfName);
                 unsigned int numberOfAntennas = sdosr.numAntenna();
@@ -5234,6 +5238,7 @@ namespace casac {
                     infostream.str("");
                     infostream << "The main row # " << iter->index << " is ignored because the correlationMode is excluded by the selected mode to fill.";
                     info(infostream.str());
+                    sdosr.close();
                     continue;
                 }
 
@@ -5248,6 +5253,7 @@ namespace casac {
                     infostream.str("");
                     infostream << e.getMessage() << ". The main row # " << iter->index << " is ignored.";
                     info(infostream.str());
+                    sdosr.close();
                     continue;
                 }
       
@@ -5919,8 +5925,12 @@ namespace casac {
             // caught here so that these can be cleaned up and then rethrown so that further cleanup and the call to sdm::error happens upstream
             bdf2AsdmStManIndexU.done();
             bdf2AsdmStManIndexC.done();
+            // it's OK to close this even if it's already closed, but it might not be closed.
+            sdosr.close();
             throw;
         }
+        // there is no harm in closing sdosr here, just in case
+        sdosr.close();
         bdf2AsdmStManIndexU.done();
         bdf2AsdmStManIndexC.done();
         LOGEXIT("fillMainLazily");
