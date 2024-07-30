@@ -34,7 +34,7 @@ import numpy as np
 from casatasks import applycal, casalog, gencal, sdatmcor
 from casatasks.private.sdutil import (convert_antenna_spec_autocorr,
                                       get_antenna_selection_include_autocorr,
-                                      table_manager)
+                                      table_manager, table_selector)
 import casatasks.private.task_sdatmcor as sdatmcor_impl
 from casatools import calibrater, ctsys
 from casatools import ms as mstool
@@ -106,6 +106,14 @@ def environment_variable_manager(var_name):
             os.environ[var_name] = var_org
 
 
+def get_end_pos_for(logfile: str) -> int:
+    with open(logfile, 'r') as f:
+        offset = 0
+        from_end_of_file = os.SEEK_END
+        f.seek(offset, from_end_of_file)
+        return f.tell()
+
+
 class test_sdatmcor(unittest.TestCase):
     datapath = ctsys_resolve('measurementset/almasd')
     infile = 'X320b_sel2.ms'
@@ -113,6 +121,8 @@ class test_sdatmcor(unittest.TestCase):
     caltable = infile + '.k2jycal'
 
     local_unit_test = False
+
+    casalog_seek_pos = 0
 
     def setUp(self):
         # default Args
@@ -126,6 +136,8 @@ class test_sdatmcor(unittest.TestCase):
         smart_remove(self.outfile)
         smart_remove(self.caltable)
         shutil.copytree(os.path.join(self.datapath, self.infile), self.infile)
+
+        self.casalog_seek_pos = get_end_pos_for(casalog.logfile())
 
     def tearDown(self):
         smart_remove(self.infile)
@@ -219,6 +231,86 @@ class test_sdatmcor(unittest.TestCase):
         else:
             self.assertTrue(np.all(data_after == data_before))
 
+    def __check_casalog_spw_corrected(self, striplog: list, spwprocess: dict):
+        """Test if casalog contains proper log message for list of corrected spws.
+
+        Expected log message is,
+
+            "processspw (input) = [XX, YY, ...]",
+
+        where [XX, YY, ...] is a list of corrected spw ids.
+
+        Args:
+            striplog: Log message
+            spwprocess: Dictionary describing input parameter
+        """
+        log_corrected = [line for line in striplog if line.startswith('processspw (input) = ')]
+        spw_corrected = sorted([k for k, v in spwprocess.items() if v])
+        # corrected spws must be non-zero
+        self.assertGreater(len(spw_corrected), 0)
+        # this log message must present
+        self.assertEqual(len(log_corrected), 1)
+        # extract list of spws from the log, and compare with expected list
+        try:
+            # the string to be evaluated should be a list like '[17, 19, 21, 23]'
+            spw_list_str = log_corrected[0].split('=')[1].strip()
+            spw_corrected_from_log = eval(spw_list_str)
+        except Exception as e:
+            print(str(e))
+            self.fail(f'Unexpected log format: {spw_list_str}')
+        self.assertEqual(spw_corrected_from_log, spw_corrected)
+
+    def __check_casalog_spw_not_corrected(self, striplog: list, spwprocess: dict):
+        """Test if casalog contains proper log message for list of *not* corrected spws.
+
+        Expected log message is either,
+
+            "SPWs XX YY ... are output but not corrected", or
+            "SPW XX is output but not corrected",
+
+        where XX YY ... or XX are a list of *not* corrected spw ids.
+
+        Args:
+            striplog: Log message
+            spwprocess: Dictionary to describe spw selection
+        """
+        log_not_corrected = [line for line in striplog if line.endswith(' output but not corrected')]
+        spw_not_corrected = sorted([k for k, v in spwprocess.items() if not v])
+        if len(spw_not_corrected) > 0:
+            # not corrected spws present, so log message must present
+            self.assertEqual(len(log_not_corrected), 1)
+            # extract list of spws from the log, and compare with expected list
+            spw_not_corrected_from_log = [int(v) for v in log_not_corrected[0].split()[1:-5]]
+            self.assertEqual(spw_not_corrected_from_log, spw_not_corrected)
+        else:
+            # all the spws are corrected, so log message must not present
+            self.assertEqual(len(log_not_corrected), 0)
+
+    def _check_casalog(self, spwprocess: dict):
+        """Test if casalog contains expected log messages.
+
+        See CAS-14171 for the purpose of the test.
+
+        Args:
+            spwprocess: Dictionary to describe spw selection.
+                        Keys are the list of spws selected (outputspw)
+                        while values indicate whether each spw is
+                        corrected (True) or not (False).
+        """
+        # WARNING
+        # Current code may result in intermittent and non-deterministic test failures,
+        # in case the expected log lines have not yet been flushed.
+        # If such failures occur, please consider to make it possible to: casalog.flush()
+        with open(casalog.logfile(), 'r') as f:
+            f.seek(self.casalog_seek_pos, 0)
+            log = f.read()
+        lines = log.split('\n')
+        # strip meta data, only keep body of the log
+        striplog = [line.split('\t')[-1] for line in lines]
+        self.assertGreater(len(log), 0)
+        self.__check_casalog_spw_corrected(striplog, spwprocess)
+        self.__check_casalog_spw_not_corrected(striplog, spwprocess)
+
     def check_result(self, spwprocess, on_source_only=False):
         """Check Result.
 
@@ -235,6 +327,9 @@ class test_sdatmcor(unittest.TestCase):
 
         # test OpenMP related stuff
         self.assertEqual(casalog.ompGetNumThreads(), OMP_NUM_THREADS_INITIAL)
+
+        # test casalog messages
+        self._check_casalog(spwprocess)
 
     def test_sdatmcor_normal(self):
         """Test normal usage of sdatmcor."""
@@ -649,6 +744,117 @@ class test_sdatmcor(unittest.TestCase):
 
         # check output MS
         self.check_result({19: True, 23: True})
+
+
+def set_data_to_zero(infile: str, spw: int) -> np.ndarray:
+    """Set ON_SOURCE CORRECTED_DATA to zero for given spw.
+
+    This is implemented by TaQL and is intended to do the
+    same with the following code snippet.
+
+        ms.open(infile)
+        ms.msselect(
+            {'spw': str(spw), 'scanintent': 'OBSERVE_TARGET#ON_SOURCE'},
+            onlyparse=True
+        )
+        msidx = ms.msselectedindices()
+        ms.close()
+        ddid = msidx['spwdd'][0]
+        stateid = list(msidx['stateid'])
+        taql = f'DATA_DESC_ID == {ddid} && STATE_ID IN {stateid}'
+
+        with table_selector(infile, taql=taql, nomodify=False) as tb:
+            cdata = tb.getcol('CORRECTED_DATA')
+            cdata[::] = 0
+            tb.putcol(colname, cdata)
+        return cdata
+
+    Args:
+        infile: Input MS name
+        spw: Spectral window Id
+
+    Returns:
+        Data array manipulated by this function
+    """
+    with table_manager(infile) as tb:
+        taql_string = f'''
+        USING STYLE PYTHON
+        UPDATE "{infile}" SET CORRECTED_DATA = 0
+        WHERE
+          DATA_DESC_ID IN
+            [SELECT ROWID() FROM ::DATA_DESCRIPTION WHERE SPECTRAL_WINDOW_ID == {spw}]
+          && STATE_ID IN
+            [SELECT ROWID() FROM ::STATE WHERE OBS_MODE ~ m/^OBSERVE_TARGET#ON_SOURCE/]
+        '''
+        t = tb.taql(taql_string)
+        cdata = t.getcol('CORRECTED_DATA')
+        t.close()
+    return cdata.real
+
+
+class test_sdatmcor_smoothing(unittest.TestCase):
+    datapath = 'measurementset/almasd'
+    infile = 'X59ca_sel.ms'
+    outfile = infile + '.atmcor'
+
+    def setUp(self):
+        smart_remove(self.infile)
+        smart_remove(self.outfile)
+        datapath_to_ms = ctsys_resolve(os.path.join(self.datapath, self.infile))
+        shutil.copytree(datapath_to_ms, self.infile)
+
+    def tearDown(self):
+        smart_remove(self.infile)
+        smart_remove(self.outfile)
+
+    def _get_data(self, ms_name, spw):
+        with table_selector(ms_name, f'DATA_DESC_ID=={spw}') as tb:
+            data = tb.getcol('DATA').real
+
+        return data
+
+    def test_mitigation(self):
+        """Test if mitigation for boundary effect of convolution works."""
+        # Set data zero to get correction factor
+        # In sdatmcor, correction factor is subtracted from the data
+        # so we can get correction factor if we set data all zero
+        # (output_data = 0 - correction_factor).
+        zero_data = set_data_to_zero(self.infile, spw=17)
+        self.assertTrue(np.all(zero_data == 0))
+
+        # Apply correction with smoothing
+        sdatmcor(
+            infile=self.infile,
+            outfile=self.outfile,
+            spw='17,19',
+            intent='OBSERVE_TARGET#ON_SOURCE',
+            datacolumn='corrected',
+            gainfactor={17: 41.49, 19: 41.48},
+            dtem_dh=-5.6,
+            h0=2.0,
+            atmtype=1
+        )
+
+        # Resulting data should be -correction_factor. Only check spectral
+        # data for spw 17 since it is severely suffered from the boundary
+        # effect. If mitigation didn't work, there will be steep increase
+        # or decrease at edge channels. In that case, the slope should be
+        # order of magnitude larger.
+        correction_factor_spw17 = self._get_data(self.outfile, spw=17)
+        average_factor_per_pol = correction_factor_spw17.mean(axis=2)
+        # average derivative excluding edge channels
+        delta = average_factor_per_pol[:, 1:] - average_factor_per_pol[:, :-1]
+        average_delta = delta[:, 10:-10].mean()
+        threshold = abs(average_delta) * 10
+        for ipol in range(correction_factor_spw17.shape[0]):
+            print(f'Examining pol {ipol}')
+            edge_delta = np.abs(delta[ipol, [0, -1]])
+            print('edge_delta', edge_delta)
+            print(f'threshold = {threshold}')
+            self.assertTrue(
+                np.all(edge_delta < threshold),
+                msg=f'Mitigation did not work for pol {ipol}'
+            )
 
 
 class ATMParamTest(unittest.TestCase):

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -207,7 +207,7 @@ public:
 			      casacore::Bool /*fftNorm*/)
     {throw(casacore::AipsError("SDGrid::normalizeImage() called"));}
 
-  // SDGrind needs to fill weightimage
+  // SDGrid needs to fill weightimage
   virtual casacore::Bool useWeightImage(){return true;};
 
   // Get the final weights image
@@ -217,6 +217,16 @@ public:
   virtual casacore::Bool changed(const vi::VisBuffer2& vb);
   virtual void setMiscInfo(const casacore::Int qualifier){(void)qualifier;};
   virtual void ComputeResiduals(vi::VisBuffer2& /*vb*/, casacore::Bool /*useCorrected*/) {};
+
+  // Interpolation-Conversion processing scheme
+  enum class ConvertFirst {
+    NEVER = 0,
+    ALWAYS = 1,
+    AUTO = 2
+  };
+  static const casacore::String & toString(const ConvertFirst convertFirst);
+  static ConvertFirst fromString(const casacore::String & name);
+  void setConvertFirst(const casacore::String &convertFirst);
 
   virtual casacore::String name() const;
 
@@ -311,6 +321,20 @@ private:
   casacore::Array<casacore::Float> wmax_;
   casacore::Array<casacore::Int> npoints_;
   void clipMinMax();
+
+  // Interpolation-Conversion processing scheme
+  ConvertFirst convertFirst;
+  casacore::MSPointing ramPointingTable;
+  std::shared_ptr<casacore::MSPointingColumns> ramPointingColumnsPtr;
+  void convertPointingColumn(
+          const MeasurementSet &ms,
+          const MSPointingEnums::PredefinedColumns columnToConvert,
+          const MDirection::Types directionRef
+  );
+  casacore::Bool mustConvertPointingColumn(const casacore::MeasurementSet &ms);
+  void handleNewMs(const MeasurementSet &ms, ImageInterface<Complex>& image);
+  void handleNewMs(const casacore::MeasurementSet & ms,
+                   casacore::CountedPtr<SIImageStore> imstore);
 
   casacore::Int getIndex(const casacore::MSPointingColumns& mspc, const casacore::Double& time,
 	       const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);

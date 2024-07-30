@@ -409,25 +409,25 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
 
 
-    <param type="any" name="specmode" required="true">
-     <shortdescription>Spectral definition mode (mfs,cube,cubedata, cubesource)</shortdescription>
-<description>Spectral definition mode (mfs,cube,cubedata, cubesource)
+    <param type="string" name="specmode" required="true">
+     <shortdescription>Spectral definition mode (mfs,cube,cubedata, cubesource,mvc)</shortdescription>
+<description>Spectral definition mode (mfs,cube,cubedata, cubesource, mvc)
 
-                       mode='mfs' : Continuum imaging with only one output image channel.
-                                             (mode='cont' can also be used here)
+                       specmode='mfs' : Continuum imaging with only one output image channel.
+                                                      (mode='cont' can also be used here)
 
-                       mode='cube' : Spectral line imaging with one or more channels
-                                               Parameters start, width,and nchan define the spectral
-                                               coordinate system and can be specified either in terms
-                                               of channel numbers, frequency or velocity in whatever
-                                               spectral frame is specified in 'outframe'.
-                                               All internal and output images are made with outframe as the
-                                               base spectral frame. However imaging code internally uses the fixed
-                                               spectral frame, LSRK for automatic internal software
-                                               Doppler tracking so that a spectral line observed over an
-                                               extended time range will line up appropriately.
-                                               Therefore the output images have additional spectral frame conversion
-                                               layer in LSRK on the top the base frame.
+                       specmode='cube' : Spectral line imaging with one or more channels
+                                                      Parameters start, width,and nchan define the spectral
+                                                     coordinate system and can be specified either in terms
+                                                     of channel numbers, frequency or velocity in whatever
+                                                     spectral frame is specified in 'outframe'.
+                                                     All internal and output images are made with outframe as the
+                                                     base spectral frame. However imaging code internally uses the fixed
+                                                     spectral frame, LSRK for automatic internal software
+                                                     Doppler tracking so that a spectral line observed over an
+                                                     extended time range will line up appropriately.
+                                                     Therefore the output images have additional spectral frame conversion
+                                                      layer in LSRK on the top the base frame.
 
 
                                                (Note : Even if the input parameters are specified in a frame
@@ -441,7 +441,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                                
 
-                        mode='cubedata' : Spectral line imaging with one or more channels
+
+                        specmode='cubedata' : Spectral line imaging with one or more channels
                                                         There is no internal software Doppler tracking so
                                                         a spectral line observed over an extended time range
                                                         may be smeared out in frequency. There is strictly
@@ -450,7 +451,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         be labelled  &quot;Undefined&quot;.
 
                                                         
-                        mode='cubesource': Spectral line imaging while
+                        specmode='cubesource': Spectral line imaging while
                                                         tracking moving source (near field or solar system
                                                         objects). The velocity of the source is accounted
                                                         and the frequency reported is in the source frame.
@@ -460,6 +461,49 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         velocity if the emission region is moving w.r.t the systemic
                                                         velocity frame of the source)
 
+                        specmode='mvc' : Multiterm continuum imaging with cube major cycles. 
+                                                        This mode requires deconvolver='mtmfs' with nterms>1 
+                                                        and user-set choices of 'reffreq' and 'nchan'. 
+
+                                                        The output images and minor cycle are similar to specmode='mfs' 
+                                                        with deconvolver='mtmfs', but the major cycles are done in 
+                                                        cube mode (and require a setting of 'reffreq' and 'nchan'). 
+                                                        By default, frequency-dependent primary beam correction is 
+                                                        applied to each channel, before being combined across frequency
+                                                        to make the inputs to the 'mtmfs' deconvolver.  This results in 
+                                                        implicit wideband pb-correction, with the deconvolver seeing only
+                                                        the sky spectral structure.
+
+                                                        Note : There is currently no option to turn off wideband pb correction
+                                                        as part of the flat-sky normalization between the major and minor cycles.
+                                                        Therefore, 'mvc' with the 'standard' and 'wproject' gridders will also apply
+                                                        pblimits per channel, masking all regions outside of pblimit.                 	
+                                                        An option to retain sources outside the pblimit will be added in a future release. 
+
+                                                        Note : Below is some guidance for choosing 'nchan' and 'reffreq' :
+                                  
+                                                        The cube produced by the major cycle is used in a linear least square fits for Taylor
+                                                        polynomials per pixel. Therefore, one only needs as many channels in the cube, as
+                                                        required for an accurate polynomial fit for sources that have the strongest
+                                                        spectral structure.
+
+                                                        In general, 'nchan' needs to be greater than or equal to 'nterms', and the
+                                                        frequency range selected by the data will be evenly split into nchan channels.
+                                                        For a low-order polynomial fit, only a small number (around 10)
+                                                        channels are typically needed (for VLA/ALMA bandwidth ratios).
+                                                        'nchan=-1' applies a heuristic that results in a default of 10 cube channels
+                                                        for a 2:1 bandwidth ratio.
+
+                                                        nchan = MAX( bandwidth/(0.1*startfreq) ,  nterms+1 )
+
+                                                        Note: When running in parallel, the nchan selected may limit the speedup if it
+                                                        is smaller than the number of processes used.
+
+                                                        The 'reffreq' is the reference frequency used for the Taylor polynomial expansion.
+                                                        By default, in specmode='mvc', reffreq is set to the middle of the selected
+                                                        frequency range. 
+
+				
 
 </description>
      <value type="string">mfs</value>
@@ -469,6 +513,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
        <value>cube</value>
        <value>cubedata</value>
        <value>cubesource</value>
+       <value>mvc</value>
      </allowed>
     </param>
 
@@ -840,6 +885,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
               <value>imagemosaic</value>
               <value>awproject</value>
               <value>awprojectft</value>
+ <!--             <value>awp2</value> --> 
       </allowed>
     </param>
 
@@ -1512,17 +1558,37 @@ to use the correct direction in which the antenna is pointing with respect to th
 
                        A new image with extension .image.pbcor will be created from
                        the evaluation of   .image / .pb  for all pixels above the specified pblimit.
-
+                       
                        Note : Stand-alone PB-correction can be triggered by re-running
                                  tclean with the appropriate imagename and with
                                  niter=0, calcpsf=False, calcres=False, pbcor=True, vptable='vp.tab'
                                  ( where vp.tab is the name of the vpmanager file.
                                     See the inline help for the 'vptable' parameter )
 
-                       Note : Multi-term PB correction that includes a correction for the
-                                 spectral index of the PB has not been enabled for the 4.7 release.
-                                 Please use the widebandpbcor task instead.
-                                 ( Wideband PB corrections are required when the amplitude of the
+                       Note : For deconvolver='mtmfs', pbcor will divide each Taylor term image by the .tt0 average PB.   
+                                  For all gridders, this calculation is accurate for small fractional bandwidths.  
+
+                                  For large fractional bandwidths, please use one of the following options.
+
+                                  (a) For single pointings, run the tclean task with specmode='mfs', deconvolver='mtmfs', 
+                                        and gridder='standard' with pbcor=True or False. 
+                                        If a PB-corrected spectral index is required, 
+                                        please use the widebandpbcor task to apply multi-tern PB-correction.
+
+                                  (b) For mosaics, run tclean task with specmode='mfs', deconvolver='mtmfs',
+                                        and gridder='awproject' , wbawp=True, conjbeams=True, with pbcor=True.  
+                                        This option applies wideband PB correction as part of the gridding step and
+                                        pbcor=True will be accurate because the spectral index map will already 
+                                        be PB-corrected. 
+
+                                  (c) For mosaics, run tclean with specmode='mvc', deconvolver='mtmfs', 
+                                        and gridder='standard' or 'mosaic' with pbcor=True.  
+                                        This option applies wideband PB-correction to channelized residual images
+                                        prior to the minor cycle and pbcor=True will be accurate because the spectral 
+                                        index map will already be PB-corrected. 
+
+                        Note : Frequency-dependent PB corrections are typically required for full-band imaging with the VLA. 
+                                    Wideband PB corrections are required when the amplitude of the
                                     brightest source is known accurately enough to be sensitive
                                     to the difference in the PB gain between the upper and lower
                                     end of the band at its location. As a guideline, the artificial spectral
@@ -1531,8 +1597,6 @@ to use the correct direction in which the antenna is pointing with respect to th
 </description>
       <value type="bool">False</value>
     </param>
-
-
 
 
 
@@ -2581,6 +2645,10 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="reffreq"><value>&quot;&quot;</value></default>
 
        </equals>
+       <equals type="string" value="mvc">
+         <default param="reffreq"><value>&quot;&quot;</value></default>
+         <default param="nchan"><value>-1</value></default>
+       </equals>
        <equals type="string" value="cube">
          <default param="nchan"><value>-1</value></default>
          <default param="start"><value>&quot;&quot;</value></default>
@@ -2698,6 +2766,15 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="conjbeams"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals>
+<!--       <equals type="string" value="awp2">
+         <default param="wprojplanes"><value>1</value></default>
+	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
+	 <default param="computepastep"><value>360.0</value></default>
+	 <default param="mosweight"><value>False</value></default>
+	 <default param="usepointing"><value>False</value></default>
+       </equals> 
+-->
+
      </when>
 
      <when param="weighting">

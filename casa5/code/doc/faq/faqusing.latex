@@ -299,7 +299,7 @@ Check that lockd is running on your NFS server.
 \end{description}
 
 Please E-mail any comments or questions about \textsf{AIPS++} to
-\texttt{aips2-request@nrao.edu.}
+\texttt{casa-feedback@nrao.edu.}
 
 \textit{Copyright 1995-2000,2002 Associated Universities Inc.,
 Washington, D.C.}

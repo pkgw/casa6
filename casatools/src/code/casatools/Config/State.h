@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -89,6 +89,10 @@ namespace casatools {   /** namespace for CASAtools classes within "CASA code" *
             return do_pipeline;
         }
 
+	virtual std::string cachedir( ) const {
+	  return cache_dir;
+	}
+
         void clearDataPath( ) {
             // protect critical section...
             std::lock_guard<std::mutex> guard(data_path_mutex);
@@ -158,6 +162,12 @@ namespace casatools {   /** namespace for CASAtools classes within "CASA code" *
             do_pipeline = pipeline;
         }
 
+	void setCachedir(const std::string &cacheDir) {
+	  // protect critical section...
+	  std::lock_guard<std::mutex> guard(data_path_mutex);
+	  cache_dir = cacheDir;
+	}
+
         // get map of registrations
         std::list<ServiceId> services( ) { return registrar.services( ); }
         // returns true if a registration for 'id' was found
@@ -186,6 +196,7 @@ namespace casatools {   /** namespace for CASAtools classes within "CASA code" *
         std::string distro_data_path;			// path to data as provide by casadata pkg
         std::string measures_dir;
         bool no_gui, do_agg, do_pipeline;
+	std::string cache_dir;
         Registrar registrar;
     };
 
