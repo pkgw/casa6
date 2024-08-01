@@ -42,12 +42,23 @@ datapath = ctsys.resolve('/unittest/gencal/')
 # input data
 evndata = 'n08c1.ms'
 vlbadata = 'ba123a.ms'
+swpowdata = '3C286_syspower_CAS-11860.ms'
+
 vlbacal = os.path.join(datapath, 'ba123a.gc')
 evncal = os.path.join(datapath, 'n08c1.tsys')
 
 caltab = 'cal.A'
 evncopy = 'evn_copy.ms'
 vlbacopy = 'vlba_copy.ms'
+swpowcopy = 'swpow_copy.ms'
+
+# these are for test_gainCurveVLA
+vladata = 'tdem0003gencal.ms'
+vlacopy = 'vla_copy.ms'
+vlacal = 'vla.gc'
+vlacaltab = os.path.join(datapath, 'gencalGaincurveRef.gc')
+
+
 
 '''
 Unit tests for gencal
@@ -497,6 +508,8 @@ class gencal_gaincurve_test(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        
+        shutil.copytree(os.path.join(datapath, vladata), vlacopy)
         shutil.copytree(os.path.join(datapath, evndata), evncopy)
         shutil.copytree(os.path.join(datapath, vlbadata), vlbacopy)
 
@@ -504,23 +517,33 @@ class gencal_gaincurve_test(unittest.TestCase):
         pass
 
     def tearDown(self):
+        rmtables(vlacal)
         rmtables(caltab)
 
     @classmethod
     def tearDownClass(cls):
+        shutil.rmtree(vlacopy)
         shutil.rmtree(evncopy)
         shutil.rmtree(vlbacopy)
 
-    def test_gainCurve(self):
-        ''' Test calibration table produced when gencal is run on an MS with a GAIN_CURVE table '''
+    def test_gainCurveVLA(self):
+        ''' Test calibration table produced when gencal is run on a *VLA* MS and relying on data/nrao/VLA/GainCurves '''
+
+        gencal(vis=vlacopy, caltable=vlacal, caltype='gc')
+
+        self.assertTrue(os.path.exists(vlacaltab))
+        self.assertTrue(th.compTables(vlacaltab, vlacal, ['WEIGHT']))
+
+    def test_gainCurveVLBA(self):
+        ''' Test calibration table produced when gencal is run on a VLBA MS with an internal GAIN_CURVE table '''
 
         gencal(vis=vlbacopy, caltable=caltab, caltype='gc')
 
         self.assertTrue(os.path.exists(caltab))
         self.assertTrue(th.compTables(caltab, vlbacal, ['WEIGHT']))
 
-    def test_noGainCurve(self):
-        ''' Test that when gencal is run on an MS with no GAIN_CURVE table it creates no calibration table '''
+    def test_noGainCurveEVN(self):
+        ''' Test that when gencal is run on an EVN MS with no GAIN_CURVE table it creates no calibration table '''
 
         try:
             gencal(vis=evncopy, caltable=caltab, caltype='gc')
@@ -876,6 +899,33 @@ class TestJyPerK(unittest.TestCase):
                            uniform=False)
 
         self.assertEqual(cm.exception.args[0], 'The infile argument should be str or None.')
+        
+class TestSwPow(unittest.TestCase):
+
+    testcal = 'swpow.cal'
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath,swpowdata), swpowcopy)
+        
+    def tearDown(self):
+        if os.path.exists(swpowcopy):
+            shutil.rmtree(swpowcopy)
+        if os.path.exists(self.testcal):
+            shutil.rmtree(self.testcal)
+        
+    def test_switched_power_weights_caltype(self):
+        """Check that resulting caltable has all 1's for gains and non-trivial values for weight adjustment
+        
+        The following arguments are required for this test.
+        * caltype='swpwts'
+        """
+        gencal(vis=swpowcopy, caltable=self.testcal, caltype='swpwts')
+        
+        _tb.open(self.testcal)
+        res = _tb.getcol('FPARAM')
+        _tb.close()
+        
+        #self.assertTrue(np.all(res[0:1,:,:] == 1))
+        self.assertTrue(np.mean(res[1,:,:]) != 1)
 
 class gencal_eoptest(unittest.TestCase):
 
@@ -908,7 +958,7 @@ class gencal_eoptest(unittest.TestCase):
 
         # Compare with reference file from the repository
         reference = os.path.join(datapath, 'ba123a_casa.eop')
-        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
 
     def test_eop_usno(self):
         """Test calibration table produced when gencal is run using an
@@ -921,7 +971,7 @@ class gencal_eoptest(unittest.TestCase):
 
         # Compare with reference file from the repository
         reference = os.path.join(datapath, 'ba123a_usno.eop')
-        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
 
     def test_eop_iers(self):
         """Test calibration table produced when gencal is run using an
@@ -934,7 +984,7 @@ class gencal_eoptest(unittest.TestCase):
 
         # Compare with reference file from the repository
         reference = os.path.join(datapath, 'ba123a_iers.eop')
-        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002))
+        self.assertTrue(th.compTables(caltab, reference, ['WEIGHT'], 0.002, mode="absolute"))
 
     def test_noeop(self):
         """Test that no calibration table is produced when gencal is run on an

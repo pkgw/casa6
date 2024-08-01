@@ -220,13 +220,15 @@ Bool FluxStdPerleyButler2013::setSourceCoeffs()
   String resolvepath = casatools::get_state( ).resolve("nrao/VLA/standards/"+stdTabName);
   if (resolvepath != "nrao/VLA/standards/"+stdTabName) {
       stddatapath = resolvepath;
-  } else if(!Aipsrc::findDir(stddatapath,"./"+stdTabName)) {
-    if(!Aipsrc::findDir(stddatapath, Aipsrc::aipsRoot()+"/data/nrao/VLA/standards/"+stdTabName)) {
+  }
+  else {
+      stddatapath = "./"+stdTabName;
+  }
+  if (!Table::isReadable(stddatapath)) {
       ostringstream oss;
-      oss << "The coefficient data for Perley-Butler 2013, " <<  stdTabName
-          << " is not found in ./ or in ~/data/nrao/VLA/standards/";
+      oss << "The coefficient data for Perley-Butler 2013," <<  stdTabName
+          << " is not found in the current directory or in datapath/measurespath.";
       throw(AipsError(String(oss)));
-    }
   }
   //cerr<<"use stddatapath="<<stddatapath<<endl;
   LogIO os(LogOrigin("FluxStdPerleyButler2013", "setSourceCoeffs", WHERE));
@@ -278,13 +280,15 @@ Bool FluxStdScaifeHeald2012::setSourceCoeffs()
   String resolvepath = casatools::get_state( ).resolve("nrao/VLA/standards/"+stdTabName);
   if (resolvepath != "nrao/VLA/standards/"+stdTabName) {
       stddatapath = resolvepath;
-  } else if(!Aipsrc::findDir(stddatapath,"./"+stdTabName)) {
-    if(!Aipsrc::findDir(stddatapath, Aipsrc::aipsRoot()+"/data/nrao/VLA/standards/"+stdTabName)) {
+  }
+  else {
+      stddatapath = "./"+stdTabName;
+  }
+  if (!Table::isReadable(stddatapath)) {
       ostringstream oss;
-      oss << "The coefficient data for Scaife-Healr 2012, " <<  stdTabName
-          << " is not found in ./ or in ~/data/nrao/VLA/standards/";
+      oss << "The coefficient data for Scaife-Heald 2012," <<  stdTabName
+          << " is not found in the current directory or in datapath/measurespath.";
       throw(AipsError(String(oss)));
-    }
   }
   //cerr<<"use stddatapath="<<stddatapath<<endl;
   LogIO os(LogOrigin("FluxStdScaifeHeald2012", "setSourceCoeffs", WHERE));
@@ -350,15 +354,16 @@ Bool FluxStdPerleyButler2017::setSourceCoeffs()
   String resolvepath = casatools::get_state( ).resolve("nrao/VLA/standards/"+stdTabName);
   if (resolvepath != "nrao/VLA/standards/"+stdTabName) {
       stddatapath = resolvepath;
-  } else if(!Aipsrc::findDir(stddatapath,"./"+stdTabName)) {
-    if(!Aipsrc::findDir(stddatapath, Aipsrc::aipsRoot()+"/data/nrao/VLA/standards/"+stdTabName)) {
+  }
+  else {
+      stddatapath = "./"+stdTabName;
+  }
+  if (!Table::isReadable(stddatapath)) {
       ostringstream oss;
       oss << "The coefficient data for Perley-Butler 2017, " <<  stdTabName
-          << " is not found in ./ or in ~/data/nrao/VLA/standards/";
+          << " is not found in the current directory or in datapath/measurespath.";
       throw(AipsError(String(oss)));
-    }
   }
-  //cerr<<"use stddatapath="<<stddatapath<<endl;
   LogIO os(LogOrigin("FluxStdPerleyButler2017", "setSourceCoeffs", WHERE));
    os << LogIO::NORMAL2
       << "Use the coefficent data table: " << stddatapath
