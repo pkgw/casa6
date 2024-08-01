@@ -505,68 +505,71 @@ def get_IGS_TEC(ymd_date):
 
     print('\nFor '+ymd_date+', the required IGS file is called: '+igs_file)
     
-    #ftps login and navigation
-    try:
-        ftps = ftplib.FTP_TLS(host = 'gdc.cddis.eosdis.nasa.gov') # ftp-ssl version
-        ftps.login(user='anonymous', passwd='casa-feedback@nrao.edu')
-        ftps.prot_p()
-        ftps.cwd('gps/products/ionex/'+str(year)+'/'+str(dayofyear)+'/')
+    if len(glob.glob(igs_file))<1:     # file does not yet exist locally
+        #ftps login and navigation
+        try:
+            ftps = ftplib.FTP_TLS(host = 'gdc.cddis.eosdis.nasa.gov') # ftp-ssl version
+            ftps.login(user='anonymous', passwd='casa-feedback@nrao.edu')
+            ftps.prot_p()
+            ftps.cwd('gps/products/ionex/'+str(year)+'/'+str(dayofyear)+'/')
 
-        if len(glob.glob(igs_file))<1:     # file does not yet exist locally
-            print('Attempting retrieval of IGS Final product file: '+str(get_file))
-            get_path = file_location+get_file
-            if test_IONEX_connection(get_path):
-                with open(get_file, 'wb') as fp:
-                    ftps.retrbinary("RETR " + get_file, fp.write)
-                os.system('gunzip '+get_file)
-                print('FILENAME: ', get_file)
-            else:
-                # IGS final product file does not exist; try rapid product file
-                igs_file='igrg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
-                get_file=igs_file + ('.Z' if gpsweek<2238 else '.gz')
-                
-                if len(glob.glob(igs_file))<1:     # file does not yet exist
-                    print('Attempting retrieval of IGS Rapid product file: '+str(get_file))
-                    get_path = file_location+get_file
-                    if test_IONEX_connection(get_path):
-                        with open(get_file, 'wb') as fp:
-                            ftps.retrbinary("RETR " + get_file, fp.write)
-                        os.system('gunzip '+get_file)
-                        
-                    else:
-                        #igs_file = igs_file.replace('igr','jpr')
-                        igs_file= 'jprg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if (gpsweek<2274.5) else 'JPL0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
-                        get_file=igs_file + ('.Z' if gpsweek<2274.5 else '.gz')
-
-                        if len(glob.glob(igs_file))<1:     # file does not yet exist
-                            print('Attempting retrieval of JPL Rapid product file: '+str(igs_file))
-                            get_path = file_location+get_file
-                            if test_IONEX_connection(get_path):
-                                with open(get_file, 'wb') as fp:
-                                    ftps.retrbinary("RETR " + get_file, fp.write)
-                                os.system('gunzip '+get_file)
-                            else:
-                                print('\nNo data products available. You may try to manually'+\
-                                        ' download the products at:\n'+\
-                                        'ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex\n')
-                                return 0,0,0,0,0,0,0,0,[0],''
-                        else:
-                            print('JPL Rapid product file: '+igs_file+' already available in current working directory.')
+            if len(glob.glob(igs_file))<1:     # file does not yet exist locally
+                print('Attempting retrieval of IGS Final product file: '+str(get_file))
+                get_path = file_location+get_file
+                if test_IONEX_connection(get_path):
+                    with open(get_file, 'wb') as fp:
+                        ftps.retrbinary("RETR " + get_file, fp.write)
+                    os.system('gunzip '+get_file)
+                    print('FILENAME: ', get_file)
                 else:
-                    print('IGS Rapid product file: '+igs_file+' already available in current working directory.')
-        else:
-            print('IGS Final product file: '+igs_file+' already available in current working directory.')
+                    # IGS final product file does not exist; try rapid product file
+                    igs_file='igrg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if ( gpsweek<2238) else 'IGS0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
+                    get_file=igs_file + ('.Z' if gpsweek<2238 else '.gz')
+                    
+                    if len(glob.glob(igs_file))<1:     # file does not yet exist
+                        print('Attempting retrieval of IGS Rapid product file: '+str(get_file))
+                        get_path = file_location+get_file
+                        if test_IONEX_connection(get_path):
+                            with open(get_file, 'wb') as fp:
+                                ftps.retrbinary("RETR " + get_file, fp.write)
+                            os.system('gunzip '+get_file)
+                            
+                        else:
+                            #igs_file = igs_file.replace('igr','jpr')
+                            igs_file= 'jprg'+str(dayofyear)+'0.'+str(year)[2:4]+'i' if (gpsweek<2274.5) else 'JPL0OPSRAP_'+str(year)+str(dayofyear)+'0000_01D_02H_GIM.INX'
+                            get_file=igs_file + ('.Z' if gpsweek<2274.5 else '.gz')
 
-        if igs_file.startswith('igs') or igs_file.startswith('IGS0OPSFIN'):
-            tec_type = 'IGS_Final_Product'
-        elif igs_file.startswith('igr') or igs_file.startswith('IGS0OPSRAP'):
-            tec_type = 'IGS_Rapid_Product'
-        elif igs_file.startswith('jpr') or igs_file.startswith('JPL0OPSRAP'):
-            tec_type = 'JPL_Rapid_Product'  
+                            if len(glob.glob(igs_file))<1:     # file does not yet exist
+                                print('Attempting retrieval of JPL Rapid product file: '+str(igs_file))
+                                get_path = file_location+get_file
+                                if test_IONEX_connection(get_path):
+                                    with open(get_file, 'wb') as fp:
+                                        ftps.retrbinary("RETR " + get_file, fp.write)
+                                    os.system('gunzip '+get_file)
+                                else:
+                                    print('\nNo data products available. You may try to manually'+\
+                                            ' download the products at:\n'+\
+                                            'ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex\n')
+                                    return 0,0,0,0,0,0,0,0,[0],''
+                            else:
+                                print('JPL Rapid product file: '+igs_file+' already available in current working directory.')
+                    else:
+                        print('IGS Rapid product file: '+igs_file+' already available in current working directory.')
+            else:
+                print('IGS Final product file: '+igs_file+' already available in current working directory.') 
 
-        ftps.quit()
-    except ftplib.all_errors as e:
-        print('Failed to connect to ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/ with error: ', e)
+            ftps.quit()
+        except ftplib.all_errors as e:
+            print('Failed to connect to ftp://gdc.cddis.eosdis.nasa.gov/gps/products/ionex/ with error: ', e)
+    else:
+        print('IGS Final product file: '+igs_file+' already available in current working directory.')
+
+    if igs_file.startswith('igs') or igs_file.startswith('IGS0OPSFIN'):
+        tec_type = 'IGS_Final_Product'
+    elif igs_file.startswith('igr') or igs_file.startswith('IGS0OPSRAP'):
+        tec_type = 'IGS_Rapid_Product'
+    elif igs_file.startswith('jpr') or igs_file.startswith('JPL0OPSRAP'):
+        tec_type = 'JPL_Rapid_Product' 
 
     ## =========================================================================
     ##
