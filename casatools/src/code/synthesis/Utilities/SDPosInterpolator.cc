@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -57,14 +57,16 @@ SDPosInterpolator::SDPosInterpolator(
   const size_t nant){
   setup(pointingColumns, columnName, nant);
 }
-SDPosInterpolator::SDPosInterpolator(const Vector<Vector<Double> >& time,
-                                     const Vector<Vector<Vector<Double> > >& dir) {
+SDPosInterpolator::SDPosInterpolator(
+  const Vector<Vector<Double> >& time,
+  const Vector<Vector<Vector<Double> > >& dir) {
   setup(time, dir);
 }
 SDPosInterpolator::~SDPosInterpolator() {}
 
-void SDPosInterpolator::setup(const Vector<Vector<Double> >& time,
-                              const Vector<Vector<Vector<Double> > >& dir) {
+void SDPosInterpolator::setup(
+      const Vector<Vector<Double> >& time,
+      const Vector<Vector<Vector<Double> > >& dir) {
   //(1)get number of pointing data for each antennaID
   Int nant = time.nelements();
   Vector<uInt> nPointingData(nant);
@@ -271,19 +273,21 @@ void SDPosInterpolator::calcSplineCoeff(const Vector<Double>& time,
   for (Int i = 0; i < num_data-1; ++i) {
     coeff(i)(0)(0) = dir(i)(0);
     coeff(i)(1)(0) = dir(i)(1);
-    coeff(i)(0)(1) = (dir(i+1)(0)-dir(i)(0))/(time(i+1)-time(i)) - (time(i+1)-time(i))*(2.0*ux(i)+ux(i+1))/6.0;
-    coeff(i)(1)(1) = (dir(i+1)(1)-dir(i)(1))/(time(i+1)-time(i)) - (time(i+1)-time(i))*(2.0*uy(i)+uy(i+1))/6.0;
+    const auto dt = time(i+1)-time(i);
+    coeff(i)(0)(1) = (dir(i+1)(0)-dir(i)(0))/dt - dt*(2.0*ux(i)+ux(i+1))/6.0;
+    coeff(i)(1)(1) = (dir(i+1)(1)-dir(i)(1))/dt - dt*(2.0*uy(i)+uy(i+1))/6.0;
     coeff(i)(0)(2) = ux(i)/2.0;
     coeff(i)(1)(2) = uy(i)/2.0;
-    coeff(i)(0)(3) = (ux(i+1)-ux(i))/(time(i+1)-time(i))/6.0;
-    coeff(i)(1)(3) = (uy(i+1)-uy(i))/(time(i+1)-time(i))/6.0;
+    coeff(i)(0)(3) = (ux(i+1)-ux(i))/dt/6.0;
+    coeff(i)(1)(3) = (uy(i+1)-uy(i))/dt/6.0;
   }
 }
 
-MDirection SDPosInterpolator::interpolateDirectionMeasSpline(const MSPointingColumns& mspc,
-                                                             const Double& time,
-                                                             const Int& index,
-                                                             const Int& antid) {
+MDirection SDPosInterpolator::interpolateDirectionMeasSpline(
+            const MSPointingColumns& mspc,
+            const Double& time,
+            const Int& index,
+            const Int& antid) {
   Int lastIndex = timePointing(antid).nelements() - 1;
   Int aindex = lastIndex;
   for (uInt i = 0; i < timePointing(antid).nelements(); ++i) {
@@ -298,9 +302,12 @@ MDirection SDPosInterpolator::interpolateDirectionMeasSpline(const MSPointingCol
   auto const &coeff = splineCoeff(antid)(aindex);
   Double dt = time - timePointing(antid)(aindex);
   Vector<Double> newdir(2);
-  newdir(0) = coeff(0)(0) + coeff(0)(1)*dt + coeff(0)(2)*dt*dt + coeff(0)(3)*dt*dt*dt;
-  newdir(1) = coeff(1)(0) + coeff(1)(1)*dt + coeff(1)(2)*dt*dt + coeff(1)(3)*dt*dt*dt;
-  
+  // Why don't we use Horner's method here ?
+  newdir(0) =
+    coeff(0)(0) + coeff(0)(1)*dt + coeff(0)(2)*dt*dt + coeff(0)(3)*dt*dt*dt;
+  newdir(1) =
+    coeff(1)(0) + coeff(1)(1)*dt + coeff(1)(2)*dt*dt + coeff(1)(3)*dt*dt*dt;
+
   Quantity rDirLon(newdir(0), "rad");
   Quantity rDirLat(newdir(1), "rad");
   auto const &directionMeasColumn = mspc.directionMeasCol();

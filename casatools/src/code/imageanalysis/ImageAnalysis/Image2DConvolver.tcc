@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -321,7 +321,8 @@ template <class T> void Image2DConvolver<T>::_doSingleBeam(
             ostringstream oss;
             oss << "Convolving image that has a beam of "
                 << inputBeam << " with a Gaussian of "
-                << GaussianBeam(kernelParmsV) << " to reach a target resolution of "
+                << GaussianBeam(Vector<Quantity>(kernelParms))
+                << " to reach a target resolution of "
                 << GaussianBeam(originalParmsV);
             _log(oss.str(), LogIO::NORMAL);
         }
@@ -450,13 +451,13 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         }
         if (nPol > 0) {
             polarization = nChan > 1
-                ? (i - channel) % nChan
+                ? i/nChan // integer arithmetic
                 : i;
             start[polAxis] = polarization;
         }
         casacore::Slicer slice(start, end);
         casacore::SubImage<T> subImage(imageIn, slice);
-        casacore::CoordinateSystem subCsys = subImage.coordinates();
+        auto subCsys = subImage.coordinates();
         if (subCsys.hasSpectralAxis()) {
             auto subRefPix = subCsys.referencePixel();
             subRefPix[specAxis] = 0;
@@ -563,7 +564,7 @@ template <class T> void Image2DConvolver<T>::_doMultipleBeams(
         }
         {
             auto doMask = imageOut->isMasked() && imageOut->hasPixelMask();
-            Lattice<bool>* pMaskOut = 0;
+            Lattice<bool>* pMaskOut = nullptr;
             if (doMask) {
                 pMaskOut = &imageOut->pixelMask();
                 if (! pMaskOut->isWritable()) {
