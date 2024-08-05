@@ -78,7 +78,8 @@ class getephemtable_test(unittest.TestCase):
         self.otheroutputs = ['saved_rawqueryresult.txt', 
                              'titan_eph_from_ALMAtextdata.tab',
                              'titan_eph_from_VLAtextdata.tab',
-                             'titan_eph_from_GBTtextdata.tab']
+                             'titan_eph_from_GBTtextdata.tab',
+                             'titan_eph_from_textdata.tab']
     def tearDown(self):
         if os.path.exists(self.outfile):
             shutil.rmtree(self.outfile) 
