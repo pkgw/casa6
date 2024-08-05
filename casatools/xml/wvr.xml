@@ -180,6 +180,12 @@
           </description>
 	  <value/>
         </param>
+	<param name="rseed" type="int">
+          <description>
+          random seed (integer) for the wvrgcal fitting routine (0 == use internal default)
+          </description>
+          <value>0</value>
+        </param>
         <param name="logfile" mustexist="false" type="path">
             <description>Name of the log file (existing file will be overwritten)</description>
           <value type="path">wvrgcal.log</value>

@@ -6,6 +6,7 @@
 #include <tuple>
 #include <vector>
 #include <string>
+#include <limits>
 
 #include <casacore/casa/aips.h>
 #include <casacore/casa/Arrays/Vector.h>
@@ -689,6 +690,7 @@ namespace casac {
 		 const std::vector<long> &wvrspw_par,
 		 const std::string &refant_par,
 		 const std::string &offsets_par,
+		 long rseed_par,
 		 const std::string &logfile_par
 		 )
   {
@@ -738,7 +740,8 @@ namespace casac {
       vl_to_os(wvrspw_par, toss);
       toss<<","<<
 	" refant=\""<<refant_par<<"\","<<
-	" offsets=\""<<offsets_par<<"\")";
+	" offsets=\""<<offsets_par<<","<<
+	" rseed="<<std::to_string(rseed_par)<<"\")";
       cmdLineHistory = toss.str();
     }
           
@@ -798,6 +801,11 @@ namespace casac {
       return -1;
     }
 
+    if (rseed_par < 0 || std::numeric_limits<unsigned>::max() < rseed_par){
+      *itsLog << LogIO::SEVERE << "rseed parameter value must be >= 0 and <= " << std::numeric_limits<unsigned>::max() << LogIO::POST;
+      return -1;
+    }
+    
     if (offsets_par.length() > 0){
       std::string offsetstable=offsets_par;
       try{
@@ -1136,7 +1144,8 @@ namespace casac {
 	  try {
 	    rlist=LibAIR2::doALMAAbsRet(inp,
 					fb,
-					problemAnts);
+					problemAnts,
+					static_cast<unsigned>(rseed_par) );
 	  }
 	  catch(const std::runtime_error& rE){
 	    rval = 1;

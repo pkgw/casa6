@@ -35,10 +35,12 @@ namespace LibAIR2 {
 
   ALMAAbsRet::ALMAAbsRet(const std::vector<double> &TObs,
 			 double el,
-			 const ALMAWVRCharacter &WVRChar):
+			 const ALMAWVRCharacter &WVRChar,
+			 unsigned rseed):
     i(new iALMAAbsRet(TObs,
 		      el,
-		      WVRChar)),
+		      WVRChar,
+		      rseed)),
     valid(true)
   {
     if( ! i->sample()){
@@ -325,7 +327,8 @@ namespace LibAIR2 {
 
   ALMAResBaseList doALMAAbsRet(ALMAAbsInpL &il,
 			       std::vector<std::pair<double, double> > &fb,
-			       AntSet& problemAnts)
+			       AntSet& problemAnts,
+			       unsigned rseed)
   {
 
     problemAnts.clear();
@@ -339,6 +342,10 @@ namespace LibAIR2 {
     std::vector<std::pair<double, double> > newfb;
     bool fbFilled = (fb.size()>0);
 
+    if (rseed==0){ // if rseed is set to zero, use a default value
+      rseed=43;
+    }
+    
     size_t count=0;
 
     for(const ALMAAbsInput &x: il)
@@ -359,9 +366,14 @@ namespace LibAIR2 {
 	problematic = true;
       }
       ALMAWVRCharacter wvrchar;
+     
+      std::cout << "Using random seed " << rseed << std::endl;
+
       ALMAAbsRet ar(TObs, 
 		    x.el,  
-		    wvrchar);
+		    wvrchar,
+		    rseed);
+      
       ALMAResBase *ares=new ALMAResBase;      
       if(!ar.g_Res(*ares)){
 	std::cout << "WARNING: Bayesian evidence was zero for antenna " << x.antno << std::endl

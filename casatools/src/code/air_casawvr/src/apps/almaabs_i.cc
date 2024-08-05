@@ -41,11 +41,13 @@ namespace LibAIR2 {
 
   iALMAAbsRet::iALMAAbsRet(const std::vector<double> &TObs,
 			   double el,
-			   const ALMAWVRCharacter &WVRChar):
+			   const ALMAWVRCharacter &WVRChar,
+			   unsigned rseed):
     ls(TObs, 
        el, 
        WVRChar),
     pll(ls.ll),
+    rseed(rseed),
     evidence()
   {
     pll.AddPrior("n", 0, 10);
@@ -59,7 +61,8 @@ namespace LibAIR2 {
     std::list<Minim::MCPoint> ss;
     startSetDirect(pll,
 		   n_ss,
-		   ss);
+		   ss,
+		   rseed);
 
     // Create the nested sampler
     ns.reset(new Minim::NestedS(pll));

@@ -55,7 +55,8 @@ namespace LibAIR2 {
      */
     ALMAAbsRet(const std::vector<double> &TObs,
 	       double el,
-	       const ALMAWVRCharacter &WVRChar);
+	       const ALMAWVRCharacter &WVRChar,
+	       unsigned rseed=43);
 
     virtual ~ALMAAbsRet();
 
@@ -117,7 +118,8 @@ namespace LibAIR2 {
    */
   ALMAResBaseList doALMAAbsRet(ALMAAbsInpL &il, 
 			       std::vector<std::pair<double, double> > &fb,
-			       LibAIR2::AntSet &problemAnts);
+			       LibAIR2::AntSet &problemAnts,
+			       unsigned rseed=43);
   
 
   /** \brief Calculate coefficients for phase correction from inputs

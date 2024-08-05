@@ -11,7 +11,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 	    scale=None, spw=None, wvrspw=None,
 	    reversespw=None,  cont=None, maxdistm=None,
             minnumants=None, mingoodfrac=None, usefieldtab=None, 
-	    refant=None, offsetstable=None):
+	    refant=None, offsetstable=None, rseed=None):
     """
 	Generate a gain table based on Water Vapour Radiometer data.
 	Returns a dictionary containing the RMS of the path length variation
@@ -102,6 +102,10 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 		     default: '' (do not apply any offsets)
 		     examples: 'uid___A002_Xabd867_X2277.cloud_offsets' use the given table
 
+          rseed -- set random seed (integer) for the wvrgcal fitting routine to this specific value
+                   default: 0 - use internal default value
+                   example: 54321
+
     """
 
     # make ms tool local 
@@ -115,7 +119,8 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
     # statfield: single string in wvrgcal, list in wvr.gcal
     # statsource: single string in wvrgcal, list in wvr.gcal
     # refant: list in wvrgcal, list in single string in wvr.gcal
-        
+    # rseed: only exists in wvr.gcal
+    
     try:
         casalog.origin('wvrgcal')
 
@@ -248,6 +253,12 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
 
         mingoodfracpar = mingoodfrac
 
+        rseedpar = 0
+        if type(rseed)==int and rseed>=0:
+            rseedpar = rseed
+        elif not (rseed==None or rseed==""):
+            raise Exception("Parameter rseed must be an integer >= 0 (the value 0 will use the internal default seed).")
+            
         casalog.post('Running wvr.gcal ...')
 
 
@@ -284,6 +295,7 @@ def wvrgcal(vis=None, caltable=None, toffset=None, segsource=None,
                           wvrspw=wvrspwpar,
                           refant=refantpar,
                           offsets=offsetspar,
+                          rseed=rseedpar,
                           logfile=templogfile)
 
         loglines = []

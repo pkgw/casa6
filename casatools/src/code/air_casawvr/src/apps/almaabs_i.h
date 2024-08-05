@@ -71,13 +71,16 @@ namespace LibAIR2 {
     /// The nested sampler
     std::unique_ptr<Minim::NestedS> ns;
     
-
+    /// The random seed
+    unsigned rseed;
+    
     /// Number of points in the live set
     static const size_t n_ss;
 
     iALMAAbsRet(const std::vector<double> &TObs,
 		double el,
-		const ALMAWVRCharacter &WVRChar);
+		const ALMAWVRCharacter &WVRChar,
+		unsigned rseed=43);
 
     bool sample(void); // returns false if evidence is zero
 
