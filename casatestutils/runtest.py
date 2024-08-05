@@ -814,7 +814,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
         if "mpi" in test.options and sys.platform != "darwin" and ( pmode == 'parallel' or pmode == 'both'):
             print("Running test: {} in MPI mode".format(test.name))
             casa_exe = exec_path + "/mpicasa"
-            casaopts = "-n " + str(ncores) + " " + exec_path + "/casa" + " --nogui --nologger --log2term --agg " + rcdir + " "
+            casaopts = "-n " + str(ncores) + " " + exec_path + "/casa" + " --nogui --nologger --log2term --agg " + cachedir + " "
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
@@ -909,7 +909,7 @@ if __name__ == "__main__":
     parser.add_argument('-j','--test_group',  help='Filter tests by a comma separated list of components', required=False)
     parser.add_argument('-m','--pmode',  help='Parallelization mode: serial, parallel, both', required=False)
     parser.add_argument('--bamboo', help='Set Bamboo Flag to True',default=False,action='store_true', required=False)
-    parser.add_argument('-r','--rcdir',  help='Casa rcdir', required=False)
+    parser.add_argument('-r','--cachedir',  help='Casa cachedir ( previously --rcdir, which also covered the paths to the startup and config files)', required=False)
     parser.add_argument('--ignore_list',  help='map file of tests to ignore', required=False)
 
     args, unknownArgs = parser.parse_known_args()
@@ -928,14 +928,17 @@ if __name__ == "__main__":
     print("Operating system: " +  platform.system())
     print("")
 
-    rcdir=""
-    if args.rcdir is not None:
-        rcdir="--rcdir=" + args.rcdir
-        print("rcdir: " + rcdir)
+    cachedir=""
+    if args.cachedir is not None:
+        cachedir="--cachedir=" + args.cachedir
+        print("cachedir: " + cachedir)
 
     if args.test_group is not None:
         components = args.test_group
         components = [x.strip() for x in components.split(",")]
+        if len(components) == 1 and not components[0]:
+            print("Component list is empty. Using component 'default'")
+            components = ["default"]
         print("Testing Components" + str(components))
         print("")
 

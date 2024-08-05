@@ -254,8 +254,8 @@ def parse_wavenumber_param(wn):
             val = []
             for v in val0:
                 val.append(int(v))
-            val.sort()
             res = list(set(val))  # uniq
+            res.sort()
         elif '-' in wn:
             # case 'a-b' : return [a,a+1,...,b-1,b]
             val = wn.split('-')
