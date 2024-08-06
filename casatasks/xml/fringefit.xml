@@ -180,10 +180,15 @@ Previous calibrations should be applied on the fly.
 
     <param type="string" name="corrcomb">
       <shortdescription>Combine correlations</shortdescription>
-      <description>Combine correlations: "all" and "none" are currently
+      <description>Combine correlations: "none", "stokes", and "parallel" are currently
       supported values</description>
       <value>none</value>
-    </param>
+      <allowed kind="enum">
+	<value>none</value>
+	<value>stokes</value>
+	<value>parallel</value>
+      </allowed>
+      </param>
       
   <param type="bool" name="docallib">
     <shortdescription>Use callib or traditional cal apply parameters</shortdescription>
