@@ -5,10 +5,12 @@ import socket
 import argparse
 import os
 def convert(filename, outfile):
-    if not os.path.isfile(filename):
+    if not os.path.isfile(filename) or os.stat(filename).st_size == 0:
+        if os.path.isfile(filename):
+            os.remove(filename)
         print("File {} does not exist. Generating:...".format(filename))
         fMessage = "{} Not Generated. Check Log".format(filename)
-        name = filename.split(".py")[0].split("/")[-1].strip(".xml")
+        name = filename.split(".py")[0].split("/")[-1]
         e = datetime.datetime.now()
         timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
