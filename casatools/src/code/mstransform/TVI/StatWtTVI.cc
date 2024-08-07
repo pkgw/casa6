@@ -162,13 +162,16 @@ Bool StatWtTVI::_parseConfiguration(const Record& config) {
                 "Both values specified in '" + field
                 + "' array must be non-negative"
             );
+            // order the values in case they aren't ordered
             std::set<Double> rangeset(myrange.begin(), myrange.end());
             ThrowIf(
                 rangeset.size() == 1, "Values specified in '" + field
                 + "' array must be unique"
             );
             auto iter = rangeset.begin();
-            _wtrange.reset(new std::pair<Double, Double>(*iter, *(++iter)));
+            auto first = *iter;
+            auto second = *(++iter);
+            _wtrange.reset(new std::pair<Double, Double>(first, second));
         }
     }
     auto excludeChans = False;
