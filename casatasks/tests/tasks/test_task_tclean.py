@@ -3945,12 +3945,15 @@ class test_widefield(testref_base):
 
           #do stokes V too..
 
-     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. mosaic, Briggs weighting with mosweight=True. Enable this after fixing CAS-11978")
+     #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. mosaic, Briggs weighting with mosweight=True. Enable this after fixing CAS-11978")
      def test_widefield_mosaicft_mfs_mosweightTrue(self):
           """ [widefield] Test_Widefield_mosaic : MFS with mosaicft  stokes I briggs mosweight=True(default)"""
           self.prepData("refim_mawproject.ms")
           ret = tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
                        niter=30,gridder='mosaicft',deconvolver='hogbom',pblimit=0.3,weighting='briggs', parallel=self.parallel)
+          #just write the model column            
+          tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+                       niter=0,gridder='mosaicft',deconvolver='hogbom',pblimit=0.3,weighting='briggs', savemodel='modelcolumn', parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',0.962813, [256,256,0,0]),(self.img+'.weight',0.50520, [256,256,0,0]) ] )
           #ret = clean(vis=self.msfile,spw='1',field='*',imagename=self.img+'.old',imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",niter=30,imagermode='mosaic',psfmode='hogbom')
           self.assertTrue(self.check_final(report))
