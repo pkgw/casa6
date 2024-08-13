@@ -56,8 +56,8 @@ int getNumBin(asdm::SpectralWindowRow *spRow, const std::string &telescopeName);
 
 std::map<int, int> swIdx2Idx ;                       // A map which associates old and new index of Spectral Windows before/after reordering.
 void fillSpectralWindow( asdm::ASDM* ds_p, std::map<unsigned int, double>& effectiveBwPerSpwId_m, const std::string &telescopeName );
-void fillEphemeris( asdm::ASDM* ds_p, uint64_t timeStepInNanoSecond, bool interpolate_ephemeris, std::string telescopeName );
-void fillField( asdm::ASDM* ds_p, bool considerEphemeris );
+void fillEphemeris( asdm::ASDM* ds_p, uint64_t timeStepInNanoSecond, std::string telescopeName );
+void fillField( asdm::ASDM* ds_p );
 void fillSysPower( const std::string asdmDirectory, asdm::ASDM* ds_p, bool ignoreTime, const std::vector<asdm::ScanRow *>& selectedScanRow_v,
                    std::map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>& msFillers_m );
 void fillMainLazily( const string& dsName, asdm::ASDM* ds_p, std::map<int, std::set<int> >& selected_eb_scan_m,
