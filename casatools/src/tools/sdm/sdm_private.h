@@ -45,6 +45,10 @@ std::map<asdm::MainRow*, int> stateIdx2Idx;
 std::map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*> msFillers; // There will be one filler per value of the axis APC.
 ASDM2MSFiller* msFiller;
 
+// checks whether adding newNumRows to the filler will exceed the limit of rows (currently uint_32 maximum)
+// this throws an SDMMSTooLargeException if adding those rows will exceed the limit for the MS used by that filler
+void checkMSSize(ASDM2MSFiller *filler, std::size_t numNewRows);
+
 bool hasCorrectedData(const EnumSet<AtmPhaseCorrectionMod::AtmPhaseCorrection>& es);
 bool hasUncorrectedData(const EnumSet<AtmPhaseCorrectionMod::AtmPhaseCorrection>& es);
 
