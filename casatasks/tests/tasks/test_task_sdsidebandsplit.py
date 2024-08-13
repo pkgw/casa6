@@ -295,7 +295,7 @@ class failureTestCase(sdsidebandsplitTestBase):
     def run_exception(self, ref_message, **new_param):
         """Run task and compare."""
         task_param = self.update_task_param(new_param)
-        self.assertRaisesRegexp(Exception, ref_message, sdsidebandsplit, **task_param)
+        self.assertRaisesRegex(Exception, ref_message, sdsidebandsplit, **task_param)
 
     # T-001
     def test_imagename_1image(self):
