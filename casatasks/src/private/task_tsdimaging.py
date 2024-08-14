@@ -924,6 +924,7 @@ def tsdimaging(
         outframe, # velocity frame
         mode, nchan, start, width, veltype, # gridding type
         specmode, # Doppler handling
+        interpolation, # interpolation mode
         # Output images definition: spatial axes
         pointingcolumn, convertfirst,
         projection,
@@ -1076,7 +1077,8 @@ def tsdimaging(
                 clipminmax=clipminmax,
                 # normalizer
                 normtype='flatsky',
-                pblimit=1e-16 # TODO: explain why 1e-16 ?
+                pblimit=1e-16, # TODO: explain why 1e-16 ?
+                interpolation=interpolation
             )
 
         # Construct the PySynthesisImager object, with all input parameters
