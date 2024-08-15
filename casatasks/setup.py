@@ -443,7 +443,7 @@ class BuildCasa(build):
             proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
                           stdout=subprocess.PIPE )
         else:
-            xml_jar_file = 'xml-casa-assembly-1.83.jar'
+            xml_jar_file = 'xml-casa-assembly-1.86.jar'
             xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
             xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
             self.xml_jar_fetch(xml_jar_path, xml_jar_url)
