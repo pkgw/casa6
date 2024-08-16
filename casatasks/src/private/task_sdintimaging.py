@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import
 
+import platform
 import os
 import shutil
 import numpy
@@ -442,6 +443,20 @@ def sdintimaging(
     #####################################################
     #### Sanity checks and controls
     #####################################################
+
+    if interactive:
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: <VIEWEREOLURL>. Please restart by setting interactive=F",
+                    "WARN",
+                    "task_sdintimaging",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: <VIEWEREOLURL>." )
     
     ### Move these checks elsewhere ? 
     inpparams=locals().copy()
