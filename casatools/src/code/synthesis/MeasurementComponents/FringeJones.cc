@@ -1813,7 +1813,8 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
         }
     }
     // Copy the results to the second polarisation for combined pols
-    if (corrcomb()=="all") { 
+    if (corrcomb().contains("stokes") ||
+	corrcomb().contains("parallel")) {
         logSink() << "Correlations combined: Copying results to other correlation" << LogIO::POST;
         for (Int iant=0; iant != nAnt(); iant++) {
             for (Int i=0; i !=4; i++) {
