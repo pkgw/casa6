@@ -1,0 +1,1 @@
+casacore::LogIO *itsLog;
