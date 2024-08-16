@@ -1,0 +1,146 @@
+/**
+   Bojan Nikolic <b.nikolic@mrao.cam.ac.uk>, <bojan@bnikolic.co.uk>
+   Initial version November 2009
+   Maintained by ESO since 2013.
+
+   \file almaresults.cpp
+   Renamed almaresults.cc 2023
+
+*/
+
+#include <iostream>
+
+#include "almaresults.h"
+
+
+namespace LibAIR2 {
+
+  ALMAResBase::ALMAResBase(void)
+  {
+    ev=-1;
+    c=-1;
+  }
+
+  ALMAResBase::~ALMAResBase()
+  {
+  }
+
+  // std::ostream &ALMAResBase::header_inline(std::ostream &os) const
+  // {
+  //   os<<"Evidence"<<"\t"
+  //     <<"PWV"<<"\t"<<"PWV Error"<<"\t";
+  //   for(size_t i=1; i<5; ++i)
+  //     os<<"dT"<<i<<"dL"<<"\t";
+  //   return os;
+
+  // }
+
+  // std::ostream &ALMAResBase::str_inline(std::ostream &os) const
+  // {
+  //   os<<ev<<"\t"
+  //     <<c<<"\t"<<c_err<<"\t";
+  //   for (const double &x: dTdL)
+  //     os<<x<<"\t";
+  //   return os;
+  // }
+
+  void ALMAResBase::print_str_inline(std::ostream &os) const{
+    os<<ev<<"\t"
+      <<c<<"\t"<<c_err<<"\t";
+    for (const double &x: dTdL)
+      os<<x<<"\t";
+    os<<std::endl;
+    return;
+  }
+
+  ALMAResBaseList::ALMAResBaseList(void):
+    ptr_list()
+  {
+  }
+
+  ALMAResBaseList::~ALMAResBaseList()
+  {
+  }
+
+  
+  std::ostream &ALMAContRes::header_inline(std::ostream &os) const
+  {
+    os<<"Evidence"<<"\t"
+      <<"PWV"<<"\t"<<"PWV Error"<<"\t";
+    for(size_t i=1; i<5; ++i)
+      os<<"dT"<<i<<"dL"<<"\t";
+    os<<"Tau183"<<"\t"
+      <<"Tau183 err";    
+    return os;
+
+  }
+
+  void ALMAContRes::print_str_inline(std::ostream &os){
+  
+    os<<ev<<"\t"
+      <<c<<"\t"<<c_err<<"\t";
+    for(const double &x: dTdL)
+      os<<x<<"\t";
+
+    os<<tau183<<"\t"<<tau183_err<<std::endl;
+
+    return;
+  }
+
+  static void printdTdL(std::ostream &os,
+			const ALMAResBase &r)
+  {
+    os<<" -- Phase Correction Coefficients -- "<<std::endl;
+    for(size_t j=0; j<4; ++j)
+    {
+      os<<"dTdL"<<j<<": "<<r.dTdL[j]
+	<<" +/- "<<r.dTdL_err[j]
+	<<std::endl;
+    }
+  }
+
+  std::ostream &operator<<(std::ostream &os,
+			   const ALMAResBase &r)
+  {
+    os<<"Evidence: "<<r.ev<<std::endl
+      <<" -- Parameters -- "<<std::endl
+      <<"    c: "<<r.c<<" +/- "<<r.c_err<<std::endl;
+    printdTdL(os, r);
+    return os;
+  }
+
+  std::ostream &operator<<(std::ostream &os,
+			   const ALMAContRes &r)
+  {
+    os<<"Evidence: "<<r.ev<<std::endl
+      <<" -- Parameters -- "<<std::endl
+      <<"    c: "<<r.c<<" +/- "<<r.c_err<<std::endl
+      <<"    tau183: "<<r.tau183<<" +/- "<<r.tau183_err<<std::endl;
+    printdTdL(os, r);    
+    return os;
+  }
+
+  std::ostream &operator<<(std::ostream &os,
+			   const std::list<ALMAResBase*> &i)
+  {
+    if(i.size()>0){
+      os<<"Evidence"<<"\t"
+	<<"PWV"<<"\t"<<"PWV Error"<<"\t";
+      for(size_t i=1; i<5; ++i)
+	os<<"dT"<<i<<"dL"<<"\t";
+      os<<std::endl;
+      
+      for(const ALMAResBase* x: i){
+	x->print_str_inline(os);
+      }
+
+    }
+    return os;
+  }
+
+
+}
+
+
+
+

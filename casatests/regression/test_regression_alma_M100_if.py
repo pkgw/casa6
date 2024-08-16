@@ -65,8 +65,8 @@ from casatools import ctsys
 from casatasks import casalog, tclean, split, virtualconcat, imstat, applycal, fluxscale, flagdata
 from casatasks import setjy, bandpass, flagmanager, gaincal, gencal, importasdm, fixplanets, uvcontsub_old, immoments
 from casatasks import plotants
+from casatasks import wvrgcal
 from casaplotms import plotms
-from almatasks import wvrgcal
 from casaviewer import imview
 
 try:
