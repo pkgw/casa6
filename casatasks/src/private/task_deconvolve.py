@@ -187,11 +187,11 @@ def deconvolve(
         except:
             if platform.system( ) == "Darwin":
                 casalog.post(
-                    "casaviewer is no longer available for macOS, for more information see: <VIEWEREOLURL>. Please restart by setting interactive=F",
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
                     "WARN",
                     "task_deconvolve",
                 )
-                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: <VIEWEREOLURL>." )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
 
     try:
 
