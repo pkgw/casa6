@@ -158,6 +158,7 @@ set(casatools_all_components
   imagemetadata  
   mstransformer
   synthesisimager
+  wvr
 )
 
 # For each tool get the sources and adds them to the preliminary casatools sources

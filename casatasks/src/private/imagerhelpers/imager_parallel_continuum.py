@@ -355,6 +355,8 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             self.toolsi.done()
             self.toolsi=None
             destWgtim=weightimage+'_moswt'
+            if( os.path.exists(destWgtim)):
+                shutil.rmtree(destWgtim)
             shutil.move(weightimage, destWgtim)
             joblist=[];
             for node in self.listOfNodes:

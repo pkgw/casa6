@@ -1,62 +1,10 @@
 ## CASAtasks
 
-CASAtasks is a self-contained python module that provides the tasks from the [CASA](http://casa.nrao.edu/) project. This package depends on the [CASAtools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse) python module being found in your **PYTHONPATH** at build time and runtime. The CASAtasks are stateless routines and recipes built on CASAtools.
+CASAtasks is a self-contained python module that provides the tasks from the [CASA](http://casa.nrao.edu/) project. This package depends on the [casatools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse) python module being found in your **PYTHONPATH** at runtime. The casatasks are stateless routines and recipes built on casatools.
 
 ## Building CASAtasks
 
-#### Install Dependencies
-
-First make sure that the version of Python you want to use is available. [MacPorts](https://www.macports.org) has been used to successfully install Python 3.6 on [OSX](http://en.wikipedia.org/wiki/MacOS). On [RedHat](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux), the [Software Collections](https://developers.redhat.com/products/softwarecollections/overview/) has been used to install Python 3.6.:
-```
--bash-4.2# yum install rh-python36
--bash-4.2# yum install rh-python36-numpy
--bash-4.2# yum install rh-python36-scipy
--bash-4.2# yum install rh-python36-python-tkinter
-```
-Unfortunately, Software Collections does not supply an RPM for [matplotlib](https://matplotlib.org). For installing matplotlib, [pip](https://pypi.org/project/pip) can be used:
-```
--bash-4.2# pip install matplotlib
-```
-Environment changes are required to enable python 3.6. I have something like this in my ```~/.profile```:
-```
-if [ -e /opt/rh/rh-python36/enable ]; then
-   source /opt/rh/rh-python36/enable
-fi
-```
-but you could also just source this in the shell where you will use pip and build CASAtasks.
-
-Second build and install [CASAtools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse/casatools) using your choice of Python and the instructions found [here](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse/casatools).
-
-#### Checkout
-
-Checkout the casa6 source code:
-
-```
--bash-4.2$ git clone -q --recursive https://open-bitbucket.nrao.edu/scm/casa/casa6.git
-```
-
-#### Build
-
-After all of the dependencies have been installed and the source code for CASAtasks is available we can build CASAtasks. Make sure that =which python= returns the version of python that was used to build [CASAtools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse/casatools). Then build the tasks with:
-```
--bash-4.2$ cd casa6/casatasks
--bash-4.2$ PYTHONPATH=../casatools/build/lib.macosx-10.12-x86_64-3.6 ./setup.py build
-```
-**Substitute** the path to your build of [CASAtools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse/casatools) in the build line above.
-
-#### Run Available Tests
-
-The data repository used to run CASAtasks tests is the same for CASAtools tests, therefore if you have already checked out [casatestdata](https://open-bitbucket.nrao.edu/projects/CASA/repos/casatestdata/browse) you are all set to run CASAtasks tests. If not, refer to the instructions in the [CASAtools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse/casatools):
-
-A several of the tests use the casatestutils module. That is built independently from casatasks. 
-The path to a casatestutils build can be provided via PYTHONPATH prior to running the full suite of tests.
-
-Tests are actively being added, but you can run the existing tests with:
-```
--bash-4.2$ PYTHONPATH=../casatools/build/lib.macosx-10.12-x86_64-3.6:../casatestutils/build/lib ./setup.py test
-```
-
-Again, **substitute** the path to your build of [CASAtools](https://open-bitbucket.nrao.edu/projects/CASA/repos/casa6/browse/casatools) in the line above.
+Please refer to the toplevel [readme](../readme.md)
 
 ## Available Tasks
 

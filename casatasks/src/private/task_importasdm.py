@@ -312,17 +312,24 @@ def importasdm(
                 execute_string = execute_string + ' --polyephem-tabtimestep '+str(polyephem_tabtimestep)
 
     if is_CASA6:
-        exitcode = sdmlocal.toms( vis, createmms, separationaxis, numsubms, corr_mode, srt, time_sampling,
-                                  ocorr_mode, compression, lazy, asis, wvr_corrected_data, scans,
-                                  ignore_time, process_syspower, process_caldevice, process_pointing,
-                                  process_flags, tbuff, applyflags, savecmds, outfile, flagbackup,
-                                  verbose, overwrite, bdfflags,
-                                  with_pointing_correction, convert_ephem2geo,
-                                  polyephem_tabtimestep )
+        try:
+            exitcode = sdmlocal.toms( vis, createmms, separationaxis, numsubms, corr_mode, srt, time_sampling,
+                                      ocorr_mode, compression, lazy, asis, wvr_corrected_data, scans,
+                                      ignore_time, process_syspower, process_caldevice, process_pointing,
+                                      process_flags, tbuff, applyflags, savecmds, outfile, flagbackup,
+                                      verbose, overwrite, bdfflags,
+                                      with_pointing_correction, convert_ephem2geo,
+                                      polyephem_tabtimestep )
 
-        if exitcode != True:
-            casalog.post("initial creation of the measurement set failed", 'SEVERE')
-            raise Exception('ASDM conversion error. Please check if it is a valid ASDM and that data/alma/asdm is up to date.')
+            if exitcode != True:
+                casalog.post("initial creation of the measurement set failed", 'SEVERE')
+                raise Exception('ASDM conversion error. Please check if it is a valid ASDM and that data/alma/asdm is up to date.')
+        except Exception as instance:
+            # I think an exception is more likely than a non-zero error code and will often involve a partial fill into the MS
+            casalog.post("initial creation of the measurementset failed", 'SEVERE')
+            casalog.post("Note: if an MS exists then additional steps usually done after that initial (partial) fill were not completed", 'SEVERE')
+            casalog.post("The MS should only be used for looking into why the fill failed, it should not be used for any additional processing", 'SEVERE')
+            raise Exception('ASDM conversion error. Check the logs for additional details.') from instance
     else:
         casalog.post('Running ' + theexecutable
                      + ' standalone invoked as:')

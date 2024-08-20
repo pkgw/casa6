@@ -321,7 +321,8 @@ template <class T> void Image2DConvolver<T>::_doSingleBeam(
             ostringstream oss;
             oss << "Convolving image that has a beam of "
                 << inputBeam << " with a Gaussian of "
-                << GaussianBeam(kernelParmsV) << " to reach a target resolution of "
+                << GaussianBeam(Vector<Quantity>(kernelParms))
+                << " to reach a target resolution of "
                 << GaussianBeam(originalParmsV);
             _log(oss.str(), LogIO::NORMAL);
         }
