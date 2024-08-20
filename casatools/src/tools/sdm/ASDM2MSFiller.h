@@ -146,8 +146,8 @@ namespace casac {
         casacore::ScalarColumn<casacore::String> *itsWinFuncCol;
         casacore::ScalarColumn<casacore::Int> *itsNumBinCol;
         casacore::ScalarColumn<casacore::String> *itsCorrBitCol;
-        casacore::String     itsMSPath;
-        casacore::uInt     itsMSMainRow;
+        casacore::String itsMSPath;
+        casacore::rownr_t itsMSMainRow;
         /*casacore::TiledDataStManAccessor itsImWgtAcc;*/
         casacore::Block<casacore::IPosition> itsDataShapes;
 
@@ -189,15 +189,15 @@ namespace casac {
 
         const casacore::MeasurementSet* ms();
 
-        int addAntenna( const std::string&	 name_,
-                        const std::string&	 station_,
-                        double		 lx_,
-                        double		 ly_,
-                        double		 lz_,
-                        double		 offset_x_,
-                        double		 offset_y_,
-                        double		 offset_z_,
-                        float		 dish_diam_ );
+        casacore::rownr_t addAntenna( const std::string&	 name_,
+                                      const std::string&	 station_,
+                                      double		 lx_,
+                                      double		 ly_,
+                                      double		 lz_,
+                                      double		 offset_x_,
+                                      double		 offset_y_,
+                                      double		 offset_z_,
+                                      float		 dish_diam_ );
 
 
         void addData( bool                      complexData,
@@ -266,11 +266,11 @@ namespace casac {
                       std::vector<double>            &weight_,
                       std::vector<double>            &sigma_ );
   	       
-        int  addDataDescription( int spectral_window_id_,
-                                 int polarizarion_id_ );
+        casacore::rownr_t  addDataDescription( int spectral_window_id_,
+                                               int polarizarion_id_ );
 
-        int  addUniqueDataDescription( int spectral_window_id_,
-                                       int polarizarion_id_ );
+        casacore::rownr_t  addUniqueDataDescription( int spectral_window_id_,
+                                                     int polarizarion_id_ );
 
         int  exists(char *path);
         casacore::String msPath();
@@ -330,7 +330,7 @@ namespace casac {
                              const std::string&		project_,
                              double			release_date_ );
 
-        void addPointingSlice( unsigned int                  n_row_,
+        void addPointingSlice( casacore::rownr_t                  n_row_,
                                std::vector<int>&                  antenna_id_,
                                std::vector<double>&               time_,
                                std::vector<double>&               interval_,
@@ -343,14 +343,14 @@ namespace casac {
                                std::vector<bool>&                 v_overTheTop_,
                                std::vector<s_overTheTop>&         v_s_overTheTop_ );
 
-        int  addPolarization( int num_corr_,
-                              std::vector<int>& corr_type_,
-                              std::vector<int>& corr_product_ );
+        casacore::rownr_t  addPolarization( int num_corr_,
+                                            std::vector<int>& corr_type_,
+                                            std::vector<int>& corr_product_ );
 
-        int addUniquePolarization( int num_corr_,
-                                   //			    const std::vector<casacore::Stokes::StokesTypes>& corr_type_,
-                                   const std::vector<int>& corr_type_,
-                                   const std::vector<int>& corr_product_ );
+        casacore:: rownr_t addUniquePolarization( int num_corr_,
+                                                  //			    const std::vector<casacore::Stokes::StokesTypes>& corr_type_,
+                                                  const std::vector<int>& corr_type_,
+                                                  const std::vector<int>& corr_product_ );
 
         void addProcessor( std::string& type_,
                            std::string& sub_type_,
@@ -373,34 +373,34 @@ namespace casac {
                         std::vector<double>& rest_frequency_,
                         std::vector<double>& sysvel_ );
 		 
-        int  addSpectralWindow( int			num_chan_,
-                                const std::string&          name_,
-                                double			ref_frequency_,
-                                const std::vector<double>&	chan_freq_,
-                                const std::vector<double>&	chan_width_,
-                                int			meas_freq_ref_,
-                                const std::vector<double>&	effective_bw_,
-                                const std::vector<double>&	resolution_,
-                                double			total_bandwidth_,
-                                int			net_sideband_,
-                                int			bbc_no_,
-                                int			if_conv_chain_,
-                                int			freq_group_,
-                                const std::string&		freq_group_name_,
-                                int			num_assoc_,
-                                const std::vector<int>&	assoc_sp_id_,
-                                const std::vector<std::string>&	assoc_nature_,
-                                const std::string & windowFunction_,
-                                int numBin_,
-				const std::string & corrBit_ );
+        casacore::rownr_t  addSpectralWindow( int			num_chan_,
+                                              const std::string&          name_,
+                                              double			ref_frequency_,
+                                              const std::vector<double>&	chan_freq_,
+                                              const std::vector<double>&	chan_width_,
+                                              int			meas_freq_ref_,
+                                              const std::vector<double>&	effective_bw_,
+                                              const std::vector<double>&	resolution_,
+                                              double			total_bandwidth_,
+                                              int			net_sideband_,
+                                              int			bbc_no_,
+                                              int			if_conv_chain_,
+                                              int			freq_group_,
+                                              const std::string&		freq_group_name_,
+                                              int			num_assoc_,
+                                              const std::vector<int>&	assoc_sp_id_,
+                                              const std::vector<std::string>&	assoc_nature_,
+                                              const std::string & windowFunction_,
+                                              int numBin_,
+                                              const std::string & corrBit_ );
 
-        int  addUniqueState( bool sig_,
-                             bool ref_,
-                             double cal_,
-                             double load_,
-                             unsigned int sub_scan_,
-                             std::string& obs_mode_,
-                             bool flag_row_ );
+        casacore::rownr_t  addUniqueState( bool sig_,
+                                           bool ref_,
+                                           double cal_,
+                                           double load_,
+                                           unsigned int sub_scan_,
+                                           std::string& obs_mode_,
+                                           bool flag_row_ );
   
   
         void addState( bool    sig_,
@@ -497,7 +497,7 @@ namespace casac {
                           std::vector<float>&	switchedPowerSum,
                           std::vector<float>&	requantizerGain ); 
 
-        void addSysPowerSlice( unsigned int	nRow,
+        void addSysPowerSlice( casacore::rownr_t	nRow,
                                std::vector<int>&    antennaId,
                                std::vector<int>&	spectralWindowId,
                                std::vector<int>&	feedId,

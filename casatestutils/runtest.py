@@ -153,13 +153,13 @@ def clean_working_directory(workdir):
     if os.path.exists(workdir):
         shutil.rmtree(workdir)
 
-def list_tests(local_path):
+def list_tests(local_path, test_paths=[]):
     print('Full list of unit tests')
     print('-----------------------')
     if os.path.isdir(local_path +"/testlist/"):
         shutil.rmtree(local_path +"/testlist/")
     os.makedirs(local_path +"/testlist/")
-    testpaths = fetch_tests(local_path +"/testlist/", 'master')
+    testpaths = fetch_tests(local_path +"/testlist/", 'master', test_paths)
     for path in testpaths:
         gather_all_tests(path, local_path +"/testlist/")
     tests = sorted(os.listdir(local_path +"/testlist/"))
@@ -340,7 +340,7 @@ def check_branch_path_merge(branch):
 
     return cmd
 
-def fetch_tests(work_dir, branch, merge_target=None):
+def fetch_tests(work_dir, branch, merge_target=None, test_paths=[]):
 
     if merge_target is not None:
         print("Merge Target Enabled: \n\tTarget Branch: {} \n\tFeature Branch: {}".format(merge_target, branch))
@@ -363,7 +363,6 @@ def fetch_tests(work_dir, branch, merge_target=None):
             "casa6": ["/casa6/casatests/regression/","/casa6/casatests/stakeholder/","/casa6/casatasks/tests/","/casa6/casatools/tests/"],
             "casampi": ["/casampi/src/casampi/tests"],
             "casaplotms": ["/casaplotms/tests/plotms"],
-            "almatasks": ["/almatasks/tests/tasks"],
             "casaviewer": ["/casaviewer/tests/tasks"]
         }[x]
 
@@ -416,7 +415,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
         test_paths.append(source_dir + "/" + x)
 
     # Clone the auxiliary repositories and checkout branch
-    repositories = ["casampi", "casaplotms", "almatasks","casaviewer"]
+    repositories = ["casampi", "casaplotms", "casaviewer"]
     for repo in repositories:
         print("")
         print("Fetching Repository: {}".format(repo))
@@ -486,7 +485,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
     return test_paths
 
-def run_cmd(cmd):
+def run_cmd(cmd, pytest_args=[]):
     try:
         from casampi.MPIEnvironment import MPIEnvironment
         if MPIEnvironment.is_mpi_enabled:
@@ -498,7 +497,7 @@ def run_cmd(cmd):
 
     return result
 
-def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
+def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN, pytest_args ):
     # https://docs.pytest.org/en/stable/usage.html
     cmd = ["--verbose"] + ["-ra"] + ["--tb=short"] + cmd
 
@@ -519,7 +518,7 @@ def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
         print("Running Command: pytest " + " ".join(str(x) for x in cmd))
         write_pytestini(os.path.join(os.getcwd(),"pytest.ini"),dirname)
         write_conftest(os.path.join(os.getcwd(),"conftest.py"))
-        result = run_cmd(cmd)
+        result = run_cmd(cmd, pytest_args)
         update_xml(xmlfile, result, name= os.getcwd().split("/")[-1])
         #os.remove(os.path.join(os.getcwd(),"conftest.py"))
         os.remove(os.path.join(os.getcwd(),"pytest.ini"))
@@ -528,7 +527,7 @@ def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
 ##############################################            Run            ###############################################
 ########################################################################################################################
 
-def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
+def run(testnames, branch=None, merge_target=None, DRY_RUN=False, pytest_args=[], test_paths=[]):
 
     if not HAVE_PYTEST:
         raise ImportError('No Module Named Pytest. Pytest is Required for runtest.py')
@@ -560,7 +559,7 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
             branch = 'master'
         # Only Checkout When Needed
         if any([False if ".py" in x else True for x in testnames ]):
-            testpaths = fetch_tests(workdir, branch, merge_target)
+            testpaths = fetch_tests(workdir, branch, merge_target, test_paths)
             os.makedirs(workdir + "tests/")
             for path in testpaths:
                 gather_all_tests(path, workdir + "tests/")
@@ -607,7 +606,7 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
                         shutil.copy2("{}{}.py".format(workdir + "tests/",test), workdir + "{}/".format(dirname))
                     except:
                         traceback.print_exc()
-                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN )
+                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN , pytest_args)
 
             ##################################################
             ########## Real Path ##########
@@ -642,7 +641,7 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
                 except:
                     traceback.print_exc()
 
-                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN )
+                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN, pytest_args )
         #build_xml(workpath + '/xml/xUnit.xml', workpath + '/xml/')
         os.chdir(cwd)
 
@@ -693,7 +692,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
 
     # Clone a default set of repositories to if test paths are not provided from command line
     if len(test_paths) == 0 :
-        test_paths = fetch_tests(str(work_dir), branch, merge_target)
+        test_paths = fetch_tests(str(work_dir), branch, merge_target, test_paths)
 
     if test_config_path == None:
        test_config_path = work_dir + "/casasources/casa6/casatestutils/casatestutils/component_to_test_map.json"
@@ -814,7 +813,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
         if "mpi" in test.options and sys.platform != "darwin" and ( pmode == 'parallel' or pmode == 'both'):
             print("Running test: {} in MPI mode".format(test.name))
             casa_exe = exec_path + "/mpicasa"
-            casaopts = "-n " + str(ncores) + " " + exec_path + "/casa" + " --nogui --nologger --log2term --agg " + rcdir + " "
+            casaopts = "-n " + str(ncores) + " " + exec_path + "/casa" + " --nogui --nologger --log2term --agg " + cachedir + " "
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
@@ -909,7 +908,7 @@ if __name__ == "__main__":
     parser.add_argument('-j','--test_group',  help='Filter tests by a comma separated list of components', required=False)
     parser.add_argument('-m','--pmode',  help='Parallelization mode: serial, parallel, both', required=False)
     parser.add_argument('--bamboo', help='Set Bamboo Flag to True',default=False,action='store_true', required=False)
-    parser.add_argument('-r','--rcdir',  help='Casa rcdir', required=False)
+    parser.add_argument('-r','--cachedir',  help='Casa cachedir ( previously --rcdir, which also covered the paths to the startup and config files)', required=False)
     parser.add_argument('--ignore_list',  help='map file of tests to ignore', required=False)
 
     args, unknownArgs = parser.parse_known_args()
@@ -928,14 +927,17 @@ if __name__ == "__main__":
     print("Operating system: " +  platform.system())
     print("")
 
-    rcdir=""
-    if args.rcdir is not None:
-        rcdir="--rcdir=" + args.rcdir
-        print("rcdir: " + rcdir)
+    cachedir=""
+    if args.cachedir is not None:
+        cachedir="--cachedir=" + args.cachedir
+        print("cachedir: " + cachedir)
 
     if args.test_group is not None:
         components = args.test_group
         components = [x.strip() for x in components.split(",")]
+        if len(components) == 1 and not components[0]:
+            print("Component list is empty. Using component 'default'")
+            components = ["default"]
         print("Testing Components" + str(components))
         print("")
 
@@ -1116,6 +1118,6 @@ if __name__ == "__main__":
                 parser.print_help(sys.stderr)
                 sys.exit(1)
             print("Running {} Test(s)".format(len(testnames)))
-            run(testnames, args.branch, args.merge_target, DRY_RUN)
+            run(testnames, args.branch, args.merge_target, DRY_RUN, pytest_args, test_paths if args.test_paths is not None else [])
     except:
         traceback.print_exc()

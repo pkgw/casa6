@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -59,7 +59,7 @@ class SpectralCollapser {
 	// <synopsis>
 	// Helper class to collapse an image along the spectral axis. The spectral
 	// range to combine is provided interactively from the profiler. The class
-	// transforms the range to the channels to be combined. The actual image\
+	// transforms the range to the channels to be combined. The actual image
 	// combination is then done with the class "ImageCollapser".
 	// </synopsis>
 

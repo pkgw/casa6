@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -411,7 +411,21 @@ void SynthesisNormalizer::gatherWeightDensity(){
     itsImages->releaseLocks();
 
   }
+  void SynthesisNormalizer::makePSFBeamset(){
+    LogIO os(LogOrigin("SynthesisNormalizer", "dividePSFByWeight", WHERE));
+    try{
+      if(!itsImages){
+        itsImages = makeImageStore( itsImageName, false );
+      }
 
+    }
+    catch(AipsError& x){
+
+      throw(AipsError("Programmers error no psf is made on disk and  trying to fit"));
+    }
+    itsImages->makeImageBeamSet(itsPsfcutoff);
+    itsImages->releaseLocks();
+  }
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );
@@ -712,12 +726,13 @@ void SynthesisNormalizer::gatherWeightDensity(){
   }// end of setupImagesOnDisk
 
 
-  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename )
+  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename , const bool useweightimage)
   {
+    //The constructors use ignoresumwt  so use the !useweightimage
     if( itsMapperType == "multiterm" )
-      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true ));   }
+      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true, !useweightimage ));   }
     else
-      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true ));   }
+      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true /*ignorefacets*/, !useweightimage ));   }
     itsImages->releaseLocks();
   }
 

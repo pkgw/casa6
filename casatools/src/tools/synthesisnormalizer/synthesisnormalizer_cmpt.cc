@@ -154,7 +154,16 @@ bool synthesisnormalizer::gatherresidual()
   }
   return rstat;
 }
-
+bool synthesisnormalizer::makepsfbeamset() {
+  Bool rstat(false);
+  try {
+    itsNormalizer->makePSFBeamset();
+    rstat = true;
+  } catch (AipsError x) {
+    RETHROW(x);
+  }
+  return rstat;
+}
   bool synthesisnormalizer::normalizeprimarybeam()
 {
   Bool rstat(false);

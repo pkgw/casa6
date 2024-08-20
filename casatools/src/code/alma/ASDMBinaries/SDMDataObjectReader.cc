@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <cstring>
 #include <exception>
 #include <sstream>
 
