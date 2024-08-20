@@ -890,7 +890,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       //bandName_p=vb.subtableColumns().spectralWindow().name()(spw);
       Vector<Double> spwfreq = vb.subtableColumns().spectralWindow().chanFreq()(spw);
 
-      double tol = (max(spwfreq)) * 1 / 100;
+      double tol = (max(spwfreq)) * 1.0 / 100.0;
       Double spwfreqwidth = abs(Vector<Double>(vb.subtableColumns().spectralWindow().chanWidth()(spw))(0));
       if (tol < spwfreqwidth)
         tol = spwfreqwidth;

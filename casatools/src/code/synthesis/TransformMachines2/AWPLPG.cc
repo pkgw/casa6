@@ -79,12 +79,12 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
  
   //oversample if image is small
   //But not more than 5000 pixels
- convSampling=(max(nx, ny) < 100) ? 100: Int(ceil(10000.0/max(nx, ny)));
+ convSampling=(max(nx, ny) < 100) ? 100: Int(ceil(5000.0/max(nx, ny)));
   if(convSampling <4) 
     convSampling=4;
   //For multiple pa angle reduce mem consumed
-  if(doSquint_p)
-    convSampling = 2;
+  //if(doSquint_p)
+  //  convSampling = 2;
   // TESTOO
   // convSampling = 1;
   // TESTOO
@@ -155,7 +155,11 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
               //  	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
           }
     }
-    
+    ///TESTOO
+    //Double imMaxW = 0.25 / abs(cs.increment()(0));
+    //cerr << " maxW " << maxW << " imMaxW " << imMaxW << endl;
+
+    ////
     //return vi to origin
     vi->originChunks(); vi->origin();
     //cerr << "FREQS " << Vector<Double>(freqs) << endl;
@@ -171,7 +175,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       freqs.push_back((f1 + f2) / 2.0);
     }
     // tell holder it is a single field or not
-    (*awConvs_p).setSingleField((fields.size()==1));
+    (*awConvs_p).setSingleField((fields.size()==1) && (nw_p==1));
 
 
     Double paMax=0.0;
