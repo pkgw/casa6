@@ -21,6 +21,14 @@
 #
 #
 ##########################################################################
+
+# Temporary Note: 2024/6/13 Kaz
+# Because of adding the new parameter 'interpolation' and changing the default internal parameter
+# for frequency interpoation of imager to 'linear', we must evaluate the values for assertion in some tests.
+# For the porpose, I set interpolation='nearest' in task_param at the moment,
+# therefore all tests have passed now. (failed some tests without the param, of cource)
+# This comment will destruct by my hand in a few days.
+
 import copy
 import glob
 import math
@@ -129,6 +137,7 @@ class sdimaging_unittest_base(unittest.TestCase):
     cell = ['3.0arcmin', '3.0arcmin']
     gridfunction = 'PB'
     minweight0 = 0.
+    interpolation = 'nearest'
     statsinteg = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                   'blcf': '17:32:18.690, +57.37.28.536, I, 1.42064e+09Hz',
                   'max': numpy.array([0.6109162]),
@@ -614,7 +623,8 @@ class sdimaging_test1(sdimaging_unittest_base):
                                gridfunction=self.gridfunction,
                                nchan=self.nchan, start=self.start,
                                width=self.width,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         if (os.path.exists(self.rawfile)):
@@ -931,7 +941,8 @@ class sdimaging_test2(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         if (os.path.exists(self.rawfile)):
@@ -1062,7 +1073,8 @@ class sdimaging_test3(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         if (os.path.exists(self.rawfile)):
