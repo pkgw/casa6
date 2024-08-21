@@ -369,12 +369,13 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
                                     Array<Complex> &wgtConvFunc,
                                     const vi::VisBuffer2 &vb,
                                     const Matrix<Double> &rotuvw,
-                                    const Vector<Double> & interpFreqs) {
+                                    const Vector<Double> & interpFreqs,
+                                    const Bool predictMode) {
 
   Vector<Int> cmap;
   Vector<Int> pmap;
   Vector<Int> rmap;
-  getConvIndices(pmap, cmap, rmap, vb, rotuvw, interpFreqs);
+  getConvIndices(pmap, cmap, rmap, vb, rotuvw, interpFreqs, predictMode);
   //cerr << "pmap "<< pmap << endl;
   //cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
   std::vector<Int> pmapused = pmap.tovector();
@@ -472,7 +473,8 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   
 
 //////////////////////  
-void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const Vector<Double>& interpFreqs) {
+void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const Vector<Double>& interpFreqs, 
+  const Bool predictMode) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
   polMap.resize(visPolMap.nelements());
@@ -510,6 +512,10 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   //Assuming pa is the same for this vb which is usually associated with time.
   // using utils.cc global function
   Double paval = refim::getPA(vb);
+  if(predictMode){
+    paval -= C::pi;
+    paval = atan2(sin(paval), cos(paval));
+  }
   Int tmpPAInd = -1;
   Double minDiff = 1e40;
   for (uint k = 0; k <paVals_p.nelements(); ++k) {
@@ -519,7 +525,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
     }
   }
   paIndex.set(tmpPAInd);
-  cerr << "paVal " << paval << " all " << paVals_p << endl;
+  //cerr << "paVal " << paval << " predictMode " << predictMode << endl;
   // For antenna pairs ..for homogenous arrays only one pair is necessary
   if ( (antpairVals_p.nelements() == 1) && antpairVals_p[0] == std::pair<int,  int>(-1, -1)) {
       antPairIndex.set(0);

@@ -257,7 +257,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     } */  
 
     awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
-                             weightConvFunc_p, vb, rotuvw, interpVisFreq_p);
+                             weightConvFunc_p, vb, rotuvw, interpVisFreq_p, toVis_p);
     //double time1=omp_get_wtime();
     //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
