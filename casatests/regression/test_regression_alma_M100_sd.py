@@ -168,7 +168,7 @@ class regression_alma_m100_test(unittest.TestCase):
             name = "{}.last".format(lastfile)
             if os.path.exists(name):
                 os.remove(name)
-        
+
         # Remove PNGs
         os.remove("raw_spectrum_Spw1,3,5,7,9,11,13,15.png")
         for target in ['9', '11', '13', '15']:
@@ -181,13 +181,13 @@ class regression_alma_m100_test(unittest.TestCase):
 
         for antname  in ['PM03', 'PM04', 'CM03', 'CM05']:
             os.remove("raw_spectrum.{}.spw15_Scan2,3,4,5,6,8,9,10,11.png".format(antname))
-            
+
         for f in glob.glob("uid___A002_X6218fb_X264*"):
             try:
                 os.remove(f)
             except:
                 shutil.rmtree(f)
-                
+
         for f in glob.glob("M100_SD_cube_*"):
             if f.endswith(".log"): continue
             try:
@@ -395,7 +395,8 @@ class regression_alma_m100_test(unittest.TestCase):
                 imsize=[50,50],
                 cell=['10arcsec','10arcsec'],
                 phasecenter = 'J2000 12h22m54.9 +15d49m15',
-                outfile='M100_SD_cube_PM_03_04.image'
+                outfile='M100_SD_cube_PM_03_04.image',
+                interpolation='nearest'
             )
 
             # CONVERT image unit to K
@@ -417,7 +418,8 @@ class regression_alma_m100_test(unittest.TestCase):
                 imsize=[50,50],
                 cell=['10arcsec','10arcsec'],
                 phasecenter = 'J2000 12h22m54.9 +15d49m15',
-                outfile='M100_SD_cube_CM_03_05.image'
+                outfile='M100_SD_cube_CM_03_05.image',
+                interpolation='nearest'
             )
 
             # CONVERT image unit to K
@@ -587,7 +589,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 test_status = False
                 print('* FAILED image maxpos test')
             print('*  Image maxpos', thistest_immaxpos, file=logfile)
-                
+
 
             if all(thistest_imminpos == imminpos):
                 print('* Passed image minpos test')
