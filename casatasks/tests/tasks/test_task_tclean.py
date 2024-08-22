@@ -1780,7 +1780,14 @@ class test_stokes(testref_base):
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IQUV',specmode='cube',interpolation='nearest',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
           self.assertTrue(self.check_final(report))
-
+     def test_stokes_awp2_mtmfs_IV_squintcorr(self):
+          """ [stokes] test_stokes_awp2_mtmfs_IV_squintcorr : mtmfs with stokes IV"""
+          #self.prepData("vla_wideband_2ptg_w_squint.ms")
+          #msname = self.msfile
+          msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
+          ret = tclean(vis=msname,imagename=self.img,imsize=1200,gridder='awp2',cell='1.6arcsec',niter=10, stokes='I',specmode='mvc',deconvolver='mtmfs', nterms=2,parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+          self.assertTrue(self.check_final(report))
 
 
 #     def test_stokes_cube_I_flags(self):
@@ -3913,32 +3920,21 @@ class test_wproject(testref_base):
 
           report=self.th.checkall(imgexist=[self.img+'.awp.image'],imgval=[(self.img+'.awp.psf',1.0,[1024,1024,0,0]),(self.img+'.awp.image',1.0,[1158,1384,0,0]) ] )
           self.assertTrue(self.check_final(report))
-     @unittest.skipIf(True, "We need to copy point_vla_l_wterm.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
+     #@unittest.skipIf(True, "We need to copy point_vla_l_wterm.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
      def test_wterm_awp2(self):
           """ [wproject] Test_Widefield_wproj : W-Projection using the AWProject gridder """ 
-          #self.prepData("point_vla_l_wterm.ms")
-          #msname = self.msfile
-          msname = '/home/heron2/kgolap/TEST/WFIELD/point_vla_l_wterm.ms'
+          self.prepData("vla_wideband_2ptg_w_squint.ms")
+          msname = self.msfile
+          #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
 
            
-          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=5000, cell='0.7arcsec',niter=0, weighting='uniform', gridder='awp2', wprojplanes=16, pblimit=-0.1,parallel=self.parallel)
-
-          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.psf',1.0,[2500,2500,0,0]),(self.img+'.awp2.image',1.0,[3431,3576,0,0]) ] )
+          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
+                 niter=0, weighting='uniform', gridder='awp2', wprojplanes=16, pblimit=-0.1, pbcor=True, 
+                 parallel=self.parallel)
+          ## source peak after pbcor
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.61,[287,872,0,0]),(self.img+'.awp2.image.pbcor',0.5,[287,872,0,0]) ] )
           self.assertTrue(self.check_final(report))    
-     @unittest.skipIf(True, "We need to copy point_vla_l_wterm.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
-     def test_wterm_awphpg(self):
-          """ [wproject] Test_Widefield_wproj : W-Projection using the AWProject gridder """ 
-          #self.prepData("point_vla_l_wterm.ms")
-          #msname = self.msfile
-          msname = '/home/heron2/kgolap/TEST/WFIELD/point_vla_l_wterm.ms'
-           
-          tclean(vis=msname, imagename=self.img+'.awphpg',  imsize=5000, cell='0.7arcsec',niter=0, weighting='uniform', gridder='awphpg', wprojplanes=16, pblimit=-0.1,parallel=self.parallel)
-
-          report=self.th.checkall(imgexist=[self.img+'.awphpg.image'],imgval=[(self.img+'.awphpg.psf',1.0,[2500,2500,0,0]),(self.img+'.awphpg.image',1.0,[3431,3576,0,0]) ] )
-          self.assertTrue(self.check_final(report))
-
-
-##############################################
+     
 ##############################################
 
 ##Task level tests : awproject and mosaics
