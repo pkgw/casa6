@@ -74,11 +74,12 @@ rownr_t PhaseShiftingTVI::getMaxMSFieldID() const
 void PhaseShiftingTVI::parsePhasecenter(const Record &config)
 {
   auto exists = config.fieldNumber ("phasecenter");
-  if (exists < 0)
+  if (exists < 0) {
     return;
+  }
 
   // phasecenter can be given as a string or as a dict (per-field centers)
-  bool isStr = false;
+  auto isStr = false;
   casacore::String phaseCenterStr;
   try {
     config.get(exists, phaseCenterStr);
@@ -126,7 +127,7 @@ void PhaseShiftingTVI::parsePhasecenterDict(const Record &config)
 		      ". This MeasurementSet has field IDs between 0 and " +
 		      std::to_string(maxMSField));
     }
-    if (fieldsSeen.insert(fid).second == false) {
+    if (not fieldsSeen.insert(fid).second) {
       throw AipsError("Field " + std::to_string(fid) + " is given multiple times");
     }
 
@@ -283,7 +284,8 @@ void PhaseShiftingTVI::initialize()
 	// Access observatory position and observation start (reference) time.
 	if (wideFieldMode_p)
 	{
-	    const auto selectedInputMsCols = new MSColumns(getVii()->ms());
+	    // const auto selectedInputMsCols = new MSColumns(getVii()->ms());
+            const auto selectedInputMsCols = std::make_unique<MSColumns>(getVii()->ms());
 	    observatoryPosition_p = selectedInputMsCols->antenna().positionMeas()(0);
 	    referenceTime_p  = selectedInputMsCols->timeMeas()(0);
 	    referenceTimeUnits_p = selectedInputMsCols->timeQuant()(0).getUnit();
@@ -351,19 +353,19 @@ void PhaseShiftingTVI::shiftUVWPhases()
 // -----------------------------------------------------------------------
 void PhaseShiftingTVI::origin()
 {
-	// Drive underlying ViImplementation2
-	getVii()->origin();
+   // Drive underlying ViImplementation2
+   getVii()->origin();
 
-	// CAS-12706 Add support for shifting across large offset/angles
-	if (wideFieldMode_p) shiftUVWPhases();
+   // CAS-12706 Add support for shifting across large offset/angles
+   if (wideFieldMode_p) {
+       shiftUVWPhases();
+   }
 
-    // Define the shapes in the VB2, patch provided by cgarcia in CAS-12706
-    configureShapes();
+   // Define the shapes in the VB2, patch provided by cgarcia in CAS-12706
+   configureShapes();
 
-	// Synchronize own VisBuffer
-	configureNewSubchunk();
-
-	return;
+   // Synchronize own VisBuffer
+   configureNewSubchunk();
 }
 
 // -----------------------------------------------------------------------
@@ -371,19 +373,19 @@ void PhaseShiftingTVI::origin()
 // -----------------------------------------------------------------------
 void PhaseShiftingTVI::next()
 {
-	// Drive underlying ViImplementation2
-	getVii()->next();
+   // Drive underlying ViImplementation2
+   getVii()->next();
 
-	// CAS-12706 Add support for shifting across large offset/angles
-	if (wideFieldMode_p) shiftUVWPhases();
+   // CAS-12706 Add support for shifting across large offset/angles
+   if (wideFieldMode_p) {
+       shiftUVWPhases();
+   }
 
-    // Define the shapes in the VB2, patch provided by cgarcia in CAS-12706
-    configureShapes();
+   // Define the shapes in the VB2, patch provided by cgarcia in CAS-12706
+   configureShapes();
 
-	// Synchronize own VisBuffer
-	configureNewSubchunk();
-
-	return;
+   // Synchronize own VisBuffer
+   configureNewSubchunk();
 }
 
 
@@ -522,11 +524,11 @@ void PhaseShiftingTVI::visibilityModel (Cube<Complex> & vis) const
 void PhaseShiftingTVI::uvw (casacore::Matrix<double> & uvw) const
 {
     if (wideFieldMode_p) {
-	uvw.resize(newUVW_p.shape(),false);
-	uvw = newUVW_p;
+        uvw.resize(newUVW_p.shape(),false);
+        uvw = newUVW_p;
     }
     else {
-      getVii()->uvw (uvw);
+        getVii()->uvw (uvw);
     }
 }
 
