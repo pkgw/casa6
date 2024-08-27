@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from typing import Union, Optional
+
 import numpy as np
 from .mstools import write_history
 from casatools import table, ms, mstransformer
@@ -9,9 +11,9 @@ from .parallel.parallel_data_helper import ParallelDataHelper
 
 
 def phaseshift(
-    vis=None, outputvis=None, keepmms=None, field=None,
-    spw=None, scan=None, intent=None, array=None, 
-    observation=None, datacolumn=None, phasecenter=None
+    vis: str, outputvis: str, keepmms: bool, field: Optional[str],
+    spw: Optional[str], scan: Optional[str], intent: Optional[str], array: Optional[str],
+    observation: Optional[str], datacolumn: Optional[str], phasecenter: Union[str, dict]
 ):
     """
     Changes the phase center for either short or large
@@ -119,7 +121,7 @@ def phaseshift(
     _update_field_subtable(outputvis, field, phasecenter)
 
 
-def _get_col_names(vis: str):
+def _get_col_names(vis: str) -> np.ndarray:
     tblocal = table()
     try:
         tblocal.open(vis)
@@ -129,7 +131,7 @@ def _get_col_names(vis: str):
     return colnames
 
 
-def _update_field_subtable(outputvis, field, phasecenter):
+def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, dict]):
     """ Update MS/FIELD subtable with shifted center(s). """
     try:
         tblocal = table()
@@ -170,7 +172,7 @@ def _update_field_subtable(outputvis, field, phasecenter):
         tblocal.done()
 
 
-def _convert_to_ra_dec_j2000(phasecenter: str):
+def _convert_to_ra_dec_j2000(phasecenter: str) -> tuple[float, float]:
     """ Parse phase center string to obtain ra/dec (in rad) """
     dirstr = phasecenter.split(' ')
     try:
