@@ -81,7 +81,7 @@ def phaseshift(
             )
             datacolumn = "DATA"
 
-    casalog.post("Will use datacolumn = " + datacolumn, "DEBUG")
+    casalog.post(f"Will use datacolumn = {datacolumn}", "DEBUG")
     config["datacolumn"] = datacolumn
 
     # Call MSTransform framework with tviphaseshift=True
@@ -153,7 +153,7 @@ def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, d
             if field:
                 try:
                     field_id = int(field)
-                except ValueError as exc:
+                except ValueError as _exc:
                     fnames = tblocal.getcol("NAME")
                     field_id = np.where(fnames == field)[0][0]
                 pcol[0][0][field_id] = thenewra_rad
@@ -173,7 +173,7 @@ def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, d
         tblocal.putcol("PHASE_DIR", pcol)
 
     except Exception as instance:
-        casalog.post("*** Error '%s' updating FIELD subtable" + str(instance), "WARN")
+        casalog.post(f"*** Error '%s' updating FIELD subtable {instance}", "WARN")
         raise RuntimeError(str(instance))
     finally:
         tblocal.done()
@@ -187,7 +187,7 @@ def _convert_to_ra_dec_j2000(phasecenter: str) -> tuple[float, float]:
         thedir = melocal.direction(dirstr[0], dirstr[1], dirstr[2])
         if not thedir:
             raise RuntimeError(
-                f"measures.direction() failed for phasecenter string:" f" {phasecenter}"
+                f"measures.direction() failed for phasecenter string: {phasecenter}"
             )
         if dirstr[0] != "J2000":
             # Convert to J2000
@@ -196,9 +196,7 @@ def _convert_to_ra_dec_j2000(phasecenter: str) -> tuple[float, float]:
         thenewdec_rad = thedir["m1"]["value"]
     except Exception as instance:
         casalog.post(
-            "*** Error "
-            + str(instance)
-            + " when interpreting parameter 'phasecenter': ",
+            f"*** Error {instance} when interpreting parameter 'phasecenter': ",
             "SEVERE",
         )
         raise RuntimeError(str(instance))
