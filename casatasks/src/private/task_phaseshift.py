@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from typing import Union, Optional
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from .mstools import write_history
@@ -179,7 +179,7 @@ def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, d
         tblocal.done()
 
 
-def _convert_to_ra_dec_j2000(phasecenter: str) -> tuple[float, float]:
+def _convert_to_ra_dec_j2000(phasecenter: str) -> Tuple[float, float]:
     """Parse phase center string to obtain ra/dec (in rad)"""
     dirstr = phasecenter.split(" ")
     try:
