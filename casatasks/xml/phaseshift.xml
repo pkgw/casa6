@@ -177,7 +177,7 @@ Multi-MS.
  
             When phasecenter is a single string, the phase shifting operation will be done
             for all selected fields using the same output phase center, so all fields in the
-            output MeasurementSet will have as center the new location.
+            output MeasurementSet will have as center the specified direction.
  
             When phasecenter is a dictionary, the output phase center can be specified
             separately for every field. If one or more input fields are not present in the
@@ -185,7 +185,7 @@ Multi-MS.
             from the input MeasurementSet can be selected using the field parameter.
  
             Phaseshift changes the phase of the baseline visibilities so that the final image
-            is centered at the new location. Additionally the uvw coordinates and the
+            is centered at the specified direction. Additionally the uvw coordinates and the
             PHASE_DIR column from the FIELD sub-table will be changed accordingly.
  
             The new phase center is not constrained to be located inside any images to be
