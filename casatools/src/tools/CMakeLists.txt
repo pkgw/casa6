@@ -89,7 +89,6 @@ set(CASATOOLS_MINOR "${CMAKE_PROJECT_VERSION_MINOR}")
 set(CASATOOLS_PATCH "${CMAKE_PROJECT_VERSION_PATCH}")
 set(CASATOOLS_FEATURE "${CMAKE_PROJECT_VERSION_TWEAK}")
 set(CASA_VERSION_STRING "${CMAKE_PROJECT_VERSION}")
-configure_file("${CMAKE_SOURCE_DIR}/utils/toolversion.h.in" "${CMAKE_SOURCE_DIR}/utils/toolversion.h" @ONLY)
 
 # Rpath option
 option(ENABLE_RPATH "Include rpath in shared libraries and executables" YES)
@@ -158,6 +157,7 @@ set(casatools_all_components
   imagemetadata  
   mstransformer
   synthesisimager
+  wvr
 )
 
 # For each tool get the sources and adds them to the preliminary casatools sources
