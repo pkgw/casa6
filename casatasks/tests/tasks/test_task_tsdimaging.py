@@ -4671,5 +4671,47 @@ def calc_mapproperty(statistics):
             'blc': numpy.array([blcra, blcdec]), 'trc': numpy.array([trcra, trcdec])}
 
 
+class sdimaging_interpolation(sdimaging_pm04_test_base):
+    """
+    Test imaging with interpolation parameters.
+    
+    This test checks linear(default), nearest, and cubic interpolation with the parameter.
+    """
+    outfile = 'interpolation'
+    
+    def run_base_test(self, interpolation='linear'):
+        imsize = 11
+        params = {
+            'infiles': self.infiles,
+            'antenna': '2',
+            'spw': '18',
+            'phasecenter': 2,
+            'outfile': self.outfile,
+            'overwrite': False,
+            'imsize': imsize,
+            'cell': '10arcsec',
+            'interpolation': interpolation
+        }
+        center = [imsize // 2, imsize // 2, 0, 0]
+        ref = {
+            'npts': [1],
+            'max': [1],
+            'min': [1],
+            'maxpos': center,
+            'minpos': center,
+            'sum': [1]
+        }
+        self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+    def test_interpolation_linear(self):
+        self.run_base_test()
+
+    def test_interpolation_nearest(self):
+        self.run_base_test('nearest')
+
+    def test_interpolation_cubic(self):
+        self.run_base_test('cubic')
+
+
 if __name__ == '__main__':
     unittest.main()
