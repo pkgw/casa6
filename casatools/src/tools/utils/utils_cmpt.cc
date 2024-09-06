@@ -41,7 +41,6 @@
 #include <casacore/scimath/Mathematics/FFTW.h>
 #include <asdmstman/AsdmStMan.h>
 #include <casacore/derivedmscal/DerivedMC/Register.h>
-#include "toolversion.h"
 
 using namespace std;
 using namespace casacore;
@@ -411,22 +410,6 @@ utils::version_string( ) { return VersionInfo::str( ); }
 
 bool utils::compare_version(const  string& comparitor,  const std::vector<long>& vec) {
     return VersionInfo::compare(comparitor,vector<int>(vec.begin(),vec.end()));
-}
-
-std::vector<long>
-utils::toolversion( ) {
-    std::vector<long> result = {
-        ToolVersionInfo::major( ),
-        ToolVersionInfo::minor( ),
-        ToolVersionInfo::patch( ),
-        ToolVersionInfo::feature( ),
-    };
-    return result;
-}
-
-std::string
-utils::toolversion_string( ) {
-    return ToolVersionInfo::version( );
 }
 
 // ------------------------------------------------------------
