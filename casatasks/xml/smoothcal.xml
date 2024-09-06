@@ -43,6 +43,11 @@
                         <value type="double">60.0</value>
                 </param>
 
+                <param type="bool" name="ratesmooth"><shortdescription>Use rate aware smoothing</shortdescription><description>Use rate aware smoothing</description>
+                        
+                        <value type="bool">False</value>
+                </param>
+
         </input>
 <returns type="void"/>
 
@@ -69,6 +74,8 @@
                 Options: 'median','mean'
         smoothtime -- Smoothing filter time (sec)
                 default: 300.0; example: smoothtime=60.
+        ratesmooth --  On fringefit data use rate-aware smoothing
+                default: False
  </example>
  </task>
  </casaxml>

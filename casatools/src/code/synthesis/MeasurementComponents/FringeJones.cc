@@ -2159,7 +2159,8 @@ void FringeJones::applyRefAnt() {
 
 void FringeJones::smooth(Vector<Int>& fields,
                          const String& smtype,
-                         const Double& smtime) {
+                         const Double& smtime,
+                         const bool& ratesmooth) {
     NewCalTable ct = *ct_;
 
     // half-width
@@ -2267,8 +2268,8 @@ void FringeJones::smooth(Vector<Int>& fields,
                 // Get the time difference between two points
                 float timeStep = temp[counter][2] - temp[counter-1][2];
                 // Get Forwards and backwards predictions (in cycles)
-                float predictFWDiff = ((temp[counter-1][0]/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep * 2)) - (temp[counter][0]/(2*M_PI));
-                float predictBWDiff = ((temp[counter][0]/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep * 2)) - (temp[counter-1][0]/(2*M_PI));
+                float predictFWDiff = ((temp[counter-1][0]/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep * 2) * int()ratesmooth) - (temp[counter][0]/(2*M_PI));
+                float predictBWDiff = ((temp[counter][0]/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep * 2) * int()ratesmooth) - (temp[counter-1][0]/(2*M_PI));
                 // Take the average prediction of cycles
                 float cycleDiff = ((predictFWDiff-predictBWDiff)/2);
                 // Adjust total cycle estimate

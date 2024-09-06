@@ -1111,7 +1111,8 @@ calibrater::smooth(const std::string& tablein,
 		   const std::string& tableout, 
 		   const ::casac::variant& field,
 		   const std::string& smoothtype,
-		   const double smoothtime)
+		   const double smoothtime,
+       const std::bool& ratesmooth)
 {
   bool rstat(false);
 
@@ -1130,7 +1131,7 @@ calibrater::smooth(const std::string& tablein,
     String tabo(tableout);
 
     rstat = itsCalibrater->smooth(tablein,tabo,
-				  smoothtype,smoothtime,
+				  smoothtype,smoothtime, ratesmooth,
 				  toCasaString(field));
 
   } catch(AipsError x) {

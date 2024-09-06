@@ -421,7 +421,8 @@ public:
 
   virtual void smooth(casacore::Vector<casacore::Int>& fields,
 		      const casacore::String& smtype,
-		      const casacore::Double& smtime);
+		      const casacore::Double& smtime,
+          const std::bool& ratesmooth);
 
   // Report solved-for QU
   virtual void reportSolvedQU();

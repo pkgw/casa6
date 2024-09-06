@@ -2995,7 +2995,8 @@ Bool Calibrater::smooth(const String& infile,
 			String& outfile,  // const Bool& append,
 			const String& smoothtype,
 			const Double& smoothtime,
-			const String& fields)
+			const String& fields,
+      const bool& ratesmooth)
 {
 
   // TBD: support append?
@@ -3048,7 +3049,7 @@ Bool Calibrater::smooth(const String& infile,
 	fldidx=getFieldIdx(fields);
 
       // Delegate to SVC
-      svc->smooth(fldidx,smoothtype,smoothtime);
+      svc->smooth(fldidx,smoothtype,smoothtime,ratesmooth);
       
       // Store the result on disk
       //    if (append) logSink() << "Appending result to " << outfile << LogIO::POST;
@@ -5590,7 +5591,8 @@ Bool OldCalibrater::smooth(const String& infile,
 			   String& outfile,  // const Bool& append,
 			   const String& smoothtype,
 			   const Double& smoothtime,
-			   const String& fields)
+			   const String& fields,
+         const bool& ratesmooth)
 {
 
   // TBD: support append?
@@ -5643,7 +5645,7 @@ Bool OldCalibrater::smooth(const String& infile,
 	fldidx=getFieldIdx(fields);
 
       // Delegate to SVC
-      svc->smooth(fldidx,smoothtype,smoothtime);
+      svc->smooth(fldidx,smoothtype,smoothtime,ratesmooth);
       
       // Store the result on disk
       //    if (append) logSink() << "Appending result to " << outfile << LogIO::POST;

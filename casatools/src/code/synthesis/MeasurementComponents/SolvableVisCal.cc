@@ -4147,7 +4147,8 @@ Record SolvableVisCal::solveActionRec() {
 
 void SolvableVisCal::smooth(Vector<Int>& fields,
 			    const String& smtype,
-			    const Double& smtime) {
+			    const Double& smtime,
+          const bool& ratesmooth) {
 
     if (smoothable())
       // Call NewCalTable's global smooth method

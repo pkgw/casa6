@@ -12,7 +12,7 @@ else:
 
     _cb = cbtool( )
 
-def smoothcal(vis,tablein,caltable,field,smoothtype,smoothtime):
+def smoothcal(vis,tablein,caltable,field,smoothtype,smoothtime,ratesmooth):
         """ Smooth calibration solution(s) derived from one or more sources:
 
         Keyword arguments:
@@ -40,7 +40,7 @@ def smoothcal(vis,tablein,caltable,field,smoothtype,smoothtime):
                 else:
                         raise ValueError('Visibility data set not found - please verify the name')
 
-                _cb.smooth(tablein=tablein,tableout=caltable,field=field,smoothtype=smoothtype,smoothtime=smoothtime)
+                _cb.smooth(tablein=tablein,tableout=caltable,field=field,smoothtype=smoothtype,smoothtime=smoothtime,ratesmooth=ratesmooth)
 
         finally:
                 _cb.close()
