@@ -254,9 +254,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //Force recalculation of robust stats to update nsigmathreshold with
     //most recent residual
 
-
-
-
     if(itsAutoMaskAlgorithm=="multithresh" && itsImages->residual()->shape()[3] >1 && itsNsigma > 0.0){
       Record retval;
       Record backupRobustStats=itsRobustStats;
@@ -314,27 +311,17 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       //      setupMask();
       //
-      cout << "initMinorCycle .... hasMask " << itsImages->hasMask() << endl;
-      cout << "hasMask " << itsImages->hasMask() << endl;
-
       Float masksum;
-      cout << "hasMask " << itsImages->hasMask() << endl;
       if( ! itsImages->hasMask() ) // i.e. if there is no existing mask to re-use...
 	  {
-          cout << "I'm in here, no mask " << endl;
-          cout << "hasMask " << itsImages->hasMask() << endl;
           masksum = -1.0;
       }
       else
 	{
-      cout << "I'm in here, WITH mask " << endl;
-      cout << "hasMask " << itsImages->hasMask() << endl;
 	  masksum = itsImages->getMaskSum();
 	  itsImages->mask()->unlock();
 	}
       Bool validMask = ( masksum > 0 );
-      cout << "validMask " << validMask << " masksum " << masksum << endl;
-      cout << "hasMask " << itsImages->hasMask() << endl;
 
       //    os << LogIO::NORMAL3 << "****INITMINOR Masksum stuff "<< tim.real() << LogIO::POST;
       // tim.mark();
@@ -351,15 +338,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       itsLoopController.setPeakResidualNoMask( peakresnomask );
       itsLoopController.setMaxPsfSidelobe( itsImages->getPSFSidelobeLevel() );
 
-      cout << "after setPSFSidelobe hasMask " << itsImages->hasMask() << endl;
-
       //re-calculate current nsigma threhold
       //os<<"Calling calcRobustRMS ....syndeconv."<<LogIO::POST;
       Float nsigmathresh = 0.0;
       Bool useautomask = ( itsAutoMaskAlgorithm=="multithresh" ? true : false);
       Int iterdone = itsLoopController.getIterDone();
-
-      cout << "Before itsNSigma hasMask " << itsImages->hasMask() << endl;
 
       //cerr << "INIT automask " << useautomask << " alg " << itsAutoMaskAlgorithm << " sigma " << itsNsigma  << endl;
       if ( itsNsigma >0.0) {
@@ -407,9 +390,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           }
 
 	        //cerr << this << " DOING robust " << itsRobustStats << endl;
-
        }
-      cout << "After itsNSigma hasMask " << itsImages->hasMask() << endl;
 
         /***
         Array<Double> robustrms =kitsImages->calcRobustRMS(medians, itsPBMask, itsFastNoise);
@@ -439,13 +420,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         os << "Current nsigma threshold (maximum along spectral channels ) ="<<nsigmathresh<< msg <<LogIO::POST;
       }
 
-      cout << "Before setPBMask hasMask " << itsImages->hasMask() << endl;
-
       itsLoopController.setNsigmaThreshold(nsigmathresh);
       itsLoopController.setPBMask(itsPBMask);
       itsLoopController.setFullSummary(itsFullSummary);
-
-      cout << "After setPBMask hasMask " << itsImages->hasMask() << endl;
 
       if ( itsAutoMaskAlgorithm=="multithresh" && !initializeChanMaskFlag ) {
         IPosition maskshp = itsImages->mask()->shape();
@@ -481,35 +458,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	{
 	  itsLoopController.setMaskSum( -1.0 );
 	}
-
-      cout << "Before summaryminor hasMask " << itsImages->hasMask() << endl;
-
-      // CAS-14201 : Always initialize summaryminor, even when niter=0
-      for( Int chanid=0; chanid<nSubChans;chanid++) {
-        for( Int polid=0; polid<nSubPols; polid++) {
-            itsLoopController.addSummaryMinor(0, chanid, polid,
-                    0 /*cycleStartIteration */,
-                    0 /*startiteration */,
-                    0.0 /*startmodelflux */,
-                    itsImages->hasMask() ? itsImages->getPeakResidualWithinMask() : itsImages->getPeakResidual() /*startpeakresidual */,
-                    itsImages->getPeakResidual() /*startpeakresidualnomask */,
-                    itsImages->getModelFlux()/*modelflux */,
-                    itsImages->hasMask() ? itsImages->getPeakResidualWithinMask() : itsImages->getPeakResidual() /*startpeakresidual */,
-                    itsImages->getPeakResidual() /*peakresidualnomask */,
-                    masksum,
-                    0 /*rank */,
-                    0 /*stopCode */,
-                    itsFullSummary);
-        }
-      }
-
-      cout << "After summaryminor " << itsImages->hasMask() << endl;
-
       float psfsidelobelevel = itsImages->getPSFSidelobeLevel();
 
       returnRecord = itsLoopController.getCycleInitializationRecord();
 
-      //cerr << "INIT record " << returnRecord << endl;
+      // cerr << "INIT record " << returnRecord << endl;
 
       //      itsImages->printImageStats();
       os << " Absolute Peak residual within mask : " << peakresinmask << ", over full image : " << peakresnomask  << LogIO::POST;
@@ -1119,7 +1072,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
             if( ! itsImages->hasMask() || emptyMask ) // i.e. if there is no existing mask to re-use...
             {
                 LatticeLocker lock1 (*(itsImages->mask()), FileLocker::Write);
-                cout << "itsIsInteractive " << itsIsInteractive << " emptyMask " << emptyMask << endl;
                 if( itsIsInteractive ) itsImages->mask()->set(0.0);
                 else itsImages->mask()->set(1.0);
                 os << "[" << itsImages->getName() << "] Initializing new mask to " << (itsIsInteractive?"0.0 for interactive drawing":"1.0 for the full image") << LogIO::POST;
