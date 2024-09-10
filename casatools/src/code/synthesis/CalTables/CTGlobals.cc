@@ -49,7 +49,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 void smoothCT(NewCalTable ct,
 	      const String& smtype,
 	      const Double& smtime,
-	      Vector<Int> selfields) {
+	      Vector<Int> selfields,
+        const bool& ratesmooth) {
 
   // Complex parameters?
   Bool cmplx=ct.isComplex();
