@@ -28,6 +28,24 @@ A set of common helper functions for unit tests:
 '''
 
 def phasediffabsdeg(c1, c2):
+    """
+    Computes the absolute phase difference between two complex numbers in degrees.
+
+    This function calculates the difference in phase angles between two complex numbers
+    and returns the result in degrees. If either input is a real number (i.e., has no
+    imaginary component), it returns zero, as the phase difference of real numbers is always zero.
+
+    Args:
+        c1 (complex): The first complex number.
+        c2 (complex): The second complex number.
+
+    Returns:
+        float: The absolute phase difference between `c1` and `c2` in degrees. Returns 0.0
+               if either input is a real number.
+
+    Raises:
+        ValueError: If the inputs are not complex numbers.
+    """
     try:
         a = c1.imag
         a = c2.imag
@@ -43,21 +61,28 @@ def phasediffabsdeg(c1, c2):
     return diff/np.pi*180. # (degrees)
 
 def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percentage", startrow = 0, nrow = -1, rowincr = 1):
-
     """
-    compTables - compare two CASA tables
-    
-       referencetab - the table which is assumed to be correct
+    Compares columns from two tables and verifies if they match within specified tolerances.
 
-       testtab - the table which is to be compared to referencetab
+    This function compares corresponding columns in two tables (`referencetab` and `testtab`) while ignoring columns listed in `excludecols`. It evaluates the differences based on the specified `mode` (e.g., "percentage", "absolute", "phaseabsdeg") and tolerance. It checks data types like float, int, string, and list/array, and reports discrepancies.
 
-       excludecols - list of column names which are to be ignored
+    Args:
+        referencetab (str): Path to the reference table file.
+        testtab (str): Path to the test table file.
+        excludecols (list of str): List of column names to exclude from comparison.
+        tolerance (float, optional): Tolerance level for comparison. Default is 0.001.
+        mode (str, optional): Comparison mode. Can be "percentage", "absolute", or "phaseabsdeg". Default is "percentage".
+        startrow (int, optional): Starting row index for comparison. Default is 0.
+        nrow (int, optional): Number of rows to compare. Default is -1, which means all rows.
+        rowincr (int, optional): Row increment for comparison. Default is 1.
 
-       tolerance - permitted fractional difference (default 0.001 = 0.1 percent)
+    Returns:
+        bool: `True` if all compared columns match within the specified tolerance, `False` otherwise.
 
-       mode - comparison is made as "percentage", "absolute", "phaseabsdeg" (for complex numbers = difference of the phases in degrees)  
+    Notes:
+        - Handles comparison of columns with different data types including lists and numpy arrays.
+        - For "phaseabsdeg" mode, ensure that `phasediffabsdeg` function is defined.
     """
-
     rval = True
 
     tb_local.open(referencetab)
@@ -195,15 +220,32 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
 
     return rval
 
-    
+
 def compVarColTables(referencetab, testtab, varcol, tolerance=0.):
-    '''Compare a variable column of two tables.
-       referencetab  --> a reference table
-       testtab       --> a table to verify
-       varcol        --> the name of a variable column (str)
-       Returns True or False.
-    '''
-    
+    """
+    Compares a variable column from two tables to ensure they match within a specified tolerance.
+
+    This function compares a specific variable column (`varcol`) from two tables (`referencetab` and `testtab`). It checks if the columns are variable columns and if the number of rows matches between the two tables. If a tolerance is provided, it verifies that the values in the column match within this tolerance. If no tolerance is specified, it checks for exact equality.
+
+    Args:
+        referencetab (str): Path to the reference table file.
+        testtab (str): Path to the test table file.
+        varcol (str): The name of the column to compare.
+        tolerance (float, optional): Tolerance level for comparing numeric values. Default is 0.0, which implies exact equality.
+
+    Returns:
+        bool: `True` if the variable column matches within the specified tolerance, `False` otherwise.
+
+    Example:
+        >>> compVarColTables('ref_table.csv', 'test_table.csv', 'variable_column', tolerance=0.01)
+        ERROR: Column variable_column of ref_table.csv and test_table.csv do not agree within tolerance 0.01
+        False
+
+    Notes:
+        - The function assumes that both tables have the same structure and are accessible via a method to open them, retrieve column data, and check if a column is a variable column.
+        - For lists or arrays within the column, the comparison is performed element-wise.
+        - If `tolerance` is set to 0, the function checks for exact equality.
+    """
     retval = True
 
     tb_local.open(referencetab)
@@ -267,8 +309,6 @@ def compVarColTables(referencetab, testtab, varcol, tolerance=0.):
         
     return retval
 
-    
-        
 class DictDiffer(object):
     """
     Calculate the difference between two dictionaries as:
@@ -518,7 +558,6 @@ def compcaltabnumcol(cal1, cal2, tolerance, colname1='CPARAM', colname2="CPARAM"
 
     return rval
 
-                    
 def compmsmainnumcol(vis1, vis2, tolerance, colname1='DATA', colname2="DATA"):
     print("Comparing column "+colname1+" of MS "+vis1)
     print("     with column "+colname2+" of MS "+vis2)
@@ -710,19 +749,6 @@ def get_table_cache():
     cache = tb_local.showcache()
     # print('cache = {}'.format(cache))
     return cache
-
-def is_casa6():
-    try:
-        # CASA 6
-        from casatools import table
-        return True
-    except ImportError:
-        try:
-            # CASA 5
-            from taskinit import tbtool
-            return False
-        except ImportError:
-            raise Exception('Neither CASA5 nor CASA6')
 
 class TableCacheValidator(object):
     def __init__(self):
