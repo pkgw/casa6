@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -337,7 +337,7 @@ protected:
   // return true if two directions are close enough to consider the
   // operator unchanged, false otherwise
   casacore::Bool directionsCloseEnough(const casacore::MDirection &dir1,
-                             const casacore::MDirection &dir2) const throw(casacore::AipsError);
+                             const casacore::MDirection &dir2) const;
   			     
   // return index of compareTelescope, compareAntenna and compareFeed in
   // myTelescopes_p, myAntennaIDs and myFeedIDs; -1 if not found

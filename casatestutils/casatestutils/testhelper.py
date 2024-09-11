@@ -23,11 +23,29 @@ A set of common helper functions for unit tests:
    compVarColTables - Compare a variable column of two tables
    DictDiffer - a class with methods to take a difference of two 
                 Python dictionaries
-   verify_ms - Function to verify spw and channels information in an MS   
+   verifyMS - Function to verify spw and channels information in an MS   
    create_input - Save the string in a text file with the given name           
 '''
 
 def phasediffabsdeg(c1, c2):
+    """
+    Computes the absolute phase difference between two complex numbers in degrees.
+
+    This function calculates the difference in phase angles between two complex numbers
+    and returns the result in degrees. If either input is a real number (i.e., has no
+    imaginary component), it returns zero, as the phase difference of real numbers is always zero.
+
+    Args:
+        c1 (complex): The first complex number.
+        c2 (complex): The second complex number.
+
+    Returns:
+        float: The absolute phase difference between `c1` and `c2` in degrees. Returns 0.0
+               if either input is a real number.
+
+    Raises:
+        ValueError: If the inputs are not complex numbers.
+    """
     try:
         a = c1.imag
         a = c2.imag
@@ -43,21 +61,28 @@ def phasediffabsdeg(c1, c2):
     return diff/np.pi*180. # (degrees)
 
 def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percentage", startrow = 0, nrow = -1, rowincr = 1):
-
     """
-    compTables - compare two CASA tables
-    
-       referencetab - the table which is assumed to be correct
+    Compares columns from two tables and verifies if they match within specified tolerances.
 
-       testtab - the table which is to be compared to referencetab
+    This function compares corresponding columns in two tables (`referencetab` and `testtab`) while ignoring columns listed in `excludecols`. It evaluates the differences based on the specified `mode` (e.g., "percentage", "absolute", "phaseabsdeg") and tolerance. It checks data types like float, int, string, and list/array, and reports discrepancies.
 
-       excludecols - list of column names which are to be ignored
+    Args:
+        referencetab (str): Path to the reference table file.
+        testtab (str): Path to the test table file.
+        excludecols (list of str): List of column names to exclude from comparison.
+        tolerance (float, optional): Tolerance level for comparison. Default is 0.001.
+        mode (str, optional): Comparison mode. Can be "percentage", "absolute", or "phaseabsdeg". Default is "percentage".
+        startrow (int, optional): Starting row index for comparison. Default is 0.
+        nrow (int, optional): Number of rows to compare. Default is -1, which means all rows.
+        rowincr (int, optional): Row increment for comparison. Default is 1.
 
-       tolerance - permitted fractional difference (default 0.001 = 0.1 percent)
+    Returns:
+        bool: `True` if all compared columns match within the specified tolerance, `False` otherwise.
 
-       mode - comparison is made as "percentage", "absolute", "phaseabsdeg" (for complex numbers = difference of the phases in degrees)  
+    Notes:
+        - Handles comparison of columns with different data types including lists and numpy arrays.
+        - For "phaseabsdeg" mode, ensure that `phasediffabsdeg` function is defined.
     """
-
     rval = True
 
     tb_local.open(referencetab)
@@ -101,30 +126,27 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
                 if not (a==b).all():
                     for i in range(0,len(a)):
                         if (isinstance(a[i],float)):
-                            if ((mode=="percentage") and (abs(a[i]-b[i]) > tolerance*abs(a[i]))) or ((mode=="absolute") and (abs(a[i]-b[i]) > tolerance)):
+                            if ((mode=="percentage") and not math.isclose(a[i], b[i], rel_tol=tolerance)) or ((mode=="absolute") and not math.isclose(a[i], b[i], abs_tol=tolerance)):
                                 print("Column " + c + " differs")
                                 print("Row=" + str(i))
                                 print("Reference file value: " + str(a[i]))
                                 print("Input file value: " + str(b[i]))
                                 if (mode=="percentage"):
                                     print("Tolerance is {0}%; observed difference was {1} %".format (tolerance * 100, 100*abs(a[i]-b[i])/abs(a[i])))
+                                    rval = math.isclose(a[i], b[i], rel_tol=tolerance)
                                 else:
                                     print("Absolute tolerance is {0}; observed difference: {1}".format (tolerance, (abs(a[i]-b[i]))))
+                                    rval = math.isclose(a[i], b[i], abs_tol=tolerance)
                                 differs = True
-                                rval = False
                                 break
                         elif (isinstance(a[i],int) or isinstance(a[i],np.int32)):
-                            if (abs(a[i]-b[i]) > 0):
+                            if not math.isclose(a[i], b[i], abs_tol=tolerance):
                                 print("Column " + c + " differs")
                                 print("Row=" + str(i))
                                 print("Reference file value: " + str(a[i]))
                                 print("Input file value: " + str(b[i]))
-                                if (mode=="percentage"):
-                                    print("tolerance in % should be " + str(100*abs(a[i]-b[i])/abs(a[i])))
-                                else:
-                                    print("absolute tolerance should be " + str(abs(a[i]-b[i])))
+                                rval = math.isclose(a[i], b[i], abs_tol=tolerance)
                                 differs = True
-                                rval = False
                                 break
                         elif (isinstance(a[i],str) or isinstance(a[i],np.bool_)):
                             if not (a[i]==b[i]):
@@ -143,17 +165,18 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
                             for j in range(0,len(a[i])):
                                 if differs: break
                                 if ((isinstance(a[i][j],float)) or (isinstance(a[i][j],int))):
-                                    if ((mode=="percentage") and (abs(a[i][j]-b[i][j]) > tolerance*abs(a[i][j]))) or ((mode=="absolute") and (abs(a[i][j]-b[i][j]) > tolerance)):
+                                    if ((mode=="percentage") and not math.isclose(a[i][j], b[i][j], rel_tol=tolerance)) or ((mode=="absolute") and not math.isclose(a[i][j], b[i][j], abs_tol=tolerance)):
                                         print("Column " + c + " differs")
                                         print("(Row,Element)=(" + str(j) + "," + str(i) + ")")
                                         print("Reference file value: " + str(a[i][j]))
                                         print("Input file value: " + str(b[i][j]))
                                         if (mode=="percentage"):
                                             print("Tolerance in % should be " + str(100*abs(a[i][j]-b[i][j])/abs(a[i][j])))
+                                            rval = math.isclose(a[i], b[i], rel_tol=tolerance)
                                         else:
                                             print("Absolute tolerance should be " + str(abs(a[i][j]-b[i][j])))
+                                            rval = math.isclose(a[i], b[i], abs_tol=tolerance)
                                         differs = True
-                                        rval = False
                                         break
                                 elif (isinstance(a[i][j],list)) or (isinstance(a[i][j],np.ndarray)):
                                     it = range(0,len(a[i][j]))
@@ -183,14 +206,13 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
                                                 print("Unknown comparison mode: ",mode)
                                             differs = True
                                             rval = False
-                                            break                                          
-                                            
+                                            break
                         else:
                             print("Unknown data type: ",type(a[i]))
                             differs = True
                             rval = False
                             break
-                
+
                 if not differs: print("Column " + c + " PASSED")
     finally:
         tb_local.close()
@@ -198,15 +220,32 @@ def compTables(referencetab, testtab, excludecols, tolerance=0.001, mode="percen
 
     return rval
 
-    
+
 def compVarColTables(referencetab, testtab, varcol, tolerance=0.):
-    '''Compare a variable column of two tables.
-       referencetab  --> a reference table
-       testtab       --> a table to verify
-       varcol        --> the name of a variable column (str)
-       Returns True or False.
-    '''
-    
+    """
+    Compares a variable column from two tables to ensure they match within a specified tolerance.
+
+    This function compares a specific variable column (`varcol`) from two tables (`referencetab` and `testtab`). It checks if the columns are variable columns and if the number of rows matches between the two tables. If a tolerance is provided, it verifies that the values in the column match within this tolerance. If no tolerance is specified, it checks for exact equality.
+
+    Args:
+        referencetab (str): Path to the reference table file.
+        testtab (str): Path to the test table file.
+        varcol (str): The name of the column to compare.
+        tolerance (float, optional): Tolerance level for comparing numeric values. Default is 0.0, which implies exact equality.
+
+    Returns:
+        bool: `True` if the variable column matches within the specified tolerance, `False` otherwise.
+
+    Example:
+        >>> compVarColTables('ref_table.csv', 'test_table.csv', 'variable_column', tolerance=0.01)
+        ERROR: Column variable_column of ref_table.csv and test_table.csv do not agree within tolerance 0.01
+        False
+
+    Notes:
+        - The function assumes that both tables have the same structure and are accessible via a method to open them, retrieve column data, and check if a column is a variable column.
+        - For lists or arrays within the column, the comparison is performed element-wise.
+        - If `tolerance` is set to 0, the function checks for exact equality.
+    """
     retval = True
 
     tb_local.open(referencetab)
@@ -270,8 +309,6 @@ def compVarColTables(referencetab, testtab, varcol, tolerance=0.):
         
     return retval
 
-    
-        
 class DictDiffer(object):
     """
     Calculate the difference between two dictionaries as:
@@ -330,7 +367,7 @@ def verifyMS(msname, expnumspws, expnumchan, inspw, expchanfreqs=[], ignoreflags
         msg = "Found "+ str(dimdata) +", expected "+str(expnumchan)+" channels in FLAG column in "+msname
         return [False,msg]
 
-    if not (expchanfreqs==[]):
+    if not (len(expchanfreqs)==0):
         print("Testing channel frequencies ...")
 #        print(cf)
 #        print(expchanfreqs)
@@ -521,7 +558,6 @@ def compcaltabnumcol(cal1, cal2, tolerance, colname1='CPARAM', colname2="CPARAM"
 
     return rval
 
-                    
 def compmsmainnumcol(vis1, vis2, tolerance, colname1='DATA', colname2="DATA"):
     print("Comparing column "+colname1+" of MS "+vis1)
     print("     with column "+colname2+" of MS "+vis2)
@@ -713,19 +749,6 @@ def get_table_cache():
     cache = tb_local.showcache()
     # print('cache = {}'.format(cache))
     return cache
-
-def is_casa6():
-    try:
-        # CASA 6
-        from casatools import table
-        return True
-    except ImportError:
-        try:
-            # CASA 5
-            from taskinit import tbtool
-            return False
-        except ImportError:
-            raise Exception('Neither CASA5 nor CASA6')
 
 class TableCacheValidator(object):
     def __init__(self):

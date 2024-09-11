@@ -32,6 +32,24 @@ DRY_RUN = False
 ########################################################################################################################
 
 def write_conftest(filepath):
+    """
+    Generates and writes a pytest configuration file to the specified filepath.
+    
+    This function creates a pytest configuration file (`conftest.py`) with
+    specific setup based on the operating system. The generated configuration
+    includes necessary imports and a pytest configuration function that registers
+    a `TestDescriptionPlugin`. The content differs slightly for Linux and Darwin
+    (macOS) platforms.
+
+    Args:
+        filepath (str): The path where the `conftest.py` file will be written.
+    
+    Notes:
+        - For Darwin (macOS), the configuration attempts to unregister the
+          `TestDescriptionPlugin` before registering it again.
+        - For Linux, the configuration directly registers the `TestDescriptionPlugin`.
+
+    """
     platform_os='Linux'
     if platform.system() == 'Darwin':
         platform_os = 'Darwin'
@@ -139,6 +157,18 @@ class TestDescriptionPlugin:
 
 
 def write_pytestini(filepath, testname):
+    """
+    Generates and writes a pytest.ini configuration file with a specified test suite name.
+
+    This function creates a pytest.ini file containing a `[pytest]` section with
+    a `junit_suite_name` entry. The test suite name is specified by the `testname`
+    argument.
+
+    Args:
+        filepath (str): The path where the `pytest.ini` file will be written.
+        testname (str): The name to be used for the `junit_suite_name` in the pytest configuration.
+
+    """
     string = """
 [pytest]
 junit_suite_name = '{}'
@@ -149,17 +179,40 @@ junit_suite_name = '{}'
     file_obj.close()
 
 def clean_working_directory(workdir):
+    """
+    Removes the specified working directory and all its contents if it exists.
+
+    Args:
+        workdir (str): The path to the working directory to be cleaned.
+
+    Notes:
+        - If the directory does not exist, no action is taken.
+        - Use with caution as this function will permanently delete all contents
+          of the specified directory.
+
+    """
     print("Cleaning: {}".format(workdir))
     if os.path.exists(workdir):
         shutil.rmtree(workdir)
 
-def list_tests(local_path):
+def list_tests(local_path, test_paths=[]):
+    """
+    Lists and prints all unit tests from specified test paths, organizing them in a test list directory.
+    Args:
+        local_path (str): The local path where the 'testlist' directory will be created and managed.
+        test_paths (list, optional): A list of test paths to fetch and gather tests from. Defaults to an empty list.
+
+    Notes:
+        - The function relies on `fetch_tests` and `gather_all_tests` functions to fetch and gather test files.
+        - Only files that start with "test_" will be listed and printed.
+        - Existing 'testlist' directory and its contents in the specified `local_path` will be removed before creating a new one.
+    """
     print('Full list of unit tests')
     print('-----------------------')
     if os.path.isdir(local_path +"/testlist/"):
         shutil.rmtree(local_path +"/testlist/")
     os.makedirs(local_path +"/testlist/")
-    testpaths = fetch_tests(local_path +"/testlist/", 'master')
+    testpaths = fetch_tests(local_path +"/testlist/", 'master', test_paths)
     for path in testpaths:
         gather_all_tests(path, local_path +"/testlist/")
     tests = sorted(os.listdir(local_path +"/testlist/"))
@@ -193,6 +246,31 @@ def getname(testfile):
         return testfile[:n0]
 
 def write_xml(name, runtime, testname, classname, fMessage, filename, result):
+    """
+    Generates and writes an XML file in the JUnit format to report a test case result.
+
+    This function creates an XML structure that conforms to the JUnit report format,
+    representing a test suite containing a single test case that has failed. The XML
+    is then written to a specified file.
+
+    Args:
+        name (str): The name of the test suite and test case.
+        runtime (float): The runtime of the test case.
+        testname (str): The name of the test case.
+        classname (str): The class name of the test case.
+        fMessage (str): The failure message to be included in the test case result.
+        filename (str): The name of the file to which the XML content will be written.
+        result (str): The result of the test case (e.g., 'failure', 'success').
+
+    Notes:
+        - The function sets default values for errors, failures, skipped, tests, and time attributes.
+        - The current timestamp and hostname are included in the XML.
+        - The function creates a failure element with the provided failure message.
+        - The generated XML is written to the specified file in binary mode.
+
+    Example:
+        write_xml('test_suite', 0.01, 'test_case', 'TestClass', 'An error occurred', 'test_results.xml', 'failure')
+    """
     e = datetime.datetime.now()
     timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
@@ -223,7 +301,36 @@ def write_xml(name, runtime, testname, classname, fMessage, filename, result):
         f.write(b_xml)
 
 def update_xml(filename, result, name="", runtime="", testname="", classname="", fMessage=""):
+    """
+    Updates an existing XML file in the JUnit format or generates a new one if it does not exist.
 
+    This function performs the following steps:
+    1. Checks if the specified XML file exists.
+        - If the file does not exist, it generates a failure message based on the result's return code,
+          prints a message indicating the creation of a new XML file, and calls `write_xml` to create it.
+    2. Parses the existing XML file.
+    3. Iterates through the XML elements and updates the 'testcase' elements:
+        - Modifies the 'classname' attribute to contain only the test script name.
+        - Modifies the 'name' attribute to contain the test class and test name separated by a period.
+    4. Writes the updated XML back to the file with UTF-8 encoding and an XML declaration.
+
+    Args:
+        filename (str): The name of the XML file to be updated or created.
+        result (obj): The result object containing the return code used to generate a failure message.
+        name (str, optional): The name of the test suite and test case. Defaults to an empty string.
+        runtime (str, optional): The runtime of the test case. Defaults to an empty string.
+        testname (str, optional): The name of the test case. Defaults to an empty string.
+        classname (str, optional): The class name of the test case. Defaults to an empty string.
+        fMessage (str, optional): The failure message to be included in the test case result. Defaults to an empty string.
+
+    Notes:
+        - The function relies on the `write_xml` function to generate a new XML file if it does not exist.
+        - The failure message is derived from the return code of the result object if not provided.
+        - The function assumes the XML structure conforms to the JUnit report format.
+    
+    Example:
+        update_xml('test_results.xml', result, 'test_suite', '0.01', 'test_case', 'TestClass', 'An error occurred')
+    """
     if not os.path.isfile(filename):
         try: fMessage = signal.strsignal(abs(result.returncode))
         except: fMessage = signal.Signals(abs(result.returncode)).name
@@ -275,6 +382,20 @@ class casa_test:
         return hash(('name', self.name,'path', self.path, 'options', self.options))
 
 def read_conf(conf):
+    """
+    Reads a configuration file and returns its content as a dictionary, with specific formatting for development versions.
+
+    Args:
+        conf (str): The path to the configuration file to be read.
+
+    Returns:
+        dict: A dictionary containing key-value pairs from the configuration file, with specific modifications for '.dev' versions.
+
+    Notes:
+        - The function assumes the configuration file has lines formatted as 'key==value'.
+        - If a value contains '.dev', it is modified to follow the 'CAS-' prefix format.
+
+    """
     with open(conf) as f:
         lines = [line.rstrip() for line in f]
     outDict = dict(x.split('==') for x in lines)
@@ -285,6 +406,29 @@ def read_conf(conf):
     return outDict
 
 def run_shell_command(cmd, run_directory):
+    """
+    Executes a shell command in the specified directory, using ShellRunner if available, or falling back to subprocess.
+
+    This function attempts to execute the given shell command using the ShellRunner utility. If ShellRunner encounters
+    an error, the function falls back to using the subprocess module to run the command. The command is executed in the
+    specified run directory.
+
+    Args:
+        cmd (str): The shell command to be executed.
+        run_directory (str): The directory in which to execute the command.
+
+    Notes:
+        - The function first tries to use ShellRunner to execute the command with a default timeout.
+        - If ShellRunner fails, the function changes the current working directory to the specified run directory,
+          executes the command using subprocess, and then changes back to the original working directory.
+        - The command's output is suppressed by redirecting stdout and stderr to subprocess.DEVNULL.
+
+    Example:
+        run_shell_command('ls -la', '/home/user/directory')
+
+    Raises:
+        Exception: If both ShellRunner and subprocess fail to execute the command.
+    """
     try:
         r = ShellRunner()
         r.runshell(cmd, default_timeout, run_directory)
@@ -295,6 +439,30 @@ def run_shell_command(cmd, run_directory):
         os.chdir(cwd)
 
 def is_in_remote(branch,repo_path, repo):
+    """
+    Checks if a given branch exists in the remote repository.
+
+    This function determines whether a specified branch exists in the remote repository by using the
+    `git ls-remote` command. If the branch does not exist, it returns False, indicating that the branch
+    is not present in the remote repository. For the 'master' branch, it always returns True.
+
+    Args:
+        branch (str): The name of the branch to check.
+        repo_path (str): The path to the remote repository.
+        repo (str): The name of the repository.
+
+    Returns:
+        bool: True if the branch exists in the remote repository, False otherwise.
+
+    Notes:
+        - If the branch is not 'master', the function constructs a `git ls-remote` command to check for the branch.
+        - If the branch name starts with 'origin', it extracts the branch name from the full reference.
+        - The command counts the number of matching heads in the remote repository.
+        - If the count is 0, the branch does not exist in the remote repository, and the function returns False.
+        - If the count is greater than 0, the branch exists, and the function returns True.
+        - For the 'master' branch, the function always returns True without checking.
+
+    """
     if branch != 'master':
         if branch.startswith("origin"):
              cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("\/(.*)",branch )[0])
@@ -340,8 +508,37 @@ def check_branch_path_merge(branch):
 
     return cmd
 
-def fetch_tests(work_dir, branch, merge_target=None):
+def fetch_tests(work_dir, branch, merge_target=None, test_paths=[]):
+    """
+    Fetches test files from multiple repositories and checks out the specified branch, merging if necessary.
 
+    This function performs the following steps:
+    1. Sets up the repository path and source directory.
+    2. Checks if HTTPS is restricted and switches to SSH if needed.
+    3. Clones the main repository ('casa6') and optionally merges the feature branch into the target branch.
+    4. Appends test paths from the 'casa6' repository to the test_paths list.
+    5. Clones auxiliary repositories, checks out the specified branch, and appends their test paths to the test_paths list.
+    6. If the specified branch does not exist in the remote repository, defaults to 'master' or uses tags from 'build.conf'.
+
+    Args:
+        work_dir (str): The working directory where repositories will be cloned.
+        branch (str): The branch to be checked out.
+        merge_target (str, optional): The target branch to merge the feature branch into. Defaults to None.
+        test_paths (list, optional): A list to store the paths to test files. Defaults to an empty list.
+
+    Returns:
+        list: A list of paths to the test files from the cloned repositories.
+
+    Example:
+        test_paths = fetch_tests('/path/to/workdir', 'feature-branch', 'develop')
+        # Output: ['/path/to/workdir/casasources/casa6/casatests/regression/', ...]
+
+    Notes:
+        - The function assumes that the remote repositories are hosted on 'https://open-bitbucket.nrao.edu/scm/casa/'.
+        - The function relies on `run_shell_command`, `check_branch_path`, `check_branch_path_merge`, `is_in_remote`, and `read_conf` functions.
+        - If the merge_target is provided, the function will attempt to merge the feature branch into it.
+        - If a branch does not exist in the remote repository, the function defaults to 'master' or tags from 'build.conf' if available.
+    """
     if merge_target is not None:
         print("Merge Target Enabled: \n\tTarget Branch: {} \n\tFeature Branch: {}".format(merge_target, branch))
 
@@ -363,7 +560,6 @@ def fetch_tests(work_dir, branch, merge_target=None):
             "casa6": ["/casa6/casatests/regression/","/casa6/casatests/stakeholder/","/casa6/casatasks/tests/","/casa6/casatools/tests/"],
             "casampi": ["/casampi/src/casampi/tests"],
             "casaplotms": ["/casaplotms/tests/plotms"],
-            "almatasks": ["/almatasks/tests/tasks"],
             "casaviewer": ["/casaviewer/tests/tasks"]
         }[x]
 
@@ -416,7 +612,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
         test_paths.append(source_dir + "/" + x)
 
     # Clone the auxiliary repositories and checkout branch
-    repositories = ["casampi", "casaplotms", "almatasks","casaviewer"]
+    repositories = ["casampi", "casaplotms", "casaviewer"]
     for repo in repositories:
         print("")
         print("Fetching Repository: {}".format(repo))
@@ -486,7 +682,7 @@ def fetch_tests(work_dir, branch, merge_target=None):
 
     return test_paths
 
-def run_cmd(cmd):
+def run_cmd(cmd, pytest_args=[]):
     try:
         from casampi.MPIEnvironment import MPIEnvironment
         if MPIEnvironment.is_mpi_enabled:
@@ -498,7 +694,32 @@ def run_cmd(cmd):
 
     return result
 
-def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
+def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN, pytest_args ):
+    """
+    Sets up the environment and runs pytest with specified arguments, generating an XML report.
+
+    This function performs the following steps:
+    1. Adds verbosity, report options, and traceback formatting to the pytest command.
+    2. Adds a dry run option if DRY_RUN is True.
+    3. Creates the necessary directory structure for storing XML reports.
+    4. Prepares the pytest command with options for XML output, disabling warnings, and other configurations.
+    5. Checks if there are any tests to run in the specified workpath.
+    6. Changes to the test directory and executes the pytest command.
+    7. Generates pytest.ini and conftest.py files, runs the tests, updates the XML report, and cleans up temporary files.
+
+    Args:
+        cmd (list): List of pytest command arguments.
+        workdir (str): The base directory where the tests will be run.
+        workpath (str): The path where the XML reports and other files will be stored.
+        dirname (str): The name of the directory for the current test run.
+        DRY_RUN (bool): If True, the pytest command will only collect tests without executing them.
+        pytest_args (list): Additional arguments to pass to the pytest command.
+
+    Notes:
+        - If no tests are found in the workpath, the function prints a message and exits.
+        - The function changes the current working directory to the test directory, runs the tests, and then reverts to the original working directory.
+        - Temporary files such as pytest.ini and conftest.py are cleaned up after the test run.
+    """
     # https://docs.pytest.org/en/stable/usage.html
     cmd = ["--verbose"] + ["-ra"] + ["--tb=short"] + cmd
 
@@ -519,16 +740,46 @@ def setup_and_run(cmd,workdir, workpath, dirname, DRY_RUN ):
         print("Running Command: pytest " + " ".join(str(x) for x in cmd))
         write_pytestini(os.path.join(os.getcwd(),"pytest.ini"),dirname)
         write_conftest(os.path.join(os.getcwd(),"conftest.py"))
-        result = run_cmd(cmd)
+        result = run_cmd(cmd, pytest_args)
         update_xml(xmlfile, result, name= os.getcwd().split("/")[-1])
         #os.remove(os.path.join(os.getcwd(),"conftest.py"))
         os.remove(os.path.join(os.getcwd(),"pytest.ini"))
         os.chdir(myworkdir)
+
 ########################################################################################################################
 ##############################################            Run            ###############################################
 ########################################################################################################################
 
-def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
+def run(testnames, branch=None, merge_target=None, DRY_RUN=False, pytest_args=[], test_paths=[]):
+    """
+    Runs specified tests using pytest, setting up the environment and handling test file management.
+
+    This function performs the following steps:
+    1. Checks if pytest is installed; raises an ImportError if not.
+    2. Sets up directories for test execution and XML report storage.
+    3. Removes duplicates from the test list and prepares test commands.
+    4. Fetches and sets up tests from a remote repository if necessary.
+    5. Copies test files to the working directory and sets up the environment for each test.
+    6. Executes tests using pytest with the specified arguments and options.
+    7. Cleans up and resets the working directory after test execution.
+
+    Args:
+        testnames (list): List of test names or paths to be executed.
+        branch (str, optional): The branch to check out from the remote repository. Defaults to 'master'.
+        merge_target (str, optional): The target branch to merge into. Defaults to None.
+        DRY_RUN (bool, optional): If True, only collects tests without running them. Defaults to False.
+        pytest_args (list, optional): Additional arguments to pass to pytest.
+        test_paths (list, optional): List to store paths to test files fetched from the repository.
+
+    Raises:
+        ImportError: If pytest is not installed.
+
+    Notes:
+        - The function requires the presence of helper functions: clean_working_directory, fetch_tests, gather_all_tests, setup_and_run, getname, gettests, and any necessary imports.
+        - It handles both local and remote test paths, setting up directories and copying test files as needed.
+        - The function creates necessary directories, sets up pytest configuration, and manages test execution and reporting.
+        - The working directory is restored to its original state after execution.
+    """
 
     if not HAVE_PYTEST:
         raise ImportError('No Module Named Pytest. Pytest is Required for runtest.py')
@@ -560,7 +811,7 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
             branch = 'master'
         # Only Checkout When Needed
         if any([False if ".py" in x else True for x in testnames ]):
-            testpaths = fetch_tests(workdir, branch, merge_target)
+            testpaths = fetch_tests(workdir, branch, merge_target, test_paths)
             os.makedirs(workdir + "tests/")
             for path in testpaths:
                 gather_all_tests(path, workdir + "tests/")
@@ -607,7 +858,7 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
                         shutil.copy2("{}{}.py".format(workdir + "tests/",test), workdir + "{}/".format(dirname))
                     except:
                         traceback.print_exc()
-                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN )
+                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN , pytest_args)
 
             ##################################################
             ########## Real Path ##########
@@ -642,7 +893,7 @@ def run(testnames, branch=None, merge_target=None, DRY_RUN=False):
                 except:
                     traceback.print_exc()
 
-                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN )
+                setup_and_run(cmd, workdir, workpath, dirname, DRY_RUN, pytest_args )
         #build_xml(workpath + '/xml/xUnit.xml', workpath + '/xml/')
         os.chdir(cwd)
 
@@ -662,7 +913,46 @@ def run_bamboo_test(r, cmd, timeout, cwd):
 ########################################################################################################################
 
 def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None, test_paths = [], test_config_path=None, ncores=2, verbosity=False, pmode=None, tests_to_ignore=None, merge_target=None):
+    """
+    Executes a set of tests specified to a package, with configurations and options, similar to using the Bamboo testing framework.
 
+    This function performs the following steps:
+    1. Validates input parameters and unpacks the provided package.
+    2. Sets up a virtual frame buffer for graphical operations on Linux.
+    3. Fetches necessary test paths from a repository if not provided.
+    4. Reads and processes a JSON configuration file to identify test scripts and their details.
+    5. Filters tests based on provided lists and groups, including handling missing configurations.
+    6. Runs the filtered tests, either in parallel or serial mode, depending on the specified parameters.
+    7. Generates an XML report of the test results.
+    8. Cleans up by stopping the virtual frame buffer.
+
+    Args:
+        pkg (str): Path to the package to be tested.
+        work_dir (str): Directory where the package will be unpacked and where tests will be executed.
+        branch (str, optional): Git branch to fetch test paths from. Defaults to 'master' if not provided.
+        test_group (str, optional): Comma-separated string of Jira component groups to filter tests by.
+        test_list (str, optional): Comma-separated string of specific test names to include in the test run.
+        test_paths (list, optional): List of directories where test scripts are located.
+        test_config_path (str, optional): Path to the JSON configuration file that maps test scripts to their details. Defaults to a predefined path if not provided.
+        ncores (int, optional): Number of cores to use for parallel tests. Defaults to 2.
+        verbosity (bool, optional): If True, prints detailed information about tests and their configurations.
+        pmode (str, optional): Mode of execution ('serial', 'parallel', or 'both'). Determines whether tests run in parallel or serially.
+        tests_to_ignore (list, optional): List of test names to be ignored during execution.
+        merge_target (str, optional): The branch to merge into before fetching tests. Defaults to None.
+
+    Raises:
+        Exception: If required parameters `pkg` or `work_dir` are missing or if a specified test is not found.
+
+    Example:
+        run_bamboo('path/to/package', 'working/directory', branch='feature-branch', test_group='component1,component2', test_list='test1,test2', verbosity=True, pmode='parallel')
+
+    Notes:
+        - Requires helper functions: unpack_pkg, fetch_tests, run_bamboo_test, and necessary imports for JSON handling and file operations.
+        - Uses Xvfb for virtual display handling on non-Mac platforms.
+        - Generates an XML report of the test results using the Xunit class.
+        - The working directory is cleaned and restored after test execution.
+    """
+    
     if test_list is not None:
         test_list = [x.strip() for x in test_list.split(',')]
     if test_group is not None:
@@ -693,7 +983,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
 
     # Clone a default set of repositories to if test paths are not provided from command line
     if len(test_paths) == 0 :
-        test_paths = fetch_tests(str(work_dir), branch, merge_target)
+        test_paths = fetch_tests(str(work_dir), branch, merge_target, test_paths)
 
     if test_config_path == None:
        test_config_path = work_dir + "/casasources/casa6/casatestutils/casatestutils/component_to_test_map.json"
@@ -814,7 +1104,7 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
         if "mpi" in test.options and sys.platform != "darwin" and ( pmode == 'parallel' or pmode == 'both'):
             print("Running test: {} in MPI mode".format(test.name))
             casa_exe = exec_path + "/mpicasa"
-            casaopts = "-n " + str(ncores) + " " + exec_path + "/casa" + " --nogui --nologger --log2term --agg " + rcdir + " "
+            casaopts = "-n " + str(ncores) + " " + exec_path + "/casa" + " --nogui --nologger --log2term --agg " + cachedir + " "
             assert (test != None)
             cmd = (casa_exe + " " + casaopts + " -c " + test.path).split()
             cwd = work_dir + "/" + test.name
@@ -878,7 +1168,50 @@ def run_bamboo(pkg, work_dir, branch = None, test_group = None, test_list= None,
 ########################################################################################################################
 
 if __name__ == "__main__":
+    """
+    Main entry point for executing tests with configurable options.
 
+    This script is designed to run tests with various configurations, including:
+    - Listing available tests and their tags.
+    - Executing tests with verbose output.
+    - Performing dry runs of tests.
+    - Running specific test classes from test scripts.
+    - Reading test lists from files.
+    - Ignoring specified tests.
+
+    Arguments and Options:
+    - `-i` / `--list`: Print the list of tests and tags defined in `component_to_test_map.json`.
+    - `-v` / `--verbose`: Enable verbose output for test execution.
+    - `-x` / `--dry-run`: Perform a dry run without executing tests.
+    - `-s` / `--classes`: Print the classes from a test script.
+    - `-f` / `--file`: Run tests listed in an ASCII file, with one test per line.
+    - `-e` / `--mapfile`: Specify a component-to-test map file.
+    - `-b` / `--branch`: Specify the JIRA branch for test repository checkouts.
+    - `--merge_target`: Specify the JIRA branch for test repository merges.
+    - `-p` / `--pkg`: Specify the tarball or DMG file.
+    - `-w` / `--work_dir`: Specify the working directory.
+    - `-n` / `--ncores`: Number of cores for MPI tests (default: 2).
+    - `-t` / `--test_paths`: Comma-separated list of paths containing tests.
+    - `-l` / `--test_list`: Filter tests by a comma-separated list of test names.
+    - `-c` / `--test_config`: Specify the test configuration file.
+    - `-j` / `--test_group`: Filter tests by a comma-separated list of components.
+    - `-m` / `--pmode`: Set parallelization mode (serial, parallel, both).
+    - `--bamboo`: Set the Bamboo flag to True.
+    - `-r` / `--cachedir`: Specify the Casa cachedir ( previously --rcdir, which also covered the paths to the startup and config files).
+    - `--ignore_list`: Specify a map file or comma-separated list of tests to ignore.
+
+    Execution Flow:
+    1. Parse command-line arguments and print them.
+    2. Load and process the `ignore_list` if provided.
+    3. Handle optional `cachedir ( previously rcdir )` and `test_group` arguments, loading the appropriate component-to-test map if necessary.
+    4. List tests and classes, handle dry runs, and process files for test names.
+    5. Prepare arguments for pytest and handle unknown arguments, including test case filtering.
+    6. Execute tests either through Bamboo integration or locally using the `run()` function.
+    7. Print errors and traceback information if exceptions occur.
+
+    The script integrates with Bamboo for CI/CD pipelines when the `--bamboo` flag is set, otherwise it runs tests locally based on the specified configurations.
+    """
+    
     print("HAVE_PYTEST: {}".format(HAVE_PYTEST))
     print("")
 
@@ -909,7 +1242,7 @@ if __name__ == "__main__":
     parser.add_argument('-j','--test_group',  help='Filter tests by a comma separated list of components', required=False)
     parser.add_argument('-m','--pmode',  help='Parallelization mode: serial, parallel, both', required=False)
     parser.add_argument('--bamboo', help='Set Bamboo Flag to True',default=False,action='store_true', required=False)
-    parser.add_argument('-r','--rcdir',  help='Casa rcdir', required=False)
+    parser.add_argument('-r','--cachedir',  help='Casa cachedir ( previously --rcdir, which also covered the paths to the startup and config files)', required=False)
     parser.add_argument('--ignore_list',  help='map file of tests to ignore', required=False)
 
     args, unknownArgs = parser.parse_known_args()
@@ -928,14 +1261,17 @@ if __name__ == "__main__":
     print("Operating system: " +  platform.system())
     print("")
 
-    rcdir=""
-    if args.rcdir is not None:
-        rcdir="--rcdir=" + args.rcdir
-        print("rcdir: " + rcdir)
+    cachedir=""
+    if args.cachedir is not None:
+        cachedir="--cachedir=" + args.cachedir
+        print("cachedir: " + cachedir)
 
     if args.test_group is not None:
         components = args.test_group
         components = [x.strip() for x in components.split(",")]
+        if len(components) == 1 and not components[0]:
+            print("Component list is empty. Using component 'default'")
+            components = ["default"]
         print("Testing Components" + str(components))
         print("")
 
@@ -1116,6 +1452,6 @@ if __name__ == "__main__":
                 parser.print_help(sys.stderr)
                 sys.exit(1)
             print("Running {} Test(s)".format(len(testnames)))
-            run(testnames, args.branch, args.merge_target, DRY_RUN)
+            run(testnames, args.branch, args.merge_target, DRY_RUN, pytest_args, test_paths if args.test_paths is not None else [])
     except:
         traceback.print_exc()

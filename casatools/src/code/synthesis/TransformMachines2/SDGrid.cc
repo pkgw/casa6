@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -77,6 +77,8 @@
 #include <synthesis/TransformMachines2/SDGrid.h>
 #include <synthesis/TransformMachines2/SkyJones.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
+
+#include <casacore/tables/TaQL/TableParse.h>
 
 using namespace casacore;
 namespace casa {
@@ -220,182 +222,190 @@ SDGrid::SDGrid(const SDGrid& other):FTMachine()
 #endif
 
 extern "C" {
-   void grdsf(Double*, Double*);
-   void grdgauss(Double*, Double*, Double*);
-   void grdjinc1(Double*, Double*, Int*, Double*);
+    void grdsf(Double*, Double*);
+    void grdgauss(Double*, Double*, Double*);
+    void grdjinc1(Double*, Double*, Int*, Double*);
 }
 
 //----------------------------------------------------------------------
 void SDGrid::init() {
 
-  logIO() << LogOrigin("SDGrid", "init")  << LogIO::NORMAL;
+    // FIXME: don't mess with parent's class logger
+    // unless you make sure you reset it to it's original state
+    // when you are done
+    logIO() << LogOrigin("SDGrid", "init")  << LogIO::NORMAL;
 
-  //pfile = fopen("ptdata.txt","w");
+    //pfile = fopen("ptdata.txt","w");
 
-  ok();
+    ok();
 
-  /*if((image->shape().product())>cachesize) {
-    isTiled=true;
-  }
-  else {
-    isTiled=false;
-    }*/
-  isTiled=false;
-  nx    = image->shape()(0);
-  ny    = image->shape()(1);
-  npol  = image->shape()(2);
-  nchan = image->shape()(3);
+    { // Initialize members
+        isTiled = false;
 
-  sumWeight.resize(npol, nchan);
+        nx    = image->shape()(0);
+        ny    = image->shape()(1);
+        npol  = image->shape()(2);
+        nchan = image->shape()(3);
 
-  // Set up image cache needed for gridding. For BOX-car convolution
-  // we can use non-overlapped tiles. Otherwise we need to use
-  // overlapped tiles and additive gridding so that only increments
-  // to a tile are written.
-  if(imageCache) delete imageCache; imageCache=0;
+        sumWeight.resize(npol, nchan);
 
-  convType=downcase(convType);
-  logIO() << "Convolution function : " << convType << LogIO::DEBUG1 << LogIO::POST;
-  if(convType=="pb") {
-    //cerr << "CNVFunc " << convFunc << endl;
+        // Set up image cache needed for gridding.
+        if (imageCache) delete imageCache;
+        imageCache = 0;
 
-  }
-  else if(convType=="box") {
-    convSupport=(userSetSupport_p >= 0) ? userSetSupport_p : 0;
-    logIO() << "Support : " << convSupport << " pixels" << LogIO::POST;
-    convSampling=100;
-    convSize=convSampling*(2*convSupport+2);
-    convFunc.resize(convSize);
-    convFunc=0.0;
-    for (Int i=0;i<convSize/2;i++) {
-      convFunc(i)=1.0;
-    }
-  }
-  else if(convType=="sf") {
-    // SF
-    convSupport=(userSetSupport_p >= 0) ? userSetSupport_p : 3;
-    logIO() << "Support : " << convSupport << " pixels" << LogIO::POST;
-    convSampling=100;
-    convSize=convSampling*(2*convSupport+2);
-    convFunc.resize(convSize);
-    convFunc=0.0;
-    for (Int i=0;i<convSampling*convSupport;i++) {
-      Double nu=Double(i)/Double(convSupport*convSampling);
-      Double val;
-      grdsf(&nu, &val);
-      convFunc(i)=(1.0-nu*nu)*val;
-    }
-  }
-  else if(convType=="gauss") {
-    // default is b=1.0 (Mangum et al. 2007)
-    Double hwhm=(gwidth_p > 0.0) ? Double(gwidth_p) : sqrt(log(2.0));
-    Float truncate=(truncate_p >= 0.0) ? truncate_p : 3.0*hwhm;
-    convSampling=100;
-    Int itruncate=(Int)(truncate*Double(convSampling)+0.5);
-    logIO() << LogIO::DEBUG1 << "hwhm=" << hwhm << LogIO::POST;
-    logIO() << LogIO::DEBUG1 << "itruncate=" << itruncate << LogIO::POST;
-    //convSupport=(Int)(truncate+0.5);
-    convSupport = (Int)(truncate);
-    convSupport += (((truncate-(Float)convSupport) > 0.0) ? 1 : 0);
-    convSize=convSampling*(2*convSupport+2);
-    convFunc.resize(convSize);
-    convFunc=0.0;
-    Double val, x;
-    for (Int i = 0 ; i <= itruncate ; i++) {
-      x = Double(i)/Double(convSampling);
-      grdgauss(&hwhm, &x, &val);
-      convFunc(i)=val;
+        // Initialize weight image
+        if (wImage) delete wImage;
+        wImage = 0;
+        wImage = new TempImage<Float>(
+            image->shape(),
+            image->coordinates()
+        );
     }
 
-//     String outfile = convType + ".dat";
-//     ofstream ofs(outfile.c_str());
-//     for (Int i = 0 ; i < convSize ; i++) {
-//       ofs << i << " " << convFunc[i] << endl;
-//     }
-//     ofs.close();
-  }
-  else if (convType=="gjinc") {
-    // default is b=2.52, c=1.55 (Mangum et al. 2007)
-    Double hwhm = (gwidth_p > 0.0) ? Double(gwidth_p) : sqrt(log(2.0))*2.52;
-    Double c = (jwidth_p > 0.0) ? Double(jwidth_p) : 1.55;
-    //Float truncate = truncate_p;
-    convSampling = 100;
-    Int itruncate=(Int)(truncate_p*Double(convSampling)+0.5);
-    logIO() << LogIO::DEBUG1 << "hwhm=" << hwhm << LogIO::POST;
-    logIO() << LogIO::DEBUG1 << "c=" << c << LogIO::POST;
-    logIO() << LogIO::DEBUG1 << "itruncate=" << itruncate << LogIO::POST;
-    //convSupport=(truncate_p >= 0.0) ? (Int)(truncate_p+0.5) : (Int)(2*c+0.5);
-    Float convSupportF = (truncate_p >= 0.0) ? truncate_p : (2*c);
-    convSupport = (Int)convSupportF;
-    convSupport += (((convSupportF-(Float)convSupport) > 0.0) ? 1 : 0);
-    convSize=convSampling*(2*convSupport+2);
-    convFunc.resize(convSize);
-    convFunc=0.0;
-    //UNUSED: Double r;
-    Double x, val1, val2;
-    Int normalize = 1;
-    if (itruncate >= 0) {
-      for (Int i = 0 ; i < itruncate ; i++) {
-        x = Double(i) / Double(convSampling);
-        //r = Double(i) / (Double(hwhm)*Double(convSampling));
-        grdgauss(&hwhm, &x, &val1);
-        grdjinc1(&c, &x, &normalize, &val2);
-        convFunc(i) = val1 * val2;
-      }
-    }
-    else {
-      // default is to truncate at first null
-      for (Int i=0;i<convSize;i++) {
-        x = Double(i) / Double(convSampling);
-        //r = Double(i) / (Double(hwhm)*Double(convSampling));
-        grdjinc1(&c, &x, &normalize, &val2);
-        if (val2 <= 0.0) {
-          logIO() << LogIO::DEBUG1 << "convFunc is automatically truncated at radius " << x << LogIO::POST;
-          break;
+    { // Compute Convolution Function
+        convType = downcase(convType);
+        logIO() << LogIO::NORMAL2
+                << "Convolution function: " << convType
+                << LogIO::POST;
+
+        if (convType == "pb") {  // Primary Beam: do nothing
+            //cerr << "CNVFunc " << convFunc << endl;
         }
-        grdgauss(&hwhm, &x, &val1);
-        convFunc(i) = val1 * val2;
-      }
+        else if (convType == "box") { // Box Function
+            convSupport = (userSetSupport_p >= 0) ? userSetSupport_p : 0;
+            logIO() << LogIO::NORMAL2
+                    << "Support: " << convSupport << " pixels"
+                    << LogIO::POST;
+
+            convSampling = 100;
+            convSize = convSampling*(2*convSupport+2);
+            convFunc.resize(convSize);
+            convFunc = 0.0;
+            for (Int i=0; i<convSize/2; i++) {
+                convFunc(i) = 1.0;
+            }
+        }
+        else if (convType == "sf") { // Prolate Spheroidal Wave Function
+            convSupport = (userSetSupport_p >= 0) ? userSetSupport_p : 3;
+            logIO() << LogIO::NORMAL2
+                    << "Support: " << convSupport << " pixels"
+                    << LogIO::POST;
+
+            // FIXME: why 100 ?
+            convSampling = 100;
+            convSize = convSampling*(2*convSupport + 2);
+            convFunc.resize(convSize);
+            convFunc = 0.0;
+            for (Int i=0; i<convSampling*convSupport; i++) {
+                Double nu = Double(i)/Double(convSupport*convSampling);
+                Double val;
+                grdsf(&nu, &val);
+                convFunc(i) = (1.0-nu*nu)*val;
+            }
+        }
+        else if (convType == "gauss") { // Gauss function
+            // default is b=1.0 (Mangum et al. 2007)
+            // FIXME: how does b=1.0 relate to current code ?
+            Double hwhm = (gwidth_p > 0.0) ? Double(gwidth_p) : sqrt(log(2.0));
+
+            Float truncate = (truncate_p >= 0.0) ? truncate_p : 3.0 * hwhm;
+            convSampling = 100;
+            Int itruncate = (Int)(truncate*Double(convSampling) + 0.5);
+
+            logIO() << LogIO::NORMAL2
+                    << "hwhm=" << hwhm
+                    << LogIO::POST;
+
+            logIO() << LogIO::NORMAL2
+                    << "itruncate=" << itruncate
+                    << LogIO::POST;
+
+            convSupport = (Int)(truncate);
+            convSupport += ((truncate - (Float)convSupport) > 0.0) ? 1 : 0;
+
+            convSize = convSampling*(2*convSupport + 2);
+
+            convFunc.resize(convSize);
+            convFunc = 0.0;
+            Double val, x;
+            for (Int i=0; i<=itruncate; i++) {
+                x = Double(i)/Double(convSampling);
+                grdgauss(&hwhm, &x, &val);
+                convFunc(i)=val;
+            }
+
+            //     String outfile = convType + ".dat";
+            //     ofstream ofs(outfile.c_str());
+            //     for (Int i = 0 ; i < convSize ; i++) {
+            //       ofs << i << " " << convFunc[i] << endl;
+            //     }
+            //     ofs.close();
+
+        }
+        else if (convType == "gjinc") { // Gauss * Jinc function
+            // default is b=2.52, c=1.55 (Mangum et al. 2007)
+            Double hwhm = (gwidth_p > 0.0) ? Double(gwidth_p) : sqrt(log(2.0))*2.52;
+            Double c = (jwidth_p > 0.0) ? Double(jwidth_p) : 1.55;
+            convSampling = 100;
+            Int itruncate=(Int)(truncate_p*Double(convSampling) + 0.5);
+
+            logIO() << LogIO::NORMAL2
+                    << "hwhm=" << hwhm
+                    << LogIO::POST;
+            logIO() << LogIO::NORMAL2
+                    << "c=" << c
+                    << LogIO::POST;
+            logIO() << LogIO::NORMAL2
+                    << "itruncate=" << itruncate
+                    << LogIO::POST;
+
+            Float convSupportF = (truncate_p >= 0.0) ? truncate_p : (2*c);
+            convSupport = (Int)convSupportF;
+            convSupport += (((convSupportF-(Float)convSupport) > 0.0) ? 1 : 0);
+            convSize = convSampling*(2*convSupport + 2);
+
+            convFunc.resize(convSize);
+            convFunc = 0.0;
+            Double x, val1, val2;
+            Int normalize = 1;
+
+            if (itruncate >= 0) {
+                for (Int i=0 ; i<itruncate; i++) {
+                    x = Double(i) / Double(convSampling);
+                    grdgauss(&hwhm, &x, &val1);
+                    grdjinc1(&c, &x, &normalize, &val2);
+                    convFunc(i) = val1 * val2;
+                }
+            }
+            else { // default is to truncate at first null
+                for (Int i=0; i<convSize; i++) {
+                    x = Double(i) / Double(convSampling);
+                    grdjinc1(&c, &x, &normalize, &val2);
+                    if (val2 <= 0.0) {
+                        logIO() << LogIO::NORMAL3
+                                << "convFunc is automatically truncated at radius " << x
+                                << LogIO::POST;
+                        break;
+                    }
+                    grdgauss(&hwhm, &x, &val1);
+                    convFunc(i) = val1 * val2;
+                }
+            }
+
+            //    String outfile = convType + ".dat";
+            //    ofstream ofs(outfile.c_str());
+            //    for (Int i = 0 ; i < convSize ; i++) {
+            //      ofs << i << " " << convFunc[i] << endl;
+            //    }
+            //    ofs.close();
+
+        }
+        else { // Throw exception
+            logIO_p << "Unknown convolution function: " << convType
+                    << LogIO::EXCEPTION;
+        }
     }
 
-//    String outfile = convType + ".dat";
-//    ofstream ofs(outfile.c_str());
-//    for (Int i = 0 ; i < convSize ; i++) {
-//      ofs << i << " " << convFunc[i] << endl;
-//    }
-//    ofs.close();
-  }
-  else {
-    logIO_p << "Unknown convolution function " << convType << LogIO::EXCEPTION;
-  }
-
-  if(wImage) delete wImage; wImage=0;
-  wImage = new TempImage<Float>(image->shape(), image->coordinates());
-
-  /*if(isTiled) {
-    Float tileOverlap=0.5;
-    if(convType=="box") {
-      tileOverlap=0.0;
-    }
-    else {
-      tileOverlap=0.5;
-      tilesize=max(12,tilesize);
-    }
-    IPosition tileShape=IPosition(4,tilesize,tilesize,npol,nchan);
-    Vector<Float> tileOverlapVec(4);
-    tileOverlapVec=0.0;
-    tileOverlapVec(0)=tileOverlap;
-    tileOverlapVec(1)=tileOverlap;
-    imageCache=new LatticeCache <Complex> (*image, cachesize, tileShape,
-					   tileOverlapVec,
-					   (tileOverlap>0.0));
-
-    wImageCache=new LatticeCache <Float> (*wImage, cachesize, tileShape,
-					   tileOverlapVec,
-					   (tileOverlap>0.0));
-
-  }
-  */
 }
 
 // This is nasty, we should use CountedPointers here.
@@ -671,8 +681,8 @@ void SDGrid::finalizeToVis()
 }
 
 
-// Initialize the FFT to the Sky. Here we have to setup and initialize the
-// grid.
+// Initialize the FFT to the Sky.
+// Here we have to setup and initialize the grid.
 void SDGrid::initializeToSky(ImageInterface<Complex>& iimage,
 			     Matrix<Float>& weight, const vi::VisBuffer2& vb)
 {
@@ -810,78 +820,84 @@ Array<Float>* SDGrid::getWDataPointer(const IPosition& centerLoc2D,
 #define ggridsdclip ggridsdclip_
 #endif
 
-extern "C" {
-   void ggridsd(Double*,
-		const Complex*,
-                Int*,
-                Int*,
-                Int*,
-		const Int*,
-		const Int*,
-		const Float*,
-		Int*,
-		Int*,
-		Complex*,
-		Float*,
-                Int*,
-		Int*,
-		Int *,
-		Int *,
-                Int*,
-		Int*,
-		Float*,
-		Int*,
-		Int*,
-		Double*);
-   void ggridsdclip(Double*,
-                 const Complex*,
-                 Int*,
-                 Int*,
-                 Int*,
-                 const Int*,
-                 const Int*,
-                 const Float*,
-                 Int*,
-                 Int*,
-                 Complex*,
-                 Float*,
-                 Int*,
-                 Complex*,
-                 Float*,
-                 Complex*,
-                 Float*,
-                 Int*,
-                 Int*,
-                 Int *,
-                 Int *,
-                 Int*,
-                 Int*,
-                 Float*,
-                 Int*,
-                 Int*,
-                 Double*);
-   void dgridsd(Double*,
-		Complex*,
-                Int*,
-                Int*,
-		const Int*,
-		const Int*,
-		Int*,
-		Int*,
-		const Complex*,
-                Int*,
-		Int*,
-		Int *,
-		Int *,
-                Int*,
-		Int*,
-		Float*,
-		Int*,
-		Int*);
+extern "C" { // Gridders interfaces
+    void ggridsd(
+            Double*,
+            const Complex*,
+            Int*,
+            Int*,
+            Int*,
+            const Int*,
+            const Int*,
+            const Float*,
+            Int*,
+            Int*,
+            Complex*,
+            Float*,
+            Int*,
+            Int*,
+            Int*,
+            Int*,
+            Int*,
+            Int*,
+            Float*,
+            Int*,
+            Int*,
+            Double*
+    );
+    void ggridsdclip(
+            Double*,
+            const Complex*,
+            Int*,
+            Int*,
+            Int*,
+            const Int*,
+            const Int*,
+            const Float*,
+            Int*,
+            Int*,
+            Complex*,
+            Float*,
+            Int*,
+            Complex*,
+            Float*,
+            Complex*,
+            Float*,
+            Int*,
+            Int*,
+            Int *,
+            Int *,
+            Int*,
+            Int*,
+            Float*,
+            Int*,
+            Int*,
+            Double*
+    );
+    void dgridsd(
+            Double*,
+            Complex*,
+            Int*,
+            Int*,
+            const Int*,
+            const Int*,
+            Int*,
+            Int*,
+            const Complex*,
+            Int*,
+            Int*,
+            Int *,
+            Int *,
+            Int*,
+            Int*,
+            Float*,
+            Int*,
+            Int*
+    );
 }
 
 void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
-		 FTMachine::Type type)
+     FTMachine::Type type)
 {
   LogIO os(LogOrigin("SDGrid", "put"));
 
@@ -891,30 +907,27 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
   // Perform matchChannel everytime
   matchChannel(vb);
 
-  //No point in reading data if its not matching in frequency
-  if(max(chanMap)==-1)
-    return;
+  // No point in reading data if its not matching in frequency
+  if (max(chanMap)==-1) return;
 
   Matrix<Float> imagingweight;
   //imagingweight=&(vb.imagingWeight());
   pickWeights(vb, imagingweight);
 
-  if(type==FTMachine::PSF || type==FTMachine::COVERAGE)
-    dopsf=true;
-  if(dopsf) type=FTMachine::PSF;
+  if (type==FTMachine::PSF || type==FTMachine::COVERAGE) dopsf=true;
+  if (dopsf) type=FTMachine::PSF;
   Cube<Complex> data;
-  //Fortran gridder need the flag as ints
-  Cube<Int> flags;
+  Cube<Int> flags; //Fortran gridder need the flag as ints
   Matrix<Float> elWeight;
   interpolateFrequencyTogrid(vb, imagingweight,data, flags, elWeight, type);
-  //cerr << "number of rows " << vb.nRow() << " data shape " << data.shape() << endl;
+  //cerr << "number of rows " << vb.nRow()
+  //     << " data shape " << data.shape() << endl;
   Bool iswgtCopy;
   const Float *wgtStorage;
   wgtStorage=elWeight.getStorage(iswgtCopy);
   Bool isCopy;
   const Complex *datStorage=0;
-  if(!dopsf)
-    datStorage=data.getStorage(isCopy);
+  if (!dopsf) datStorage=data.getStorage(isCopy);
 
   // If row is -1 then we pass through all rows
   Int startRow, endRow, nRow;
@@ -928,79 +941,26 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
     endRow=row;
   }
 
-
-  Vector<Int> rowFlags(vb.flagRow().nelements());
-  rowFlags=0;
+  Vector<Int> rowFlags(vb.flagRow().nelements(), 0);
   for (Int rownr=startRow; rownr<=endRow; rownr++) {
     if(vb.flagRow()(rownr)) rowFlags(rownr)=1;
   }
 
   // Take care of translation of Bools to Integer
-  Int idopsf=0;
-  if(dopsf) idopsf=1;
+  Int idopsf = dopsf ? 1 : 0;
 
-  /*if(isTiled) {
+  { // Compute spectra pixel coordinates and call gridder
+    // Make sure failed getXYPos does not fall on grid
+    constexpr Double kFarAway = -1e9;
+    Matrix<Double> xyPositions(2, endRow-startRow+1, kFarAway);
     for (Int rownr=startRow; rownr<=endRow; rownr++) {
-
-      if(getXYPos(vb, rownr)) {
-
-	IPosition centerLoc2D(2, Int(xyPos(0)), Int(xyPos(1)));
-	Array<Complex>* dataPtr=getDataPointer(centerLoc2D, false);
-	Array<Float>*  wDataPtr=getWDataPointer(centerLoc2D, false);
-	Int aNx=dataPtr->shape()(0);
-	Int aNy=dataPtr->shape()(1);
-	Vector<Double> actualPos(2);
-	for (Int i=0;i<2;i++) {
-	  actualPos(i)=xyPos(i)-Double(offsetLoc(i));
-	}
-	// Now use FORTRAN to do the gridding. Remember to
-	// ensure that the shape and offsets of the tile are
-	// accounted for.
-	{
-	  Bool del;
-	  //	  IPosition s(data.shape());
-	  const IPosition& fs=flags.shape();
-	  std::vector<Int> s(fs.begin(), fs.end());
-
-	  ggridsd(actualPos.getStorage(del),
-		  datStorage,
-		  &s[0],
-		  &s[1],
-		  &idopsf,
-		  flags.getStorage(del),
-		  rowFlags.getStorage(del),
-		  wgtStorage,
-		  &s[2],
-		  &rownr,
-		  dataPtr->getStorage(del),
-		  wDataPtr->getStorage(del),
-		  &aNx,
-		  &aNy,
-		  &npol,
-		  &nchan,
-		  &convSupport,
-		  &convSampling,
-		  convFunc.getStorage(del),
-		  chanMap.getStorage(del),
-		  polMap.getStorage(del),
-		  sumWeight.getStorage(del));
-	}
+      if (getXYPos(vb, rownr)) {
+        xyPositions(0, rownr)=xyPos(0);
+        xyPositions(1, rownr)=xyPos(1);
       }
     }
-  }
-  else*/
-  {
-    Matrix<Double> xyPositions(2, endRow-startRow+1);
-    xyPositions=-1e9; // make sure failed getXYPos does not fall on grid
-    for (Int rownr=startRow; rownr<=endRow; rownr++) {
-      if(getXYPos(vb, rownr)) {
-	xyPositions(0, rownr)=xyPos(0);
-	xyPositions(1, rownr)=xyPos(1);
-      }
-    }
-    {
+    { // Call gridder
       Bool del;
-      //      IPosition s(data.shape());
       const IPosition& fs=flags.shape();
       std::vector<Int> s(fs.begin(), fs.end());
       Bool datCopy, wgtCopy;
@@ -1010,32 +970,34 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       //Bool call_ggridsd = !clipminmax_ || dopsf;
       Bool call_ggridsd = !clipminmax_;
 
-      if (call_ggridsd) {
+      if (call_ggridsd) { // Call plain gridder
 
-      ggridsd(xyPositions.getStorage(del),
-	      datStorage,
-	      &s[0],
-	      &s[1],
-	      &idopsf,
-	      flags.getStorage(del),
-	      rowFlags.getStorage(del),
-	      wgtStorage,
-	      &s[2],
-	      &row,
-	      datStor,
-	      wgtStor,
-	      &nx,
-	      &ny,
-	      &npol,
-	      &nchan,
-	      &convSupport,
-	      &convSampling,
-	      convFunc.getStorage(del),
-	      chanMap.getStorage(del),
-	      polMap.getStorage(del),
-	      sumWeight.getStorage(del));
+        ggridsd(
+          xyPositions.getStorage(del),
+          datStorage,
+          &s[0],
+          &s[1],
+          &idopsf,
+          flags.getStorage(del),
+          rowFlags.getStorage(del),
+          wgtStorage,
+          &s[2],
+          &row,
+          datStor,
+          wgtStor,
+          &nx,
+          &ny,
+          &npol,
+          &nchan,
+          &convSupport,
+          &convSampling,
+          convFunc.getStorage(del),
+          chanMap.getStorage(del),
+          polMap.getStorage(del),
+          sumWeight.getStorage(del)
+        );
 
-      } else {
+      } else { // Call clipping gridder
         Bool gminCopy;
         Complex *gminStor = gmin_.getStorage(gminCopy);
         Bool gmaxCopy;
@@ -1047,7 +1009,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
         Bool npCopy;
         Int *npStor = npoints_.getStorage(npCopy);
 
-        ggridsdclip(xyPositions.getStorage(del),
+        ggridsdclip(
+          xyPositions.getStorage(del),
           datStorage,
           &s[0],
           &s[1],
@@ -1073,7 +1036,8 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
           convFunc.getStorage(del),
           chanMap.getStorage(del),
           polMap.getStorage(del),
-          sumWeight.getStorage(del));
+          sumWeight.getStorage(del)
+        );
 
         gmin_.putStorage(gminStor, gminCopy);
         gmax_.putStorage(gmaxStor, gmaxCopy);
@@ -1085,9 +1049,12 @@ void SDGrid::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
       wGriddedData.putStorage(wgtStor, wgtCopy);
     }
   }
-  if(!dopsf)
-    data.freeStorage(datStorage, isCopy);
-  elWeight.freeStorage(wgtStorage,iswgtCopy);
+
+  { // Free memory
+    if (!dopsf) data.freeStorage(datStorage, isCopy);
+
+    elWeight.freeStorage(wgtStorage, iswgtCopy);
+  }
 
 }
 
@@ -1227,138 +1194,388 @@ void SDGrid::get(vi::VisBuffer2& vb, Int row)
 }
 
 
+Bool SDGrid::mustConvertPointingColumn(const MeasurementSet &ms)
+{
+  const auto havePointings = ms.pointing().nrow() > 0;
+  if (not havePointings) return false;
+
+  switch(convertFirst) {
+    case ConvertFirst::ALWAYS: return true;
+    case ConvertFirst::NEVER: return false;
+    case ConvertFirst::AUTO:
+      {
+        const auto nPointings = ms.pointing().nrow();
+        const auto nSelectedDataRows = ms.nrow();
+        return nSelectedDataRows > nPointings ? true : false;
+      }
+    default:
+      LogIO logger(LogOrigin("SDGrid", "mustConvertPointingColumn", WHERE));
+      logger << "Bug ! Got unexpected value for SDGrid::convertFirst: "
+             << int(convertFirst)
+             << LogIO::EXCEPTION;
+  }
+  return false;
+}
+
+void SDGrid::convertPointingColumn(
+        const MeasurementSet &ms,
+        const MSPointingEnums::PredefinedColumns columnToConvert,
+        const MDirection::Types directionRef)
+{
+  LogIO logger(LogOrigin("SDGrid", "convertPointingColumn"));
+
+  const auto & nameOfColumnToConvert =
+    MSPointing::columnName(columnToConvert);
+
+  const auto & nameOfDirectionRef = MDirection::showType(directionRef);
+
+  logger << "Converting POINTING table column: " << nameOfColumnToConvert
+         << " to: " << nameOfDirectionRef
+         << LogIO::POST;
+
+  { // Check parameters
+      using POINTING = MSPointingEnums::PredefinedColumns;
+      // Column must be a direction column
+      const auto isDirectionColumn = (
+             columnToConvert == POINTING::DIRECTION
+          or columnToConvert == POINTING::TARGET
+          or columnToConvert == POINTING::POINTING_OFFSET
+          or columnToConvert == POINTING::SOURCE_OFFSET
+          or columnToConvert == POINTING::ENCODER
+      );
+      if (not isDirectionColumn) {
+        logger << nameOfColumnToConvert << ": not a direction column"
+               << LogIO::EXCEPTION;
+      }
+  }
+
+  { // Copy Pointing table structure
+      constexpr auto doNotCopyRows = True;
+      ramPointingTable = ms.pointing().copyToMemoryTable(
+          ms.pointing().tableName() +
+          "." + MSPointing::columnName(columnToConvert) +
+          "." + MDirection::showType(directionRef),
+          doNotCopyRows
+      );
+      ramPointingColumnsPtr.reset(new MSPointingColumns {ramPointingTable});
+  }
+
+  { // Set the reference frame of the direction columns
+    // ---- All direction columns, except the encoder column
+    ramPointingColumnsPtr->setDirectionRef(directionRef);
+    // ---- Encoder column
+    ramPointingColumnsPtr->setEncoderDirectionRef(directionRef);
+  }
+
+  auto quote = [](const String & s) {
+      return String("\"") + s + String("\"");
+  };
+
+  { // Perform 1 dummy conversion:
+    // Convert the direction of the first pointing
+    // 1 day before it was actually recorded
+    // to pre-set static variables in casacore functions like dUT1
+    // so that we are sure they will be updated when we convert the column
+      stringstream dummyConversion; // TaQL command
+      { // Create it
+          dummyConversion <<
+              "using style python\n"
+              "select\n"
+              "      [\n"
+              "        meas.direction(\n" <<
+              "             " << quote(nameOfDirectionRef) << "\n"
+              "           , pointing.DIRECTION\n"
+              "           , (pointing.TIME - 1d), 'UTC'\n"
+              "           , antenna.POSITION\n"
+              "        )\n"
+              "      ] as CONVERTED_DIRECTION_ONE_DAY_BEFORE\n"
+              "      , (pointing.TIME - 1d) d as oneDayBefore\n"
+              "      , pointing.TIME d as pointingDay\n"
+              "      , cdatetime(pointing.TIME) as pointingDay_Str\n"
+              "      , cdatetime(pointing.TIME -1d) as oneDayBefore_Str\n"
+              "from\n"
+              "    $1 as pointing\n"
+              "join\n"
+              "    $2 as antenna\n"
+              "    on pointing.ANTENNA_ID == antenna.rowid()\n"
+              "where\n"
+              "    pointing.rowid() == 0\n"
+              ;
+      }
+      { // Execute it
+          vector<const Table*> tables {
+              &ms.pointing(),   // $1
+              &ms.antenna(),    // $2
+          };
+          tableCommand(dummyConversion.str(), tables);
+      }
+  }
+
+  { // Now convert the column
+      stringstream convertColumn; // TaQL command
+      { // Create it
+          convertColumn <<
+                  "using style python\n"
+                  "insert\n"
+                  "    into $3 as ram_pointing_table\n"
+                  "    (\n"
+                  "          ANTENNA_ID\n"
+                  "        , TIME\n"
+                  "        , INTERVAL\n"
+                  "        , NUM_POLY\n"
+                  "        , " << nameOfColumnToConvert << "\n"
+                  "    )\n"
+                  "select\n"
+                  "      ANTENNA_ID as ANTENNA_ID_INT INTEGER\n"
+                  "    , TIME\n"
+                  "    , INTERVAL\n"
+                  "    , 0 as NUM_POLY INTEGER\n";
+          using Pointing = MSPointingEnums::PredefinedColumns;
+          switch(columnToConvert) {
+              case Pointing::ENCODER: { // ScalarColumn
+                  convertColumn <<
+                  "    , meas.direction(\n"
+                  "            " <<  quote(nameOfDirectionRef) << "\n"
+                  "          , pointing." << nameOfColumnToConvert << "\n"
+                  "          , pointing.TIME\n"
+                  "          , antenna.POSITION\n"
+                  "      )\n"
+                  ;
+                  break;
+              }
+              default: { // All other direction columns are ArrayColumns
+                  convertColumn <<
+                  "    , [\n"
+                  "           meas.direction(\n"
+                  "                 " << quote(nameOfDirectionRef) << "\n"
+                  "               , pointing." << nameOfColumnToConvert << "\n"
+                  "               , pointing.TIME\n"
+                  "               , antenna.POSITION\n"
+                  "           )\n"
+                  "      ]\n"
+                  ;
+              }
+          }
+          convertColumn <<
+                  "from\n"
+                  "    $1 as pointing\n"
+                  "join\n"
+                  "    $2 as antenna\n"
+                  "    on pointing.ANTENNA_ID = antenna.rowid()\n";
+      }
+      { // Execute it
+          vector<const casacore::Table*> tables {
+              &ms.pointing(),   // $1
+              &ms.antenna(),    // $2
+              &ramPointingTable // $3
+          };
+          tableCommand(convertColumn.str(), tables);
+      }
+  }
+  logger << "Converted  POINTING table column: " << nameOfColumnToConvert
+         << " to: " << nameOfDirectionRef
+         << LogIO::POST;
+}
+
+  void SDGrid::handleNewMs(
+          const MeasurementSet &ms,
+          ImageInterface<Complex>& image)
+  {
+    if (mustConvertPointingColumn(ms)) {
+      const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
+      const auto imageDirectionRef =
+        image.coordinates().directionCoordinate().directionType();
+      convertPointingColumn(ms, columnEnum, imageDirectionRef);
+    }
+    else {
+      ramPointingTable = MSPointing();
+      ramPointingColumnsPtr.reset();
+    }
+  }
+
+  void SDGrid::handleNewMs(const MeasurementSet & ms,
+               CountedPtr<SIImageStore> imstore)
+  {
+    if (imstore.null()) return;
+
+    if (mustConvertPointingColumn(ms)) {
+      const auto coordinateSystem = imstore->getCSys();
+      const auto imagesDirectionRef =
+                    coordinateSystem.directionCoordinate()
+                                    .directionType();
+      const auto columnEnum = MSPointing::columnType(pointingDirCol_p);
+      convertPointingColumn(ms, columnEnum, imagesDirectionRef);
+    }
+    else {
+      ramPointingTable = MSPointing();
+      ramPointingColumnsPtr.reset();
+    }
+  }
 
   // Make a plain straightforward honest-to-FSM image. This returns
   // a complex image, without conversion to Stokes. The representation
   // is that required for the visibilities.
   //----------------------------------------------------------------------
-  void SDGrid::makeImage(FTMachine::Type type,
-			    vi::VisibilityIterator2& vi,
-			    ImageInterface<Complex>& theImage,
-			    Matrix<Float>& weight) {
-
+  void SDGrid::makeImage(
+          FTMachine::Type type,
+          vi::VisibilityIterator2& vi,
+          ImageInterface<Complex>& theImage,
+          Matrix<Float>& weight) {
 
     logIO() << LogOrigin("FTMachine", "makeImage0") << LogIO::NORMAL;
 
-    // Loop over all visibilities and pixels
     vi::VisBuffer2 *vb = vi.getVisBuffer();
-
-    // Initialize put (i.e. transform to Sky) for this model
     vi.origin();
 
-    if(vb->polarizationFrame()==MSIter::Linear) {
-      StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::LINEAR);
+    { // Set Stokes Representation
+      if (vb->polarizationFrame()==MSIter::Linear) {
+        StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::LINEAR);
+      }
+      else {
+        StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::CIRCULAR);
+      }
     }
-    else {
-      StokesImageUtil::changeCStokesRep(theImage, StokesImageUtil::CIRCULAR);
-    }
-    Bool useCorrected= !(MSMainColumns(vi.ms()).correctedData().isNull());
-    if((type==FTMachine::CORRECTED) && (!useCorrected))
-      type=FTMachine::OBSERVED;
-    Bool normalize=true;
-    if(type==FTMachine::COVERAGE)
-      normalize=false;
 
-    Int Nx=theImage.shape()(0);
-    Int Ny=theImage.shape()(1);
-    Int Npol=theImage.shape()(2);
-    Int Nchan=theImage.shape()(3);
-    Double memtot=Double(HostInfo::memoryTotal(true))*1024.0; // return in kB
-    Int nchanInMem=Int(memtot/2.0/8.0/Double(Nx*Ny*Npol));
-    Int nloop=nchanInMem >= Nchan ? 1 : Nchan/nchanInMem+1;
-    ImageInterface<Complex> *imCopy=NULL;
-    IPosition blc(theImage.shape());
-    IPosition trc(theImage.shape());
-    blc-=blc; //set all values to 0
-    trc=theImage.shape();
-    trc-=1; // set trc to image size -1
-    if(nloop==1) {
-      imCopy=& theImage;
-      nchanInMem=Nchan;
+    if (type==FTMachine::CORRECTED) { // What if we have no correctedData ?
+      const auto haveCorrectedData = not (
+        MSMainColumns(vi.ms()).correctedData().isNull()
+      );
+      if (not haveCorrectedData) {
+        type = FTMachine::OBSERVED;
+      }
     }
-    else
-      logIO()  << "Not enough memory to image in one go \n will process the image in   "
-	       << nloop
-	      << " sections  "
-	      << LogIO::POST;
+
+    Bool normalize = (type==FTMachine::COVERAGE) ? false : true;
+
+    Int Nx = theImage.shape()(0);
+    Int Ny = theImage.shape()(1);
+    Int Npol = theImage.shape()(2);
+    Int Nchan = theImage.shape()(3);
+
+    Double memtot = Double(HostInfo::memoryTotal(true))*1024.0; // return in kB
+    Int nchanInMem = Int(memtot/2.0/8.0/Double(Nx*Ny*Npol));
+    Int nloop = nchanInMem >= Nchan ? 1 : Nchan/nchanInMem+1;
+
+    ImageInterface<Complex> *imCopy = NULL;
+    { // Initialize imCopy if needed
+      if (nloop==1) {
+        imCopy = &theImage;
+        nchanInMem = Nchan;
+      }
+      else {
+        logIO() << "Not enough memory to image in one go \n"
+          << " will process the image in   " << nloop << " sections"
+          << LogIO::POST;
+      }
+    }
 
     weight.resize(Npol, Nchan);
     Matrix<Float> wgtcopy(Npol, Nchan);
 
-    Bool isWgtZero=true;
-    for (Int k=0; k < nloop; ++k){
-      Int bchan=k*nchanInMem;
-      Int echan=(k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
-
-      if(nloop > 1) {
-	 blc[3]=bchan;
-	 trc[3]=echan;
-	 Slicer sl(blc, trc, Slicer::endIsLast);
-	 imCopy=new SubImage<Complex>(theImage, sl, true);
-	 wgtcopy.resize(npol, echan-bchan+1);
+    Bool isWgtZero = true;
+    IPosition blc(theImage.shape().size(), 0);
+    IPosition trc(theImage.shape() - 1);
+    for (Int k=0; k < nloop; ++k) {
+      Int bchan; // Slice boundaries along the channel axis
+      Int echan;
+      { // Compute them
+        bchan = k*nchanInMem;
+        echan = (k+1)*nchanInMem < Nchan ?  (k+1)*nchanInMem-1 : Nchan-1;
       }
-      vi.originChunks();
-      vi.origin();
-      initializeToSky(*imCopy,wgtcopy,*vb);
 
+      if (nloop > 1) { // Slide. Copy of a slice of theImage
+        blc[3] = bchan;
+        trc[3] = echan;
+        Slicer sl(blc, trc, Slicer::endIsLast);
+        imCopy = new SubImage<Complex>(theImage, sl, true);
+        wgtcopy.resize(npol, echan-bchan+1);
+      }
 
-      // for minmax clipping
-      logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
-          << "doclip_ = " << (clipminmax_ ? "TRUE" : "FALSE") << " (" << clipminmax_ << ")" << LogIO::POST;
-      if (clipminmax_) {
-        logIO() << LogOrigin("SDGRID", "makeImage", WHERE)
-             << LogIO::DEBUGGING << "use ggridsd2 for imaging" << LogIO::POST;
+      { // Rewind iterator, initializeToSky
+        vi.originChunks();
+        vi.origin();
+        initializeToSky(*imCopy, wgtcopy, *vb);
+      }
+
+      { // Debug messages for minmax clipping
+        logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
+          << "doclip_ = " << (clipminmax_ ? "TRUE" : "FALSE")
+          << " (" << clipminmax_ << ")"
+          << LogIO::POST;
+        if (clipminmax_) {
+          logIO() << LogOrigin("SDGrid", "makeImage", WHERE) << LogIO::DEBUGGING
+            << "use ggridsd2 for imaging"
+            << LogIO::POST;
+        }
       }
 
       // Loop over the visibilities, putting VisBuffers
-	  for (vi.originChunks();vi.moreChunks();vi.nextChunk()) {
-	    for (vi.origin(); vi.more(); vi.next()) {
-
-	  switch(type) {
-	  case FTMachine::RESIDUAL:
-	    vb->setVisCube(vb->visCubeCorrected() - vb->visCubeModel());
-	    put(*vb, -1, false);
-	    break;
-	  case FTMachine::MODEL:
-	    put(*vb, -1, false, FTMachine::MODEL);
-	    break;
-	  case FTMachine::CORRECTED:
-	    put(*vb, -1, false, FTMachine::CORRECTED);
-	    break;
-	  case FTMachine::PSF:
-	    vb->setVisCube(Complex(1.0,0.0));
-	    put(*vb, -1, true, FTMachine::PSF);
-	    break;
-	  case FTMachine::COVERAGE:
-	    vb->setVisCube(Complex(1.0));
-	    put(*vb, -1, true, FTMachine::COVERAGE);
-	    break;
-	  case FTMachine::OBSERVED:
-	  default:
-	    put(*vb, -1, false, FTMachine::OBSERVED);
-	    break;
-	  }
-	}
+      for (vi.originChunks(); vi.moreChunks(); vi.nextChunk()) {
+        if (vi.getImpl()->isNewMs()) {
+          // When we pre-convert the user-specified POINTING column
+          // - e.g. when convertFirst = always -, re-converting it
+          // at each slice iteration is an implementation decision.
+          // The slice loop is probably rarely used, and when it is
+          // it means we have little RAM available.
+          handleNewMs(vi.ms(), theImage);
+        }
+        for (vi.origin(); vi.more(); vi.next()) {
+          switch(type) {
+          case FTMachine::RESIDUAL:
+            vb->setVisCube(vb->visCubeCorrected() - vb->visCubeModel());
+            put(*vb, -1, false);
+            break;
+          case FTMachine::MODEL:
+            put(*vb, -1, false, FTMachine::MODEL);
+            break;
+          case FTMachine::CORRECTED:
+            put(*vb, -1, false, FTMachine::CORRECTED);
+            break;
+          case FTMachine::PSF:
+            vb->setVisCube(Complex(1.0,0.0));
+            put(*vb, -1, true, FTMachine::PSF);
+            break;
+          case FTMachine::COVERAGE:
+            vb->setVisCube(Complex(1.0));
+            put(*vb, -1, true, FTMachine::COVERAGE);
+            break;
+          case FTMachine::OBSERVED:
+          default:
+            put(*vb, -1, false, FTMachine::OBSERVED);
+            break;
+          }
+        }
       }
+
       finalizeToSky();
+
       // Normalize by dividing out weights, etc.
       getImage(wgtcopy, normalize);
-      if(max(wgtcopy)==0.0){
-	if(nloop > 1)
-	  logIO() << LogIO::WARN
-		  << "No useful data in SDGrid: weights all zero for image slice  " << k
-		  << LogIO::POST;
-      }
-      else
-	isWgtZero=false;
 
-      weight(Slice(0, Npol), Slice(bchan, echan-bchan+1))=wgtcopy;
-      if(nloop >1) delete imCopy;
-    }//loop k
-    if(isWgtZero)
+      { // Check if all weights are zero
+        if (max(wgtcopy)==0.0) {
+          if (nloop > 1) {
+            logIO() << LogIO::WARN
+              << "No useful data in SDGrid: weights all zero for image slice  "
+              << k
+              << LogIO::POST;
+          }
+        }
+        else {
+          isWgtZero = false;
+        }
+      }
+
+      weight(Slice(0, Npol), Slice(bchan, echan-bchan+1)) = wgtcopy;
+      if (nloop > 1) delete imCopy;
+
+    } // loop k
+
+    if (isWgtZero) { // Log severe warning but don't abort
       logIO() << LogIO::SEVERE
-	      << "No useful data in SDGrid: weights all zero"
-	      << LogIO::POST;
+        << "No useful data in SDGrid: weights all zero"
+        << LogIO::POST;
+    }
   }
 
 
@@ -1543,14 +1760,38 @@ Int SDGrid::getIndex(const MSPointingColumns& mspc, const Double& time,
 
 Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
 
-  Bool dointerp;
-  const MSPointingColumns& act_mspc = vb.subtableColumns().pointing();
-  Bool nullPointingTable = (act_mspc.nrow() < 1);
-  Int pointIndex = -1;
-  if (!nullPointingTable) {
-    ///if(vb.newMS())  vb.newMS does not work well using msid
+  // Select the POINTING table (and columns) we'll work with
+  const auto haveConvertedColumn = ramPointingTable.nrow() > 0;
+
+  const auto & pointingColumns =  haveConvertedColumn ?
+      *ramPointingColumnsPtr
+    : vb.subtableColumns().pointing();
+
+  const auto nPointings = pointingColumns.nrow();
+  const auto havePointings = nPointings > 0;
+
+  // We'll need to call these many times, so let's call them once for good
+  const auto rowTime = vb.time()(row);
+  const auto rowTimeInterval = vb.timeInterval()(row);
+  const auto rowAntenna1 = vb.antenna1()(row);
+
+  // 1. Try to find the index of a pointing recorded:
+  //     - for the antenna of the specified row,
+  //     - at a time close enough to the time at which data was taken
+  Int pointingIndex = -1;
+
+  if (havePointings) {
+    // if (vb.newMS() vb.newMS does not work well using msid
+    // Note about above comment:
+    // - vb.newMS probably works well
+    // - but if the calling code is iterating over the rows of a subchunk
+    //   vb.newMS returns true for all rows belonging to the first subchunk
+    //   of the first chunk of a new MS.
+    // ???
+    // What if vb changed since we were last called ?
+    // What if the calling code calls put and get, with different VisBuffers ?
     if (vb.msId() != msId_p) {
-      lastIndex_p = 0;
+      lastIndex_p = 0; // No longer used ?
       if (lastIndexPerAnt_p.nelements() < (size_t)vb.nAntennas()) {
         lastIndexPerAnt_p.resize(vb.nAntennas());
       }
@@ -1558,113 +1799,196 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
       msId_p = vb.msId();
       lastAntID_p = -1;
     }
-    pointIndex = getIndex(act_mspc, vb.time()(row), -1.0, vb.antenna1()(row));
-    //Try again to locate a pointing within the integration
-    if (pointIndex < 0)
-      pointIndex = getIndex(act_mspc, vb.time()(row), vb.timeInterval()(row), vb.antenna1()(row));
-  }
-  if (!nullPointingTable && ((pointIndex < 0) || (pointIndex >= Int(act_mspc.time().nrow())))) {
-    ostringstream o;
-    o << "Failed to find pointing information for time " <<
-      MVTime(vb.time()(row)/86400.0) << ": Omitting this point";
-    logIO_p << LogIO::DEBUGGING << String(o) << LogIO::POST;
-    //    logIO_p << String(o) << LogIO::POST;
-    return false;
+    // Try to locate a pointing verifying:
+    // | POINTING.TIME - MAIN.TIME | <= 0.5*(POINTING.INTERVAL + tolerance)
+    // using first a tiny tolerance, then MAIN.INTERVAL
+    constexpr Double useTinyTolerance = -1.0;
+    Bool foundPointing {False};
+    for(const auto tolerance : {useTinyTolerance, rowTimeInterval}) {
+      pointingIndex = getIndex(
+        pointingColumns, rowTime, tolerance , rowAntenna1
+      );
+      foundPointing = pointingIndex >= 0;
+      if (foundPointing) break;
+    }
+
+    // Making the implicit type conversion explicit.
+    // Conversion is safe because it occurs only when pointingIndex >= 0.
+    const auto foundValidPointing = (
+      foundPointing and (static_cast<rownr_t>(pointingIndex) < nPointings)
+    );
+
+    if (not foundValidPointing) {
+      LogIO logger(LogOrigin("SDGrid","getXYPos"));
+      logger << LogIO::DEBUGGING;
+      logger.output()
+        << "Failed to find pointing information for time "
+        << MVTime(rowTime/86400.0)
+        << " : omitting this point";
+      logger << LogIO::POST;
+      return false;
+    }
   }
 
-  dointerp = false;
-  if (!nullPointingTable && (vb.timeInterval()(row) < act_mspc.interval()(pointIndex))) {
-    dointerp = true;
-    if (!isSplineInterpolationReady) {
-      interpolator = new SDPosInterpolator(vb, pointingDirCol_p);
+  // 2. At this stage we have:
+  //       * either no pointings
+  //       * or pointings and a valid pointingIndex
+  //    Decide now if we need to interpolate antenna's pointing direction
+  //    at data-taking time:
+  //    we'll do so when data is sampled faster than pointings are recorded
+  Bool needInterpolation = False;
+  if (havePointings) {
+    const auto pointingInterval = pointingColumns.interval()(pointingIndex);
+    if (rowTimeInterval < pointingInterval) needInterpolation = True;
+  }
+  const auto mustInterpolate = havePointings && needInterpolation;
+
+  // 3. Create interpolator if needed
+  if (mustInterpolate) {
+    if (not isSplineInterpolationReady) {
+      const auto nAntennas = static_cast<size_t>(
+        vb.ms().antenna().nrow()
+      );
+      interpolator = new SDPosInterpolator(
+        pointingColumns,
+        pointingDirCol_p,
+        nAntennas
+      );
       isSplineInterpolationReady = true;
     } else {
-      if (!interpolator->inTimeRange(vb.time()(row), vb.antenna1()(row))) {
-	// setup spline interpolator for the current dataset (CAS-11261, 2018/6/13 WK)
-	delete interpolator;
-	interpolator = 0;
-	interpolator = new SDPosInterpolator(vb, pointingDirCol_p);
+      // We have an interpolator. Re-use it if possible.
+      const auto canReuseInterpolator =
+        interpolator->inTimeRange(rowTime, rowAntenna1);
+      if (not canReuseInterpolator) {
+        // setup spline interpolator for the current dataset
+        // (CAS-11261, 2018/5/22 WK)
+        // delete and re-create it
+        delete interpolator;
+        interpolator = 0;
+        const auto nAntennas = static_cast<size_t>(
+          vb.ms().antenna().nrow()
+        );
+        interpolator = new SDPosInterpolator(
+          pointingColumns,
+          pointingDirCol_p,
+          nAntennas
+        );
       }
     }
   }
 
-  if (!pointingToImage) {
-    // Set the frame
-    lastAntID_p = vb.antenna1()(row);
-    MPosition pos = vb.subtableColumns().antenna().positionMeas()(lastAntID_p);
-    MEpoch dummyEpoch(Quantity(0, "s"));
-    (!mFrame_p.epoch()) ?  mFrame_p.set(dummyEpoch) : mFrame_p.resetEpoch(dummyEpoch);
-    (!mFrame_p.position()) ? mFrame_p.set(pos) : mFrame_p.resetPosition(pos);
-    if (!nullPointingTable) {
-      if (dointerp) {
-        worldPosMeas = directionMeas(act_mspc, pointIndex, vb.time()(row));
-      } else {
-        worldPosMeas = directionMeas(act_mspc, pointIndex);
-      }
-    } else {
-      worldPosMeas = vb.direction1()(row);
-    }
+  // 4. Create the direction conversion machine if needed
+  if ( pointingDirCol_p == "SOURCE_OFFSET" or
+       pointingDirCol_p == "POINTING_OFFSET" ) {
+    // it makes no sense to track in offset coordinates...
+    // hopefully the user set the image coords right
+    fixMovingSource_p = false;
+  }
 
-    // Make a machine to convert from the worldPosMeas to the output
-    // Direction Measure type for the relevant frame
+  const auto needDirectionConverter = (
+      not havePointings or not haveConvertedColumn or fixMovingSource_p
+  );
+
+  if (not pointingToImage and needDirectionConverter) {
+    // Setup our Measures container
+    const auto & rowAntenna1Position =
+      vb.subtableColumns().antenna().positionMeas()(rowAntenna1);
+    // Set dummy time stamp 1 day before rowTime
+    const MEpoch dummyEpoch(Quantity(rowTime - 86400.0, "s"));
+    // mFrame_p = MeasFrame(dummyEpoch, rowAntenna1Position);
+    mFrame_p.epoch() ? mFrame_p.resetEpoch(dummyEpoch)
+                     : mFrame_p.set(dummyEpoch);
+    mFrame_p.position() ? mFrame_p.resetPosition(rowAntenna1Position)
+                        : mFrame_p.set(rowAntenna1Position);
+    // Remember antenna id for next call,
+    // which may be done using a different VisBuffer ...
+    lastAntID_p = rowAntenna1;
+    // Compute the "model" required to setup the direction conversion machine
+    if (havePointings) {
+        worldPosMeas = mustInterpolate ?
+            directionMeas(pointingColumns, pointingIndex, rowTime)
+          : directionMeas(pointingColumns, pointingIndex);
+    } else {
+        // Without pointings, this sets the direction to the phase center
+        worldPosMeas = vb.direction1()(row);
+    }
+    // Make a direction conversion machine, converting
+    // from: the reference frame of the "model"
+    // to:   image's reference frame
     MDirection::Ref outRef(directionCoord.directionType(), mFrame_p);
     pointingToImage = new MDirection::Convert(worldPosMeas, outRef);
-    if (!pointingToImage) {
+    if (not pointingToImage) {
       logIO_p << "Cannot make direction conversion machine" << LogIO::EXCEPTION;
     }
-
-    // perform direction conversion to clear cache
+    // Perform 1 dummy direction conversion to clear values
+    // cached in static variables of casacore functions like MeasTable::dUT1
     MDirection _dir_tmp = (*pointingToImage)();
   }
 
-  MEpoch epoch(Quantity(vb.time()(row), "s"));
-  mFrame_p.resetEpoch(epoch);
-  if (lastAntID_p != vb.antenna1()(row)) {
-    if (lastAntID_p == -1) {
-      // antenna ID is unset
-      logIO_p << LogIO::DEBUGGING
-        << "update antenna position for conversion: new MS ID " << msId_p
-        << ", antenna ID " << vb.antenna1()(row) << LogIO::POST;
-    } else {
-      logIO_p << LogIO::DEBUGGING
-        << "update antenna position for conversion: MS ID " << msId_p
-        << ", last antenna ID " << lastAntID_p
-        << ", new antenna ID " << vb.antenna1()(row) << LogIO::POST;
+  const MEpoch rowEpoch(Quantity(rowTime, "s"));
+  { // 5. Update the frame holding the measurements for this row
+    // ---- Always reset the epoch
+    mFrame_p.resetEpoch(rowEpoch);
+    // ---- Reset antenna position only if antenna changed
+    // since we were last called
+    const auto antennaChanged = (lastAntID_p != rowAntenna1);
+    if (antennaChanged) {
+      { // Debug messages
+        if (lastAntID_p == -1) {
+          // antenna ID is unset
+          logIO_p << LogIO::DEBUGGING
+            << "updating antenna position for conversion: new MS ID " << msId_p
+            << ", antenna ID " << rowAntenna1 << LogIO::POST;
+        } else {
+          logIO_p << LogIO::DEBUGGING
+            << "updating antenna position for conversion: MS ID " << msId_p
+            << ", last antenna ID " << lastAntID_p
+            << ", new antenna ID " << rowAntenna1 << LogIO::POST;
+        }
+      }
+      MPosition rowAntenna1Position (
+          vb.subtableColumns().antenna().positionMeas()(rowAntenna1)
+      );
+      mFrame_p.resetPosition(rowAntenna1Position);
+      // Remember antenna id for next call,
+      // which may be done using a different VisBuffer ...
+      lastAntID_p = rowAntenna1;
     }
-    MPosition pos;
-    lastAntID_p = vb.antenna1()(row);
-    pos = vb.subtableColumns().antenna().positionMeas()(lastAntID_p);
-    mFrame_p.resetPosition(pos);
   }
 
-  if (!nullPointingTable) {
-    if (dointerp) {
-      MDirection newdir = directionMeas(act_mspc, pointIndex, vb.time()(row));
-      //Vector<Double> newdirv = newdir.getAngle("rad").getValue();
-      worldPosMeas = (*pointingToImage)(newdir);
-      //cerr<<"dir0="<<newdirv(0)<<endl;
-
-    //fprintf(pfile,"%.8f %.8f \n", newdirv(0), newdirv(1));
-    //printf("%lf %lf \n", newdirv(0), newdirv(1));
-    } else {
-      worldPosMeas = (*pointingToImage)(directionMeas(act_mspc, pointIndex));
-    }
+  // 6. Compute user-specified column direction at data-taking time,
+  //    converted to image's direction reference frame
+  if (havePointings) {
+      const auto columnDirection = mustInterpolate ?
+          directionMeas(pointingColumns, pointingIndex, rowTime)
+        : directionMeas(pointingColumns, pointingIndex);
+      worldPosMeas = haveConvertedColumn ?
+          columnDirection
+        : (*pointingToImage)(columnDirection);
+      { // Old debug stuff
+        //Vector<Double> newdirv = newdir.getAngle("rad").getValue();
+        //cerr<<"dir0="<<newdirv(0)<<endl;
+        //fprintf(pfile,"%.8f %.8f \n", newdirv(0), newdirv(1));
+        //printf("%lf %lf \n", newdirv(0), newdirv(1));
+      }
   } else {
-    worldPosMeas = (*pointingToImage)(vb.direction1()(row));
+      // Without pointings, this converts the direction of the phase center ?
+      worldPosMeas = (*pointingToImage)(vb.direction1()(row));
   }
 
-  Bool result = directionCoord.toPixel(xyPos, worldPosMeas);
-  if (!result) {
-    logIO_p << "Failed to find a pixel for pointing direction of "
-	    << MVTime(worldPosMeas.getValue().getLong("rad")).string(MVTime::TIME) << ", " << MVAngle(worldPosMeas.getValue().getLat("rad")).string(MVAngle::ANGLE) << LogIO::WARN << LogIO::POST;
+  // 7. Convert world direction coordinates to image pixel coordinates
+  Bool havePixel = directionCoord.toPixel(xyPos, worldPosMeas);
+  if (not havePixel) { // Log warning
+    logIO_p << LogIO::WARN
+      << "Failed to find a pixel for pointing direction of "
+      << MVTime(worldPosMeas.getValue().getLong("rad")).string(MVTime::TIME)
+      << ", "
+      << MVAngle(worldPosMeas.getValue().getLat("rad")).string(MVAngle::ANGLE)
+      << LogIO::POST;
     return false;
   }
 
-  if ((pointingDirCol_p == "SOURCE_OFFSET") || (pointingDirCol_p == "POINTING_OFFSET")) {
-    //there is no sense to track in offset coordinates...hopefully the
-    //user set the image coords right
-    fixMovingSource_p = false;
-  }
+  // 8. Handle moving sources
   if (fixMovingSource_p) {
     if (xyPosMovingOrig_p.nelements() < 2) {
       directionCoord.toPixel(xyPosMovingOrig_p, firstMovingDir_p);
@@ -1673,7 +1997,10 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     MDirection::Ref outref1(MDirection::AZEL, mFrame_p);
     MDirection tmphadec;
     if (upcase(movingDir_p.getRefString()).contains("APP")) {
-      tmphadec = MDirection::Convert((vbutil_p->getEphemDir(vb, phaseCenterTime_p)), outref1)();
+      tmphadec = MDirection::Convert(
+        vbutil_p->getEphemDir(vb, phaseCenterTime_p),
+        outref1
+      )();
     } else if (upcase(movingDir_p.getRefString()).contains("COMET")) {
       MeasComet mcomet(Path(ephemTableName_p).absoluteName());
       mFrame_p.set(mcomet);
@@ -1685,13 +2012,16 @@ Bool SDGrid::getXYPos(const vi::VisBuffer2& vb, Int row) {
     Vector<Double> actPix;
     directionCoord.toPixel(actPix, actSourceDir);
 
-    //cout << row << " scan " << vb.scan()(row) << "xyPos " << xyPos << " xyposmovorig " << xyPosMovingOrig_p << " actPix " << actPix << endl;
+    //  cout << row
+    //  << " scan " << vb.scan()(row)
+    //  << " xyPos " << xyPos
+    //  << " xyposmovorig " << xyPosMovingOrig_p
+    //  << " actPix " << actPix << endl;
 
     xyPos = xyPos + xyPosMovingOrig_p - actPix;
   }
 
-  return result;
-  // Convert to pixel coordinates
+  return havePixel;
 }
 
 MDirection SDGrid::directionMeas(const MSPointingColumns& mspc, const Int& index){
@@ -1941,5 +2271,58 @@ void SDGrid::clipMinMax() {
   }
 }
 
-} //End of namespace refim
-} //#End casa namespace
+const String & SDGrid::toString(const ConvertFirst convertFirst) {
+  static const std::array<String,3> name {
+      "never",
+      "always",
+      "auto"
+  };
+
+  switch (convertFirst) {
+    case ConvertFirst::NEVER:
+    case ConvertFirst::ALWAYS:
+    case ConvertFirst::AUTO:
+        return name[static_cast<size_t>(convertFirst)];
+    default:
+        String errMsg {"Illegal ConvertFirst enum: "};
+        errMsg += String::toString(static_cast<Int>(convertFirst));
+        throw AipsError(
+            errMsg,
+            __FILE__,
+            __LINE__,
+            AipsError::Category::INVALID_ARGUMENT
+        );
+        // Avoid potential compiler warning
+        return name[static_cast<size_t>(ConvertFirst::NEVER)];
+  }
+}
+
+SDGrid::ConvertFirst SDGrid::fromString(const String & name) {
+  static const std::array<ConvertFirst,3> schemes {
+      ConvertFirst::NEVER,
+      ConvertFirst::ALWAYS,
+      ConvertFirst::AUTO
+  };
+
+  for (const auto scheme : schemes) {
+      if (name == toString(scheme)) return scheme;
+  }
+
+  String errMsg {"Illegal ConvertFirst name: "};
+  errMsg += name;
+  throw AipsError(
+      errMsg,
+      __FILE__,
+      __LINE__,
+      AipsError::Category::INVALID_ARGUMENT
+  );
+  // Avoid potential compiler warning
+  return ConvertFirst::NEVER;
+}
+
+void SDGrid::setConvertFirst(const String &name) {
+  convertFirst = fromString(name);
+}
+
+} // End of namespace: refim
+} // End of namespace: casa

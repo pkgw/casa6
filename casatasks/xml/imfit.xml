@@ -41,13 +41,13 @@
         <value/>
     </param>
 
-   <param type="intVec" name="includepix"><shortdescription>Range of pixel values to include for fitting.</shortdescription><description>Range of pixel values to include for fitting.</description>
+   <param type="doubleVec" name="includepix"><shortdescription>Range of pixel values to include for fitting.</shortdescription><description>Range of pixel values to include for fitting.</description>
         
         <value/>
         <example>includepix=[0.5,500]</example>
     </param>
     
-    <param type="intVec" name="excludepix"><shortdescription>Range of pixel values to exclude for fitting.</shortdescription><description>Range of pixel values to exclude for fitting.</description>
+    <param type="doubleVec" name="excludepix"><shortdescription>Range of pixel values to exclude for fitting.</shortdescription><description>Range of pixel values to exclude for fitting.</description>
         
         <value/>
         <example>excludepix=[-500,.05]</example>

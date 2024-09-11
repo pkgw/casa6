@@ -82,7 +82,10 @@ def compRows(vis1, vis2, subtable):
     res2 = tb.getcol(subtable)
     tb.close()
     
-    return np.all(res1 == res2)
+    if len(res1) == len(res2):
+      return np.all(res1 == res2)
+    else:
+      return False
     
     
 class fixplanets_test(unittest.TestCase):

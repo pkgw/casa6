@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -572,7 +572,116 @@ Bool WPConvFunc::toRecord(RecordInterface& rec){
   return true;
 
   }
-
+  Bool WPConvFunc::makeWConvFuncs(Cube<Complex>& wconv, Vector<Int>& supports,  CoordinateSystem& cs, const Int& npix, const Vector<Double>& wVals){
+    uInt nw=wVals.nelements();
+    supports.resize(nw);
+    //cerr << "wVals" << wVals << endl;
+    Double wVal=wVals(nw-1);
+    Matrix<Complex> screen;
+    makeSkyWFunc(screen, cs, npix, wVal);
+    FFT2D ft(True);
+    Bool isCopyScr;
+    Complex* scr=screen.getStorage(isCopyScr);
+    ft.c2cFFT(scr, npix, npix);
+    screen.putStorage(scr,isCopyScr);
+    Int sup=findSupport(screen);
+    ///TESTOO
+    //sup=256;
+    /////
+    if (sup < 1)
+      throw(AipsError("Could not find support for w term"));
+    Int convSize=2*(sup+2);
+    if (convSize > npix)
+      convSize=npix;
+    wconv.resize(convSize, convSize, nw);
+    IPosition blc(2, npix/2-convSize/2, npix/2-convSize/2);
+    IPosition trc(2, npix/2+convSize/2-1, npix/2+convSize/2-1);
+    wconv.xyPlane(nw-1).assign(screen(blc, trc));
+    supports(nw-1)=sup;
+    for(Int k=0; k < (nw-1); ++k){
+      wVal=wVals[k];
+      makeSkyWFunc(screen, cs, npix, wVal);
+      Complex* scr=screen.getStorage(isCopyScr);
+      ft.c2cFFT(scr, npix, npix);
+      screen.putStorage(scr,isCopyScr);
+      sup=findSupport(screen);
+      supports[k]=sup;
+      wconv.xyPlane(k)=screen(blc, trc);
+    }
+    
+    
+    
+    return True;
+  }
+  Int WPConvFunc::findSupport(Matrix<Complex>& arr){
+    Int shape=arr.shape()[0];
+    Float maxval=real(max((fabs(arr))));
+    Float minval=real(min((fabs(arr))));
+    Float maxshift=maxval-minval;
+    //cerr << "####maxval " << maxval << " shift " << maxshift << endl;
+    Int trial=0;
+    Bool found=False;
+    Float sqrt_2=1.0/sqrt(2);
+    while(!found && (trial < (shape/2))){
+      Float frac=(fabs( arr(shape/2, (shape/2+ trial) ) )-minval)/maxshift;
+      if( frac < 1e-2){
+        found=True;
+        //cerr << "found at trial " << trial << endl;
+        
+      }
+      ++trial;
+      
+    }
+    
+    if(!found)
+      return shape/2;
+      
+    return trial;
+    
+  }
+   Bool WPConvFunc::makeSkyWFunc(Matrix<Complex>& screen,
+       const CoordinateSystem& cs, const Int& npix, const Double& wVal){
+     
+    screen.resize(npix, npix);
+    //cerr << "SCR shape " << screen.shape() << endl;
+    screen.set(0.0);
+    //Assuming largest wVals is latest
+    Double scale1=cs.increment()(0); 
+    Double scale2=cs.increment()(1); 
+    Double uvoff=Double(npix)/2.0;
+    Bool isScrCopy;
+    Complex *scr=screen.getStorage(isScrCopy);
+    
+    Double twoPiW=2.0*C::pi* wVal;
+      for (uInt iy=0; iy < uInt(npix); ++iy){
+         Double m=scale2*(Double(iy)-uvoff);
+         Double msq=m*m;
+         for(uInt ix=0; ix < uInt(npix); ++ix){
+          Double l=scale1*(Double(ix)-uvoff);
+          Double rsq=l*l+msq;
+          if(rsq<1.0) {
+	       Double phase=twoPiW*(sqrt(1.0-rsq)-1.0);
+	       Double cval, sval;
+	       SINCOS(phase, sval, cval);
+           //cerr << "ix " << ix << " iy " << iy << " pix " << ix+ iy*npix << endl;
+	       scr[ix+iy*npix]=Complex(cval, sval);
+           //screen(ix, iy)=Complex(cval, sval);
+          }
+	     }
+           
+           
+      }
+      screen.putStorage(scr, isScrCopy);
+        
+        
+        
+    
+      
+    return True;
+    
+    
+     
+   }
 
 
 
