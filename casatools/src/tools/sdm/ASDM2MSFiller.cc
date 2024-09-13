@@ -573,16 +573,16 @@ namespace casac {
     }
 
     // Insert records in the table ANTENNA
-    int ASDM2MSFiller::addAntenna( const string& name_,
-                                   const string& station_,
-                                   double lx_,
-                                   double ly_,
-                                   double lz_,
-                                   double offset_x_,
-                                   double offset_y_,
-                                   double offset_z_,
-                                   float  dish_diam_ ) {
-        uInt crow;
+    rownr_t ASDM2MSFiller::addAntenna( const string& name_,
+                                       const string& station_,
+                                       double lx_,
+                                       double ly_,
+                                       double lz_,
+                                       double offset_x_,
+                                       double offset_y_,
+                                       double offset_z_,
+                                       float  dish_diam_ ) {
+        rownr_t crow;
         //itsNumAntenna = num_antenna_;
         itsNumAntenna++;
 
@@ -645,9 +645,9 @@ namespace casac {
                                   vector<double>            &uvw_,
                                   vector<double>            &weight_,
                                   vector<double>            &sigma_ ){
-        unsigned int theSize = time_.size();
+        size_t theSize = time_.size();
         Bool *flag_row__  = new Bool[theSize];
-        for (unsigned int i = 0; i < theSize; i++) {
+        for (size_t i = 0; i < theSize; i++) {
             flag_row__[i] = 0;
         }
 
@@ -704,8 +704,8 @@ namespace casac {
         itsMSCol->uvw().putColumnRange(slicer, uvw);
         itsMSCol->flagRow().putColumnRange(slicer, flagRow); 
 
-        int cRow0 = 0;
-        for (unsigned int cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
+        rownr_t cRow0 = 0;
+        for (rownr_t cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
             int numChan = nChanNPol_[cRow0].first;
             int numCorr = nChanNPol_[cRow0].second;
 
@@ -728,8 +728,8 @@ namespace casac {
         Matrix<Float>   float_data;
         Matrix<Bool>    flag;
 
-        int cRow0 = 0;
-        for (unsigned int cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
+        rownr_t cRow0 = 0;
+        for (rownr_t cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
             int numCorr = dataShape_.at(cRow0).at(0);
             int numChan = dataShape_.at(cRow0).at(1);
 
@@ -804,7 +804,7 @@ namespace casac {
   
         //cout << "Entering addData" << endl;
 
-        unsigned int theSize = time_.size();
+        size_t theSize = time_.size();
         Bool *flag_row__  = new Bool[theSize];
         for (unsigned int i = 0; i < theSize; i++) {
             flag_row__[i]              = flag_.at(i)==0?false:true;
@@ -876,8 +876,8 @@ namespace casac {
         Matrix<Float>   float_data;
         Matrix<Bool>    flag;
 
-        int cRow0 = 0;
-        for (unsigned int cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
+        rownr_t cRow0 = 0;
+        for (rownr_t cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
             int numCorr = dataShape_.at(cRow0).at(0);
             int numChan = dataShape_.at(cRow0).at(1);
 
@@ -955,9 +955,9 @@ namespace casac {
         //cout << "Entering addData" << endl;
         //printf("entering addData ...\n");
 
-        unsigned int theSize = time_.size();
+        size_t theSize = time_.size();
         Bool *flag_row__  = new Bool[theSize];
-        for (unsigned int i = 0; i < theSize; i++) {
+        for (size_t i = 0; i < theSize; i++) {
             flag_row__[i]              = flag_.at(i)==0?false:true;
         }
 
@@ -1027,10 +1027,10 @@ namespace casac {
         Matrix<Float>   float_data;
         Matrix<Bool>    flag;
 
-        int cRow0 = 0;
+        rownr_t cRow0 = 0;
         //printf("itsMSMainRow+theSize=%d\n", itsMSMainRow+theSize);
         //int maxrow = itsMSMainRow+theSize;
-        for (unsigned int cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
+        for (rownr_t cRow = itsMSMainRow; cRow < itsMSMainRow+theSize; cRow++) {      
             int numCorr = dataShape_.at(cRow0).at(0);
             int numChan = dataShape_.at(cRow0).at(1);
 
@@ -1071,9 +1071,9 @@ namespace casac {
 
 
     // Add a record in the table DataDescription
-    int  ASDM2MSFiller::addDataDescription( int spectral_window_id_,
-                                            int polarization_id_ ) {
-        uInt crow;
+    rownr_t  ASDM2MSFiller::addDataDescription( int spectral_window_id_,
+                                                int polarization_id_ ) {
+        rownr_t crow;
         MSDataDescription msdd = itsMS -> dataDescription();
         MSDataDescColumns msddCol(msdd);
 
@@ -1088,14 +1088,14 @@ namespace casac {
     }
 
     // Add a record in the table DataDescription
-    int  ASDM2MSFiller::addUniqueDataDescription( int spectral_window_id_, int polarization_id_ ) {
-        uInt crow;
+    rownr_t  ASDM2MSFiller::addUniqueDataDescription( int spectral_window_id_, int polarization_id_ ) {
+        rownr_t crow;
         MSDataDescription msdd = itsMS -> dataDescription();
         MSDataDescColumns msddCol(msdd);
 
         crow   = msdd.nrow();
-        uInt i;
-        for ( i = 0;
+        rownr_t i;
+        for (i = 0;
               i < crow
                   &&  ( msddCol.spectralWindowId()(i) != spectral_window_id_ ||
                         msddCol.polarizationId()(i)   != polarization_id_ ) ; 
@@ -1167,7 +1167,7 @@ namespace casac {
                                  vector<double>&   position_,
                                  vector<double>&   feed_angle_ ) {
   
-        int crow;
+        rownr_t crow;
         MSFeed msfeed = itsMS -> feed();
         MSFeedColumns msfeedCol(msfeed);
 
@@ -1239,11 +1239,11 @@ namespace casac {
                                   vector<vector<double> >&	reference_dir_,
                                   const string&		direction_code_,
                                   int                        source_id_ ) {
-        uInt							crow;
+        rownr_t	crow;
         //cout << "\naddField : entering";
-        Vector<MDirection>					delayDir(num_poly_);
-        Vector<MDirection>					referenceDir(num_poly_);
-        Vector<MDirection>					phaseDir(num_poly_);
+        Vector<MDirection>  delayDir(num_poly_);
+        Vector<MDirection>  referenceDir(num_poly_);
+        Vector<MDirection>  phaseDir(num_poly_);
 
         MSField msfield = itsMS -> field();
         MSFieldColumns msfieldCol(msfield);
@@ -1314,9 +1314,9 @@ namespace casac {
                                     int		/* severity_ */,
                                     int		/* applied_ */,
                                     string&   /* command_ */) {
-        uInt						crow;
-        MSFlagCmd					msflagcmd = itsMS -> flagCmd();
-        MSFlagCmdColumns				msflagcmdCol(msflagcmd);
+        rownr_t	crow;
+        MSFlagCmd  msflagcmd = itsMS -> flagCmd();
+        MSFlagCmdColumns  msflagcmdCol(msflagcmd);
 
         crow = msflagcmd.nrow();
   
@@ -1345,9 +1345,9 @@ namespace casac {
                                     const string&	cli_command_,
                                     const string& app_parms_ ) {
 
-        uInt			crow;
-        MSHistory		mshistory = itsMS -> history();
-        MSHistoryColumns	mshistoryCol(mshistory);
+        rownr_t	crow;
+        MSHistory mshistory = itsMS -> history();
+        MSHistoryColumns mshistoryCol(mshistory);
 
         Vector<String> cliCommand(1);
         Vector<String> appParms(1);
@@ -1383,7 +1383,7 @@ namespace casac {
                                         const string&		project_,
                                         double			release_date_) {
 
-        uInt crow;
+        rownr_t crow;
         MSObservation msobs = itsMS -> observation();
         MSObservationColumns msobsCol(msobs);
   
@@ -1430,9 +1430,9 @@ namespace casac {
         // cout << "\n";
     }
 
-    void ASDM2MSFiller::addPointingSlice( unsigned int                 n_row_,
+    void ASDM2MSFiller::addPointingSlice( rownr_t                      n_row_,
                                           vector<int>&                 antenna_id_,
-                                          vector<double>&               time_,
+                                          vector<double>&              time_,
                                           vector<double>&              interval_,
                                           vector<double>&              direction_,
                                           vector<double>&              target_,
@@ -1457,7 +1457,7 @@ namespace casac {
 
         MSPointing mspointing = itsMS -> pointing();
         MSPointingColumns mspointingCol(mspointing);
-        unsigned int crow = mspointing.nrow();
+        rownr_t crow = mspointing.nrow();
 
         // Let's fill tracking
         tracking = Vector<bool>(tracking_);
@@ -1492,9 +1492,9 @@ namespace casac {
 
             mspointingCol.overTheTop().putColumnRange(slicer, over_the_top);
         } else { // Otherwise we fill overTheTop range after range.
-            for (unsigned int i = 0; i < v_overTheTop_.size(); i++) {
+            for (size_t i = 0; i < v_overTheTop_.size(); i++) {
                 s_overTheTop saux = v_s_overTheTop_.at(i);
-                for (unsigned int j = saux.start; j < (saux.start + saux.len) ; j++)
+                for (size_t j = saux.start; j < (saux.start + saux.len) ; j++)
                     mspointingCol.overTheTop().put(j, saux.value);
             }
         }
@@ -1504,10 +1504,10 @@ namespace casac {
 
     // Adds a record in the table Polarization
     // Only num_corr_ is used here
-    int ASDM2MSFiller::addPolarization( int num_corr_,
-                                        vector<int>& /* corr_type_ */,
-                                        vector<int>& /* corr_product_ */ ) {
-        uInt crow;
+    rownr_t ASDM2MSFiller::addPolarization( int num_corr_,
+                                            vector<int>& /* corr_type_ */,
+                                            vector<int>& /* corr_product_ */ ) {
+        rownr_t crow;
         int  i;
         Vector<Int>  corrType(num_corr_);
         Matrix<Int>  corrProduct(2, num_corr_);
@@ -1535,10 +1535,10 @@ namespace casac {
         return crow;
     }
 
-    int ASDM2MSFiller::addUniquePolarization( int num_corr_,
-                                              const vector<int>& corr_type_,
-                                              const vector<int>& corr_product_ ) {
-        uInt crow;
+    rownr_t ASDM2MSFiller::addUniquePolarization( int num_corr_,
+                                                  const vector<int>& corr_type_,
+                                                  const vector<int>& corr_product_ ) {
+        rownr_t crow;
         int  i;
         Vector<Int>  corrType(IPosition(1, num_corr_), (int *)&corr_type_[0], SHARE);
         Matrix<Int>  corrProduct(2, num_corr_);
@@ -1559,7 +1559,7 @@ namespace casac {
         /*
          * Look for an existing polarization
          */
-        for (uInt i = 0; i < crow; i++) {
+        for (rownr_t i = 0; i < crow; i++) {
             Vector<Int> _corrType = mspolarCol.corrType()(i);
             Matrix<Int> _corrProduct = mspolarCol.corrProduct()(i);
             if ( (mspolarCol.numCorr()(i) == num_corr_)  &&
@@ -1586,7 +1586,7 @@ namespace casac {
                                       string& sub_type_,
                                       int  type_id_,
                                       int  mode_id_) {
-        uInt crow;
+        rownr_t crow;
         MSProcessor msproc = itsMS -> processor();
         MSProcessorColumns msprocCol(msproc);
 
@@ -1606,19 +1606,19 @@ namespace casac {
 
     // Adds a single state record in the table STATE in such a way that there is no repeated row.
     // Returns the index of row added or found with these values. 
-    int ASDM2MSFiller::addUniqueState( bool sig_,
-                                       bool ref_,
-                                       double cal_,
-                                       double load_,
-                                       unsigned int sub_scan_,
-                                       string& obs_mode_,
-                                       bool flag_row_ ) {
+    rownr_t ASDM2MSFiller::addUniqueState( bool sig_,
+                                           bool ref_,
+                                           double cal_,
+                                           double load_,
+                                           unsigned int sub_scan_,
+                                           string& obs_mode_,
+                                           bool flag_row_ ) {
         MSStateColumns msstateCol(itsMS -> state());
-        uInt crow = itsMS->state().nrow();
+        rownr_t crow = itsMS->state().nrow();
 
-        uInt i = 0;
+        rownr_t i = 0;
 
-        for (i = 0; i < crow; i++) {
+        for (i= 0; i < crow; i++) {
             if ( (msstateCol.sig()(i) == sig_) &&
                  (msstateCol.ref()(i) == ref_) &&
                  (msstateCol.cal()(i) == cal_) &&
@@ -1645,6 +1645,7 @@ namespace casac {
     // Add a record in the table SOURCE
     void ASDM2MSFiller::addSource( int             source_id_,
                                    double          time_,
+
                                    double          interval_,
                                    int             spectral_window_id_,
                                    int             num_lines_,
@@ -1711,7 +1712,7 @@ namespace casac {
         }
     
         // Add a new row.
-        int crow = mssource.nrow();
+        rownr_t crow = mssource.nrow();
         mssource.addRow();
 
         Vector<Double> properMotion(IPosition(1, 2), &proper_motion_[0], SHARE);
@@ -1741,26 +1742,26 @@ namespace casac {
     }
 
     // Add a  record  in the table SPECTRAL_WINDOW
-    int ASDM2MSFiller::addSpectralWindow( int			num_chan_,
-                                          const string&		name_,
-                                          double			ref_frequency_,
-                                          const vector<double>&	chan_freq_,
-                                          const vector<double>&	chan_width_,
-                                          int			meas_freq_ref_,
-                                          const vector<double>&	effective_bw_,
-                                          const vector<double>&	resolution_,
-                                          double			total_bandwidth_,
-                                          int			net_sideband_,
-                                          int			bbc_no_,
-                                          int			if_conv_chain_,
-                                          int			freq_group_,
-                                          const string&		freq_group_name_,
-                                          int			num_assoc_,
-                                          const vector<int>&		assoc_sp_id_,
-                                          const vector<string>&      assoc_nature_,
-                                          const string & windowFunction_,
-                                          int numBin_,
-					  const string & corrBit_ ) {
+    rownr_t ASDM2MSFiller::addSpectralWindow( int			num_chan_,
+                                              const string&		name_,
+                                              double			ref_frequency_,
+                                              const vector<double>&	chan_freq_,
+                                              const vector<double>&	chan_width_,
+                                              int			meas_freq_ref_,
+                                              const vector<double>&	effective_bw_,
+                                              const vector<double>&	resolution_,
+                                              double			total_bandwidth_,
+                                              int			net_sideband_,
+                                              int			bbc_no_,
+                                              int			if_conv_chain_,
+                                              int			freq_group_,
+                                              const string&		freq_group_name_,
+                                              int			num_assoc_,
+                                              const vector<int>&		assoc_sp_id_,
+                                              const vector<string>&      assoc_nature_,
+                                              const string & windowFunction_,
+                                              int numBin_,
+                                              const string & corrBit_ ) {
  
         MSSpectralWindow msspwin = itsMS -> spectralWindow();
         MSSpWindowColumns msspwinCol(msspwin);
@@ -1769,7 +1770,7 @@ namespace casac {
         Vector<Double> chanWidth(IPosition(1, num_chan_), const_cast<double *>(&chan_width_[0]), SHARE);
         Vector<Double> effectiveBW(IPosition(1, num_chan_), const_cast<double *>(&effective_bw_[0]), SHARE);
         Vector<Double> resolution(IPosition(1, num_chan_), const_cast<double *>(&resolution_[0]), SHARE);
-        uInt crow;
+        rownr_t crow;
   
         crow = msspwin.nrow();
         itsDDMgr.setNumChan(crow, num_chan_);
@@ -1829,7 +1830,7 @@ namespace casac {
                                   double  load_,
                                   int     sub_scan_,
                                   string& obs_mode_ ) {
-        uInt crow;
+        rownr_t crow;
         MSState msstate = itsMS -> state();
         MSStateColumns msstateCol(msstate);
 
@@ -1871,7 +1872,7 @@ namespace casac {
         MSSysCal mssyscal = itsMS -> sysCal();
         MSSysCalColumns mssyscalCol(mssyscal);
   
-        int crow = mssyscal.nrow();
+        rownr_t crow = mssyscal.nrow();
         mssyscal.addRow();
 
         mssyscalCol.antennaId().put(crow, antenna_id);
@@ -1941,7 +1942,7 @@ namespace casac {
         MSWeather msweather = itsMS -> weather();
         MSWeatherColumns msweatherCol(msweather);
 
-        int crow;
+        rownr_t crow;
   
         crow = msweather.nrow();
         msweather.addRow();
@@ -2002,23 +2003,23 @@ namespace casac {
                                      vector<float>&	switchedPowerSum,
                                      vector<float>&  requantizerGain
                                      ) {
-        Table						mssyspower = itsMS->rwKeywordSet().asTable("SYSPOWER");
-        int						rowIndex   = mssyspower.nrow();
+        Table mssyspower = itsMS->rwKeywordSet().asTable("SYSPOWER");
+        rownr_t	rowIndex   = mssyspower.nrow();
         mssyspower.addRow(1);
 
-        ScalarColumn<Int>	antennaIdCol(mssyspower, "ANTENNA_ID");
+        ScalarColumn<Int> antennaIdCol(mssyspower, "ANTENNA_ID");
         antennaIdCol.put(rowIndex, antennaId);
 
-        ScalarColumn<Int>	feedIdCol(mssyspower, "FEED_ID");
+        ScalarColumn<Int> feedIdCol(mssyspower, "FEED_ID");
         feedIdCol.put(rowIndex, feedId);
 
-        ScalarColumn<Int>	spectralWindowIdCol(mssyspower, "SPECTRAL_WINDOW_ID");
+        ScalarColumn<Int> spectralWindowIdCol(mssyspower, "SPECTRAL_WINDOW_ID");
         spectralWindowIdCol.put(rowIndex, spectralWindowId);
 
-        ScalarColumn<Double>	timeCol(mssyspower, "TIME");
+        ScalarColumn<Double> timeCol(mssyspower, "TIME");
         timeCol.put(rowIndex, time);
 
-        ScalarColumn<Double>	intervalCol(mssyspower, "INTERVAL");
+        ScalarColumn<Double> intervalCol(mssyspower, "INTERVAL");
         intervalCol.put(rowIndex, interval);
 
         // numReceptor != 0 then consider the optional attributes.
@@ -2027,7 +2028,7 @@ namespace casac {
             // switchedPowerDifference size != 0 then optional attribute is present.
             // 
             if (switchedPowerDifference.size()) {
-                ArrayColumn<Float>	switchedPowerDifferenceCol(mssyspower, "SWITCHED_DIFF");
+                ArrayColumn<Float> switchedPowerDifferenceCol(mssyspower, "SWITCHED_DIFF");
                 Vector<Float> switchedPowerDifference_(IPosition(1, switchedPowerDifference.size()), const_cast<float *>(&switchedPowerDifference[0]));
                 switchedPowerDifferenceCol.put(rowIndex, switchedPowerDifference_);
             }
@@ -2035,7 +2036,7 @@ namespace casac {
             // switchedPowerSum size != 0 then optional attribute is present.
             // 
             if (switchedPowerSum.size()) {
-                ArrayColumn<Float>	switchedPowerSumCol(mssyspower, "SWITCHED_SUM");
+                ArrayColumn<Float> switchedPowerSumCol(mssyspower, "SWITCHED_SUM");
                 Vector<Float> switchedPowerSum_(IPosition(1, switchedPowerSum.size()), const_cast<float *>(&switchedPowerSum[0]));
                 switchedPowerSumCol.put(rowIndex, switchedPowerSum_);
             }
@@ -2043,7 +2044,7 @@ namespace casac {
             // requantizerGain size != 0 then optional attribute is present.
             // 
             if (requantizerGain.size()) {
-                ArrayColumn<Float>	requantizerGainCol(mssyspower, "REQUANTIZER_GAIN");
+                ArrayColumn<Float> requantizerGainCol(mssyspower, "REQUANTIZER_GAIN");
                 Vector<Float> requantizerGain_(IPosition(1, requantizerGain.size()), const_cast<float *>(&requantizerGain[0]));
                 requantizerGainCol.put(rowIndex, requantizerGain_);
             }
@@ -2052,7 +2053,7 @@ namespace casac {
         //mssyspower.flush();
     }
 
-    void ASDM2MSFiller::addSysPowerSlice( unsigned int	nRow,
+    void ASDM2MSFiller::addSysPowerSlice( rownr_t	nRow,
                                           vector<int>&       antennaId,
                                           vector<int>&	spectralWindowId,
                                           vector<int>&	feedId,
@@ -2063,15 +2064,15 @@ namespace casac {
                                           vector<float>&	switchedPowerSum,
                                           vector<float>&     requantizerGain ) {
 
-        Table			mssyspower = itsMS->rwKeywordSet().asTable("SYSPOWER");
+        Table mssyspower = itsMS->rwKeywordSet().asTable("SYSPOWER");
 
-        Vector<Int>		antennaIdMS(IPosition(1, nRow), &antennaId[0], SHARE);
-        Vector<Int>		spectralWindowIdMS(IPosition(1, nRow), &spectralWindowId[0], SHARE);
-        Vector<Int>		feedIdMS(IPosition(1, nRow), &feedId[0], SHARE);
-        Vector<Double>	timeMS(IPosition(1, nRow), &time[0], SHARE);
-        Vector<Double>	intervalMS(IPosition(1, nRow), &interval[0], SHARE);
+        Vector<Int> antennaIdMS(IPosition(1, nRow), &antennaId[0], SHARE);
+        Vector<Int> spectralWindowIdMS(IPosition(1, nRow), &spectralWindowId[0], SHARE);
+        Vector<Int> feedIdMS(IPosition(1, nRow), &feedId[0], SHARE);
+        Vector<Double> timeMS(IPosition(1, nRow), &time[0], SHARE);
+        Vector<Double> intervalMS(IPosition(1, nRow), &interval[0], SHARE);
 
-        unsigned int crow = mssyspower.nrow();
+        rownr_t crow = mssyspower.nrow();
 
         // Define a slicer to write blocks of nRow rows in the columns the SYSPOWER table.
         Slicer slicer( IPosition(1, crow),
@@ -2131,7 +2132,7 @@ namespace casac {
                                       vector<double >&                temperatureLoad ) {
 
         //Table	mscaldevice = itsMS->rwKeywordSet().asTable("CALDEVICE");
-        int  rowIndex = itsCalDeviceNumberOfRows ;
+        rownr_t rowIndex = itsCalDeviceNumberOfRows ;
 
         itsMSCalDeviceTable.addRow(1);
 
@@ -2155,7 +2156,7 @@ namespace casac {
 
         ArrayColumn<String> calloadNamesCol(itsMSCalDeviceTable, "CAL_LOAD_NAMES");
         Vector<String> calloadNames_(IPosition(1, calloadNames.size()));
-        for (unsigned int i = 0; i < calloadNames.size(); i++)
+        for (size_t i = 0; i < calloadNames.size(); i++)
             calloadNames_(i) = calloadNames[i];
         calloadNamesCol.put(rowIndex, calloadNames_);
   

@@ -5,10 +5,46 @@ import socket
 import argparse
 import os
 def convert(filename, outfile):
-    if not os.path.isfile(filename):
+    """
+    Converts a test result file to an XML format suitable for a test report.
+
+    This function reads a test result file, either creating a default XML file if the
+    input file does not exist or converting the contents of an existing test result file
+    into a standardized XML format.
+
+    If the input file does not exist:
+    - Creates a new XML file with default values indicating that no tests were generated.
+    - Sets various attributes such as the hostname, timestamp, and test details.
+
+    If the input file exists:
+    - Reads the file contents and extracts test results using regular expressions.
+    - Parses and aggregates test results, including the number of tests, failures, errors,
+      and skipped tests.
+    - Constructs an XML document with the aggregated results and writes it to the specified
+      output file.
+
+    Args:
+        filename (str): The path to the input test result file. If the file does not exist,
+                        a default XML file is generated.
+        outfile (str): The path to the output XML file where the converted results will be
+                       written.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: If there is an issue with reading the input file or writing to the output
+                   file.
+
+    Example:
+        convert('input_results.xml', 'output_results.xml')
+    """
+    if not os.path.isfile(filename) or os.stat(filename).st_size == 0:
+        if os.path.isfile(filename):
+            os.remove(filename)
         print("File {} does not exist. Generating:...".format(filename))
         fMessage = "{} Not Generated. Check Log".format(filename)
-        name = filename.split(".py")[0].split("/")[-1].strip(".xml")
+        name = filename.split(".py")[0].split("/")[-1]
         e = datetime.datetime.now()
         timestamp = e.strftime('%Y-%m-%dT%H:%M:%S.%f')
 

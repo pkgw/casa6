@@ -700,7 +700,11 @@ void FFT2D::fftShift(DComplex*& s,  Long x, Long y, Bool toFreq){
 	scrD[k]=(DComplex)(scr[k]);
       }
     }
-
   }
+  std::tuple<Long, Long> FFT2D::getShape() { 
+      
+      return std::make_tuple(nx_p, ny_p); 
+  }
+  
 
 } //# NAMESPACE CASA - END

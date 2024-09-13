@@ -1,3 +1,4 @@
+import platform
 import time
 import numpy
 import os
@@ -157,6 +158,26 @@ def deconvolve(
 
     cppparallel=False
     decon=None
+
+    if interactive:
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS. Returning
+        # False instead of throwing an exception results in:
+        #
+        #    RuntimeError: No active exception to reraise
+        #
+        # from deconvolve run from casashell.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
+                    "WARN",
+                    "task_deconvolve",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
+
     try:
 
         # discard empty start model strings
