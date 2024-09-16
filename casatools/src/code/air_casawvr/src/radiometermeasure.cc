@@ -166,7 +166,7 @@ namespace LibAIR2 {
 
   DSBRadio * MkALMARadiometer(int ch,
 			      double cf_off,
-			      double bw_off) throw (InvalidWVRChannel)
+			      double bw_off) noexcept(false)
   {
     const double filter_c[] = { 1.25, 3.25, 5.5, 7.25};
     const double filter_bw[]= { 1.5 , 2.5 , 2.0, 1.5};
@@ -183,7 +183,7 @@ namespace LibAIR2 {
 
   }
 
-  DSBRadio * MkALMADickeProto(int ch) throw (InvalidWVRChannel)
+  DSBRadio * MkALMADickeProto(int ch) noexcept(false)
   {
 
     const double filter_c[] = { 0.88 , 1.94 , 3.175, 5.2 };
