@@ -27,7 +27,7 @@ namespace Minim {
 
   NestedS::NestedS(PriorNLikelihood & ml,
 		   const std::list<MCPoint> & start,
-		   unsigned /*seed*/) throw (NestedSmallStart):
+		   unsigned /*seed*/) noexcept(false):
     ModelDesc(ml),
     Zseq(1,0.0),
     Xseq(1,1.0),
