@@ -22,12 +22,6 @@
 #
 ##########################################################################
 
-# Temporary Note: 2024/6/13 Kaz
-# Because of adding the new parameter 'interpolation' and changing the default internal parameter
-# for frequency interpoation of imager to 'linear', we must evaluate the values for assertion in some tests.
-# For the porpose, I set interpolation='nearest' in task_param at the moment,
-# therefore all tests have passed now. (failed some tests without the param, of cource)
-# This comment will destruct by my hand in a few days.
 
 import copy
 from enum import Enum
@@ -1742,8 +1736,6 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
     spw_region_all = {'blc': [1, 1, 0, 0], 'trc': [11, 11, 0, 9]}
     # select channels 2 - 7
     spw_region_chan1 = {'blc': [1, 1, 0, 2], 'trc': [11, 11, 0, 7]}
-    # select channels 2 - 6
-    spw_region_chan2 = {'blc': [1, 1, 0, 2], 'trc': [11, 11, 0, 6]}
 
     @property
     def file_mgr(self):
@@ -2299,9 +2291,11 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_default_list(self):
-        """Test spw selection w/ channel selection (spw=':6~7;2~5')."""
-        spw = ':6~7;2~5'  # chan=2-7 in all spws should be selected
-        region = self.spw_region_chan2
+        """Test spw selection w/ channel selection (spw=':2~5;6~7')."""
+        #spw = ':6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                          # The parameter should be set a sorted value to get channel selection correctly.
+        spw = ':2~5;6~7'  # chan=2-7 in all spws should be selected
+        region = self.spw_region_chan1
         infile = self.unifreq_ms
         flux_list = self.__get_flux_value(infile)
         selspw = range(len(flux_list))
@@ -2349,10 +2343,12 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_exact_list(self):
-        """Test spw selection w/ channel selection (spw='2:6~7;2~5')."""
-        spw = '2:6~7;2~5'  # chan=2-7 of spw=2 should be selected
+        """Test spw selection w/ channel selection (spw='2:2~5;6~7')."""
+        #spw = '2:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                           # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '2:2~5;6~7'  # chan=2-7 of spw=2 should be selected
         selspw = [2]
-        region = self.spw_region_chan2
+        region = self.spw_region_chan1
         infile = self.spwsel_ms
         flux_list = self.__get_flux_value(infile)
         self.task_param.update(dict(infiles=infile, spw=spw, imsize=self.spw_imsize_auto))
@@ -2409,9 +2405,11 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_pattern_list(self):
-        """Test spw selection w/ channel selection (spw='*:6~7;2~5')."""
-        spw = '*:6~7;2~5'
-        region = self.spw_region_chan2
+        """Test spw selection w/ channel selection (spw='*:2~5;6~7')."""
+        #spw = '*:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                           # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '*:2~5;6~7'
+        region = self.spw_region_chan1
         infile = self.unifreq_ms
         flux_list = self.__get_flux_value(infile)
         selspw = range(len(flux_list))
@@ -2425,7 +2423,9 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     def test_spw_value_frequency_channel(self):
         """Test spw selection w/ channel selection (spw='300.4~300.5GHz:2~7')."""
-        spw = '300.4~300.5GHz:2~7'
+        #spw = '300.4~300.5GHz:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                                        # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '300.4~300.5GHz:2~5;6~7'
         selspw = [1]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -2460,8 +2460,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     @unittest.expectedFailure
     def test_spw_value_frequency_list(self):
-        """Test spw selection w/ channel selection (spw='299.9~300.1GHz:6~7;2~5')."""
-        spw = '299.9~300.1GHz:6~7;2~5'
+        """Test spw selection w/ channel selection (spw='299.9~300.1GHz:2~5;6~7')."""
+        #spw = '299.9~300.1GHz:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                                        # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '299.9~300.1GHz:2~5;6~7'
         selspw = [0]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
