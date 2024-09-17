@@ -19,10 +19,10 @@
 
 namespace LibAIR2 {
 
-  class Dispersion:
-    std::unary_function<double, double>
+  class Dispersion
   {
-
+    typedef double Arg1 ;
+    typedef double Result;
   };
 
   class DispersionTab:
