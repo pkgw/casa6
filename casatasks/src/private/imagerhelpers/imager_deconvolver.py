@@ -153,7 +153,7 @@ class PyDeconvolver:
          self.initrecs = []
          for immod in range(0,self.NF):
               initrec =  self.SDtools[immod].initminorcycle() 
-              self.IBtool.mergeinitrecord(initrec);
+              self.IBtool.mergeinitrecord(initrec, immod);
               self.initrecs.append(initrec)
 
          # Check with the iteration controller about convergence.
