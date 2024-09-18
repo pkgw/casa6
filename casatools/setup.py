@@ -229,7 +229,7 @@ class XmlCMakeBuildExt(build_ext):
             if (sys.platform == 'darwin'):
                 casac_lib_dir = extdir + "/casatools/__casac__/lib"
                 from subprocess import call
-                status=call("for f in `ls`; do install_name_tool -rpath /opt/local/lib  @loader_path:@loader_path/lib:@rpath $f; done",cwd=casac_lib_dir,shell=True)
+                status=call("for f in `ls`; do if [[ $(otool -l $f | grep "path /opt/local/lib" | grep -v  "/opt/local/lib/.*gcc") ]];then install_name_tool -rpath /opt/local/lib  @loader_path:@loader_path/lib:@rpath $f ;fi; done",cwd=casac_lib_dir,shell=True)
     
 
 def generate_extensions():
