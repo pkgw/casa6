@@ -423,6 +423,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
 
                     tmppsfname=sumgridname.replace(".gridwt", ".psf")
                     shutil.rmtree(tmppsfname, True)
+                    shutil.rmtree(tmppsfname+".tt0", True)
 
 
             else:
