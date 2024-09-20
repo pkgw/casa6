@@ -111,7 +111,7 @@ class Test_vla_users_continuum(unittest.TestCase):
 
         ## Data Import
         importasdm(asdm=sdmname,
-                vis=sdmname+'.ms', createmms=self.mms, numsubms=2,
+                vis=sdmname+'.ms', createmms=self.mms,
                 ocorr_mode='co', asis='Receiver CalAtmosphere',
                 process_caldevice=True, process_pointing=True, savecmds=True,
                 outfile=sdmname+'.flagonline.txt',
