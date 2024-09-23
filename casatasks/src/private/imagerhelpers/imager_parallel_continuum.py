@@ -400,6 +400,10 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                         joblist.append( self.PH.runcmd("toolsi.getweightdensity()", node ) )
                     self.PH.checkJobs( joblist )
 
+
+
+
+
                     ## gather weightdensity and sum and scatter
                     casalog.post("******************************************************")
                     casalog.post(" gather and scatter now ")
@@ -409,7 +413,11 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                                              
                     locpstool.gatherweightdensity()
                     sumgridname=locpstool.scatterweightdensity()
+                    resname=sumgridname.replace(".gridwt", ".residual")
                     #print("%%%%%%%%", sumgridname)
+                    if(os.path.exists(sumgridname+"_temp") and (os.path.exists(resname) or os.path.exists(resname+".tt0")) ): # a restart
+                        shutil.rmtree(sumgridname, True)
+                        shutil.move(sumgridname+"_temp", sumgridname)
 
                     ## Set weight density for each nodel
                     joblist=[];
@@ -418,12 +426,16 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                     self.PH.checkJobs( joblist )
                     ###For some reason we cannot stop psf being made along with gridwt image and 
                     ### and may have the wrong shape at this stage
-                    shutil.rmtree(sumgridname)
-                    #shutil.move(sumgridname, sumgridname+"_temp")
+                    #shutil.rmtree(sumgridname)
+                    shutil.rmtree(sumgridname+"_temp", True)
+                    shutil.move(sumgridname, sumgridname+"_temp")
 
                     tmppsfname=sumgridname.replace(".gridwt", ".psf")
-                    shutil.rmtree(tmppsfname, True)
-                    shutil.rmtree(tmppsfname+".tt0", True)
+                    resname=sumgridname.replace(".gridwt", ".residual")
+                    if(not os.path.exists(resname)) :  # not a restart so psf shape may be different if full pol...delete it
+                        shutil.rmtree(tmppsfname, True)
+                    if(not os.path.exists(resname+".tt0")) :
+                        shutil.rmtree(tmppsfname+".tt0", True)
 
 
             else:
