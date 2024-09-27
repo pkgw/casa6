@@ -465,7 +465,7 @@ def is_in_remote(branch,repo_path, repo):
     """
     if branch != 'master':
         if branch.startswith("origin"):
-             cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("\/(.*)",branch )[0])
+             cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, re.findall("/(.*)",branch )[0])
 
         else:
             cmd = 'git ls-remote --heads {}{} {} | wc -l'.format(repo_path, repo, branch)
@@ -485,12 +485,12 @@ def check_branch_path(branch):
         if "release" in branch:
             cmd = ("git checkout {}".format(branch)).split()
         else:
-            cmd = ("git checkout origin/{}".format( re.findall("\/(.*)",branch)[0])).split()
+            cmd = ("git checkout origin/{}".format( re.findall("/(.*)",branch)[0])).split()
     else:
         if "release" in branch:
             cmd = ("git checkout origin/{}".format(branch)).split()
         else:
-            cmd = ("git checkout origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+            cmd = ("git checkout origin/{}".format( re.findall("([^/]+$)",branch)[0])).split()
 
     return cmd
 
@@ -499,12 +499,12 @@ def check_branch_path_merge(branch):
         if "release" in branch:
             cmd = ("git merge --no-edit --verbose {}".format(branch)).split()
         else:
-            cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("\/(.*)",branch)[0])).split()
+            cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("/(.*)",branch)[0])).split()
     else:
         if "release" in branch:
             cmd = ("git merge --no-edit --verbose origin/{}".format(branch)).split()
         else:
-            cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("([^\/]+$)",branch)[0])).split()
+            cmd = ("git merge --no-edit --verbose origin/{}".format( re.findall("([^/]+$)",branch)[0])).split()
 
     return cmd
 
