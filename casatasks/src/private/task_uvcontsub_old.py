@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import re
 import shutil
@@ -10,33 +9,18 @@ import numpy as np
 # (or any directories that already exist).
 from distutils.dir_util import copy_tree
 
-# get is_python3 and is_CASA6
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import calibrater, ms, table
-    from casatasks import casalog, virtualconcat
+from casatools import calibrater, ms, table
+from casatasks import casalog, virtualconcat
 
-    from .mstools import write_history
-    from .update_spw import *
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mstools import write_history
+from .update_spw import *
+from .parallel.parallel_data_helper import ParallelDataHelper
+from .parallel.parallel_task_helper import ParallelTaskHelper
 
-    mytb = table( )
-    mycb = calibrater( )
-    myms = ms()
-    _ms = ms()       # task also referenced the old global ms object
-else:
-    from taskinit import *
-    from mstools import write_history
-    from update_spw import *
-
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from virtualconcat_cli import virtualconcat_cli as virtualconcat
-
-    mycb, myms, mytb = gentools(['cb', 'ms', 'tb'])
-    # this also uses the global ms object
-    _ms = ms
+mytb = table( )
+mycb = calibrater( )
+myms = ms()
+_ms = ms()       # task also referenced the old global ms object
 
 def uvcontsub_old(vis, field, fitspw, excludechans, combine, solint, fitorder, spw, want_cont):
     
@@ -238,11 +222,8 @@ def uvcontsub_old(vis, field, fitspw, excludechans, combine, solint, fitorder, s
         # is made, but before cb adds its messages.
         #
         param_names = uvcontsub_old.__code__.co_varnames[:uvcontsub_old.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        local_vars = locals( )
+        param_vals = [local_vars[p] for p in param_names]
             
         write_history(myms, csvis, 'uvcontsub_old', param_names, param_vals,
                       casalog)

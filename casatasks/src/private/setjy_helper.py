@@ -1,20 +1,12 @@
 # setjy helper functions
-from __future__ import absolute_import
 import os
 import sys
 import shutil
 import numpy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatasks import casalog as default_casalog
-    from casatools import quanta, ms, table, componentlist, measures, calibrater, msmetadata
-    from collections import OrderedDict as odict
-else:
-    from taskinit import *
-    from casac import casac
-    from odict import odict
-    default_casalog = casalog
+from casatasks import casalog as default_casalog
+from casatools import quanta, ms, table, componentlist, measures, calibrater, msmetadata
+from collections import OrderedDict as odict
 
 class ss_setjy_helper:
     def __init__(self,imtool, vis, casalog=None):
@@ -36,19 +28,13 @@ class ss_setjy_helper:
         output = {}
         cleanupcomps = True # leave generated cl files 
 
-        if is_CASA6:
-            qa = quanta()
-            myms = ms( )
-            mytb = table( )
-            mycl = componentlist( )
-            myme = measures( )
-            mycb = calibrater( )
-            mymsmd = msmetadata( )
-        else:
-            #from taskinit import * 
-            from taskinit import gentools 
-            qa = casac.quanta()
-            (myms, mytb, mycl, myme, mycb, mymsmd) = gentools(['ms','tb','cl','me', 'cb','msmd'])
+        qa = quanta()
+        myms = ms( )
+        mytb = table( )
+        mycl = componentlist( )
+        myme = measures( )
+        mycb = calibrater( )
+        mymsmd = msmetadata( )
 
         # prepare parameters need to pass to the Bryan's code
         # make ms selections
@@ -245,10 +231,8 @@ class ss_setjy_helper:
         # size: [majoraxis, minoraxis, pa]
         # direction: direction for each time stamp
         # 
-        if is_CASA6:
-            from . import solar_system_setjy as SSsetjy 
-        else:
-            import solar_system_setjy as SSsetjy 
+        from . import solar_system_setjy as SSsetjy 
+            
         #import solar_system_setjy2 as SSsetjy 
         retdict={} # for returning flux densities?
         ss_setjy=SSsetjy.solar_system_setjy()
@@ -674,11 +658,8 @@ class ss_setjy_helper:
         Update history table when setSolarObjectJy is run
         """
         # 
-        if is_CASA6:
-            mytb = table( )
-        else:
-            from taskinit import gentools 
-            (mytb,) = gentools(['tb'])
+        mytb = table( )
+
         mytb.open(os.path.join(vis,'HISTORY'),nomodify=False)
         nrow = mytb.nrows()
         lasttime=mytb.getcol('TIME')[nrow-1]
@@ -718,11 +699,8 @@ class ss_setjy_helper:
         (mulitple comopents in one version)
         """
         #
-        if is_CASA6:
-            mytb = table( )
-        else:
-            from taskinit import gentools
-            (mytb,) = gentools(['tb'])
+        mytb = table( )
+
         mytb.open(os.path.join(vis,'HISTORY'),nomodify=False)
         nrow = mytb.nrows()
         lasttime=mytb.getcol('TIME')[nrow-1]

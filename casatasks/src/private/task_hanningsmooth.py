@@ -1,27 +1,15 @@
-from __future__ import absolute_import
 import os
 import shutil
 import string
 import copy
 import math
 
-# get is_CASA6, is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .mstools import write_history
-    from casatools import table, ms, mstransformer
-    from casatasks import casalog
-    from .parallel.parallel_data_helper import ParallelDataHelper
+from .mstools import write_history
+from casatools import table, ms, mstransformer
+from casatasks import casalog
+from .parallel.parallel_data_helper import ParallelDataHelper
 
-    _tb = table()
-else:
-    from taskinit import mttool as mstransformer
-    from taskinit import mstool as ms
-    from taskinit import tbtool, casalog
-    from mstools import write_history
-    from parallel.parallel_data_helper import ParallelDataHelper
-
-    _tb = tbtool()
+_tb = table()
 
 def hanningsmooth(vis=None, 
                    outputvis=None,
@@ -112,11 +100,9 @@ def hanningsmooth(vis=None,
     # Write history to output MS, not the input ms.
     try:
         param_names = hanningsmooth.__code__.co_varnames[:hanningsmooth.__code__.co_argcount]
-        if is_python3:
-            vars = locals()
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        local_vars = locals()
+        param_vals = [local_vars[p] for p in param_names]
+        
         casalog.post('Updating the history in the output', 'DEBUG1')
         write_history(mslocal, outputvis, 'hanningsmooth', param_names,
                       param_vals, casalog)

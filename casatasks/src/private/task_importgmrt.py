@@ -64,27 +64,15 @@
 # <todo>
 # </todo>
 
-from __future__ import absolute_import
 
 import os
 import numpy
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import table, ms, agentflagger, quanta
-    from casatasks import casalog, importuvfits
-    from .mstools import write_history
+from casatools import table, ms, agentflagger, quanta
+from casatasks import casalog, importuvfits
+from .mstools import write_history
 
-    _qa = quanta( )
-else:
-    from importuvfits import *
-    from taskinit import *
-    from mstools import write_history
-    #from fg import *
-
-    # not a local tool
-    _qa = qa
+_qa = quanta( )
 
 def importgmrt( fitsfile, flagfile, vis ):
 
@@ -136,22 +124,16 @@ def importgmrt( fitsfile, flagfile, vis ):
     casalog.post( 'Starting import ...', 'NORMAL' )
     importuvfits( fitsfile, vis )
 
-    if is_CASA6:
-        mytb = table( )
-        myms = ms( )
-        aflocal = agentflagger( )
-    else:
-        mytb, myms = gentools(['tb', 'ms'])
-        aflocal = casac.agentflagger()
+    mytb = table( )
+    myms = ms( )
+    aflocal = agentflagger( )
 
     # Write history
     try:
         param_names = importgmrt.__code__.co_varnames[:importgmrt.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        vars = locals( )
+        param_vals = [vars[p] for p in param_names]
+        
         ok &= write_history(myms, vis, 'importgmrt', param_names,
                             param_vals, casalog)
     except Exception as instance:
