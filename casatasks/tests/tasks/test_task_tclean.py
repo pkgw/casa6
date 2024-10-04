@@ -3920,23 +3920,38 @@ class test_wproject(testref_base):
 
           report=self.th.checkall(imgexist=[self.img+'.awp.image'],imgval=[(self.img+'.awp.psf',1.0,[1024,1024,0,0]),(self.img+'.awp.image',1.0,[1158,1384,0,0]) ] )
           self.assertTrue(self.check_final(report))
-     #@unittest.skipIf(True, "We need to copy point_vla_l_wterm.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
+          
+     #@unittest.skipIf(True, "We need to copy vla_wideband_2ptg_w_squint.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
      def test_wterm_awp2(self):
-          """ [wproject] Test_Widefield_wproj : W-Projection using the AWProject gridder """ 
+          """ [wproject] Test_Widefield_wproj : W-Projection using the AWP2 gridder """ 
           self.prepData("vla_wideband_2ptg_w_squint.ms")
           msname = self.msfile
           #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
 
            
           tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
-                 niter=0, weighting='uniform', gridder='awp2', wprojplanes=16, pblimit=-0.1, pbcor=True, 
+                 niter=20, weighting='uniform', gridder='awp2', wprojplanes=16, pblimit=-0.1, pbcor=True, 
                  parallel=self.parallel)
           ## source peak after pbcor
-          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.61,[287,872,0,0]),(self.img+'.awp2.image.pbcor',0.5,[287,872,0,0]) ] )
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]) ] )
           self.assertTrue(self.check_final(report))    
      
 ##############################################
+     def test_wterm_squint_awp2(self):
+          """ [wproject] Test_Widefield_wproj : W-Projection with squint using the AWP2 gridder """ 
+          self.prepData("vla_wideband_2ptg_w_squint.ms")
+          msname = self.msfile
+          #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
 
+           
+          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
+                 niter=20, weighting='uniform', stokes="IV", gridder='awp2', wprojplanes=16, 
+                 computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
+          ## source peak after pbcor
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]), (self.img+'.awp2.image.pbcor',0.0,[323,858,1,0]) ] )
+          self.assertTrue(self.check_final(report))    
+     
+##############################################
 ##Task level tests : awproject and mosaics
 class test_widefield(testref_base):
      def test_widefield_aproj_mfs(self):
@@ -3971,7 +3986,25 @@ class test_widefield(testref_base):
           #
          
           self.assertTrue(self.check_final(report))
+     ##############################################
+     def test_widefield_mvc_squint_awp2(self):
+          """ [wproject] Test_Widefield_wproj : W-Projection with squint using the AWP2 gridder """ 
+          self.prepData("vla_wideband_2ptg_w_squint.ms")
+          msname = self.msfile
+          #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
 
+          ##Do IV after mvc for stokes bug CAS-14454 is fixed 
+          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=2000, cell='1.6arcsec',field='', 
+                 specmode='mvc', deconvolver='mtmfs', nchan=-1,
+                 niter=20, weighting='uniform', stokes="I", phasecenter='J2000 00h07m0.0 50d0m0.000', gridder='awp2', wprojplanes=16, 
+                 computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
+          ## source peak after pbcor
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image.tt0'],
+                                  imgval=[(self.img+'.awp2.pb.tt0',0.54,[723,1446,0,0]),
+                                        (self.img+'.awp2.image.tt0.pbcor',0.7,[723,1446,0,0]),
+                                        (self.img+'.awp2.alpha',-0.05,[723,1446,0,0])] )
+          self.assertTrue(self.check_final(report))    
+     
      @unittest.skipIf(True, "We need to test for existance of gpu")
      def test_widefield_awphpg_mfs(self):
           """ [widefield] Test_Widefield_awphpg : MFS with narrowband AWProjection 1spw  stokes I """
