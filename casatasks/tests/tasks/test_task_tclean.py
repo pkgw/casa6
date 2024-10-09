@@ -1780,14 +1780,14 @@ class test_stokes(testref_base):
           ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IQUV',specmode='cube',interpolation='nearest',parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
           self.assertTrue(self.check_final(report))
-     def test_stokes_awp2_mtmfs_IV_squintcorr(self):
-          """ [stokes] test_stokes_awp2_mtmfs_IV_squintcorr : mtmfs with stokes IV"""
-          #self.prepData("vla_wideband_2ptg_w_squint.ms")
-          #msname = self.msfile
-          msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
-          ret = tclean(vis=msname,imagename=self.img,imsize=1200,gridder='awp2',cell='1.6arcsec',niter=10, stokes='I',specmode='mvc',deconvolver='mtmfs', nterms=2,parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
-          self.assertTrue(self.check_final(report))
+     ####this  test has been replaced by      test_widefield_mvc_squint_awp2
+     #def test_stokes_awp2_mtmfs_IV_squintcorr(self):
+     #     """ [stokes] test_stokes_awp2_mtmfs_IV_squintcorr : mtmfs with stokes IV"""
+     #     self.prepData("vla_wideband_2ptg_w_squint.ms")
+     #    msname = self.msfile
+     #    ret = tclean(vis=msname,imagename=self.img,imsize=1200,gridder='awp2',cell='1.6arcsec',niter=10, stokes='I',specmode='mvc',deconvolver='mtmfs', nterms=2,parallel=self.parallel)
+     #    report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image.tt0',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+     #     self.assertTrue(self.check_final(report))
 
 
 #     def test_stokes_cube_I_flags(self):
@@ -5836,9 +5836,9 @@ class test_mtmfsviacube(testref_base):
           self.assertTrue(self.check_final(pstr=report))
 
      ## Tests for mvc : AWProject gridder
-     @unittest.skip('Skip test of "awp2" gridder until it comes in via CAS-14146.')
+     #@unittest.skip('Skip test of "awp2" gridder until it comes in via CAS-14146.')
      def test_mtmfsviacube_awp2(self):
-          """ [mtmfsviacube] test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
+          """ [mtmfsviacube] test_awp2_mtmfs_cube: test mosaic with mtmfs via cube """
           ###########################################
           self.prepData('refim_oneshiftpoint.mosaic.ms')
           ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',

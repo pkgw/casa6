@@ -208,7 +208,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   
 }
   
- void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
+ void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const bool ispsf ){
   //
   // pbConvFunc_p.phasegradient
 
@@ -257,7 +257,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     } */  
 
     awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
-                             weightConvFunc_p, vb, rotuvw, interpVisFreq_p, toVis_p);
+                             weightConvFunc_p, vb, rotuvw, interpVisFreq_p, toVis_p, ispsf);
     //double time1=omp_get_wtime();
     //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
@@ -286,13 +286,13 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
-   
     pbConvFunc_p->rephaseConvFunc(
         iimage, vb, convSampling, convFunc, weightConvFunc_p, pmapused,
         cmapused, rmapused, MVDirection(-(movingDirShift_p.getAngle())),
         fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
+    //cerr << "csup " << convSupport << " csize "<< convSize << " csamp " << convSampling << endl;
  
 
  }

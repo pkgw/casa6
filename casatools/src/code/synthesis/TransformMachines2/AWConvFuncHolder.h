@@ -66,7 +66,8 @@ class AWConvFuncHolder{
                       const vi::VisBuffer2 &vb,
                       const casacore::Matrix<casacore::Double> &rotuvw,
                       const casacore::Vector<casacore::Double> &freqs,
-                      const casacore::Bool predictMode=false);
+                      const casacore::Bool predictMode=false,
+                      const bool ispsf=false);
 
 
   // This function will return a subset of the convFuncs, i.e those used in this
@@ -79,7 +80,8 @@ class AWConvFuncHolder{
                     const vi::VisBuffer2 &vb,
                     const casacore::Matrix<casacore::Double> &rotuvw,
                     const casacore::Vector<casacore::Double>& interpFreqs,
-                    const casacore::Bool predictMode=false);
+                    const casacore::Bool predictMode=false,
+                    const bool ispsf=false);
 
   //help AWConvFunc decide if single field or not
   void setSingleField(const bool isSingleField = False){

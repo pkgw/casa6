@@ -2481,7 +2481,7 @@ void AWConvFunc::makeAWConvFunc(Array<Complex>& convFunc,
 		itw.array()(blcw,trcw)=pbWFT;
 		itw.next();
 	}
-	//cerr << "AFTER convshape "<< convFunc.shape() << endl;
+	//cerr << "AFTER convshape "<< convFunc.shape() << " support " << awsupport << endl;
 	//cerr <<  "wtconv " <<  max(wtconv) <<  "   " << min(wtconv) <<  endl;
 	////TESTOO
 	/*{

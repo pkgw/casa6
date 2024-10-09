@@ -300,11 +300,24 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     convSupport_p = awsupport.row(nfreqs-1);
   } else {
     // Appending PA changing only
+    //in case support is bigger for this PA.
+
     IPosition newshp = convFunc_p.shape();
-    // asumming same freqs for now
-    newshp(4) = startrow+awConv.shape()(4);
+    if (newshp[0] < (2 * (max(awsupport) + 1) * oversamp_p)){
+      //cerr << "@@@@RESHAPING " << endl;
+      IPosition elshp = newshp;
+      elshp[0] = (2 * (max(awsupport) + 1) * oversamp_p);
+      elshp[1] = (2 * (max(awsupport) + 1) * oversamp_p);
+      Array<Complex> tempC(elshp, Complex(0.0));
+      Array<Complex> tempW(elshp,Complex(0.0));
+      MathUtils::putMiddle(tempC, convFunc_p);
+      MathUtils::putMiddle(tempW,wgtConvFunc_p);
+      convFunc_p.reference(tempC);
+      wgtConvFunc_p.reference(tempW);
+    }
+      // asumming same freqs for now
+      newshp(4) = startrow + awConv.shape()(4);
     Int npix = min(newAWConv.shape()[0],  newAWConv.shape()[1]);
-    //cerr << "####npix " << npix << " newshap " << newshp[0] << endl;
     if (npix <= newshp[0]) {
       IPosition blcadded(5, 0, 0, 0, 0, startrow);
       IPosition trcadded = newshp - 1;
@@ -370,12 +383,13 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
                                     const vi::VisBuffer2 &vb,
                                     const Matrix<Double> &rotuvw,
                                     const Vector<Double> & interpFreqs,
-                                    const Bool predictMode) {
+                                    const Bool predictMode, 
+                                    const bool ispsf) {
 
   Vector<Int> cmap;
   Vector<Int> pmap;
   Vector<Int> rmap;
-  getConvIndices(pmap, cmap, rmap, vb, rotuvw, interpFreqs, predictMode);
+  getConvIndices(pmap, cmap, rmap, vb, rotuvw, interpFreqs, predictMode, ispsf);
   //cerr << "pmap "<< pmap << endl;
   //cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
   std::vector<Int> pmapused = pmap.tovector();
@@ -474,7 +488,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
 
 //////////////////////  
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const Vector<Double>& interpFreqs, 
-  const Bool predictMode) {
+  const Bool predictMode, const bool ispsf) {
   // Lets do the polmap
   Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
   polMap.resize(visPolMap.nelements());
@@ -544,7 +558,7 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   for (uint k = 0; k < vb.nRows();++k) {
     minDiff = 1e40;
     Int tmpWInd = -1;
-    Double w = rotuvw.row(2)[k] *invlamda;
+    Double w = ispsf ? 0 : rotuvw.row(2)[k] *invlamda;
     for (uint j =0; j < wVals_p.nelements();++j ) {
       if (fabs(fabs(w)-wVals_p[j]) < minDiff) {
        minDiff = fabs(fabs(w)-wVals_p[j]);
