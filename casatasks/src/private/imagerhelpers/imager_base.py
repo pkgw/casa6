@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,7 +6,6 @@ import time
 import re
 import copy
 from typing import TYPE_CHECKING
-from casatasks.private.casa_transition import is_CASA6
 
 
 from casatools import (
@@ -27,7 +25,6 @@ if TYPE_CHECKING:
 ctsys_hostinfo = ctsys.hostinfo
 _tb = table()
 _ia = image()
-
 
 """
 A set of helper functions for tclean.

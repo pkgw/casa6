@@ -28,27 +28,16 @@ import os
 import unittest
 import shutil
 import sys
-CASA6 = False
-try:
-    from casatools import ctsys, image, regionmanager
-    from casatasks import importfits, imstat, exportfits, imreframe
-    _rg = regionmanager
-    CASA6 = True
-except ImportError:
-    from __main__ import default
-    from tasks import *
-    from taskinit import iatool, rgtool
-    image = iatool
-    _rg = rgtool
+
+from casatools import ctsys, image, regionmanager
+from casatasks import importfits, imstat, exportfits, imreframe
+_rg = regionmanager
 
 ia = image()
 rg = _rg()
 
-if CASA6:
-    datapath = ctsys.resolve("regression/fits_import_export/")
-    print("DATAPATH: {}".format(datapath))
-else:
-    datapath = os.environ['CASAPATH'].split()[0] + '/casatestdata/regression/fits_import_export/'
+datapath = ctsys.resolve("regression/fits_import_export/")
+print("DATAPATH: {}".format(datapath))
 
 
 if 'datasets' not in (locals()):
@@ -125,8 +114,6 @@ def checkimage(myfitsimage_name, maxpos_expect, maxposf_expect):
             print(myname, ' imported image ', myfitsimage_name, ' as expected.')
 
             # export the image
-#            if not CASA6:
-#                default('exportfits')
             try:
                 print('Exporting ', myfitsimage_name, '...')
                 exportfits(fitsimage = myfitsimage_name + 'exp.fits',
@@ -138,8 +125,6 @@ def checkimage(myfitsimage_name, maxpos_expect, maxposf_expect):
             else:
                 print(myname, ' No exceptions raised! Now comparing exported image with original by re-importing it ...')
                 # re-import the image
-#                if not CASA6:
-#                    default('importfits')
                 try:
                     print(myname, ' Re-importing ', myfitsimage_name+'exp.fits', ' ...')
                     importfits(fitsimage = myfitsimage_name+'exp.fits',
@@ -175,8 +160,6 @@ def checkimageb(myfitsimage_name):
     subtest_passed = True
 
     # import the image
-#    if not CASA6:
-#        default('importfits')
     try:
         print(myname, ' Importing ', myfitsimage_name+'.fits', ' ...')
         importfits(fitsimage = datapath+myfitsimage_name+'.fits',
@@ -189,8 +172,6 @@ def checkimageb(myfitsimage_name):
         print(myname, ' No exceptions raised!')
         mystat = imstat(imagename = myfitsimage_name)
         # export the image
-        if not CASA6:
-            default('exportfits')
         try:
             print('Exporting ', myfitsimage_name, ' with bitpix=16 ...')
             exportfits(fitsimage = myfitsimage_name + 'exp.fits',
@@ -202,8 +183,6 @@ def checkimageb(myfitsimage_name):
         else:
             print(myname, ' No exceptions raised! Now testing minimum and maximum values ...')
             # re-import the image
-            if not CASA6:
-                default('importfits')
             try:
                 print(myname, ' Re-importing ', myfitsimage_name+'exp.fits', ' ...')
                 importfits(fitsimage = myfitsimage_name+'exp.fits',
@@ -233,11 +212,7 @@ def checkimageb(myfitsimage_name):
 class regression_fits_import_export_test(unittest.TestCase):
 
     def setUp(self):
-        if not CASA6:
-            default(exportfits)
-            default(importfits)
-            default(imreframe)
-            default(imstat)
+        pass
     
     def tearDown(self):
         for i in list(mydict.keys()):

@@ -1,17 +1,8 @@
-from __future__ import absolute_import
 import os
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import atcafiller
-    from .mstools import write_history
-else:
-    from taskinit import casac, casalog
-    from mstools import write_history
-
-    atcafiller = casac.atcafiller
+from casatasks import casalog
+from casatools import atcafiller
+from .mstools import write_history
 
 def importatca (
     files=None,
@@ -94,11 +85,8 @@ def importatca (
         # Write the args to HISTORY.
         try:
             param_names = importatca.__code__.co_varnames[:importatca.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]
             write_history(
                 myaf, vis, 'importatca', param_names, 
                 param_vals, casalog

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,19 +6,11 @@ import time
 import re;
 import copy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import casalog, synthesisdeconvolver
+from casatools import casalog, synthesisdeconvolver
 
-    from .imager_base import PySynthesisImager
-    from .parallel_imager_helper import PyParallelImagerHelper
-else:
-    from taskinit import *
+from .imager_base import PySynthesisImager
+from .parallel_imager_helper import PyParallelImagerHelper
 
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    synthesisdeconvolver = casac.synthesisdeconvolver
 '''
 A set of helper functions for the tasks  tclean
 

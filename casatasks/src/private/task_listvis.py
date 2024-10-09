@@ -1,15 +1,9 @@
 # Task listvis
 
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ms
-    from casatasks import casalog
-else:
-    from taskinit import *
-    ms = casac.ms
+from casatools import ms
+from casatasks import casalog
 
 def listvis(vis, options, datacolumn, field,spw, selectdata, antenna, timerange,
             correlation, scan, feed, array, observation, uvrange, average,

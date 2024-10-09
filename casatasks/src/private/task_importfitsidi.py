@@ -1,19 +1,10 @@
-from __future__ import absolute_import
 import os
 import shutil
 import numpy as np
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import ms, table
-    from casatasks import casalog
-    from .mstools import write_history
-else:
-    from taskinit import casalog
-    from taskinit import mstool as ms
-    from taskinit import tbtool as table
-    from mstools import write_history
+from casatools import ms, table
+from casatasks import casalog
+from .mstools import write_history
 
 def importfitsidi(fitsidifile,vis,constobsid=None,scanreindexgap_s=None,specframe=None):
     """Convert FITS-IDI visibility file into a CASA visibility file (MS).
@@ -165,11 +156,8 @@ def importfitsidi(fitsidifile,vis,constobsid=None,scanreindexgap_s=None,specfram
         # write history
         try:
             param_names = importfitsidi.__code__.co_varnames[:importfitsidi.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]   
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]
             write_history(myms, vis, 'importfitsidi', param_names, param_vals, casalog)
 
         except Exception as instance:
