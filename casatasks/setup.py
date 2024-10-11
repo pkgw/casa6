@@ -280,6 +280,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/sdsidebandsplit.xml',
               'xml/plotprofilemap.xml',
               'xml/imbaseline.xml',
+              'xml/wvrgcal.xml',
 ]
 
 if pyversion < 3:
@@ -442,7 +443,7 @@ class BuildCasa(build):
             proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
                           stdout=subprocess.PIPE )
         else:
-            xml_jar_file = 'xml-casa-assembly-1.83.jar'
+            xml_jar_file = 'xml-casa-assembly-1.86.jar'
             xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
             xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
             self.xml_jar_fetch(xml_jar_path, xml_jar_url)
@@ -650,5 +651,5 @@ setup( name=module_name,version=casatasks_version,
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi', 'pyerfa' ]
 )

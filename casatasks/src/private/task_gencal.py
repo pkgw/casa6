@@ -11,6 +11,7 @@ if is_CASA6:
     from casatools import calibrater
     from . import correct_ant_posns as getantposns
     from .jyperk import gen_factor_via_web_api, JyPerKReader4File
+    from .eop import generate_eop
 
     _cb = calibrater()
 else:
@@ -61,7 +62,7 @@ def gencal(vis=None, caltable=None, caltype=None, infile='None',
     if not ((type(vis) == str) and (os.path.exists(vis))):
         raise ValueError('Visibility data set not found - please verify the name')
 
-    if caltype not in ['antpos', 'jyperk']:
+    if caltype not in ['antpos', 'jyperk', 'eop']:
         gencal_type = 'general'
     else:
         gencal_type = caltype
@@ -229,9 +230,35 @@ class JyperkGencal():
 
         return pol
 
+class EOPGencal():
+    """A class to generate caltable from update EOP values.
+
+    This class will be called if the caltype is 'eop'.
+    """
+
+    @classmethod
+    def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
+               spw=None, antenna=None, pol=None,
+               parameter=None, uniform=None):
+        """Generate calibration table."""
+        try:
+            # don't need scr col for this
+            _cb.open(filename=vis, compress=False, addcorr=False, addmodel=False)
+            _cb.createcaltable(caltable=caltable, partype='Real', caltype='Fringe Jones', singlechan=True)
+            _cb.close()
+            generate_eop(vis, caltable, infile)
+
+        except UserWarning as instance:
+            casalog.post('*** UserWarning *** %s' % instance, 'WARN')
+
+        finally:
+            _cb.close()
+
 
 __gencal_factory = {
     'general': GeneralGencal,
     'antpos': AntposGencal,
     'jyperk': JyperkGencal,
+    'eop': EOPGencal,
 }

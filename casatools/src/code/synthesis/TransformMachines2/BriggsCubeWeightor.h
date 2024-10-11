@@ -76,30 +76,36 @@ class BriggsCubeWeightor{
 	void readWeightColumn(casacore::Matrix<casacore::Float>& imweight, const vi::VisBuffer2& vb);
   void fillImgWeightCol(vi::VisibilityIterator2& vi, const casacore::Record&  inRec, const casacore::Int msid, std::vector<pair<casacore::Int, casacore::Int> >& fieldsToUse, const casacore::uInt swingpad, const casacore::IPosition& origShp, casacore::CoordinateSystem cs);
   casacore::Int estimateSwingChanPad(vi::VisibilityIterator2& vi, const casacore::Int msid, const casacore::CoordinateSystem& cs, const casacore::Int imNChan, const casacore::String& ephemtab="");
+  casacore::Bool compareframe(const casacore::MFrequency::Types frame,
+                              const vi::VisBuffer2& vb);
+  casacore::Block<
+      casacore::CountedPtr<casacore::ImageInterface<casacore::Float>>>
+      grids_p;
 
-    casacore::Block<casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > > grids_p;
-    
-    casacore::Block<casacore::CountedPtr<refim::GridFT> >  ft_p;
-    std::map<casacore::String, casacore::Int> multiFieldMap_p;
-    casacore::Block<casacore::Vector<casacore::Float> > f2_p, d2_p;
-    casacore::Float uscale_p, vscale_p;
-    casacore::Int uorigin_p, vorigin_p;
-    casacore::Int nx_p, ny_p;
-    casacore::String rmode_p;
-    casacore::Quantity noise_p;
-    casacore::Double robust_p;
-    casacore::Int superUniformBox_p;
-    casacore::Bool multiField_p;
-    casacore::Bool initialized_p;
-    casacore::Double refFreq_p;
-    casacore::InterpolateArray1D<casacore::Double,casacore::Complex>::InterpolationMethod freqInterpMethod_p;
-    casacore::Bool freqFrameValid_p;
-    VisImagingWeight visWgt_p;
-    
-    casacore::Double fracBW_p;
-    casacore::CountedPtr<casacore::Table> wgtTab_p;
-    std::map<std::pair<casacore::uInt, casacore::rownr_t>, casacore::rownr_t> vbrowms2wgtrow_p;
-    casacore::String imWgtColName_p;
+  casacore::Block<casacore::CountedPtr<refim::GridFT>> ft_p;
+  std::map<casacore::String, casacore::Int> multiFieldMap_p;
+  casacore::Block<casacore::Vector<casacore::Float>> f2_p, d2_p;
+  casacore::Float uscale_p, vscale_p;
+  casacore::Int uorigin_p, vorigin_p;
+  casacore::Int nx_p, ny_p;
+  casacore::String rmode_p;
+  casacore::Quantity noise_p;
+  casacore::Double robust_p;
+  casacore::Int superUniformBox_p;
+  casacore::Bool multiField_p;
+  casacore::Bool initialized_p;
+  casacore::Double refFreq_p;
+  casacore::InterpolateArray1D<casacore::Double,
+                               casacore::Complex>::InterpolationMethod
+      freqInterpMethod_p;
+  casacore::Bool freqFrameValid_p;
+  VisImagingWeight visWgt_p;
+
+  casacore::Double fracBW_p;
+  casacore::CountedPtr<casacore::Table> wgtTab_p;
+  std::map<std::pair<casacore::uInt, casacore::rownr_t>, casacore::rownr_t>
+      vbrowms2wgtrow_p;
+  casacore::String imWgtColName_p;
  };
    }//# end namespace refim
 } // end namespace casa

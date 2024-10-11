@@ -44,6 +44,7 @@
 #include <casacore/casa/OS/File.h>
 #include <casacore/casa/Quanta/MVTime.h>
 #include <casacore/casa/Utilities/Sort.h>
+#include <casacore/casa/Utilities/GenSort.h>
 #include <casacore/casa/Utilities/BinarySearch.h>
 #include <casacore/measures/Measures/Stokes.h>
 #include <casacore/scimath/Functionals/Interpolate1D.h>
@@ -158,18 +159,26 @@ inline std::pair<Int, Int> findNearestIndex(Vector<Double> const &data, Double c
 }
 
 // implementation of np.convolve(mode='same')
+// CAS-14343/PIPEREQ-279 implementation has been tweaked to mitigate the boundary effect
 inline Vector<Double> convolve1DTriangle(Vector<Double> const &in) {
   constexpr unsigned int kNumKernel = 3u;
+  // normalized symmetric kernel
+  // we don't need to invert it for convolution operation
   constexpr Double kKernelTriangle[] = {0.25, 0.5, 0.25};
   unsigned int const n = in.nelements();
   assert(n >= kNumKernel);
   Vector<Double> out(n, 0.0);
-  // symmetric kernel
-  out[0] = kKernelTriangle[0] * in[1] + kKernelTriangle[1] * in[0];
+  // CAS-14343/PIPEREQ-279
+  // Output array, out, is normalized with the sum of kernel to mitigate
+  // boundary effect. Since kernel is normalized, where sum(kKernelTriangle) is 1,
+  // explicit normalization is necessary only for edge channels.
+  out[0] = (kKernelTriangle[0] * in[1] + kKernelTriangle[1] * in[0])
+    / (kKernelTriangle[0] + kKernelTriangle[1]);
   for (unsigned int i = 1; i < n - 1; ++i) {
     out[i] = kKernelTriangle[0] * (in[i - 1] + in[i + 1]) + kKernelTriangle[1] * in[i];
   }
-  out[n - 1] = kKernelTriangle[0] * in[n - 2] + kKernelTriangle[1] * in[n - 1];
+  out[n - 1] = (kKernelTriangle[0] * in[n - 2] + kKernelTriangle[1] * in[n - 1])
+    / (kKernelTriangle[0] + kKernelTriangle[1]);
   return out;
 }
 
@@ -177,6 +186,8 @@ inline Vector<Double> convolve1DHanning(Vector<Double> const &in) {
   // normalized spectral response for Hanning window, FWHM=10
   constexpr unsigned int kNumKernel = 29u;
   constexpr unsigned int kIndexKernelCenter = kNumKernel / 2u;
+  // normalized symmetric kernel
+  // we don't need to invert it for convolution operation
   constexpr Double kKernelHanning[] = {
     -0.00098041, -0.00202866, -0.00265951, -0.00222265,
     0.00000000, 0.00465696, 0.01217214, 0.02260546, 0.03556241,
@@ -187,17 +198,22 @@ inline Vector<Double> convolve1DHanning(Vector<Double> const &in) {
   };
   unsigned int const n = in.nelements();
   assert(n >= kNumKernel);
-  // Vector<Double> out(n, 0.0);
   std::unique_ptr<Double[]> out(new Double[n]);
   Bool b;
   Double const *in_p = in.getStorage(b);
-  // symmetric kernel
+  // CAS-14343/PIPEREQ-279
+  // Output array, out, is normalized with the sum of kernel to mitigate
+  // boundary effect. Since kernel is normalized, where sum(kKernelHanning) is 1,
+  // explicit normalization is necessary only for edge channels.
   for (unsigned int i = 0u; i < kIndexKernelCenter; ++i) {
     out[i] = 0.0;
+    Double normalizer = 0.0;
     for (unsigned int j = 0u; j < kIndexKernelCenter + i + 1; ++j) {
       unsigned int k = kIndexKernelCenter - i + j;
       out[i] += in_p[j] * kKernelHanning[k];
+      normalizer += kKernelHanning[k];
     }
+    out[i] /= normalizer;
   }
   for (unsigned int i = kIndexKernelCenter; i < n - kIndexKernelCenter; ++i) {
     out[i] = 0.0;
@@ -208,10 +224,13 @@ inline Vector<Double> convolve1DHanning(Vector<Double> const &in) {
   }
   for (unsigned int i = n - kIndexKernelCenter; i < n; ++i) {
     out[i] = 0.0;
+    Double normalizer = 0.0;
     for (unsigned int j = i - kIndexKernelCenter; j < n; ++j) {
       unsigned int k = j - (i - kIndexKernelCenter);
       out[i] += in_p[j] * kKernelHanning[k];
+      normalizer += kKernelHanning[k];
     }
+    out[i] /= normalizer;
   }
   in.freeStorage(in_p, b);
   return Vector<Double>(IPosition(1, n), out.release(), TAKE_OVER);
@@ -462,6 +481,7 @@ void SDAtmosphereCorrectionTVI::initializeAtmosphereCorrection(Record const &con
        << LogIO::EXCEPTION;
   }
   processSpwList_ = configuration.asArrayInt("processspw");
+  GenSort<Int>::sort(processSpwList_, Sort::Ascending, Sort::NoDuplicates);
   os << "processspw (input) = " << processSpwList_ << LogIO::POST;
 
   // gain factor
@@ -560,8 +580,9 @@ void SDAtmosphereCorrectionTVI::initializeAtmosphereCorrection(Record const &con
   MSMetaData msmd(&ms(), kNoCache);
   std::set<uInt> allSpwIds = msmd.getSpwIDs();
   std::set<uInt> nonProcessingSpws;
+  std::set<uInt> sortedProcessSpwList(processSpwList_.begin(), processSpwList_.end());
   std::set_difference(allSpwIds.begin(), allSpwIds.end(),
-                      processSpwList_.begin(), processSpwList_.end(),
+                      sortedProcessSpwList.begin(), sortedProcessSpwList.end(),
                       std::inserter(nonProcessingSpws, nonProcessingSpws.begin()));
   if (nonProcessingSpws.size() > 0) {
     os << LogIO::WARN << "SPW"

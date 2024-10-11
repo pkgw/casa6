@@ -39,6 +39,7 @@ __all__ = [ "ctsys", "version", "version_string"
             'synthesisimager',
             'componentlist',
             'spectralline',
+            'wvr'
           ]
 from .image import image
 from .logsink import logsink
@@ -58,6 +59,7 @@ from .synthesisimstore import synthesisimstore
 from .miriadfiller import miriadfiller
 from .ms import ms
 from .vpmanager import vpmanager
+from .wvr import wvr
 from .synthesisdeconvolver import synthesisdeconvolver
 from .vlafiller import vlafiller
 from .sakura import sakura
@@ -235,7 +237,7 @@ else:
     # always append measurespath to datapath if not already found there to be used by ctsys.initialize
     add_mp = True
     for apath in user_datapath:
-        if __os.path.samefile(apath, user_measurespath):
+        if __os.path.exists(apath) and __os.path.samefile(apath, user_measurespath):
             add_mp = False
             break
     if add_mp:
@@ -278,8 +280,8 @@ from .coercetype import coerce as __coerce
 
 __coerce.set_ctsys(ctsys)         ## used to locate files from a partial path
 
-def version( ): return list(ctsys.toolversion( ))
-def version_string( ): return ctsys.toolversion_string( )
+def version( ): return list(ctsys.version( ))
+def version_string( ): return ctsys.version_string( )
 
 import atexit as __atexit
 __atexit.register(ctsys.shutdown) ## c++ shutdown
