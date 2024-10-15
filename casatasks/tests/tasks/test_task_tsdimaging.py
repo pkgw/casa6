@@ -22,12 +22,6 @@
 #
 ##########################################################################
 
-# Temporary Note: 2024/6/13 Kaz
-# Because of adding the new parameter 'interpolation' and changing the default internal parameter
-# for frequency interpoation of imager to 'linear', we must evaluate the values for assertion in some tests.
-# For the porpose, I set interpolation='nearest' in task_param at the moment,
-# therefore all tests have passed now. (failed some tests without the param, of cource)
-# This comment will destruct by my hand in a few days.
 
 import copy
 from enum import Enum
@@ -312,7 +306,7 @@ class sdimaging_standard_paramset(object):
     nchan = 40
     start = 400
     width = 10
-    interpolation = 'nearest'
+    interpolation = 'linear'
 
 ###
 # Base class for sdimaging unit test
@@ -785,6 +779,12 @@ class sdimaging_test0(sdimaging_unittest_base):
         msg = 'min value is 0'
         self.run_parameter_verification_test(task_param, msg, expected_type=AssertionError)
 
+    def test016(self):
+        """Test016: Bad interpolation."""
+        self.task_param['interpolation'] = 'bad'
+        msg = 'unallowed value bad'
+        self.run_exception_case(self.task_param, msg, expected_type=AssertionError)
+
 
 ###
 # Test channel imaging
@@ -1209,18 +1209,18 @@ class sdimaging_test2(sdimaging_unittest_base):
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
-                    'max': numpy.array([21.55560875]),
+                    'max': numpy.array([20.27528954]),
                     'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
-                    'mean': numpy.array([0.80467233]),
-                    'min': numpy.array([-0.27736959]),
+                    'mean': numpy.array([0.80622262]),
+                    'min': numpy.array([-0.26142693]),
                     'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
                     'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
                     'npts': numpy.array([562500.]),
-                    'rms': numpy.array([1.56429076]),
-                    'sigma': numpy.array([1.3414586]),
-                    'sum': numpy.array([452628.18628213]),
-                    'sumsq': numpy.array([1376440.6075593]),
+                    'rms': numpy.array([1.56367255]),
+                    'sigma': numpy.array([1.33980601]),
+                    'sum': numpy.array([453500.22199465]),
+                    'sumsq': numpy.array([1375352.91921593]),
                     'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
@@ -1233,6 +1233,32 @@ class sdimaging_test2(sdimaging_unittest_base):
         start = "%f%s" % (1420.2, loc_unit)
         width = "%f%s" % (0.01, loc_unit)
         self.task_param.update(dict(nchan=nchan, start=start, width=width))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
+                    'max': numpy.array([20.27528954]),
+                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
+                    'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
+                    'mean': numpy.array([0.80622262]),
+                    'min': numpy.array([-0.26142693]),
+                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
+                    'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([1.56367255]),
+                    'sigma': numpy.array([1.33980601]),
+                    'sum': numpy.array([453500.22199465]),
+                    'sumsq': numpy.array([1375352.91921593]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
+    def test204(self):
+        """Test 204: Selected frequency image with nearest interpolation."""
+        nchan = 100
+        start = "%f%s" % (1.4202, self.unit)
+        width = "%f%s" % (1.0e-5, self.unit)
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='nearest'))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
@@ -1252,6 +1278,33 @@ class sdimaging_test2(sdimaging_unittest_base):
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
+
+    def test205(self):
+        """Test 205: Selected frequency image with cubic interpolation."""
+        nchan = 100
+        start = "%f%s" % (1.4202, self.unit)
+        width = "%f%s" % (1.0e-5, self.unit)
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='cubic'))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
+                    'max': numpy.array([20.5693531]),
+                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
+                    'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
+                    'mean': numpy.array([0.8062793]),
+                    'min': numpy.array([-0.27040794]),
+                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
+                    'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([1.56608822]),
+                    'sigma': numpy.array([1.34259049]),
+                    'sum': numpy.array([453532.10599035]),
+                    'sumsq': numpy.array([1379605.68224346]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
 
 ###
 # Test velocity imaging
@@ -1333,6 +1386,58 @@ class sdimaging_test3(sdimaging_unittest_base):
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
+                    'max': numpy.array([20.83851051]),
+                    'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
+                    'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
+                    'mean': numpy.array([0.84265565]),
+                    'min': numpy.array([-0.27432534]),
+                    'minpos': numpy.array([61, 71, 0, 16], dtype=numpy.int32),
+                    'minposf': '17:08:30.980, +61.12.02.893, I, 1.421202e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([1.60797852]),
+                    'sigma': numpy.array([1.3694998]),
+                    'sum': numpy.array([473993.80551219]),
+                    'sumsq': numpy.array([1454397.14908556]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.420415e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
+    def test302(self):
+        """Test 302: Selected velocity image (different rest frequency)."""
+        nchan = 100
+        start = "%f%s" % (-100.0, self.unit)
+        width = "%f%s" % (2.0, self.unit)
+        self.task_param.update(dict(restfreq='1.420GHz', nchan=nchan, start=start, width=width))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.420474e+09Hz',
+                    'max': numpy.array([1.61340475]),
+                    'maxpos': numpy.array([4, 52, 0, 33], dtype=numpy.int32),
+                    'maxposf': '17:31:47.043, +60.13.54.473, I, 1.420161e+09Hz',
+                    'mean': numpy.array([0.12391789]),
+                    'min': numpy.array([-0.40290669]),
+                    'minpos': numpy.array([60, 71, 0, 93], dtype=numpy.int32),
+                    'minposf': '17:08:55.879, +61.12.09.501, I, 1.419593e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([0.19238515]),
+                    'sigma': numpy.array([0.14716128]),
+                    'sum': numpy.array([69703.8118369]),
+                    'sumsq': numpy.array([20819.27620886]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.419536e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
+    def test303(self):
+        """Test 303: Selected velocity image with nearest interpolation."""
+        nchan = 100
+        start = "%f%s" % (-200.0, self.unit)
+        width = "%f%s" % (2.0, self.unit)
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='nearest'))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
                     'max': numpy.array([21.97223091]),
                     'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
                     'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
@@ -1350,31 +1455,32 @@ class sdimaging_test3(sdimaging_unittest_base):
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
 
-    def test302(self):
-        """Test 302: Selected velocity image (different rest frequency)."""
+    def test304(self):
+        """Test 304: Selected velocity image with cubic interpolation."""
         nchan = 100
-        start = "%f%s" % (-100.0, self.unit)
+        start = "%f%s" % (-200.0, self.unit)
         width = "%f%s" % (2.0, self.unit)
-        self.task_param.update(dict(restfreq='1.420GHz', nchan=nchan, start=start, width=width))
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='cubic'))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
-                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.420474e+09Hz',
-                    'max': numpy.array([1.61916351]),
-                    'maxpos': numpy.array([4, 52, 0, 33], dtype=numpy.int32),
-                    'maxposf': '17:31:47.043, +60.13.54.473, I, 1.420161e+09Hz',
-                    'mean': numpy.array([0.12395606]),
-                    'min': numpy.array([-0.41655564]),
-                    'minpos': numpy.array([60, 71, 0, 93], dtype=numpy.int32),
-                    'minposf': '17:08:55.879, +61.12.09.501, I, 1.419593e+09Hz',
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
+                    'max': numpy.array([21.01988792]),
+                    'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
+                    'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
+                    'mean': numpy.array([0.84267729]),
+                    'min': numpy.array([-0.28811091]),
+                    'minpos': numpy.array([61, 71, 0, 16], dtype=numpy.int32),
+                    'minposf': '17:08:30.980, +61.12.02.893, I, 1.421202e+09Hz',
                     'npts': numpy.array([562500.]),
-                    'rms': numpy.array([0.19268371]),
-                    'sigma': numpy.array([0.14751931]),
-                    'sum': numpy.array([69725.28195545]),
-                    'sumsq': numpy.array([20883.94443161]),
+                    'rms': numpy.array([1.60991199]),
+                    'sigma': numpy.array([1.37175615]),
+                    'sum': numpy.array([474005.97419012]),
+                    'sumsq': numpy.array([1457896.843721]),
                     'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
-                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.419536e+09Hz'}
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.420415e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
+
 
 ###
 # Test auto-resolution of spatial gridding parameters
@@ -2185,8 +2291,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_default_list(self):
-        """Test spw selection w/ channel selection (spw=':6~7;2~5')."""
-        spw = ':6~7;2~5'  # chan=2-7 in all spws should be selected
+        """Test spw selection w/ channel selection (spw=':2~5;6~7')."""
+        #spw = ':6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                          # The parameter should be set a sorted value to get channel selection correctly.
+        spw = ':2~5;6~7'  # chan=2-7 in all spws should be selected
         region = self.spw_region_chan1
         infile = self.unifreq_ms
         flux_list = self.__get_flux_value(infile)
@@ -2235,8 +2343,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_exact_list(self):
-        """Test spw selection w/ channel selection (spw='2:6~7;2~5')."""
-        spw = '2:6~7;2~5'  # chan=2-7 of spw=2 should be selected
+        """Test spw selection w/ channel selection (spw='2:2~5;6~7')."""
+        #spw = '2:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                           # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '2:2~5;6~7'  # chan=2-7 of spw=2 should be selected
         selspw = [2]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -2295,8 +2405,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_pattern_list(self):
-        """Test spw selection w/ channel selection (spw='*:6~7;2~5')."""
-        spw = '*:6~7;2~5'
+        """Test spw selection w/ channel selection (spw='*:2~5;6~7')."""
+        #spw = '*:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                           # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '*:2~5;6~7'
         region = self.spw_region_chan1
         infile = self.unifreq_ms
         flux_list = self.__get_flux_value(infile)
@@ -2311,7 +2423,9 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     def test_spw_value_frequency_channel(self):
         """Test spw selection w/ channel selection (spw='300.4~300.5GHz:2~7')."""
-        spw = '300.4~300.5GHz:2~7'
+        #spw = '300.4~300.5GHz:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                                        # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '300.4~300.5GHz:2~5;6~7'
         selspw = [1]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -2346,8 +2460,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     @unittest.expectedFailure
     def test_spw_value_frequency_list(self):
-        """Test spw selection w/ channel selection (spw='299.9~300.1GHz:6~7;2~5')."""
-        spw = '299.9~300.1GHz:6~7;2~5'
+        """Test spw selection w/ channel selection (spw='299.9~300.1GHz:2~5;6~7')."""
+        #spw = '299.9~300.1GHz:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                                        # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '299.9~300.1GHz:2~5;6~7'
         selspw = [0]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -3824,9 +3940,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         # CAS-10893 TODO: uncomment once true PSF image is available
         # remove_table(self.outfile_ref + '.psf')
 
-    def _test_clipping(self, infiles, is_clip_effective=True):
+    def _test_clipping(self, infiles, is_clip_effective=True, interpolation='linear'):
         if isinstance(infiles, str):
-            self._test_clipping([infiles], is_clip_effective)
+            self._test_clipping([infiles], is_clip_effective, interpolation)
             return
 
         for infile in infiles:
@@ -3848,7 +3964,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=True, interpolation=self.interpolation)
+                   phasecenter=phasecenter, clipminmax=True, interpolation=interpolation)
         _outfile = outfile + image_suffix
         self._checkfile(_outfile)
         self._check_weight_image(_outfile)
@@ -3932,7 +4048,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=False, interpolation=self.interpolation)
+                   phasecenter=phasecenter, clipminmax=False, interpolation=interpolation)
         _outfile_ref = outfile + image_suffix
         self._checkfile(_outfile_ref)
         self._check_weight_image(_outfile_ref)
@@ -4021,9 +4137,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         self._test_clipping(infile, is_clip_effective=True)
 
     def test_multichan(self):
-        """test_multichan: check if clipping handles multi-channel data properly."""
-        infile = 'clipping_3rows_2chans.ms'
-        self._test_clipping(infile, is_clip_effective=True)
+        """test_multichan: check if clipping handles multi-channel data properly with nearest interpolation."""
+        infile = 'clipping_3rows_2chans.ms'  # note: it needs to make an another reference image if a test with linear interpolation should be made
+        self._test_clipping(infile, is_clip_effective=True, interpolation='nearest')
 
 
 class sdimaging_test_projection(sdimaging_unittest_base):
@@ -4555,6 +4671,48 @@ def calc_mapproperty(statistics):
     ddec = abs(trcdec - blcdec)
     return {'extent': numpy.array([dra, ddec]), 'npix': npix,
             'blc': numpy.array([blcra, blcdec]), 'trc': numpy.array([trcra, trcdec])}
+
+
+class sdimaging_interpolation(sdimaging_pm04_test_base):
+    """
+    Test imaging with interpolation parameters.
+    
+    This test checks linear(default), nearest, and cubic interpolation with the parameter.
+    """
+    outfile = 'interpolation'
+    
+    def run_base_test(self, interpolation='linear'):
+        imsize = 11
+        params = {
+            'infiles': self.infiles,
+            'antenna': '2',
+            'spw': '18',
+            'phasecenter': 2,
+            'outfile': self.outfile,
+            'overwrite': False,
+            'imsize': imsize,
+            'cell': '10arcsec',
+            'interpolation': interpolation
+        }
+        center = [imsize // 2, imsize // 2, 0, 0]
+        ref = {
+            'npts': [1],
+            'max': [1],
+            'min': [1],
+            'maxpos': center,
+            'minpos': center,
+            'sum': [1]
+        }
+        self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+    def test_interpolation_linear(self):
+        self.run_base_test()
+
+    def test_interpolation_nearest(self):
+        self.run_base_test('nearest')
+
+    def test_interpolation_cubic(self):
+        self.run_base_test('cubic')
 
 
 if __name__ == '__main__':
