@@ -395,8 +395,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 imsize=[50,50],
                 cell=['10arcsec','10arcsec'],
                 phasecenter = 'J2000 12h22m54.9 +15d49m15',
-                outfile='M100_SD_cube_PM_03_04.image',
-                interpolation='nearest'
+                outfile='M100_SD_cube_PM_03_04.image'
             )
 
             # CONVERT image unit to K
@@ -418,8 +417,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 imsize=[50,50],
                 cell=['10arcsec','10arcsec'],
                 phasecenter = 'J2000 12h22m54.9 +15d49m15',
-                outfile='M100_SD_cube_CM_03_05.image',
-                interpolation='nearest'
+                outfile='M100_SD_cube_CM_03_05.image'
             )
 
             # CONVERT image unit to K
@@ -492,19 +490,19 @@ class regression_alma_m100_test(unittest.TestCase):
             #imsumsq = 22.0320119621645
             ### MS tasks ###
             immax = 0.149762198329
-            immin = -0.0560916438699
+            immin = -0.05902018398
             imrms = 0.0239948061386
             imflux = 188834.785818
             immean = 0.00775288738976
-            immedian = 0.00352751777973
+            immedian = 0.0034247857984
             imnpts = 38360.0
             imsum = 297.400760271
             imsigma = 0.0227080800888
-            immedabsdevmed = 0.0105304607423
-            imquartile = 0.0215698019601
-            imsumsq = 22.0857976817
+            immedabsdevmed = 0.0102611668408
+            imquartile = 0.0209858077578
+            imsumsq = 21.7662482763
             immaxpos = numpy.array([26, 27, 0, 49])
-            imminpos = numpy.array([14, 27, 0, 64])
+            imminpos = numpy.array([36, 36, 0, 21])
 
 
             """
@@ -564,18 +562,18 @@ class regression_alma_m100_test(unittest.TestCase):
             logfile=open(outfile,'w')
 
             """
-            print >>logfile,' *  diff_immax',diff_immax
-            print >>logfile,' *  diff_immin',diff_immin
-            print >>logfile,' *  diff_imrms',diff_imrms
-            print >>logfile,' *  diff_imflux',diff_imflux
-            print >>logfile,' *  diff_immean',diff_immean
-            print >>logfile,' *  diff_immedian',diff_immedian
-            print >>logfile,' *  diff_imnpts',diff_imnpts
-            print >>logfile,' *  diff_imsum',diff_imsum
-            print >>logfile,' *  diff_imsigma',diff_imsigma
-            print >>logfile,' *  diff_immedabsdevmed',diff_immedabsdevmed
-            print >>logfile,' *  diff_imquartile',diff_imquartile
-            print >>logfile,' *  diff_imsumsq',diff_imsumsq
+            print(' *  diff_immax  ', diff_immax, file=logfile)
+            print(' *  diff_immin  ', diff_immin, file=logfile)
+            print(' *  diff_imrms  ', diff_imrms, file=logfile)
+            print(' *  diff_imflux  ', diff_imflux, file=logfile)
+            print(' *  diff_immean  ', diff_immean, file=logfile)
+            print(' *  diff_immedian  ', diff_immedian, file=logfile)
+            print(' *  diff_imnpts  ', diff_imnpts, file=logfile)
+            print(' *  diff_imsum  ', diff_imsum, file=logfile)
+            print(' *  diff_imsigma  ', diff_imsigma, file=logfile)
+            print(' *  diff_immedabsdevmed  ', diff_immedabsdevmed, file=logfile)
+            print(' *  diff_imquartile  ', diff_imquartile, file=logfile)
+            print(' *  diff_imsumsq  ', diff_imsumsq, file=logfile)
             """
 
             print('', file=logfile)
