@@ -5547,6 +5547,27 @@ class test_hetarray_imaging(testref_base):
          report=self.th.checkall(imgexist=[self.img+'_listofms.residual'],imgval=[(self.img+'_listofms.residual' ,peak, peakpos)]) 
          self.assertTrue(self.check_final(pstr=report))
 
+     def test_het_mosaic_mfs_alma_listofms_CAS14350fix(self):
+         '''
+         Test alma 7m and 12m list of MSes. The dataset consists of two MSes, a simulated ACA(7m) ms
+         and a simulated ALMA(12) ms. The reference time of the 12m data was intentionary made earlier
+         to test sorting of the input parameters by time. Runs only niter=0. 
+         '''
+         # This test should get identical results as test_het_mosaic_alma_listofms_CAS14255fix 
+         peak = 0.96906537
+         peakpos = [264, 248,   0,   0]
+
+         ms1 = 'aca-sim.cycle10.ms'
+         ms2 = 'alma-sim.cycle10.1.ms'
+
+         self.prepData(ms1)
+         self.prepData(ms2)
+         tclean(vis=[ms1,ms2], field='a*', datacolumn='corrected', imsize=512, cell='0.8arcsec', phasecenter='J2000 13h47m31.0s -11d45m13.0s', 
+                imagename=self.img+'_listofms', niter=0, specmode='mfs', gridder='mosaic', weighting='briggs')
+
+
+         report=self.th.checkall(imgexist=[self.img+'_listofms.residual'],imgval=[(self.img+'_listofms.residual' ,peak, peakpos)]) 
+
 #####################################################
 #####################################################
 
