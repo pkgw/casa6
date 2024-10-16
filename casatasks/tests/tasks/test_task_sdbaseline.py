@@ -2161,6 +2161,7 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
                     (2) in row 2, entirely flagged for pol 0, also pol 1 is unselected
                     (3) in row 2, entirely flagged for pol 1, also pol 0 is unselected
     test304 : same as test303, but for blfunc='variable'
+    test305 : blmode='fit', bloutput!='', dosubtract=True, blfunc='variable(sinusoid)'
 
     Note: input data is generated from a single dish regression data,
     'OrionS_rawACSmod', as follows:
@@ -2173,25 +2174,42 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
     """
     # Input and output names
     infile = 'OrionS_rawACSmod_calave.ms'
+    sin_infile = 'sinusoidal.ms'
+    sin_blparam = 'blparam_variable_sin.txt'
     outroot = sdbaseline_unittest_base.taskname + '_bltabletest'
     tid = None
     ftype = {'poly': 0, 'chebyshev': 1, 'cspline': 2, 'sinusoid': 3}
 
     def setUp(self):
-        if os.path.exists(self.infile):
-            shutil.rmtree(self.infile)
-        shutil.copytree(os.path.join(self.datapath, self.infile), self.infile)
+        dirs_to_copy = [self.infile, self.sin_infile, self.sin_blparam]
+        for directory in dirs_to_copy:
+            shutil.rmtree(directory, ignore_errors=True)
+            if directory == self.sin_blparam:
+                shutil.copyfile(os.path.join(self.datapath, directory), directory)
+            else:
+                shutil.copytree(os.path.join(self.datapath, directory), directory,
+                                 dirs_exist_ok=False)
 
-        if os.path.exists(self.infile + '_blparam.txt'):
-            os.remove(self.infile + '_blparam.txt')
-        if os.path.exists(self.infile + '_blparam.csv'):
-            os.remove(self.infile + '_blparam.csv')
-        if os.path.exists(self.infile + '_blparam.btable'):
-            shutil.rmtree(self.infile + '_blparam.btable')
+        files_to_remove = [
+            self.infile + '_blparam.txt',
+            self.infile + '_blparam.csv',
+            self.infile + '_blparam.btable',
+            self.sin_infile + '_blparam.txt',
+            self.sin_infile + '_blparam.csv',
+            self.sin_infile + '_blparam.btable'
+        ]
+        for file_path in files_to_remove:
+            if os.path.exists(file_path):
+                if os.path.isdir(file_path):
+                    shutil.rmtree(file_path, ignore_errors=True)
+                else:
+                    os.remove(file_path)
 
     def tearDown(self):
         remove_single_file_dir(self.infile)
         remove_files_dirs(self.outroot)
+        remove_single_file_dir(self.sin_infile)
+        remove_single_file_dir(self.sin_blparam)
 
     def _checkBltableVar(self, outms, bltable, blparam, option):
         npol = 2
@@ -2459,6 +2477,34 @@ class sdbaseline_outbltableTest(sdbaseline_unittest_base):
             if (os.path.exists(self.infile)):
                 shutil.rmtree(self.infile)
             os.system('rm -rf ' + self.outroot + '*')
+    
+    def test305(self):
+        """test305: sinusoid, per-spectrum baselining, output bltable is created"""
+        self.tid = '305'
+        infile = self.sin_infile
+        datacolumn = 'float_data'
+        blmode = 'fit'
+        blformat = 'table'
+        blfunc = 'variable'
+        dosubtract = True
+        option = 'variable_sinusoid'
+        blparam = 'blparam_variable_sin.txt'
+
+        bloutput = self.outroot + self.tid + option + '.bltable'
+        outfile = self.outroot + self.tid + option + '.ms'
+        result = sdbaseline(infile=infile, datacolumn=datacolumn,
+                            blmode=blmode, blformat=blformat, bloutput=bloutput,
+                            blfunc=blfunc, blparam=blparam,
+                            dosubtract=dosubtract, outfile=outfile)
+        self.assertEqual(result, None,
+                            msg=f"Expected return code: None, got: {result}")
+        with table_manager(self.sin_infile) as tb:
+            nrow_data = tb.nrows()
+            with table_manager(bloutput) as tb:
+                nrow_bltable = tb.nrows()
+            self.assertEqual(nrow_bltable, nrow_data,
+                            msg="The baseline table is not same size as the data...")
+
 
 
 class sdbaseline_applybltableTest(sdbaseline_unittest_base):
@@ -2636,6 +2682,8 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
     06: duplicated fitting parameter in blparam file (the last one is adopted)
     10: check if baseline function names are correctly output in text file
     11: check if the numbers of baseline coefficients are correctly output in text/csv
+    12: check if the numbers of sinusoid baseline coefficients are correctly output in csv
+        and length is same, some differences are acceptable due to ManyLinux nuance
     NOT IMPLEMENTED YET
     * line finder
     * edge flagging
@@ -2900,6 +2948,53 @@ class sdbaseline_variableTest(sdbaseline_unittest_base):
             self.assertEqual(ncoeff_ref, self._get_num_coeff(blfile),
                              msg=f'number of baseline coefficients in {ext} file is wrong.')
 
+    def testVariable12(self):
+        """Check if the numbers of sinusoid baseline coefficients are correctly output in csv"""
+        self.infile = 'sinusoidal.ms'
+        self.paramfile = 'blparam_variable_sin.txt'
+        output_reference = "variable_sin_bloutput.csv"
+        self._refetch_files([self.infile, self.paramfile, output_reference], self.datapath)
+
+        blformat = 'csv'
+        bloutput = self.infile + '_blparam.' + 'csv'
+        try: 
+            sdbaseline(infile=self.infile,
+                    datacolumn='float_data',
+                    blformat=blformat,
+                    bloutput=bloutput,
+                    dosubtract=False,
+                    blfunc='variable',
+                    blparam=self.paramfile)
+            
+            with open(bloutput, 'r') as file:
+                    list_all = [row for row in csv.reader(file)]
+                    with open(output_reference, 'r') as ref_file:
+                        ref_all = [row for row in csv.reader(ref_file)]
+                        # Compare lengths of the lists
+                        self.assertEqual(len(list_all), len(ref_all), 
+                                        msg=f"Output lengths differ: ref={ref_all}, list={list_all}" )
+
+                        for row_ref, row_list in zip(ref_all, list_all):
+                            for idx, (val_ref, val_list) in enumerate(zip(row_ref, row_list)):
+                                # Skip columns 5 and 6 (zero-based index)
+                                if idx == 5 or idx == 6:
+                                    continue
+                                
+                                # Convert string values to floats for other columns
+                                try:
+                                    float_val_ref = float(val_ref)
+                                    float_val_list = float(val_list)
+                                except ValueError:
+                                    print("Warning: Skipping.. Cannot convert to float - {} {}"
+                                          .format(val_ref, val_list))
+                                    continue
+
+                        # Compare float values using assertAlmostEqual
+                        self.assertAlmostEqual(float_val_ref, float_val_list, 
+                                                places=6, 
+                                                msg=f"Values differ: ref={val_ref}, list={val_list}")
+        finally:
+            remove_single_file_dir(output_reference)
 
 class sdbaseline_bloutputTest(sdbaseline_unittest_base):
     """

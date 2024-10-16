@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -6,8 +5,7 @@ import string
 import time
 import re
 import copy
-from casatasks.private.casa_transition import is_CASA6
-
+from typing import TYPE_CHECKING
 
 
 from casatools import (
@@ -21,11 +19,12 @@ from casatools import (
 )
 from casatasks import casalog
 from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+if TYPE_CHECKING:
+    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 
 ctsys_hostinfo = ctsys.hostinfo
 _tb = table()
 _ia = image()
-
 
 """
 A set of helper functions for tclean.
@@ -36,7 +35,8 @@ Summary...
 
 #############################################
 class PySynthesisImager:
-    def __init__(self, params):
+
+    def __init__(self,params: 'ImagerParameters'):
         ################ Tools
         self.initDefaults()
 

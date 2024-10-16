@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -74,6 +74,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   ///// Major Cycle Functions
   virtual void initializeGrid(vi::VisBuffer2& vb, casacore::Bool dopsf, casacore::Bool firstaccess=false);
+  virtual void handleNewMs(const casacore::MeasurementSet &ms);
   virtual void grid(vi::VisBuffer2& vb, casacore::Bool dopsf, refim::FTMachine::Type col, const casacore::Int whichFTM=-1);
   virtual void finalizeGrid(vi::VisBuffer2& vb, casacore::Bool dopsf);
   virtual void initializeDegrid(vi::VisBuffer2& vb, casacore::Int row=-1);

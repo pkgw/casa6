@@ -41,7 +41,6 @@
 #include <casacore/scimath/Mathematics/FFTW.h>
 #include <asdmstman/AsdmStMan.h>
 #include <casacore/derivedmscal/DerivedMC/Register.h>
-#include "toolversion.h"
 
 using namespace std;
 using namespace casacore;
@@ -256,7 +255,8 @@ bool utils::initialize( const std::string &pypath,
                         const std::vector<std::string> &default_path,
                         bool nogui,
                         bool agg,
-                        bool pipeline) {
+                        bool pipeline,
+			const std::string &cache_dir) {
     static bool initialized = false;
     if ( initialized ) return false;
     default_data_path = default_path;
@@ -267,6 +267,7 @@ bool utils::initialize( const std::string &pypath,
     casatools::get_state( ).setNoGui(nogui);
     casatools::get_state( ).setAgg(agg);
     casatools::get_state( ).setPipeline(pipeline);
+    casatools::get_state( ).setCachedir(cache_dir);
     // configure quanta/measures customizations...
     UnitMap::putUser( "pix", UnitVal(1.0), "pixel units" );
 
@@ -292,12 +293,19 @@ bool utils::initialize( const std::string &pypath,
 
 // ------------------------------------------------------------
 // -------------------- handling rundata path -----------------
-std::string utils::rundata( ) {
+
+std::string utils::measurespath( ) {
     return casatools::get_state( ).measuresDir( );
 }
+std::string utils::rundata( ) {
+    return measurespath( );
+}
 
-void utils::setrundata( const std::string &data ) {
+void utils::setmeasurespath( const std::string &data ) {
     casatools::get_state( ).setDistroDataPath(data);
+}
+void utils::setrundata( const std::string &data ) {
+    setmeasurespath(data);
 }
 
 // ------------------------------------------------------------
@@ -404,22 +412,6 @@ bool utils::compare_version(const  string& comparitor,  const std::vector<long>&
     return VersionInfo::compare(comparitor,vector<int>(vec.begin(),vec.end()));
 }
 
-std::vector<long>
-utils::toolversion( ) {
-    std::vector<long> result = {
-        ToolVersionInfo::major( ),
-        ToolVersionInfo::minor( ),
-        ToolVersionInfo::patch( ),
-        ToolVersionInfo::feature( ),
-    };
-    return result;
-}
-
-std::string
-utils::toolversion_string( ) {
-    return ToolVersionInfo::version( );
-}
-
 // ------------------------------------------------------------
 // -------------------- Other configuration params ------------
 
@@ -432,5 +424,8 @@ bool utils::getagg( ) {
 bool utils::getpipeline( ) {
     return casatools::get_state( ).pipeline( );
 }
+std::string utils::getcachedir( ) {
+    return casatools::get_state( ).cachedir( );
+}   
 
 } // casac namespace

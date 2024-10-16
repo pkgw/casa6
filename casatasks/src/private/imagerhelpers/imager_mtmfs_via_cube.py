@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import shutil
 import time
@@ -34,7 +33,7 @@ def time_func(func):
     return wrap_time
 
 class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
-    """A subclass of PySynthesisImager, for specmode='mtmfs_via_cube'
+    """A subclass of PySynthesisImager, for specmode='mvc'
 
     The idea is to do the major cycle with cube imaging, then convert the cube images
     to taylor term ".ttN" images, then do the minor cycle, then convert back to cubes.
@@ -59,12 +58,12 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             mfsparams.allimpars["0"]["startmodel"] = ""
             params.alldecpars["0"]["startmodel"] = ""
             params.allimpars["0"]["startmodel"] = ""
-        # print("params.decpars", mfsparams.alldecpars)
-        self.mfsImager = PySynthesisImager(mfsparams)
+
+
         #################################
         super().__init__(params)
         ## print(f'self all impars {self.allimpars}, \n allvars={vars(self)}')
-        if self.allimpars["0"]["specmode"] != "mtmfs_via_cube":
+        if self.allimpars["0"]["specmode"] != "mvc":
             raise RuntimeError(
                 f"Can't use specmode {self.allimpars['0']['specmode']} with imager helper {self.__class__.__name__}!"
             )
@@ -75,7 +74,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         if nchan < 1 :
             nchan=int((freqwidth)/(0.1*freqbeg))  #gives around 10 channel for 2:1 BW
             if nchan < 5:
-                nchan=5
+                nchan=mfsparams.alldecpars["0"]["nterms"] + 1
             casalog.post('Calculating nchan from the data range to be '+str(nchan),'INFO')
 
         ## If nchan < nterms, complain.
@@ -86,8 +85,27 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
             )
 
         if nchan>50:
-            casalog.post('For mtmfs_via_cube, one usually needs only about 10 channels across the freq range, to fit Taylor polynomials of a low order','INFO')
-                
+            casalog.post('For mvc (mtmfs_via_cube), one usually needs only about 10 channels across the freq range, to fit Taylor polynomials of a low order','WARN')
+
+        in_reffreq =  mfsparams.allimpars["0"]["reffreq"]     ##### NEED TO MAKE THIS WORK FOR MULTIFIELD...
+        if in_reffreq == "":  ## User has not set it. Calculate default
+            midfreq = freqbeg + 0.5*freqwidth  # midpoint of the freq range found by "determineFreqRange()" in Hz
+            
+            for k in mfsparams.allimpars:
+                mfsparams.allimpars[k]["reffreq"] = str(midfreq) + "Hz"
+                params.allimpars[k]["reffreq"] = str(midfreq)+"Hz"
+
+
+        #print("params.impars", mfsparams.allimpars)
+
+        rfreq = _qa.convert(mfsparams.allimpars["0"]["reffreq"] , "Hz")["value"]
+        #print("REFFREQ = ",rfreq, " ----" , mfsparams.allimpars["0"]["reffreq"])
+        if rfreq < freqbeg or rfreq > freqbeg+freqwidth:
+            casalog.post('The reffreq of ' + mfsparams.allimpars["0"]["reffreq"]  + ' is outside the selected frequency range of ' + str(freqbeg) + ' Hz - ' + str(freqbeg+freqwidth) + ' Hz','WARN')
+
+        self.mfsImager = PySynthesisImager(mfsparams)
+
+            
         freqwidth = freqwidth / nchan
         #print(f"#####freqbeg={freqbeg}, freqwidth={freqwidth}, nchan={nchan} for cube")
         # Update some settings:
@@ -152,9 +170,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
     def verify_dec_pars(self) -> bool:
         for immod in range(0, self.NF):
             pars = self.alldecpars[str(immod)]
-            if pars["specmode"] != "mtmfs_via_cube":
+            if pars["specmode"] != "mvc":
                 raise RuntimeError(
-                    f"Creating instance of class {type(self).__name__} with the wrong specmode! Expected 'mtmfs_via_cube' but instead got '{pars['specmode']}'!"
+                    f"Creating instance of class {type(self).__name__} with the wrong specmode! Expected 'mvc' but instead got '{pars['specmode']}'!"
                 )
             if pars["deconvolver"] != "mtmfs":
                 raise RuntimeError(
@@ -310,6 +328,9 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         suffixes = ["pb","psf", "sumwt"]
         for immod in range(0, self.NF):
             self.cube2tt(immod, suffixes=suffixes)
+            #now that we donot call dividepsfbyweight which did the fitting
+            #we have to do it now explicitly
+            self.mfsImager.PStools[immod].makepsfbeamset()
        
 #        for immod in range(0, self.NF):
 #            self.mfsImager.PStools[immod].gatherpsfweight()
@@ -469,7 +490,7 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
                     chanwt=chwgt,
                     mtname=basename,
                     reffreq=reffreq,
-                    nterms=nterms,
+                    nterms=num_terms,
                     dopsf=dopsf,
                 )
             else:
@@ -747,8 +768,8 @@ class PyMtmfsViaCubeSynthesisImager(PySynthesisImager):
         From:
           sdint_helper.py
         """
-        if dopsf is True:
-            nterms = 2 * nterms - 1
+#        if dopsf is True:
+#            nterms = 2 * nterms - 1
 
         pix = []
         for tt in range(0, nterms):

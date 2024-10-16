@@ -185,11 +185,15 @@ String BriggsCubeWeightor::initImgWeightCol(
         estimateSwingChanPad(vi, -1, cs, templateimage.shape()[3], ephemtab);
   }
   if (msInUse.size() > 1) {
-
-    if ((allSwingPad > 4) &&
-        (allSwingPad > uInt(templateimage.shape()[3] / 10)))
+    SpectralCoordinate spCoord =
+        cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+    MFrequency::Types freqframe = spCoord.frequencySystem(True);
+    if (((allSwingPad > 4) &&
+        (allSwingPad > uInt(templateimage.shape()[3] / 10))) 
+         || ephemtab.size() > 0 || freqframe==MFrequency::REST){
+  
       inOneGo = False;
-    // cerr << "allSwingPad " << allSwingPad << " inOneGo " << inOneGo << endl;
+         }
   }
   ///////////////
   // cerr << "###fieldsInUSE " << Vector<pair<Int, Int> >(fieldsToUse) << endl;;
@@ -202,10 +206,15 @@ String BriggsCubeWeightor::initImgWeightCol(
   } else {
     /// Lets process the ms independently as swingpad can become very large for
     /// MSs seperated by large epochs
+    uInt maxswingpad=0;
     for (auto msiter = msInUse.begin(); msiter != msInUse.end(); ++msiter) {
       uInt swingpad = estimateSwingChanPad(vi, *msiter, cs,
                                            templateimage.shape()[3], ephemtab);
-      fillImgWeightCol(vi, inRec, *msiter, fieldsToUse, swingpad,
+      if(maxswingpad < swingpad)
+        maxswingpad=swingpad;
+    }
+    for (auto msiter = msInUse.begin(); msiter != msInUse.end(); ++msiter) {
+      fillImgWeightCol(vi, inRec, *msiter, fieldsToUse, maxswingpad,
                        templateimage.shape(), cs);
     }
   }
@@ -928,6 +937,21 @@ void BriggsCubeWeightor::initializeFTMachine(
     throw(AipsError(
         "BriggsCubeWeightor could not get the state of the ftmachine:" +
         error));
+  Record rec = inRec.asRecord("movingdir_rec");
+  MeasureHolder mh;
+  if(!mh.fromRecord(error, rec))
+    throw(AipsError(
+        "BriggsCubeWeightor could not get movingdir_rec from the state of the ftmachine:" +
+        error));
+  MDirection movingdir=mh.asMDirection();
+  if (inRec.isDefined("ephemeristable") && movingdir.getRefString().contains("COMET")) {
+     String ephemtabname;
+     inRec.get("ephemeristable", ephemtabname);
+     ft_p[index]->setMovingSource(ephemtabname);
+  }
+  else if(movingdir.getRefString().contains("APP")){
+    ft_p[index]->setMovingSource("TRACKFIELD");
+  }
   // remember to make the stokes I
   grids_p[index] = new TempImage<Float>(templateimage.shape(),
                                         templateimage.coordinates(), 0.0);

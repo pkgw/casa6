@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,24 +6,12 @@ import time
 import re
 import copy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import synthesisutils, synthesisimager
-    from casatools import image as imageanalysis
-    from casatasks import casalog
+from casatools import synthesisutils, synthesisimager
+from casatools import image as imageanalysis
+from casatasks import casalog
 
-    from .imager_base import PySynthesisImager
-    from .parallel_imager_helper import PyParallelImagerHelper
-else:
-    from taskinit import *
-    from casac import casac
-
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    synthesisimager = casac.synthesisimager
-    synthesisutils = casac.synthesisutils
-    imageanalysis = casac.image
+from .imager_base import PySynthesisImager
+from .parallel_imager_helper import PyParallelImagerHelper
 
 '''
 An implementation of parallel cube imaging, using synthesisxxxx tools.
@@ -158,9 +145,7 @@ class PyParallelCubeSynthesisImager():
             #casalog.post("****** SELIMPARS in init **********" + self.allimpars)
         
         joblist=[]
-        casa6_import_prefix = ''
-        if is_CASA6:
-            casa6_import_prefix = 'casatasks.private.'
+        casa6_import_prefix = 'casatasks.private.'
         cmd_import_pars = ('from {0}imagerhelpers.input_parameters import ImagerParameters'.
                       format(casa6_import_prefix))
         cmd_import_synth = ('from {0}imagerhelpers.imager_base import PySynthesisImager'.

@@ -114,6 +114,17 @@ This is used to construct {\tt synthesisnormalizer} tool.
 <input/>
 
 <returns type="bool"/>
+   </method>
+   
+<method name="makepsfbeamset" type="function">
+   <shortdescription>make the psf beamset and store it in the psf image</shortdescription>
+
+<description>
+</description>
+
+<input/>
+
+<returns type="bool"/>
 </method>
 
 <method name="divideweightbysumwt" type="function">
@@ -125,6 +136,9 @@ This is used to construct {\tt synthesisnormalizer} tool.
 
 <returns type="bool"/>
 </method>
+
+
+
 
    <method name="normalizeprimarybeam" type="function">
    <shortdescription>Normalize PB to peak 1</shortdescription>

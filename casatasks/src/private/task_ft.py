@@ -1,19 +1,11 @@
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import imager, ms, image, quanta
-    from casatasks import casalog
+from casatools import imager, ms, image, quanta
+from casatasks import casalog
 
-    _im = imager( )
-    _ms = ms( )
-    _ia = image( )
-else:
-    from taskinit import *
-    _im,_ms,_ia=gentools(['im','ms','ia'])
-
-    quanta = qatool
+_im = imager( )
+_ms = ms( )
+_ia = image( )
 
 def ft(vis=None,field=None,spw=None,model=None,nterms=None,reffreq=None,complist=None,incremental=None, usescratch=None):
        """ Insert a source model into the MODEL_DATA column of a visibility set:

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -49,7 +49,7 @@ class VisEquation;
 class EVLASwPow : public GJones {
 public:
 
-  enum SPType{SWPOW,EVLAGAIN=SWPOW,RQ,SWPOVERRQ,NONE};
+  enum SPType{SWPOW,EVLAGAIN=SWPOW,RQ,SWPOVERRQ,SWPWTS,NONE};
   
   static SPType sptype(casacore::String name);
   static casacore::String sptype(SPType sptype);

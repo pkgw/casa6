@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -269,7 +269,7 @@ namespace casac {
     // python type spectification for table column iteration
     // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----
     static PyTypeObject getcoliter_IterType = {
-        PyObject_HEAD_INIT(&PyType_Type)
+        PyVarObject_HEAD_INIT(&PyType_Type, 0)
         "table._getcoliter_iter",                   /* tp_name */
         sizeof(getcoliter_Iter),                    /* tp_basicsize */
         0,                                          /* tp_itemsize */
@@ -288,7 +288,7 @@ namespace casac {
         PyObject_GenericGetAttr,                    /* tp_getattro */
         0,                                          /* tp_setattro */
         0,                                          /* tp_as_buffer */
-        Py_TPFLAGS_DEFAULT,                         /* tp_flags: Py_TPFLAGS_HAVE_ITER tells python to
+        Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags: Py_TPFLAGS_HAVE_ITER tells python to
                                                        use tp_iter and tp_iternext fields. */
         "Internal myiter iterator object.",         /* tp_doc */
         0,                                          /* tp_traverse */
@@ -297,6 +297,18 @@ namespace casac {
         0,                                          /* tp_weaklistoffset */
         getcoliter_Iter_iter,                       /* tp_iter: __iter__() method */
         getcoliter_Iter_iternext                    /* tp_iternext: next() method */
+                                                    /* tp_methods */
+                                                    /* tp_members */
+                                                    /* tp_getset */
+                                                    /* tp_base */
+                                                    /* tp_dict */
+                                                    /* tp_descr_get */
+                                                    /* tp_descr_set */
+                                                    /* tp_dictoffset */
+                                                    /* tp_init */
+                                                    /* tp_alloc */
+                                                    /* tp_new */
+                                                    /* tp_free */
     };
 
     // ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----  ----

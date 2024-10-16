@@ -116,7 +116,7 @@ class XmlCMakeBuildExt(build_ext):
 
         # XML parsing and binding generation
         # The code is in a jar file with a given version in a well-known URL
-        xml_jar_file = 'xml-casa-assembly-1.83.jar'
+        xml_jar_file = 'xml-casa-assembly-1.86.jar'
         xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
         xml_jar_path = os.path.abspath(os.path.join( 'scripts', 'java', xml_jar_file))
 
@@ -214,6 +214,7 @@ class XmlCMakeBuildExt(build_ext):
             casac_lib_dir = extdir + "/casatools/__casac__/lib"
             copy_tree(gcc_dir, casac_lib_dir)
 
+    
         # Collect all the libraries in a private directory and set relative rpaths
         if mod_closure:
             if isexe("scripts/mod-closure"):
@@ -224,6 +225,12 @@ class XmlCMakeBuildExt(build_ext):
                     if Proc(["scripts/find-glibc-private", "--delete", extdir]) != 0:
                         sys.exit("\tGLIBC_PRIVATE cleanup failed...")
 
+            #Convert /opt/local/lib to @rpath on macOS
+            if (sys.platform == 'darwin'):
+                casac_lib_dir = extdir + "/casatools/__casac__/lib"
+                from subprocess import call
+                status=call("for f in `ls`; do if [[ $(otool -l $f | grep \"path /opt/local/lib\" | grep -v  \"/opt/local/lib/.*gcc\") ]];then install_name_tool -rpath /opt/local/lib  @loader_path:@loader_path/lib:@rpath $f ;fi; done",cwd=casac_lib_dir,shell=True)
+    
 
 def generate_extensions():
 

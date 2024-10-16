@@ -214,10 +214,10 @@ def tocasatb(indata, outtable):
                 'comment': 'date in MJD',
                 'unit': 'd'},
         'RA': {'header': 'R.A.',
-               'comment': 'astrometric Right Ascension (ICRF/J2000)',
+               'comment': 'astrometric Right Ascension (ICRF)',
                'unit': 'deg'},
         'DEC': {'header': 'DEC',
-                'comment': 'astrometric Declination (ICRF/J2000)',
+                'comment': 'astrometric Declination (ICRF)',
                 'unit': 'deg'},
         'Rho': {'header': 'delta',
                 'comment': 'geocentric distance',
@@ -264,6 +264,7 @@ def tocasatb(indata, outtable):
         exceedthelinelimit = None
         ambiguousname = None
         queryerrmsg = ''
+        ephemdata = None
         # Scan the original data
         if isinstance(indata, dict) and 'result' in indata:
             #print("ephem data dict")
@@ -271,8 +272,15 @@ def tocasatb(indata, outtable):
         elif isinstance(indata, str):
             if os.path.exists(indata):
                 with open(indata, 'r') as infile:
-                    ephemdata = infile.readlines()
+                    #ephemdata = infile.readlines()
+                    ephemdata = infile.read()
                     # the relevant information in the main header section is extracted as
+            else:
+             raise IOError(f'{indata} does not exist')
+        else:
+             raise IOError(f'{indata} should be a dictionary contains ephemeris data under'+
+                            ' the keyword, "results" or the text file name contains the raw JPL-Horizons'+
+                            ' query results')
         # it is read line by line. The ephemeris data is stored in the separate text file
         # to be further processed in subsequent steps.
         with open(tempfname, 'w') as outfile:
@@ -313,12 +321,15 @@ def tocasatb(indata, outtable):
                     # VERSION stored in the output table may be incremented in the future.
                     # For now, it is fixed, but it may be incremented from 0003 to 0004 to indiate
                     # this new code is used to convert the jpl horizons data to a table.
-                    headerdict['VS_VERSION'] = '0004.000'
+                    # ver 0004.0001 - new keyword: ephemeris_source, posrefsys 'ICRF/J2000' -> "ICRS' 
+                    headerdict['VS_VERSION'] = '0004.0001'
                     # target object name
                 elif re.match(r'^[>\s]*Target body name', line):
-                    m = re.match(r'^[>\s]*Target body name:\s+\d*\s*(\w+)', line)
+                    m = re.match(r'^[>\s]*Target body name:\s+(\S+)\s+(\S*)\s+\{(\w+)\:\s*(\S+)\}', line)
                     if m:
                         headerdict['NAME'] = m[1]
+                        if len(m.groups())==4 and m[3]=='source':
+                            headerdict['ephemeris_source'] = m[4]
                 # start time (of the requested time range)
                 elif re.search(r'Start time', line):
                     m = re.match(r'^[>\s]*Start time\s+\S+\s+\S+\s+(\S+)\s+(\S+)\s+(\w+)', line)
@@ -368,10 +379,21 @@ def tocasatb(indata, outtable):
                         headerdict['GeoDist'] = float(long_lat_alt[2])
                         # obs location
                 elif re.search(r'Center-site name', line):
-                    m = re.match(r'^[>\s]*Center-site name:\s+(\w+)', line)
+                    m = re.match(r'^[>\s]*Center-site name:(\s*)([a-zA-Z\s*\/\-\(\)\,]+)', line)
                     if m:
-                        headerdict['obsloc'] = m[1]
-                        headerdict['posrefsys'] =  'ICRF/J2000.0'
+                        # For the topocentric location, currently only ALMA, VLA and GBT are translated 
+                        # to the proper observatory name which recongnized by Measures.
+                        # The key part is the name used by JPL-Horizons.
+                        observatories = {'ALMA':'ALMA', 'VLA':'VLA', 'Green Bank':'GBT'} 
+                        if m[2]:
+                           headerdict['obsloc'] = m[2] 
+                           for obs in observatories:
+                               if obs in m[2]:
+                                   headerdict['obsloc'] = observatories[obs]
+                                   break
+                        # Assume the query is made in ICRF reference frame
+                        # and for casacore measures, this will be 'ICRS'
+                        headerdict['posrefsys'] =  'ICRS'
                 elif re.search(r'Target radii', line):
                     m = re.match(r'^[>\s]*Target radii\s*:\s*([0-9.]+\s*x\s*[0-9.]+\s*x\s*[0-9.]+)\s*km.*|'
                                  '^[>/s]*Target radii\s*:\s*([0-9.]+)\s*km', line)
@@ -527,8 +549,21 @@ def tocasatb(indata, outtable):
                     for line in inf:
                         outline = ''
                         sep = ' '
+                        extraindexoffset = 0 
                         rawtempdata = line.split()
                         tempdata = ['-999.0' if x == 'n.a.' else x for x in rawtempdata]
+                        # Check if there are extra codes (solar/lunar presence codes) after the date.
+                        # The extra codes may be present for topocentric observer location. Even in that case
+                        # not every data line has the code so it needs to be checked line by line.
+                        ntempdata = len(tempdata)
+                        nincolnames = len(incolnames) + 2 # 2 for date_time and ra_dec splits 
+                        if ntempdata > nincolnames :
+                            # assume there is the extra codes (no space between solar and lunar presence code)
+                            if ntempdata - nincolnames == 1:
+                                extraindexoffset = 1
+                            else:
+                                raise RuntimeError(f'Unexpected number of data items was detected:'+
+                                                    f' {ntempdata} while expected {nincolnames}') 
                         # construct mjd from col 1 (calendar date) + col 2 (time)
                         caldatestr = tempdata[0] + ' ' + tempdata[1]
                         mjd = _qa.totime(caldatestr)
@@ -538,34 +573,34 @@ def tocasatb(indata, outtable):
                             'try calendar date+time string for the time range.') 
                         outline += str(mjd['value']) + sep
                         # position
-                        rad = tempdata[cols['RA']['index']]
-                        decd = tempdata[cols['DEC']['index']]
+                        rad = tempdata[cols['RA']['index'] + extraindexoffset]
+                        decd = tempdata[cols['DEC']['index'] + extraindexoffset]
                         outline += rad + sep + decd + sep
                         # geocentric dist. (Rho)
-                        delta = tempdata[cols['Rho']['index']]
+                        delta = tempdata[cols['Rho']['index'] + extraindexoffset]
                         outline += delta + sep
                         # geocentric range rate (RadVel)
-                        valinkmps = tempdata[cols['RadVel']['index']]
+                        valinkmps = tempdata[cols['RadVel']['index'] + extraindexoffset]
                         deldot = _qa.convert(_qa.quantity(valinkmps+'km/s'), 'AU/d' )['value']
                         outline += str(deldot) + sep
                         # NP_ang & NP_dist
-                        npang = tempdata[cols['NP_ang']['index']]
-                        npdist = tempdata[cols['NP_dist']['index']]
+                        npang = tempdata[cols['NP_ang']['index'] + extraindexoffset]
+                        npdist = tempdata[cols['NP_dist']['index'] + extraindexoffset]
                         outline += npang + sep + npdist + sep
                         # DiskLong & DiskLat
-                        disklong = tempdata[cols['DiskLong']['index']]
-                        disklat = tempdata[cols['DiskLat']['index']]
+                        disklong = tempdata[cols['DiskLong']['index'] + extraindexoffset]
+                        disklat = tempdata[cols['DiskLat']['index'] + extraindexoffset]
                         outline += disklong + sep + disklat + sep
                         # sub-long & sub-lat
-                        sllon = tempdata[cols['Sl_lon']['index']]
-                        sllat = tempdata[cols['Sl_lat']['index']]
+                        sllon = tempdata[cols['Sl_lon']['index'] + extraindexoffset]
+                        sllat = tempdata[cols['Sl_lat']['index'] + extraindexoffset]
                         outline += sllon + sep + sllat + sep
                         # r, rot
-                        r = tempdata[cols['r']['index']]
-                        rdot = tempdata[cols['rdot']['index']]
+                        r = tempdata[cols['r']['index'] + extraindexoffset]
+                        rdot = tempdata[cols['rdot']['index'] + extraindexoffset]
                         outline += r + sep + rdot + sep
                         # S-T-O
-                        phang = tempdata[cols['phang']['index']]
+                        phang = tempdata[cols['phang']['index'] + extraindexoffset]
                         outline += phang
                         outf.write(outline + '\n')
 
@@ -673,7 +708,7 @@ def _fill_keywords_from_dict(keydict, colkeys, tablename):
     # call mod version of mean_radius_with_known_theta
     orderedmainkeys = ['VS_CREATE','VS_DATE','VS_TYPE','VS_VERSION','NAME',
                        'MJD0','dMJD','GeoDist','GeoLat','GeoLong','obsloc',
-                       'posrefsys','earliest','latest','radii',
+                       'posrefsys','ephemeris_source','earliest','latest','radii',
                        'meanrad','orb_per','rot_per','T_mean']
     try:
         _tb.open(tablename, nomodify=False)

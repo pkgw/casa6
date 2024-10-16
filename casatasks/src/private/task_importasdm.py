@@ -1,30 +1,12 @@
-from __future__ import absolute_import
 import os
 import shutil
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import table, agentflagger, ms, imager, measures, msmetadata, sdm
-    from .mstools import write_history
-    from . import flaghelper as fh
-    from . import convertephem as ce
-    from .parallel.parallel_data_helper import ParallelDataHelper
-else:
-    from taskinit import *
-    from mstools import write_history
-    import flaghelper as fh
-    from casac import casac
-    from parallel.parallel_data_helper import ParallelDataHelper
-    import recipes.ephemerides.convertephem as ce
-
-    agentflagger = casac.agentflagger
-    table = casac.table
-    msmetadata = casac.msmetadata
-    imager = imtool
-    measures = metool
-    ms = mstool
+from casatasks import casalog
+from casatools import table, agentflagger, ms, imager, measures, msmetadata, sdm
+from .mstools import write_history
+from . import flaghelper as fh
+from . import convertephem as ce
+from .parallel.parallel_data_helper import ParallelDataHelper
 
 _tb = table()
 
@@ -187,8 +169,7 @@ def importasdm(
         vis = asdm+".ms"
 
     # make local sdm tool - CASA6 only, CASA5 uses asdm2MS executable
-    if is_CASA6:
-        sdmlocal = sdm(asdm)
+    sdmlocal = sdm(asdm)
 
     # make agentflagger tool local
     aflocal = agentflagger()
@@ -267,39 +248,6 @@ def importasdm(
                 if os.path.exists(of):
                     raise RuntimeError("Cannot overwrite online flags file '%s'; overwrite is set to False."% of)
 
-    # assemble the asdm2MS executable for CASA5
-    if not is_CASA6:
-        theexecutable = 'asdm2MS'
-
-        execute_string = theexecutable + ' --icm "' + corr_mode \
-                         + '" --isrt "' + srt + '" --its "' + time_sampling \
-                         + '" --ocm "' + ocorr_mode + '" --wvr-corrected-data "' \
-                         + wvr_corrected_data + '" --asis "' + asis \
-                         + '" --logfile "' + casalog.logfile() + '"'
-
-        if len(scans) > 0:
-            execute_string = execute_string + ' --scans ' + scans
-        if ignore_time:
-            execute_string = execute_string + ' --ignore-time'
-        if not process_syspower:
-            execute_string = execute_string + ' --no-syspower'
-        if not process_caldevice:
-            execute_string = execute_string + ' --no-caldevice'
-        if not process_pointing:
-            execute_string = execute_string + ' --no-pointing'
-
-        if compression:
-            execute_string = execute_string + ' --compression'
-        elif lazy:
-            execute_string = execute_string + ' --lazy'
-
-        if verbose:
-            execute_string = execute_string + ' --verbose'
-
-        execute_string = execute_string + ' ' + asdm + ' ' + viso
-
-        if with_pointing_correction:
-            execute_string = execute_string + ' --with-pointing-correction'
 
     if (polyephem_tabtimestep!=None) and (type(polyephem_tabtimestep)==int or type(polyephem_tabtimestep)==float):
         if polyephem_tabtimestep>0:
@@ -308,33 +256,25 @@ def importasdm(
             if polyephem_tabtimestep>1.:
                 casalog.post('A tabulation timestep of <= 1 days is recommended.', 'WARN')
             # one more addition to the asdm2MS execution string
-            if not is_CASA6:
-                execute_string = execute_string + ' --polyephem-tabtimestep '+str(polyephem_tabtimestep)
 
-    if is_CASA6:
+    try:
         exitcode = sdmlocal.toms( vis, createmms, separationaxis, numsubms, corr_mode, srt, time_sampling,
-                                  ocorr_mode, compression, lazy, asis, wvr_corrected_data, scans,
-                                  ignore_time, process_syspower, process_caldevice, process_pointing,
-                                  process_flags, tbuff, applyflags, savecmds, outfile, flagbackup,
-                                  verbose, overwrite, bdfflags,
-                                  with_pointing_correction, convert_ephem2geo,
-                                  polyephem_tabtimestep )
+                                    ocorr_mode, compression, lazy, asis, wvr_corrected_data, scans,
+                                    ignore_time, process_syspower, process_caldevice, process_pointing,
+                                    process_flags, tbuff, applyflags, savecmds, outfile, flagbackup,
+                                    verbose, overwrite, bdfflags,
+                                    with_pointing_correction, convert_ephem2geo,
+                                    polyephem_tabtimestep )
 
         if exitcode != True:
             casalog.post("initial creation of the measurement set failed", 'SEVERE')
             raise Exception('ASDM conversion error. Please check if it is a valid ASDM and that data/alma/asdm is up to date.')
-    else:
-        casalog.post('Running ' + theexecutable
-                     + ' standalone invoked as:')
-        # print execute_string
-        casalog.post(execute_string)
-        exitcode = os.system(execute_string)
-
-        if exitcode != 0:
-            casalog.post(theexecutable
-                         + ' terminated with exit code '
-                         + str(exitcode), 'SEVERE')
-            raise Exception('ASDM conversion error. Please check if it is a valid ASDM and that data/alma/asdm is up to date.')
+    except Exception as instance:
+        # I think an exception is more likely than a non-zero error code and will often involve a partial fill into the MS
+        casalog.post("initial creation of the measurementset failed", 'SEVERE')
+        casalog.post("Note: if an MS exists then additional steps usually done after that initial (partial) fill were not completed", 'SEVERE')
+        casalog.post("The MS should only be used for looking into why the fill failed, it should not be used for any additional processing", 'SEVERE')
+        raise Exception('ASDM conversion error. Check the logs for additional details.') from instance
 
 
     #
@@ -343,43 +283,6 @@ def importasdm(
     #
     if not os.path.exists(visoc):
         vistoproc = [myviso for myviso in vistoproc if myviso != visoc]
-
-    # this is only necessary for CASA5, for CASA6 these steps are handled by the toms method in sdm
-    if not is_CASA6:
-
-        # Binary Flag processing
-        if bdfflags:
-
-            casalog.post('Parameter bdfflags==True: flags from the ASDM binary data will be used to set the MS flags ...')
-
-            bdffexecutable = 'bdflags2MS '
-            bdffexecstring_base = bdffexecutable + ' -f ALL' + ' --ocm "' + ocorr_mode \
-                                  + '" --logfile "' + casalog.logfile() + '"'
-
-            if len(scans) > 0:
-                bdffexecstring_base = bdffexecstring_base + ' --scans ' + scans
-
-            if lazy and not compression:
-                bdffexecstring_base = bdffexecstring_base + ' --lazy=true'
-
-            for myviso in vistoproc:
-                if myviso.find("wvr-corrected") != -1:
-                    options = " --wvr-corrected=True "
-                else:
-                    options = " "
-
-                bdffexecstring = bdffexecstring_base + options + asdm + ' ' + myviso
-
-                casalog.post('Running '+bdffexecutable+' standalone invoked as:')
-                casalog.post(bdffexecstring)
-
-                bdffexitcode = os.system(bdffexecstring)
-                if bdffexitcode != 0:
-                    casalog.post(bdffexecutable
-                                 + ' terminated with exit code '
-                                 + str(bdffexitcode), 'SEVERE')
-                    raise Exception('ASDM binary flags conversion error. Please check if it is a valid ASDM and that data/alma/asdm is up to date.')
-
 
     if convert_ephem2geo:
         for myviso in vistoproc:
@@ -468,18 +371,11 @@ def importasdm(
     # CAS-7369 - Create an output Multi-MS (MMS)
     if createmms:
         fpars = { }
-        if is_CASA6:
-            # Get the default parameters of partition
-            import inspect
-            from casatasks import partition as pt
-            for k,v in inspect.signature(pt).parameters.items( ):
-                fpars[k] = v.default
-        else:
-            # Get the default parameters of partition
-            from tasks import partition
-            fpars = partition.parameters
-            for mypar in fpars.keys():
-                fpars[mypar] = partition.itsdefault(mypar)
+        # Get the default parameters of partition
+        import inspect
+        from casatasks import partition as pt
+        for k,v in inspect.signature(pt).parameters.items( ):
+            fpars[k] = v.default
 
         # Call the cluster for each MS
         for myviso in vistoproc:
@@ -612,11 +508,8 @@ def importasdm(
     try:
         mslocal = ms()
         param_names = importasdm.__code__.co_varnames[:importasdm.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        vars = locals( )
+        param_vals = [vars[p] for p in param_names]
 
         for myviso in vistoproc:
             write_history(mslocal, myviso, 'importasdm', param_names, param_vals, casalog)

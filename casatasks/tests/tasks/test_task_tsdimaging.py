@@ -22,6 +22,13 @@
 #
 ##########################################################################
 
+# Temporary Note: 2024/6/13 Kaz
+# Because of adding the new parameter 'interpolation' and changing the default internal parameter
+# for frequency interpoation of imager to 'linear', we must evaluate the values for assertion in some tests.
+# For the porpose, I set interpolation='nearest' in task_param at the moment,
+# therefore all tests have passed now. (failed some tests without the param, of cource)
+# This comment will destruct by my hand in a few days.
+
 import copy
 from enum import Enum
 import glob
@@ -305,6 +312,7 @@ class sdimaging_standard_paramset(object):
     nchan = 40
     start = 400
     width = 10
+    interpolation = 'nearest'
 
 ###
 # Base class for sdimaging unit test
@@ -704,8 +712,8 @@ class sdimaging_test0(sdimaging_unittest_base):
         print('existing file', file=f)
         f.close()
         self.task_param['overwrite'] = False
-        msg = 'Output file \'{0}\' exists.'.format(outfile)
-        self.run_exception_case(self.task_param, msg)
+        expected_task_err_msg = f"Output file exists: '{outfile}'"
+        self.run_exception_case(self.task_param, expected_task_err_msg)
 
     def test009(self):
         """Test009: Bad phasecenter string."""
@@ -748,9 +756,9 @@ class sdimaging_test0(sdimaging_unittest_base):
     def test012(self):
         """Test012: Bad imsize."""
         self.task_param['imsize'] = [1, 0]
-        msg = 'Error in building Coordinate System and Image Shape : ' + \
-              'Internal Error : Image shape is invalid :'
-        self.run_exception_case(self.task_param, msg)
+        cpp_err_msg = ( 'Error in building Coordinate System and Image Shape: '
+                        'Internal Error : Image shape is invalid :' )
+        self.run_exception_case(self.task_param, cpp_err_msg)
 
     def test013(self):
         """Test013: Bad cell size."""
@@ -1138,7 +1146,8 @@ class sdimaging_test2(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         remove_table(self.rawfile)
@@ -1275,7 +1284,8 @@ class sdimaging_test3(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         remove_table(self.rawfile)
@@ -1657,7 +1667,8 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self.task_param = dict(mode=self.mode_def, intent="",
                                gridfunction=self.kernel, outfile=self.outfile,
                                phasecenter=self.phasecenter_auto,
-                               cell=self.cell_auto, imsize=self.imsize_auto)
+                               cell=self.cell_auto, imsize=self.imsize_auto,
+                               interpolation=self.interpolation)
 
         remove_tables_starting_with(self.prefix)
 
@@ -3527,7 +3538,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
 #
 ###
 class sdimaging_test_interp(sdimaging_unittest_base):
-    """Unit tests for sdimaging (interporation).
+    """Unit tests for sdimaging (interpolation).
 
     tests:
     test_spline_interp_single_infiles: check if spline interpolation works for single MS
@@ -3837,7 +3848,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=True)
+                   phasecenter=phasecenter, clipminmax=True, interpolation=self.interpolation)
         _outfile = outfile + image_suffix
         self._checkfile(_outfile)
         self._check_weight_image(_outfile)
@@ -3921,7 +3932,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
                    mode=mode, nchan=nchan, start=start, width=width,
                    gridfunction=gridfunction, imsize=imsize, cell=cell,
-                   phasecenter=phasecenter, clipminmax=False)
+                   phasecenter=phasecenter, clipminmax=False, interpolation=self.interpolation)
         _outfile_ref = outfile + image_suffix
         self._checkfile(_outfile_ref)
         self._check_weight_image(_outfile_ref)

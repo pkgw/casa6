@@ -1,23 +1,10 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from casatools import table
+from casatasks import casalog
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table
-    from casatasks import casalog
+from .correct_ant_posns_alma import correct_ant_posns_alma as _correct_ant_posns_alma
+from .correct_ant_posns_evla import correct_ant_posns_evla as _correct_ant_posns_evla
 
-    from .correct_ant_posns_alma import correct_ant_posns_alma as _correct_ant_posns_alma
-    from .correct_ant_posns_evla import correct_ant_posns_evla as _correct_ant_posns_evla
-
-    _tb = table( )
-else:
-    from taskinit import *
-
-    from correct_ant_posns_alma import correct_ant_posns_alma as _correct_ant_posns_alma
-    from correct_ant_posns_evla import correct_ant_posns_evla as _correct_ant_posns_evla
-
-    # for getting a single tool in gentools
-    (_tb,) = gentools(['tb'])
+_tb = table( )
 
 def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
     """

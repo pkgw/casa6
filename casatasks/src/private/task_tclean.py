@@ -5,8 +5,7 @@
 #
 ################################################
 
-from __future__ import absolute_import
-
+import platform
 import os
 import shutil
 import numpy
@@ -15,8 +14,7 @@ import filecmp
 import time
 import pdb
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
+
 from casatasks import casalog
 
 from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
@@ -215,17 +213,17 @@ def tclean(
         # casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect except for awproject.", "WARN", "task_tclean" )
 
 
-    ## Part of CAS-13814, checking for the only options compatible with mtmfs_via_cube. After CAS-13191, remove the 'awproject' check. 
-    if specmode=="mtmfs_via_cube": 
+    ## Part of CAS-13814, checking for the only options compatible with mtmfs_via_cube.  
+    if specmode=="mvc": 
         if deconvolver != 'mtmfs' or nterms<=1 :           
-            casalog.post("The specmode='mtmfs_via_cube' option requires the deconvolver to be 'mtmfs' and 'nterms>1.",
+            casalog.post("The specmode='mvc' option requires the deconvolver to be 'mtmfs' and 'nterms>1.",
                          "WARN",
                          "task_tclean")
             return
 
     ## Part of CAS-13814, moving warnings about pbcor and widebandpbcor from the C++ code to here, for better access to user-settings.
     if specmode=='mfs' and deconvolver=='mtmfs' and gridder in ['standard','mosaic'] and pbcor==True:
-        casalog.post("For specmode='mfs' and deconvolver='mtmfs', the option of pbcor=True divides each restored Taylor coefficient image by the pb.tt0 image. This correction ignores the frequency-dependence of the primary beam and does not correct for PB spectral index. It is scientifically valid only for small fractional bandwidths. For more accurate wideband primary beam correction (if needed), please use one of the following options : (1) specmode='mtmfs_via_cube' with gridder='standard' or 'mosaic' with pbcor=True,  (2) conjbeams=True and wbawp=True with gridder='awproject' and pbcor=True.",
+        casalog.post("For specmode='mfs' and deconvolver='mtmfs', the option of pbcor=True divides each restored Taylor coefficient image by the pb.tt0 image. This correction ignores the frequency-dependence of the primary beam and does not correct for PB spectral index. It is scientifically valid only for small fractional bandwidths. For more accurate wideband primary beam correction (if needed), please use one of the following options : (1) specmode='mvc' with gridder='standard' or 'mosaic' with pbcor=True,  (2) conjbeams=True and wbawp=True with gridder='awproject' and pbcor=True.",
                      "WARN",
                      "task_tclean")
     if perchanweightdensity == False and weighting == "briggsbwtaper":
@@ -267,18 +265,18 @@ def tclean(
         return
 
     ## CAS-13814
-    if (specmode == "mtmfs_via_cube" and gridder == 'awproject' and (conjbeams==True or wbawp==False) ):
+    if (specmode == "mvc" and gridder == 'awproject' and (conjbeams==True or wbawp==False) ):
         casalog.post(
-            "specmode='mtmfs_via_cube' requires frequency-dependent primary beams to be used during cube gridding. Please set conjbeams=False and wbawp=True for the awproject gridder.",
+            "specmode='mvc' requires frequency-dependent primary beams to be used during cube gridding. Please set conjbeams=False and wbawp=True for the awproject gridder.",
             "WARN",
             "task_tclean",
         )
         return
 
         #CAS-13814
-    if (specmode == "mtmfs_via_cube" and gridder == 'mosaic' and conjbeams==True):
+    if (specmode == "mvc" and gridder == 'mosaic' and conjbeams==True):
         casalog.post(
-            "specmode='mtmfs_via_cube' requires frequency-dependent primary beams to be used during cube gridding. Please set conjbeams=False with the mosaic gridder.",
+            "specmode='mvc' requires frequency-dependent primary beams to be used during cube gridding. Please set conjbeams=False with the mosaic gridder.",
             "WARN",
             "task_tclean",
         )
@@ -387,12 +385,41 @@ def tclean(
         return False
 
 
+    if interactive:
+        # catch non operational case (parallel cube tclean with interative=T)
+        if pcube:
+            casalog.post(
+                "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F",
+                "WARN",
+                "task_tclean",
+            )
+            return False
+
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS. Returning
+        # False instead of throwing an exception results in:
+        #
+        #    RuntimeError: No active exception to reraise
+        #
+        # from tclean run from casashell.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
+                    "WARN",
+                    "task_tclean",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
+
+
     #casalog.post('parameters {}'.format(bparm))    
     paramList=ImagerParameters(**bparm)
 
     ## Setup Imager objects, for different parallelization schemes.
     imagerInst = PySynthesisImager
-    if specmode == "mtmfs_via_cube":
+    if specmode == "mvc":
         imager = PyMtmfsViaCubeSynthesisImager(params=paramList)
         imagerInst = PyMtmfsViaCubeSynthesisImager
     elif parallel == False and pcube == False:

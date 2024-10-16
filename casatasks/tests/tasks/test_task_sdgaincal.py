@@ -200,7 +200,7 @@ class sdgaincal_fail_test(sdgaincal_test_base):
         self.assertEqual(result, False)
 
     def _test_except_regex(self, exception_type, pattern, **params):
-        with self.assertRaisesRegexp(exception_type, pattern):
+        with self.assertRaisesRegex(exception_type, pattern):
             self.run_task(**params)
 
     def test_fail01(self):

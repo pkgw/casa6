@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -53,6 +53,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -1035,10 +1036,15 @@ void VisBufferUtil::convertFrequency(Vector<Double>& outFreq,
 
 
   MDirection VisBufferUtil::getEphemBasedPhaseDir(const vi::VisBuffer2& vb, const String& ephemPath, const MDirection&refDir,  const Double t){
-    MEpoch ep(Quantity(t, "s"), vb.getVi()->getImpl()->getEpoch().getRef());
-    mframe_.resetEpoch(ep);
+    
+    
     if(!Table::isReadable(ephemPath, False))
       return refDir;
+    if(!(vb.getVi()->getImpl())){
+      throw(AipsError("VisibilityIterator is not attached to an ms"));
+    }
+    MEpoch ep(Quantity(t, "s"), vb.getVi()->getImpl()->getEpoch().getRef());
+    mframe_.resetEpoch(ep);
     MeasComet mcomet(Path(ephemPath).absoluteName());
     mframe_.set(mcomet);
     MDirection::Ref outref1(MDirection::AZEL, mframe_);

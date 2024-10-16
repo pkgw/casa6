@@ -1491,11 +1491,7 @@ class plotbandpass_private_test(unittest.TestCase):
         time_list = [1,  30,  59,  88, 117, 146, 175]
         time_threshold = 30  # sec
         unique_time_list = list(_plotbandpass.sloppyUnique(time_list, 30))
-        # -------------------------------------------------------
-        # sloppyUnique(...) changed with CAS-13568
-        # -------------------------------------------------------
-        # self.assertEqual(unique_time_list, [1, 59, 117, 175])
-        self.assertEqual(unique_time_list, [1])
+        self.assertEqual(unique_time_list, [1, 59, 117, 175])
 
 
 if __name__ == '__main__':

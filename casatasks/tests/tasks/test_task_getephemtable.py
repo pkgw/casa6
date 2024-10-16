@@ -71,10 +71,24 @@ class getephemtable_test(unittest.TestCase):
         self.jdtimerange = 'JD2460189.33333~2460189.88542'
         self.mjdtimerange = 'MJD60188.83333~60189.38542'
         self.reftable = datapath+'titan_jplhorizons_eph_ref.tab'
-
+        #tmppath = '/Users/ttsutsum/SWDevel/casa/imaging/ephemimaging/getephemtable-test/'
+        self.inALMAtextfile =datapath+'titan_jplhorizons_eph_alma.txt'
+        self.inVLAtextfile = datapath+'titan_jplhorizons_eph_vla.txt'
+        self.inGBTtextfile = datapath+'titan_jplhorizons_eph_gbt.txt'
+        self.otheroutputs = ['saved_rawqueryresult.txt', 
+                             'titan_eph_from_ALMAtextdata.tab',
+                             'titan_eph_from_VLAtextdata.tab',
+                             'titan_eph_from_GBTtextdata.tab',
+                             'titan_eph_from_textdata.tab']
     def tearDown(self):
         if os.path.exists(self.outfile):
             shutil.rmtree(self.outfile) 
+        for output in self.otheroutputs:
+            if os.path.exists(output):
+                if os.path.isfile(output):
+                    os.remove(output)
+                else:
+                    shutil.rmtree(output)
 
     def checkEphemTableContent(self, intab, reftab):
         retval = True
@@ -82,10 +96,12 @@ class getephemtable_test(unittest.TestCase):
             _tb.open(intab)
             intabcols = _tb.colnames()
             intabnrows = _tb.nrows()
+            intabkeywds = _tb.getkeywords()
             _tb.close()
             _tb.open(reftab)
             reftabcols = _tb.colnames()
             reftabnrows = _tb.nrows()
+            reftabkeywds = _tb.getkeywords()
             _tb.close()
             if intabnrows != reftabnrows:
                print(f'Nrows of {intab} differs from that of {reftab}: {intabnrows} != {reftabnrows}')
@@ -97,6 +113,20 @@ class getephemtable_test(unittest.TestCase):
             if missingcols != []:
                 print(f'Missing column(s) in {intab}: {missingcols}')
                 retval = False   
+            missingkeys = []
+            for refkey in reftabkeywds.keys():
+                 if refkey not in intabkeywds:
+                     missingkeys.append(refkey)
+                 elif refkey == 'posrefsys':
+                     if intabkeywds[refkey] != 'ICRS':
+                         print(f'Wrong posrefsys label {intabkeywds[refky]} is detected.')
+                         retval = False
+            if missingkeys:
+                print(f'Missing keyword(s) in {intab}: {missingkeys}')
+                retval = False
+            for inkey in intabkeywds.keys():
+                if inkey not in reftabkeywds:
+                    print(f'{inkey} is not in reference table keywords')
         except Exception:
             print(f'Error occurred in checking content of {intab}') 
             retval = False
@@ -171,6 +201,44 @@ class getephemtable_test(unittest.TestCase):
         self.assertTrue(self.checkEphemTableContent(self.outfile, self.reftable))
         self.assertTrue(os.path.exists('saved_rawqueryresult.txt'))
 
+    @unittest.skipIf(isDatabaseURLunreachable(hostname),  "JPL-Horizons data server is not reachable")
+    def test_nonalphanumeric_name(self):
+        """Test object name extraction for the ojbect name contains nonalphanumeric characters"""
+        getephemtable(objectname='90000322', asis=True, timerange='2018/09/16/10:15:54~2018/09/22/13:16:21', outfile=self.outfile, overwrite=False)
+        self.assertTrue(os.path.exists(self.outfile))
+        _tb.open(self.outfile)
+        objname = _tb.getkeyword('NAME')
+        _tb.done()
+        self.assertTrue(objname=='21P/Giacobini-Zinner')
+    
+    def test_tocasatb_textfile_geo(self):
+        """Test tocasatb function independently,  geocentric location"""
+        getephemtable(objectname='Titan', timerange=self.caltimerange, interval='1d', outfile=self.outfile, rawdatafile='saved_rawqueryresult.txt', overwrite=True)
+        from casatasks.private import jplhorizons_query as jplq
+        jplq.tocasatb('saved_rawqueryresult.txt', 'titan_eph_from_textdata.tab')
+        self.assertTrue(self.checkEphemTableContent('titan_eph_from_textdata.tab', self.outfile))
+
+    def test_tocasatb_textfile_topo(self):
+        """Test tocasatb function independently, topocentric (ALMA, VLA, and GBT) locations"""
         
+        from casatasks.private import jplhorizons_query as jplq
+        jplq.tocasatb(self.inALMAtextfile, 'titan_eph_from_ALMAtextdata.tab')
+        _tb.open('titan_eph_from_ALMAtextdata.tab')
+        obsloc = _tb.getkeyword('obsloc')
+        _tb.done()
+        self.assertTrue(obsloc, 'ALMA')
+        jplq.tocasatb(self.inVLAtextfile, 'titan_eph_from_VLAtextdata.tab')
+        _tb.open('titan_eph_from_VLAtextdata.tab')
+        obsloc = _tb.getkeyword('obsloc')
+        _tb.done()
+        self.assertTrue(obsloc, 'VLA')
+        jplq.tocasatb(self.inGBTtextfile, 'titan_eph_from_GBTtextdata.tab')
+        _tb.open('titan_eph_from_GBTtextdata.tab')
+        obsloc = _tb.getkeyword('obsloc')
+        _tb.done()
+        self.assertTrue(obsloc, 'GBT')
+
+
+
 if __name__ == '__main__':
     unittest.main()

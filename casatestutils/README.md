@@ -25,7 +25,7 @@ The script uses unittest and pytest and has the following command line options.
 usage: runtest.py [-h] [-i] [-v] [-x] [-s test [test ...]] [-f [FILE]]
                   [-e [MAPFILE]] [-b BRANCH] [-p PKG] [-w WORK_DIR]
                   [-n NCORES] [-t TEST_PATHS] [-l TEST_LIST] [-c TEST_CONFIG]
-                  [-j TEST_GROUP] [-m PMODE] [--bamboo] [-r RCDIR]
+                  [-j TEST_GROUP] [-m PMODE] [--bamboo] [-r CACHEDIR]
                   [--ignore_list IGNORE_LIST]
 ```
 Execute it with a casalith tarball or python
@@ -64,7 +64,7 @@ python3 runtest.py -j Flagging
 python3 runtest.py --TEST_GROUP Flagging
 ...
 
-Namespace(bamboo=False, branch=None, classes=None, dry_run=True, file=None, list=False, mapfile=None, ncores=2, pkg=None, pmode=None, rcdir=None, test_config=None, test_group='Flagging', test_list=None, test_paths=None, verbose=False, work_dir=None)
+Namespace(bamboo=False, branch=None, classes=None, dry_run=True, file=None, list=False, mapfile=None, ncores=2, pkg=None, pmode=None, cachedir=None, test_config=None, test_group='Flagging', test_list=None, test_paths=None, verbose=False, work_dir=None)
 Testing Components['Flagging']
 
 Testnames: ['test_flagcmd', 'test_flagdata', 'test_flagmanager']
@@ -153,7 +153,7 @@ Required Flags
 
 Optional Flags
 -n, --ncores    : Number of Cores to Use for MPI Tests ( Default to 2)
--r, --rcdir     : Casa rcdir 
+-r, --cachedir     : Casa cachedir ( previously --rcdir, which also covered the paths to the startup and config files)
 ##### Examples
 python3 runtest.py --bamboo -n 4 -p casa-6.4.3-3-py3.6.tar.xz -m serial -j asdmsummary -w /path/to/working/directory
 python3 runtest.py --bamboo -p casa-6.4.3-3-py3.6.tar.xz -m serial  -w /path/to/working/directory --test_list test_coordsys,test_tclean,

@@ -229,17 +229,45 @@ returns true if initalization was performed; returns false if initialization was
   </param>
 </input>
 
+<input>
+  <param name="cachedir" type="string">
+    <description>the cachedir used in configuration at startup</description>
+  </param>
+</input>
+
 <returns type="bool"/>
 </method>
 
 
 <method name="rundata" type="function">
+  <description>path to the measures data. This function is deprecated measurespath should be used instead.</description>
+  <shortdescription>path to the measures data</shortdescription>
+  <returns type="string"/>
+</method>
+
+<method name="measurespath" type="function">
   <description>path to the measures data</description>
   <shortdescription>path to the measures data</shortdescription>
   <returns type="string"/>
 </method>
 
 <method name="setrundata" type="function">
+<description>
+Set path to the measures data. Must be called during initalization
+before Measures module is initialized. This function is deprecated.
+setmeasurespath should be used instead.
+</description>
+  <shortdescription>set path to the measures data</shortdescription>
+  <input>
+    <param name="path" type="string">
+      <description>path to IERS data</description>
+      <value/>
+    </param>
+  </input>
+  <returns/>
+</method>
+
+<method name="setmeasurespath" type="function">
 <description>
 Set path to the measures data. Must be called during initalization
 before Measures module is initialized.
@@ -253,7 +281,6 @@ before Measures module is initialized.
   </input>
   <returns/>
 </method>
-
 
 <method name="defaultpath" type="function">
 <shortdescription>returns the default data path</shortdescription>
@@ -354,6 +381,16 @@ elements of the data path.
   </description>
 
   <returns type="bool"/>
+</method>
+
+<method name="getcachedir" type="function">
+  <shortdescription>gets the cachedir config value</shortdescription>
+
+  <description>
+    Returns the value of the cachedir parameter used at startup.
+  </description>
+
+  <returns type="string"/>
 </method>
 
 
@@ -493,30 +530,6 @@ Returns a description string that includes the version information and the descr
 <description>
 
 Returns a description string that includes the version information and the descriptive string..
-
-</description>
-</method>
-
-<method name="toolversion" type="function">
-<shortdescription>returns two element vector containing CASA 6 tool version number</shortdescription>
-
-<returns type="intVec"/>
-<description>
-
-Returns a two element vector representing the CASAtools version (year, build). This is only
-returned with CASA 6. With CASA 5, an zero element vector is returned.
-
-</description>
-</method>
-
-<method name="toolversion_string" type="function">
-<shortdescription>Returns the complete CASA 6 CASAtools version description as a string</shortdescription>
-
-<returns type="string"/>
-<description>
-
-Returns a description string that shows the CASA 6 CASAtools version information as a descriptive string.
-With CASA 5, a zero length string is returned.
 
 </description>
 </method>

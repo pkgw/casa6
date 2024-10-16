@@ -225,7 +225,7 @@ class TestHelpers:
         for k in range(nchan):
             beam2[k] = _ia.beamarea(k,0)['arcsec2']
         _ia.close()
-        return numpy.alltrue(op(beam1, beam2))
+        return numpy.all(op(beam1, beam2))
 
     def image_exists(self, imname):
         """ Image exists """
@@ -548,6 +548,34 @@ class TestHelpers:
  
         
     def check_val(self, val, correctval, valname='Value', exact=False, epsilon=0.05, testname = "check_val"):
+        """Check that a value is equal to a reference value using a tolerance or not. 
+           
+            Parameters
+            ----------
+            val: float
+                Value should be a number to compare with a reference given in 'correctval'
+            correctval: float
+                Reference value to be compared with "value"
+            valname: string
+                The name of the parameter that identifies "value". (optional)
+            exact: Bool
+                If False, it will compare within the tolerance given by "epsilon"
+            epsilon: Float
+                Default is 0.05. It is only used if "exact" is False
+            testname: string
+                This function name
+
+            Return
+            ----------
+            (out, pstr): (Bool,string)
+                It returns a tuple with a Bool and a string. When the comparison of val and correctval does not
+                succed it returns False and a string saying:
+                
+                [ check_val ] beam_major is 4.845038414001465 ( Fail : should be 5.035, Epsilon: 0.01)
+            -----
+  
+        """
+
         pstr = ''
         out = True
         try:

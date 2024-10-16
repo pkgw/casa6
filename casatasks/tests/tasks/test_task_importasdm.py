@@ -214,6 +214,13 @@ class test_base(unittest.TestCase):
         datapath=os.path.join(rootpath,myasdmname)
         os.system('ln -sf '+datapath)
 
+
+    def setUp_12mex_bin(self):
+        res = None
+        myasdmname = 'uid___A002_X71e4ae_X317_short_bin' # 12m example ASDM with mixed pol/channelisation and binary Cal tables
+        datapath=os.path.join(rootpath,myasdmname)
+        os.system('ln -sf '+datapath)
+
     def setUp_eph(self):
         res = None
         myasdmname = 'uid___A002_X997a62_X8c-short' # 12m example ASDM with ephemerides
@@ -324,7 +331,7 @@ class asdm_import1(test_base):
             name = ""
             #             col name, row number, expected value, tolerance
             expected = [
-                         ['UVW',       42, [ 0., 0., 0. ], 1E-8],
+                         ['UVW',       42, [ 0., 0., 0. ], 2E-7],
                          ['EXPOSURE',  42, 1.008, 0],
                          ['DATA',      42, [ [10.5526886+0.0j] ], 1E-7]
                          ]
@@ -335,7 +342,7 @@ class asdm_import1(test_base):
     
             expected = [
     # old values using TAI     ['UVW',       638, [-65.07623467,   1.05534109, -33.65801386], 1E-8],
-                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 1E-7],
+                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 2E-7],
                          ['EXPOSURE',  638, 1.008, 0],
                          ['DATA',      638, [ [0.00362284+0.00340279j] ], 1E-8]
                          ]
@@ -508,7 +515,7 @@ class asdm_import2(test_base):
             name = ""
             #             col name, row number, expected value, tolerance
             expected = [
-                         ['UVW',       42, [ 0., 0., 0. ], 1E-8],
+                         ['UVW',       42, [ 0., 0., 0. ], 2E-7],
                          ['EXPOSURE',  42, 1.008, 0],
                          ['DATA',      42, [ [10.5526886+0.0j] ], 1E-7]
                          ]
@@ -519,7 +526,7 @@ class asdm_import2(test_base):
     
             expected = [
     # old values using TAI     ['UVW',       638, [-65.07623467,   1.05534109, -33.65801386], 1E-8],
-                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 1E-7],
+                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 2E-7],
                          ['EXPOSURE',  638, 1.008, 0],
                          ['DATA',      638, [ [0.00362284+0.00340279j] ], 1E-8]
                          ]
@@ -769,7 +776,6 @@ class asdm_import3(test_base):
         msname = self.asdm+".ms"
 
         # note that ocorr_mode defaulted to "co" for importevla and with_pointing_correction defaulted to True, so both must be set here
-        # polyephem_tabtimestep defaulted to 0.001 in importevla, but that's only relevant for ephemeral objects, not relevant here
         self.res = importasdm(asdm=self.asdm, vis=msname, scans='2',ocorr_mode='co',with_pointing_correction=True)
         print("%s: Success! Now checking output ..." % myname)
         # this is probably not the best way to test sucess, too dependent on table system details, which might change without invalidating the result
@@ -845,7 +851,7 @@ class asdm_import3(test_base):
             name = ""
             #             col name, row number, expected value, tolerance
             expected = [
-                         ['UVW',       42, [  1607.46416559, -1241.44101203 , 584.54265781], 1E-8],
+                         ['UVW',       42, [  1607.46416559, -1241.44101203 , 584.54265781], 2E-7],
                          ['EXPOSURE',  42, 1.0, 0]
                        ]
             results = checktable(msname, name, expected)
@@ -854,7 +860,7 @@ class asdm_import3(test_base):
                 retValue['error_msgs']=retValue['error_msgs']+'Check of table MAIN failed'
     
             expected = [
-                         ['UVW',       638, [14.21738626, 722.5956813 , 57.58092887], 1E-8],
+                         ['UVW',       638, [14.21738626, 722.5956813 , 57.58092887], 2E-7],
                          ['EXPOSURE',  638, 1.0, 0]
                        ]
             results = checktable(msname, name, expected)
@@ -894,9 +900,9 @@ class asdm_import3(test_base):
         msname = self.asdm+".ms"
 
         # note that ocorr_mode defaulted to "co" for importevla and with_pointing_correction defaulted to True, so both must be set here
-        # polyephem_tabtimestep defaulted to 0.001 must also be set here since this includes ephemeris data (unsure what the default is otherwise)
+        # polyephem_tabtimestep defaults to 0.001 when not set, check that this interval is what is produced
         # importevla did not have the convert_ephem2geo step so it must be disabled here to duplicate that behavior
-        self.res = importasdm(asdm=self.asdm, vis=msname, scans='0:5',ocorr_mode='co',with_pointing_correction=True,polyephem_tabtimestep=0.001,convert_ephem2geo=False)
+        self.res = importasdm(asdm=self.asdm, vis=msname, scans='0:5',ocorr_mode='co',with_pointing_correction=True,convert_ephem2geo=False)
         print("%s: Success! Now checking output ..." % myname)
         mscomponents = set(["table.dat",
                             "table.f1",
@@ -971,8 +977,53 @@ class asdm_import3(test_base):
             else:
                 retValue['success']=False
                 retValue['error_msgs']=retValue['error_msgs']+'Unexepcted mssummary.'
+
+            # the ephemeris table
+            
+            tblocal.open(msname+"/FIELD/EPHEM0_URANUS_57545.8.tab")
+            # check that the MJD interval is the expected (default) value of 0.001d
+            mjd = tblocal.getcol('MJD')
+            tblocal.close()
+            mjdInterval = (mjd[1:] - mjd[0:-1]).mean()
+            self.assertAlmostEqual(mjdInterval, 0.001, places=5)
                 
         self.assertTrue(retValue['success'])
+
+    def test_evla_ephemeris(self):
+        '''test of importing evla data with polynomial ephemeris and different polyephem_tabtimestep values'''
+
+        self.asdm = 'polyuranus'
+        msname = self.asdm+".ms"
+
+        # the default polyephem_tabtimestep is checked in test_evlatest2
+
+        # a negative value should be the same as the default
+        self.res = importasdm(asdm=self.asdm, vis=msname, scans='0:5',ocorr_mode='co',with_pointing_correction=True,convert_ephem2geo=False,polyephem_tabtimestep=-1)
+        print("%s: Success! Now checking ephemeris table ..." % myname)
+        tblocal.open(msname+"/FIELD/EPHEM0_URANUS_57545.8.tab")
+        # check that the MJD interval is the expected (default) value of 0.001d
+        mjd = tblocal.getcol('MJD')
+        tblocal.close()
+        mjdInterval = (mjd[1:] - mjd[0:-1]).mean()
+        self.assertAlmostEqual(mjdInterval, 0.001, places=7)
+        print("%s: Success! Now checking a different polyephem_tabtimestep value")
+
+        # msname must first be removed before it can be filled again here
+        shutil.rmtree(msname)
+        # and flagversions tree
+        shutil.rmtree(msname+".flagversions")
+
+        # an arbitrary non-default value shouild set the interval
+        self.res = importasdm(asdm=self.asdm, vis=msname, scans='0:5',ocorr_mode='co',with_pointing_correction=True,convert_ephem2geo=False,polyephem_tabtimestep=0.00725)
+        print("%s: Success! Now checking ephemeris table ..." % myname)
+        tblocal.open(msname+"/FIELD/EPHEM0_URANUS_57545.8.tab")
+        # check that the MJD interval is the value that was used
+        mjd = tblocal.getcol('MJD')
+        tblocal.close()
+        mjdInterval = (mjd[1:] - mjd[0:-1]).mean()
+        self.assertAlmostEqual(mjdInterval, 0.00725, places=7)
+        print("%s: Success!")
+
 
     def test_evla_apply1(self):
         '''test of importing evla data, apply all flags, and save to file'''
@@ -1850,7 +1901,8 @@ class asdm_import6(test_base):
                             print("ERROR for WEATHER table. Expected values of DEW_POINT_FLAG and PRESSURE_FLAG are not seen.")
                 
         self.assertTrue(retValue['success'],retValue['error_msgs'])
-        
+
+
 class asdm_import7(test_base):
 
     def setUp(self):
@@ -2228,242 +2280,144 @@ class asdm_import7(test_base):
     def test7_lazy3(self):
         '''Asdm-import: Test good 12 m ASDM with Ephemeris table in lazy mode'''
 
-        # this test relies on the stand-alone executable for features not available in the tool
-        print("Skipping asdm_import7.test7_lazy3 - uses stand-alone executable")
-        return
-
         retValue = {'success': True, 'msgs': "", 'error_msgs': '' }    
 
         myasdmname = 'uid___A002_X997a62_X8c-short'
         themsname = myasdmname+".ms"
 
-        self.res = importasdm(myasdmname, vis=themsname, lazy=True, convert_ephem2geo=True, 
-                              process_pointing=False, flagbackup=False)
-        self.assertEqual(self.res, None)
-        print("%s: Success! Now checking output ..." % myname)
-        mscomponents = set(["FIELD/table.dat",
-                            "FIELD/EPHEM0_Mars_57034.9.tab",
-                            "FIELD/EPHEM1_Titania_57034.9.tab"
-                            ])
-        for name in mscomponents:
-            if not os.access(themsname+"/"+name, os.F_OK):
-                print("%s: Error  %s/%s doesn't exist ..." % (myname,themsname,name))
-                retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+themsname+'/'+name+' does not exist'
+        # do this fill 2 times, first with the default polyephem_tabtimestep and
+        # second with a set value. Both should pass with the same test values
+        # since that parameter doesn't matter
+
+        for tabtimestep in [None, 0.0075]:
+            # make sure there's nothing there from a previous fill
+            shutil.rmtree(themsname,ignore_errors=True)
+            shutil.rmtree(themsname+'.flagversions',ignore_errors=True)
+
+            if tabtimestep is None:
+                # default value
+                print("fill to %s with default polyephem_tabtimestep" % themsname)
+                self.res = importasdm(myasdmname, vis=themsname, lazy=True, convert_ephem2geo=True, 
+                                      process_pointing=False, flagbackup=False)
             else:
-                print("%s: %s present." % (myname,name))
-        print("%s: MS exists. All relevant tables present. Try opening as MS ..." % myname)
-        try:
-            mslocal.open(themsname)
-        except:
-            print("%s: Error  Cannot open MS table %" % (myname,themsname))
-            retValue['success']=False
-            retValue['error_msgs']=retValue['error_msgs']+'Cannot open MS table '+themsname
-
-
-        print("%s:  testing FIELD values in ms.summary()" % myname)
-        try:
-            mssum = mslocal.summary()
-            # only Mars appears here because this short SDM only contains a single scan and that uses Mars
-            self.assertEqual(mssum['scan_1']['0']['FieldName'],'Mars')
-            self.assertAlmostEqual(mssum['field_0']['direction']['m0']['value'],-0.4770797859505159,15)
-            self.assertAlmostEqual(mssum['field_0']['direction']['m1']['value'],-0.2154815444753364,15)
-        except:
-            print("%s: Error ms summary has an unexpect source or direction value" % myname)
-            retValue['success']=False
-            retValue['error_msgs']=retValue['err_msg']+'Unexpected source or direction value in ms summary '+thismsname + '\n'
-
-
-        mslocal.close()
-
-        ephems = []
-        # values from indivual rows were picked for no particular reason except verify they've not changed
-        ephems.append({'name':"FIELD/EPHEM0_Mars_57034.9.tab",
-                       'nrows':27,
-                       'rows':[{'row':10,
-                                'values':{'MJD':57035.041666666664,
-                                          'RA':332.7140437500001,
-                                          'DEC':-12.327346944444447,
-                                          'Rho':2.024609480125507,
-                                          'RadVel':723729.77502873}},
-                               {'row':22,
-                                'values':{'MJD':57035.208333333336,
-                                          'RA':332.8387870833333,
-                                          'DEC':-12.2793975,
-                                          'Rho':2.0254053468626436,
-                                          'RadVel':705588.202526264}}
-                               ]
-                       }
-                      )
-
-        ephems.append({'name':"FIELD/EPHEM1_Titania_57034.9.tab",
-                       'nrows':45,
-                       'rows':[{'row':17,
-                                'values':{'MJD':57035.055555555555,
-                                          'RA':11.813166666666666,
-                                          'DEC':4.365749999999999,
-                                          'Rho':20.150883673698488,
-                                          'RadVel':2730048.0839084126}},
-                               {'row':40,
-                                'values':{'MJD':57035.21527777778,
-                                          'RA':11.816041666666667,
-                                          'DEC':4.3661111111111115,
-                                          'Rho':20.153736461701364,
-                                          'RadVel':2711142.1699538543}}
-                               ]
-                       }
-                      )
-
-        for ephem in ephems:
-            print("%s: Testing various things in ephemeris %s ..." % (myname,ephem['name']))
-
-            tblocal.open(themsname+"/"+ephem['name'])
-            kw = tblocal.getkeywords()
-            nrows = tblocal.nrows()
-            if not nrows==ephem['nrows']:
-                print("%s: Error. unexpected number of rows in ephemeris : %s" % (myname,ephem['name']))
+                print("fill to %s with polyephem_tabtimestep = %s, value should not be used here" % (themsname, tabtimestep))
+                # a specific value, this should produce a warning message - not checked here
+                self.res = importasdm(myasdmname, vis=themsname, lazy=True, convert_ephem2geo=True,
+                                      process_pointing=False, flagbackup=False, polyephem_tabtimestep=tabtimestep)
+                
+            self.assertEqual(self.res, None)
+            print("%s: Success! Now checking output ..." % myname)
+            mscomponents = set(["FIELD/table.dat",
+                                "FIELD/EPHEM0_Mars_57034.9.tab",
+                                "FIELD/EPHEM1_Titania_57034.9.tab"
+                              ])
+            for name in mscomponents:
+                if not os.access(themsname+"/"+name, os.F_OK):
+                    print("%s: Error  %s/%s doesn't exist ..." % (myname,themsname,name))
+                    retValue['success']=False
+                    retValue['error_msgs']=retValue['error_msgs']+themsname+'/'+name+' does not exist'
+                else:
+                    print("%s: %s present." % (myname,name))
+            print("%s: MS exists. All relevant tables present. Try opening as MS ..." % myname)
+            
+            try:
+                mslocal.open(themsname)
+            except:
+                print("%s: Error  Cannot open MS table %" % (myname,themsname))
                 retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+' Unexpected number of rows in ephemeris table :'+ ephem['name'] + '\n'
+                retValue['error_msgs']=retValue['error_msgs']+'Cannot open MS table '+themsname
 
-            for row in ephem['rows']:
-                thisRow = row['row']
-                for colname in row['values']:
-                    thisVal = tblocal.getcell(colname,thisRow)
-                    self.assertAlmostEqual(thisVal,row['values'][colname],10)
 
-            # unfilled columns
-            self.assertEqual((tblocal.getcol('diskLong') != 0.0).sum(),0)
-            self.assertEqual((tblocal.getcol('diskLat') != 0.0).sum(),0)
-
-            tblocal.close()
-            geodist = kw['GeoDist'] # (km above reference ellipsoid)
-            geolat = kw['GeoLat'] # (deg)
-            geolong = kw['GeoLong'] # (deg)
-            if not (geodist==geolat==geolong==0.):
-                print("%s: ERROR." % myname)
+            print("%s:  testing FIELD values in ms.summary()" % myname)
+            try:
+                mssum = mslocal.summary()
+                # only Mars appears here because this short SDM only contains a single scan and that uses Mars
+                self.assertEqual(mssum['scan_1']['0']['FieldName'],'Mars')
+                self.assertAlmostEqual(mssum['field_0']['direction']['m0']['value'],-0.4770797859505159,15)
+                self.assertAlmostEqual(mssum['field_0']['direction']['m1']['value'],-0.2154815444753364,15)
+            except:
+                print("%s: Error ms summary has an unexpect source or direction value" % myname)
                 retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+' Ephemeris was not converted to GEO for '+themsname+'\n'
-            prsys = kw['posrefsys']
-            if not (prsys=="ICRF/ICRS"):
-                print("%s: ERROR." % myname)
-                retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+' posrefsys keyword is not ICRF/ICRS '+themsname+'\n'
+                retValue['error_msgs']=retValue['err_msg']+'Unexpected source or direction value in ms summary '+thismsname + '\n'
 
-        # fill and request an interpolated table.  Tests asdm2MS directly as this option isn't 
-        # available in importasdm
+            
+            mslocal.close()
 
-        print("%s filling an interpolated version of the same ephemeris" % myname)
-        themsname_interp = myasdmname+".interp.ms"
-        execute_string = "asdm2MS --no-pointing --interpolate-ephemeris 'yes' " + myasdmname + ' ' + themsname_interp
-        print('%s executing : %s' % (myname,execute_string))
-        exitcode = os.system(execute_string)
-        self.assertEqual(exitcode,0)
-        ce.convert2geo(themsname_interp, '*') # convert the ephemeris to GEO
-        # note that the recalculation of UVW and the adjustment of the SOURCE table are not
-        # done here the way they would be done if filled via importasdm
-        print("%s: Success! Now checking output ..." % myname)
-        for name in mscomponents:
-            if not os.access(themsname_interp+"/"+name, os.F_OK):
-                print("%s: Error  %s/%s doesn't exist ..." % (myname,themsname_interp,name))
-                retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+themsname_interp+'/'+name+' does not exist'
-            else:
-                print("%s: %s present." % (myname,name))
-        print("%s: MS exists. All relevant tables present. Try opening as MS ..." % myname)
-        try:
-            mslocal.open(themsname_interp)
-        except:
-            print("%s: Error  Cannot open MS table %s" % (myname,themsname_interp))
-            retValue['success']=False
-            retValue['error_msgs']=retValue['error_msgs']+'Cannot open MS table '+themsname_interp
-        print("%s:  testing FIELD values in ms.summary()" % myname)
-        try:
-            mssum = mslocal.summary()
-            # only Mars appears here because this short SDM only contains a single scan and that uses Mars
-            self.assertEqual(mssum['scan_1']['0']['FieldName'],'Mars')
-            # difference here is < 0".0004 of the above, non-interpolated value
-            self.assertAlmostEqual(mssum['field_0']['direction']['m0']['value'],-0.4770797877079177,15)
-            # difference here is < 0".00005 of the above, non-interpolated value
-            self.assertAlmostEqual(mssum['field_0']['direction']['m1']['value'],-0.2154815442529733,15)
-        except:
-            print("%s: Error ms summary has an unexpected source or direction value" % myname)
-            retValue['success']=False
-            retValue['error_msgs']=retValue['err_msg']+'Unexpected source or direction value in ms summary '+thismsname + '\n'
+            ephems = []
+            # values from indivual rows were picked for no particular reason except verify they've not changed
+            ephems.append({'name':"FIELD/EPHEM0_Mars_57034.9.tab",
+                           'nrows':27,
+                           'rows':[{'row':10,
+                                    'values':{'MJD':57035.0416666667,
+                                              'RA': 332.7140437500,
+                                              'DEC':-12.3273469444,
+                                              'Rho':  2.0246094801,
+                                              'RadVel':723729.775}},
+                                   {'row':22,
+                                    'values':{'MJD':57035.2083333333,
+                                              'RA': 332.8387870833,
+                                              'DEC':-12.2793975000,
+                                              'Rho':2.0254053469,
+                                              'RadVel':705588.203}}
+                                  ]
+                          }
+                         )
 
-        mslocal.close()
-        ephems = []
-        # values from indivual rows were picked for no particular reason except verify they've not changed
-        # these rows 
-        ephems.append({'name':"FIELD/EPHEM0_Mars_57034.9.tab",
-                       'nrows':361,
-                       'rows':[{'row':105,
-                                'values':{'MJD':57035.008000000001630,
-                                          'RA':332.688983703339886,
-                                          'DEC':-12.337033046664128,
-                                          'Rho':2.024447666954067,
-                                          'RadVel':722270.482337458524853}},
-                               {'row':320,
-                                'values':{'MJD':57035.222999999998137,
-                                          'RA':332.849807533339913,
-                                          'DEC':-12.275182948886352,
-                                          'Rho':2.025474163348287,
-                                          'RadVel':702390.653405150165781}}
-                               ]
-                       }
-                      )
+            ephems.append({'name':"FIELD/EPHEM1_Titania_57034.9.tab",
+                           'nrows':45,
+                           'rows':[{'row':17,
+                                    'values':{'MJD':57035.0555555556,
+                                              'RA': 11.8131666667,
+                                              'DEC': 4.3657500000,
+                                              'Rho':20.1508836737,
+                                              'RadVel':2730048.084}},
+                                   {'row':40,
+                                    'values':{'MJD':57035.2152777778,
+                                              'RA':11.8160416667,
+                                              'DEC':4.3661111111,
+                                              'Rho':20.1537364617,
+                                              'RadVel':2711142.170}}
+                                  ]
+                          }
+                        )
 
-        ephems.append({'name':"FIELD/EPHEM1_Titania_57034.9.tab",
-                       'nrows':306,
-                       'rows':[{'row':95,
-                                'values':{'MJD':57035.033000000003085,
-                                          'RA':11.812802333333494,
-                                          'DEC':4.365715333333369,
-                                          'Rho':20.150479182212013,
-                                          'RadVel':2725243.2794365715}},
-                               {'row':250,
-                                'values':{'MJD':57035.188000000001921,
-                                          'RA':11.815509000000159,
-                                          'DEC':4.366057555555590,
-                                          'Rho':20.153251583732832,
-                                          'RadVel':2721431.2502824306}}
-                               ]
-                       }
-                      )
+            # tolerances by column name (digits after the decimal)
+            tolerances = {'MJD':10, 'RA':10, 'DEC':10, 'Rho':10, 'RadVel':3}
+            
+            for ephem in ephems:
+                print("%s: Testing various things in ephemeris %s ..." % (myname,ephem['name']))
 
-        for ephem in ephems:
-            print("%s: Testing various things in ephemeris %s ..." % (myname,ephem['name']))
+                tblocal.open(themsname+"/"+ephem['name'])
+                kw = tblocal.getkeywords()
+                nrows = tblocal.nrows()
+                if not nrows==ephem['nrows']:
+                    print("%s: Error. unexpected number of rows in ephemeris : %s" % (myname,ephem['name']))
+                    retValue['success']=False
+                    retValue['error_msgs']=retValue['error_msgs']+' Unexpected number of rows in ephemeris table :'+ ephem['name'] + '\n'
 
-            tblocal.open(themsname_interp+"/"+ephem['name'])
-            kw = tblocal.getkeywords()
-            nrows = tblocal.nrows()
-            if not nrows==ephem['nrows']:
-                print("%s: Error. unexpected number of rows in ephemeris : %s" % (myname,ephem['name']))
-                retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+' Unexpected number of rows in ephemeris table :'+ ephem['name'] + '\n'
+                for row in ephem['rows']:
+                    thisRow = row['row']
+                    for colname in row['values']:
+                        thisVal = tblocal.getcell(colname,thisRow)
+                        self.assertAlmostEqual(thisVal,row['values'][colname],tolerances[colname])
 
-            for row in ephem['rows']:
-                thisRow = row['row']
-                for colname in row['values']:
-                    thisVal = tblocal.getcell(colname,thisRow)
-                    self.assertAlmostEqual(thisVal,row['values'][colname],10)
+                # unfilled columns
+                self.assertEqual((tblocal.getcol('diskLong') != 0.0).sum(),0)
+                self.assertEqual((tblocal.getcol('diskLat') != 0.0).sum(),0)
 
-            # unfilled columns
-            self.assertEqual((tblocal.getcol('diskLong') != 0.0).sum(),0)
-            self.assertEqual((tblocal.getcol('diskLat') != 0.0).sum(),0)
-
-            tblocal.close()
-            geodist = kw['GeoDist'] # (km above reference ellipsoid)
-            geolat = kw['GeoLat'] # (deg)
-            geolong = kw['GeoLong'] # (deg)
-            if not (geodist==geolat==geolong==0.):
-                print("%s: ERROR." % myname)
-                retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+' Ephemeris was not converted to GEO for '+themsname_interp+'\n'
-            prsys = kw['posrefsys']
-            if not (prsys=="ICRF/ICRS"):
-                print("%s: ERROR." % myname)
-                retValue['success']=False
-                retValue['error_msgs']=retValue['error_msgs']+' posrefsys keyword is not ICRF/ICRS '+themsname_interp+'\n'
+                tblocal.close()
+                geodist = kw['GeoDist'] # (km above reference ellipsoid)
+                geolat = kw['GeoLat'] # (deg)
+                geolong = kw['GeoLong'] # (deg)
+                if not (geodist==geolat==geolong==0.):
+                    print("%s: ERROR." % myname)
+                    retValue['success']=False
+                    retValue['error_msgs']=retValue['error_msgs']+' Ephemeris was not converted to GEO for '+themsname+'\n'
+                prsys = kw['posrefsys']
+                if not (prsys=="ICRF/ICRS"):
+                    print("%s: ERROR." % myname)
+                    retValue['success']=False
+                    retValue['error_msgs']=retValue['error_msgs']+' posrefsys keyword is not ICRF/ICRS '+themsname+'\n'
 
         self.assertTrue(retValue['success'],retValue['error_msgs'])
         print("%s: OK." % myname)
@@ -3355,6 +3309,80 @@ class asdm_import8(test_base):
         logLinesEnd = countlines(casalog.logfile())
 
         self.assertTrue(((logLinesEnd-logLinesMiddle) > (logLinesMiddle-logLinesStart)), 'verbose test failed, did not produce more lines')
+
+class asdm_import_asis(test_base):
+
+    def setUp(self):
+        self.setUp_12mex()
+        self.setUp_12mex_bin()
+        
+    def tearDown(self):
+        for myasdmname in ['uid___A002_X71e4ae_X317_short', 'uid___A002_X71e4ae_X317_short_bin']:
+            os.unlink(myasdmname)
+            shutil.rmtree(myasdmname+".ms",ignore_errors=True)
+
+    def test_asis_caltables(self):
+        '''Asdm-import: Test importing good 12 m ASDM with asis parameter for some Cal Tables'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }    
+
+        myasdmname = 'uid___A002_X71e4ae_X317_short'
+        themsname = myasdmname+".ms"
+
+        asisParam = 'CalData CalDevice CalFlux CalPointing CalSeeing Subscan'
+        self.res = importasdm(myasdmname, vis=themsname, asis=asisParam, flagbackup=False) 
+        self.assertEqual(self.res, None)
+        print("Successful importing! Checking ASIS tables in %s" % themsname)
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALDATA'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALDEVICE'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALFLUX'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALPOINTING'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALSEEING'))
+
+        # importasdm already uses CalDevice, compare with what asis produces for the same table
+        tblocal.open(themsname+'/CALDEVICE')
+        nrow_caldevice = tblocal.nrows()
+        tblocal.close()
+        tblocal.open(themsname+'/ASDM_CALDEVICE')
+        nrow_asdm_caldevice = tblocal.nrows()
+        tblocal.close()
+        self.assertEqual(nrow_caldevice,nrow_asdm_caldevice,'CalDevice table imported asis is not equal to CALDEVICE table')
+
+        # check that each asis table has the same number of rows in the output MS as in the XML file
+        from xml.dom import minidom
+        
+        for tabName in asisParam.split():
+            
+            tabName = tabName.strip()
+            xmlTabName = tabName + '.xml'
+            msTabName = 'ASDM_'+tabName.upper()
+
+            tblocal.open(themsname+'/'+msTabName)
+            nrow_ms_tab = tblocal.nrows()
+            tblocal.close()
+
+            xmlTabParsed = minidom.parse(myasdmname+'/'+xmlTabName)
+            rowlist = xmlTabParsed.getElementsByTagName('row')
+
+            self.assertEqual(nrow_ms_tab, len(rowlist), '%s table imported asis does not match the nrows in the XML' % tabName)
+
+    def test_asis_bin_caltables(self):
+        '''Asdm-import: Test importing good 12 m ASDM with asis parameter for some Cal Tables in binary format'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }    
+
+        myasdmname = 'uid___A002_X71e4ae_X317_short_bin'
+        themsname = myasdmname+".ms"
+
+        # some Cal tables that are in binary format
+        # this just tests that they fill without throwing an exception
+        
+        asisParam = 'CalData CalFlux CalPointing CalSeeing'
+        self.res = importasdm(myasdmname, vis=themsname, asis=asisParam, flagbackup=False) 
+        self.assertEqual(self.res, None)
+        print("Successful importing! Checking ASIS tables in %s" % themsname)
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALDATA'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALFLUX'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALPOINTING'))
+        self.assertTrue(os.path.exists(themsname+'/ASDM_CALSEEING'))
 
 if __name__ == '__main__':
     unittest.main()

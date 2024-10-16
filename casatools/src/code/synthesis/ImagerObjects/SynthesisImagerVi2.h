@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -131,45 +131,47 @@ public:
   virtual void lockMS(MeasurementSet& ms);
   virtual void createVisSet(const casacore::Bool writeaccess=false);
   void createFTMachine(casacore::CountedPtr<casa::refim::FTMachine>& theFT, 
-		       casacore::CountedPtr<casa::refim::FTMachine>& theIFT,  
-		       const casacore::String& ftname,
-		       const casacore::uInt nTaylorTerms=1, 
-		       const casacore::String mType="default",
-		       const casacore::Int facets=1,
-		       //------------------------------
-		       const casacore::Int wprojplane=1,
-		       const casacore::Float padding=1.0,
-		       const casacore::Bool useAutocorr=false,
-		       const casacore::Bool useDoublePrec=true,
-		       const casacore::String gridFunction=casacore::String("SF"),
-		       //------------------------------
-		       const casacore::Bool aTermOn    = true,
-		       const casacore::Bool psTermOn   = true,
-		       const casacore::Bool mTermOn    = false,
-		       const casacore::Bool wbAWP      = true,
-		       const casacore::String cfCache  = "",
-		       const casacore::Bool usePointing = false,
-		       /* const casacore::Vector<casacore::Float> pointingOffsetSigDev=std::vector<casacore::Float>({10,10}), */
-		       const std::vector<float> pointingOffsetSigDev = {10,10},
-		       const casacore::Bool doPBCorr   = true,
-		       const casacore::Bool conjBeams  = true,
-		       const casacore::Float computePAStep   = 360.0,
-		       const casacore::Float rotatePAStep    = 5.0,
-		       const casacore::String interpolation = casacore::String("linear"),
-		       const casacore::Bool freqFrameValid = true,
-		       const casacore::Int cache=1000000000,
-		       const casacore::Int tile=16,
-		       const casacore::String stokes="I",
-		       const casacore::String imageNamePrefix="",
-		       const casacore::String &pointingDirCol=casacore::String("direction"),
-		       const casacore::Float skyPosThreshold=0.0,
-		       const casacore::Int convSupport=-1,
-		       const casacore::Quantity &truncateSize=casacore::Quantity(-1),
-		       const casacore::Quantity &gwidth=casacore::Quantity(-1),
-		       const casacore::Quantity &jwidth=casacore::Quantity(-1),
-		       const casacore::Float minWeight=0.1,
-		       const casacore::Bool clipMinMax=false,
-		       const casacore::Bool pseudoI=false);
+          casacore::CountedPtr<casa::refim::FTMachine>& theIFT,
+          const casacore::String& ftname,
+          const casacore::uInt nTaylorTerms=1,
+          const casacore::String mType="default",
+          const casacore::Int facets=1,
+          //------------------------------
+          const casacore::Int wprojplane=1,
+          const casacore::Float padding=1.0,
+          const casacore::Bool useAutocorr=false,
+          const casacore::Bool useDoublePrec=true,
+          const casacore::String gridFunction=casacore::String("SF"),
+          //------------------------------
+          const casacore::Bool aTermOn    = true,
+          const casacore::Bool psTermOn   = true,
+          const casacore::Bool mTermOn    = false,
+          const casacore::Bool wbAWP      = true,
+          const casacore::String cfCache  = "",
+          const casacore::Bool usePointing = false,
+          // const casacore::Vector<casacore::Float>
+          //       pointingOffsetSigDev=std::vector<casacore::Float>({10,10}),
+          const std::vector<float> pointingOffsetSigDev = {10,10},
+          const casacore::Bool doPBCorr   = true,
+          const casacore::Bool conjBeams  = true,
+          const casacore::Float computePAStep   = 360.0,
+          const casacore::Float rotatePAStep    = 5.0,
+          const casacore::String interpolation = casacore::String("linear"),
+          const casacore::Bool freqFrameValid = true,
+          const casacore::Int cache=1000000000,
+          const casacore::Int tile=16,
+          const casacore::String stokes="I",
+          const casacore::String imageNamePrefix="",
+          const casacore::String &pointingDirCol=casacore::String("direction"),
+          const casacore::String &convertFirst=casacore::String("never"),
+          const casacore::Float skyPosThreshold=0.0,
+          const casacore::Int convSupport=-1,
+          const casacore::Quantity &truncateSize=casacore::Quantity(-1),
+          const casacore::Quantity &gwidth=casacore::Quantity(-1),
+          const casacore::Quantity &jwidth=casacore::Quantity(-1),
+          const casacore::Float minWeight=0.1,
+          const casacore::Bool clipMinMax=false,
+          const casacore::Bool pseudoI=false);
 
   void createAWPFTMachine(casacore::CountedPtr<refim::FTMachine>& theFT, casacore::CountedPtr<refim::FTMachine>& theIFT, 
 			  const casacore::String& ftmName,
@@ -200,6 +202,7 @@ public:
   void createSDFTMachine(casacore::CountedPtr<refim::FTMachine>& theFT,
       casacore::CountedPtr<refim::FTMachine>& theIFT,
       const casacore::String &pointingDirCol,
+      const casacore::String &convertFirst,
       const casacore::Float skyPosThreshold,
       const casacore::Bool doPBCorr,
       const casacore::Float rotatePAStep,

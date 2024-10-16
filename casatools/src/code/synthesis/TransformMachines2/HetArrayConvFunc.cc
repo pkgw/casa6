@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -653,8 +653,15 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
                     //subim2.copyData((LatticeExpr<Complex>) (iif(abs(subim2)> 25e-4, subim2, 0)));
 
 					//wtime0=omp_get_wtime();
-					ft_p.c2cFFTInDouble(subim);
-					ft_p.c2cFFTInDouble(subim2);
+
+                    //make sure fft2d plan shape is the same or else recalculate it
+                    auto [ftx, fty] = ft_p.getShape();
+                    if(ftx >0 && fty >0 && (ftx != subim.shape()(0)) && (fty != subim.shape()(1))){
+                      ft_p = FFT2D(true);
+                    }
+
+                    ft_p.c2cFFTInDouble(subim);
+                    ft_p.c2cFFTInDouble(subim2);
 					//ft_p.c2cFFT(subim);
 					//ft_p.c2cFFT(subim2);
 					//wtime2+=omp_get_wtime()-wtime0;
