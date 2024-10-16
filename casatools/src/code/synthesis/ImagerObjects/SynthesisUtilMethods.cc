@@ -4006,8 +4006,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       if (gridder=="ft" || gridder=="gridft" || gridder=="standard") {
         ftmachine = "gridft";
       }
-
-      if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
+      else if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
            (wprojplanes>1 || wprojplanes==-1) ) {
         ftmachine = "wprojectft";
       }
@@ -4030,7 +4029,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         else if (gridder=="singledish") {
         ftmachine = "sd";
       }
-
       else{
         ftmachine=gridder;
         ftmachine.downcase();
