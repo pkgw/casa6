@@ -4022,6 +4022,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
          mType = "imagemosaic";
         if (wprojplanes>1 || wprojplanes==-1) {
           ftmachine = "wprojectft";
+        }
        }
         else if (gridder=="awproject" || gridder=="awprojectft" || gridder=="awp") {
           ftmachine = "awprojectft";
@@ -4096,7 +4097,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       err += verify();
 
-    } catch(AipsError &x) {
+       } catch(AipsError &x) {
       err = err + x.getMesg() + "\n";
     }
 
