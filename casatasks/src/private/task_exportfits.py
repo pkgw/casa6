@@ -1,12 +1,7 @@
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import image
-    from casatasks import casalog
-else:
-    from taskinit import *
-    from taskinit import iatool as image
+from casatools import image
+from casatasks import casalog
 
 def exportfits( imagename, fitsimage, velocity, optical, bitpix,
                 minpix, maxpix, overwrite, dropstokes, stokeslast,

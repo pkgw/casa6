@@ -1,24 +1,14 @@
-from __future__ import absolute_import
 import os
 import warnings
-
 import numpy as np
 
-from casatasks.private.casa_transition import is_CASA6
+from casatasks import casalog
+from casatools import calibrater
+from . import correct_ant_posns as getantposns
+from .jyperk import gen_factor_via_web_api, JyPerKReader4File
+from .eop import generate_eop
 
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import calibrater
-    from . import correct_ant_posns as getantposns
-    from .jyperk import gen_factor_via_web_api, JyPerKReader4File
-    from .eop import generate_eop
-
-    _cb = calibrater()
-else:
-    import correct_ant_posns as getantposns
-    from taskinit import *
-
-    (_cb,) = gentools(['cb'])
+_cb = calibrater()
 
 
 def gencal(vis=None, caltable=None, caltype=None, infile='None',

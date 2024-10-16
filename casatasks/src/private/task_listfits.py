@@ -1,14 +1,7 @@
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ms
-    _ms = ms( )
-else:
-    from taskinit import *
-    # not a local tool
-    _ms = ms
+from casatools import ms
+_ms = ms( )
 
 def listfits(fitsfile=None):
     """

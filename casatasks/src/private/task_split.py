@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import re
 import string
@@ -6,27 +5,18 @@ import time
 import shutil
 import numpy as np
 
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from . import flaghelper as fh
-    from .update_spw import update_spwchan
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .mstools import write_history
-    from casatasks import casalog
-    from casatools import quanta
-    from casatools import table as tbtool
-    from casatools import ms as mstool
-    from casatools import mstransformer as mttool
+from . import flaghelper as fh
+from .update_spw import update_spwchan
+from .parallel.parallel_data_helper import ParallelDataHelper
+from .mstools import write_history
+from casatasks import casalog
+from casatools import quanta
+from casatools import table as tbtool
+from casatools import ms as mstool
+from casatools import mstransformer as mttool
 
-    _qa = quanta( )
-else:
-    import flaghelper as fh
-    from update_spw import update_spwchan
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from mstools import write_history
-    from taskinit import casalog, mttool, qatool, mstool, tbtool
+_qa = quanta( )
 
-    _qa = qatool()
 
 def split(vis, 
           outputvis, 
@@ -101,10 +91,7 @@ def split(vis,
         # String type
         if isinstance(width, str):
             if width.isdigit():
-                if is_python3:
-                    chanbin = int(width)
-                else:
-                    chanbin = string.atoi(width)
+                chanbin = int(width)
             else:
                 casalog.post('Parameter width is invalid. Using 1 as default', 'WARN')
                 chanbin = width = 1
@@ -261,11 +248,8 @@ def split(vis,
     # Write history to output MS, not the input ms.
     try:
         param_names = split.__code__.co_varnames[:split.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        local_vars = locals( )
+        param_vals = [local_vars[p] for p in param_names]
         write_history(mslocal, outputvis, 'split', param_names,
                       param_vals, casalog)
     except Exception as instance:

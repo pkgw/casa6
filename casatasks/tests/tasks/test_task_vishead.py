@@ -183,12 +183,7 @@ class vishead_test(unittest.TestCase):
     def test_putMode(self):
         ''' 6. test_putMode: Check that vishead in put mode changes the value of a keyword '''
         shutil.copytree(casaimagepath, os.path.join(os.getcwd(), 'ngc5921.ms'))
-        # Python 2 vs python 2
-        if sys.version_info[0] < 3:
-            import stat
-            chmod_recursive('ngc5921.ms', stat.S_IRWXU )
-        else:
-            chmod_recursive('ngc5921.ms', 0o777)
+        chmod_recursive('ngc5921.ms', 0o777)
         vishead(vis='ngc5921.ms', mode='put', hdkey='field', hdindex='1', hdvalue='TEST')
         testKeywordValue = vishead(vis='ngc5921.ms', mode='get', hdkey='field', hdindex='1')
         success = ('TEST' in testKeywordValue)
