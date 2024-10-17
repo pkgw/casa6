@@ -23,7 +23,7 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               enablecache, convertfirst,
               interpolation):
     
-    casalog.post("The \u001b[31msdimaging task is deprecated and will be removed in future releases. Please use \u001b[1m\u001b[32mtsdimaging instead.", "WARN")
+    casalog.post("The \u001b[31msdimaging\u001b[0m task is deprecated and will be removed in future releases. TEST TEXT Please use \u001b[1m\u001b[32mtsdimaging\u001b[0m instead.", "WARN")
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()
