@@ -823,6 +823,31 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                        [ This mode can also be invoked using 'awprojectft' ]
 
+                       awp2 : A-Projection with azimuthally asymmetric beams and
+                                            including beam rotation, squint correction and W-projection.
+
+                                            Gridding convolution functions are computed from
+                                            aperture illumination models (assuming similar antennas) and optionally
+                                            combined with W-Projection kernels.
+                                            This gridder can be run on single fields as well as mosaics.
+
+                                        Only supports VLA : Uses ray traced model (VLA and EVLA) including feed
+                                                 leg and subreflector shadows, off-axis feed location
+                                                 (for beam squint and other polarization effects), and
+                                                 a Gaussian fit for the feed beams (Ref: Brisken 2009)
+
+                                                 For squint correction the value passed in computepastep has to be smaller than 180.
+                                                 Anything larger awp2 will use an average of LL and RR beams. If computepastep=5, for
+                                                 e.g., PB every 5 degrees, over the range of parallactic angle covered by the data, will be calculated
+                                                 and the nearest beam to every integration will be used to correct for the squint between the L and R beams.   
+
+                                                 For mtmfs with nterms &gt;1 and using awp2 gridder, for accurate results  always use specmode=&quot;mvc&quot;
+                                                 as awp2 with specmode=&quot;mfs&quot; does not use  conjugate beams to remove the spectral
+                                                 index of the primary beam.
+
+                                                 
+
+                                       
                        imagemosaic : (untested implementation)
                                                Grid and iFT each pointing separately and combine the
                                                images as a linear mosaic (weighted by a PB model) in
@@ -1115,6 +1140,9 @@ to use the correct direction in which the antenna is pointing with respect to th
                        A value of 360.0 deg (the default) implies no re-computation due to PA rotation.
                        AIFs are computed for the PA value of the first valid data received and used for 
                        all of the data.
+
+                       For gridder=awp2 a value of 180.0 deg or larger implies not squint correction will be
+                       attempted i.e an average beam of the left hand and right hand polarization will be calculated
 
 </description>
       <value type="double">360.0</value>
@@ -1582,7 +1610,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                         be PB-corrected. 
 
                                   (c) For mosaics, run tclean with specmode='mvc', deconvolver='mtmfs', 
-                                        and gridder='standard' or 'mosaic' with pbcor=True.  
+                                        and gridder='mosaic' or 'awp2' with pbcor=True.  
                                         This option applies wideband PB-correction to channelized residual images
                                         prior to the minor cycle and pbcor=True will be accurate because the spectral 
                                         index map will already be PB-corrected. 
@@ -2167,7 +2195,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                            Example: usemask=&quot;pb&quot;, pbmask=0.2
                                              Construct a mask at the 0.2 pb gain level.
                                              (Currently, this option will work only with
-                                             gridders that produce .pb (i.e. mosaic and awproject)
+                                             gridders that produce .pb (i.e. mosaic, awp2 and awproject)
                                              or if an externally produced .pb image exists on disk)
 
                        auto-multithresh : auto-masking by multiple thresholds for deconvolution
@@ -2469,13 +2497,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                        column on disk may be too much extra disk I/O, when the
                                        gridder is simple enough that on-the-fly recomputing of the
                                        model visibilities is quicker than disk I/O.
-                                       For e.g. that gridder='awproject' does not support virtual model. 
+                                       For e.g. that gridder='awproject' and 'awp2' does not support virtual model. 
 
                           modelcolumn : In the last major cycle, save predicted model visibilities
                                       in the MODEL_DATA column of the MS. This mode is useful when
                                       the de-gridding cost to produce the model visibilities is higher
                                       than the I/O required to read the model visibilities from disk.
-                                      This mode is currently required for gridder='awproject'.
+                                      This mode is currently required for gridder='awproject' and 'awp2'.
                                       This mode is also required for the ability to later pull out
                                       model visibilities from the MS into a python array for custom
                                       processing.
