@@ -307,7 +307,7 @@ def tclean(
 
     ###default mosweight=True is tripping other gridders as they are not
     ###expecting it to be true
-    if bparm["mosweight"] == True and bparm["gridder"].find("mosaic") == -1:
+    if bparm["mosweight"] == True and (not bparm["gridder"] in ['mosaic', 'awp2']):
         bparm["mosweight"] = False
 
     if specmode == "mfs":

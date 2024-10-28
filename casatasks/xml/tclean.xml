@@ -830,6 +830,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                             aperture illumination models (assuming similar antennas) and optionally
                                             combined with W-Projection kernels.
                                             This gridder can be run on single fields as well as mosaics.
+                                            The other sub-parameters that are of significance when using this gridder
+                                            are wprojplanes, computepasteps, mosweights, usepointing, pblimit and normtype.
 
                                         Only supports VLA : Uses ray traced model (VLA and EVLA) including feed
                                                  leg and subreflector shadows, off-axis feed location
