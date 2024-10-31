@@ -225,7 +225,7 @@ class smoothcal_test(unittest.TestCase):
         
     def test_smooth_fringefit(self):
       '''Test smooth fringefit: smooth all values in fringefit cal table with phase unwrapping '''
-      self.res = smoothcal(vis=self.msfile, tablein=self.fringecal, caltable=self.out, smoothtime=10000000000000)
+      self.res = smoothcal(vis=self.msfile, tablein=self.fringecal, caltable=self.out, smoothtime=10000000000000, ratesmooth=True)
       
       _tb.open(self.out)
       pol1Mean = np.mean(_tb.getcol('FPARAM')[0,0,:])
