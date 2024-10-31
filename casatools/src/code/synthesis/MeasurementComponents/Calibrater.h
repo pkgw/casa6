@@ -276,7 +276,7 @@ class Calibrater
 				const casacore::String& smoothtype, 
 				const casacore::Double& smoothtime,
 				const casacore::String& fields,
-        const std::bool& ratesmooth);
+        const bool ratesmooth);
 
 
   // Apply new reference antenna to calibration
@@ -622,7 +622,7 @@ class OldCalibrater : public Calibrater
 				const casacore::String& smoothtype, 
 				const casacore::Double& smoothtime,
 				const casacore::String& fields,
-        const std::bool& ratesmooth);
+        const bool ratesmooth);
 
   // casacore::List a calibration table
   virtual casacore::Bool listCal(const casacore::String& infile,

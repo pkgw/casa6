@@ -2160,7 +2160,7 @@ void FringeJones::applyRefAnt() {
 void FringeJones::smooth(Vector<Int>& fields,
                          const String& smtype,
                          const Double& smtime,
-                         const bool& ratesmooth) {
+                         const bool ratesmooth) {
     NewCalTable ct = *ct_;
 
     // half-width
@@ -2168,7 +2168,7 @@ void FringeJones::smooth(Vector<Int>& fields,
 
     // Workspace
     Vector<Double> times;
-    Vector<Float> p,newp,pRate;
+    Vector<Float> p,newp,pRate, newRate;
     Vector<Float> d;
     Vector<Bool> pOK, newpOK;
     // Unwrapped
@@ -2232,6 +2232,9 @@ void FringeJones::smooth(Vector<Int>& fields,
         //int polId = 0;
         bool polReset = false;
 
+        // Smoothing beforehand for rates
+
+
               
         // Need a seperate iter to construct unwrapped phase estimates
         // Iterate over polId rather than ipar
@@ -2246,15 +2249,38 @@ void FringeJones::smooth(Vector<Int>& fields,
           p.reference(fpar(blc,trc).reform(vec));
           newp.assign(p);
           pRate.reference(fpar(fblc,ftrc).reform(vec));
+          newRate.assign(pRate);
+          pOK.reference(fparok(fblc,ftrc).reform(vec));
+          newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+          
+          Vector<Bool> mask;
           int cycles = 0;
             
           for (Int i=0;i<nSlot;++i) {
             // holder for phase, delay, and time
-            vector<float> holder {0.0, 0.0, 0.0}; 
+            vector<float> holder {0.0, 0.0, 0.0};
+            // mask for rate smoothing
+            // Make mask
+            mask = pOK;
+            mask = (mask && ( (times >  (times(i)-thw)) &&
+                        (times <= (times(i)+thw)) ) );
+
+
             // Save the phase rate and time to use for the estimates
+
             holder[0] = newp(i);
             holder[1] = pRate(i);
             holder[2] = times(i);
+
+            // Smooth the rates
+            if (ntrue(mask)>0) {
+                if (smtype=="mean") {
+                    pRate(i) = mean(newRate(mask));
+                }
+                else if (smtype=="median") {
+                    pRate(i) = median(newRate(mask), false);
+                }
+            }
 
             // array of phases delays and times to be used in the cycle estimations
             temp.push_back(holder);
@@ -2268,8 +2294,8 @@ void FringeJones::smooth(Vector<Int>& fields,
                 // Get the time difference between two points
                 float timeStep = temp[counter][2] - temp[counter-1][2];
                 // Get Forwards and backwards predictions (in cycles)
-                float predictFWDiff = ((temp[counter-1][0]/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep * 2) * int()ratesmooth) - (temp[counter][0]/(2*M_PI));
-                float predictBWDiff = ((temp[counter][0]/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep * 2) * int()ratesmooth) - (temp[counter-1][0]/(2*M_PI));
+                float predictFWDiff = ((temp[counter-1][0]/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep * 2) * int(ratesmooth)) - (temp[counter][0]/(2*M_PI));
+                float predictBWDiff = ((temp[counter][0]/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep * 2) * int(ratesmooth)) - (temp[counter-1][0]/(2*M_PI));
                 // Take the average prediction of cycles
                 float cycleDiff = ((predictFWDiff-predictBWDiff)/2);
                 // Adjust total cycle estimate

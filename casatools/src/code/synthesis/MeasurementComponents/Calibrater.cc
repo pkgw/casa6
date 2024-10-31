@@ -2996,7 +2996,7 @@ Bool Calibrater::smooth(const String& infile,
 			const String& smoothtype,
 			const Double& smoothtime,
 			const String& fields,
-      const bool& ratesmooth)
+      const bool ratesmooth)
 {
 
   // TBD: support append?
@@ -5592,7 +5592,7 @@ Bool OldCalibrater::smooth(const String& infile,
 			   const String& smoothtype,
 			   const Double& smoothtime,
 			   const String& fields,
-         const bool& ratesmooth)
+         const bool ratesmooth)
 {
 
   // TBD: support append?

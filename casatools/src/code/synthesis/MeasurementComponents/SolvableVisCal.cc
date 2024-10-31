@@ -4148,11 +4148,11 @@ Record SolvableVisCal::solveActionRec() {
 void SolvableVisCal::smooth(Vector<Int>& fields,
 			    const String& smtype,
 			    const Double& smtime,
-          const bool& ratesmooth) {
+          const bool ratesmooth) {
 
     if (smoothable())
       // Call NewCalTable's global smooth method
-      casa::smoothCT(*ct_,smtype,smtime,fields);
+      casa::smoothCT(*ct_,smtype,smtime,fields,ratesmooth);
     else
         throw(AipsError("This type "+this->typeName()+" does not support smoothing!"));
 

@@ -39,7 +39,7 @@ void smoothCT(NewCalTable ct,
 	      const casacore::String& smtype,
 	      const casacore::Double& smtime,
 	      casacore::Vector<casacore::Int> selfields,
-		  const std::bool& ratesmooth);
+		  const bool ratesmooth);
 
 // Extract time-dep scan and field id info from the specified casacore::MS,
 //   and assign them to the NewCalTable

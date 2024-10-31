@@ -50,7 +50,7 @@ void smoothCT(NewCalTable ct,
 	      const String& smtype,
 	      const Double& smtime,
 	      Vector<Int> selfields,
-        const bool& ratesmooth) {
+        const bool ratesmooth) {
 
   // Complex parameters?
   Bool cmplx=ct.isComplex();

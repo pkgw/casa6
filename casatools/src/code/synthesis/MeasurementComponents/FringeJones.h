@@ -162,7 +162,7 @@ public:
   virtual void smooth(casacore::Vector<casacore::Int>& fields,
                       const casacore::String& smtype,
                       const casacore::Double& smtime,
-                      const std::bool& ratesmooth);
+                      const bool ratesmooth);
   
   // Apply reference antenna
   virtual void applyRefAnt();

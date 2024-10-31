@@ -83,6 +83,23 @@ class smoothcal_test(unittest.TestCase):
             os.system('rm -rf ' + self.fringecal)
         if (os.path.exists(self.out)):
             os.system('rm -rf ' + self.out)
+
+    @classmethod
+    def tearDownClass(cls):
+        if (os.path.exists(cls.msfile)):
+            os.system('rm -rf ' + cls.msfile)
+        if (os.path.exists(cls.gcal)):
+            os.system('rm -rf ' + cls.gcal)
+        if (os.path.exists(cls.ref)):
+            os.system('rm -rf ' + cls.ref)
+        if (os.path.exists(cls.vlbams)):
+            os.system('rm -rf ' + cls.vlbams)
+        if (os.path.exists(cls.accor)):
+            os.system('rm -rf ' + cls.accor)
+        if (os.path.exists(cls.fringecal)):
+            os.system('rm -rf ' + cls.fringecal)
+        if (os.path.exists(cls.out)):
+            os.system('rm -rf ' +cls.out)
         
     def getvarcol(self,table,colname):
         '''Return the requested column'''
@@ -215,8 +232,8 @@ class smoothcal_test(unittest.TestCase):
       pol2Mean = np.mean(_tb.getcol('FPARAM')[4,0,:])
       _tb.close()
       
-      self.assertTrue(np.isclose(pol1Mean, 0.18474, atol=1e-5))
-      self.assertTrue(np.isclose(pol2Mean, 0.09557, atol=1e-5))
+      self.assertTrue(np.isclose(pol1Mean, 0.18474, atol=1e-5), msg=pol1Mean)
+      self.assertTrue(np.isclose(pol2Mean, 0.09557, atol=1e-5), msg=pol2Mean)
 
 if __name__ == '__main__':
     unittest.main()
