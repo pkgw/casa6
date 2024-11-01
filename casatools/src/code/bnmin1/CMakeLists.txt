@@ -26,7 +26,13 @@ declare_casacpp_component("bnmin1")
 # Fortran compiler option
 target_compile_options(casacpp_bnmin1 PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-fno-range-check>)
 
+include(FindPkgConfig)
+# Dependency on GNU Scientific Library
+pkg_check_modules(GSL REQUIRED IMPORTED_TARGET gsl)
+target_link_libraries(casacpp_bnmin1 PRIVATE PkgConfig::GSL)
+
 # External dependencies
+pkg_check_modules(CASACORE REQUIRED IMPORTED_TARGET casacore)
 target_link_libraries(casacpp_bnmin1 PUBLIC PkgConfig::CASACORE)
 
 # Internal dependencies
