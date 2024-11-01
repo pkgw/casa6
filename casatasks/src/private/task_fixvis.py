@@ -1,20 +1,11 @@
-from __future__ import absolute_import
 import shutil
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import quanta, measures, table, ms, imager
-    from casatasks import casalog
-    from .mstools import write_history
-    
-    _myqa = quanta( )
-    _myme = measures( )
-else:
-    from taskinit import *
-    # not local tools
-    _myqa = qa
-    _myme = me
+from casatools import quanta, measures, table, ms, imager
+from casatasks import casalog
+from .mstools import write_history
+
+_myqa = quanta( )
+_myme = measures( )
 
 def fixvis(vis, outputvis='',field='', refcode='', reuse=True, phasecenter='', distances='', datacolumn='all'):
     """
@@ -84,12 +75,9 @@ def fixvis(vis, outputvis='',field='', refcode='', reuse=True, phasecenter='', d
         shutil.rmtree(outputvis, ignore_errors=True)
         copy_ms(vis, outputvis)
 
-    if is_CASA6:
-        tbt = table( )
-        myms = ms( )
-        myim = imager( )
-    else:
-        tbt, myms, myim = gentools(['tb', 'ms', 'im'])
+    tbt = table( )
+    myms = ms( )
+    myim = imager( )
 
     if field == '' or isinstance(field,list) and len(field) == 0:
         field='*'
@@ -240,11 +228,9 @@ def fixvis(vis, outputvis='',field='', refcode='', reuse=True, phasecenter='', d
     # Write history to output MS
     try:
         param_names = fixvis.__code__.co_varnames[:fixvis.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:           
-            param_vals = [eval(p) for p in param_names]   
+        local_vars = locals( )
+        param_vals = [local_vars[p] for p in param_names]
+        
         write_history(myms, outputvis, 'fixvis', param_names, param_vals,
                       casalog)
     except Exception as instance:

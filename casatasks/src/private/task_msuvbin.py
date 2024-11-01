@@ -26,7 +26,6 @@
 # *  Created on: Mar 07, 2022
 # *      Author: kgolap
 # *
-from __future__ import absolute_import
 
 import os
 import shutil
@@ -34,8 +33,6 @@ import typing
 from typing import Tuple, List, Union, Optional
 
 from . import flaghelper as fh
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
 
 from casatasks import casalog
 from casatools import msuvbinner as msbin

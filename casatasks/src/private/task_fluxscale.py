@@ -1,17 +1,8 @@
-from __future__ import absolute_import
 import os
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import calibrater, ms
-    from casatasks import casalog
-    from .mstools import write_history
-else:
-    from taskinit import *
-    from mstools import write_history
-    calibrater = cbtool
-    ms = mstool
+from casatools import calibrater, ms
+from casatasks import casalog
+from .mstools import write_history
 
 def writeResultsHistory(myms, vis, mycasalog, indict):
     """                                                 
@@ -205,11 +196,9 @@ def fluxscale(vis=None, caltable=None, fluxtable=None, reference=None, transfer=
         #write history
         try:
             param_names = fluxscale.__code__.co_varnames[:fluxscale.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            local_vars = locals( )
+            param_vals = [local_vars[p] for p in param_names]
+            
             write_history(ms(), vis, 'fluxscale', param_names,
                           param_vals, casalog)
             writeResultsHistory(ms(), vis, casalog, output)

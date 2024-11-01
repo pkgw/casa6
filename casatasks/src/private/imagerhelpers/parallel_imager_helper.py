@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,14 +6,8 @@ import time
 import re;
 import copy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import synthesisutils
-    from casatasks import casalog
-else:
-    from taskinit import *
-
-    synthesisutils = casac.synthesisutils
+from casatools import synthesisutils
+from casatasks import casalog
 
 '''
 A set of helper functions for the tasks  tclean
@@ -28,12 +21,8 @@ Summary...
 #############################################
 #casalog.post('Using clustermanager from MPIInterface', 'WARN')
 try:
-    if is_CASA6:
-        from casampi.MPIInterface import MPIInterface as mpi_clustermanager
-        mpi_available = True
-    else:
-        from mpi4casa.MPIInterface import MPIInterface as mpi_clustermanager
-        mpi_available = True
+    from casampi.MPIInterface import MPIInterface as mpi_clustermanager
+    mpi_available = True
 except ImportError:
     mpi_available = False
     

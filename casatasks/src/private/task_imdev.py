@@ -1,21 +1,9 @@
-from __future__ import absolute_import
 import sys
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, coordsys, regionmanager
-    from casatasks import casalog
+from casatools import image, coordsys, regionmanager
+from casatasks import casalog
 
-    from .ialib import write_image_history
-else:
-    from taskinit import *
-
-    from ialib import write_image_history
-
-    image = iatool
-    regionmanager = rgtool
-    coordsys = cstool
+from .ialib import write_image_history
 
 def imdev(
     imagename, outfile, region, box, chans,
@@ -45,11 +33,8 @@ def imdev(
         )
         try:
             param_names = imdev.__code__.co_varnames[:imdev.__code__.co_argcount]
-            if is_python3:
-                vars = locals()
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]   
+            vars = locals()
+            param_vals = [vars[p] for p in param_names]
             write_image_history(
                 outia, sys._getframe().f_code.co_name,
                 param_names, param_vals, casalog

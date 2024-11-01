@@ -1,7 +1,6 @@
 # geodesy and pointing and other helper functions that are useful
 # to be available outside of the simdata task
 # geodesy from NGS: http://www.ngs.noaa.gov/TOOLS/program_descriptions.html
-from __future__ import absolute_import
 import os
 import shutil
 import pylab as pl
@@ -13,38 +12,20 @@ import scipy.signal as spsig
 import scipy.interpolate as spintrp
 from collections import OrderedDict
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table, image, imagepol, regionmanager, calibrater, measures, quanta, coordsys, componentlist, simulator, synthesisutils, ctsys
-    from casatasks import casalog, tclean
-    from casatasks.private.cleanhelper import cleanhelper
-    tb = table( )
-    ia = image( )
-    po = imagepol( )
-    rg = regionmanager( )
-    cb = calibrater( )
-    me = measures( )
-    qa = quanta( )
-    cs = coordsys( )
-    cl = componentlist( )
-    sm = simulator( )
-    _su = synthesisutils( )
-
-else:
-    #import casac
-    # all I really need is casalog, but how to get it:?
-    from taskinit import *
-    from tclean import tclean
-    from clean import clean
-
-    # qa doesn't hold state.
-    #qatool = casac.homefinder.find_home_by_name('quantaHome')
-    #qa = qatool.create()
-    im,cb,ms,tb,me,ia,po,sm,cl,cs,rg,sl,dc,vp,msmd,fi,fn,imd,sdms=gentools(['im','cb','ms','tb','me','ia','po','sm','cl','cs','rg','sl','dc','vp','msmd','fi','fn','imd','sdms'])
-    _su = casac.synthesisutils( )
-
-    # 4.2.2:
-    #im, cb, ms, tb, fl, me, ia, po, sm, cl, cs, rg, sl, dc, vp, msmd, fi, fn, imd = gentools()
+from casatools import table, image, imagepol, regionmanager, calibrater, measures, quanta, coordsys, componentlist, simulator, synthesisutils, ctsys
+from casatasks import casalog, tclean
+from casatasks.private.cleanhelper import cleanhelper
+tb = table( )
+ia = image( )
+po = imagepol( )
+rg = regionmanager( )
+cb = calibrater( )
+me = measures( )
+qa = quanta( )
+cs = coordsys( )
+cl = componentlist( )
+sm = simulator( )
+_su = synthesisutils( )
 
 # functions defined outside of the simutil class
 def is_array_type(value):

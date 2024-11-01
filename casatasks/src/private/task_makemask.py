@@ -55,33 +55,16 @@
 # 4. for input: mask/regular image with internal mask; for output: image with 
 #      internal mask with different spectral grid
 ###################
-from __future__ import absolute_import
 import os
 import shutil
 import numpy as np
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, regionmanager, imager, table, quanta
-    from casatasks import casalog
-    from .imtools import pixelmask2cleanmask
-else:
-    from taskinit import *
-    from recipes.pixelmask2cleanmask import pixelmask2cleanmask
+from casatools import image, regionmanager, imager, table, quanta
+from casatasks import casalog
+from .imtools import pixelmask2cleanmask
 
-    image = iatool
-    regionmanager = rgtool
-    quanta = qatool
-    table = tbtool
-    imager = imtool
-
-if is_python3:
-    import subprocess
-    subprocess_getoutput = subprocess.getoutput
-else:
-    import commands
-    subprocess_getoutput = commands.getoutput
+import subprocess
+subprocess_getoutput = subprocess.getoutput
 
 _ia = image()
 _rg = regionmanager()

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from scipy import fftpack
 import numpy as np
@@ -6,18 +5,9 @@ import shutil
 import os
 import time
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import quanta, table, image, regionmanager, imager
-    from casatasks import casalog, imsubimage, feather
-else:
-    from taskinit import *
-    from tasks import *
-    image = iatool
-    imager = imtool
-    quanta = qatool
-    regionmanager = rgtool
-    table = tbtool
+from casatools import quanta, table, image, regionmanager, imager
+from casatasks import casalog, imsubimage, feather
+
 _ia = image()
 _qa = quanta()
 _rg = regionmanager()
@@ -720,12 +710,7 @@ class SDINT_helper:
         Start from the regridded SD_IMAGE cube
         """
         sdintlib = SDINT_helper()
-        if is_CASA6:
-            from casatools import image, componentlist, regionmanager
-        else:
-            image = iatool
-            componentlist = cltool
-            regionmanager = rgtool
+        from casatools import image, componentlist, regionmanager
              
         _ia = image()
         _cl = componentlist()

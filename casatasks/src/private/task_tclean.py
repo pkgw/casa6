@@ -5,8 +5,7 @@
 #
 ################################################
 
-from __future__ import absolute_import
-
+import platform
 import os
 import shutil
 import numpy
@@ -14,10 +13,6 @@ import copy
 import filecmp
 import time
 import pdb
-
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-
 
 from casatasks import casalog
 
@@ -370,14 +365,33 @@ def tclean(
         ###ignore chanchunk
         bparm["chanchunks"] = 1
 
-    # catch non operational case (parallel cube tclean with interative=T)
-    if pcube and interactive:
-        casalog.post(
-            "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F",
-            "WARN",
-            "task_tclean",
-        )
-        return False
+    if interactive:
+        # catch non operational case (parallel cube tclean with interative=T)
+        if pcube:
+            casalog.post(
+                "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F",
+                "WARN",
+                "task_tclean",
+            )
+            return False
+
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS. Returning
+        # False instead of throwing an exception results in:
+        #
+        #    RuntimeError: No active exception to reraise
+        #
+        # from tclean run from casashell.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
+                    "WARN",
+                    "task_tclean",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
 
     #casalog.post('parameters {}'.format(bparm))    
     paramList=ImagerParameters(**bparm)
