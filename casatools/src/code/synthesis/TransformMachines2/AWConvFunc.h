@@ -98,6 +98,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
                        const casacore::Vector<casacore::Double> &freqlist,
                        const casacore::Bool dosquint = False,
                        const casacore::Double &pa = 0.0, const bool isSingleField=false);
+    // same as above except used for squint so reduce fov
+    void makeSmallAConvFunc(casacore::Array<casacore::Complex> &convFunc,
+                      casacore::Array<casacore::Complex> &wtconv,
+                      casacore::CoordinateSystem &csys,
+                      casacore::Vector<casacore::Int> &asupport,
+                      casacore::Int &npix,
+                      const casacore::Vector<casacore::Double> &freqlist,
+                      const casacore::Double &pa = 0.0);
+
     //Makes the combination of wvals along A terms freqScale
     //return shapes of convFunc as [convSize, convSize, 4, len(freq), len(Wvals)]
     //returned matrix support is of shape [len(freq], len(wVals)]

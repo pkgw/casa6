@@ -316,8 +316,8 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
                     "valid grid initialized"));
   // Convert from Stokes planes to Correlation planes
   LatticeLocker lock1(*(imstore->model()), FileLocker::Read);
-  cerr << "###Max of imstore-> model " << max((imstore->model())->get())
-       << endl;
+  // cerr << "###Max of imstore-> model " << max((imstore->model())->get())
+  //      << endl;
   stokesToCorrelation(*(imstore->model()), *(imstore->forwardGrid()));
 
   if (vb.polarizationFrame() == MSIter::Linear) {
@@ -437,9 +437,9 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
 ///We'll always use oversampling of 4 for GPU gridder
     //convSampling=4;
   //TESTOO
-    
+   
     convSampling=10;
-    if (min(nx, ny) > 2000)
+    if (min(nx, ny) > 200)
       convSampling = 4;
     ///////
 
