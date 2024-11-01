@@ -293,13 +293,111 @@ class Fringefit_corrcomb(unittest.TestCase):
         none_result = np.nanmean(tblocal.getcol('SNR'))
         tblocal.close()
 
-        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='all')
+        fringefit(vis=self.polcombtestms, caltable=self.testout, refant='0', spw='2~3', corrcomb='stokes')   # formerly 'all'
 
         tblocal.open(self.testout)
         combine_result = np.nanmean(tblocal.getcol('SNR'))
         tblocal.close()
 
         self.assertTrue(combine_result > none_result)
+        
+class Fringefit_corrcomb2(unittest.TestCase):
+    polcombtestms = 'TPOL0006b_scan5_copy.ms'
+    testout = polcombtestms+'.ffcal'
+    
+    def setUp(self):
+        shutil.copytree(os.path.join(datapath, 'TPOL0006b_scan5.ms'),self.polcombtestms)
+        # For local testing before data is in the DR
+        #datapath0='/home/daibutsu/gmoellen/JIRA/CAS-14195/testdir/'
+        #shutil.copytree(os.path.join(datapath0, 'TPOL0006b_scan5.ms'),self.polcombtestms)
+
+    def tearDown(self):
+        shutil.rmtree(self.polcombtestms)
+        if os.path.exists(self.testout):
+            shutil.rmtree(self.testout)
+
+    def test_corrcomb2(self):
+
+        # NB: No SNR improvement tests here (cf test_corrcomb)
+        #   because these (raw) data are not coherent (not aligned)
+        #   between polarizations
+        #   TBD: add a solve for pol alignment (zerorates=True), and
+        #        add it as a prior cal in each corrcomb!='none' test
+        
+        # corrdepflags=False, corrcomb='none'
+        # ant id=6 completely flagged
+        fringefit(vis=self.polcombtestms, caltable=self.testout,
+                  spw='0,1',
+                  refant='0',solint='inf',
+                  corrdepflags=False,corrcomb='none',concatspws=False)
+        tblocal.open(self.testout)
+        fl=tblocal.getcol('FLAG')
+        tblocal.close()
+        #print(np.sum(fl),np.sum(fl)==16)
+        #print(fl[:,0,6::10]) # both pols
+        #print(np.alltrue(fl[:,0,6::10]))
+
+        self.assertTrue(np.sum(fl)==16)   # 4 params in 2 pols in 2 spws
+        self.assertTrue(np.alltrue(fl[:,0,6::10]))  # both pols flagged
+
+
+        # corrdepflags=True, corrcomb='none'
+        # ant id=6 pol id=1 only flagged
+        fringefit(vis=self.polcombtestms, caltable=self.testout,
+                  spw='0,1',
+                  refant='0',solint='inf',
+                  corrdepflags=True,corrcomb='none',concatspws=False)
+        tblocal.open(self.testout)
+        fl=tblocal.getcol('FLAG')
+        tblocal.close()
+        #print(np.sum(fl),np.sum(fl)==8)
+        #print(fl[4:,0,6::10])  # 2nd pol only
+        #print(np.alltrue(fl[4:,0,6::10]))
+
+        self.assertTrue(np.sum(fl)==8)   # 4 params in 1 pol in 2 spws
+        self.assertTrue(np.alltrue(fl[4:,0,6::10]))  # 2nd pol only flagged
+
+        # corrdepflags=True, corrcomb='stokes'
+        # ant id=6 completely flagged
+        # solutions identical in both pols
+        fringefit(vis=self.polcombtestms, caltable=self.testout,
+                  spw='0,1',
+                  refant='0',solint='inf',
+                  corrdepflags=True,corrcomb='stokes',concatspws=False)
+        tblocal.open(self.testout)
+        fl=tblocal.getcol('FLAG')
+        sol=tblocal.getcol('FPARAM')
+        tblocal.close()
+        #print(np.sum(fl),np.sum(fl)==16)   
+        #print(fl[:,0,6::10]) # both pols
+        #print(np.alltrue(fl[:,0,6::10]))
+        #print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+
+        self.assertTrue(np.sum(fl)==16)   # 4 params in 2 pols in 2 spws
+        self.assertTrue(np.alltrue(fl[:,0,6::10]))  # both pols flagged
+        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+
+        # corrdepflags=True, corrcomb='parallel'
+        # nothing flagged (ant id=6 pol id=0 solutions used for both pols)
+        # solutions identical in both pols
+        fringefit(vis=self.polcombtestms, caltable=self.testout,
+                  spw='0,1',
+                  refant='0',solint='inf',
+                  corrdepflags=True,corrcomb='parallel',concatspws=False)
+        tblocal.open(self.testout)
+        fl=tblocal.getcol('FLAG')
+        sol=tblocal.getcol('FPARAM')
+        tblocal.close()
+        #print(np.sum(fl),np.sum(fl)==0)  # no flagged solutions!
+        #print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        
+        self.assertTrue(np.sum(fl)==0)  # nothing flagged
+        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+
+        # TBD:  add concatspws=True test here
+
+
+
         
 class Fringefit_paramactive_caltable(unittest.TestCase):
     prefix = 'n08c1'
