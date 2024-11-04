@@ -1,20 +1,11 @@
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-        from casatasks import casalog
-        from casatools import sdm, table, quanta, ms
+from casatasks import casalog
+from casatools import sdm, table, quanta, ms
 
-        _ms = ms()
-        _tb = table()
-        _qa = quanta()
-else:
-        from taskinit import *
-
-        _ms = casac.ms()
-        _tb = casac.table()
-        _qa = qa         # not really local, but it has no state as used here
+_ms = ms()
+_tb = table()
+_qa = quanta()
 
 def exportasdm(vis=None, asdm=None, datacolumn=None, archiveid=None, rangeid=None,
                subscanduration=None, sbduration=None, apcorrected=None,
@@ -178,41 +169,10 @@ def exportasdm(vis=None, asdm=None, datacolumn=None, archiveid=None, rangeid=Non
         else:
                 raise RuntimeError("More than one processor id in use in the main table. Cannot proceed.")
 
-        if is_CASA6:
-                # sdm tool
-                _sdm = sdm(asdm)
-                rval = _sdm.fromms(tsortvis, datacolumn, archiveid, rangeid, ssdur_secs, sbdur_secs, apcorrected, verbose)
-                # this line is independent of CASA version, but is here so that the CASA5 version can do additional error reporting after cleaning up this temporary MS
-                os.system('rm -rf '+tsortvis)
-                if not rval:
-                        raise RuntimeError('The sdm tool method fromms failed')
-        else:
-                # use MS2asdm executable
-                execute_string=  '--datacolumn \"' + datacolumn
-                execute_string+= '\" --archiveid \"' + archiveid + '\" --rangeid \"' + rangeid
-                execute_string+= '\" --subscanduration \"' + str(ssdur_secs)
-                execute_string+= '\" --schedblockduration \"' + str(sbdur_secs)
-                execute_string+= '\" --logfile \"' + casalog.logfile() +'\"'
-
-                if(not apcorrected):
-                        execute_string+= ' --apuncorrected'
-                if(verbose):
-                        execute_string+= ' --verbose'
-
-                theexecutable = 'MS2asdm'
-
-                execute_string += ' ' + tsortvis + ' ' + asdm
-
-                execute_string = theexecutable+' '+execute_string
-
-                if(verbose):
-                        casalog.post('Running '+theexecutable+' standalone invoked as:')
-                casalog.post(execute_string)
-
-                rval = os.system(execute_string)
-
-                os.system('rm -rf '+tsortvis)
-
-                if(rval != 0):
-                        raise RuntimeError(theexecutable + ' terminated with exit '
-                                           'code ' + str(rval),'WARN')
+        # sdm tool
+        _sdm = sdm(asdm)
+        rval = _sdm.fromms(tsortvis, datacolumn, archiveid, rangeid, ssdur_secs, sbdur_secs, apcorrected, verbose)
+        # this line is independent of CASA version, but is here so that the CASA5 version can do additional error reporting after cleaning up this temporary MS
+        os.system('rm -rf '+tsortvis)
+        if not rval:
+                raise RuntimeError('The sdm tool method fromms failed')

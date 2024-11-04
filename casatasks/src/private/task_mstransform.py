@@ -1,5 +1,4 @@
 
-from __future__ import absolute_import
 import os, re
 import shutil
 import string
@@ -7,29 +6,13 @@ import copy
 import math
 import time
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import table, quanta, ms, mstransformer
-    from casatasks import casalog
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from . import flaghelper as fh
-    from .update_spw import update_spwchan
-    from .mstools import write_history
-    from .callibrary import callibrary
-else:
-    from taskinit import mttool, mstool, tbtool, casalog, qatool
-    from mstools import write_history
-    from parallel.parallel_data_helper import ParallelDataHelper
-    import flaghelper as fh
-    from update_spw import update_spwchan
-    from callibrary import callibrary
-
-    mstransformer = mttool
-    ms = mstool
-    table = tbtool
-    # not a local tool
-    quanta = qatool
+from casatools import table, quanta, ms, mstransformer
+from casatasks import casalog
+from .parallel.parallel_data_helper import ParallelDataHelper
+from . import flaghelper as fh
+from .update_spw import update_spwchan
+from .mstools import write_history
+from .callibrary import callibrary
 
 def mstransform(
              vis, 
@@ -407,11 +390,9 @@ def mstransform(
     # Write history to output MS, not the input ms.
     try:
         param_names = mstransform.__code__.co_varnames[:mstransform.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        vars = locals( )
+        param_vals = [vars[p] for p in param_names]
+
         write_history(mslocal, outputvis, 'mstransform', param_names, param_vals, casalog)
     except Exception as instance:
         casalog.post("*** Error \'%s\' updating HISTORY" % (instance),'WARN')

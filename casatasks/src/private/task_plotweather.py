@@ -8,17 +8,8 @@
 ## revised 11.05.12 to address CASA 4.0 changes
 ###############################################
 
-from __future__ import absolute_import
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import is_CASA6
-
-if is_CASA6:
-    from casatools import atmosphere, table, ms, quanta, measures
-    from casatasks import casalog
-else:
-    from taskinit import *
-    from casac import atmosphere, table, ms, quanta, measures
-
+from casatools import atmosphere, table, ms, quanta, measures
+from casatasks import casalog
 
 mytb = table( )
 myms = ms( )

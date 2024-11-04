@@ -1,59 +1,35 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
 import os
 import sys
 import copy
 import shutil
+import inspect
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .. import partitionhelper as ph
-    from casatools import table as tbtool
-    from casatools import ms as mstool
-    from casatasks import casalog
-    from casatasks.private.parallel.rflag_post_proc import combine_rflag_subreport, is_rflag_report
-    from casatasks.private.parallel.rflag_post_proc import finalize_agg_rflag_thresholds
-else:
-    from parallel.rflag_post_proc import combine_rflag_subreport, is_rflag_report
-    from parallel.rflag_post_proc import finalize_agg_rflag_thresholds
-    import partitionhelper as ph
-    from taskinit import *
+from .. import partitionhelper as ph
+from casatools import table as tbtool
+from casatools import ms as mstool
+from casatasks import casalog
+from casatasks.private.parallel.rflag_post_proc import combine_rflag_subreport, is_rflag_report
+from casatasks.private.parallel.rflag_post_proc import finalize_agg_rflag_thresholds
 
-# string.find (python 2) vs str_instance.find
-if is_python3:
-    def strfind(str_instance, a):
-        return str_instance.find(a)
-else:
-    def strfind(str_instance, a):
-        return string.find(str_instance,a)
+def strfind(str_instance, a):
+    return str_instance.find(a)
 
 # common function to use to get a dictionary values iterator
-if is_python3:
-    def locitervalues(adict):
-        return adict.values()
-else:
-    def locitervalues(adict):
-        return adict.itervalues()
+def locitervalues(adict):
+    return adict.values()
 
 # To handle thread-based Tier-2 parallelization
 import threading
-if not is_python3:
-    import thread
 
 # jagonzal (CAS-4106): Properly report all the exceptions and errors in the cluster framework
 import traceback
 
 # jagonzal (Migration to MPI)
 try:
-    if is_CASA6:
-        from casampi.MPIEnvironment import MPIEnvironment
-        from casampi.MPICommandClient import MPICommandClient
-        mpi_available = True
-    else:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        from mpi4casa.MPICommandClient import MPICommandClient
-        mpi_available = True
+    from casampi.MPIEnvironment import MPIEnvironment
+    from casampi.MPICommandClient import MPICommandClient
+    mpi_available = True
 except ImportError:
     mpi_available = False
 
@@ -267,29 +243,20 @@ class ParallelTaskHelper:
             for job in self._executionList:
                 parameters = job.getCommandArguments()
                 try:
-                    if is_CASA6:
-                        gvars = globals( )
-                        try:
-                            exec("from casatasks import *; " + job.getCommandLine(),gvars)
-                        except Exception as exc:
-                            casalog.post("exec in parallel_task_helper.executeJobs failed: {}'".format(exc))
-                            raise
+                    gvars = globals( )
+                    try:
+                        exec("from casatasks import *; " + job.getCommandLine(),gvars)
+                    except Exception as exc:
+                        casalog.post("exec in parallel_task_helper.executeJobs failed: {}'".format(exc))
+                        raise
 
-                        # jagonzal: Special case for partition
-                        # The 'True' values emulate the command_response['successful'] that
-                        # we'd get in parallel runs from other MPI processes.
-                        if 'outputvis' in parameters:
-                            self._sequential_return_list[parameters['outputvis']] = True
-                        else:
-                            self._sequential_return_list[parameters['vis']] = gvars['returnVar0'] or True
+                    # jagonzal: Special case for partition
+                    # The 'True' values emulate the command_response['successful'] that
+                    # we'd get in parallel runs from other MPI processes.
+                    if 'outputvis' in parameters:
+                        self._sequential_return_list[parameters['outputvis']] = True
                     else:
-                        exec("from taskinit import *; from tasks import *; " + job.getCommandLine())
-
-                        # jagonzal: Special case for partition
-                        if ('outputvis' in parameters):
-                            self._sequential_return_list[parameters['outputvis']] = True
-                        else:
-                            self._sequential_return_list[parameters['vis']] = returnVar0 or True
+                        self._sequential_return_list[parameters['vis']] = gvars['returnVar0'] or True
 
                 except Exception as instance:
                     str_instance = str(instance)
@@ -670,12 +637,9 @@ class ParallelTaskWorker:
         self.__completion_event.clear()        
                
         # Spawn thread
-        if is_python3:
-            self.__thread = threading.Thread(target=self.runCmd, args=(), kwargs=())
-            self.__thread.setDaemon(True)
-            self.__thread.start()
-        else:
-            self.__thread = thread.start_new_thread(self.runCmd, ())
+        self.__thread = threading.Thread(target=self.runCmd, args=(), kwargs=())
+        self.__thread.setDaemon(True)
+        self.__thread.start()
 
         # Mark state as running
         self.__state = "running"        

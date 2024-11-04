@@ -1,13 +1,7 @@
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-       from casatasks import casalog
-       from casatools import calibrater
-else:
-       from taskinit import *
-       calibrater = cbtool
+from casatasks import casalog
+from casatools import calibrater
 
 def listcal(vis=None,caltable=None,field=None,antenna=None,spw=None,
             listfile=None,pagerows=None):

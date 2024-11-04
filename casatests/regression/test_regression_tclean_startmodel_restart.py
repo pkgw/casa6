@@ -24,8 +24,6 @@
 #                                                                           #
 #############################################################################
 
-#from __future__ import absolute_import
-#from __future__ import print_function
 import os
 import sys
 import shutil
@@ -34,29 +32,12 @@ import inspect
 
 from casatestutils.imagerhelpers.imagetesthelpers import TestHelpers
 
-#from casatasks.private.casa_transition import is_CASA6
-CASA6 = False
-try:
-    from casatools import ctsys
-    from casatasks import casalog, tclean, impbcor
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-    CASA6 = True
+from casatools import ctsys
+from casatasks import casalog, tclean, impbcor
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 
-    refdatapath = ctsys.resolve('regression/tclean_startmodel_restart/')
-except:
-#else:
-#    from __main__ import default
-    from tasks import *
-    from taskinit import *
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    refdatapath = os.environ.get('CASAPATH').split()[0] + '/casatestdata/regression/tclean_startmodel_restart/'
-
-## List to be run
-def suite():
-    return [test_csys_startmodel]
+refdatapath = ctsys.resolve('regression/tclean_startmodel_restart/')
 
 class test_csys_startmodel(unittest.TestCase):
 
@@ -267,6 +248,5 @@ class test_csys_startmodel(unittest.TestCase):
 
         self.checkfinal(report)
 
-if CASA6:
-    if __name__ == '__main__':
-        unittest.main()
+if __name__ == '__main__':
+    unittest.main()
