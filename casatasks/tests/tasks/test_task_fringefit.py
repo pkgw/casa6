@@ -394,8 +394,42 @@ class Fringefit_corrcomb2(unittest.TestCase):
         self.assertTrue(np.sum(fl)==0)  # nothing flagged
         self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
 
-        # TBD:  add concatspws=True test here
+        # corrdepflags=True, corrcomb='stokes', concatspws=True
+        # ant id=6 fully flagged
+        # solutions identical in both pols
+        fringefit(vis=self.polcombtestms, caltable=self.testout,
+                  spw='0,1,2,3',combine='spw',
+                  refant='0',solint='inf',
+                  corrdepflags=True,corrcomb='stokes',concatspws=True)
+        tblocal.open(self.testout)
+        fl=tblocal.getcol('FLAG')
+        sol=tblocal.getcol('FPARAM')
+        tblocal.close()
+#        print(np.sum(fl),np.sum(fl)==8)   
+#        print(fl[:,0,6::10]) # both pols
+#        print(np.alltrue(fl[:,0,6::10]))
+#        print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        self.assertTrue(np.sum(fl)==8)  # ant id 6 completely flagged
+        self.assertTrue(np.alltrue(fl[:,0,6::10]))  # both pols flagged
+        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        
 
+        # corrdepflags=True, corrcomb='parallel', concatspws=True
+        # no solutions flagged
+        # solutions identical in both pols
+        fringefit(vis=self.polcombtestms, caltable=self.testout,
+                  spw='0,1,2,3',combine='spw',
+                  refant='0',solint='inf',
+                  corrdepflags=True,corrcomb='parallel',concatspws=True)
+        tblocal.open(self.testout)
+        fl=tblocal.getcol('FLAG')
+        sol=tblocal.getcol('FPARAM')
+        tblocal.close()
+#        print(np.sum(fl),np.sum(fl)==0)  # no flagged solutions!
+#        print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        self.assertTrue(np.sum(fl)==0)  # nothing flagged
+        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        
 
 
         
