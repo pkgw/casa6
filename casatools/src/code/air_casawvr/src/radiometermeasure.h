@@ -249,14 +249,14 @@ namespace LibAIR2 {
    */
   DSBRadio * MkALMARadiometer(int ch,
 			      double cf_off=0.0,
-			      double bw_off=0.0) throw (InvalidWVRChannel);
+			      double bw_off=0.0) noexcept(false);
 
   /** \brief Returns WVR Dicke prototype 
 
       \param ch the WVR channel (1 to 4 inclusive).
 
    */
-  DSBRadio * MkALMADickeProto(int ch) throw (InvalidWVRChannel);
+  DSBRadio * MkALMADickeProto(int ch) noexcept(false);
 
 
   /**

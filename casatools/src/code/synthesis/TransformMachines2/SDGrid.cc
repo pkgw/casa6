@@ -2169,28 +2169,53 @@ void SDGrid::pickWeights(const vi::VisBuffer2& vb, Matrix<Float>& weight){
   if (useImagingWeight_p) {
     weight.reference(vb.imagingWeight());
   } else {
-    const Cube<Float> weightspec(vb.weightSpectrum());
+    const Cube<Float> weightSpec(vb.weightSpectrum());
     weight.resize(vb.nChannels(), vb.nRows());
 
-    if (weightspec.nelements() == 0) {
-      for (rownr_t k = 0; k < vb.nRows(); ++k) {
-        //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
-        weight.column(k).set(mean(vb.weight().column(k)));
+    // CAS-9957 correct weight propagation from linear/circular correlations to Stokes I
+    const auto toStokesWeight = [](float weight0, float weight1) {
+          const auto denominator = weight0 + weight1;
+          const auto numerator = weight0 * weight1;
+          constexpr float fmin = std::numeric_limits<float>::min();
+          return abs(denominator) < fmin ? 0.0f : 4.0f * numerator / denominator;
+    };
+
+    if (weightSpec.nelements() == 0) {
+      const auto &weightMat = vb.weight();
+      const ssize_t npol = weightMat.shape()(0);
+      if (npol == 1) {
+        const auto weight0 = weightMat.row(0);
+        for (rownr_t k = 0; k < vb.nRows(); ++k) {
+          weight.column(k).set(weight0(k));
+        }
+      } else if (npol == 2) {
+        const auto weight0 = weightMat.row(0);
+        const auto weight1 = weightMat.row(1);
+        for (rownr_t k = 0; k < vb.nRows(); ++k) {
+          //cerr << "nrow " << vb.nRow() << " " << weight.shape() << "  "  << weight.column(k).shape() << endl;
+          weight.column(k).set(toStokesWeight(weight0(k), weight1(k)));
+        }
+      } else {
+        // It seems current code doesn't support 4 pol case. So, give up
+        // processing such data to avoid producing unintended result
+        throw AipsError("Imaging full-Stokes data (npol=4) is not supported.");
       }
     } else {
-      Int npol = weightspec.shape()(0);
+      const ssize_t npol = weightSpec.shape()(0);
       if (npol == 1) {
+        weight = weightSpec.yzPlane(0);
+      } else if (npol == 2) {
+        const auto weight0 = weightSpec.yzPlane(0);
+        const auto weight1 = weightSpec.yzPlane(1);
         for (rownr_t k = 0; k < vb.nRows(); ++k) {
           for (int chan = 0; chan < vb.nChannels(); ++chan) {
-            weight(chan, k)=weightspec(0, chan, k);
+            weight(chan, k) = toStokesWeight(weight0(chan, k), weight1(chan, k));
           }
         }
       } else {
-        for (rownr_t k = 0; k < vb.nRows(); ++k) {
-          for (int chan = 0; chan < vb.nChannels(); ++chan) {
-            weight(chan, k) = (weightspec(0, chan, k) + weightspec((npol-1), chan, k))/2.0f;
-          }
-        }
+        // It seems current code doesn't support 4 pol case. So, give up
+        // processing such data to avoid producing unintended result
+        throw AipsError("Imaging full-Stokes data (npol=4) is not supported.");
       }
     }
   }

@@ -1,29 +1,16 @@
-from __future__ import absolute_import
 import os
 import re
 import glob
 import pylab as pl
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table, image, imager
-    from casatasks import casalog, sdimaging, imregrid, immath, concat, feather
-    from . import sdbeamutil
-    from .simutil import *
+from casatools import table, image, imager
+from casatasks import casalog, sdimaging, imregrid, immath, concat, feather
+from . import sdbeamutil
+from .simutil import *
 
-    tb = table( )
-    ia = image( )
-    im = imager( )
-else:
-    from taskinit import *
-    from simutil import *
-    from sdimaging import sdimaging
-    from imregrid import imregrid
-    from immath import immath
-    from concat import concat
-    from feather import feather
-    import sdbeamutil
-    from casa_stack_manip import stack_frame_find
+tb = table( )
+ia = image( )
+im = imager( )
 
     # the global tb, ia, and im tools are used
 
@@ -58,9 +45,6 @@ def simanalyze(
 
     casalog.origin('simanalyze')
     if verbose: casalog.filter(level="DEBUG2")
-
-    if not is_CASA6:
-        myf = stack_frame_find( )
     
     # create the utility object:    
     myutil = simutil()
@@ -77,12 +61,7 @@ def simanalyze(
         # msg should raise an exception for priority=error
 
 
-    if not is_CASA6:
-        saveinputs = myf['saveinputs']
-        saveinputs('simanalyze',fileroot+"/"+project+".simanalyze.last")
-        #               myparams=in_params)
-    else:
-        casalog.post("saveinputs not available in casatasks, skipping saving simanalyze inputs", priority='INFO')
+    casalog.post("saveinputs not available in casatasks, skipping saving simanalyze inputs", priority='INFO')
 
     if (not image) and (not analyze):
         casalog.post("No operation to be done. Exiting from task.", "WARN")

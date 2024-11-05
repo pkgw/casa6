@@ -1,17 +1,9 @@
-from __future__ import absolute_import
 import glob
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table, measures, quanta, ms
-    from casatasks import casalog
-else:
-    from taskinit import *
-    from taskinit import tbtool as table
-    from taskinit import metool as measures
-    from taskinit import qatool as quanta
-    from taskinit import mstool as ms
+from casatools import table, measures, quanta, ms
+from casatasks import casalog
+
     
 # Conversion of TOPO ephemerides to GEO (ICRS)
 #

@@ -1,16 +1,7 @@
-from __future__ import absolute_import
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import miriadfiller
-    from casatasks import casalog
-    from .mstools import write_history
-else:
-    from taskinit import *
-    from mstools import write_history
-
-    miriadfiller = casac.miriadfiller
+from casatools import miriadfiller
+from casatasks import casalog
+from .mstools import write_history
 
 def importmiriad (
     mirfile=None,
@@ -70,11 +61,9 @@ def importmiriad (
         # Write the args to HISTORY.
         try:
             param_names = importmiriad.__code__.co_varnames[:importmiriad.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]
+            
             write_history(
                 mymf, vis, 'importmiriad', param_names, 
                 param_vals, casalog

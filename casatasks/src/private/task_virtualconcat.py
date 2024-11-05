@@ -3,7 +3,6 @@ import shutil
 import stat
 import time
 
-# get is_python3 and is_CASA6
 from . import partitionhelper as ph
 from .parallel.parallel_task_helper import ParallelTaskHelper
 from .mslisthelper import check_mslist, sort_mslist

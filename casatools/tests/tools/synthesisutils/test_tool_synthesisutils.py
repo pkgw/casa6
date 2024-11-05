@@ -219,7 +219,10 @@ class fitpsfbeam_test(sutest_base):
         self.assertTrue(ret)
         # test against expected values
         # - original beam in psf image is different from fitted values
-        self.assertDictContainsSubset(newbeam, bmref)
+        if int(sys.version_info.major) == 3 and int(sys.version_info.minor) < 10:
+            self.assertEqual(bmref, {**bmref, **newbeam})
+        else:
+            self.assertEqual(bmref, bmref | newbeam)
 
     def test_mfs_wrong_nterms(self):
         '''Test that it catches if nterms is inconsistent with input psf (nterms=2, for a single term  psf) '''
@@ -270,7 +273,10 @@ class fitpsfbeam_test(sutest_base):
         self.assertTrue(ret)
         # test against expected values
         # - original beam in psf image is different from fitted values
-        self.assertDictContainsSubset(newbeam, bmref)
+        if int(sys.version_info.major) == 3 and int(sys.version_info.minor) < 10:
+            self.assertEqual(bmref, {**bmref, **newbeam})
+        else:
+            self.assertEqual(bmref, bmref | newbeam)
 
     def test_mtmfs_nterms2(self):
         '''Test that fitting of multiterm  psf works '''
@@ -300,7 +306,11 @@ class fitpsfbeam_test(sutest_base):
         self.assertTrue(ret)
         # test against expected values
         # - original beam in psf image is different from fitted values
-        self.assertDictContainsSubset(newbeam, bmref)
+        if int(sys.version_info.major) == 3 and int(sys.version_info.minor) < 10:
+            self.assertEqual(bmref, {**bmref, **newbeam})
+        else:
+            self.assertEqual(bmref, bmref | newbeam)
+
  
 class getoptimumsize_test(sutest_base):
     ### su.getoptimumsize takes a single parameter, size.

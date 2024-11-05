@@ -103,7 +103,7 @@ namespace Minim {
     */
     NestedS(PriorNLikelihood & ml,
 	    const std::list<MCPoint> & start,
-	    unsigned seed=43) throw (NestedSmallStart);
+	    unsigned seed=43) noexcept(false);
 
     /**
        A constructor without a starting set, which allows for the
