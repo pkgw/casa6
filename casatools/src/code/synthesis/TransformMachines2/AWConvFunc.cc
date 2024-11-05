@@ -2105,7 +2105,7 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 	Vector<Double> incr=csys_p.increment();
 	Double inpFov=fabs(incr[0]*npix);
 	Double pbFov= fabs(cell.get(units[0]).getValue()*Double(convnx));
-    //cerr << "@@inpfov " << inpFov << " pbFov " << pbFov << " isSingleField "<< isSingleField << endl;
+        //cerr << "@@inpfov " << inpFov << " pbFov " << pbFov << " isSingleField "<< isSingleField << endl;
         if (inpFov > 0.125 * pbFov) {
           incr[0] = cell.get(units[0]).getValue();
           incr[1] = cell.get(units[1]).getValue();
@@ -2115,8 +2115,8 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 		  //pbFov goes into sidelobes
 
           if (((inpFov < pbFov && !isSingleField) || isSingleField)) {
-            convnx *= 2.0;
-            pbFov *= 2.0;
+              convnx *= 4.0;
+              pbFov *= 4.0;
           }
 
           npix = convnx; // return that npix
@@ -2133,7 +2133,7 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
                    8;
           npix = int(std::ceil(inpFov / pbFov * Double(convnx) / 2.0)) * 2;
           pbFov = fabs(incr[0]) * convnx;
-           //cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
+          //cerr << "$$$$ npix " << npix << " cnx " << convnx << endl;
         }
 
         Vector<Int> stoks={Stokes::RR, Stokes::RL, Stokes::LR, Stokes::LL};

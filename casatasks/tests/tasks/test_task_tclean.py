@@ -3876,10 +3876,10 @@ class test_widefield(testref_base):
           # return
 
           self.prepData("refim_mawproject.ms")
-          ret = tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+          ret = tclean(vis=self.msfile,spw='0',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
                        niter=30,gridder='awphpg',deconvolver='hogbom',savemodel='modelcolumn',parallel=self.parallel)
          ## ret = tclean(vis=self.msfile,spw='2',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",niter=30,gridder='awproject',wbawp=False,conjbeams=True,psterm=False,computepastep=360.0,rotatepastep=360.0,deconvolver='hogbom')
-          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',0.96,[256,256,0,0]),(self.img+'.pb',0.96,[256,256,0,0]),(self.img+'.weight',0.463,[256,256,0,0]) ] )
+          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',1.0,[256,256,0,0]),(self.img+'.pb',1.0,[256,256,0,0]),(self.img+'.weight',0.62,[256,256,0,0]) ] )
           #
          
           self.assertTrue(self.check_final(report))
