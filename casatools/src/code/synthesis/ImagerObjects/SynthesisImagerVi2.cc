@@ -646,7 +646,7 @@ Bool SynthesisImagerVi2::defineImage(
       }
     catch(AipsError &x)
       {
-	os << "Error in building Coordinate System and Image Shape : " << x.getMesg() << LogIO::EXCEPTION;
+	os << "Error in building Coordinate System and Image Shape: " << x.getMesg() << LogIO::EXCEPTION;
       }
 
 	
