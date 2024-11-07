@@ -366,6 +366,7 @@ Compile and install with cmake (you might change the build directory or the make
         -DPORTABLE=ON \
         -DUSE_PCH=OFF \
         -DUseCcache=1 \
+        -DCMAKE_CXX_FLAGS="-I /opt/casa/03/include -L /opt/casa/03/lib/ -lgsl -lgslcblas" \
         -DCMAKE_EXE_LINKER_FLAGS="-L /opt/casa/03/lib/" \
         -DCMAKE_MODULE_LINKER_FLAGS="-Wl,-rpath,-L /opt/casa/03/lib/" \
         -DCMAKE_SHARED_LINKER_FLAGS="-L /opt/casa/03/lib/" \
@@ -424,12 +425,14 @@ Compile and install with cmake (you might change the build directory or the make
     $ export PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig:/opt/casa/03/lib/pkgconfig
     $ cmake -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
           -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=$CASAINSTALL:/opt/casa/03/lib/pkgconfig \
+          -DCMAKE_CXX_FLAGS="-I /opt/casa/03/include -L /opt/casa/03/lib/ -lgsl -lgslcblas -Wl,-rpath,/opt/casa/03/lib" \
           $CASASRC/casatools/src/code
 
     # MAC ONLY! use this cmake command
     # Note: we use '/opt/local/include' as location where to find the WCSLIB includes.
     $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig cmake \
          -DCMAKE_CXX_FLAGS="-ffp-contract=off -isystem /opt/local/include" \
+         -DCMAKE_SHARED_LINKER_FLAGS="-L /opt/local/lib -lgsl -lgslcblas -L /opt/casa/03/lib -lgsl -lgslcblas" \
          -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
          -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=$CASAINSTALL \
          -DCMAKE_CXX_FLAGS="-isystem /opt/local/include" \
