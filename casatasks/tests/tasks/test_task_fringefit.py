@@ -338,7 +338,7 @@ class Fringefit_corrcomb2(unittest.TestCase):
         #print(np.alltrue(fl[:,0,6::10]))
 
         self.assertTrue(np.sum(fl)==16)   # 4 params in 2 pols in 2 spws
-        self.assertTrue(np.alltrue(fl[:,0,6::10]))  # both pols flagged
+        self.assertTrue(np.all(fl[:,0,6::10]))  # both pols flagged
 
 
         # corrdepflags=True, corrcomb='none'
@@ -355,7 +355,7 @@ class Fringefit_corrcomb2(unittest.TestCase):
         #print(np.alltrue(fl[4:,0,6::10]))
 
         self.assertTrue(np.sum(fl)==8)   # 4 params in 1 pol in 2 spws
-        self.assertTrue(np.alltrue(fl[4:,0,6::10]))  # 2nd pol only flagged
+        self.assertTrue(np.all(fl[4:,0,6::10]))  # 2nd pol only flagged
 
         # corrdepflags=True, corrcomb='stokes'
         # ant id=6 completely flagged
@@ -374,8 +374,8 @@ class Fringefit_corrcomb2(unittest.TestCase):
         #print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
 
         self.assertTrue(np.sum(fl)==16)   # 4 params in 2 pols in 2 spws
-        self.assertTrue(np.alltrue(fl[:,0,6::10]))  # both pols flagged
-        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        self.assertTrue(np.all(fl[:,0,6::10]))  # both pols flagged
+        self.assertTrue(np.all(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
 
         # corrdepflags=True, corrcomb='parallel'
         # nothing flagged (ant id=6 pol id=0 solutions used for both pols)
@@ -392,7 +392,7 @@ class Fringefit_corrcomb2(unittest.TestCase):
         #print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
         
         self.assertTrue(np.sum(fl)==0)  # nothing flagged
-        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        self.assertTrue(np.all(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
 
         # corrdepflags=True, corrcomb='stokes', concatspws=True
         # ant id=6 fully flagged
@@ -410,8 +410,8 @@ class Fringefit_corrcomb2(unittest.TestCase):
 #        print(np.alltrue(fl[:,0,6::10]))
 #        print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
         self.assertTrue(np.sum(fl)==8)  # ant id 6 completely flagged
-        self.assertTrue(np.alltrue(fl[:,0,6::10]))  # both pols flagged
-        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        self.assertTrue(np.all(fl[:,0,6::10]))  # both pols flagged
+        self.assertTrue(np.all(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
         
 
         # corrdepflags=True, corrcomb='parallel', concatspws=True
@@ -428,7 +428,7 @@ class Fringefit_corrcomb2(unittest.TestCase):
 #        print(np.sum(fl),np.sum(fl)==0)  # no flagged solutions!
 #        print(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
         self.assertTrue(np.sum(fl)==0)  # nothing flagged
-        self.assertTrue(np.alltrue(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
+        self.assertTrue(np.all(sol[0:4,0,:]==sol[4:,0,:]))  # same soln in both pols
         
 
 
