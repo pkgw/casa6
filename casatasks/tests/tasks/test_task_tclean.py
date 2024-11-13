@@ -5680,6 +5680,7 @@ class test_hetarray_imaging(testref_base):
 
 
          report=self.th.checkall(imgexist=[self.img+'_listofms.residual'],imgval=[(self.img+'_listofms.residual' ,peak, peakpos)]) 
+         self.assertTrue(self.check_final(pstr=report))
 
 #####################################################
 #####################################################
