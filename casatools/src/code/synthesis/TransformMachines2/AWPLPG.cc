@@ -292,6 +292,10 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
+    if(convFunc.nelements()==0){
+      convSupport = 0;
+      convSize = 0;
+    }
     //cerr << "csup " << convSupport << " csize "<< convSize << " csamp " << convSampling << endl;
  
 
