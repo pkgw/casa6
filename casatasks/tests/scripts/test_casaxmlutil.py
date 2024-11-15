@@ -357,7 +357,7 @@ class SDFitTest(CasaxmlutilTest):
 
 
 import importlib
-casashell = importlib.find_loader('casashell')
+casashell = importlib.util.find_spec('casashell')
 if casashell is not None:
     from casashell.private.sdcal import sdcal as s_sdcal
     from casashell.private.sdfit import sdfit as s_sdfit

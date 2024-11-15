@@ -525,7 +525,7 @@ class ImagerParameters():
                     self.allselpars['msname'] = timesortedvislist
                     casalog.post("Sorting the vis list by time. The new vis list:"+ str(self.allselpars['msname']))
                     for selp in ['spw','field','timestr','uvdist','antenna','scan','obs','state']:
-                        if len(self.allselpars[selp]) == len(newindex):
+                        if type(self.allselpars[selp]) == list and len(self.allselpars[selp]) == len(newindex):
                             self.allselpars[selp] = [self.allselpars[selp][i] for i in newindex]
                        
                 #msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
