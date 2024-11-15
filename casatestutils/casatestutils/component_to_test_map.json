@@ -1412,7 +1412,7 @@
         },
         {
             "testScript":"test_task_wvrgcal",
-            "testType":"almatasks",
+            "testType":"casatasks",
             "maintainer":"Dirk Petry",
             "maintainerEmail":"dpetry@eso.org",
             "testOptions":[],
@@ -1725,6 +1725,16 @@
             "testType":"casatools",
             "maintainer":"David Mehringer",
             "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["casatools"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_tool_synthesisutils",
+            "testType":"casatools",
+            "maintainer":"Tak Tsutsumi",
+            "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":[],
             "testGroup":["casatools"],
             "timeout":0,

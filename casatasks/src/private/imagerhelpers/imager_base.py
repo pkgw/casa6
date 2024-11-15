@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,41 +6,25 @@ import time
 import re
 import copy
 from typing import TYPE_CHECKING
-from casatasks.private.casa_transition import is_CASA6
 
-if is_CASA6:
-    from casatools import (
-        synthesisimager,
-        synthesisdeconvolver,
-        synthesisnormalizer,
-        iterbotsink,
-        ctsys,
-        table,
-        image,
-    )
-    from casatasks import casalog
-    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
-    if TYPE_CHECKING:
-        from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from casatools import (
+    synthesisimager,
+    synthesisdeconvolver,
+    synthesisnormalizer,
+    iterbotsink,
+    ctsys,
+    table,
+    image,
+)
+from casatasks import casalog
+from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+if TYPE_CHECKING:
+    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 
-    ctsys_hostinfo = ctsys.hostinfo
-    _tb = table()
-    _ia = image()
-else:
-    from taskinit import *
-    from imagerhelpers.summary_minor import SummaryMinor
-    if TYPE_CHECKING:
-        from imagerhelpers.input_parameters import ImagerParameters
+ctsys_hostinfo = ctsys.hostinfo
+_tb = table()
+_ia = image()
 
-    synthesisimager = casac.synthesisimager
-    synthesisdeconvolver = casac.synthesisdeconvolver
-    synthesisnormalizer = casac.synthesisnormalizer
-    # make it look like the CASA6 version even though it's using the CASA5 named tool not present in CASA6
-    iterbotsink = casac.synthesisiterbot
-
-    ctsys_hostinfo = casac.cu.hostinfo
-
-    _tb = tb
 """
 A set of helper functions for tclean.
 

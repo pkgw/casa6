@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 import glob
 import os
@@ -9,57 +8,30 @@ import shutil
 import pwd
 from numpy import unique
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    import subprocess
-    from collections import OrderedDict as odict
+import subprocess
+from collections import OrderedDict as odict
 
-    ###some helper tools
-    from casatasks import casalog as default_casalog
-    from casatools import table, quanta, measures, regionmanager, image, imager, msmetadata
-    from casatools import ms as mstool
-    from casatools import ctsys
+###some helper tools
+from casatasks import casalog as default_casalog
+from casatools import table, quanta, measures, regionmanager, image, imager, msmetadata
+from casatools import ms as mstool
+from casatools import ctsys
 
-    ms = mstool( )
-    tb = table( )
-    qa = quanta( )
-    me = measures( )
-    rg = regionmanager( )
-    ia = image( )
-    im = imager( )
-    msmd=msmetadata( )
+ms = mstool( )
+tb = table( )
+qa = quanta( )
+me = measures( )
+rg = regionmanager( )
+ia = image( )
+im = imager( )
+msmd=msmetadata( )
 
-    # trying to avoid sharing a single instance with all other functions in this module
-    iatool = image
+# trying to avoid sharing a single instance with all other functions in this module
+iatool = image
 
-    def _casa_version_string():
-        """ produce a version string with the same format as the mstools.write_history. """
-        return  'version: ' + ctsys.version_string() + ' ' + ctsys.version_desc()
-
-else:
-    # possibly not an exact equivalent, but as used here it is
-    import commands as subprocess
-
-    import string
-    from odict import odict
-    from taskinit import *
-    ###some helper tools
-    from  casac import *
-    ms = casac.ms()
-    tb = casac.table()
-    qa = casac.quanta()
-    me = casac.measures()
-    rg = casac.regionmanager()
-    ia = casac.image()
-    im = casac.imager()
-    msmd=casac.msmetadata()
-    default_casalog = casalog
-    # trying to avoid sharing a single instance with all other functions in this module
-    iatool = casac.image
-
-    def _casa_version_string():
-        casa_glob = find_casa()
-        return 'version: ' + casa_glob['build']['version'] + ' ' + casa_glob['build']['time']
+def _casa_version_string():
+    """ produce a version string with the same format as the mstools.write_history. """
+    return  'version: ' + ctsys.version_string() + ' ' + ctsys.version_desc()
 
 
 class cleanhelper:
@@ -103,10 +75,7 @@ class cleanhelper:
         """needed because mms has it somewhere else
         """
         tb.open(visname)
-        if is_CASA6:
-            spectable=str.split(tb.getkeyword(subtab))
-        else:
-            spectable=string.split(tb.getkeyword(subtab))
+        spectable=str.split(tb.getkeyword(subtab))
 
         if(len(spectable) ==2):
             spectable=spectable[1]
@@ -1259,11 +1228,9 @@ class cleanhelper:
 #                         npixels=npixels, noise=qa.quantity(noise,'Jy'), mosaic=mosweight)
         self.im.weight(type=weighting,rmode=rmode,robust=robust, 
                          npixels=npixels, noise=qa.quantity(noise,'Jy'), mosaic=mosweight)
-        if is_CASA6:
-            # long isn't a type in python 3
-            oktypes = (str,int,float)
-        else:
-            oktypes = (str,int,float,long)
+
+        oktypes = (str,int,float)
+
         if((uvtaper==True) and (type(outertaper) in oktypes)):
             outertaper=[outertaper]
         if((uvtaper==True) and (type(outertaper)==list) and (len(outertaper) > 0)):

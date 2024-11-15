@@ -1,19 +1,9 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
+import platform
 import time
 import numpy
 import os
 import shutil
 import re
-
-# get is_CASA6 and is_python3, and import other classes
-try:
-    from casatasks.private.casa_transition import *
-except:
-    from sys import version_info
-    is_python3 = version_info > (3,)
-    is_CASA6 = is_python3
 
 from casatasks import casalog
 
@@ -27,12 +17,8 @@ from casatools import synthesisimager
 ia = image( )
 
 try:
-    if is_CASA6:
-        from casampi.MPIEnvironment import MPIEnvironment
-        from casampi import MPIInterface
-    else:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        from mpi4casa import MPIInterface
+    from casampi.MPIEnvironment import MPIEnvironment
+    from casampi import MPIInterface
     mpi_available = True
 except ImportError:
     mpi_available = False
@@ -172,6 +158,26 @@ def deconvolve(
 
     cppparallel=False
     decon=None
+
+    if interactive:
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS. Returning
+        # False instead of throwing an exception results in:
+        #
+        #    RuntimeError: No active exception to reraise
+        #
+        # from deconvolve run from casashell.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
+                    "WARN",
+                    "task_deconvolve",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
+
     try:
 
         # discard empty start model strings
@@ -200,10 +206,7 @@ def deconvolve(
         check_starmodel_model_collisions(startmodel, imagename, deconvolver)
         
         # make a list of parameters with defaults from tclean
-        if is_python3:
-            defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
-        else:
-            defparm=dict(zip(ImagerParameters.__init__.__func__.__code__.co_varnames[1:], ImagerParameters.__init__.func_defaults))
+        defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
 
         ## assign values to the ones passed to deconvolve and if not defined yet in deconvolve...
         ## assign them the default value of the constructor
@@ -219,12 +222,8 @@ def deconvolve(
             if mpi_available and MPIEnvironment.is_mpi_enabled and isCube:
                 mint=MPIInterface.MPIInterface()
                 cl=mint.getCluster()
-                if(is_CASA6):
-                    cl._cluster.pgc("from casatools import synthesisimager", False)
-                    cl._cluster.pgc("si=synthesisimager()", False)
-                else:
-                    cl._cluster.pgc("from casac import casac", False)
-                    cl._cluster.pgc("si=casac.synthesisimager()", False) 
+                cl._cluster.pgc("from casatools import synthesisimager", False)
+                cl._cluster.pgc("si=synthesisimager()", False)
                 cl._cluster.pgc("si.initmpi()", False)
                 cppparallel=True
                 ###ignore chanchunk
