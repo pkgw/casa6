@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import absolute_import
 import os
 import re
 import shutil
@@ -10,34 +9,16 @@ import subprocess
 
 from numpy.f2py.auxfuncs import throw_error
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .parallel_task_helper import ParallelTaskHelper, JobData
-    from .. import partitionhelper as ph
-    from casatools import quanta, ms, msmetadata, mstransformer, table
-    from casatasks import casalog
+from .parallel_task_helper import ParallelTaskHelper, JobData
+from .. import partitionhelper as ph
+from casatools import quanta, ms, msmetadata, mstransformer, table
+from casatasks import casalog
 
-    _qa = quanta()
-else:
-    from taskinit import *
-    from parallel.parallel_task_helper import ParallelTaskHelper, JobData
-    import partitionhelper as ph
-
-    ms = mstool
-    msmetadata = msmdtool
-    table = tbtool
-    mstransformer = mttool
-
-    _qa = qa
+_qa = quanta()
 
 # common function to use to get a dictionary item iterator
-if is_python3:
-    def lociteritems(adict):
-        return adict.items()
-else:
-    def lociteritems(adict):
-        return adict.iteritems()
+def lociteritems(adict):
+    return adict.items()
 
 """
 ParallelDataHelper is a class to process Multi-MS. It can process the MMS

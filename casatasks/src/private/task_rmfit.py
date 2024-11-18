@@ -1,16 +1,9 @@
 import tempfile
 import shutil
 
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import image, imagepol
-    from .ialib import write_image_history
-else:
-    from taskinit import *
-    from ialib import write_image_history
-    image = iatool
-    imagepol = potool
+from casatasks import casalog
+from casatools import image, imagepol
+from .ialib import write_image_history
 
 def rmfit(
     imagename, rm, rmerr, pa0, pa0err, nturns, chisq,

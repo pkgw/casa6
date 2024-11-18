@@ -1,23 +1,11 @@
-from __future__ import absolute_import
 import os
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import calibrater, ms
-    from casatasks import casalog
+from casatools import calibrater, ms
+from casatasks import casalog
 
-    from .mstools import write_history
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-else:
-    from taskinit import *
-    from mstools import write_history
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from parallel.parallel_task_helper import ParallelTaskHelper
-
-    calibrater = cbtool
-    ms = mstool
+from .mstools import write_history
+from .parallel.parallel_data_helper import ParallelDataHelper
+from .parallel.parallel_task_helper import ParallelTaskHelper
 
 def initweights(vis=None,wtmode=None,tsystable=None,gainfield=None,interp=None,spwmap=None,dowtsp=None):
 
@@ -31,11 +19,9 @@ def initweights(vis=None,wtmode=None,tsystable=None,gainfield=None,interp=None,s
         # Write history to MS.
         try:
             param_names = initweights.__code__.co_varnames[:initweights.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]
+
             casalog.post('Updating the history in the output', 'DEBUG1')
             write_history(ms, vis, 'initweights', param_names,
                           param_vals, casalog)
@@ -73,11 +59,9 @@ def initweights(vis=None,wtmode=None,tsystable=None,gainfield=None,interp=None,s
         myms=ms()
         try:
             param_names = initweights.__code__.co_varnames[:initweights.__code__.co_argcount]
-            if is_python3:
-                vars = locals()
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals()
+            param_vals = [vars[p] for p in param_names]
+
             casalog.post('Updating the history in the output', 'DEBUG1')
             write_history(myms, vis, 'initweights', param_names,
                           param_vals, casalog)

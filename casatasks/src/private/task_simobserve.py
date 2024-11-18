@@ -1,23 +1,13 @@
-from __future__ import absolute_import
 import os
 import re
 import pylab as pl
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ctsys, quanta, imager
-    from casatasks import casalog
-    from .simutil import *
-    from .simutil import is_array_type
+from casatools import ctsys, quanta, imager
+from casatasks import casalog
+from .simutil import *
+from .simutil import is_array_type
 
-    qa = quanta()
-else:
-    from taskinit import *
-    from simutil import *
-    from casa_stack_manip import stack_frame_find
-    from simutil import is_array_type
-
-    imager = imtool
+qa = quanta()
 
 def simobserve(
     project=None, 
@@ -65,9 +55,6 @@ def simobserve(
         casalog.origin('simobserve')
         if verbose: casalog.filter(level="DEBUG2")
 
-        if not is_CASA6:
-            myf = stack_frame_find( )
-
         # create the utility object
         # this is the dir of the observation (could be "")
         util = simutil(direction)  
@@ -103,10 +90,8 @@ def simobserve(
 
         # filename parsing of cfg file here so that the project filenames 
         # can contain the cfg
-        if is_CASA6:
-            repodir = ctsys.resolve("alma/simmos")
-        else:
-            repodir = os.getenv("CASAPATH").split(' ')[0] + "/data/alma/simmos"
+        repodir = ctsys.resolve("alma/simmos")
+
 
         # convert "alma;0.4arcsec" to an actual configuration
         # can only be done after reading skymodel, so here, we just string parse
@@ -135,14 +120,6 @@ def simobserve(
                 emsg = fileroot+"/"+project+".sd.ms exists but overwrite=F"
                 raise RuntimeError(emsg)
 
-
-        # saveinputs is not available in casatasks
-        if not is_CASA6:
-            saveinputs = myf['saveinputs']
-            # something broken in saveinputs
-            in_params['antennalist']=''+in_params['antennalist']+''
-            saveinputs('simobserve',fileroot+"/"+project+".simobserve.last",
-                       myparams=in_params)
 
         if is_array_type(skymodel):
             skymodel = skymodel[0]

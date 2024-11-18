@@ -158,24 +158,13 @@ from matplotlib import rc
 import matplotlib.pyplot as plt
 import ftplib
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table, quanta, coordsys, image, measures
+from casatools import table, quanta, coordsys, image, measures
 
-    tb = table()
-    qa = quanta()
-    cs = coordsys()
-    ia = image()
-    me = measures()
-
-else:
-    from casac import *
-    tb = casac.table()
-    qa = casac.quanta()
-    cs = casac.coordsys()
-    ia = casac.image()
-    me = casac.measures()
-
+tb = table()
+qa = quanta()
+cs = coordsys()
+ia = image()
+me = measures()
 
 workDir = os.getcwd()+'/'
 
