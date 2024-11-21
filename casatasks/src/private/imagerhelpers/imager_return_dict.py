@@ -520,7 +520,7 @@ class ImagingDict():
         ia.close()
 
         # Get the mask if it exists
-        if os.path.exists(self.maskname):
+        if len(self.maskname) > 0 and os.path.exists(self.maskname):
             ia.open(self.maskname)
             mask = ia.getchunk(blc, trc, dropdeg=True)
             ia.close()
@@ -610,8 +610,7 @@ class ImagingDict():
             if(os.path.exists(impars[str(ff)]['imagename']+'.mask')):
                  self.maskname=impars[str(ff)]['imagename']+'.mask'
 
-            # Check if mask exists on disk and set it, else leave it blank
-            if decpars[str(ff)]['mask'] != '' and os.path.exists(decpars[str(ff)]['mask']):
+            if len(decpars[str(ff)]['mask']) > 0 and os.path.exists(decpars[str(ff)]['mask']):
                 self.maskname = decpars[str(ff)]['mask']
             elif os.path.exists(impars[str(ff)]['imagename']+'.mask') and os.path.isdir(impars[str(ff)]['imagename']+'.mask'):
                 self.maskname = impars[str(ff)]['imagename']+'.mask'
