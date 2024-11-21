@@ -1,11 +1,6 @@
-from __future__ import absolute_import
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ms as mstool
-    from casatasks import casalog
-else:
-    from taskinit import mstool, casalog
+from casatools import ms as mstool
+from casatasks import casalog
 
 def visstat(
     vis=None, axis=None, datacolumn=None, useflags=None,

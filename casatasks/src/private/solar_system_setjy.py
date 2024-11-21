@@ -27,30 +27,18 @@
 # Modified by TT to avoid uncessary file open: 2012Dec13
 
 
-from __future__ import absolute_import
 from numpy import searchsorted
 from numpy import array
 from scipy.interpolate import interp1d
 from math import exp, pi, cos, sin, isnan, sqrt
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table, measures, quanta, ctsys
-    qa = quanta( )
-    _tb = table( )
-    _me = measures( )
+from casatools import table, measures, quanta, ctsys
+qa = quanta( )
+_tb = table( )
+_me = measures( )
 
-    ctsys_resolve = ctsys.resolve
-else:
-    from taskinit import gentools
-    (_tb,_me)=gentools(['tb','me'])
-    from casac import *
-    qa = casac.quanta()
-
-    def ctsys_resolve(apath):
-        dataPath = os.path.join(os.environ['CASAPATH'].split()[0],'data')
-        return os.path.join(dataPath,apath)
+ctsys_resolve = ctsys.resolve
 
 HH = qa.constants('H')['value'] 
 KK = qa.constants('K')['value']

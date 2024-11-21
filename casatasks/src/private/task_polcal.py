@@ -1,17 +1,9 @@
-from __future__ import absolute_import
 import os
 import numpy as np
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import calibrater
-    from casatasks import casalog
-    from .callibrary import *
-else:
-    from callibrary import *
-    from taskinit import *
-
-    calibrater = cbtool
+from casatools import calibrater
+from casatasks import casalog
+from .callibrary import *
 
 def polcal(vis=None,caltable=None,
            field=None,spw=None,intent=None,

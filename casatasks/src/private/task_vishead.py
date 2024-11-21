@@ -14,19 +14,10 @@
 # This is not very effective (in list mode, or when using this task in a loop;
 # however expert users can always use the table tool directly.
 
-from __future__ import absolute_import
-
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ms
-    from casatasks import casalog
-    from .vishead_util import *
-    _ms = ms( )
-else:
-    from taskinit import *
-    from vishead_util import *
-
-    _ms = mstool()
+from casatools import ms
+from casatasks import casalog
+from .vishead_util import *
+_ms = ms( )
 
 def vishead(vis, mode=None, listitems=None, hdkey=None, hdindex=None, hdvalue=None):
     """Documentation goes here?"""
