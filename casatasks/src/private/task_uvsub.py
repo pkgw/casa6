@@ -3,23 +3,14 @@
 #
 # Copyright 2007, Associated Universities Inc., Washington DC
 #
-from __future__ import absolute_import
 import os
 
-# get is_python3 and is_CASA6
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import ms as mstool
-    from casatasks import casalog
-    from .mstools import write_history
+from casatools import ms as mstool
+from casatasks import casalog
+from .mstools import write_history
 
-    _ms = mstool()
-else:
-    from taskinit import mstool, casalog
-    from mstools import write_history
+_ms = mstool()
 
-    # uses the global ms tool
-    _ms = mstool()
 
 def uvsub(vis=None,reverse=False):
 
@@ -56,11 +47,9 @@ def uvsub(vis=None,reverse=False):
         # Write history to MS
         try:
             param_names = uvsub.__code__.co_varnames[:uvsub.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            local_vars = locals( )
+            param_vals = [local_vars[p] for p in param_names]
+
             write_history(mstool(), vis, 'uvsub', param_names,
                           param_vals, casalog)
         except Exception as instance:

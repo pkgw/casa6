@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import numpy as np
 
@@ -522,7 +520,7 @@ class ImagingDict():
         ia.close()
 
         # Get the mask if it exists
-        if os.path.exists(self.maskname):
+        if len(self.maskname) > 0 and os.path.exists(self.maskname):
             ia.open(self.maskname)
             mask = ia.getchunk(blc, trc, dropdeg=True)
             ia.close()
@@ -569,6 +567,22 @@ class ImagingDict():
 
         return summaryparams
 
+
+    def _validate_mask(self):
+        """
+        Check if maskname is a valid iamge, and if not, set it to an empty string.
+        """
+
+        if os.path.exists(self.maskname) and os.path.isdir(self.maskname):
+            try:
+                ia.open(self.maskname)
+                ia.close()
+            except RuntimeError:
+                self.maskname = ''
+        else:
+            self.maskname = ''
+
+
     def construct_summary_minor(self, paramList):
         """
         Constructs and populates a nested dictionary containing the summaryMinor()
@@ -595,6 +609,17 @@ class ImagingDict():
             self.modelname=impars[str(ff)]['imagename']+'.model.tt0' if(os.path.exists(impars[str(ff)]['imagename']+'.model.tt0')) else impars[str(ff)]['imagename']+'.model'
             if(os.path.exists(impars[str(ff)]['imagename']+'.mask')):
                  self.maskname=impars[str(ff)]['imagename']+'.mask'
+
+            if len(decpars[str(ff)]['mask']) > 0 and os.path.exists(decpars[str(ff)]['mask']):
+                self.maskname = decpars[str(ff)]['mask']
+            elif os.path.exists(impars[str(ff)]['imagename']+'.mask') and os.path.isdir(impars[str(ff)]['imagename']+'.mask'):
+                self.maskname = impars[str(ff)]['imagename']+'.mask'
+            else:
+                self.maskname = ''
+
+            # Check that the derived mask name corresponds to a real mask on disk
+            # Note : This only affects the tclean(niter=0) functionality
+            self._validate_mask()
 
             fullsummary = decpars[str(ff)]['fullsummary']
             nstokes, nfreq, stokes_axis, freq_axis = self.image_dimensions()

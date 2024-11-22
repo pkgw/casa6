@@ -21,30 +21,12 @@ import os
 import shutil
 import unittest
 
+from casatools import ctsys
+from casatasks import simobserve, simanalyze, casalog
 
-CASA6 = False
-try:
-    from casatools import ctsys
-    from casatasks import simobserve, simanalyze, casalog
-    CASA6 = True
-    
-    def default(atask):
-        pass
-except ImportError:
-    from tasks import simobserve, simanalyze
-    from taskinit import casalog
-    from __main__ import default
-
-if CASA6:
-    datadir = ctsys.resolve('regression/sim_multi_arrays_and_TP/')
-    cfgdir = ctsys.resolve('alma/simmos/')
-    refdir = ctsys.resolve('regression/sim_multi_arrays_and_TP/m51c_reference/')
-
-else:
-    repodir = os.path.join(os.environ['CASAPATH'].split()[0],'casatestdata/')
-    datadir = repodir + 'regression/sim_multi_arrays_and_TP/'
-    cfgdir = repodir + 'alma/simmos/'
-    refdir = repodir + 'regression/sim_multi_arrays_and_TP/m51c_reference/'
+datadir = ctsys.resolve('regression/sim_multi_arrays_and_TP/')
+cfgdir = ctsys.resolve('alma/simmos/')
+refdir = ctsys.resolve('regression/sim_multi_arrays_and_TP/m51c_reference/')
 
 from casatestutils import testhelper as th
 
@@ -93,7 +75,6 @@ class regression_sim_multiarrays_test(unittest.TestCase):
 
         ############################ 12m TP  ############################
         logprint('12m - Total Power simobserve')
-        default(simobserve)
         project = projname
         
         if noise:
@@ -112,7 +93,6 @@ class regression_sim_multiarrays_test(unittest.TestCase):
 
         ############################ ACA  ############################
         logprint('ACA - simobserve')
-        default(simobserve)
         if noise:
             thermalnoise = 'tsys-atm'  #w/ noise 
 #            user_pwv=3.0
@@ -128,7 +108,6 @@ class regression_sim_multiarrays_test(unittest.TestCase):
 
         ############################ clean ACA with SD model  ############################
         logprint('clean ACA with SD model')
-        default(simanalyze)
         if noise:
             myvis = '$project.aca.i.noisy.ms,$project.aca.tp.sd.noisy.ms'  #w/ noise
         else:
@@ -140,7 +119,6 @@ class regression_sim_multiarrays_test(unittest.TestCase):
 
         ############################ clean ALMA with ACA+SD model  ############################
         logprint('clean ACA with SD model')
-        default(simanalyze)
         if noise:
             myvis = '$project.alma_0.5arcsec.noisy.ms'
         else:
@@ -204,10 +182,6 @@ class regression_sim_multiarrays_test(unittest.TestCase):
         logprint('')
 
         self.assertTrue(regstate)
-
-def suite():
-    return[regression_sim_multiarrays_test]
-
 
 if __name__ == '__main__':
     unittest.main()

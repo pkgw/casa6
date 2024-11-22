@@ -1,23 +1,11 @@
-from __future__ import absolute_import
-from __future__ import print_function
+import json
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table
-    from casatasks import casalog
+from casatools import table
+from casatasks import casalog
 
-    from .correct_ant_posns_alma import correct_ant_posns_alma as _correct_ant_posns_alma
-    from .correct_ant_posns_evla import correct_ant_posns_evla as _correct_ant_posns_evla
+from .correct_ant_posns_evla import correct_ant_posns_evla as _correct_ant_posns_evla
 
-    _tb = table( )
-else:
-    from taskinit import *
-
-    from correct_ant_posns_alma import correct_ant_posns_alma as _correct_ant_posns_alma
-    from correct_ant_posns_evla import correct_ant_posns_evla as _correct_ant_posns_evla
-
-    # for getting a single tool in gentools
-    (_tb,) = gentools(['tb'])
+_tb = table( )
 
 def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
     """
@@ -48,7 +36,6 @@ def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
                      parameter=antenna_offsets[2])
 
     For specific details for the EVLA see correct_ant_posns_evla.
-    For specific details for ALMA see correct_ant_posns_alma.
     """
     _tb.open(vis_name+'/OBSERVATION')
     # specific code for different telescopes
@@ -56,13 +43,78 @@ def correct_ant_posns(vis_name, print_offsets=False, time_limit=0):
     _tb.close()
     if tel_name == 'EVLA' or tel_name == 'VLA':
         return _correct_ant_posns_evla(vis_name, print_offsets, time_limit)
-    elif tel_name == 'ALMA':
-        return _correct_ant_posns_alma(vis_name, print_offsets)
     else:
-        msg = 'Currently only work for EVLA or ALMA observations'
+        msg = 'Currently only work for EVLA observations'
         if (print_offsets):
             print(msg)
         else:
             # send to casalogger
             casalog.post(msg, "WARN")
         return [1, '', []]
+
+def correct_ant_posns_alma_json(vis_name, json_file):
+    """
+    This function computes the differences of the ALMA antenna
+    positions given the corrected positions in a JSON file (presumably
+    created by the getantposalma task).
+
+    For each antenna found in the JSON file which is also present in the
+    ANTENNA subtable, the difference between the corrected position in
+    the JSON file and the nominal position in the MS is computed.
+
+    If the MS does not belong to an ALMA observation an exception is
+    thrown.
+
+    Likewise, if the JSON file has not been created by the getantposalma an
+    exception is thrown.
+
+    It returns a tuple with the antenna names as a string with the antenna
+    names separated by commma and the differential possitions as a long
+    vector with a list of antenna Bx,By,Bz offsets. An example return
+    might look like:
+    ['DA42,DA43', [-0.001, 0.001, 0.001, 0.002, -0.002, 0.002] ]
+
+    These two elements of the list returned are in the format
+    expected by the calibrater tool method cb.specifycal() for the
+    parameters antenna and parameter, respectively.
+    """
+
+    # get the telescope name
+    _tb.open(vis_name+'/OBSERVATION')
+    tel_name = _tb.getcol('TELESCOPE_NAME')
+    _tb.close()
+    with open(json_file, "r") as f:
+        corrected_antenna_abspos_map = json.load(f)
+
+    # throw if the MS wasn't observed with ALMA
+    if tel_name[0] != 'ALMA' :
+        raise ValueError('Antenna positions are from ALMA but MS is from '+tel_name[0]+' telescope')
+
+    # throw if the JSON file wasn't generated using the ALMA web service
+    if(corrected_antenna_abspos_map['metadata']['product_code'] != 'antposalma') :
+        raise ValueError('JSON file with antenna positions is not from ALMA. This is currently not supported')
+
+    # compute the differences in antenna positions between the corrected ones in the
+    # JSON file and the nominal ones in the MS.
+    _tb.open(vis_name+'/ANTENNA')
+    nominal_antenna_names = list(_tb.getcol('NAME'))
+    nominal_abspos = _tb.getcol('POSITION')
+    antennas_to_correct = ""
+    differential_pos = []
+    for corrected_antenna_name, corrected_abspos in corrected_antenna_abspos_map['data'].items() :
+        if corrected_antenna_name in nominal_antenna_names :
+            tb_idx = nominal_antenna_names.index(corrected_antenna_name)
+            if len(antennas_to_correct) != 0 :
+                antennas_to_correct += ","
+            antennas_to_correct += corrected_antenna_name
+            differential_pos.append(corrected_abspos[0] - nominal_abspos[0][tb_idx])
+            differential_pos.append(corrected_abspos[1] - nominal_abspos[1][tb_idx])
+            differential_pos.append(corrected_abspos[2] - nominal_abspos[2][tb_idx])
+        else:
+            raise ValueError("Antenna {} could not be found in input MS".format(corrected_antenna_name))
+    if (len(differential_pos) == 0) :
+        raise ValueError("The list of antenna positions in JSON file is empty")
+
+
+    return antennas_to_correct, differential_pos
+
