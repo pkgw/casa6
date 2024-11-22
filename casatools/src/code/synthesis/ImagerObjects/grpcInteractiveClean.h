@@ -179,7 +179,7 @@ namespace casa {
         void resetMinorCycleInitInfo( );
         void addSummaryMajor( );
 
-        void mergeCycleInitializationRecord( casacore::Record &initRecord );
+        void mergeCycleInitializationRecord( casacore::Record &initRecord, casacore::Int immod );
         void mergeCycleExecutionRecord( casacore::Record&, casacore::Int immod );
 
         void changeStopFlag( bool stopEnabled );
