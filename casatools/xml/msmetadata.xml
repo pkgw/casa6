@@ -103,7 +103,9 @@ windows in the dataset and close the tool.
                 
                 1. its bandwidth is less than 2 GHz, or
                 2. the number of channels it contains is greater than or equal to 15 but not
-                   equal to 256, 128, 64, 32, 16, 248, 124, 62, or 31.
+                   equal to 256, 128, 64, 32, 16, 248, 124, 62, or 31, or
+                3. the product of the number of polarizations and the number of
+                   channels it contains exceeds 256.
 
                 The window is classified as a *TDM spectral window* if it is neither a WVR window,
                 a channel average window, nor an FDM window.
