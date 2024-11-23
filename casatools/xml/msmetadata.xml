@@ -706,7 +706,7 @@ windows in the dataset and close the tool.
             <description>
                 Get an array of spectral window IDs used for FDM. These windows
                 are defined by the rules in
-                <a href="#casatools.msmetadata.msmetadata.almaspws">almaspws()</a>.
+                &lt;a href="#casatools.msmetadata.msmetadata.almaspws"&gt;almaspws()&lt;/a&gt;.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -2286,7 +2286,7 @@ windows in the dataset and close the tool.
             <description>
                 Get an array of spectral window IDs used for TDM. These windows
                 are defined by the rules in
-                <a href="#casatools.msmetadata.msmetadata.almaspws">almaspws()</a>.
+                &lt;a href="#casatools.msmetadata.msmetadata.almaspws"&gt;almaspws()&lt;/a&gt;.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
