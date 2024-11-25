@@ -72,7 +72,7 @@ class PyParallelDeconvolver(PySynthesisImager):
         #for immod in range(0,self.NF):
         for immod in self.listOfNodes:
              retrec = self.PH.pullval("initrec", immod )
-             self.IBtool.mergeinitrecord( retrec[immod] )
+             self.IBtool.mergeinitrecord(retrec[immod], immod)
              # casalog.post("Peak res of field ",immod, " on node ", immod , ": " ,retrec[immod]['peakresidual'])
              # casalog.post("["+self.allimpars[str(immod)]['imagename']+"] : Peak residual : %5.5f"%(initrec['peakresidual']), "INFO")
 
