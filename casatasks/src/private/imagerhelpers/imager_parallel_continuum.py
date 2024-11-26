@@ -200,7 +200,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
         #    self.dryGridding();
 
         ##weighting with mosfield=True
-        if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
+        if( ( ( (self.weightpars['type'].count('briggs') or  self.weightpars['type'].count('uniform')) > 0)  and (self.weightpars['multifield']) )  ):
             self.toolsi.setweighting(**self.weightpars)
             ###master create the weight density for all fields
             self.toolsi.getweightdensity()
@@ -328,7 +328,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
     def setWeighting(self):
         ## Set weight parameters and accumulate weight density (natural)
         joblist=[];
-        if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
+        if( ( ((self.weightpars['type'].count('briggs') or self.weightpars['type'].count('uniform')) >0) and (self.weightpars['multifield']) ) ):
             ###master created the weight density for all fields
             ##Should have been in  initializeImagersBase_New but it is not being called !
             self.toolsi = synthesisimager()
