@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,26 +6,14 @@ import time
 import re;
 import copy
 import pdb
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import synthesisimager, synthesisnormalizer
-    from casatasks import casalog
 
-    from .imager_base import PySynthesisImager
-    from .parallel_imager_helper import PyParallelImagerHelper
-    synth_imager_name = 'synthesisimager'
-    synth_imager_import = 'from casatools import synthesisimager'
+from casatools import synthesisimager, synthesisnormalizer
+from casatasks import casalog
 
-else:
-    from taskinit import *
-
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    synthesisimager = casac.synthesisimager
-    synthesisnormalizer = casac.synthesisnormalizer
-    synth_imager_name = 'casac.synthesisimager'
-    synth_imager_import = 'pass'
+from .imager_base import PySynthesisImager
+from .parallel_imager_helper import PyParallelImagerHelper
+synth_imager_name = 'synthesisimager'
+synth_imager_import = 'from casatools import synthesisimager'
 
 
 '''
@@ -355,6 +342,8 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             self.toolsi.done()
             self.toolsi=None
             destWgtim=weightimage+'_moswt'
+            if( os.path.exists(destWgtim)):
+                shutil.rmtree(destWgtim)
             shutil.move(weightimage, destWgtim)
             joblist=[];
             for node in self.listOfNodes:

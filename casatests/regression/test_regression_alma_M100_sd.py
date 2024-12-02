@@ -168,7 +168,7 @@ class regression_alma_m100_test(unittest.TestCase):
             name = "{}.last".format(lastfile)
             if os.path.exists(name):
                 os.remove(name)
-        
+
         # Remove PNGs
         os.remove("raw_spectrum_Spw1,3,5,7,9,11,13,15.png")
         for target in ['9', '11', '13', '15']:
@@ -181,13 +181,13 @@ class regression_alma_m100_test(unittest.TestCase):
 
         for antname  in ['PM03', 'PM04', 'CM03', 'CM05']:
             os.remove("raw_spectrum.{}.spw15_Scan2,3,4,5,6,8,9,10,11.png".format(antname))
-            
+
         for f in glob.glob("uid___A002_X6218fb_X264*"):
             try:
                 os.remove(f)
             except:
                 shutil.rmtree(f)
-                
+
         for f in glob.glob("M100_SD_cube_*"):
             if f.endswith(".log"): continue
             try:
@@ -490,19 +490,19 @@ class regression_alma_m100_test(unittest.TestCase):
             #imsumsq = 22.0320119621645
             ### MS tasks ###
             immax = 0.149762198329
-            immin = -0.0560916438699
+            immin = -0.05902018398
             imrms = 0.0239948061386
             imflux = 188834.785818
             immean = 0.00775288738976
-            immedian = 0.00352751777973
+            immedian = 0.0034247857984
             imnpts = 38360.0
             imsum = 297.400760271
             imsigma = 0.0227080800888
-            immedabsdevmed = 0.0105304607423
-            imquartile = 0.0215698019601
-            imsumsq = 22.0857976817
+            immedabsdevmed = 0.0102611668408
+            imquartile = 0.0209858077578
+            imsumsq = 21.7662482763
             immaxpos = numpy.array([26, 27, 0, 49])
-            imminpos = numpy.array([14, 27, 0, 64])
+            imminpos = numpy.array([36, 36, 0, 21])
 
 
             """
@@ -562,18 +562,18 @@ class regression_alma_m100_test(unittest.TestCase):
             logfile=open(outfile,'w')
 
             """
-            print >>logfile,' *  diff_immax',diff_immax
-            print >>logfile,' *  diff_immin',diff_immin
-            print >>logfile,' *  diff_imrms',diff_imrms
-            print >>logfile,' *  diff_imflux',diff_imflux
-            print >>logfile,' *  diff_immean',diff_immean
-            print >>logfile,' *  diff_immedian',diff_immedian
-            print >>logfile,' *  diff_imnpts',diff_imnpts
-            print >>logfile,' *  diff_imsum',diff_imsum
-            print >>logfile,' *  diff_imsigma',diff_imsigma
-            print >>logfile,' *  diff_immedabsdevmed',diff_immedabsdevmed
-            print >>logfile,' *  diff_imquartile',diff_imquartile
-            print >>logfile,' *  diff_imsumsq',diff_imsumsq
+            print(' *  diff_immax  ', diff_immax, file=logfile)
+            print(' *  diff_immin  ', diff_immin, file=logfile)
+            print(' *  diff_imrms  ', diff_imrms, file=logfile)
+            print(' *  diff_imflux  ', diff_imflux, file=logfile)
+            print(' *  diff_immean  ', diff_immean, file=logfile)
+            print(' *  diff_immedian  ', diff_immedian, file=logfile)
+            print(' *  diff_imnpts  ', diff_imnpts, file=logfile)
+            print(' *  diff_imsum  ', diff_imsum, file=logfile)
+            print(' *  diff_imsigma  ', diff_imsigma, file=logfile)
+            print(' *  diff_immedabsdevmed  ', diff_immedabsdevmed, file=logfile)
+            print(' *  diff_imquartile  ', diff_imquartile, file=logfile)
+            print(' *  diff_imsumsq  ', diff_imsumsq, file=logfile)
             """
 
             print('', file=logfile)
@@ -587,7 +587,7 @@ class regression_alma_m100_test(unittest.TestCase):
                 test_status = False
                 print('* FAILED image maxpos test')
             print('*  Image maxpos', thistest_immaxpos, file=logfile)
-                
+
 
             if all(thistest_imminpos == imminpos):
                 print('* Passed image minpos test')

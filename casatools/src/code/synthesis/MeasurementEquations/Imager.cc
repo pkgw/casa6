@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -5632,8 +5632,10 @@ TempImage<Float>* Imager::sjy_prepImage(LogIO& os, FluxStandard& fluxStd,
   
   Double freqMax, freqMin;
   Vector<Vector<Int> >dummy;
-  String msname=mssel_p->antenna().tableName();
-  msname.erase(msname.length()-8);
+  // TT for MMS this may not work
+  //String msname=mssel_p->antenna().tableName();
+  //msname.erase(msname.length()-8);
+  String msname=ms_p->tableName();
   //adviseChanSelex(freqMin, freqMax, 0.0, MFrequency::LSRK, dummy, dummy, dummy, msname, fieldId, true, String::toString(rawspwid));
   // Get freqmin and freqmax in LSRK for the entire span of the selected spws
   String selSpwsStr;

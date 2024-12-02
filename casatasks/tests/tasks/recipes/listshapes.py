@@ -1,27 +1,9 @@
 #!/usr/bin/env python
 
-from __future__ import absolute_import
-from __future__ import print_function
 from glob import glob
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table
-else:
-    try:
-        from  casac import *  # No-op if already in casapy.
-    except:
-        import sys
-    
-        casacpath = glob(os.sep.join(os.environ["CASAPATH"].split() +
-                                 ['python', '2.*']))  # devs
-        casacpath.sort()
-        casacpath.reverse()
-        casacpath.extend(glob(os.sep.join([os.environ["CASAPATH"].split()[0],
-                                       'lib', 'python2.*'])))  # users
-        #print "casacpath =", "\n".join(casacpath)
-        sys.path.extend(casacpath)
+from casatools import table
 
 def get_tool(toolname):
     """
@@ -29,10 +11,8 @@ def get_tool(toolname):
     """
     tool = None
     if toolname != 'table':
-        if is_CASA6:
-            tool = table()
-        else:
-            tool = casac.table()
+        tool = table()
+
     else:
         print("The factory name for", toolname, "is unknown.")
     return tool

@@ -182,7 +182,7 @@ class Test_vla_users_continuum(unittest.TestCase):
 
 
         setjy(vis=msname,field='J1331+3030',standard='Perley-Butler 2017',
-                model='3C286_C.im',usescratch=True,scalebychan=True,spw='')
+                model='3C286_C.im',usescratch=False,scalebychan=True,spw='')
 
         flagdata(vis=msname,
                 flagbackup=True, mode='manual', antenna='ea05')

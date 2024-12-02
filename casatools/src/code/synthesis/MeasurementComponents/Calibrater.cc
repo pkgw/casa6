@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -2944,7 +2944,8 @@ void Calibrater::specifycal(const String& type,
       cal_ = createSolvableVisCal("TSYS",*msmc_p);
     else if (utype.contains("EVLAGAIN") ||
 	     utype.contains("SWP") ||
-	     utype.contains("RQ"))
+	     utype.contains("RQ") ||
+         utype.contains("WTS"))
       cal_ = createSolvableVisCal("EVLASWP",*msmc_p);
     else if (utype.contains("OPAC"))
       cal_ = createSolvableVisCal("TOPAC",*msmc_p);

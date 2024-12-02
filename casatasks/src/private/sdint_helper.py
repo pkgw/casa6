@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 
 from scipy import fftpack
 import numpy as np
@@ -6,18 +5,9 @@ import shutil
 import os
 import time
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import quanta, table, image, regionmanager, imager
-    from casatasks import casalog, imsubimage, feather
-else:
-    from taskinit import *
-    from tasks import *
-    image = iatool
-    imager = imtool
-    quanta = qatool
-    regionmanager = rgtool
-    table = tbtool
+from casatools import quanta, table, image, regionmanager, imager
+from casatasks import casalog, imsubimage, feather
+
 _ia = image()
 _qa = quanta()
 _rg = regionmanager()
@@ -41,6 +31,11 @@ class SDINT_helper:
         return freqaxis_index
             
     def getFreqList(self,imname=''):
+      """ Get the list of frequencies for the given image, one for each channel.
+
+      Returns:
+        list[float] The frequencies for each channel in the image, in Hz.
+      """
 
       _ia.open(imname)
       csys =_ia.coordsys()
@@ -214,8 +209,14 @@ class SDINT_helper:
         """
         Multiply or divide by the PB
 
-        freqdep = True :  Channel by channel
-        freqdep = False : Before/After deconvolution, use a freq-independent PB from the middle of the list
+        Args:
+          inpcube: The cube to be modified. For example: "try.int.cube.model"
+          pbcube: The primary beam to multiply/divide by. For example: "try.int.cube.pb"
+          cubewt: The per-channel weight of the inpcube. For example: "try.int.cube.sumwt"
+          chanwt: List of 0s and 1s, one per channel, to effectively disable the effect of a channel on the resulting images.
+          action: 'mult' or 'div', to multiply by the PB or divide by it.
+          pblimit: For pixels less than this value in the PB, set those same pixels in the inpcube to zero.
+          freqdep: True for channel by channel, False to use a freq-independent PB from the middle of the list before/after deconvolution
         """
         casalog.post('Modify with PB : ' + action + ' with frequency dependence ' + str(freqdep))
 
@@ -244,7 +245,7 @@ class SDINT_helper:
 #        pbplane = np.zeros( (shp[0],shp[1]), 'float')
 
         if freqdep==False:
-            _ia.open(cubewt)
+            _ia.open(cubewt) # .sumwt
             cwt = _ia.getchunk()[0,0,0,:]
             _ia.close()
 
@@ -360,8 +361,19 @@ class SDINT_helper:
     def cube_to_taylor_sum(self, cubename='', cubewt='', chanwt='', mtname='',reffreq='1.5GHz',nterms=2,dopsf=False):
         """
         Convert Cubes (output of major cycle) to Taylor weighted averages (inputs to the minor cycle)
-        Input : Cube
-        Output : Set of images with suffix : .tt0, .tt1, etc...
+        Input : Cube image <cubename>, with channels weighted by image <cubewt>
+        Output : Set of images : <mtname>.tt0, <mtname>.tt1, etc...
+        Algorithm: I_ttN = sum([   I_v * ((f-ref)/ref)**N   for f in freqs   ])
+
+        Args:
+          cubename: Name of a cube image to interpret into a set of taylor term .ttN images, eg "try.residual", "joint.cube.psf".
+          cubewt: Name of a .sumwt image that contains the per-channel weighting for the interferometer image.
+          chanwt: List of 0s and 1s, one per channel, to effectively disable the effect of a channel on the resulting images.
+          mtname: The prefix output name, to be concatenated with ".ttN" strings, eg "try_mt.residual", "joint.multiterm.psf"
+                  These images should already exist by the time this function is called.
+                  It's suggested that this have same suffix as cubename.
+          dopsf: Signals that cubename represents a point source function, should be true if cubename ends with ".psf".
+                 If true, then output 2*nterms-1 ttN images.
         """
 
         refnu = _qa.convert( _qa.quantity(reffreq) ,'Hz' )['value']
@@ -698,12 +710,7 @@ class SDINT_helper:
         Start from the regridded SD_IMAGE cube
         """
         sdintlib = SDINT_helper()
-        if is_CASA6:
-            from casatools import image, componentlist, regionmanager
-        else:
-            image = iatool
-            componentlist = cltool
-            regionmanager = rgtool
+        from casatools import image, componentlist, regionmanager
              
         _ia = image()
         _cl = componentlist()

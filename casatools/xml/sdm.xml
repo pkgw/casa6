@@ -290,7 +290,7 @@
         </param>
 
         <param name="polyephem_tabtimestep" type="double">
-          <description>Timestep (days) for the tabulation of polynomial ephemerides. A value &lt;= 0 disables tabulation.</description>
+          <description>Timestep (days) for the tabulation of polynomial ephemerides. A value &lt;= 0 uses a timestep of 0.001 days.</description>
           
           <value>0.</value>
         </param>

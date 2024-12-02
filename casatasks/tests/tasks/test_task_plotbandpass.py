@@ -1347,7 +1347,7 @@ class plotbandpass_SCOPS_4877_test(unittest.TestCase):
     def setUp(self):
         os.symlink(datapath+'uid___A002_Xbf792a_X26ec.ms', os.getcwd() + '/uid___A002_Xbf792a_X26ec.ms')
         os.symlink(datapath+'uid___A002_Xbf792a_X26ec.ms.tsys', os.getcwd() + '/uid___A002_Xbf792a_X26ec.ms.tsys')
-    
+
     def tearDown(self):
         os.unlink(os.getcwd() + '/uid___A002_Xbf792a_X26ec.ms')
         os.unlink(os.getcwd() + '/uid___A002_Xbf792a_X26ec.ms.tsys')
@@ -1366,9 +1366,13 @@ class plotbandpass_SCOPS_4877_test(unittest.TestCase):
 class plotbandpass_CAS_14119_test(unittest.TestCase):
     def setUp(self):
         os.symlink(datapath+'uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl', os.getcwd() + '/uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl')
+        os.symlink(datapath+'uid___A002_X5e971a_X124.ms.hifa_tsyscal.s5_2.tsyscal.tbl', os.getcwd() + '/uid___A002_X5e971a_X124.ms.hifa_tsyscal.s5_2.tsyscal.tbl')
+        os.symlink(datapath+'uid___A002_X5e971a_X124.ms', os.getcwd() + '/uid___A002_X5e971a_X124.ms')
 
     def tearDown(self):
         os.unlink(os.getcwd() + '/uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl')
+        os.unlink(os.getcwd() + '/uid___A002_X5e971a_X124.ms.hifa_tsyscal.s5_2.tsyscal.tbl')
+        os.unlink(os.getcwd() + '/uid___A002_X5e971a_X124.ms')
         if delete_artifacts:
             artifacts = os.listdir(figdir)
             for artifact in artifacts:
@@ -1379,9 +1383,17 @@ class plotbandpass_CAS_14119_test(unittest.TestCase):
     def test_CAS_14119_regression125(self):
         '''test_plotbandpass: CAS-14119, overlay time colors'''
         # Select two times with same interval as colors list length; should use different color for each time
-        plotbandpass('uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl',overlay='time',field='3',antenna=0,
-               timeranges='0,17',subplot=11,spw='23',yaxis='amp',xaxis='freq',
-               interactive=False, buildpdf=True,figfile=figdir+'regression%02d'%(125))
+        plotbandpass('uid___A002_Xb0dfe8_Xcc8.orion_sio.skycal.tbl', overlay='time', field='3', antenna=0,
+               timeranges='0,17', spw='23', yaxis='amp', xaxis='freq',
+               interactive=False, figfile=figdir+'regression125')
+
+    # 126 (bug found in duplicate ticket 14201) overlay time colorization with showfdm
+    def test_CAS_14119_regression126(self):
+        '''test_plotbandpass: CAS-14119, overlay time colors with showfdm'''
+        # Ensure that overlay plot completes
+        plotbandpass(caltable='uid___A002_X5e971a_X124.ms.hifa_tsyscal.s5_2.tsyscal.tbl', overlay='antenna,time',
+            showfdm=True, showatm=True, vis='uid___A002_X5e971a_X124.ms', spw='8', subplot=11, figfile=figdir+'regression126',
+            chanrange='90%', xaxis='freq', yaxis='tsys', interactive=False, showBasebandNumber=True)
 
 class plotbandpass_tsysFlagged_test(unittest.TestCase):
     def setUp(self):
@@ -1479,11 +1491,7 @@ class plotbandpass_private_test(unittest.TestCase):
         time_list = [1,  30,  59,  88, 117, 146, 175]
         time_threshold = 30  # sec
         unique_time_list = list(_plotbandpass.sloppyUnique(time_list, 30))
-        # -------------------------------------------------------
-        # sloppyUnique(...) changed with CAS-13568
-        # -------------------------------------------------------
-        # self.assertEqual(unique_time_list, [1, 59, 117, 175])
-        self.assertEqual(unique_time_list, [1])
+        self.assertEqual(unique_time_list, [1, 59, 117, 175])
 
 
 if __name__ == '__main__':

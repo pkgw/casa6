@@ -19,7 +19,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be adressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -162,24 +162,14 @@
 # </todo>
 ########################################################################3
 
-from __future__ import absolute_import
 import os
 import re
 import shutil
 import sys
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import image, imagepol, regionmanager, coordsys, quanta
-    from casatasks import casalog
-    from .ialib import write_image_history
-else:
-    from taskinit import *
-    from ialib import write_image_history
-    image = iatool
-    imagepol = potool
-    quanta = qatool
-    regionmanager = rgtool
+from casatools import image, imagepol, regionmanager, coordsys, quanta
+from casatasks import casalog
+from .ialib import write_image_history
   
 def immath(
     imagename, mode, outfile, expr, varnames, sigma,
@@ -394,11 +384,9 @@ def _immath_new_poli(
     myreg = _immath_getregion(region, box, chans, stokes, "poli", myia, target)
     mypo = imagepol()
     mypo.open(target)
-    if is_CASA6:
-        # for some annoying reason, qa.getvalue() returns an array in this context
-        numeric_sigma = myqa.getvalue(myqa.quantity(newsigma))[0]
-    else:
-        numeric_sigma = myqa.getvalue(myqa.quantity(newsigma))
+    # for some annoying reason, qa.getvalue() returns an array in this context
+    numeric_sigma = myqa.getvalue(myqa.quantity(newsigma))[0]
+    
     if mode == 'tpoli' or mode == 'poli':
         myia = mypo.totpolint(
             debias=debias, sigma=numeric_sigma, outfile=outfile,

@@ -1,23 +1,14 @@
-from __future__ import absolute_import
 import os
 import warnings
-
 import numpy as np
 
-from casatasks.private.casa_transition import is_CASA6
+from casatasks import casalog
+from casatools import calibrater
+from . import correct_ant_posns as getantposns
+from .jyperk import gen_factor_via_web_api, JyPerKReader4File
+from .eop import generate_eop
 
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import calibrater
-    from . import correct_ant_posns as getantposns
-    from .jyperk import gen_factor_via_web_api, JyPerKReader4File
-
-    _cb = calibrater()
-else:
-    import correct_ant_posns as getantposns
-    from taskinit import *
-
-    (_cb,) = gentools(['cb'])
+_cb = calibrater()
 
 
 def gencal(vis=None, caltable=None, caltype=None, infile='None',
@@ -61,7 +52,7 @@ def gencal(vis=None, caltable=None, caltype=None, infile='None',
     if not ((type(vis) == str) and (os.path.exists(vis))):
         raise ValueError('Visibility data set not found - please verify the name')
 
-    if caltype not in ['antpos', 'jyperk']:
+    if caltype not in ['antpos', 'jyperk', 'eop']:
         gencal_type = 'general'
     else:
         gencal_type = caltype
@@ -104,11 +95,19 @@ class AntposGencal():
             # don't need scr col for this
             _cb.open(filename=vis, compress=False, addcorr=False, addmodel=False)
 
-            # call a Python function to retreive ant position offsets automatically (currently EVLA only)
-            if antenna == '':
+            # use the corrected anteanna positions from a JSON file
+            if infile is not 'None' and infile is not '':
+                if antenna is not '' or pol is not '' or len(parameter) != 0:
+                    raise ValueError('When using infile for ALMA the caltype is '
+                                     'antpos, antenna, pol and parameter must be empty')
+                antenna, parameter = getantposns.correct_ant_posns_alma_json(vis, infile)
+
+            # call a Python function to retreive ant position offsets automatically (EVLA only)
+            elif antenna == '':
                 casalog.post(" Determine antenna position offsets from the baseline correction database")
                 # correct_ant_posns returns a list , [return_code, antennas, offsets]
                 antenna_offsets = getantposns.correct_ant_posns(vis, False, ant_pos_time_limit)
+
                 if ((len(antenna_offsets) == 3) and
                         (int(antenna_offsets[0]) == 0) and
                         (len(antenna_offsets[1]) > 0)):
@@ -221,9 +220,35 @@ class JyperkGencal():
 
         return pol
 
+class EOPGencal():
+    """A class to generate caltable from update EOP values.
+
+    This class will be called if the caltype is 'eop'.
+    """
+
+    @classmethod
+    def gencal(cls, vis=None, caltable=None, caltype=None, infile='None',
+               endpoint='asdm', timeout=180, retry=3, retry_wait_time=5, ant_pos_time_limit=0,
+               spw=None, antenna=None, pol=None,
+               parameter=None, uniform=None):
+        """Generate calibration table."""
+        try:
+            # don't need scr col for this
+            _cb.open(filename=vis, compress=False, addcorr=False, addmodel=False)
+            _cb.createcaltable(caltable=caltable, partype='Real', caltype='Fringe Jones', singlechan=True)
+            _cb.close()
+            generate_eop(vis, caltable, infile)
+
+        except UserWarning as instance:
+            casalog.post('*** UserWarning *** %s' % instance, 'WARN')
+
+        finally:
+            _cb.close()
+
 
 __gencal_factory = {
     'general': GeneralGencal,
     'antpos': AntposGencal,
     'jyperk': JyperkGencal,
+    'eop': EOPGencal,
 }

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -25,9 +25,8 @@
 //#
 //# $Id$
 
+
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
-
-
 #include <msvis/MSVis/VisibilityIterator.h>
 #include <casacore/casa/Quanta/UnitMap.h>
 #include <casacore/casa/Quanta/MVTime.h>
@@ -96,6 +95,16 @@ using namespace casa::refim;
 {
   
 }
+MosaicFTNew& MosaicFTNew::operator=(const MosaicFTNew& other) {
+  if(this!=&other) {
+
+    //Do the base parameters
+    MosaicFT::operator=(other);
+   
+    }
+    return *this;
+    
+  }
 // Finalize the FFT to the Sky. Here we actually do the FFT and
 // return the resulting image
 ImageInterface<Complex>& MosaicFTNew::getImage(Matrix<Float>& weights,

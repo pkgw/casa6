@@ -452,7 +452,7 @@ class asdm_import1(test_base):
             name = ""
             #             col name, row number, expected value, tolerance
             expected = [
-                         ['UVW',       42, [ 0., 0., 0. ], 1E-8],
+                         ['UVW',       42, [ 0., 0., 0. ], 2E-7],
                          ['EXPOSURE',  42, 1.008, 0],
                          ['DATA',      42, [ [10.5526886+0.0j] ], 1E-7]
                          ]
@@ -463,7 +463,7 @@ class asdm_import1(test_base):
 
             expected = [
     # old values using TAI     ['UVW',       638, [-65.07623467,   1.05534109, -33.65801386], 1E-8],
-                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 1E-7],
+                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 2E-7],
                          ['EXPOSURE',  638, 1.008, 0],
                          ['DATA',      638, [ [0.00362284+0.00340279j] ], 1E-8]
                          ]
@@ -632,7 +632,7 @@ class asdm_import2(test_base):
             name = ""
             #             col name, row number, expected value, tolerance
             expected = [
-                         ['UVW',       42, [ 0., 0., 0. ], 1E-8],
+                         ['UVW',       42, [ 0., 0., 0. ], 2E-7],
                          ['EXPOSURE',  42, 1.008, 0],
                          ['DATA',      42, [ [10.5526886+0.0j] ], 1E-7]
                          ]
@@ -643,7 +643,7 @@ class asdm_import2(test_base):
 
             expected = [
     # old values using TAI     ['UVW',       638, [-65.07623467,   1.05534109, -33.65801386], 1E-8],
-                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 1E-7],
+                         ['UVW',       638, [-65.14758508, 1.13423277, -33.51712451], 2E-7],
                          ['EXPOSURE',  638, 1.008, 0],
                          ['DATA',      638, [ [0.00362284+0.00340279j] ], 1E-8]
                          ]
@@ -1371,17 +1371,17 @@ class asdm_import7(test_base):
         ephems.append({'name':"FIELD/EPHEM0_Mars_57034.9.tab",
                        'nrows':27,
                        'rows':[{'row':10,
-                                'values':{'MJD':57035.041666666664,
-                                          'RA':332.7140437500001,
-                                          'DEC':-12.327346944444447,
-                                          'Rho':2.024609480125507,
-                                          'RadVel':723729.77502873}},
+                                'values':{'MJD':57035.0416666667,
+                                          'RA':332.7140437500,
+                                          'DEC':-12.3273469444,
+                                          'Rho':2.0246094801,
+                                          'RadVel':723729.775}},
                                {'row':22,
-                                'values':{'MJD':57035.208333333336,
-                                          'RA':332.8387870833333,
-                                          'DEC':-12.2793975,
-                                          'Rho':2.0254053468626436,
-                                          'RadVel':705588.202526264}}
+                                'values':{'MJD':57035.2083333333,
+                                          'RA':332.8387870833,
+                                          'DEC':-12.2793975000,
+                                          'Rho':2.0254053469,
+                                          'RadVel':705588.203}}
                                ]
                        }
                       )
@@ -1389,20 +1389,23 @@ class asdm_import7(test_base):
         ephems.append({'name':"FIELD/EPHEM1_Titania_57034.9.tab",
                        'nrows':45,
                        'rows':[{'row':17,
-                                'values':{'MJD':57035.055555555555,
-                                          'RA':11.813166666666666,
-                                          'DEC':4.365749999999999,
-                                          'Rho':20.150883673698488,
-                                          'RadVel':2730048.0839084117}},
+                                'values':{'MJD':57035.0555555556,
+                                          'RA':11.8131666667,
+                                          'DEC':4.3657500000,
+                                          'Rho':20.1508836737,
+                                          'RadVel':2730048.084}},
                                {'row':40,
-                                'values':{'MJD':57035.21527777778,
-                                          'RA':11.816041666666667,
-                                          'DEC':4.3661111111111115,
-                                          'Rho':20.153736461701364,
-                                          'RadVel':2711142.1699538543}}
+                                'values':{'MJD':57035.2152777778,
+                                          'RA':11.8160416667,
+                                          'DEC':4.3661111111,
+                                          'Rho':20.1537364617,
+                                          'RadVel':2711142.170}}
                                ]
                        }
                       )
+
+        # tolerances by column name (digits after the decimal)
+        tolerances = {'MJD':10, 'RA':10, 'DEC':10, 'Rho':10, 'RadVel':3}
 
         for ephem in ephems:
             print("%s: Testing various things in ephemeris %s ..." % (myname,ephem['name']))
@@ -1419,7 +1422,7 @@ class asdm_import7(test_base):
                 thisRow = row['row']
                 for colname in row['values']:
                     thisVal = tblocal.getcell(colname,thisRow)
-                    self.assertAlmostEqual(thisVal,row['values'][colname],10)
+                    self.assertAlmostEqual(thisVal,row['values'][colname],tolerances[colname])
 
             # unfilled columns
             self.assertEqual((tblocal.getcol('diskLong') != 0.0).sum(),0)

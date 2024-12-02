@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from glob import glob
 import os
 import re
@@ -16,36 +15,19 @@ import shutil
 # ctsys.resolve to make the initial attempt to find the models.
 # If that fails or is unavailable it falls back to the CASA5 code.
 
-# get is_python3 and is_CASA6
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from .setjy_helper import * 
-    from .parallel.parallel_data_helper import ParallelDataHelper
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from .mstools import write_history
-    from casatools import ctsys, ms, imager, calibrater
-    from casatasks import casalog
 
-    # used in one type comparison
-    strType = str
+from .setjy_helper import * 
+from .parallel.parallel_data_helper import ParallelDataHelper
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mstools import write_history
+from casatools import ctsys, ms, imager, calibrater
+from casatasks import casalog
 
-    # default roots argument for findCalModels
-    defaultRoots = ['.']
-else:
-    from setjy_helper import * 
-    from taskinit import *
-    from taskinit import mstool as ms
-    from taskinit import imtool as imager
-    from taskinit import cbtool as calibrater
-    from mstools import write_history
-    from parallel.parallel_data_helper import ParallelDataHelper
-    from parallel.parallel_task_helper import ParallelTaskHelper
+# used in one type comparison
+strType = str
 
-    # used in one type comparison
-    strType = string
-
-    # default roots argument for findCalModels
-    defaultRoots = ['.', casa['dirs']['data']]
+# default roots argument for findCalModels
+defaultRoots = ['.']
 
 # Helper class for Multi-MS processing (by SC)
 class SetjyHelper():
@@ -202,7 +184,9 @@ def setjy_core(vis=None, field=None, spw=None,
               #casalog.post(vis + " must be a valid MS unless listmodels is True.",
               #             "SEVERE")
                 raise Exception("%s is not a valid MS" % vis) 
-
+            if 'Butler-JPL-Horizons' in standard and not usescratch:
+                raise RuntimeError(f"usescratch={usescratch} and standard={standard}. "
+                  +"Virtual model can not be used for an ephemeris object calibrator. Use usescratch=True.") 
             myms = ms()
             myim = imager()
             if ismms==None: ismms=False
@@ -249,12 +233,8 @@ def setjy_core(vis=None, field=None, spw=None,
             if model and model[0] != '/':
                 cwd = os.path.abspath('.')
                 calmoddirs = [cwd]
-                # casa dict unavailable in CASA6
-                if is_CASA6:
-                    calmoddirs += findCalModels()
-                else:
-                    calmoddirs += findCalModels(roots=[cwd,
-                                                       casa['dirs']['data']])
+                calmoddirs += findCalModels()
+
                 candidates = []
                 for calmoddir in calmoddirs:
                     cand = os.path.join(calmoddir,model)
@@ -278,11 +258,8 @@ def setjy_core(vis=None, field=None, spw=None,
             # Write the parameters to HISTORY before the tool writes anything.
             try:
                 param_names = setjy.__code__.co_varnames[:setjy.__code__.co_argcount]
-                if is_python3:
-                    vars = locals()
-                    param_vals = [vars[p] for p in param_names]
-                else:
-                    param_vals = [eval(p) for p in param_names]
+                vars = locals()
+                param_vals = [vars[p] for p in param_names]
 
                 write_history(myms, vis, 'setjy', param_names,
                               param_vals, casalog)
@@ -468,17 +445,14 @@ def findCalModels(target='CalModels',
     """
 
     retset = set([])
-    ##
-    ## first attempt to resolve using data path - only available in CASA6
-    ##
-    if is_CASA6:
-        standard_locations = { 'CalModels': [ 'nrao/VLA/CalModels' ],
-                               'SolarSystemModels': [ 'alma/SolarSystemModels' ] }
-        if target in standard_locations:
-            for p in standard_locations[target]:
-                candidate = ctsys.resolve(p)
-                if os.path.isdir(candidate):
-                    retset.add(candidate)
+
+    standard_locations = { 'CalModels': [ 'nrao/VLA/CalModels' ],
+                            'SolarSystemModels': [ 'alma/SolarSystemModels' ] }
+    if target in standard_locations:
+        for p in standard_locations[target]:
+            candidate = ctsys.resolve(p)
+            if os.path.isdir(candidate):
+                retset.add(candidate)
 
     if len(retset) > 0:
         return retset

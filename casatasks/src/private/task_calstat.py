@@ -1,13 +1,7 @@
-from __future__ import absolute_import
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import table
-    _tb = table( )
-else:
-    from taskinit import *
-    _tb = tb
+from casatasks import casalog
+from casatools import table
+_tb = table( )
 
 def calstat(caltable=None,
             axis=None,

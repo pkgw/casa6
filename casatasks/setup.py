@@ -17,7 +17,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be addressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -212,6 +212,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/ft.xml',
               'xml/gaincal.xml',
               'xml/gencal.xml',
+              'xml/getantposalma.xml',
               'xml/testconcat.xml',
               'xml/apparentsens.xml',
               'xml/getcalmodvla.xml',
@@ -279,6 +280,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/sdsidebandsplit.xml',
               'xml/plotprofilemap.xml',
               'xml/imbaseline.xml',
+              'xml/wvrgcal.xml',
 ]
 
 if pyversion < 3:
@@ -343,7 +345,7 @@ def generate_pyinit(moduledir,tasks):
         for task in tasks:
             fd.write("            '%s',\n" % task)
         fd.write("          ]\n\n")
-        fd.write("""from . import config\n""")
+        fd.write("""from casaconfig import config\n""")
         fd.write("""casalog = _logsink( config.logfile )\n\n""")
         for task in tasks:
             fd.write("from .%s import %s\n" % (task,task))
@@ -441,7 +443,7 @@ class BuildCasa(build):
             proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
                           stdout=subprocess.PIPE )
         else:
-            xml_jar_file = 'xml-casa-assembly-1.83.jar'
+            xml_jar_file = 'xml-casa-assembly-1.86.jar'
             xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
             xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
             self.xml_jar_fetch(xml_jar_path, xml_jar_url)
@@ -633,7 +635,7 @@ setup( name=module_name,version=casatasks_version,
        maintainer="Darrell Schiebel",
        maintainer_email="drs@nrao.edu",
        author="CASA development team",
-       author_email="aips2-request@nrao.edu",
+       author_email="casa-feedback@nrao.edu",
        url="https://open-bitbucket.nrao.edu/projects/CASA/repos/casatools/browse",
        download_url="https://casa.nrao.edu/download/",
        license="GNU Library or Lesser General Public License (LGPL)",
@@ -649,5 +651,5 @@ setup( name=module_name,version=casatasks_version,
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi', 'pyerfa' ]
 )

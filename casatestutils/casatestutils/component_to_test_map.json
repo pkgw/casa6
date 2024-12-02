@@ -151,6 +151,16 @@
             "comment":""
         },
         {
+            "testScript":"test_stk_srdp_restore_mode",
+            "testType":"stakeholder",
+            "maintainer":"Sandra Castro",
+            "maintainerEmail":"scastro@eso.org",
+            "testOptions":[""],
+            "testGroup":["stakeholder"],
+            "timeout":5000,
+            "comment":""
+        },
+        {
             "testScript":"test_stk_vla_users_continuum_from_SDM",
             "testType":"stakeholder",
             "maintainer":"Sandra Castro",
@@ -477,6 +487,16 @@
             "maintainerEmail":"gmoellen@nrao.edu",
             "testOptions":[],
             "testGroup":["atmosphere","Calibration","gencal"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_task_getantposalma",
+            "testType":"casatasks",
+            "maintainer":"Dave Mehringer",
+            "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["Calibration","getantposalma"],
             "timeout":0,
             "comment":""
         },
@@ -1392,7 +1412,7 @@
         },
         {
             "testScript":"test_task_wvrgcal",
-            "testType":"almatasks",
+            "testType":"casatasks",
             "maintainer":"Dirk Petry",
             "maintainerEmail":"dpetry@eso.org",
             "testOptions":[],
@@ -1705,6 +1725,16 @@
             "testType":"casatools",
             "maintainer":"David Mehringer",
             "maintainerEmail":"dmehring@nrao.edu",
+            "testOptions":[],
+            "testGroup":["casatools"],
+            "timeout":0,
+            "comment":""
+        },
+        {
+            "testScript":"test_tool_synthesisutils",
+            "testType":"casatools",
+            "maintainer":"Tak Tsutsumi",
+            "maintainerEmail":"ttsutsum@nrao.edu",
             "testOptions":[],
             "testGroup":["casatools"],
             "timeout":0,

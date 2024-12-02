@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -6,37 +5,26 @@ import string
 import time
 import re
 import copy
-from casatasks.private.casa_transition import is_CASA6
+from typing import TYPE_CHECKING
 
-if is_CASA6:
-    from casatools import (
-        synthesisimager,
-        synthesisdeconvolver,
-        synthesisnormalizer,
-        iterbotsink,
-        ctsys,
-        table,
-        image,
-    )
-    from casatasks import casalog
-    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+from casatools import (
+    synthesisimager,
+    synthesisdeconvolver,
+    synthesisnormalizer,
+    iterbotsink,
+    ctsys,
+    table,
+    image,
+)
+from casatasks import casalog
+from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+if TYPE_CHECKING:
+    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 
-    ctsys_hostinfo = ctsys.hostinfo
-    _tb = table()
-    _ia = image()
-else:
-    from taskinit import *
-    from imagerhelpers.summary_minor import SummaryMinor
+ctsys_hostinfo = ctsys.hostinfo
+_tb = table()
+_ia = image()
 
-    synthesisimager = casac.synthesisimager
-    synthesisdeconvolver = casac.synthesisdeconvolver
-    synthesisnormalizer = casac.synthesisnormalizer
-    # make it look like the CASA6 version even though it's using the CASA5 named tool not present in CASA6
-    iterbotsink = casac.synthesisiterbot
-
-    ctsys_hostinfo = casac.cu.hostinfo
-
-    _tb = tb
 """
 A set of helper functions for tclean.
 
@@ -46,7 +34,8 @@ Summary...
 
 #############################################
 class PySynthesisImager:
-    def __init__(self, params):
+
+    def __init__(self,params: 'ImagerParameters'):
         ################ Tools
         self.initDefaults()
 
@@ -101,6 +90,7 @@ class PySynthesisImager:
             self.fillCFCache();
             self.reloadCFCache();
         
+
     def initializeImagers(self):
 
         ## Initialize the tool for the current node
@@ -122,9 +112,10 @@ class PySynthesisImager:
         # If cfcache directory already exists, assume that it is
         # usable and is correct.  makeCFCache call then becomes a
         # NoOp.
+
         cfCacheName=''
         exists=False
-        if(self.allgridpars['0']['gridder'].startswith('awp')):
+        if(self.allgridpars['0']['gridder'].startswith('awpr') or self.allgridpars['0']['gridder'].startswith('awph') ):
             cfCacheName=self.allgridpars['0']['cfcache'];
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
@@ -136,6 +127,8 @@ class PySynthesisImager:
             
         for fld in range(0,self.NF):
             # casalog.post("self.allimpars=",self.allimpars,"\n")
+
+            # print(f'####allimpars={self.allimpars[str(fld)]} \n    allgridpars={self.allgridpars[str(fld)]}')
             self.SItool.defineimage(
                 self.allimpars[str(fld)], self.allgridpars[str(fld)]
             )
@@ -146,6 +139,7 @@ class PySynthesisImager:
         ###commenting this out so that tuneSelect is done after weighting
         ###CAS-11687
         # For cube imaging:  align the data selections and image setup
+
         #if self.allimpars['0']['specmode'] != 'mfs' and self.allimpars['0']['specmode'] != 'cubedata':
         #   self.SItool.tuneselectdata()
         ###For cubes create cfcache ahead of each partition trying
@@ -222,8 +216,6 @@ class PySynthesisImager:
     def pbcorImages(self):
         for immod in range(0, self.NF):
             self.SDtools[immod].pbcor()
-
-    #############################################
 
     def getSummary(self,fullsummary,fignum=1):
         summ = self.IBtool.getiterationsummary()
@@ -308,7 +300,7 @@ class PySynthesisImager:
         for immod in range(0, self.NF):
             initrec = self.SDtools[immod].initminorcycle()
             # print('INIT Minor cycle dict {}'.format(initrec))
-            self.IBtool.mergeinitrecord(initrec)
+            self.IBtool.mergeinitrecord(initrec, immod)
 
         #         # Run interactive masking (and threshold/niter editors)
         #         self.runInteractiveGUI2()
@@ -425,18 +417,24 @@ class PySynthesisImager:
 
     #############################################
     def makePSF(self):
-
         self.makePSFCore()
-        divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs'
+        divideInPython = (
+            self.allimpars["0"]["specmode"] == "mfs"
+            or self.allimpars["0"]["deconvolver"] == "mtmfs"
+        )
+
         ### Gather PSFs (if needed) and normalize by weight
         for immod in range(0, self.NF):
             # for cube normalization is done in C++
             if divideInPython:
                 self.PStools[immod].gatherpsfweight()
                 self.PStools[immod].dividepsfbyweight()
-            if self.SDtools != []:
-                if immod <= len(self.SDtools) - 1:
-                    self.SDtools[immod].checkrestoringbeam()
+            self.check_psf(immod)
+
+    def check_psf(self, immod):
+        if self.SDtools != []:
+            if immod <= len(self.SDtools) - 1:
+                self.SDtools[immod].checkrestoringbeam()
 
     #############################################
     def calcVisAppSens(self):
@@ -451,7 +449,11 @@ class PySynthesisImager:
             lastcycle = self.IBtool.cleanComplete(lastcyclecheck=True) > 0
         else:
             lastcycle = True
-        divideInPython=self.allimpars['0']['specmode'] == 'mfs' or self.allimpars['0']['deconvolver'] == 'mtmfs'
+
+        divideInPython = (
+            self.allimpars["0"]["specmode"] == "mfs"
+            or self.allimpars["0"]["deconvolver"] == "mtmfs"
+        )
         ##norm is done in C++ for cubes
         if not divideInPython:
             self.runMajorCycleCore(lastcycle)
@@ -744,7 +746,7 @@ class PySynthesisImager:
             )
             return summ
 
-        import pylab as pl
+        import matplotlib.pyplot as pl
         from numpy import max as amax
 
         # 0 : iteration number (within deconvolver, per cycle)

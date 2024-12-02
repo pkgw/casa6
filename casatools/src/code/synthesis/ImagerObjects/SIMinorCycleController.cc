@@ -276,6 +276,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     Record returnRecord;
 
+    /* Reset Counters and summary for the current set of minorcycle iterations */
+    itsIterDone = 0;
+    itsIterDiff = -1;
+    //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    int nSummaryFields = !itsFullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
+    itsSummaryMinor.resize( IPosition( 2, nSummaryFields, 0) , true );
+
     /* Control Variables */
     returnRecord.define(RecordFieldId("peakresidual"), itsPeakResidual);
     returnRecord.define(RecordFieldId("maxpsfsidelobe"), itsMaxPsfSidelobe);
@@ -285,13 +292,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     returnRecord.define( RecordFieldId("nsigmathreshold"), itsNsigmaThreshold);
     returnRecord.define( RecordFieldId("nsigma"), itsNsigma);
     returnRecord.define( RecordFieldId("fullsummary"), itsFullSummary);
-
-    /* Reset Counters and summary for the current set of minorcycle iterations */
-    itsIterDone = 0;
-    itsIterDiff = -1;
-    //int nSummaryFields = SIMinorCycleController::useSmallSummaryminor() ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
-    int nSummaryFields = !itsFullSummary ? 6 : SIMinorCycleController::nSummaryFields; // temporary CAS-13683 workaround
-    itsSummaryMinor.resize( IPosition( 2, nSummaryFields, 0) , true );
+    returnRecord.define(RecordFieldId("summaryminor"), itsSummaryMinor);
 
     return returnRecord;
   }

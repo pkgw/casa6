@@ -19,7 +19,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be adressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -33,18 +33,11 @@
 ###########################################################################
 import os.path
 import numpy
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, regionmanager, quanta
-    from casatasks import casalog
-    from .ialib import write_image_history, get_created_images
-else:
-    from taskinit import *
-    from taskinit import iatool as image
-    from ialib import write_image_history, get_created_images
-    image = iatool
-    regionmanager = rgtool
-    quanta = qatool
+
+from casatools import image, regionmanager, quanta
+from casatasks import casalog
+from .ialib import write_image_history, get_created_images
+
 
 def specflux(
     imagename, region, box, chans, stokes, mask, stretch,

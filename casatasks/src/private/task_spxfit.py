@@ -20,7 +20,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be adressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -62,8 +62,6 @@
 #
 
 ###########################################################################
-from __future__ import absolute_import
-
 from casatools import image
 from casatasks import casalog
 
@@ -113,8 +111,8 @@ def spxfit(
         )
         try:
             param_names = spxfit.__code__.co_varnames[:spxfit.__code__.co_argcount]
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
+            local_vars = locals( )
+            param_vals = [local_vars[p] for p in param_names]
             ims = [model, residual]
             for x in [spxsol, spxerr]:
                 if x:
@@ -130,7 +128,6 @@ def spxfit(
         myia.done()
         if (wantreturn):
             return retval
-        else:
-            if (retval):
-                del retval
-            return
+        if (retval):
+            del retval
+        return

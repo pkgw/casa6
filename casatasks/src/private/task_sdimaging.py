@@ -20,7 +20,13 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               imsize, cell, phasecenter, projection, ephemsrcname,
               pointingcolumn, restfreq, stokes, minweight, brightnessunit, clipminmax,
               # Performances optimization options
-              enablecache, convertfirst):
+              enablecache, convertfirst,
+              interpolation):
+    
+    casalog.post(
+        'The sdimaging task is deprecated and will be removed in future releases. '
+        'Please use tsdimaging instead.', 
+        "WARN")
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()
@@ -29,7 +35,7 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
 
 def is_string_type(val):
     """Return True if the argument is string type."""
-    return type(val) in [str, numpy.string_]
+    return type(val) in [str, numpy.str_]
 
 
 def smart_remove(path):
@@ -912,7 +918,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         casalog.post(f"Using phasecenter {self.imager_param['phasecenter']}", "INFO")
 
         self.imager.defineimage(**self.imager_param)  # self.__get_param())
-        self.imager.setoptions(ftmachine='sd', gridfunction=self.gridfunction)
+        self.imager.setoptions(ftmachine='sd', gridfunction=self.gridfunction, freqinterp=self.interpolation)
         self.imager.setsdoptions(
             pointingcolumntouse=self.pointingcolumn,
             convsupport=self.convsupport,
@@ -1003,7 +1009,7 @@ class sdimaging_worker(sdutil.sdtask_template_imaging):
         casalog.filter()  # set logging back to normal
 
         casalog.filter()  # set logging back to normal
-        imsize = numpy.product(my_ia.shape())
+        imsize = numpy.prod(my_ia.shape())
         my_ia.close()
         # Modify default mask
         my_ia.open(self.outfile)
