@@ -282,7 +282,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           errMsg = String("Single-dish image and single-dish weight image"
                    " do not exist. Please create one of:\n")
                    + imageFullName(SIImageStore::RESIDUAL) + "\nor\n"
-                   + imageFullName(SIImageStore::WEIGHT)
+                   + imageFullName(SIImageStore::WEIGHT);
         }
         throw AipsError(errMsg);
       }
