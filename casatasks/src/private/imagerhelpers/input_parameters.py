@@ -36,18 +36,18 @@ Summary...
 ######################################################
 
 class ImagerParameters():
-    def __init__(self,
+    def __init__(
+            self,
             # Input Data: what gets in
             msname='',
 
             # Output Data: what goes out
             imagename='',
 
-
             # The remaining parameters are Control Parameters:
             # they control How what gets in goes out
 
-            ## Data Selection
+            # Data Selection
             field='',
             spw='',
             timestr='',
@@ -57,14 +57,14 @@ class ImagerParameters():
             obs='',
             state='',
             datacolumn='corrected',
-            ## Image Definition
-            imsize=[1,1],
-            cell=[10.0,10.0],
+            # Image Definition
+            imsize=[1, 1],
+            cell=[10.0, 10.0],
             phasecenter='',
             stokes='I',
             projection='SIN',
             startmodel='',
-            ## Spectral Parameters
+            # Spectral Parameters
             specmode='mfs',
             reffreq='',
             nchan=1,
@@ -90,18 +90,19 @@ class ImagerParameters():
             aterm=True,
             psterm=True,
             mterm=True,
-            wbawp = True,
-            cfcache = "",
-            dopbcorr = True,
-            conjbeams = True,
-            computepastep =360.0,
-            rotatepastep =360.0,
-            pointingoffsetsigdev = [30.0,30.0],
-                 
+            wbawp=True,
+            cfcache="",
+            dopbcorr=True,
+            conjbeams=True,
+            computepastep=360.0,
+            rotatepastep=360.0,
+            pointingoffsetsigdev=[30.0, 30.0],
+
+            # Normalizer group
             pblimit=0.01,
             normtype='flatnoise',
-                 
             psfcutoff=0.35,
+            makesingledishnormalizer=False,
 
             outlierfile='',
             restart=True,
@@ -161,10 +162,10 @@ class ImagerParameters():
 
             workdir='',
 
-            ## CFCache params
+            # CFCache params
             cflist=[],
-                 
-            ## single-dish imaging params
+
+            # single-dish imaging params
             gridfunction='SF',
             convsupport=-1,
             truncate="-1",
@@ -173,26 +174,29 @@ class ImagerParameters():
             pointingcolumntouse='direction',
             convertfirst='never',
             minweight=0.0,
-            clipminmax=False
-        ):
+            clipminmax=False):
+
         self.allparameters = dict(locals())
         del self.allparameters['self']
 
         self.defaultKey = "0"
         # ---- Selection params. For multiple MSs, all are lists.
-        # For multiple nodes, the selection parameters are modified inside PySynthesisImager
+        # For multiple nodes, the selection parameters are modified inside
+        # PySynthesisImager
         self.allselpars = {
-            'msname':msname, 'field':field, 'spw':spw, 'scan':scan,
-            'timestr':timestr, 'uvdist':uvdist, 'antenna':antenna, 'obs':obs,'state':state,
-            'datacolumn':datacolumn,
-            'savemodel':savemodel
+            'msname': msname, 'field': field, 'spw': spw, 'scan': scan,
+            'timestr': timestr, 'uvdist': uvdist, 'antenna': antenna,
+            'obs': obs, 'state': state,
+            'datacolumn': datacolumn,
+            'savemodel': savemodel
         }
         # ---- Imaging/deconvolution parameters
         # The outermost dictionary index is image field.
         # The '0' or main field's parameters come from the task parameters
         # The outlier '1', '2', ....  parameters come from the outlier file
         self.outlierfile = outlierfile
-        # Initialize the parameter lists with the 'main' or '0' field's parameters
+        # Initialize the parameter lists with the 'main' or '0' field's
+        # parameters
         # ---- Image definition
         self.allimpars = {
             self.defaultKey: {
@@ -269,7 +273,7 @@ class ImagerParameters():
             }
         }
         # ---- Weighting
-        if True: # Compute rmode and self.weightpars
+        if True:  # Compute rmode and self.weightpars
             rmode = 'none'
             if (weighting == 'briggsabs'):
                 rmode = 'abs'
@@ -292,7 +296,7 @@ class ImagerParameters():
             }
         # ---- Normalizers ( this is where flat noise, flat sky rules will go... )
         self.allnormpars = {
-            self.defaultKey : {
+            self.defaultKey: {
                 # pblimit group
                 'pblimit': pblimit,
                 'nterms': nterms,
@@ -304,7 +308,8 @@ class ImagerParameters():
                 'deconvolver': deconvolver,
                 'imagename': imagename,
                 'restoringbeam': restoringbeam,
-                'psfcutoff': psfcutoff
+                'psfcutoff': psfcutoff,
+                'makesingledishnormalizer': makesingledishnormalizer
             }
         }
         # ---- Deconvolution

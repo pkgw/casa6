@@ -653,14 +653,16 @@ def _get_restfreq_if_empty(vislist, spw, field, restfreq):
     elif hasattr(vislist, '__iter__'):
         vis = vislist[0]
     else:
-        raise RuntimeError('Internal Error: invalid vislist \'{0}\''.format(vislist))
+        raise RuntimeError(
+            'Internal Error: invalid vislist \'{0}\''.format(vislist))
 
     if isinstance(spw, str):
         spwsel = spw
     elif hasattr(spw, '__iter__'):
         spwsel = spw[0]
     else:
-        raise RuntimeError('Internal Error: invalid spw selection \'{0}\''.format(spw))
+        raise RuntimeError(
+            'Internal Error: invalid spw selection \'{0}\''.format(spw))
 
     if isinstance(field, str):
         fieldsel = field
@@ -730,8 +732,10 @@ def _get_restfreq_if_empty(vislist, spw, field, restfreq):
 
 def set_beam_size(vis, imagename,
                   field, spw, baseline, scan, intent, timerange,
-                  ephemsrcname, pointingcolumntouse, antenna_name, antenna_diameter,
-                  restfreq, gridfunction, convsupport, truncate, gwidth, jwidth):
+                  ephemsrcname, pointingcolumntouse,
+                  antenna_name, antenna_diameter,
+                  restfreq,
+                  gridfunction, convsupport, truncate, gwidth, jwidth):
     """Set estimated beam size to the image."""
     is_alma = antenna_name[0:2] in ['PM', 'DV', 'DA', 'CM']
     blockage = '0.75m' if is_alma else '0.0m'
@@ -744,18 +748,20 @@ def set_beam_size(vis, imagename,
         csys.done()
 
     old_tool = OldImagerBasedTools()
-    sampling_params = old_tool.get_pointing_sampling_params(vis, field, spw, baseline,
-                                                            scan, intent, timerange,
-                                                            outref=outref,
-                                                            movingsource=ephemsrcname,
-                                                            pointingcolumntouse=pointingcolumntouse,
-                                                            antenna_name=antenna_name)
+    sampling_params = old_tool.get_pointing_sampling_params(
+        vis, field, spw, baseline,
+        scan, intent, timerange,
+        outref=outref,
+        movingsource=ephemsrcname,
+        pointingcolumntouse=pointingcolumntouse,
+        antenna_name=antenna_name)
     qa = quanta()
     casalog.post(
         f'sampling_params={sampling_params}',
         origin=log_origin
     )
-    xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'], 'arcsec'))
+    xsampling, ysampling = qa.getvalue(qa.convert(sampling_params['sampling'],
+                                       'arcsec'))
     angle = qa.getvalue(qa.convert(sampling_params['angle'], 'deg'))[0]
 
     casalog.post(
@@ -789,7 +795,8 @@ def set_beam_size(vis, imagename,
             angle = 0.0
             valid_sampling = True
     # reduce sampling and cell if it's possible
-    if len(sampling) > 1 and abs(sampling[0] - sampling[1]) <= 0.01 * abs(sampling[0]):
+    if (len(sampling) > 1 and
+            abs(sampling[0] - sampling[1]) <= 0.01 * abs(sampling[0])):
         sampling = [sampling[0]]
         angle = 0.0
         if cell[0] == cell[1]:
@@ -829,10 +836,11 @@ def do_weight_mask(imagename, weightimage, minweight):
     # Weight image should have 0 weight for pixels below < minweight
     logger = sdutil.Casalog(origin="do_weight_mask")
     logger.post(f"Start masking the map using minweight = {minweight:f}",
-                 priority="INFO")
+                priority="INFO")
     with open_ia(weightimage) as ia:
         try:
-            stat = ia.statistics(mask="'" + weightimage + "' > 0.0", robust=True)
+            stat = ia.statistics(mask="'" + weightimage + "' > 0.0",
+                                 robust=True)
             valid_pixels = stat['npts']
         except RuntimeError as e:
             if 'No valid data found.' in str(e):
@@ -850,16 +858,17 @@ def do_weight_mask(imagename, weightimage, minweight):
     median_weight = stat['median'][0]
     weight_threshold = median_weight * minweight
     logger.post(f"Median of weight in the map is {median_weight:f}",
-                 priority="INFO")
-    logger.post(f"Pixels in map with weight <= median(weight)*minweight = "
-                 "{weight_threshold:f} will be masked.",
-                 priority="INFO")
+                priority="INFO")
+    logger.post("Pixels in map with weight <= median(weight)*minweight = "
+                f"{weight_threshold:f} will be masked.",
+                priority="INFO")
     # Leaving the original logic to calculate the number of masked pixels via
     # product of median of and min_weight (which i don't understand the logic)
 
     # Modify default mask
     with open_ia(imagename) as ia:
-        ia.calcmask("'%s'>%f" % (weightimage, weight_threshold), asdefault=True)
+        ia.calcmask("'%s'>%f" % (weightimage, weight_threshold),
+                    asdefault=True)
 
         ndim = len(ia.shape())
         _axes = numpy.arange(start=0 if ndim <= 2 else 2, stop=ndim)
@@ -877,8 +886,8 @@ def do_weight_mask(imagename, weightimage, minweight):
     masked_fraction = 100. * (1. - valid_pixels_after / float(valid_pixels[0]))
 
     logger.post(f"This amounts to {masked_fraction:5.1f} % "
-                  "of the area with nonzero weight.", 
-                  priority="INFO")
+                "of the area with nonzero weight.",
+                priority="INFO")
     logger.post(
         f"The weight image '{weightimage}' is returned by this task, "
         "if the user wishes to assess the results in detail.",
@@ -921,10 +930,10 @@ def tsdimaging(
         # Select data from input MeasurementSets, by
         field, spw, antenna, scan, intent, timerange,
         # Output images definition: frequency axis
-        outframe, # velocity frame
-        mode, nchan, start, width, veltype, # gridding type
-        specmode, # Doppler handling
-        interpolation, # interpolation mode
+        outframe,  # velocity frame
+        mode, nchan, start, width, veltype,  # gridding type
+        specmode,  # Doppler handling
+        interpolation,  # interpolation mode
         # Output images definition: spatial axes
         pointingcolumn, convertfirst,
         projection,
@@ -938,23 +947,23 @@ def tsdimaging(
         minweight,
         # Single-dish image: metadata
         brightnessunit,
-        restfreq # rest frequency to assign to image
-    ):
+        # rest frequency to assign to image
+        restfreq):
 
     origin = 'tsdimaging'
     imager = None
 
-    try: # Create the Single-Dish Image
+    try:  # Create the Single-Dish Image
         # Validate brightnessunit parameter CAS-11503
         image_unit = brightnessunit.lower().capitalize()
-        if not image_unit in ['', 'K', 'Jy/beam']:
+        if image_unit not in ['', 'K', 'Jy/beam']:
             raise ValueError(f"Invalid brightness unit: {brightnessunit}")
 
         # Handle outfile and overwrite parameters
         output_path_prefix = outfile.rstrip('/')
         singledish_image_path = output_path_prefix + image_suffix
         if os.path.exists(singledish_image_path):
-            if overwrite == False:
+            if overwrite is False:
                 raise RuntimeError(
                         f"Output file exists: '{singledish_image_path}'"
                       )
@@ -1024,8 +1033,10 @@ def tsdimaging(
         # Handle image geometric parameters
         _ephemsrcname = ''
         ephem_sources = ['MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN',
-                         'URANUS', 'NEPTUNE', 'PLUTO', 'SUN', 'MOON', 'TRACKFIELD']
-        if isinstance(phasecenter, str) and phasecenter.strip().upper() in ephem_sources:
+                         'URANUS', 'NEPTUNE', 'PLUTO', 'SUN', 'MOON',
+                         'TRACKFIELD']
+        if (isinstance(phasecenter, str)
+                and phasecenter.strip().upper() in ephem_sources):
             _ephemsrcname = phasecenter
         _imsize, _cell, _phasecenter = _handle_image_params(
             imsize, cell, phasecenter, sorted_vis,
@@ -1077,17 +1088,20 @@ def tsdimaging(
                 clipminmax=clipminmax,
                 # normalizer
                 normtype='flatsky',
-                pblimit=1e-16, # TODO: explain why 1e-16 ?
-                interpolation=interpolation
+                pblimit=1e-16,  # TODO: explain why 1e-16 ?
+                interpolation=interpolation,
+                makesingledishnormalizer=True
             )
 
         # Construct the PySynthesisImager object, with all input parameters
         casalog.post('*** Creating imager object ***', origin=origin)
         imager = PySynthesisImager(params=paramList)
 
-        # Initialize PySynthesisImager "modules" required for single-dish imaging
-        # - Pick only the modules you will need later on. For example, to only make
-        # the PSF, there is no need for the deconvolver or iteration control modules.
+        # Initialize PySynthesisImager "modules"
+        # required for single-dish imaging
+        # - Pick only the modules you will need later on.
+        # For example, to only make the PSF, there is no need for
+        #  the deconvolver or iteration control modules.
         casalog.post('*** Initializing imagers ***', origin=origin)
         # This is where the underlying C++ synthesis imager is created
         imager.initializeImagers()
@@ -1099,14 +1113,14 @@ def tsdimaging(
         imager.makeSdImage()
         casalog.post('*** Created single-dish images ***', origin=origin)
 
-    finally: # Close tools and rename Synthesis Imager's residual image
+    finally:  # Close tools and rename Synthesis Imager's residual image
         casalog.post('*** Cleaning up tools ***', origin=origin)
         if imager is not None:
             imager.deleteTools()
         # Change image suffix from .residual to .image
-        residual_image_path = output_path_prefix + residual_suffix
-        if os.path.exists(residual_image_path):
-            os.rename(residual_image_path, singledish_image_path)
+        # residual_image_path = output_path_prefix + residual_suffix
+        # if os.path.exists(residual_image_path):
+        #     os.rename(residual_image_path, singledish_image_path)
 
     # Set single-dish image's beam size
     # TODO: re-define related functions in the new tool framework (sdms?)
@@ -1129,7 +1143,7 @@ def tsdimaging(
     with sdutil.table_manager(os.path.join(rep_ms, 'ANTENNA')) as tb:
         antenna_name = tb.getcell('NAME', antenna_index)
         antenna_diameter = tb.getcell('DISH_DIAMETER', antenna_index)
-    casalog.post(f"Setting single-dish image's beam")
+    casalog.post("Setting single-dish image's beam")
     set_beam_size(
         rep_ms, singledish_image_path,
         rep_field, rep_spw, baseline, rep_scan, rep_intent, rep_timerange,
@@ -1142,20 +1156,23 @@ def tsdimaging(
         image_unit = get_brightness_unit_from_ms(rep_ms)
     if len(image_unit) > 0:
         with open_ia(singledish_image_path) as ia:
-            casalog.post(f"Setting single-dish image's brightness unit to '{image_unit}'")
+            casalog.post(
+                "Setting single-dish image's brightness unit to "
+                f"'{image_unit}'")
             ia.setbrightnessunit(image_unit)
 
     # Update single-dish image's mask: mask low weight pixels
     weight_image_path = output_path_prefix + weight_suffix
-    casalog.post(f"Creating weight image mask")
+    casalog.post("Creating weight image mask")
     do_weight_mask(singledish_image_path, weight_image_path, minweight)
 
     # Delete images systematically generated by the Synthesis Imager
     # which are either not required or currently useless
     # in the context of single-dish imaging
     # CAS-10891
-    _remove_image(output_path_prefix + '.sumwt')
+    # _remove_image(output_path_prefix + '.sumwt')
+
     # CAS-10893
     # TODO: remove the following line once the 'correct' SD
     # PSF image based on primary beam can be generated
-    _remove_image(output_path_prefix + '.psf')
+    # _remove_image(output_path_prefix + '.psf')

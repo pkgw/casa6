@@ -121,37 +121,41 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsTempWorkIm.reset();
 
     itsSumWt.reset( );
-    itsOverWrite=False;
-    itsUseWeight=False;
-    itsPBScaleFactor=1.0;
+    itsOverWrite = False;
+    itsUseWeight = False;
+    itsPBScaleFactor = 1.0;
 
-    itsNFacets=1;
-    itsFacetId=0;
+    itsNFacets = 1;
+    itsFacetId = 0;
     itsNChanChunks = 1;
     itsChanId = 0;
     itsNPolChunks = 1;
     itsPolId = 0;
 
-    itsImageShape=IPosition(4,0,0,0,0);
-    itsImageName=String("");
-    itsCoordSys=CoordinateSystem();
-    itsMiscInfo=Record();
+    itsImageShape = IPosition(4,0,0,0,0);
+    itsImageName = String("");
+    itsCoordSys = CoordinateSystem();
+    itsMiscInfo = Record();
+
+    itsIsSingleDishStore = False;
+
     init();
-    
-    
     //    validate();
 
   }
 
   // Used from SynthesisNormalizer::makeImageStore()
-  SIImageStore::SIImageStore(const String &imagename,
-			     const CoordinateSystem &imcoordsys,
-			     const IPosition &imshape,
-                             const String &objectname,
-                             const Record &miscinfo,
-			     //	const Int nfacets,
-			     const Bool /*overwrite*/,
-			     const Bool useweightimage)
+  SIImageStore::SIImageStore(
+    const String &imagename,
+    const CoordinateSystem &imcoordsys,
+    const IPosition &imshape,
+    const String &objectname,
+    const Record &miscinfo,
+    //	const Int nfacets,
+    const Bool /*overwrite*/,
+    const Bool useweightimage,
+    const Bool issingledishstore
+  )
   // TODO : Add parameter to indicate weight image shape. 
   {
     LogIO os( LogOrigin("SIImageStore","Open new Images",WHERE) );
@@ -169,12 +173,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsTempWorkIm.reset();
 
     itsSumWt.reset( );
-    itsOverWrite=False; // Hard Coding this. See CAS-6937. overwrite;
-    itsUseWeight=useweightimage;
-    itsPBScaleFactor=1.0;
+    itsOverWrite = False; // Hard Coding this. See CAS-6937. overwrite;
+    itsUseWeight = useweightimage;
+    itsPBScaleFactor = 1.0;
 
-    itsNFacets=1;
-    itsFacetId=0;
+    itsNFacets = 1;
+    itsFacetId = 0;
     itsNChanChunks = 1;
     itsChanId = 0;
     itsNPolChunks = 1;
@@ -186,146 +190,160 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsObjectName = objectname;
     itsMiscInfo = miscinfo;
 
+    itsIsSingleDishStore = issingledishstore;
+
     init();
 
     validate();
   }
 
   // Used from SynthesisNormalizer::makeImageStore()
-  SIImageStore::SIImageStore(const String &imagename, const Bool ignorefacets, const Bool noRequireSumwt)
+  // This constructor creates an Image Store from images on disk
+  SIImageStore::SIImageStore(
+    const String &imagename,
+    const Bool ignorefacets,
+    const Bool noRequireSumwt,
+    const Bool makeSingleDishStore)
   {
     LogIO os( LogOrigin("SIImageStore","Open existing Images",WHERE) );
-      
 
-    itsPsf.reset( );
-    itsModel.reset( );
-    itsResidual.reset( );
-    itsWeight.reset( );   
-    itsImage.reset( );
-    itsMask.reset( );
-    itsGridWt.reset( );
-    itsPB.reset( );
-    itsImagePBcor.reset( );
-    itsTempWorkIm.reset();
-    itsMiscInfo=Record();
+    { // Initialize some members
+      itsImageName = imagename;
 
-    itsSumWt.reset( );
-    itsNFacets=1;
-    itsFacetId=0;
-    itsNChanChunks = 1;
-    itsChanId = 0;
-    itsNPolChunks = 1;
-    itsPolId = 0;
+      itsPsf.reset( );
+      itsModel.reset( );
+      itsResidual.reset( );
+      itsWeight.reset( );   
+      itsImage.reset( );
+      itsMask.reset( );
+      itsGridWt.reset( );
+      itsPB.reset( );
+      itsImagePBcor.reset( );
+      itsTempWorkIm.reset();
+      itsMiscInfo = Record();
+
+      itsSumWt.reset( );
+      itsNFacets = 1;
+      itsFacetId = 0;
+      itsNChanChunks = 1;
+      itsChanId = 0;
+      itsNPolChunks = 1;
+      itsPolId = 0;
     
-    itsOverWrite=False;
-    //need to to this init now so that imageExts is initialized
+      itsOverWrite = False;
+
+      itsIsSingleDishStore = makeSingleDishStore;
+    }
+
+    // Need to do this init now so that imageExts is initialized
     init();
 
-    itsImageName = imagename;
+    // Since this constructor creates an ImStore from images on disk,
+    // it needs at least one of the images to actually be present on disk,
+    // from which it can retrieve shape and coordsys information.
 
-    // Since this constructor creates an ImStore from images on disk, it needs at least one of the
-    // images to actually be present on disk, from which it can retrieve shape and coordsys information.
+    { // Do we have at least 1 usable image ?
+      constexpr SIImageStore::IMAGE_IDS imageIds[] = {
+        SIImageStore::PSF,
+        SIImageStore::RESIDUAL,
+        SIImageStore::MODEL,
+        SIImageStore::PB,
+        SIImageStore::WEIGHT,
+        SIImageStore::GRIDWT,
+      };
+  
+      std::shared_ptr<ImageInterface<Float> > imptr;
 
-    if( doesImageExist(itsImageName+String(".residual")) || 
-	doesImageExist(itsImageName+String(".psf")) ||
-	doesImageExist(itsImageName+String(".model")) ||
-	doesImageExist(itsImageName+String(".gridwt")) ||
-        doesImageExist(itsImageName+String(".pb")) ||
-        doesImageExist(itsImageName+String(".weight"))
-        )
-      {
-	std::shared_ptr<ImageInterface<Float> > imptr;
-	if( doesImageExist(itsImageName+String(".psf")) )
-	  {
-	    buildImage( imptr, (itsImageName+String(".psf")) );
-	    //            itsObjectName=imptr->imageInfo().objectName();
-	    //	    itsMiscInfo=imptr->miscInfo();
-	  }
-	else if ( doesImageExist(itsImageName+String(".residual")) ){
-	  buildImage( imptr, (itsImageName+String(".residual")) );
-	  //          itsObjectName=imptr->imageInfo().objectName();
-	  //	  itsMiscInfo=imptr->miscInfo();
-	}
-	else if ( doesImageExist(itsImageName+String(".model")) ){
-	  buildImage( imptr, (itsImageName+String(".model")) );
-	  //          itsObjectName=imptr->imageInfo().objectName();
-	  //	  itsMiscInfo=imptr->miscInfo();
-	}
-        else if ( doesImageExist(itsImageName+String(".pb")) ){
-	  buildImage( imptr, (itsImageName+String(".pb")) );
-	  //          itsObjectName=imptr->imageInfo().objectName();
-	  //	  itsMiscInfo=imptr->miscInfo();
-	}
-        else if ( doesImageExist(itsImageName+String(".weight")) ){
-	  buildImage( imptr, (itsImageName+String(".weight")) );
-	  //          itsObjectName=imptr->imageInfo().objectName();
-	  //	  itsMiscInfo=imptr->miscInfo();
-	}
-	else
-	  {
-	    // How can this be right ? 
-	    buildImage( imptr, (itsImageName+String(".gridwt")) );
-	  }
-
-	itsObjectName=imptr->imageInfo().objectName();
-	itsImageShape=imptr->shape();
-	itsCoordSys = imptr->coordinates();
-	itsMiscInfo=imptr->miscInfo();
-	
+      auto haveImage = False;
+      for (auto imageId : imageIds) {
+        const auto imageName = imageFullName(imageId);
+        if (doesImageExist(imageName)) {
+          if (imageId == SIImageStore::GRIDWT) {
+            constexpr auto preserveOldComment = True;
+            // How can this be right ?
+          }
+          buildImage(imptr, imageName);
+          haveImage = True;
+          break;
+        }
       }
-    else
-      {
-	throw( AipsError( "PSF, Residual, Model Image (or sumwt) do not exist. Please create one of them." ) );
+
+      if (haveImage) {
+        itsObjectName = imptr->imageInfo().objectName();
+        itsImageShape = imptr->shape();
+        itsCoordSys = imptr->coordinates();
+        itsMiscInfo = imptr->miscInfo();
+      } else {
+        String errMsg;
+        if (not itsIsSingleDishStore) {
+          errMsg = "PSF, Residual, Model Image (or sumwt) do not exist."
+                  " Please create one of them.";
+        } else {
+          errMsg = String("Single-dish image and single-dish weight image"
+                   " do not exist. Please create one of:\n")
+                   + imageFullName(SIImageStore::RESIDUAL) + "\nor\n"
+                   + imageFullName(SIImageStore::WEIGHT)
+        }
+        throw AipsError(errMsg);
       }
-    
-    if( doesImageExist(itsImageName+String(".residual")) || 
-	doesImageExist(itsImageName+String(".psf")) )
-      {
-	if( doesImageExist(itsImageName+String(".sumwt")) )
-	  {
-	    std::shared_ptr<ImageInterface<Float> > imptr;
-	    //imptr.reset( new PagedImage<Float> (itsImageName+String(".sumwt")) );
-	    buildImage( imptr, (itsImageName+String(".sumwt")) );
-	    itsNFacets = imptr->shape()[0];
-	    itsFacetId = 0;
-	    itsUseWeight = getUseWeightImage( *imptr );
-	    itsPBScaleFactor=1.0; ///// No need to set properly here as it will be calc'd in ()
-	    /////redo this here as psf may have different coordinates
-	    itsCoordSys = imptr->coordinates();
-	    itsMiscInfo=imptr->miscInfo();
-	    if( itsUseWeight && ! doesImageExist(itsImageName+String(".weight")) )
-	      {
-		throw(AipsError("Internal error : Sumwt has a useweightimage=True but the weight image does not exist."));
-	      }
-	  }
-	else
-	  {
-	    if(!noRequireSumwt) // .sumwt image required? -> probably not for just the minor cycle (aka task deconvolve)
-	      {throw( AipsError( "SumWt information does not exist. Please create either a PSF or Residual" ) );}
-	    else
-	      {
-		os << "SumWt does not exist. Proceeding only with PSF" << LogIO::POST;
-		std::shared_ptr<ImageInterface<Float> > imptr;
-		//imptr.reset( new PagedImage<Float> (itsImageName+String(".sumwt")) );
-		if( doesImageExist(itsImageName+String(".residual") ) )
-		  { buildImage( imptr, (itsImageName+String(".residual")) ); }
-		else
-		  { buildImage( imptr, (itsImageName+String(".psf")) ); }
-		
-		itsNFacets=1;
-		itsFacetId=0;
-		itsUseWeight=False;
-		itsPBScaleFactor=1.0;
-		itsCoordSys = imptr->coordinates();
-		itsMiscInfo=imptr->miscInfo();
-	      }
-	  }
-      }// if psf or residual exist...
+    }
 
-    if( ignorefacets==True ) itsNFacets= 1;
+    { // Handle special case: psf or residual exist
+      // Should we update things here when itsIsSingleDishStore = True ?
+      if (    doesImageExist( imageFullName(RESIDUAL) )
+           or doesImageExist( imageFullName(PSF) ) ) {
+        if ( doesImageExist( imageFullName(SUMWT)) ) {
+          std::shared_ptr<ImageInterface<Float> > imptr;
+          buildImage(imptr, imageFullName(SUMWT) );
+          itsNFacets = imptr->shape()[0];
+          itsFacetId = 0;
+          itsUseWeight = getUseWeightImage( *imptr );
+          itsPBScaleFactor = 1.0; // No need to set properly here
+                                  // as it will be calc'd in ()
+          // Redo this here as psf may have different coordinates
+          itsCoordSys = imptr->coordinates();
+          itsMiscInfo =imptr->miscInfo();
+          if ( itsUseWeight 
+               and not doesImageExist( imageFullName(WEIGHT) ) ) {
+            throw AipsError(
+              "Internal error : Sumwt has a useweightimage=True"
+              " but the weight image does not exist."
+            );
+          }
+        } else {
+          if (not noRequireSumwt) { // .sumwt image required?
+              // -> probably not for just the minor cycle (aka task deconvolve)
+              throw AipsError(
+                "SumWt information does not exist."
+                " Please create either a PSF or Residual"
+              );
+          } else {
+            os << "SumWt does not exist. Proceeding only with PSF"
+              << LogIO::POST;
+            std::shared_ptr<ImageInterface<Float> > imptr;
+            if ( doesImageExist( imageFullName(RESIDUAL) ) ) {
+              buildImage(imptr, imageFullName(RESIDUAL) );
+            }
+            else {
+              buildImage(imptr, imageFullName(PSF) );
+            }
 
+            itsNFacets = 1;
+            itsFacetId = 0;
+            itsUseWeight = False;
+            itsPBScaleFactor = 1.0;
+            itsCoordSys = imptr->coordinates();
+            itsMiscInfo = imptr->miscInfo();
+          }
+        }
+      } // if psf or residual exist
+    } // Handle special case
+
+    if (ignorefacets == True) itsNFacets = 1;
+
+    // Why again ?
     init();
-    
+
     validate();
   }
 
@@ -395,6 +413,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     itsCoordSys = csys; // Hopefully this doesn't change for a reference image
     itsImageName = imagename;
 
+    itsIsSingleDishStore = False;
+
     //-----------------------
     init(); // Connect parent pointers to the images.
     //-----------------------
@@ -414,58 +434,73 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   
    void SIImageStore::validate()
   {
-    /// There are two valid states. Check for at least one of them. 
-    Bool state = False;
+    // There are two valid states. Check for at least one of them. 
+    Bool inValidState = False;
     
     stringstream oss;
-    oss << "shape:" << itsImageShape << " parentimageshape:" << itsParentImageShape 
-	<< " nfacets:" << itsNFacets << "x" << itsNFacets << " facetid:" << itsFacetId 
-	<< " nchanchunks:" << itsNChanChunks << " chanid:" << itsChanId 
-	<< " npolchunks:" << itsNPolChunks << " polid:" << itsPolId 
-	<< " coord-dim:" << itsCoordSys.nPixelAxes() 
-	<< " psf/res:" << (hasPsf() || hasResidual()) ;
-    if( hasSumWt() ) oss << " sumwtshape : " << sumwt()->shape() ; 
-	oss << endl;
-
+    { // Initialize error message
+      oss
+        << "shape:" << itsImageShape
+          << " parentimageshape:" << itsParentImageShape
+        << " nfacets:" << itsNFacets << "x" << itsNFacets 
+          << " facetid:" << itsFacetId 
+        << " nchanchunks:" << itsNChanChunks << " chanid:" << itsChanId 
+        << " npolchunks:" << itsNPolChunks << " polid:" << itsPolId 
+        << " coord-dim:" << itsCoordSys.nPixelAxes() 
+        << " psf/res:" << (hasPsf() or hasResidual());
+      if ( hasSumWt() ) oss << " sumwtshape : " << sumwt()->shape();
+      oss << endl;
+    }
 
     try {
 
-    if( itsCoordSys.nPixelAxes() != 4 ) state=False;
-    
-    /// (1) Regular imagestore 
-    if( itsNFacets==1 && itsFacetId==0 
-	&& itsNChanChunks==1 && itsChanId==0
-	&& itsNPolChunks==1 && itsPolId==0 )  {
-      Bool check1 = hasSumWt() && sumwt()->shape()[0]==1;
-      if(  (itsImageShape.isEqual(itsParentImageShape) ) && ( check1 || !hasSumWt() )
-	   && itsParentImageShape.product() > 0 ) state=True;
+      if ( itsCoordSys.nPixelAxes() != 4 ) inValidState = False;
+
+      // (1) Regular imagestore
+      if ( 
+              itsNFacets == 1     and itsFacetId == 0
+          and itsNChanChunks == 1 and itsChanId == 0
+          and itsNPolChunks == 1  and itsPolId == 0 ) {
+        Bool sumWtShapeOK = hasSumWt() and sumwt()->shape()[0] == 1;
+        if ( itsImageShape.isEqual(itsParentImageShape)
+             and ( sumWtShapeOK or not hasSumWt() )
+             and itsParentImageShape.product() > 0 ) inValidState = True;
       }
-    /// (2) Reference Sub Imagestore 
-    else if ( ( itsNFacets>1 && itsFacetId >=0 )
-	      || ( itsNChanChunks>1 && itsChanId >=0 ) 
-	      || ( itsNPolChunks>1 && itsPolId >=0 )   ) {
-      // If shape is still unset, even when the first image has been made....
-      Bool check1 = ( itsImageShape.product() > 0 && ( hasPsf() || hasResidual() ) );
-      Bool check2 = ( itsImageShape.isEqual(IPosition(4,0,0,0,0)) && ( !hasPsf() && !hasResidual() ) );
-      Bool check3 = hasSumWt() && sumwt()->shape()[0]==1; // One facet only.
+      // (2) Reference Sub Imagestore
+      else if ( 
+             ( itsNFacets > 1     and itsFacetId >= 0 )
+          or ( itsNChanChunks > 1 and itsChanId >= 0 )
+          or ( itsNPolChunks > 1  and itsPolId >= 0 ) ) {
+        // If shape is still unset, even when the first image has been made....
+        Bool imgShapeOK1 =
+          ( itsImageShape.product() > 0 and ( hasPsf() or hasResidual() ) );
+        Bool imgShapeOK2 =
+          ( itsImageShape.isEqual(IPosition(4,0,0,0,0)) and
+            ( not hasPsf() and not hasResidual() )
+          );
+        Bool imgShapeOK = imgShapeOK1 or imgShapeOK2;
+        Bool sumWtShapeOK =
+          hasSumWt() and sumwt()->shape()[0] == 1; // One facet only.
 
-      if( ( check1 || check2 ) && ( itsParentImageShape.product()>0 ) 
-	  && ( itsFacetId < itsNFacets*itsNFacets ) 
-	  //	  && ( itsChanId <= itsNChanChunks )   // chanchunks can be larger...
-	  && ( itsPolId < itsNPolChunks ) 
-	  && ( check3 || !hasSumWt() ) )  state = True;
+        if (  imgShapeOK and ( itsParentImageShape.product() > 0 )
+              and ( itsFacetId < itsNFacets*itsNFacets )
+              // and (itsChanId<=itsNChanChunks) // chanchunks can be larger...
+              and ( itsPolId < itsNPolChunks )
+              and ( sumWtShapeOK or not hasSumWt() ) ) inValidState = True;
+      }
+
+    }
+    catch ( AipsError &err ) {
+      inValidState = False;
+      oss << "  |||||  " << err.getMesg() << endl;
     }
 
-    } catch( AipsError &x )  {
-      state = False;
-      oss << "  |||||  " << x.getMesg() << endl;
+    if ( not inValidState ) {
+      throw AipsError(
+        "Internal Error : Invalid ImageStore state : " + oss.str()
+      );
     }
 
-    //      cout << " SIIM:validate : " << oss.str() << endl;
-
-    if( state == False )  throw(AipsError("Internal Error : Invalid ImageStore state : "+ oss.str()) );
-    
-    return;
   }
 
 
@@ -705,57 +740,64 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     os  <<"Opening image, name: " << name << LogIO::DEBUG1;
 
     itsOpened++;
-    if(Table::isReadable(name)){
+    if ( Table::isReadable(name) ) {
       TableLock::LockOption locktype=TableLock::AutoNoReadLocking;
-      /*if((name.contains(imageExts(PSF)) && !name.contains(imageExts(PSF)+".tt"))|| (name.contains(imageExts(RESIDUAL))&& !name.contains(imageExts(RESIDUAL)+".tt")) || (name.contains(imageExts(SUMWT)) && !name.contains(imageExts(SUMWT)+".tt"))){
-        locktype=TableLock::UserNoReadLocking;
-        }*/
+      /*  if (
+            (  name.contains(imageExts(PSF)) and
+               not name.contains(imageExts(PSF) + ".tt")
+            ) or
+            (  name.contains(imageExts(RESIDUAL)) and
+               not name.contains(imageExts(RESIDUAL)+".tt")
+            ) or
+            (  name.contains(imageExts(SUMWT)) and 
+               not name.contains(imageExts(SUMWT)+".tt")
+            )
+          ) {
+            locktype=TableLock::UserNoReadLocking;
+          }
+      */
       Table table(name, locktype);
       String type = table.tableInfo().type();
-      if (type != TableInfo::type(TableInfo::PAGEDIMAGE)) {
+      if ( type != TableInfo::type(TableInfo::PAGEDIMAGE) ) {
 
         imptr.reset( new PagedImage<Float>( table ) );
         imptr->unlock();
         return;
       }
     }
-        LatticeBase* latt =ImageOpener::openImage(name);
-    if(!latt)
-      {
-	throw(AipsError("Error in opening Image : "+name));
-      }
-    DataType dtype=latt->dataType();
-    if(dtype==TpFloat)
-      {
-	imptr.reset(dynamic_cast<ImageInterface<Float>* >(latt));
-      }
-    else
-      {
-	throw AipsError( "Need image to have float values :  "+name);
-      }
 
-    /*    
+    LatticeBase* latt =ImageOpener::openImage(name);
+    if (not latt) {
+      throw AipsError("Error in opening Image : "+name);
+    }
+    DataType dtype = latt->dataType();
+    if (dtype == TpFloat) {
+      imptr.reset(dynamic_cast<ImageInterface<Float>* >(latt));
+    } else {
+      throw AipsError( "Need image to have float values :  "+name);
+    }
+
+    /*
     std::shared_ptr<casacore::ImageInterface<Float> > fim;
     std::shared_ptr<casacore::ImageInterface<Complex> > cim;
 
     std::tie(fim , cim)=ImageFactory::fromFile(name);
-    if(fim)
-      {
-	imptr.reset( dynamic_cast<std::shared_ptr<casacore::ImageInterface<Float> > >(*fim) );
-      }
-    else
-      {
-	throw( AipsError("Cannot open with ImageFactory : "+name));
-      }
+    if (fim) {
+      imptr.reset(
+        dynamic_cast<std::shared_ptr<casacore::ImageInterface<Float> > >(*fim)
+      );
+    } else {
+      throw AipsError("Cannot open with ImageFactory : "+name);
+    }
     */
-
-
-
 
     /*
     IPosition cimageShape;
-    CoordinateSystem cimageCoord = StokesImageUtil::CStokesCoord( itsCoordSys,
-								  whichStokes, itsDataPolRep);
+    CoordinateSystem cimageCoord = StokesImageUtil::CStokesCoord(
+      itsCoordSys,
+      whichStokes,
+      itsDataPolRep
+    );
     */
 
   }
@@ -1060,6 +1102,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   String SIImageStore::getName()
   {
     return itsImageName;
+  }
+
+  String SIImageStore::imageFullName(IMAGE_IDS imageId)
+  {
+    return itsImageName + imageExts(imageId);
   }
 
   uInt SIImageStore::getNTaylorTerms(Bool /*dopsf*/)
@@ -3272,40 +3319,57 @@ Bool SIImageStore::findMinMaxLattice(const Lattice<Float>& lattice,
   void SIImageStore::init()
   {
     imageExts.resize(MAX_IMAGE_IDS);
-    
-    imageExts(MASK)=".mask";
-    imageExts(PSF)=".psf";
-    imageExts(MODEL)=".model";
-    imageExts(RESIDUAL)=".residual";
-    imageExts(WEIGHT)=".weight";
-    imageExts(IMAGE)=".image";
-    imageExts(SUMWT)=".sumwt";
-    imageExts(GRIDWT)=".gridwt";
-    imageExts(PB)=".pb";
-    imageExts(FORWARDGRID)=".forward";
-    imageExts(BACKWARDGRID)=".backward";
-    imageExts(IMAGEPBCOR)=".image.pbcor";
+
+    imageExts(MASK) = ".mask";
+    imageExts(PSF) = ".psf";
+    imageExts(MODEL) = ".model";
+    if (not itsIsSingleDishStore) {
+      imageExts(RESIDUAL) = ".residual";
+    }
+    else {
+      // The initial residual image IS the single-dish image
+      imageExts(RESIDUAL) = ".image";
+    }
+    imageExts(WEIGHT) = ".weight";
+    if (not itsIsSingleDishStore) {
+      imageExts(IMAGE) = ".image";
+    }
+    else {
+      // Make sure we have no duplicates in the vector
+      // Not sure what should be done here
+      imageExts(IMAGE) = ".wrongly-deconvolved-single-dish-image";
+    }
+    imageExts(SUMWT) = ".sumwt";
+    imageExts(GRIDWT) = ".gridwt";
+    imageExts(PB) = ".pb";
+    imageExts(FORWARDGRID) = ".forward";
+    imageExts(BACKWARDGRID) = ".backward";
+    imageExts(IMAGEPBCOR) = ".image.pbcor";
 
     itsParentPsf = itsPsf;
-    itsParentModel=itsModel;
-    itsParentResidual=itsResidual;
-    itsParentWeight=itsWeight;
-    itsParentImage=itsImage;
-    itsParentSumWt=itsSumWt;
-    itsParentMask=itsMask;
-    itsParentImagePBcor=itsImagePBcor;
+    itsParentModel = itsModel;
+    itsParentResidual = itsResidual;
+    itsParentWeight = itsWeight;
+    itsParentImage = itsImage;
+    itsParentSumWt = itsSumWt;
+    itsParentMask = itsMask;
+    itsParentImagePBcor = itsImagePBcor;
 
-    //    cout << "parent shape : " << itsParentImageShape << "   shape : " << itsImageShape << endl;
+    // cout << "parent shape : " << itsParentImageShape
+    //   << "   shape : " << itsImageShape << endl;
     itsParentImageShape = itsImageShape;
     itsParentCoordSys = itsCoordSys;
 
-    if( itsNFacets>1 || itsNChanChunks>1 || itsNPolChunks>1 ) { itsImageShape=IPosition(4,0,0,0,0); }
+    if ( itsNFacets>1 or itsNChanChunks>1 or itsNPolChunks>1 ) {
+      itsImageShape = IPosition(4,0,0,0,0);
+    }
 
-    itsOpened=0;
+    itsOpened = 0;
 
-    itsPSFSideLobeLevel=0.0;
-    itsReadLock=nullptr;
-    itsDataPolRep=StokesImageUtil::UNKNOWN; //Should throw an exception if it is not initialized properly
+    itsPSFSideLobeLevel = 0.0;
+    itsReadLock = nullptr;
+    itsDataPolRep = StokesImageUtil::UNKNOWN; // Should throw an exception if
+                                              // it is not initialized properly
   }
 
 

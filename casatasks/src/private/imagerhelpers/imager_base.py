@@ -585,9 +585,12 @@ class PySynthesisImager:
     #############################################
     def makeSdImage(self):
         self.makeSdImageCore()
+        if TYPE_CHECKING:
+            from casatools.synthesisnormalizer import synthesisnormalizer
         for immod in range(0, self.NF):
-            self.PStools[immod].gatherresidual()
-            self.PStools[immod].divideresidualbyweight(singledish=True)
+            normalizer: synthesisnormalizer = self.PStools[immod]
+            normalizer.gatherresidual()
+            normalizer.divideresidualbyweight(singledish=True)
 
     #############################################
     def makeSdPSF(self):

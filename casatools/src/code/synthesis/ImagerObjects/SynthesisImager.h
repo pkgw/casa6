@@ -289,20 +289,24 @@ protected:
 						  const casacore::Bool doConjConvFunc=false
  						);
 
-  // Choose between different types of ImageStore types (single term, multiterm, faceted)
+  // Choose between different types of ImageStore types:
+  // single term, multiterm, faceted
   casacore::CountedPtr<SIImageStore> createIMStore(casacore::String imageName, 
-					 casacore::CoordinateSystem& cSys,
-					 casacore::IPosition imShape, 
-					 const casacore::Bool overwrite,
-					 casacore::MSColumns& msc, 
-					 casacore::String mappertype="default", 
-					 casacore::uInt ntaylorterms=1,
-					 casacore::Quantity distance=casacore::Quantity(0.0, "m"),
-					 const TcleanProcessingInfo &procInfo = TcleanProcessingInfo(),
-					 casacore::uInt facets=1,
-					 casacore::Bool useweightimage=false,
-					 const casacore::Vector<casacore::String> &startmodel=casacore::Vector<casacore::String>(0));
-  
+    casacore::CoordinateSystem& cSys,
+    casacore::IPosition imShape,
+    const casacore::Bool overwrite,
+    casacore::MSColumns& msc,
+    casacore::String mappertype="default",
+    casacore::uInt ntaylorterms=1,
+    casacore::Quantity distance=casacore::Quantity(0.0, "m"),
+    const TcleanProcessingInfo &procInfo = TcleanProcessingInfo(),
+    casacore::uInt facets=1,
+    casacore::Bool useweightimage=false,
+    const casacore::Vector<casacore::String> & startmodel =
+      casacore::Vector<casacore::String>(0),
+    const casacore::Bool makeSingleDishStore=False
+  );
+
   // Choose between different types of Mappers (single term, multiterm, imagemosaic, faceted)
   casacore::CountedPtr<SIMapper> createSIMapper(casacore::String mappertype,  
 					  casacore::CountedPtr<SIImageStore> imagestore, //// make this inside !!!!!
