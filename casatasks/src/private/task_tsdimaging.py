@@ -1170,9 +1170,9 @@ def tsdimaging(
     # which are either not required or currently useless
     # in the context of single-dish imaging
     # CAS-10891
-    # _remove_image(output_path_prefix + '.sumwt')
+    _remove_image(output_path_prefix + '.sumwt')
 
     # CAS-10893
     # TODO: remove the following line once the 'correct' SD
     # PSF image based on primary beam can be generated
-    # _remove_image(output_path_prefix + '.psf')
+    _remove_image(output_path_prefix + '.psf')

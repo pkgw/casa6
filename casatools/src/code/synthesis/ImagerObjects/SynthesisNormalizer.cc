@@ -629,10 +629,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
     }
 
-    if (not itsIsSingleDish) {
-      // Remove ?
-      itsImages->psf();
-    }
+    // Remove ?
+    itsImages->psf();
+
     itsImages->validate();
 
     // Set up facet Imstores..... if needed
