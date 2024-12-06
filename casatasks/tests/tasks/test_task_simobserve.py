@@ -270,7 +270,11 @@ class simobserve_sky(simobserve_unittest_base):
     def tearDown(self):
         if self.teardown and os.path.exists(self.project):
             shutil.rmtree(self.project)
-        #pass
+            for stray_file in [self.inmodel, self.sdantlist, self.antlist]:
+                try:
+                    self._remove(stray_file)
+                except(FileNotFoundError, NotADirectoryError):
+                    pass
 
     # Tests of skymodel simulations
     def testSky_skymodel(self):
@@ -571,9 +575,10 @@ class simobserve_comp(simobserve_unittest_base):
         if self.teardown:
             if os.path.exists(self.project):
                 shutil.rmtree(self.project)
+            if os.path.exists(self.incomp):
+                shutil.rmtree(self.incomp)
             if os.path.exists(self.point_comp):
                 shutil.rmtree(self.point_comp)
-        #pass
 
     # Tests of complist simulations
     def testComp_complist(self):
@@ -917,7 +922,8 @@ class simobserve_skycomp(simobserve_unittest_base):
                 shutil.rmtree(self.project)
             if os.path.exists(self.incomp):
                 shutil.rmtree(self.incomp)
-        #pass
+            if os.path.exists(self.inmodel):
+                self._remove(self.inmodel)
 
     # Tests of skymodel + components list simulations
     def testSC_skymodel(self):
@@ -1755,13 +1761,17 @@ class simobserve_badinputs(simobserve_unittest_base):
     def tearDown(self):
 
         if self.teardown:
+            if (os.path.exists(self.project)):
+                shutil.rmtree(self.project)
+            if os.path.exists(self.incomp):
+                shutil.rmtree(self.incomp)
+            if os.path.exists(self.project+".badptg.txt"):
+                self._remove(self.project+".badptg.txt")
+
             for data in self.indata:
                 if os.path.exists(data):
                     os.system("rm -rf %s" % data)
-                if (os.path.exists(self.project)):
-                    shutil.rmtree(self.project)
-                if os.path.exists(self.incomp):
-                    shutil.rmtree(self.incomp)
+
 
     # Tests on invalid parameter sets
     def test_default(self):

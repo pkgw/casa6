@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import numpy as np
 # as of python 2.5 the key parameter was added to eventually replace the cmp parameter for sorting
 # the cmp parameter was removed in python 3
@@ -7,12 +5,7 @@ import numpy as np
 # it would probably be better if this code was reworked to use the key parameter directly
 from functools import cmp_to_key
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
-else:
-    from taskinit import casalog
+from casatasks import casalog
 
 def is_rflag_report(item):
     """

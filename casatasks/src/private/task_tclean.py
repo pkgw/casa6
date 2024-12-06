@@ -5,8 +5,6 @@
 #
 ################################################
 
-from __future__ import absolute_import
-
 import platform
 import os
 import shutil
@@ -15,10 +13,6 @@ import copy
 import filecmp
 import time
 import pdb
-
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-
 
 from casatasks import casalog
 
@@ -122,15 +116,15 @@ def tclean(
     #    uvtaper,#=False,
     uvtaper,  # =[],
     ##### Iteration control
-    niter,#=0, 
+    niter,#=0,
     gain,#=0.1,
-    threshold,#=0.0, 
+    threshold,#=0.0,
     nsigma,#=0.0
-    cycleniter,#=0, 
+    cycleniter,#=0,
     cyclefactor,#=1.0,
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
-    interactive,#=False, 
+    interactive,#=False,
     nmajor,#=-1,
     fullsummary,#=False,
 
@@ -171,7 +165,7 @@ def tclean(
     ### Move these checks elsewhere ? 
     inpparams=locals().copy()
 #    saveinputs(inpparams)
-    ###now deal with parameters which are not the same name 
+    ###now deal with parameters which are not the same name
     inpparams['msname']= inpparams.pop('vis')
     inpparams['timestr']= inpparams.pop('timerange')
     inpparams['uvdist']= inpparams.pop('uvrange')
@@ -217,7 +211,6 @@ def tclean(
             "task_tclean",
         )
         # casalog.post( "Setting parameter parallel=False with specmode='cube' when launching CASA with mpi has no effect except for awproject.", "WARN", "task_tclean" )
-
 
     ## Part of CAS-13814, checking for the only options compatible with mtmfs_via_cube.  
     if specmode=="mvc": 
@@ -580,14 +573,13 @@ def tclean(
                 retrec = id.construct_residual_dict(paramList)
 
             ## Do deconvolution and iterations
-            if niter>0 :
+            if niter > 0 :
                 t0=time.time();
                 isit = imager.hasConverged()
                 imager.updateMask()
                 # if((type(usemask)==str) and ('auto' in usemask)):
                 #    isit = imager.hasConverged()
                 isit = imager.hasConverged()
-
                 t1 = time.time()
                 casalog.post(
                     "***Time to update mask: " + "%.2f" % (t1 - t0) + " sec",
@@ -627,7 +619,7 @@ def tclean(
                 ## Get summary from iterbot
                 #if type(interactive) != bool:
                 retrec=imager.getSummary(fullsummary);
-                
+
                 if savemodel!='none' and (interactive==True or usemask=='auto-multithresh' or nsigma>0.0):
                     paramList.resetParameters()
                     if parallel and specmode == "mfs":

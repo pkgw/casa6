@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import is_CASA6
 
 import os
 import sys

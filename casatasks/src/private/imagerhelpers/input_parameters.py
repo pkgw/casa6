@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -489,14 +488,11 @@ class ImagerParameters():
         except Exception as exc:
             if len(errs) > 0:
                 # errs string indicates that maybe this exception was our fault, indicate as such and provide the errs string to the user
-                if is_CASA6:
-                    raise Exception(
-                        "Parameter Errors : \n{}\nThese errors may have caused the '{}'".format(
-                            errs, type(exc)
-                        )
+                raise Exception(
+                    "Parameter Errors : \n{}\nThese errors may have caused the '{}'".format(
+                        errs, type(exc)
                     )
-                else:
-                    raise Exception("Parameter Errors : \n{}".format(errs))
+                )
             else:
                 # something unforseen happened, just re-throw the exception
                 raise
@@ -534,7 +530,7 @@ class ImagerParameters():
                     self.allselpars['msname'] = timesortedvislist
                     casalog.post("Sorting the vis list by time. The new vis list:"+ str(self.allselpars['msname']))
                     for selp in ['spw','field','timestr','uvdist','antenna','scan','obs','state']:
-                        if len(self.allselpars[selp]) == len(newindex):
+                        if type(self.allselpars[selp]) == list and len(self.allselpars[selp]) == len(newindex):
                             self.allselpars[selp] = [self.allselpars[selp][i] for i in newindex]
                        
                 #msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])

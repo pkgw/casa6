@@ -1,22 +1,12 @@
-from __future__ import absolute_import
 import os
 import numpy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import image, regionmanager, coordsys
-    from casatasks import casalog
+from casatools import image, regionmanager, coordsys
+from casatasks import casalog
 
-    _ia = image( )
-    _rg = regionmanager( )
-else:
-    from taskinit import *
+_ia = image( )
+_rg = regionmanager( )
 
-    image = iatool
-    coordsys = cstool
-
-    _ia = iatool( )
-    _rg = rgtool( )
 
 # AUTHOR: S. Jaeger
 #
