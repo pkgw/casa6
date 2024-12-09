@@ -400,7 +400,7 @@ def read_conf(conf):
         lines = [line.rstrip() for line in f]
     outDict = dict(x.split('==') for x in lines)
     for key in list(outDict.keys()):
-        if ".dev" in outDict[key]:
+        if (".dev" in outDict[key]) and ("casaconfig" not in key):
             tag = re.findall(r"a([\s\S]*)$",outDict[key])[0]
             outDict[key] = "CAS-" + tag.replace(".dev","-")
     return outDict
