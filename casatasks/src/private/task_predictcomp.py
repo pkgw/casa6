@@ -1,27 +1,13 @@
-from __future__ import absolute_import
 import os
 import numpy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import componentlist, imager, measures, quanta
-    from casatasks import casalog
-    from .setjy_helper import testerrs
-    from . import solar_system_setjy as SSSetjy
-    from casatasks.private.predictcomp_helper import *
+from casatools import componentlist, imager, measures, quanta
+from casatasks import casalog
+from .setjy_helper import testerrs
+from . import solar_system_setjy as SSSetjy
+from casatasks.private.predictcomp_helper import *
 
-    _qa = quanta( )
-else:
-    from taskinit import casalog, cltool, imtool, metool, qa
-    from plotcomp import plotcomp
-    from predictcomp_helper import *
-
-    componentlist = cltool
-    imager = imtool
-    measures = metool
-
-    # not a local tool
-    _qa = qa
+_qa = quanta( )
 
 def predictcomp(objname=None, standard=None, epoch=None,
                 minfreq=None, maxfreq=None, nfreqs=None, prefix=None,
@@ -202,17 +188,11 @@ def predictcomp(objname=None, standard=None, epoch=None,
             retval['spectrum']['bl0flux']={}
             retval['spectrum']['bl0flux']['value']=zeroblf[0]
             retval['spectrum']['bl0flux']['unit']='Jy'
-            # casatasks does not have any GUIs in it, this differs from CASA5
-            if is_CASA6:
-                retval['savedfig'] = None
-            else:
-                retval['savedfig'] = savefig
+            retval['savedfig'] = None
+            
             if not bl0flux:
                 zeroblf=[0.0]
-            if not is_CASA6:
-                # GUIs only in CASA5, not CASA6 in this part
-                retval.update(plotcomp(retval, showplot, wantdict=True, symb=symb,
-                                       include0amp=include0amp, include0bl=include0bl, blunit=blunit, bl0flux=zeroblf[0]))
+            
         else:
             retval['savedfig'] = None
     else:

@@ -1,7 +1,6 @@
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ctsys
+
+from casatools import ctsys
 
 def write_history(myms, vis, tname, param_names, param_vals, myclog=None, debug=False):
         """
@@ -69,14 +68,9 @@ def write_history(myms, vis, tname, param_names, param_vals, myclog=None, debug=
             try:
                 # Don't use myclog.version(); it also prints to the
                 # logger, which is confusing.
-                if is_CASA6:
-                    vestr += ctsys.version_string( ) + ' '
-                    vestr += ctsys.version_desc( )
-                else:
-                    vestr += casa['build']['version'] + ' '
-                    vestr += casa['source']['url'].split('/')[-2]
-                    vestr += ' rev. ' + casa['source']['revision']
-                    vestr += ' ' + casa['build']['time']
+                vestr += ctsys.version_string( ) + ' '
+                vestr += ctsys.version_desc( )
+
                                 
             except Exception:
                 if hasattr(myclog, 'version'):

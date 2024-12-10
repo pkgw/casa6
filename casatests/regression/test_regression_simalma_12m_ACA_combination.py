@@ -31,26 +31,15 @@ import os
 import shutil
 import unittest
 
-CASA6 = False
-try:
-    from casatools import ctsys
-    from casatasks import simalma
-    CASA6 = True
-    datapath = ctsys.resolve('regression/simalma_12m_ACA_combination/')
-except ImportError:
-    from __main__ import *
-    from tasks import *
-    from taskinit import *
-    datapath = os.environ['CASAPATH'].split()[0] + '/casatestdata/regression/simalma_12m_ACA_combination/'
+from casatools import ctsys
+from casatasks import simalma
+datapath = ctsys.resolve('regression/simalma_12m_ACA_combination/')
 
 #os.system('curl https://casaguides.nrao.edu/images/3/3f/M51ha.fits.txt -f -o M51ha.fits')
 
 class regression_simalma_12m_ACA_test(unittest.TestCase):
 
     def setUp(self):
-        if not CASA6:
-            default(simalma)
-        
         self.skymodel = 'M51ha.fits'
         shutil.copyfile(os.path.join(datapath,self.skymodel), self.skymodel)
     
@@ -97,11 +86,6 @@ class regression_simalma_12m_ACA_test(unittest.TestCase):
             './m51/m51.alma.cycle6.3.noisy.ms'
                 ]
         for M51MS in M51MSs: self.assertTrue(os.path.isdir(M51MS))
-
-
-
-def suite():
-    return[regression_simalma_12m_ACA_test]
 
 
 if __name__ == '__main__':

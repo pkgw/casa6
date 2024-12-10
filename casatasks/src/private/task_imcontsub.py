@@ -1,20 +1,10 @@
-from __future__ import absolute_import
 import os
 import re
 import sys
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, regionmanager
-    from casatasks import casalog
-    from .ialib import write_image_history
-else:
-    from taskinit import *
-    from ialib import write_image_history
-
-    image = iatool
-    regionmanager = rgtool
+from casatools import image, regionmanager
+from casatasks import casalog
+from .ialib import write_image_history
 
 def imcontsub(
     imagename, linefile, contfile, fitorder,
@@ -71,11 +61,9 @@ def imcontsub(
             raise Exception("ia.continuumsub did not complete successfully")
         try:
             param_names = imcontsub.__code__.co_varnames[:imcontsub.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            local_vars = locals( )
+            param_vals = [local_vars[p] for p in param_names]
+            
             for x in [lineim, contfile]:
                 write_image_history(
                     x, sys._getframe().f_code.co_name,

@@ -1,22 +1,12 @@
-from __future__ import absolute_import
 import os
 import shutil
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import table, quanta
-    from casatools import ms as mstool
-    from casatasks import casalog
-    from .mstools import write_history
+from casatools import table, quanta
+from casatools import ms as mstool
+from casatasks import casalog
+from .mstools import write_history
 
-    qa = quanta()
-else:
-    from taskinit import *
-    from mstools import write_history
-
-    mstool = casac.ms
-    table = casac.table
+qa = quanta()
 
 def cvel(vis, outputvis,
          passall, field, spw, selectdata, antenna, timerange, scan, array,
@@ -552,11 +542,9 @@ def cvel(vis, outputvis,
         # Write history to output MS
         try:
             param_names = cvel.__code__.co_varnames[:cvel.__code__.co_argcount]
-            if is_python3:
-                vars = locals()
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            local_vars = locals()
+            param_vals = [local_vars[p] for p in param_names]
+            
             write_history(mstool(), outputvis, 'cvel', param_names,
                           param_vals, casalog)
         except Exception as instance:

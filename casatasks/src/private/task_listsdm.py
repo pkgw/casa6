@@ -6,7 +6,6 @@
 #
 # Original code based on readscans.py, courtesy S. Meyers
 
-from __future__ import absolute_import
 import numpy as np
 
 try:
@@ -15,20 +14,12 @@ except ImportError as exc:
     raise ImportError("task listsdm requires minidom but there was an import error: {}".
                       format(exc))
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import quanta, measures
-    from casatasks import casalog
+from casatools import quanta, measures
+from casatasks import casalog
 
-    _qa = quanta( )
-    _me = measures( )
-    str_split = str.split
-else:
-    from taskinit import *
-    # not local tools
-    _qa = qa
-    _me = me
-    str_split = string.split
+_qa = quanta( )
+_me = measures( )
+str_split = str.split
     
 def listsdm(sdm=None):
     # read Scan.xml

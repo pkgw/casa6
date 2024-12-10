@@ -3,19 +3,12 @@ import os
 from math import pi,floor,atan2,sin,cos,sqrt
 import pylab as mypl
 
-try:
-    import casatools
-    from casatasks import casalog
-    
-    mytb=casatools.table()
-    myme=casatools.measures()
-    mymd=casatools.msmetadata()
-except ImportError:
-    from taskinit import *
+import casatools
+from casatasks import casalog
 
-    mytb=tbtool()
-    myme=metool()
-    mymd=msmdtool()
+mytb=casatools.table()
+myme=casatools.measures()
+mymd=casatools.msmetadata()
 
 def polfromgain(vis,tablein,caltable,paoffset,minpacov):
 

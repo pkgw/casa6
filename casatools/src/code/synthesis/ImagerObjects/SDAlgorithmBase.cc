@@ -136,7 +136,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	    peakresidualnomask = itsImages->getPeakResidual();
 	    if( validMask ) peakresidual = itsImages->getPeakResidualWithinMask();
-	    else peakresidual = peakresidualnomask;
+        else peakresidual = 0; // CAS-14201 : If mask is zero, peakresidual is zero
+	    //else peakresidual = peakresidualnomask;
 	    modelflux = itsImages->getModelFlux();
 
 	    startpeakresidual = peakresidual;

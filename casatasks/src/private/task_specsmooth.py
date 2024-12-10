@@ -14,7 +14,7 @@ def specsmooth(
     outia = None
     try:
         if (not myia.open(imagename)):
-            raise RuntimeError("Cannot create image analysis tool using " + imagename)
+            raise RuntimeError(f"Cannot create image analysis tool using {imagename}")
         if (len(outfile) == 0):
             raise ValueError("outfile must be specified.")
         function = function.lower()
@@ -32,9 +32,9 @@ def specsmooth(
         else:
             raise Exception("Unsupported convolution function " + function)
         try:
-            vars = locals( )
+            local_vars = locals( )
             param_names = specsmooth.__code__.co_varnames[:specsmooth.__code__.co_argcount]
-            param_vals = [vars[p] for p in param_names]
+            param_vals = [local_vars[p] for p in param_names]
             write_image_history(
                 outia, sys._getframe().f_code.co_name,
                 param_names, param_vals, casalog

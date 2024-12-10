@@ -15,21 +15,12 @@ Example:
 '3'
 """
 
-from __future__ import absolute_import
 import copy
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import ms
-    from casatools import table as tbtool
-    _ms = ms( )
-else:
-    #from taskinit import mstool
-    from casac import *
-    from taskinit import ms as _ms
-
-    tbtool = casac.table
+from casatools import ms
+from casatools import table as tbtool
+_ms = ms( )
 
 def update_spw(spw, spwmap=None):
     """

@@ -1,22 +1,12 @@
-from __future__ import absolute_import
 import os
 import sys
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, quanta
-    from casatasks import casalog
-    from .ialib import write_image_history
 
-    _qa = quanta()
-else:
-    from taskinit import *
-    from ialib import write_image_history
+from casatools import image, quanta
+from casatasks import casalog
+from .ialib import write_image_history
 
-    image = iatool
-    # not a local tool
-    _qa = qa
+_qa = quanta()
 
 def importfits(fitsimage,imagename,whichrep,whichhdu,zeroblanks,overwrite,defaultaxes,defaultaxesvalues,beam):
     """Convert an image FITS file into a CASA image:
@@ -202,11 +192,8 @@ def importfits(fitsimage,imagename,whichrep,whichhdu,zeroblanks,overwrite,defaul
                          "the \"beam\" parameter or ia.setrestoringbeam() and ia.setbrightnessunit()", 'WARN')
         try:
             param_names = importfits.__code__.co_varnames[:importfits.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]   
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]  
             write_image_history(_myia, sys._getframe().f_code.co_name, param_names, param_vals, casalog)
         except Exception as instance:
             casalog.post("*** Error \'%s\' updating HISTORY" % instance, 'WARN')
