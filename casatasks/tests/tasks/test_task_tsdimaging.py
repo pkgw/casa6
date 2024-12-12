@@ -4584,6 +4584,96 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         self._run_pm04_test(self.infiles)
 
 
+class sdimaging_brightness_unit(sdimaging_pm04_test_base):
+    outfile = 'brightness_unit_test'
+
+    def setUp(self):
+        super().setUp()
+        for infile in self.infiles:
+            with table_manager(infile, nomodify=False) as tb:
+                column_names = tb.colnames()
+                for column in ['DATA', 'FLOAT_DATA', 'CORRECTED_DATA']:
+                    if column in column_names:
+                        column_keywords = tb.getcolkeywords(column)
+                        for unit in ['UNIT', 'QuantumUnits']:
+                            if unit in column_keywords:
+                                tb.removecolkeyword(column, unit)
+
+    def _set_intensity_unit(self, msname, unit_key, unit_val):
+        with table_manager(msname, nomodify=False) as tb:
+            column_names = tb.colnames()
+            for column in ['DATA', 'FLOAT_DATA', 'CORRECTED_DATA']:
+                if column in column_names:
+                    tb.putcolkeyword(column, unit_key, unit_val)
+
+                    column_keywords = tb.getcolkeywords(column)
+                    self.assertTrue(unit_key in column_keywords)
+                    self.assertEqual(column_keywords[unit_key], unit_val)
+
+    def _verify_brightness_unit(self, imagename, expected):
+        with tool_manager(imagename, image) as ia:
+            bunit = ia.brightnessunit()
+
+        self.assertEqual(bunit, expected)
+
+    def _run_brightness_unit_test(self, unit_expected):
+        self._run_pm04_test()
+        self._verify_brightness_unit(self.outfile + '.image', unit_expected)
+
+    def test_no_unit(self):
+        """test_no_unit: default brightness unit should be Jy/beam."""
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_Kelvin(self):
+        """test_UNIT_Kelvin: UNIT keyword with K -> K"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'K')
+        self._run_brightness_unit_test('K')
+
+    def test_UNIT_Jy(self):
+        """test_UNIT_Jy: UNIT keyword with Jy -> Jy/beam"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'Jy')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_random(self):
+        """test_UNIT_random: UNIT keyword with random value -> Jy/beam"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'blah')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_empty(self):
+        """test_UNIT_empty: UNIT keyword with empty string -> Jy/beam"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', '')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_QuantumUnits_Kelvin(self):
+        """test_QuantumUnits_Kelvin: QuantumUnits keyword with K -> K"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'QuantumUnits', ['K'])
+        self._run_brightness_unit_test('K')
+
+    def test_UNIT_Jy_QuantumUnits_Kelvin(self):
+        """test_UNIT_Jy_QuantumUnits_Kelvin: UNIT takes priority (Jy/beam)"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'Jy')
+            self._set_intensity_unit(infile, 'QuantumUnits', ['K'])
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_Kelvin_QuantumUnits_Jy(self):
+        """test_UNIT_Jy_QuantumUnits_Kelvin: UNIT takes priority (K)"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'K')
+            self._set_intensity_unit(infile, 'QuantumUnits', ['Jy'])
+        self._run_brightness_unit_test('K')
+
+    def test_UNIT_first_ms(self):
+        """test_UNIT_first_ms: first MS takes priority"""
+        self._set_intensity_unit(self.infiles[0], 'UNIT', 'Jy')
+        self._set_intensity_unit(self.infiles[1], 'UNIT', 'K')
+        self._run_brightness_unit_test('Jy/beam')
+
 
 """
 # utility for sdimaging_test_mapextent
@@ -4676,11 +4766,11 @@ def calc_mapproperty(statistics):
 class sdimaging_interpolation(sdimaging_pm04_test_base):
     """
     Test imaging with interpolation parameters.
-    
+
     This test checks linear(default), nearest, and cubic interpolation with the parameter.
     """
     outfile = 'interpolation'
-    
+
     def run_base_test(self, interpolation='linear'):
         imsize = 11
         params = {
