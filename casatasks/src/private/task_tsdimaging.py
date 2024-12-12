@@ -877,7 +877,7 @@ def do_weight_mask(imagename, weightimage, minweight):
     masked_fraction = 100. * (1. - valid_pixels_after / float(valid_pixels[0]))
 
     logger.post(f"This amounts to {masked_fraction:5.1f} % "
-                  "of the area with nonzero weight.", 
+                  "of the area with nonzero weight.",
                   priority="INFO")
     logger.post(
         f"The weight image '{weightimage}' is returned by this task, "
@@ -889,12 +889,15 @@ def get_ms_column_unit(tb, colname):
     col_unit = ''
     if colname in tb.colnames():
         cdkw = tb.getcoldesc(colname)['keywords']
-        if 'QuantumUnits' in cdkw:
-            u = cdkw['QuantumUnits']
-            if isinstance(u, str):
-                col_unit = u.strip()
-            elif isinstance(u, list):
-                col_unit = u[0].strip()
+        for key in ['UNIT', 'QuantumUnits']:
+            if key in cdkw:
+                u = cdkw[key]
+                if isinstance(u, str):
+                    col_unit = u.strip()
+                elif isinstance(u, (list, numpy.ndarray)) and len(u) > 0:
+                    col_unit = u[0].strip()
+            if col_unit:
+                break
     return col_unit
 
 
