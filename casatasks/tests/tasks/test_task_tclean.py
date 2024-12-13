@@ -3855,19 +3855,6 @@ class test_widefield(testref_base):
           self.assertTrue(self.check_final(report))
 
           #do stokes V too.....
-     def test_widefield_awp2_mfs(self):
-          """ [widefield] Test_Widefield_awp2 : MFS with narrowband AWProjection (1spw)  stokes I """
-          # casalog.post("EMPTY TEST")
-          # return
-
-          self.prepData("refim_mawproject.ms")
-          ret = tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
-                       niter=30,gridder='awp2',deconvolver='hogbom',savemodel='modelcolumn',parallel=self.parallel)
-         ## ret = tclean(vis=self.msfile,spw='2',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",niter=30,gridder='awproject',wbawp=False,conjbeams=True,psterm=False,computepastep=360.0,rotatepastep=360.0,deconvolver='hogbom')
-          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',0.96,[256,256,0,0]),(self.img+'.pb',0.96,[256,256,0,0]),(self.img+'.weight',0.463,[256,256,0,0]) ] )
-          #
-         
-          self.assertTrue(self.check_final(report))
 
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
      def test_widefield_awphpg_mfs(self):
@@ -3899,23 +3886,10 @@ class test_widefield(testref_base):
           self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
           self.assertTrue(self.check_final(report))
 
-     def test_widefield_awp2_cube(self):
-          """ [widefield] Test_Widefield_awp2_cube : Cube with AW-Projection  and rotation off """
-
-          #casalog.post("EMPTY TEST")
-          #return
-
-          self.prepData("refim_mawproject.ms")
-          ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
-                       specmode='cube',niter=1,gain=1.0,gridder='awp2',
-                       deconvolver='hogbom',parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',1.001,[256,256,0,0]),(self.img+'.weight',0.6403,[256,256,0,0]) ] )
-          self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
-          self.assertTrue(self.check_final(report))
 
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
      def test_widefield_awphpg_cube(self):
-          """ [widefield] Test_Widefield_awp2_cube : Cube with AW-Projection  and rotation off """
+          """ [widefield] Test_Widefield_awphpg_cube : Cube with AW-Projection  and rotation off """
 
           #casalog.post("EMPTY TEST")
           #return
@@ -3987,22 +3961,6 @@ class test_widefield(testref_base):
           ## alpha should be ZERO as the pb spectrum has been taken out.
           self.assertTrue(self.check_final(report))
 
-     def test_widefield_awp2_mtmfs(self):
-          """ [widefield] Test_Widefield_wbaproj_mtmfs : MFS with wideband AWProjection (wbawp=T,conjbeams=T, allspw) and nt=2 stokes I  """
-
-          # casalog.post("EMPTY TEST")
-          # return
-
-          self.prepData("refim_mawproject.ms")
-          ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
-                       niter=30,gridder='awp2',deconvolver='mtmfs',pblimit=0.1,parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight.tt0'],imgval=[(self.img+'.image.tt0',0.96,[256,256,0,0]),(self.img+'.weight.tt0',0.486,[256,256,0,0]),(self.img+'.alpha',0.04,[256,256,0,0]) ] )
-          #
-          # Changed to the following for 5.5.0 release of AWP.  Will revisit and replace the test MS later.
-          #
-          #report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight.tt0'],imgval=[(self.img+'.image.tt0',0.696,[256,256,0,0]),(self.img+'.weight.tt0',0.486,[256,256,0,0]),(self.img+'.alpha',0.0,[256,256,0,0]) ] )
-          ## alpha should be ZERO as the pb spectrum has been taken out.
-          self.assertTrue(self.check_final(report))
      @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
      def test_widefield_awphpg_mtmfs_via_cube(self):
           """ [widefield] Test_Widefield_wbaproj_mtmfs : MFS with wideband AWProjection (wbawp=T,conjbeams=T, allspw) and nt=2 stokes I  """
