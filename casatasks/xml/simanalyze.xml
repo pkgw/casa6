@@ -50,7 +50,7 @@
     then using simanalyze in the mode image=False (see below).
 
     Sometimes it is preferable to grid the single dish MS using the 
-    sdimaging task for more control.  In that case one can input 
+    tsdimaging task for more control.  In that case one can input 
     the resulting single dish imaging under &quot;featherimage&quot;, only 
     put interferometric MSs in &quot;vis&quot;, and simanalyze  will clean the 
     interferometric and feather with your &quot;featherimage&quot;.
@@ -180,7 +180,7 @@
       </allowed>
     </param>
 
-    <param type="string" name="featherimage" subparam="true"><shortdescription>image to feather with new image</shortdescription><description>String corresponding to the name of an image (e.g., total power data) to feather with the interferometric synthesis image. Sometimes it is preferable to grid the single dish MS using the sdimaging task for more control. In that case, the user can input the resulting single dish imaging under featherimage, only pass interferometric data as input to the vis parameter, and this task will clean the interferometric and feather with the featherimage.</description>
+    <param type="string" name="featherimage" subparam="true"><shortdescription>image to feather with new image</shortdescription><description>String corresponding to the name of an image (e.g., total power data) to feather with the interferometric synthesis image. Sometimes it is preferable to grid the single dish MS using the tsdimaging task for more control. In that case, the user can input the resulting single dish imaging under featherimage, only pass interferometric data as input to the vis parameter, and this task will clean the interferometric and feather with the featherimage.</description>
 
       <value/>
     </param>
