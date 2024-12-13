@@ -34,6 +34,8 @@ writeable = os.path.join(datadir,'checker.ms')
 tdm2fdm = os.path.join(datadir, 'uid___A002_Xd7be9d_X4838-spw16-18-20-22.ms')
 rxband_ms = os.path.join(datadir, 'uid___A002_Xa1f062_X37e3.ms')
 rxband_ms2 = os.path.join(datadir, 'uid___A002_X7b13df_X68f.ms')
+fdmtdm = os.path.join(datadir, "fdmtdm.ms")
+
 
 def near(a, b, epsilon):
     return abs((a-b)/max(a,b)) <= epsilon
@@ -1906,6 +1908,20 @@ class msmetadata_test(unittest.TestCase):
             'Incorrect result for subwindows()'
         )
         self.md.done()
+
+
+    def test_alma_fdmtdm_heavy_online_averaging(self):
+        """
+        CAS-14435 proper fdm/tdm identification in cases
+        of heavy online averaging
+        """
+        self.md.open(fdmtdm)
+        fdm = self.md.almaspws(fdm=True)
+        tdm = self.md.almaspws(tdm=True)
+        self.md.done()
+        self.assertTrue((fdm == [1]).all(), "Incorrect fdm windows")
+        self.assertTrue((tdm == [0]).all(), "Incorrect tdm windows")
+
 
 
 if __name__ == '__main__':
