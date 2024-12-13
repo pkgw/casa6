@@ -110,8 +110,13 @@ public:
   casacore::CountedPtr<vi::VisibilityIterator2> getVi();
   casacore::CountedPtr<refim::FTMachine> getFTM(const casacore::Int whichfield=0,
 												casacore::Bool ift=true);
+  // Check if code is build with USE_HPG flag
+  virtual bool hpg_enabled();
+  // init the hpg/kokkos for use. Will also return False if the code is not
+  // compatible with gpu available
+  virtual bool inithpg();
 
- protected:
+protected:
   virtual void makeComplexCubeImage(const casacore::String& cimage, const refim::FTMachine::Type imtype, const Int whichModel=0);
   void appendToMapperList(casacore::String imagename, 
 			  casacore::CoordinateSystem& csys, 

@@ -340,7 +340,6 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 		cFunc = awh.getWeightConvFuncHPG();
 	   }
       IPosition cshape = cFunc.shape();
-      cerr <<  "convfunc shape" <<  cshape <<  " npix " <<  cshape.product() <<  endl;
       uint convSize = cshape[0];
       uInt nConvPol = cshape[2];
       Vector<Double> cFreqs = awh.getFreqValsHPG();
@@ -353,7 +352,7 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
        //                               nBLType, nTime/PA, nW, nFreq, nPol
       hpg::CFSimpleIndexer cfsi({1,false},{1,false},{nw,true},{nchan,true}, nPol);
 
-      if (cfArray.oversampling()==0) {
+      if (cfArray.oversampling()==0 || cfArray.size() < nCF) {
         
         log_l << "Setting cfArray size: " << "nCF: " << nCF << " x " << nPol << " sampling: " << sampling <<  " convsize " <<  convSize << LogIO::POST;
         cfArray.setSize((unsigned)(nCF),(unsigned)sampling);
@@ -365,7 +364,6 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
       //Bool isConjCopy;
 	  //Complex *conjptr = conjW.getStorage(isConjCopy);
       unsigned iGrp=0; // HPG Group index
-      cerr <<  "@@@@@LoadCF nchan " <<  nchan <<  " nw " <<  nw <<  endl;
       for(uint iFreq=0; iFreq < nchan; ++iFreq) // CASA CF Freq-index
       {
 		  // CASA CF W-index
@@ -378,7 +376,6 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
             Complex* convptr=NULL;
 			uint ptroffset =  ((abs(iW)*nchan+iFreq)*nConvPol+ipol)*convSize*convSize;
 			//uint ptroffset = ((iFreq * nw + iW) * nConvPol + ipol) * convSize * convSize;
-			//cerr <<  "ptroffset " <<  ptroffset <<  endl;
             convptr = (cfuncPtr+ptroffset);
             /*if (iW < 0) {
 				
@@ -392,8 +389,9 @@ makeHPGVisBuffer2(casacore::Matrix<double>& sumwt,
 			std::array<unsigned, 3> index = cfsi.cf_index(cfCellidx);
 			cfArray.resize(iGrp, convSize, convSize);
             if (send_to_device) {
-			//cerr << "send iFreq " << iFreq <<  " igrp " <<  iGrp << " indices " <<  index[0] <<  "," <<  index[1] <<  "," <<  index[2] << endl;  
-             cfArray.setValues(convptr,  iGrp,  convSize,  convSize,  ipol,  0);
+			//cerr << "send iFreq " << iFreq <<  " igrp " <<  iGrp << " indices " <<  index[0] <<  "," <<  index[1] <<  "," <<  index[2] << endl;
+                        cfArray.setValues(convptr, iGrp, convSize, convSize,
+                                          ipol, 0);
             }
           }                                                 // pol
 		  ++iGrp;

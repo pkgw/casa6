@@ -879,21 +879,8 @@ bool synthesisimager::inithpg()
   try 
     {
 
-    
-#ifdef USE_HPG     
-    try{
-      
-      if (!hpg::is_initialized())
-        hpg::initialize();
-      auto devices = hpg::devices();
-      //cerr << "DEvices " << devices << endl;
-      rstat = true;
-    }
-    catch(...){
-      throw(AipsError("Trying to use GPU code with the wrong GPU or no GPU"));
-    }
-#endif       
-      
+      itsImager = makeSI();
+      rstat=itsImager->inithpg();
       
     } 
   catch  (AipsError x) 
@@ -903,7 +890,13 @@ bool synthesisimager::inithpg()
   
   return rstat;
 }
+bool synthesisimager::hpg_enabled()
+{
 
+  itsImager = makeSI();
+
+  return (itsImager->hpg_enabled());
+}
 
 
 bool

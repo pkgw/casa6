@@ -78,7 +78,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     {
       return cf_oversampling;
     }
-
+    unsigned size()  { return m_extent.size(); }
     std::array<unsigned, 4> extents(unsigned i) const override
     {
       return m_extent[i];

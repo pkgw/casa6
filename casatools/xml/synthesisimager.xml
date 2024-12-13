@@ -881,8 +881,18 @@ CORRECTED\_DATA and MODEL\_DATA columns
 
 </input>
 <returns type="bool"/>
-</method>
+   </method>
+   
+<method type="function" name="hpg_enabled">
+   <shortdescription>init gpu code</shortdescription>
 
+<description>
+</description>
+<input>
+
+</input>
+<returns type="bool"/>
+</method>
 
    <method name="done" type="function">
    <shortdescription>Close the tool</shortdescription>

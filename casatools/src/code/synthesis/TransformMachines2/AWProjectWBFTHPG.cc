@@ -540,71 +540,15 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
 				   const VisBuffer2& vb)
   {
     LogIO log_l(LogOrigin("AWProjectWBFT2","initializeToSky[R&D]"));
-    AWProjectFT::initializeToSky(iimage,weight,vb);
-/*
-    if (resetPBs_p)
-      {
-	if (useDoubleGrid_p)
-	  {
-	    griddedWeights_D.resize(iimage.shape()); 
-	    griddedWeights_D.setCoordinateInfo(iimage.coordinates());
-	    griddedWeights_D.set(0.0);
-	    pbPeaks.resize(griddedWeights_D.shape()(2));
-	    pbPeaks.set(0.0);
-	  }
-	else
-	  {
-	    griddedWeights.resize(iimage.shape()); 
-	    griddedWeights.setCoordinateInfo(iimage.coordinates());
-	    griddedWeights.set(0.0);
-	    pbPeaks.resize(griddedWeights.shape()(2));
-	    pbPeaks.set(0.0);
-	  }
-
-	resetPBs_p=false;
-      }
-
-    std::tuple<int, double>cubeinfo(1,-1.0);    
-    double freqofBegChan;
-    spectralCoord_p.toWorld(freqofBegChan, 0.0);
-        
-    cubeinfo=std::make_tuple(iimage.shape()(3),freqofBegChan);
-
-    ///load AVGPB is quite the memory consumer for cubes as it will load the whole cube in memory a couple of times even.
-    //cerr << "###Avoiding loading of avgPB " << avgPBReady_p << endl;
-    ////TESTOO need to oveload this init in HPG
-    if(!avgPBReady_p)
-      avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivitysetPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
+  //  Timer tim;
+  //  tim.mark();
     
-    if(avgPBReady_p){
-        LatticeExprNode le( max( *avgPB_p ) );
-        Float avgPB_max=le.getFloat();
-        
-        if(avgPB_max <= 0.0) avgPBReady_p = false;
-    }
-    // Need to grid the weighted Convolution Functions to make the sensitivity pattern.
-    if (!avgPBReady_p)
-      {
-    	// Make a copy of the re-sampler and set it up.
-    	if (visResamplerWt_p.null()) visResamplerWt_p = visResampler_p->clone();
-    	visResamplerWt_p = visResampler_p;
-    	visResamplerWt_p->setMaps(chanMap, polMap);
-    	if (useDoubleGrid_p)
-    	  {
-    	    Array<DComplex> gwts; Bool removeDegenerateAxis=false;
-    	    griddedWeights_D.get(gwts, removeDegenerateAxis);
-    	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
-    	  }
-    	else
-    	  {
-    	    Array<Complex> gwts; Bool removeDegenerateAxis=false;
-    	    griddedWeights.get(gwts, removeDegenerateAxis);
-    	    visResamplerWt_p->initializeToSky(gwts, sumCFWeight); //A NoOp right now.
-    	  }
-      }
-      */
-  init(vb);
+    AWProjectFT::initializeToSky(iimage,weight,vb);
+  //  cerr << "$$$$$ AWP initializesky " << tim.real()<< endl;
 
+  //  tim.mark();
+  init(vb);
+  //cerr  << "$$$$$$$$$$$ init(vb) " << tim.real() << endl;
 
   }
   void AWProjectWBFTHPG::findConvFunction(const ImageInterface<Complex>& image,

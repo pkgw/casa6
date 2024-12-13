@@ -3693,6 +3693,28 @@ void SynthesisImagerVi2::unlockMSs()
       
     }
   }
+  bool SynthesisImagerVi2::inithpg(){
+    bool rstat = false;
+#ifdef USE_HPG
+    try {
+      if (!hpg::is_initialized())
+        hpg::initialize();
+      auto devices = hpg::devices();
+      // cerr << "DEvices " << devices << endl;
+      rstat = true;
+    } catch (...) {
+      rstat = false;
+      throw(AipsError("Trying to use GPU code with the wrong GPU or no GPU"));
+    }
+#endif
+    return rstat;
+  }
+  bool SynthesisImagerVi2::hpg_enabled(){
+#ifdef USE_HPG
+    return true;
+#endif
+    return false;
+  }
 
 } //# NAMESPACE CASA - END
 
