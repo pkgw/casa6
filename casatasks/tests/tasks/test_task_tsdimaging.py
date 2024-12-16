@@ -30,6 +30,7 @@ import math
 import os
 import shutil
 import stat
+from typing import Optional
 import unittest
 
 import numpy
@@ -4591,30 +4592,58 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
         super().setUp()
         for infile in self.infiles:
             with table_manager(infile, nomodify=False) as tb:
-                column_names = tb.colnames()
-                for column in ['DATA', 'FLOAT_DATA', 'CORRECTED_DATA']:
-                    if column in column_names:
-                        column_keywords = tb.getcolkeywords(column)
-                        for unit in ['UNIT', 'QuantumUnits']:
-                            if unit in column_keywords:
-                                tb.removecolkeyword(column, unit)
-
-    def _set_intensity_unit(self, msname, unit_key, unit_val):
-        with table_manager(msname, nomodify=False) as tb:
-            column_names = tb.colnames()
-            for column in ['DATA', 'FLOAT_DATA', 'CORRECTED_DATA']:
-                if column in column_names:
-                    tb.putcolkeyword(column, unit_key, unit_val)
-
+                data_columns = {
+                    'DATA', 'FLOAT_DATA', 'CORRECTED_DATA'
+                }.intersection(tb.colnames())
+                for column in data_columns:
                     column_keywords = tb.getcolkeywords(column)
-                    self.assertTrue(unit_key in column_keywords)
-                    self.assertEqual(column_keywords[unit_key], unit_val)
+                    unit_keywords = {
+                        'UNIT', 'QuantumUnits'
+                    }.intersection(column_keywords.keys())
+                    for unit in unit_keywords:
+                        tb.removecolkeyword(column, unit)
 
-    def _verify_brightness_unit(self, imagename, expected):
+    def _set_intensity_unit(
+            self, msname: str, unit_key: str, unit_val: str,
+            column: Optional[str] = None
+    ):
+        """Set intensity unit to data column(s).
+
+        If optional column parameter is not given, units are
+        set to all possible data columns (CORRECTED_DATA,
+        FOAT_DATA, and DATA).
+
+        Args:
+            msname: Name of the MeasurementSet
+            unit_key: Keyword name of the unit
+            unit_val: Value of the unit
+            column: Name of the data column. Defaults to None.
+        """
+        with table_manager(msname, nomodify=False) as tb:
+            if column:
+                # column should specify only one column name
+                data_columns = {column}
+            else:
+                data_columns = {
+                    'CORRECTED_DATA', 'FLOAT_DATA', 'DATA'
+                }
+            for column in data_columns.intersection(tb.colnames()):
+                tb.putcolkeyword(column, unit_key, unit_val)
+
+                # verify edits
+                column_keywords = tb.getcolkeywords(column)
+                self.assertTrue(unit_key in column_keywords)
+                self.assertEqual(column_keywords[unit_key], unit_val)
+
+    def _verify_brightness_unit(self, imagename: str, expected: str):
+        """Verify brightness unit of the image.
+
+        Args:
+            imagename: Name of the image file
+            expected: Expected unit value
+        """
         with tool_manager(imagename, image) as ia:
-            bunit = ia.brightnessunit()
-
-        self.assertEqual(bunit, expected)
+            self.assertEqual(ia.brightnessunit(), expected)
 
     def _run_brightness_unit_test(self, unit_expected):
         self._run_pm04_test()
@@ -4674,6 +4703,14 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
         self._set_intensity_unit(self.infiles[1], 'UNIT', 'K')
         self._run_brightness_unit_test('Jy/beam')
 
+    def test_UNIT_CORRECTED_DATA(self):
+        """test_UNIT_CORRECTED_DATA: CORRECTED_DATA takes priority"""
+        for infile in self.infiles:
+            with calibrater_manager(infile, addcorr=True, addmodel=False) as cb:
+                pass
+            self._set_intensity_unit(infile, 'UNIT', 'K', 'FLOAT_DATA')
+            self._set_intensity_unit(infile, 'UNIT', 'Jy', 'CORRECTED_DATA')
+        self._run_brightness_unit_test('Jy/beam')
 
 """
 # utility for sdimaging_test_mapextent
