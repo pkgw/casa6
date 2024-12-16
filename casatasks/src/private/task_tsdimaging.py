@@ -904,9 +904,11 @@ def get_ms_column_unit(tb, colname):
 def get_brightness_unit_from_ms(msname):
     image_unit = ''
     with sdutil.table_manager(msname) as tb:
-        image_unit = get_ms_column_unit(tb, 'DATA')
-        if image_unit == '':
-            image_unit = get_ms_column_unit(tb, 'FLOAT_DATA')
+        for column in ['CORRECTED_DATA', 'FLOAT_DATA', 'DATA']:
+            image_unit = get_ms_column_unit(tb, column)
+            if image_unit:
+                break
+
     if image_unit.upper() == 'K':
         image_unit = 'K'
     else:
