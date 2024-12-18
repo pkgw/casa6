@@ -3325,20 +3325,16 @@ Bool SIImageStore::findMinMaxLattice(const Lattice<Float>& lattice,
     imageExts(MODEL) = ".model";
     if (not itsIsSingleDishStore) {
       imageExts(RESIDUAL) = ".residual";
+      imageExts(IMAGE) = ".image";
     }
     else {
       // The initial residual image IS the single-dish image
       imageExts(RESIDUAL) = ".image";
-    }
-    imageExts(WEIGHT) = ".weight";
-    if (not itsIsSingleDishStore) {
-      imageExts(IMAGE) = ".image";
-    }
-    else {
       // Make sure we have no duplicates in the vector
       // Not sure what should be done here
       imageExts(IMAGE) = ".wrongly-deconvolved-single-dish-image";
     }
+    imageExts(WEIGHT) = ".weight";
     imageExts(SUMWT) = ".sumwt";
     imageExts(GRIDWT) = ".gridwt";
     imageExts(PB) = ".pb";
