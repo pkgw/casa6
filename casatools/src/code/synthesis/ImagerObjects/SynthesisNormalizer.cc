@@ -156,9 +156,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         } else {
           itsUseBeam = "";
         } 
-      } else {
-        constexpr auto keep_itsUseBeam_unchanged = True;
-      }
+      } // else: keep itsUseBeam unchanged
 
       if ( normpars.isDefined("makesingledishnormalizer") ) { // A single bool
         itsIsSingleDish =
