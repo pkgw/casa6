@@ -324,6 +324,8 @@ protected:
 
   casacore::Float itsPSFSideLobeLevel;
 
+  // Is this Synthesis Imager imagestore intended to deal with single-dish
+  // images ?
   casacore::Bool itsIsSingleDishStore;
 
   //
