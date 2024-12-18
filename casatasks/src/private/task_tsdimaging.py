@@ -963,7 +963,7 @@ def tsdimaging(
         output_path_prefix = outfile.rstrip('/')
         singledish_image_path = output_path_prefix + image_suffix
         if os.path.exists(singledish_image_path):
-            if overwrite is False:
+            if not overwrite:
                 raise RuntimeError(
                         f"Output file exists: '{singledish_image_path}'"
                       )
