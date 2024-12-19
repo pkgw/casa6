@@ -180,8 +180,19 @@ Previous calibrations should be applied on the fly.
 
     <param type="string" name="corrcomb">
       <shortdescription>Combine correlations</shortdescription>
-      <description>Combine correlations: "none", "stokes", and "parallel" are currently
-      supported values</description>
+      <description>Combine correlations (use with corrdepflags=True):
+         If corrcomb="stokes", the parallel-hand correlations (if both
+	 are unflagged) will be combined formally (unweighted) to form Stokes I,
+	 with a net weight properly propagated from the correlatio
+	 weights.
+	 If corrcomb="parallel", the parallel-hand correlations (if
+	 either unflagged) will be combined with a weighted average,
+	 thereby optimizing net sensitivity for unpolarized sources.
+	 If either parallel-hand correlation is flagged, its weight in
+	 this average will be zero.  This mode permits combining
+	 correlations without flagging single-pol antennas completely.
+	 If corrcomb="none", correlations will not be combined.
+      </description>
       <value>none</value>
       <allowed kind="enum">
 	<value>none</value>
