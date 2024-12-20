@@ -158,12 +158,15 @@ Previous calibrations should be applied on the fly.
 
     <param type="bool" name="corrdepflags">
       <shortdescription>Respect correlation-dependent flags</shortdescription>
-      <description> If False (default), if any correlation is flagged, treat all correlations in
-        the visibility vector as flagged when solving (per channel, per baseline).
-        If True, use unflagged correlations in a visibility vector, even if one or more
-        other correlations are flagged.
+      <description>Respect correlation-dependent flags:
+       If False (default), if any correlation is flagged,
+         treat all correlations in the visibility vector as flagged
+         when solving (per channel, per baseline).
+       If True, use unflagged correlations in a visibility vector,
+	 even if one or more other correlations are flagged.
               
-        Default: False (treat correlation vectors with one or more correlations flagged as entirely flagged)
+      Default: False (treat correlation vectors with one or more
+        correlations flagged as entirely flagged)
   
         Traditionally, CASA has observed a strict interpretation of 
         correlation-dependent flags: if one or more correlations 
@@ -181,17 +184,17 @@ Previous calibrations should be applied on the fly.
     <param type="string" name="corrcomb">
       <shortdescription>Combine correlations</shortdescription>
       <description>Combine correlations (use with corrdepflags=True):
-         If corrcomb="stokes", the parallel-hand correlations (if both
-	 are unflagged) will be combined formally (unweighted) to form Stokes I,
-	 with a net weight properly propagated from the correlatio
-	 weights.
-	 If corrcomb="parallel", the parallel-hand correlations (if
-	 either unflagged) will be combined with a weighted average,
-	 thereby optimizing net sensitivity for unpolarized sources.
-	 If either parallel-hand correlation is flagged, its weight in
-	 this average will be zero.  This mode permits combining
-	 correlations without flagging single-pol antennas completely.
-	 If corrcomb="none", correlations will not be combined.
+       If corrcomb="stokes", the parallel-hand correlations (if both
+         are unflagged) will be combined formally (unweighted) to form Stokes I,
+         with a net weight properly propagated from the correlatio
+         weights.
+       If corrcomb="parallel", the parallel-hand correlations (if
+         either unflagged) will be combined with a weighted average,
+         thereby optimizing net sensitivity for unpolarized sources.
+         If either parallel-hand correlation is flagged, its weight in
+         this average will be zero.  This mode permits combining
+         correlations without flagging single-pol antennas completely.
+       If corrcomb="none" (default), correlations will not be combined.
       </description>
       <value>none</value>
       <allowed kind="enum">
@@ -386,11 +389,10 @@ Previous calibrations should be applied on the fly.
 </input>
 
 <example>
-  For more information, see the task pages of gaincal in CASA Docs:
+  For more information, see the task pages for fringefit in CASA Docs:
 
   https://casa.nrao.edu/casadocs/
-      minsnr -- Reject solutions below this SNR
-              default: 3.0 
+
 </example> 
 
 <returns>void</returns></task>
