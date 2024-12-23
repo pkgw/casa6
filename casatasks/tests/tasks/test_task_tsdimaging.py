@@ -4590,6 +4590,7 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
 
     def setUp(self):
         super().setUp()
+        # Remove unit-like keywords from data columns of input files
         for infile in self.infiles:
             with table_manager(infile, nomodify=False) as tb:
                 data_columns = {
