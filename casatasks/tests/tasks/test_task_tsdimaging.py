@@ -4666,8 +4666,8 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
             self._set_intensity_unit(infile, 'UNIT', 'Jy')
         self._run_brightness_unit_test('Jy/beam')
 
-    def test_UNIT_random(self):
-        """test_UNIT_random: UNIT keyword with random value -> Jy/beam"""
+    def test_UNIT_invalid(self):
+        """test_UNIT_invalid: UNIT keyword with invalid value -> Jy/beam"""
         for infile in self.infiles:
             self._set_intensity_unit(infile, 'UNIT', 'blah')
         self._run_brightness_unit_test('Jy/beam')
