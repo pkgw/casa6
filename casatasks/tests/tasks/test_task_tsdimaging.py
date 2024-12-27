@@ -4646,7 +4646,13 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
         with tool_manager(imagename, image) as ia:
             self.assertEqual(ia.brightnessunit(), expected)
 
-    def _run_brightness_unit_test(self, unit_expected):
+    def _run_brightness_unit_test(self, unit_expected: str):
+        """Run tsdimaging task and verify brightness unit.
+
+        Args:
+            unit_expected: Expected unit string.
+                Should be either 'Jy/beam' or 'K'.
+        """
         self._run_pm04_test()
         self._verify_brightness_unit(self.outfile + '.image', unit_expected)
 
