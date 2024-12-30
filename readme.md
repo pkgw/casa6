@@ -259,6 +259,67 @@ Run as root or as a used with sudo rights the following commands:
 (note that we exclude boost related packages that are optional in the casacore build instructions: libboost-dev, libboost-python-dev. We do not need those as CASA does not use the python bindings from casacore. In addition, if one wanted to compile all the boost related functionality of casacore (there is additional code that uses boost for Arrays and Dysco tests), the following packages would be needed: libboost-filesystem-dev libboost-test-dev libboost-system-dev).
 
 
+#### Installing prerequisites in macOS 13/14 using MacPorts ARM64 with Qt6
+
+Note: Qt6/Qwt is only required if you plan to build any of the GUIs.
+As a prerequisite [XCode](https://developer.apple.com/xcode/) must be installed, as well as [macports](https://macports.org). It could be that the prerequisites could be installed from Homebrew, but no attempt has been made to try it out.
+
+The XCode installation already fulfills the requirement of the compiler (point 2. in the list of requirements).
+
+When using any of the below commands, make sure that macports is in the PATH. That's part of the macports installation instructions so it could be that the PATH is already correct:
+```
+    export PATH=/opt/local/bin:$PATH
+```
+Run as root or as a used with sudo rights the following commands (python versions 3.10, 3.11 and 3.12 have been tested):
+```
+    # Packages needed for casacore development
+    sudo port install git cmake gcc13 +gfortran cfitsio wcslib
+
+    # Packages needed for libsakura development
+    sudo port install fftw-3 fftw-3-single eigen3
+
+    # Additional packages needed for CASA development
+    sudo port install ccache openjdk11 py310-build py310-pip py310-numpy swig-python xercesc3 pkgconfig protobuf3-cpp grpc gsl libxslt openmpi-clang libxml2 fftw-3 fftw-3-single qt6
+
+    # Select python default version
+    sudo port select --set python python310
+    sudo port select --set python3 python310
+    sudo port select --set pip pip310
+    sudo port select --set pip3 pip310
+    sudo port select --set gcc mp-gcc13
+    sudo port select --set mpi openmpi-clang-fortran
+```
+Add Qt6 in the path
+```
+    export PATH=/opt/local/libexec/qt6/bin:$PATH
+```
+
+As for this writing there are is no port of Qwt that is build with Qt6. So Qwt has to be built manually. Download the 6.3.0 source tarball from here: https://sourceforge.net/projects/qwt/files/
+Extract the tarball and
+```
+cd qwt-6.3.0
+```
+Modify the qtconfig.pri file and change the QWT_INSTALL_PREFIX like to /opt/local
+```
+unix {
+    QWT_INSTALL_PREFIX    = /opt/local/qwt-$$QWT_VERSION
+    # QWT_INSTALL_PREFIX = /usr/local/qwt-$$QWT_VERSION-qt-$$QT_VERSION
+}
+```
+Run
+```
+qmake
+make
+make install
+```
+Add CASA_QWT_INSTALL_DATA variable to Qt config. This is used by the various QMake project files for the GUI builds.
+```
+qmake -set CASA_QWT_INSTALL_DATA /opt/local/qwt-6.3.0
+```
+
+
+(note that we exclude boost related packages that are optional in the casacore build instructions: libboost-dev, libboost-python-dev. We do not need those as CASA does not use the python bindings from casacore. In addition, if one wanted to compile all the boost related functionality of casacore (there is additional code that uses boost for Arrays and Dysco tests), the following packages would be needed: libboost-filesystem-dev libboost-test-dev libboost-system-dev).
+
 ### Setting up ccache
 
 ccache significantly speeds up the compilation time for successive builds after the first build.

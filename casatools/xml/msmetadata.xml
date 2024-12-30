@@ -103,7 +103,9 @@ windows in the dataset and close the tool.
                 
                 1. its bandwidth is less than 2 GHz, or
                 2. the number of channels it contains is greater than or equal to 15 but not
-                   equal to 256, 128, 64, 32, 16, 248, 124, 62, or 31.
+                   equal to 256, 128, 64, 32, 16, 248, 124, 62, or 31, or
+                3. the product of the number of polarizations and the number of
+                   channels it contains exceeds 256.
 
                 The window is classified as a *TDM spectral window* if it is neither a WVR window,
                 a channel average window, nor an FDM window.
@@ -699,11 +701,12 @@ windows in the dataset and close the tool.
         </method>
         
         <method name="fdmspws" type="function">
-            <shortdescription>Get an array of spectral window IDs used for FDM. These are windows that do not have 64, 128, or 256 channels.</shortdescription>
+            <shortdescription>Get an array of spectral window IDs used for FDM.</shortdescription>
             <returns type="intVec"/>
             <description>
-                
-                Get an array of spectral window IDs used for FDM. These are windows that do not have 64, 128, or 256 channels.
+                Get an array of spectral window IDs used for FDM. These windows
+                are defined by the rules in the description of the method
+                almaspws().
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -2278,11 +2281,12 @@ windows in the dataset and close the tool.
         </method>
         
         <method name="tdmspws" type="function">
-            <shortdescription>Get an array of spectral window IDs used for TDM. These are windows that have 64, 128, or 256 channels.</shortdescription>
+            <shortdescription>Get an array of spectral window IDs used for TDM.</shortdescription>
             <returns type="intVec"/>
             <description>
-                
-                Get an array of spectral window IDs used for TDM. These are windows that have 64, 128, or 256 channels.
+                Get an array of spectral window IDs used for TDM. These windows
+                are defined by the rules in the description of the method
+                almaspws().
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)

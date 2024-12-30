@@ -82,9 +82,9 @@ namespace casac {
         return fromRecord(state.getMinorCycleControls( ));
     }  
 
-    bool iterbotsink::mergeinitrecord(const casac::record& initrecord) {
+    bool iterbotsink::mergeinitrecord(const casac::record& initrecord, const long immod) {
         const std::unique_ptr<casacore::Record> recpars(toRecord(initrecord));
-        state.mergeCycleInitializationRecord( *recpars );
+        state.mergeCycleInitializationRecord( *recpars, immod );
         return false;
     }
 
