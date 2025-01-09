@@ -2750,13 +2750,13 @@ void SynthesisImagerVi2::unlockMSs()
    //cerr << "rec " << rec << " kpb " << kpb << endl;
    //cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
    if (!gridpars_p.ftmachine.contains("mos")) {
-     cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+     //cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
      bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  
     //  TESTOO
     //dosquint = False;
     ///////
     
-     cerr <<  "Doing AWPLPG" <<  endl;
+     //cerr <<  "Doing AWPLPG" <<  endl;
      theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
 

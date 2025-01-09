@@ -228,8 +228,9 @@
                                                  (for natural weighting, sensitivity=1/sqrt(sumwt))
                        try.pb              - Primary beam model (values depend on the gridder used)
 
-                       Widefield projection algorithms (gridder=mosaic,awproject) will
+                       A-projection algorithms (gridder=mosaic,awproject, awp2) will
                        compute the following images too.
+
                        try.weight        - FT of gridded weights or the
                                                  un-normalized sum of PB-square (for all pointings)
                                                  Here, PB = sqrt(weight) normalized to a maximum of 1.0
@@ -738,8 +739,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
 
     <param type="string" name="gridder">
-           <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject)</shortdescription>
-<description>Gridding options (standard, wproject, widefield, mosaic, awproject)
+           <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)</shortdescription>
+<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)
 
                        The following options choose different gridding convolution
                        functions for the process of convolutional resampling of the measured
@@ -825,13 +826,14 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                        awp2 : A-Projection with azimuthally asymmetric beams and
                                             including beam rotation, squint correction and W-projection.
+                                            [Bhatnagar et.al, 2008]
 
                                             Gridding convolution functions are computed from
                                             aperture illumination models (assuming similar antennas) and optionally
                                             combined with W-Projection kernels.
                                             This gridder can be run on single fields as well as mosaics.
                                             The other sub-parameters that are of significance when using this gridder
-                                            are wprojplanes, computepasteps, mosweights, usepointing, pblimit and normtype.
+                                            are wprojplanes, computepastep, mosweight, usepointing, pblimit and normtype.
 
                                         Only supports VLA : Uses ray traced model (VLA and EVLA) including feed
                                                  leg and subreflector shadows, off-axis feed location
@@ -843,7 +845,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                  e.g., PB every 5 degrees, over the range of parallactic angle covered by the data, will be calculated
                                                  and the nearest beam to every integration will be used to correct for the squint between the L and R beams.   
 
-                                                 For mtmfs with nterms &gt;1 and using awp2 gridder, for accurate results  always use specmode=&quot;mvc&quot;
+                                                 NOTE : For mtmfs with nterms &gt;1 and using awp2 gridder, for accurate results  always use specmode=&quot;mvc&quot;
                                                  as awp2 with specmode=&quot;mfs&quot; does not use  conjugate beams to remove the spectral
                                                  index of the primary beam.
 
@@ -877,7 +879,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                 ------ Note on PB masks :
 
-                         In tclean, A-Projection gridders (mosaic and awproject) produce a
+                         In tclean, A-Projection gridders (mosaic, awproject, and awp2) produce a
                          .pb image and use the 'pblimit' subparameter to decide normalization
                          cutoffs and construct an internal T/F mask in the .pb and .image images.
                          However, this T/F mask cannot directly be used during deconvolution
@@ -891,7 +893,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                             -- Run tclean with usemask='pb' for it to automatically construct
                          a 1/0 mask from the internal T/F mask from .pb at a fixed 0.2 threshold.
 
-                ----- Making PBs for gridders other than mosaic,awproject
+                ----- Making PBs for gridders other than mosaic, awproject, awp2
 
                       After the PSF generation, a PB is constructed using the same
                       models used in gridder='mosaic' but just evaluated in the image
@@ -1018,7 +1020,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
       <value type="string"/>
     </param>
     <param type="bool" name="mosweight" subparam="true">
-           <shortdescription>Indepently weight each field in a mosaic</shortdescription>
+           <shortdescription>Independently weight each field in a mosaic</shortdescription>
 <description>When doing Brigg's style weighting (including uniform) to perform the weight density calculation for each field indepedently if True. If False the weight density is calculated from the average uv distribution of all the fields.
 </description>
       <value type="bool">True</value>
