@@ -179,15 +179,38 @@ def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, d
 
 def _convert_to_ra_dec_j2000(phasecenter: str) -> Tuple[float, float]:
     """Parse phase center string to obtain ra/dec (in rad)"""
-    dirstr = phasecenter.split(" ")
+    def parse_phasecenter(center: str) -> Tuple[str, str, str]:
+        """
+        Splits the:
+        - (optional) frame,
+        - v0 (typically RA),
+        - v1 (typically Dec)
+        in a phasecenter string.
+        """
+        dirstr = center.split(" ")
+        if 3 == len(dirstr):
+            dir_frame, dir_v0, dir_v1 = dirstr[0], dirstr[1], dirstr[2]
+        elif 2 == len(dirstr):
+            dir_frame = ""  # J2000 will be default in me.direction, etc.
+            dir_v0, dir_v1 = dirstr[0], dirstr[1]
+        else:
+            raise AttributeError(f"Wrong phasecenter string: '{center}'. It must have 3 or 2 "
+                                 "items separated by space(s): 'reference_frame RA Dec' or 'RA Dec'")
+
+        return dir_frame, dir_v0, dir_v1
+
     try:
         melocal = me()
-        thedir = melocal.direction(dirstr[0], dirstr[1], dirstr[2])
+        dir_frame, dir_v0, dir_v1 = parse_phasecenter(phasecenter)
+        if dir_frame:
+            thedir = melocal.direction(dir_frame, dir_v0, dir_v1)
+        else:
+            thedir = melocal.direction(v0=dir_v0, v1=dir_v1)
         if not thedir:
             raise RuntimeError(
                 f"measures.direction() failed for phasecenter string: {phasecenter}"
             )
-        if dirstr[0] != "J2000":
+        if dir_frame != "J2000":
             # Convert to J2000
             thedir = melocal.measure(thedir, "J2000")
         thenewra_rad = thedir["m0"]["value"]

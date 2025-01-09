@@ -341,6 +341,32 @@ class phaseshift_test(phaseshift_base_checks):
         )
         self.check_field_subtable(output, datacopy_nep, phasecenter)
 
+
+    def test_phasecenter_default_frame(self):
+        '''
+        Check default frame (J2000) is used when not given in the
+        phasecenter input string, and no errors handling the phasecenter
+        '''
+
+        phasecenter = '00h06m14 -08d23m35'
+        phaseshift(datacopy_nep, outputvis=output, phasecenter=phasecenter)
+
+        self.check_nrows(output, 6270)
+        tb.open(output)
+        data_mean = np.mean(tb.getcol('DATA'))
+        tb.close()
+
+        #self.assertTrue(np.isclose(
+        #    data_mean, -0.00968202886279957-0.004072808512879953j)
+        #)
+        # self.assertAlmostEqual(fra, -1.074105, places=places)
+        self.assertAlmostEqual(data_mean, -0.009287334203197287-0.0033281368850437308j,
+                               places=6)
+
+        phasecenter_J2000 = 'J2000 00h06m14 -08d23m35'
+        self.check_field_subtable(output, datacopy_nep, phasecenter_J2000)
+
+
     def test_shiftAndCompare(self):
         '''
         Check that changing the phasecenter with phaseshift and
@@ -1005,6 +1031,15 @@ class phaseshift_subfunctions_test(unittest.TestCase):
         from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
 
         phasecenter = 'J2000 19h53m50 40d06m00'
+        fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
+        places = 6
+        self.assertAlmostEqual(fra, -1.074105, places=places)
+        self.assertAlmostEqual(fdec, 0.6998770, places=places)
+
+    def test__convert_to_j2000_using_default_frame(self):
+        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+
+        phasecenter = '19h53m50 40d06m00'
         fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
         places = 6
         self.assertAlmostEqual(fra, -1.074105, places=places)
