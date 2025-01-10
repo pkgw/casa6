@@ -117,6 +117,7 @@ import shutil
 import unittest
 import inspect
 import numpy as np
+import subprocess
 import operator
 
 from casatools import ctsys, quanta, measures, image, vpmanager, calibrater
@@ -140,7 +141,6 @@ _me = measures( )
 refdatapath = ctsys.resolve('unittest/tclean/')
 
 defaultlogpath = casalog.logfile()
-
 ## Base Test class with Utility functions
 class testref_base(unittest.TestCase):
 
@@ -157,6 +157,7 @@ class testref_base(unittest.TestCase):
               self.parallel = True
               self.PH = PyParallelImagerHelper()
               self.nnode = len(self.PH.getNodeList())
+          
 
           self.th = TestHelpers()
           self.check_final = self.th.check_final
@@ -211,6 +212,25 @@ class testref_base(unittest.TestCase):
           if textfile!="":
               self.textfile=textfile
               shutil.copy(os.path.join(refdatapath,self.textfile), self.textfile)
+     
+
+     ###function to test correct gpu for awphpg
+     @staticmethod
+     def isGPUEnabled():
+          hasWorkingGPU=False
+          from casatools import synthesisimager 
+          si=synthesisimager()
+          if(si.hpg_enabled()):
+               try:
+                    a=subprocess.run(['nvidia-smi', '-L'], capture_output=True, text=True)
+                    if(a.returncode==0 and a.stdout.split()[3]=='L4'):
+                         hasWorkingGPU=True
+               except:
+                    hasWorkingGPU=False
+          return hasWorkingGPU
+
+
+
 
         
 
@@ -3813,7 +3833,7 @@ class test_wproject(testref_base):
           self.assertTrue(self.check_final(report))
 ##############################################
           
-     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
+     @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not correct GPU or MPI is not compatible with hpg ")
      def test_wterm_awphpg(self):
           """ [wproject] Test_Widefield_wproj : W-Projection using the hpg AWProject gridder """ 
           
@@ -3856,7 +3876,7 @@ class test_widefield(testref_base):
 
           #do stokes V too.....
 
-     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
+     @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not Correct GPU or MPI is not compatible with hpg ")
      def test_widefield_awphpg_mfs(self):
           """ [widefield] Test_Widefield_awphpg : MFS with narrowband AWProjection 1spw  stokes I """
           # casalog.post("EMPTY TEST")
@@ -3887,7 +3907,7 @@ class test_widefield(testref_base):
           self.assertTrue(self.check_final(report))
 
 
-     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
+     @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not Correct GPU or MPI is not compatible with hpg ")
      def test_widefield_awphpg_cube(self):
           """ [widefield] Test_Widefield_awphpg_cube : Cube with AW-Projection  and rotation off """
 
@@ -3961,7 +3981,7 @@ class test_widefield(testref_base):
           ## alpha should be ZERO as the pb spectrum has been taken out.
           self.assertTrue(self.check_final(report))
 
-     @unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "MPI is not compatible with hpg ")
+     @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not correct GPU or MPI is not compatible with hpg ")
      def test_widefield_awphpg_mtmfs_via_cube(self):
           """ [widefield] Test_Widefield_wbaproj_mtmfs : MFS with wideband AWProjection (wbawp=T,conjbeams=T, allspw) and nt=2 stokes I  """
 
@@ -5695,41 +5715,6 @@ class test_mtmfsviacube(testref_base):
                        ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
                        ('tst.alpha', -0.56, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
                        ('tst.image.tt0.pbcor', 1.0, [256,256,0,0]), # Sky : point source with alpha=-0.5
-               ]
-          )  
-          casalog.post(report, "SEVERE")
-          self.assertTrue(self.check_final(pstr=report))
-
-     ## Tests for mvc : AWProject gridder
-     @unittest.skip('Skip test of "awp2" gridder until it comes in via CAS-14146.')
-     def test_mtmfsviacube_awp2(self):
-          """ [mtmfsviacube] test_mosaic_mtmfs_cube: test mosaic with mtmfs via cube """
-          ###########################################
-          self.prepData('refim_oneshiftpoint.mosaic.ms')
-          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
-                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152', 
-                       imsize=512,    
-                       cell='10.0arcsec', 
-                       specmode='mvc', 
-                       gridder='awp2',
-                       deconvolver='mtmfs', 
-                       nterms=2,
-                       reffreq='1.5GHz',
-                       nchan=3,
-                       pblimit=0.1, 
-                       niter=100, 
-                       pbcor=True)
-
-          report=self.th.checkall(
-               imgexist=['tst.psf.tt0',
-                         'tst.residual.tt0',
-                         'tst.image.tt0',
-                         'tst.image.tt1',
-                         'tst.alpha'], 
-               imgval=[('tst.psf.tt0', 1.0, [256,256,0,0]),
-                       ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
-                       ('tst.alpha', -0.5, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
-                       ('tst.image.tt0.pbcor', 1.05, [256,256,0,0]), # Sky : point source with alpha=-0.5
                ]
           )  
           casalog.post(report, "SEVERE")
