@@ -208,9 +208,8 @@ class XmlCMakeBuildExt(build_ext):
         subprocess.check_call(['cmake', '--build', '.'])
 
         # Copy GCC libs on Macos. 
-        # TODO: Make this work with non-"standard" gcc location
         if (sys.platform == 'darwin'):
-            gcc_dir = "/opt/local/lib/libgcc/"
+            gcc_dir = os.path.join(os.path.dirname(os.path.dirname(shutil.which('gfortran'))),'lib','libgcc')
             casac_lib_dir = extdir + "/casatools/__casac__/lib"
             copy_tree(gcc_dir, casac_lib_dir)
 
