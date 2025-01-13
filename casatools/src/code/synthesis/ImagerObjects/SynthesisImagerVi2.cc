@@ -1274,10 +1274,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
         else if(imshape[3] < (applicator.numProcs()-1)){
 		nsubcube=imshape[3]; 
         }
-        cerr << "FTM name " << gridpars_p.ftmachine << endl;
         if(gridpars_p.ftmachine.at(0,4)=="awph")
           nsubcube=imshape[3];
-        cerr << "SUBCUBE " << nsubcube << " shp  " << imshape[3] << endl;
         
 	Int chunksize=imshape[3]/nsubcube;
 	Int rem=imshape[3] % nsubcube;
@@ -2842,13 +2840,13 @@ void SynthesisImagerVi2::unlockMSs()
    //cerr << "rec " << rec << " kpb " << kpb << endl;
    //cerr <<  "createMOs ftname " <<  gridpars_p.ftmachine <<  endl;
    if (!gridpars_p.ftmachine.contains("mos")) {
-     cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
+     //cerr <<  "PASTERP " <<  rotatePAStep <<  "   " <<  gridpars_p.computePAStep <<  endl;
      bool dosquint = (gridpars_p.computePAStep < 180);       //anything beneath 180 deg ...you are not serious about squint correction  
     //  TESTOO
     //dosquint = False;
     ///////
     
-    cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
+    //cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
      theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
@@ -3058,7 +3056,7 @@ void SynthesisImagerVi2::unlockMSs()
   void SynthesisImagerVi2::createVisSet(const Bool /*writeAccess*/)
   {
     LogIO os( LogOrigin("SynthesisImagerVi2","createVisSet",WHERE) );
-    cerr << "mss_p num" << mss_p.nelements() <<  " sel  " << fselections_p->size() << endl;
+    //cerr << "mss_p num" << mss_p.nelements() <<  " sel  " << fselections_p->size() << endl;
     lockMSs();
     if(mss_p.nelements() > uInt(fselections_p->size()) && (fselections_p->size() !=0)){
       throw(AipsError("Discrepancy between Number of MSs and Frequency selections"));
@@ -3209,7 +3207,7 @@ void SynthesisImagerVi2::unlockMSs()
       //cerr << "Path = " << path << endl;
 
       // CountedPtr<AWProjectWBFTNew> tmpFT = new AWProjectWBFTNew(static_cast<AWProjectWBFTNew &> (*(itsMappers.getFTM(whichFTM))));
-      cerr << "@@@@IN making CFCache" << endl; 
+      //cerr << "@@@@IN making CFCache" << endl; 
 
       Float dPA=360.0,selectedPA=2*360.0;
       if (cfList.nelements() > 0)
