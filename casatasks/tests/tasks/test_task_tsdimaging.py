@@ -4396,7 +4396,7 @@ class sdimaging_pm04_test_base(sdimaging_unittest_base):
             if os.path.exists(f):
                 shutil.rmtree(f)
 
-    def _run_pm04_test(self, infiles=None):
+    def _run_pm04_test(self, infiles=None, **kw):
         imsize = 11
         params = {
             'infiles': self.infiles if infiles is None else infiles,
@@ -4408,6 +4408,7 @@ class sdimaging_pm04_test_base(sdimaging_unittest_base):
             'imsize': imsize,
             'cell': '10arcsec'
         }
+        params.update(kw)
         center = [imsize // 2, imsize // 2, 0, 0]
         ref = {
             'npts': [1],
@@ -4646,14 +4647,17 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
         with tool_manager(imagename, image) as ia:
             self.assertEqual(ia.brightnessunit(), expected)
 
-    def _run_brightness_unit_test(self, unit_expected: str):
+    def _run_brightness_unit_test(self, unit_expected: str, override_unit: str = ''):
         """Run tsdimaging task and verify brightness unit.
 
         Args:
             unit_expected: Expected unit string.
                 Should be either 'Jy/beam' or 'K'.
         """
-        self._run_pm04_test()
+        kw = {}
+        if override_unit in ('K', 'Jy/beam'):
+            kw['brightnessunit'] = override_unit
+        self._run_pm04_test(**kw)
         self._verify_brightness_unit(self.outfile + '.image', unit_expected)
 
     def test_no_unit(self):
@@ -4718,6 +4722,13 @@ class sdimaging_brightness_unit(sdimaging_pm04_test_base):
             self._set_intensity_unit(infile, 'UNIT', 'K', 'FLOAT_DATA')
             self._set_intensity_unit(infile, 'UNIT', 'Jy', 'CORRECTED_DATA')
         self._run_brightness_unit_test('Jy/beam')
+
+    def test_override_by_parameter(self):
+        """test_override_by_parameter: make sure parameter value takes priority"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'QuantumUnits', ['K'])
+        self._run_brightness_unit_test('Jy/beam', override_unit='Jy/beam')
+
 
 """
 # utility for sdimaging_test_mapextent
