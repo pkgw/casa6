@@ -154,8 +154,9 @@ def xml_constraints_injector(func):
 
             # override args by the converter generated from xml
             casatasks.casalog.post('loaded constraints from XML', 'DEBUG')
-            exec(converter_function_string)
-            exec(f'{__FUNCTION}(args_, args_position_dict, supplied_args_flags)')
+            _local = {}
+            exec(converter_function_string, locals=_local)
+            _local[__FUNCTION](args_, args_position_dict, supplied_args_flags)
 
             # execute task
             retval = func(*args_, **kwargs_)
