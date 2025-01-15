@@ -1350,10 +1350,6 @@ to use the correct direction in which the antenna is pointing with respect to th
                                          where RI is the residual image and * is the convulition operation. 
                                        - Compute the model image and update the residual image
                                        - Repeat from step 2
-				       
-				       (Note : This is an experimental version of the ASP algorithm.)
-
-
 
 
 </description>

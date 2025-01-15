@@ -95,7 +95,6 @@
       <value type="string"/>
     </param>
 
-    <!-- TODO in CAS-13570: fix asp description and allow asp value once asp is working -->
     <param type="string" name="deconvolver">
       <!-- ><shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mem,clarkstokes)</shortdescription> -->
       <shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mtmfs,mem,clarkstokes,asp)</shortdescription>
@@ -164,12 +163,6 @@
                                          per scale) from all smoothed Taylor residual images
                                        - Repeat from step 2
 					     
-                        asp : This deconvolver is not currently considered reliable when used with
-                              task deconvolve and is therefore disabled. Please choose a different
-                              deconvolver.
-
-
-
       </description>
       <value type="string">hogbom</value>
       <allowed kind="enum">
@@ -764,7 +757,6 @@
           <default param="nterms"><value type="int">2</value></default>
           <default param="smallscalebias"><value>0.0</value></default>
         </equals>
-        <!-- TODO in CAS-13570: uncomment once asp is working -->
         <equals type="string" value="asp">
           <default param="fusedthreshold"><value>0.0</value></default>
           <default param="largestscale"><value>-1</value></default>
