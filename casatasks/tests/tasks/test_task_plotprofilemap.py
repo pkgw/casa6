@@ -22,7 +22,7 @@ import os
 import shutil
 import numpy
 import re
-import imghdr
+import subprocess
 import unittest
 import matplotlib
 import pylab as pl
@@ -291,7 +291,15 @@ class plotprofilemap_test(unittest.TestCase):
         self.assertTrue(os.path.exists(figfile))
 
         # figfile must be PNG format
-        self.assertEqual(imghdr.what(figfile), 'png')
+        cmd_output = subprocess.getoutput(f'file {figfile}')
+        # output must be single line
+        lines = cmd_output.rstrip('\n').split('\n')
+        self.assertEqual(len(lines), 1)
+        # output must be in "filename: file info" format
+        items = lines[0].split(': ')
+        self.assertEqual(len(items), 2)
+        file_type = items[1]
+        self.assertTrue(file_type.startswith('PNG image data'))
 
     def skip_if_darwin(self):
         sysname = os.uname()[0]

@@ -298,6 +298,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       //os << "---------------------------------------------------- Init (?) Minor Cycles ---------------------------------------------" << LogIO::POST;
 
+      Int nSubChans, nSubPols;
+      nSubChans = imstor->getShape()(3);
+      nSubPols = imstor->getShape()(2);
       itsImages = imstor;
 
       // If a starting model exists, this will initialize the ImageStore with it. Will do this only once.
@@ -307,22 +310,26 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       //itsIterDone += itsLoopController.getIterDone();
 
       //      setupMask();
-
+      //
       Float masksum;
       if( ! itsImages->hasMask() ) // i.e. if there is no existing mask to re-use...
-	{ masksum = -1.0;}
+	  {
+          masksum = -1.0;
+      }
       else
 	{
 	  masksum = itsImages->getMaskSum();
 	  itsImages->mask()->unlock();
 	}
       Bool validMask = ( masksum > 0 );
+
       //    os << LogIO::NORMAL3 << "****INITMINOR Masksum stuff "<< tim.real() << LogIO::POST;
       // tim.mark();
 
       // Calculate Peak Residual and Max Psf Sidelobe, and fill into SubIterBot.
       Float peakresnomask = itsImages->getPeakResidual();
-      Float peakresinmask= validMask ? itsImages->getPeakResidualWithinMask() : peakresnomask;
+      // CAS-14201 : if the mask is all zero, then the peakresinmask is 0
+      Float peakresinmask= validMask ? itsImages->getPeakResidualWithinMask() : 0;
       //os << LogIO::NORMAL3 << "****INITMINOR residual peak "<< tim.real() << LogIO::POST;
       //tim.mark();
       itsLoopController.setPeakResidual( validMask ? peakresinmask : peakresnomask );
@@ -383,7 +390,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           }
 
 	        //cerr << this << " DOING robust " << itsRobustStats << endl;
-
        }
 
         /***
@@ -398,7 +404,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         //Double maxrobustrms = max(robustrms);
         if(robustrms.empty())
           throw(AipsError("No valid values to deconvolve"));
-          
+
         minMax(minval, maxval, minpos, maxpos, robustrms);
 
         //Float nsigmathresh = nsigma * (Float)robustrms(IPosition(1,0));
@@ -452,9 +458,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	{
 	  itsLoopController.setMaskSum( -1.0 );
 	}
+      float psfsidelobelevel = itsImages->getPSFSidelobeLevel();
 
       returnRecord = itsLoopController.getCycleInitializationRecord();
-      //cerr << "INIT record " << returnRecord << endl;
+
+      // cerr << "INIT record " << returnRecord << endl;
 
       //      itsImages->printImageStats();
       os << " Absolute Peak residual within mask : " << peakresinmask << ", over full image : " << peakresnomask  << LogIO::POST;
@@ -512,9 +520,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  iterRec.get("iterdone",iterdone);
 	}
       else throw(AipsError("SD::interactiveGui() needs valid niter, cycleniter, threshold to start up."));
-      
+
       if( ! itsImages ) itsImages = makeImageStore( itsImageName, itsNoRequireSumwt );
-      
+
       //      SDMaskHandler masker;
       String strthresh = String::toString(threshold)+"Jy";
       String strcycthresh = String::toString(cyclethreshold)+"Jy";
@@ -1006,6 +1014,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO os( LogOrigin("SynthesisDeconvolver","setupMask",WHERE) );
     if(!itsImages)
       throw(AipsError("Initminor Cycle has not been called yet"));
+
     Bool maskchanged=False;
     //debug
     if( itsIsMaskLoaded==false ) {
@@ -1032,6 +1041,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
           }
           ***/
         }
+
         //else if( itsMaskType=="user" && itsMaskList[0] != "" ) {
         if( itsMaskType=="user" && itsMaskList[0] != "" ) {
 	  os << "[" << itsImages->getName() << "] Setting up a mask from " << itsMaskList  <<  ((itsPBMask>0.0)?" within PB mask limit ":"") << LogIO::POST;
@@ -1048,34 +1058,32 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	os << "----------------------------------------------------------------------------------------------------------------------------------------" << LogIO::POST;
 
-      } else {
-
-        // new im statistics creates an empty mask and need to take care of that case
-        Bool emptyMask(False);
-        if( itsImages->hasMask() )
-          {
-              // CAS-14203 - Check if mask is empty AND user didn't specify an empty mask
-            if (itsImages->getMaskSum()==0.0 && itsMaskList[0] != "") {
-              emptyMask=True;
+        }
+        else {
+            // new im statistics creates an empty mask and need to take care of that case
+            Bool emptyMask(False);
+            if( itsImages->hasMask() )
+            {
+                // CAS-14203 - Check if mask is empty AND user didn't specify an empty mask
+                if (itsImages->getMaskSum()==0.0 && itsMaskList[0] != "") {
+                    emptyMask=True;
+                }
             }
-          }
-	if( ! itsImages->hasMask() || emptyMask ) // i.e. if there is no existing mask to re-use...
-	  {
-            LatticeLocker lock1 (*(itsImages->mask()), FileLocker::Write);
-	    if( itsIsInteractive ) itsImages->mask()->set(0.0);
-	    else itsImages->mask()->set(1.0);
-	    os << "[" << itsImages->getName() << "] Initializing new mask to " << (itsIsInteractive?"0.0 for interactive drawing":"1.0 for the full image") << LogIO::POST;
-	  }
-	else {
-	  os << "[" << itsImages->getName() << "] Initializing to existing mask" << LogIO::POST;
-	}
-
-      }
+            if( ! itsImages->hasMask() || emptyMask ) // i.e. if there is no existing mask to re-use...
+            {
+                LatticeLocker lock1 (*(itsImages->mask()), FileLocker::Write);
+                if( itsIsInteractive ) itsImages->mask()->set(0.0);
+                else itsImages->mask()->set(1.0);
+                os << "[" << itsImages->getName() << "] Initializing new mask to " << (itsIsInteractive?"0.0 for interactive drawing":"1.0 for the full image") << LogIO::POST;
+            }
+            else {
+                os << "[" << itsImages->getName() << "] Initializing to existing mask" << LogIO::POST;
+            }
+        }
 
       // If anything other than automasking, don't re-make the mask here.
       if ( itsAutoMaskAlgorithm == "" )
         {	itsIsMaskLoaded=true; }
-
 
       // Get the number of mask pixels (sum) and send to the logger.
       Float masksum = itsImages->getMaskSum();
@@ -1135,7 +1143,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     LogIO os( LogOrigin("SynthesisDeconvolver","checkRestoringBeam",WHERE) );
     //check for a bad restoring beam
     GaussianBeam beam;
-    
+
     if( ! itsImages ) itsImages = makeImageStore( itsImageName, itsNoRequireSumwt );
     ImageInfo psfInfo = itsImages->psf()->imageInfo();
     if (psfInfo.hasSingleBeam()) {
