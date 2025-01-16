@@ -1,8 +1,7 @@
 import subprocess
-import os
+import os, sys
 
 import asyncio
-
 
 # Streaming logic from here:
 # https://kevinmccarthy.org/2016/07/25/streaming-subprocess-stdin-and-stdout-with-asyncio-in-python/
@@ -21,11 +20,16 @@ async def _stream_subprocess(cmd, stdout_cb, stderr_cb, cwd):
                                                    stdout=asyncio.subprocess.PIPE,
                                                    stderr=asyncio.subprocess.PIPE,
                                                    cwd=cwd)
-
-    await asyncio.wait([
+    if sys.version_info <= (3,11):
+        await asyncio.wait([
         _read_stream(process.stdout, stdout_cb),
         _read_stream(process.stderr, stderr_cb)
-    ])
+        ])
+    else:
+        await asyncio.gather(
+        _read_stream(process.stdout, stdout_cb),
+        _read_stream(process.stderr, stderr_cb)
+        )
     return await process.wait()
 
 
