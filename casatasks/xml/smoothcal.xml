@@ -43,7 +43,7 @@
                         <value type="double">60.0</value>
                 </param>
 
-                <param type="bool" name="ratesmooth"><shortdescription>Use rate aware smoothing</shortdescription><description>Use rate aware smoothing</description>
+                <param type="bool" name="ratesmooth"><shortdescription>EXPERIMENTAL rate aware smoothing</shortdescription><description>Use rate aware smoothing. This is an experimental feature</description>
                         
                         <value type="bool">False</value>
                 </param>
