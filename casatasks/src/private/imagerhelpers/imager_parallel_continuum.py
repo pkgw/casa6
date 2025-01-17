@@ -200,7 +200,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
         #    self.dryGridding();
 
         ##weighting with mosfield=True
-        if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
+        if( ( ( (self.weightpars['type'].count('briggs') or  self.weightpars['type'].count('uniform')) > 0)  and (self.weightpars['multifield']) )  ):
             self.toolsi.setweighting(**self.weightpars)
             ###master create the weight density for all fields
             self.toolsi.getweightdensity()
@@ -308,7 +308,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
     def initializeNormalizers(self):
         for immod in range(0,self.NF):
             self.PStools.append(synthesisnormalizer())
-            normpars = copy.deepcopy( self.allnormpars[str(immod)] )
+            self.localnormpars = copy.deepcopy( self.allnormpars[str(immod)] )
             partnames = []
             if(self.NN>1):
                 #### MPIInterface related changes
@@ -319,16 +319,16 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                     #partnames.append( self.PH.getpath(node) + '/' + onename  )
                     #self.PH.deletepartimages( self.PH.getpath(node), onename ) # To ensure restarts work properly.
                     self.PH.deletepartimages( self.allimpars[str(immod)]['imagename'] ,  node ) # To ensure restarts work properly.
-                normpars['partimagenames'] = partnames
-            self.PStools[immod].setupnormalizer(normpars=normpars)
+                self.localnormpars['partimagenames'] = partnames
+            
+            self.PStools[immod].setupnormalizer(normpars=self.localnormpars)
 
 
 #############################################
     def setWeighting(self):
-
         ## Set weight parameters and accumulate weight density (natural)
         joblist=[];
-        if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
+        if( ( ((self.weightpars['type'].count('briggs') or self.weightpars['type'].count('uniform')) >0) and (self.weightpars['multifield']) ) ):
             ###master created the weight density for all fields
             ##Should have been in  initializeImagersBase_New but it is not being called !
             self.toolsi = synthesisimager()
@@ -375,7 +375,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             self.PH.checkJobs( joblist )
 
             ## If only one field, do the get/gather/set of the weight density.
-            if self.NF == 1 and self.allimpars['0']['stokes']=="I":   ## Remove after gridded wts appear for all fields correctly (i.e. new FTM).
+            if self.NF == 1: # and self.allimpars['0']['stokes']=="I":   ## Remove after gridded wts appear for all fields correctly (i.e. new FTM).
                 
                 if not ( (self.weightpars['type'] ==  'natural') or (self.weightpars['type'] == 'radial'))   :  ## For natural and radial, this array isn't created at all.
                                                                        ## Remove when we switch to new FTM
@@ -387,19 +387,47 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                         joblist.append( self.PH.runcmd("toolsi.getweightdensity()", node ) )
                     self.PH.checkJobs( joblist )
 
+
+
+
+
                     ## gather weightdensity and sum and scatter
                     casalog.post("******************************************************")
                     casalog.post(" gather and scatter now ")
                     casalog.post("******************************************************")
-                    for immod in range(0,self.NF):
-                        self.PStools[immod].gatherweightdensity()
-                        self.PStools[immod].scatterweightdensity()
+                    locpstool=synthesisnormalizer() 
+                    locpstool.setupnormalizer(normpars=self.localnormpars)
+                                             
+                    locpstool.gatherweightdensity()
+                    sumgridname=locpstool.scatterweightdensity()
+                    resname=sumgridname.replace(".gridwt", ".residual")
+                    #print("%%%%%%%%", sumgridname)
+                    if(os.path.exists(sumgridname+"_temp") and (os.path.exists(resname) or os.path.exists(resname+".tt0")) ): # a restart
+                        shutil.rmtree(sumgridname, True)
+                        shutil.move(sumgridname+"_temp", sumgridname)
 
                     ## Set weight density for each nodel
                     joblist=[];
                     for node in self.listOfNodes:
-                        joblist.append( self.PH.runcmd("toolsi.setweightdensity()", node ) )
+                        joblist.append( self.PH.runcmd("toolsi.setweightdensity('"+str(sumgridname)+"')", node ) )
                     self.PH.checkJobs( joblist )
+                    ###For some reason we cannot stop psf being made along with gridwt image and 
+                    ### and may have the wrong shape at this stage
+                    #shutil.rmtree(sumgridname)
+                    shutil.rmtree(sumgridname+"_temp", True)
+                    shutil.move(sumgridname, sumgridname+"_temp")
+
+                    tmppsfname=sumgridname.replace(".gridwt", ".psf")
+                    resname=sumgridname.replace(".gridwt", ".residual")
+                    if(not os.path.exists(resname)) :  # not a restart so psf shape may be different if full pol...delete it
+                        shutil.rmtree(tmppsfname, True)
+                    if(not os.path.exists(resname+".tt0")) :
+                        shutil.rmtree(tmppsfname+".tt0", True)
+
+
+            else:
+                if not ( (self.weightpars['type'] ==  'natural') or (self.weightpars['type'] == 'radial'))   :    
+                    casalog.post("Parallel-Continuum-multifield  with briggs weighting will give different weighting schemes with number of processes used", "WARN")
 
 
 

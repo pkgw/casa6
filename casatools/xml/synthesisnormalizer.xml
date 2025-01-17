@@ -73,11 +73,13 @@ This is used to construct {\tt synthesisnormalizer} tool.
    <method name="scatterweightdensity" type="function">
    <shortdescription>Scatter summed Gridded Weight images</shortdescription>
 
-<description>
+   <description>
+     scatter sum gridded weight image for continuum Briggs style to other siimagestore
+     returns the disk name if it exists 
 </description>
 <input/>
 
-<returns type="bool"/>
+<returns type="string"/>
 </method>
 
 
