@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -31,6 +31,7 @@
 #include <casacore/casa/aips.h>
 #include <imageanalysis/Annotations/AnnotationBase.h>
 #include <casacore/measures/Measures/Stokes.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 
 namespace casa {
 

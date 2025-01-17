@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
 import datetime
 import re
 
@@ -13,7 +10,7 @@ _tb = table( )
 _qa = quanta( )
 
 ######################################################################
-def correct_ant_posns_evla (vis_name, print_offsets=False):
+def correct_ant_posns_evla (vis_name, print_offsets=False, time_limit=0):
     '''
     Given an input visibility MS name (vis_name), find the antenna
     position offsets that should be applied.  This application should
@@ -53,6 +50,8 @@ def correct_ant_posns_evla (vis_name, print_offsets=False):
     BJB
     NRAO
     Spring 2020 (fixed version)
+
+    Revised on 2023-01-25: CAS-14035 bug fix -TT 
     '''
 
     MONTHS = [ 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
@@ -172,14 +171,28 @@ def correct_ant_posns_evla (vis_name, print_offsets=False):
                     ant_num_stas[ant_ind][5] = 0.0
             if put_time > obs_time and not ant_num_stas[ant_ind][6] and pad == ant_num_stas[ant_ind][2]:
 # it's the right antenna/pad; add the offsets to those already accumulated
-                ant_num_stas[ant_ind][3] += Bx
-                ant_num_stas[ant_ind][4] += By
-                ant_num_stas[ant_ind][5] += Bz
+
+                # Time limit for antenna corrections in days
+                #put_time_days = int(str(put_time)[:4]) + int(str(put_time)[4:6]) + int(str(put_time)[6:8])
+                put_time_str = str(put_time)
+                put_time_str = put_time_str[:4]+'/'+put_time_str[4:6]+'/'+put_time_str[6:8]
+
+                obs_time_str = str(obs_time)
+                obs_time_str = obs_time_str[:4]+'/'+obs_time_str[4:6]+'/'+obs_time_str[6:8]
+
+                time_diff = _qa.quantity(put_time_str)['value']-_qa.quantity(obs_time_str)['value']
+
+                if time_limit <= 0 or ( time_diff < time_limit ):
+                    #print("put seperated: " put_time % 10000, )
+                    #print("put time MJD, antenna, pad, offsets = %f  %d  %s  %f %f %f" % (put_time_MJD,ant_num_stas[ant_ind][0],ant_num_stas[ant_ind][2],Bx,By,Bz))
+                    ant_num_stas[ant_ind][3] += Bx
+                    ant_num_stas[ant_ind][4] += By
+                    ant_num_stas[ant_ind][5] += Bz
 
     ants = []
     parms = []
     for ant_num_sta in ant_num_stas:
-        if ant_num_sta[3] != 0.0 or ant_num_sta[4] != 0.0 or ant_num_sta[3] != 0.0:
+        if ant_num_sta[3] != 0.0 or ant_num_sta[4] != 0.0 or ant_num_sta[5] != 0.0:
             if print_offsets:
                 print("Offsets for antenna %4s on pad %3s: %8.5f  %8.5f  %8.5f" % \
                       (ant_num_sta[1], ant_num_sta[2], ant_num_sta[3], ant_num_sta[4], ant_num_sta[5]))

@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -251,12 +251,13 @@ using namespace casa::vi;
     
     inline casacore::Int nearestWNdx(const casacore::Double& wVal) 
     {
-      //      return SynthesisUtils::nint(sqrt(wValIncr_p*abs(wVal)));
-      return max(0,min((int)(sqrt(wValIncr_p*abs(wVal))),(int)wValues_p.nelements())-1);
-      // Int ndx=(int)(sqrt(wValIncr_p*abs(wVal)));
-      // if ((uInt)ndx >= wValues_p.nelements())
-      // 	cerr << endl << endl << ndx << " " <<  wVal << " " << wValIncr_p << endl << endl;
-      // return min(ndx,wValues_p.nelements()-1);
+      return max(0,
+		 min(
+		     (int)round(sqrt(wValIncr_p*abs(wVal))),
+		     (int)(wValues_p.nelements()-1)
+		     )
+		 ); // CAS-13191
+      //return max(0,min((int)round(sqrt(abs(wVal)/wValIncr_p)),(int)(wValues_p.nelements()-1))); // CAS-13191
     }
     
     casacore::Double nearest(casacore::Bool& found, const casacore::Double& val, const casacore::Vector<casacore::Double>& valList, const casacore::Double& incr);
@@ -322,7 +323,7 @@ using namespace casa::vi;
 						      const casacore::String& fileName=casacore::String(),
 						      const casacore::Double& conjFreq=0.0,
 						      const casacore::Int& conjPol=-1,
-						      const casacore::String& telescopeName=casacore::String(),
+						      const casacore::String& telescopeName=casacore::String("EVLA"),
 						      const casacore::Float& diameter=25.0);
     // casacore::RigidVector<casacore::Int, 3> setParams(const casacore::Int& inu, const casacore::Int& iw, const casacore::Int& muellerElement,
     // 				  const casacore::TableRecord& miscInfo);

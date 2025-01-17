@@ -16,7 +16,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -540,7 +540,7 @@ template<class T> LatticeStatsBase::StatisticsTypes ImageCollapser<T>::_getStats
 
 template<class T> void ImageCollapser<T>::_zeroNegatives(Array<T>& arr) {
     auto iter = arr.begin();
-    if (isComplex(whatType(&(*iter))) || allGE(arr, (T)0)) {
+    if (isComplex(whatType<T>()) || allGE(arr, (T)0)) {
         return;
     }
     auto end = arr.end();

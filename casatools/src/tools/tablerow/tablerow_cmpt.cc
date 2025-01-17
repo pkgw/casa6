@@ -17,26 +17,21 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
 //#                        Charlottesville, VA 22903-2475 USA
 //#
 
-#include <map>
-#include <cstring>
-#include <functional>
-#include <Python.h>
-//#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/arrayobject.h>
 #include <swigconvert_python.h>
+#include <table_convert.h>
 #include <table_cmpt.h>
 
 #include <stdint.h>
 #include <iostream>
-#include <tables/Tables/TableProxy.h>
-#include <tables/Tables/TableRowProxy.h>
+#include <casacore/tables/Tables/TableProxy.h>
+#include <casacore/tables/Tables/TableRowProxy.h>
 #include <stdcasa/StdCasa/CasacSupport.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <casacore/casa/Exceptions/Error.h>
@@ -67,10 +62,6 @@ static bool _tablerow_initialize_numpy( ) {
 static bool numpy_initialized = _tablerow_initialize_numpy( );
 
 
-inline size_t non_zero( size_t val ) {
-    return  val <= 0 ? 5 : val;
-}
-
 namespace casac {
 
     // constructor used by from python to construct a tablerow object
@@ -87,7 +78,7 @@ namespace casac {
 
     // constructor used by table class (in table_cmpt.cc) to return a
     // tablerow for fetching one or more rows
-    tablerow::tablerow( table *tb, std::shared_ptr<casacore::TableProxy> myTable,
+    tablerow::tablerow( table *tb, std::shared_ptr<TableHandle> myTable,
                         const std::vector<std::string> &columnnames, bool exclude ) :
         itsLog(new casacore::LogIO), itsProxy(myTable), itsTable(tb)
     {
@@ -160,157 +151,15 @@ namespace casac {
         throw AipsError( "use of uninitialized table row" );
     }
 
-    // convert a boolean value to a PyObject
-    static inline PyObject *toPy( bool b ) {
-        if ( b ) { Py_INCREF(Py_True); return Py_True; }
-        else { Py_INCREF(Py_False); return Py_False; }
-    }
-
-    // convert numeric scalars to a PyObject
-#define PY_NUM_SCALAR( CASACORE_TYPE, NUMPY_TYPE )                                 \
-    static inline PyObject *toPy( CASACORE_TYPE i ) {                              \
-        static PyObject *itemlen = PyLong_FromLong(sizeof(i));                     \
-        return PyArray_Scalar( &i, PyArray_DescrFromType(NUMPY_TYPE), itemlen );   \
-    }
-
-    PY_NUM_SCALAR( int8_t, NPY_INT8 )
-    PY_NUM_SCALAR( uint8_t, NPY_UINT8 )
-    PY_NUM_SCALAR( int16_t, NPY_INT16 )
-    PY_NUM_SCALAR( uint16_t, NPY_UINT16 )
-    PY_NUM_SCALAR( int32_t, NPY_INT32 )
-    PY_NUM_SCALAR( uint32_t, NPY_UINT32 )
-    PY_NUM_SCALAR( int64_t, NPY_INT64 )
-    PY_NUM_SCALAR( uint64_t, NPY_UINT64 )
-    PY_NUM_SCALAR( float, NPY_FLOAT )
-    PY_NUM_SCALAR( double, NPY_DOUBLE )
-    PY_NUM_SCALAR( Complex, NPY_COMPLEX64 )
-    PY_NUM_SCALAR( DComplex, NPY_COMPLEX128 )
-
-    // convert a string to a PyObject
-    static inline PyObject *toPy( const String &s ) { return PyUnicode_FromString(s.c_str( )); }
-
-    // convert an array of strings to a PyObject
-    static inline PyObject *toPy( const Array<String> &a ) {
-        auto shape = a.shape( );
-        size_t stringlen = std::accumulate( a.begin( ), a.end( ), (size_t) 0, []( size_t tally, const String &s ) { return s.size( ) > tally ? s.length( ) : tally; } );
-        size_t memlen = a.nelements( ) * non_zero(stringlen) * sizeof(uint32_t);
-        void *mem = PyDataMem_NEW(memlen);
-        uint32_t *ptr = reinterpret_cast<uint32_t*>(mem);
-        for ( const auto &str : a ) {
-            for ( size_t i=0; i < non_zero(stringlen); ++i ) {
-                *ptr++ = i < str.size( ) ? (unsigned char) str[i] : 0;
-            }
-        }
-        return PyArray_New( &PyArray_Type, shape.nelements( ), (npy_intp*) shape.storage( ), NPY_UNICODE, nullptr, mem, non_zero(stringlen)*sizeof(uint32_t), NPY_ARRAY_OWNDATA | NPY_ARRAY_FARRAY, nullptr );
-    }
-
-    // convert numeric arrays to PyObjects
-    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-    // Allocating the result object with:
-    //
-    //   PyObject *ndarray = PyArray_New( &PyArray_Type, shape.nelements( ), (npy_intp*) shape.storage( ), NUMPY_TYPE,
-    //                                    nullptr, nullptr, 0, NPY_ARRAY_FARRAY, nullptr );
-    //
-    // and then filling it after the fact with:
-    //
-    //   bool free_storage = false;
-    //   auto storage = a.getStorage( free_storage );
-    //   std::memcpy( PyArray_DATA( reinterpret_cast<PyArrayObject *>(ndarray)),
-    //                              storage, a.nelements( ) * sizeof(CASACORE_TYPE) );
-    //   PyArray_ENABLEFLAGS( reinterpret_cast<PyArrayObject *>(ndarray), NPY_ARRAY_OWNDATA );
-    //   if ( free_storage ) delete storage;
-    //
-    // worked on RHEL7 + python 3.6 but fails on macos 10.15 + python 3.8
-    //
-#define PY_NUM_ARRAY( CASACORE_TYPE, NUMPY_TYPE )                                                                         \
-    static inline PyObject *toPy( const Array<CASACORE_TYPE> &a ) {                                                       \
-        auto shape = a.shape( );                                                                                          \
-        size_t memlen = a.nelements( ) * sizeof(CASACORE_TYPE);                                                           \
-        auto *mem = PyDataMem_NEW(memlen);                                                                                \
-        auto *ptr = reinterpret_cast<CASACORE_TYPE*>(mem);                                                                \
-        for ( const auto &ele : a ) {                                                                                     \
-            *ptr++ = ele;                                                                                                 \
-        }                                                                                                                 \
-        auto result = PyArray_New( &PyArray_Type, shape.nelements( ), (npy_intp*) shape.storage( ), NUMPY_TYPE, nullptr,  \
-                                   mem, sizeof(CASACORE_TYPE), NPY_ARRAY_OWNDATA | NPY_ARRAY_FARRAY, nullptr );           \
-        /*** setting NPY_ARRAY_OWNDATA here is required to avoid memory leak of allocated data (rhel7 + python 3.6) ***/  \
-        PyArray_ENABLEFLAGS( reinterpret_cast<PyArrayObject*>(result), NPY_ARRAY_OWNDATA );                               \
-        return result;                                                                                                    \
-    }
-
-    PY_NUM_ARRAY( bool, NPY_BOOL )
-    PY_NUM_ARRAY( int8_t, NPY_INT8 )
-    PY_NUM_ARRAY( uint8_t, NPY_UINT8 )
-    PY_NUM_ARRAY( int16_t, NPY_INT16 )
-    PY_NUM_ARRAY( uint16_t, NPY_UINT16 )
-    PY_NUM_ARRAY( int32_t, NPY_INT32 )
-    PY_NUM_ARRAY( uint32_t, NPY_UINT32 )
-    PY_NUM_ARRAY( int64_t, NPY_INT64 )
-    PY_NUM_ARRAY( uint64_t, NPY_UINT64 )
-    PY_NUM_ARRAY( float, NPY_FLOAT )
-    PY_NUM_ARRAY( double, NPY_DOUBLE )
-    PY_NUM_ARRAY( Complex, NPY_COMPLEX64 )
-    PY_NUM_ARRAY( DComplex, NPY_COMPLEX128 )
-
-    static PyObject *toPy( const casacore::Record &rec ) {
-        using namespace casacore;
-
-        // build map from table cell types to conversion functions
-        std::map<int,function<PyObject*(size_t i)>> function_map = { {TpBool,[&](size_t i) ->PyObject* { return toPy(rec.asBool(i)); }},
-                                                                     {TpChar,[&](size_t i) ->PyObject* { return toPy(rec.asuChar(i)); }},
-                                                                     {TpUChar,[&](size_t i) ->PyObject* { return toPy(rec.asuChar(i)); }},
-                                                                     {TpShort,[&](size_t i) ->PyObject* { return toPy(rec.asShort(i)); }},
-                                                                     {TpUShort,[&](size_t i) ->PyObject* { return toPy(rec.asShort(i)); }},
-                                                                     {TpInt,[&](size_t i) ->PyObject* { return toPy(rec.asInt(i)); }},
-                                                                     {TpUInt,[&](size_t i) ->PyObject* { return toPy(rec.asuInt(i)); }},
-                                                                     {TpInt,[&](size_t i) ->PyObject* { return toPy(rec.asInt(i)); }},
-                                                                     {TpUInt,[&](size_t i) ->PyObject* { return toPy(rec.asuInt(i)); }},
-                                                                     {TpInt64,[&](size_t i) ->PyObject* { return toPy((int64_t)rec.asInt64(i)); }},
-                                                                     {TpFloat,[&](size_t i) ->PyObject* { return toPy(rec.asFloat(i)); }},
-                                                                     {TpDouble,[&](size_t i) ->PyObject* { return toPy(rec.asDouble(i)); }},
-                                                                     {TpComplex,[&](size_t i) ->PyObject* { return toPy(rec.asComplex(i)); }},
-                                                                     {TpDComplex,[&](size_t i) ->PyObject* { return toPy(rec.asDComplex(i)); }},
-                                                                     {TpArrayBool,[&](size_t i) ->PyObject* { return toPy(rec.asArrayBool(i)); }},
-                                                                     {TpArrayUChar,[&](size_t i) ->PyObject* { return toPy(rec.asArrayuChar(i)); }},
-                                                                     {TpArrayChar,[&](size_t i) ->PyObject* { return toPy(rec.asArrayuChar(i)); }},
-                                                                     {TpArrayShort,[&](size_t i) ->PyObject* { return toPy(rec.asArrayShort(i)); }},
-                                                                     {TpArrayUShort,[&](size_t i) ->PyObject* { return toPy(rec.asArrayShort(i)); }},
-                                                                     {TpArrayInt,[&](size_t i) ->PyObject* { return toPy(rec.asArrayInt(i)); }},
-                                                                     {TpArrayUInt,[&](size_t i) ->PyObject* { return toPy(rec.asArrayuInt(i)); }},
-                                                                     {TpArrayFloat,[&](size_t i) ->PyObject* { return toPy(rec.asArrayFloat(i)); }},
-                                                                     {TpArrayDouble,[&](size_t i) ->PyObject* { return toPy(rec.asArrayDouble(i)); }},
-                                                                     {TpArrayComplex,[&](size_t i) ->PyObject* { return toPy(rec.asArrayComplex(i)); }},
-                                                                     {TpArrayDComplex,[&](size_t i) ->PyObject* { return toPy(rec.asArrayDComplex(i)); }},
-                                                                     {TpString,[&](size_t i) ->PyObject* { return toPy(rec.asString(i)); }},
-                                                                     {TpRecord,[&](size_t i) ->PyObject* { return toPy(rec.asRecord(i)); }}
-        };
-
-        // create result
-        auto result = PyDict_New( );
-        if ( result == nullptr ) throw PyExc_MemoryError;
-        // loop through record fields
-        for ( uInt i=0; i < rec.nfields( ); ++i ) {
-            auto func = function_map.find( rec.dataType(i) );
-            // lookup conversion function
-            if ( func != function_map.end( ) ) {
-                auto newobj = func->second(i);
-                auto name = PyUnicode_FromString(rec.name(i).c_str( ));
-                // set field in result
-                if ( PyDict_SetItem( result, name, newobj ) != 0 ) {
-                    Py_DECREF(result);
-                    Py_DECREF(newobj);
-                    Py_DECREF(name);
-                    throw PyExc_ValueError;
-                }
-                Py_DECREF(newobj);
-                Py_DECREF(name);
-            } else {
-                Py_DECREF(result);
-                throw PyExc_TypeError;
-            }
-        }
-        return result;
-    }
+    // RAII for PyGILState_Ensure()/Release()
+    class GILState_Ensurer {
+        PyGILState_STATE state;
+        bool inited;
+    public:
+        void release() { if (inited) { PyGILState_Release(state); inited = false; } }
+        GILState_Ensurer() : inited(true), state(PyGILState_Ensure()) {}
+        ~GILState_Ensurer() { release(); }
+    };
 
     PyObj* tablerow::__getitem__( PyObj *rownr ) {
         PyObject *obj = (PyObject*) rownr;
@@ -331,11 +180,13 @@ namespace casac {
             // index indicates a slice
             if ( itsProxy && itsRow ) {
                 Py_ssize_t start, stop, step;
+                GILState_Ensurer gilState;
                 if ( PySlice_Unpack( obj, &start, &stop, &step ) < 0 ) {
                     throw PyExc_IndexError;
                 }
                 auto slice_length = PySlice_AdjustIndices( itsProxy->nrows( ), &start, &stop, step );
                 auto result = PyList_New( slice_length );
+                gilState.release();
                 for ( ssize_t i=0, row=start; i < slice_length; ++i, row += step ) {
                     if ( row < 0 || row >= itsProxy->nrows( ) ) throw PyExc_IndexError;
                     PyObject *newobj = 0;

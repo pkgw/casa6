@@ -1021,7 +1021,7 @@ class test_shadow(test_base):
             os.system('rm -rf shadowtest_part.ms*')
         if os.path.exists('shadowAPP.ms'):
             os.system('rm -rf shadowAPP.ms*')
-        if os.path.exists('shadowAPP.ms'):
+        if os.path.exists('sim.alma.cycle0.compact.noisy.ms'):
             os.system('rm -rf sim.alma.cycle0.compact.noisy.ms*')
         if os.path.exists('cas2399.txt'):
             os.system('rm -rf cas2399.txt*')
@@ -1556,6 +1556,48 @@ class test_statistics_queries(test_base):
                                                 "timerange='09:18:00~09:20:00' spw='0' scan='1'"])
         resT = flagdata(vis=self.vis, spw='0', scan='1', mode='summary')
         self.assertEqual(resT['flagged'],res1['flagged'])
+
+    def test_summary_spwcorr(self):
+        ''' flagdata: basic check of summary/spwcorr stats. CAS-14185'''
+        flagdata(vis=self.vis, spw='0', correlation='LL', mode='manual', savepars=False, flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary', spwcorr=True)
+        self.assertTrue("spw:correlation" in res)
+        func_test_eq(res, 2854278, 1427139)
+        self.assertEqual(res["spw:correlation"]["0:LL"]["total"], 1427139)
+        self.assertEqual(res["spw:correlation"]["0:LL"]["flagged"], 1427139)
+        self.assertEqual(res["spw:correlation"]["0:RR"]["total"], 1427139)
+        self.assertEqual(res["spw:correlation"]["0:RR"]["flagged"], 0)
+
+
+    def test_summary_basecnt(self):
+        ''' flagdata: basic check of summary/basecnt stats. CAS-14185'''
+        test_ant = "VA17"
+        flagdata(vis=self.vis, antenna=test_ant, spw='0', scan='1', mode='manual',
+                 savepars=False, flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary', basecnt=True)
+        self.assertTrue("baseline" in res)
+        self.assertTrue("antenna:scan" in res)
+        func_test_eq(res, 2854278, 36036)
+
+        # Check 'baseline' stats
+        for bsn_key in res["baseline"]:
+            ant_occur = bsn_key.count(test_ant)
+            if ant_occur == 1:
+                self.assertEqual(res["baseline"][bsn_key]["total"], 7434)
+                self.assertEqual(res["baseline"][bsn_key]["flagged"], 1386)
+            elif ant_occur == 2:
+                self.assertEqual(res["baseline"][bsn_key]["total"], 7434)
+                self.assertEqual(res["baseline"][bsn_key]["flagged"], 0)
+
+        # Check 'antenna:scan' stats
+        self.assertEqual(res["antenna:scan"]["VA17:1"]["total"], 37422)
+        self.assertEqual(res["antenna:scan"]["VA17:1"]["flagged"], 36036)
+        unflagged_scans = ["2", "3", "4", "5", "6", "7"]
+        for scan in unflagged_scans:
+            self.assertEqual(res["antenna:scan"]["VA17:1"]["total"], 37422)
+            self.assertEqual(res["antenna:scan"]["VA17:1"]["flagged"], 36036)
 
 
 class test_selections(test_base):
@@ -3029,7 +3071,7 @@ class test_tsys(test_base):
         self.assertEqual(res['flagged'], 32256*2)
         
     def test_invalid_scan(self):
-        '''Flagdata: unsupported scan selection'''
+        '''Flagdata: selection of invalid scans only => error'''
         try:
             flagdata(vis=self.vis, scan='2', flagbackup=False)
         except RuntimeError as instance:
@@ -3596,7 +3638,57 @@ class test_newcal(test_base):
         self.assertEqual(res['scan']['27']['flagged'],0)
         # NOTE: data DOES not have all scans
         self.assertEqual(res['flagged'],108*14)
+
+    def test_manual_wrong_corr_rr(self):
+        """ flagdata: manual mode, wrong selection in correlation"""
+        flagdata(vis=self.vis, mode='manual', correlation="RR", flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        print(f"{res=}")
+        self.assertEqual(res['flagged'], 0)
+        self.assertEqual(res['total'], 2916)
+
+    def test_manual_wrong_antenna_corr_rr(self):
+        """ flagdata: manual mode, antenna selection + wrong selection in correlation"""
+        flagdata(vis=self.vis, mode='manual', antenna="VA01", correlation="bla", flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        print(f"{res=}")
+        self.assertEqual(res['flagged'], 0)
+        self.assertEqual(res['total'], 2916)
         
+    def test_manual_wrong_corr_rr_ll(self):
+        """ flagdata: manual mode, wrong selection in correlation"""
+        flagdata(vis=self.vis, mode='manual', correlation="RR, LL", flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        print(f"{res=}")
+        self.assertEqual(res['flagged'], 0)
+        self.assertEqual(res['total'], 2916)
+
+    def test_list_with_manual_wrong_corr_sel(self):
+        """ flagdata: list with a manual mode with wrong selection in corr """
+        fagents = ["mode='clip' clipminmax=[0,3] " "correlation='REAL_Sol1'"
+                   " datacolumn='CPARAM'"]
+        flagdata(vis=self.vis, mode='list', inpfile=fagents, flagbackup=False)
+
+        res = flagdata(vis=self.vis, mode='summary')
+        flagged_global = res['flagged']
+        self.assertEqual(flagged_global, 649)
+        flagged_sol1 = res['correlation']['Sol1']['flagged']
+        self.assertEqual(flagged_sol1, flagged_global)
+        flagged_sol2 = res['correlation']['Sol2']['flagged']
+        self.assertEqual(flagged_sol2, 0)
+
+        # Use same clip in list mode, together with a bogus manual with
+        # bogus corr selection. The bogus manual agent should have no effaect
+        fagents.append("mode='manual' correlation='RR' datacolumn='CPARAM'")
+        flagdata(vis=self.vis, mode='list', inpfile=fagents, flagbackup=False)
+        res2 = flagdata(vis=self.vis, mode='summary')
+        self.assertEqual(flagged_global, res2['flagged'])
+        self.assertEqual(flagged_sol1, res2['correlation']['Sol1']['flagged'])
+        self.assertEqual(flagged_sol2, res2['correlation']['Sol2']['flagged'])
+
     def test_newcal_clip(self):
         '''Flagdata: clip zeros in one solution'''
         flagdata(vis=self.vis, mode='clip', clipzeros=True, correlation='Sol2', 
@@ -3920,9 +4012,68 @@ class test_tbuff(test_base):
         flagdata(self.vis, flagbackup=False,mode='unflag')
         flagdata(self.vis, flagbackup=False,mode='list',inpfile=[self.online,self.user], tbuff=[0.504,0.504])
         flags3 = flagdata(self.vis, mode='summary', basecnt=True)
-        self.assertEqual(flags3['antenna']['DV04']['flagged'],58) 
-        self.assertEqual(flags3['antenna']['DV10']['flagged'],30) 
+        self.assertEqual(flags3['antenna']['DV04']['flagged'],58)
+        self.assertEqual(flags3['antenna']['DV10']['flagged'],30)
+
+    def test_list_tbuff_timestamp(self):
+        '''flagdata: test a cmd list with tbuff when the timestamps are in HH:MM:SS format'''
+        # Before CAS-13664, timestamps without date were not handled correctly with tbuf,
+        # and no flagging was applied. All the flag counts after the commands used below
+        # were 0.
+        # The timestamps in this inpfile omit the date: '2013/11/15/'
+        inpfile = [
+            "antenna='DA42&&*' timerange='10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
+            "antenna='DA43&&*' timerange='10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'"
+            ]
+        # A) apply an inpfile with time-only formatted timestamps in timerange
+        flagdata(self.vis, mode='list', inpfile=inpfile, tbuff=1.1, flagbackup=False)
+
+        flags_tbuff1 = flagdata(self.vis, mode='summary')
+        # Without date in timestamp these flags should still be applied
+        self.assertEqual(flags_tbuff1['antenna']['DA42']['flagged'], 1682)
+        self.assertEqual(flags_tbuff1['antenna']['DA43']['flagged'], 1682)
+        self.assertEqual(flags_tbuff1['antenna']['DA44']['flagged'], 116)
+        self.assertEqual(flags_tbuff1['antenna']['PM04']['flagged'], 116)
+
+        def asserts_with_tbuff_4_5(obj, summary):
+            '''Asserts the same results for the next variations of the same commands'''
+            cnt_da42_43 = 1914
+            cnt_others = 132
+            self.assertEqual(summary['antenna']['DA42']['flagged'], cnt_da42_43)
+            self.assertEqual(summary['antenna']['DA43']['flagged'], cnt_da42_43)
+            self.assertEqual(summary['antenna']['DA44']['flagged'], cnt_others)
+            self.assertEqual(summary['antenna']['PM04']['flagged'], cnt_others)
         
+        # B) Unflag and apply larger tbuff => increase flag counts
+        flagdata(self.vis, flagbackup=False,mode='unflag')
+        flagdata(self.vis, mode='list', inpfile=inpfile, tbuff=4.5, flagbackup=False)
+
+        flags_tbuff4 = flagdata(self.vis, mode='summary')
+        asserts_with_tbuff_4_5(self, flags_tbuff4)
+
+        # C) Unflag, apply the same inpfile but now including the full date/time timestamps
+        # => should flag the same as above
+        inpfile_date = [
+            "antenna='DA42&&*' timerange='2013/11/15/10:35:05.011~2013/11/15/10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
+            "antenna='DA43&&*' timerange='2013/11/15/10:35:05.011~2013/11/15/10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'"
+            ]
+        flagdata(self.vis, flagbackup=False,mode='unflag')
+        flagdata(self.vis, mode='list', inpfile=inpfile_date, tbuff=4.5, flagbackup=False)
+
+        flags_date = flagdata(self.vis, mode='summary')
+        asserts_with_tbuff_4_5(self, flags_date)
+
+        # D) Unflag and apply the same inpfile but now with a mix of timestamp formats in t0
+        # and t1 ==> should flag the same as above
+        inpfile_mix = [
+            "antenna='DA42&&*' timerange='2013/11/15/10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'",
+            "antenna='DA43&&*' timerange='2013/11/15/10:35:05.011~10:36:05.162' reason='testing CAS-13664 with an ALMA MS.'"
+            ]
+        flagdata(self.vis, flagbackup=False,mode='unflag')
+        flagdata(self.vis, mode='list', inpfile=inpfile_mix, tbuff=4.5, flagbackup=False)
+        flags_mix = flagdata(self.vis, mode='summary')
+        asserts_with_tbuff_4_5(self, flags_mix)
+
 
 class TestMergeManualTimerange(unittest.TestCase):
     def setUp(self):

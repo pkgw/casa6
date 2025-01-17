@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -54,6 +54,7 @@
 #include <synthesis/TransformMachines/VisModelData.h>
 #include <casacore/images/Regions/WCBox.h>
 #include <msvis/MSVis/VisibilityIteratorImpl2.h>
+#include <msvis/MSVis/VisBufferComponents2.h>
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -64,28 +65,28 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  SIMapperCollection::SIMapperCollection() 
+
+  SIMapperCollection::SIMapperCollection()
   {
     LogIO os( LogOrigin("SIMapperCollection","Construct a mapperCollection",WHERE) );
-    
+
     itsMappers.resize(0);
     oldMsId_p=-1;
     itsIsNonZeroModel=false;
 
   }
-  
+
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  SIMapperCollection::~SIMapperCollection() 
+  SIMapperCollection::~SIMapperCollection()
   {
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Bool SIMapperCollection::releaseImageLocks() 
+  Bool SIMapperCollection::releaseImageLocks()
   {
     Bool validflag=true;
     for(Int mapperid=0;mapperid<nMappers();mapperid++ )
@@ -98,7 +99,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  std::vector<String> SIMapperCollection::cleanupTempFiles(const String& mess) 
+  std::vector<String> SIMapperCollection::cleanupTempFiles(const String& mess)
   {
     std::vector<String> outstr;
     auto appvectors = [](std::vector<String>&  a, const std::vector<String> b) {  a.insert(std::end(a), std::begin(b), std::end(b));};
@@ -114,10 +115,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////
-  
+
   /*
   // Allocate Memory and open images.
-  void SIMapperCollection::addMapper( String mappertype,  
+  void SIMapperCollection::addMapper( String mappertype,
 				      CountedPtr<SIImageStore> imagestore,
 				      CountedPtr<FTMachine> ftmachine,
 				      CountedPtr<FTMachine> iftmachine)
@@ -132,12 +133,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       {
 	localMapper = new SIMapperSingle( imagestore, ftmachine, iftmachine, nMappers );
       }
-    
+
     else if( mappertype == "multiterm" )
       {
 	localMapper = new SIMapperMultiTerm( imagestore, ftmachine, iftmachine,nMappers, ntaylorterms );
       }
-    
+
     else
       {
 	throw ( AipsError("Internal Error : Unrecognized Mapper Type in MapperCollection.addMapper") );
@@ -151,14 +152,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   */
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////
-  
+
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   void SIMapperCollection::addMapper( CountedPtr<SIMapper> map){
     Int nMappers = itsMappers.nelements();
     itsMappers.resize(nMappers+1, true);
     itsMappers[nMappers]=map;
-  } 
+  }
 
   Int SIMapperCollection::nMappers()
   {
@@ -191,7 +192,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    (itsMappers[k])->initializeGrid(vb,dopsf,true);
   	  }
       }
-    else 
+    else
       {
 	if (mapperid > (Int)itsMappers.nelements())
 	  throw ( AipsError("Internal Error : SIMapperCollection::initializeGrid(): mapperid out of range") );
@@ -199,46 +200,66 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
   }
 
-void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf, const Int mapperid)
+  void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf, const Int mapperid)
   {
 
     vi::VisBuffer2 *vb=vi.getVisBuffer();
     initializeGrid(*vb, dopsf, mapperid);
-    if(mapperid<0)
-      {
-	for (uInt k=0; k < itsMappers.nelements(); ++k)
-	  {
-	    ((itsMappers[k])->getFTM2())->initBriggsWeightor(vi);
-  	  }
+    if (mapperid < 0) {
+      for (uInt k=0; k < itsMappers.nelements(); ++k) {
+        ((itsMappers[k])->getFTM2())->initBriggsWeightor(vi);
       }
-    else 
-      {
-	if (mapperid > (Int)itsMappers.nelements())
-	  throw ( AipsError("Internal Error : SIMapperCollection::initializeGrid(): mapperid out of range") );
-	else (itsMappers[mapperid]->getFTM2())->initBriggsWeightor(vi);
-      }
+    }
+    else if (mapperid > (Int)itsMappers.nelements()) {
+      throw (
+        AipsError("Internal Error : "
+          "SIMapperCollection::initializeGrid(): mapperid out of range")
+      );
+    }
+    else {
+      (itsMappers[mapperid]->getFTM2())->initBriggsWeightor(vi);
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////OLD vi/vb //////////////////////////////////////////////
   void SIMapperCollection::initializeGrid(VisBuffer& vb, Bool dopsf, const Int mapperid)
   {
-    if(mapperid<0)
-      {
-	for (uInt k=0; k < itsMappers.nelements(); ++k)
-	  {
-	    (itsMappers[k])->initializeGrid(vb,dopsf,true);
-  	  }
+    if (mapperid < 0) {
+      for (uInt k=0; k < itsMappers.nelements(); ++k) {
+        (itsMappers[k])->initializeGrid(vb,dopsf,true);
       }
-    else 
-      {
-	if (mapperid > (Int)itsMappers.nelements())
-	  throw ( AipsError("Internal Error : SIMapperCollection::initializeGrid(): mapperid out of range") );
-	else itsMappers[mapperid]->initializeGrid(vb, dopsf, true);
-      }
+    }
+    else if (mapperid > (Int)itsMappers.nelements()) {
+      throw (
+        AipsError("Internal Error : "
+          "SIMapperCollection::initializeGrid(): mapperid out of range")
+      );
+    }
+    else {
+      itsMappers[mapperid]->initializeGrid(vb, dopsf, true);
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
+
+  void SIMapperCollection::handleNewMs(const MeasurementSet &ms, const Int mapperid)
+  {
+    if (mapperid < 0) {
+      for (uInt k=0; k < itsMappers.nelements(); ++k) {
+        (itsMappers[k])->handleNewMs(ms);
+      }
+    }
+    else if (mapperid > (Int)itsMappers.nelements()) {
+      throw (
+        AipsError("Internal Error : "
+          "SIMapperCollection::handleNewMs(): mapperid out of range")
+      );
+    }
+    else {
+      itsMappers[mapperid]->handleNewMs(ms);
+    }
+  }
 
   void SIMapperCollection::grid(vi::VisBuffer2& vb, Bool dopsf, refim::FTMachine::Type col,
 				Int mapperid)
@@ -248,7 +269,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	  if(col==refim::FTMachine::CORRECTED){
 	//Dang i thought the new vb will return Data or FloatData if correctedData was
 	//not there
-	    if(MSMainColumns(vb.ms()).correctedData().isNull()){
+	    if(!vb.existsColumn(VisBufferComponent2::VisibilityCorrected)){
 	      col=refim::FTMachine::OBSERVED;
 	      //			  cerr << "Max of visCube" << max(vb.visCube()) << " model " << max(vb.modelVisCube())<< endl;
 	      vb.setVisCube(vb.visCube()-vb.visCubeModel());
@@ -256,18 +277,17 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    else{
 	      vb.setVisCubeCorrected(vb.visCubeCorrected()-vb.visCubeModel());
 	    }
-	  } 
+	  }
 	  else if (col==refim::FTMachine::OBSERVED) {
 	    vb.setVisCube(vb.visCube()-vb.visCubeModel());
 	  }
 	}// if non zero model
 
-    if(col==refim::FTMachine::CORRECTED &&
-       MSMainColumns(vb.ms()).correctedData().isNull()){
+    if(col==refim::FTMachine::CORRECTED && !vb.existsColumn(VisBufferComponent2::VisibilityCorrected)) {
       //cout << "Corrected column isn't there, using data instead" << endl;
       col=refim::FTMachine::OBSERVED;
     }
-    
+
     if (mapperid < 0)
       {
 	//cout << "Using column : " << col << endl;
@@ -276,7 +296,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    (itsMappers[k])->grid(vb, dopsf, col);
 	  }
       }
-    else 
+    else
       {
 	if (mapperid > (Int)itsMappers.nelements())
 	  throw ( AipsError("Internal Error : SIMapperCollection::grid(): mapperid out of range") );
@@ -300,7 +320,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 		  else{
 			  vb.correctedVisCube()-=vb.modelVisCube();
 		  }
-	  } 
+	  }
 	  else if (col==FTMachine::OBSERVED) {
 			  vb.visCube()-=vb.modelVisCube();
 	    }
@@ -314,10 +334,10 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	for (uInt k=0; k < itsMappers.nelements(); ++k)
 	  {
 	    (itsMappers[k])->grid(vb, dopsf, col);
-	    
+
 	  }
       }
-    else 
+    else
       {
 	if (mapperid > (Int)itsMappers.nelements())
 	  throw ( AipsError("Internal Error : SIMapperCollection::grid(): mapperid out of range") );
@@ -335,14 +355,14 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    (itsMappers[k])->finalizeGrid(vb, dopsf);
       	  }
       }
-    else 
+    else
       {
 	if (mapperid > (Int)itsMappers.nelements())
 	  throw ( AipsError("Internal Error : SIMapperCollection::finalizeGrid(): mapperid out of range") );
 	else itsMappers[mapperid]->finalizeGrid(vb, dopsf);
       }
   }
-  
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////////////////////////////////////OLD VI/VB////////////////////////////////////////////////
@@ -355,14 +375,14 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    (itsMappers[k])->finalizeGrid(vb, dopsf);
       	  }
       }
-    else 
+    else
       {
 	if (mapperid > (Int)itsMappers.nelements())
 	  throw ( AipsError("Internal Error : SIMapperCollection::finalizeGrid(): mapperid out of range") );
 	else itsMappers[mapperid]->finalizeGrid(vb, dopsf);
       }
   }
-  
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
   void SIMapperCollection::initializeDegrid(vi::VisBuffer2& vb, const Int mapperid)
@@ -373,7 +393,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
       if( itsIsNonZeroModel == true )
 	{
 	  //	  vb.setModelVisCube( Complex(0.0,0.0) );
-	  
+
 	  if(mapperid<0)
 	    {
 	      for (uInt k=0; k < itsMappers.nelements(); ++k)
@@ -381,14 +401,14 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
     		  (itsMappers[k])->initializeDegrid(vb);
 		}
 	    }
-	  else 
+	  else
 	    {
 	      if (mapperid > (Int)itsMappers.nelements())
 		throw ( AipsError("Internal Error : SIMapperCollection::initializeDegrid(): mapperid out of range") );
 	      else itsMappers[mapperid]->initializeDegrid(vb);
 	    }
-	  
-	}// if non zero model 
+
+	}// if non zero model
     }
 
 
@@ -402,7 +422,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
       if( itsIsNonZeroModel == true )
 	{
 	  //	  vb.setModelVisCube( Complex(0.0,0.0) );
-	  
+
 	  if(mapperid<0)
 	    {
 	      for (uInt k=0; k < itsMappers.nelements(); ++k)
@@ -410,14 +430,14 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
     		  (itsMappers[k])->initializeDegrid(vb);
 		}
 	    }
-	  else 
+	  else
 	    {
 	      if (mapperid > (Int)itsMappers.nelements())
 		throw ( AipsError("Internal Error : SIMapperCollection::initializeDegrid(): mapperid out of range") );
 	      else itsMappers[mapperid]->initializeDegrid(vb);
 	    }
-	  
-	}// if non zero model 
+
+	}// if non zero model
     }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -432,25 +452,25 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 		  (itsMappers[k])->degrid(vb);
 		}
 	    }
-	  else 
+	  else
 	    {
 	      if (mapperid > (Int)itsMappers.nelements())
 		throw ( AipsError("Internal Error : SIMapperCollection::degrid(): mapperid out of range") );
 	      else itsMappers[mapperid]->degrid(vb);
 	    }
-	  
+
 	  if(saveVirtualMod){
 	    saveVirtualModel(vb);
 	  }
 	}// if non zero model
     }
-  
+
   void SIMapperCollection::addPB(vi::VisBuffer2& vb, PBMath& pbMath, const MDirection& altDir, const Bool useAltDir)
   {
     for (uInt k=0; k < itsMappers.nelements(); ++k)
       {
 	(itsMappers[k])->addPB(vb,pbMath, altDir, useAltDir);
-	
+
       }
   }
 
@@ -467,19 +487,19 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 		  (itsMappers[k])->degrid(vb);
 		}
 	    }
-	  else 
+	  else
 	    {
 	      if (mapperid > (Int)itsMappers.nelements())
 		throw ( AipsError("Internal Error : SIMapperCollection::degrid(): mapperid out of range") );
 	      else itsMappers[mapperid]->degrid(vb);
 	    }
-	  
+
 	  if(saveVirtualMod){
 	    saveVirtualModel(vb);
 	  }
 	}// if non zero model
     }
-  
+
 
   /////
   /////////////
@@ -540,7 +560,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 
 	  if(vb.msId() != oldMsId_p){
 	    oldMsId_p=vb.msId();
-	    
+
 	    for (uInt k=0; k < itsMappers.nelements(); ++k){
 	      Record rec;
 	      String modImage=vb.ms().getPartNames()[0];
@@ -550,7 +570,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	      Bool iscomp=itsMappers[k]->getCLRecord(rec);
 	      if(iscomp || itsMappers[k]->getFTMRecord(rec, modImage)){
 
-		////Darn not implemented  
+		////Darn not implemented
 		//static_cast<VisibilityIteratorImpl2 *>(viloc->getImpl())->writeModel(rec, //iscomp, true);
 
                 if(!iscomp && Table::isReadable(modImage)){
@@ -591,10 +611,10 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	      for (uInt k=0; k < itsMappers.nelements(); ++k)
 		{
   		  (itsMappers[k])->finalizeDegrid();
-		  
+
 		}
 	    }
-	  else 
+	  else
 	    {
 	      if (mapperid > (Int)itsMappers.nelements())
 		throw ( AipsError("Internal Error : SIMapperCollection::finalizeDegrid(): mapperid out of range") );
@@ -602,7 +622,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    }
 	}// if non zero model
     }
-  
+
  ////////////////////////////////////////////////////////
   void SIMapperCollection::finalizeDegrid(VisBuffer& /*vb*/, const Int mapperid)
     {
@@ -613,10 +633,10 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	      for (uInt k=0; k < itsMappers.nelements(); ++k)
 		{
   		  (itsMappers[k])->finalizeDegrid();
-		  
+
 		}
 	    }
-	  else 
+	  else
 	    {
 	      if (mapperid > (Int)itsMappers.nelements())
 		throw ( AipsError("Internal Error : SIMapperCollection::finalizeDegrid(): mapperid out of range") );
@@ -624,8 +644,8 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    }
 	}// if non zero model
     }
-  
-  
+
+
   void SIMapperCollection::initPB()
   {
     for (uInt k=0; k < itsMappers.nelements(); ++k)
@@ -633,13 +653,13 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	(itsMappers[k])->initPB();
       }
   }
-  
+
   void SIMapperCollection::addPB(VisBuffer& vb, PBMath& pbMath)
   {
     for (uInt k=0; k < itsMappers.nelements(); ++k)
       {
 	(itsMappers[k])->addPB(vb,pbMath);
-	
+
       }
   }
 
@@ -681,17 +701,17 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 
     // If there is no model image (i.e. first major cycle with no starting model), don't check.
     Bool hasmodel=true;
-    for (Int model=0;model<(nmodels-1); ++model) 
+    for (Int model=0;model<(nmodels-1); ++model)
       { hasmodel = hasmodel && ((itsMappers[model])->imageStore())->hasModel();  }
-    if( hasmodel==false ) { 
-      //cout << "No model images to check overlap for." << endl; 
-      return; 
+    if( hasmodel==false ) {
+      //cout << "No model images to check overlap for." << endl;
+      return;
     }
 
     // Internal check
     AlwaysAssert( action=="blank" || action=="restore" , AipsError );
 
-    for (Int model=0;model<(nmodels-1); ++model) 
+    for (Int model=0;model<(nmodels-1); ++model)
       {
 	// Connect to one image for aux info.
         LatticeLocker lockmodel (*(((itsMappers[model])->imageStore())->model()), FileLocker::Write);
@@ -712,21 +732,21 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 	    SubImage<Float> nextmodelimage( *(((itsMappers[nextmodel])->imageStore())->model()) , true);
 
 	    uInt nTaylor1 = ((itsMappers[nextmodel])->imageStore())->getNTaylorTerms();
-	    
+
 	    CoordinateSystem cs=nextmodelimage.coordinates();
 	    IPosition iblc(nextmodelimage.shape().nelements(),0);
 	    IPosition itrc(nextmodelimage.shape());
 	    itrc=itrc-Int(1);
 	    LCBox lbox(iblc, itrc, nextmodelimage.shape());
 	    ImageRegion imagreg(WCBox(lbox, cs));
-	    
+
 	    try{
 
 	      if( action.matches("blank") )
 		{
 
                   //cerr << "blank MODEL image shape " << modelimage.shape() << "  " << nextmodelimage.shape() << endl;
-                  
+
 		  LatticeRegion latReg=imagreg.toLatticeRegion(modelimage.coordinates(), modelimage.shape());
 
 		  for(uInt taylor=0;taylor<min(nTaylor0,nTaylor1);taylor++)
@@ -748,7 +768,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 		LatticeRegion latReg=imagreg.toLatticeRegion(modelimage.coordinates(), modelimage.shape());
 		ArrayLattice<Bool> pixmask(latReg.get());
 
-		
+
 		for(uInt taylor=0;taylor<min(nTaylor0,nTaylor1);taylor++)
 		  {// loop for taylor term
 		    SubImage<Float> modelim( *(((itsMappers[model])->imageStore())->model(taylor)), true );
@@ -761,7 +781,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
 		    LatticeExpr<Float> myexpr0(iif(pixmask,partToMerge,partToUnmask));
 		    partToUnmask.copyData(myexpr0);
 		  }
-		
+
 		}
 	    }
 	    catch(AipsError &x){
@@ -802,7 +822,7 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
   	  }
         return mem;
   }
-  
+
   //////////////////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -810,8 +830,8 @@ void SIMapperCollection::initializeGrid(vi::VisibilityIterator2& vi, Bool dopsf,
   {
     Bool validmodel=false;
     // If any one Mapper has a valid and nonzero model, return true.
-    for (Int model=0;model<nMappers(); ++model) 
-      { 
+    for (Int model=0;model<nMappers(); ++model)
+      {
 	validmodel |= (! ( ((itsMappers[model])->imageStore())->isModelEmpty() ));
       }
     return validmodel;

@@ -1,22 +1,12 @@
-from __future__ import absolute_import
 import shutil
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import componentlist, measures, quanta, ms, table
-    from casatasks import casalog
-    from .setjy_helper import testerrs
-    from . import solar_system_setjy as SSSetjy
+from casatools import componentlist, measures, quanta, ms, table
+from casatasks import casalog
+from .setjy_helper import testerrs
+from . import solar_system_setjy as SSSetjy
 
-    _qa = quanta()
-else:
-    from taskinit import *
-    from setjy_helper import *
-    import solar_system_setjy as SSSetjy
-
-    # not a local tool
-    _qa = qa
+_qa = quanta()
 
 def predictSolarObjectCompList(objname, epoch, freqs, prefix):
     """
@@ -28,13 +18,10 @@ def predictSolarObjectCompList(objname, epoch, freqs, prefix):
     cleanupcomps = False # leave genenerated cl files
     nfreqs=-1
 
-    if is_CASA6:
-        myms = ms( )
-        mytb = table( )
-        mycl = componentlist( )
-        myme = measures( )
-    else:
-        (myms, mytb, mycl, myme) = gentools(['ms','tb','cl','me'])
+    myms = ms( )
+    mytb = table( )
+    mycl = componentlist( )
+    myme = measures( )
 
     #freqinc=freqs[0]*1e-6
     if len(freqs) == 1:

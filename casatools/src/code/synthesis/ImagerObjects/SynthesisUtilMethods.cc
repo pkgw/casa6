@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -213,6 +213,481 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     return true;
   }
 
+
+
+  // Evaluate a polynomial from Taylor coefficients and expand to a Cube.
+  // Since this funcion is primarily for use with mtmfs_via_cube, this step applies only to 
+  // the multiterm.model.ttx images and the cube.model image cube.  
+  Bool SynthesisUtilMethods::taylorCoeffsToCube(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "taylorCoeffsToCube"));
+
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, nterms, true, true )); 
+
+    // Check that .model exists. 
+    try{
+      cube_imstore->model();
+      for(Int i=0;i<nterms;i++)
+	mt_imstore->model(i);
+	}
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\nModel images must exist on disk." ));
+      }
+    
+    // Get/check shapes
+    IPosition cube_shp( cube_imstore->model()->shape() );
+    IPosition mt_shp( mt_imstore->model(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    // Read reference frequency
+    Quantity reffreq_qa;
+    Quantity::read( reffreq_qa, reffreq );
+    Double refval = reffreq_qa.getValue("Hz");
+    
+    //cout << "ref freq : " << refval << endl;
+
+    //Get the frequency list for the cube
+    CoordinateSystem csys ( cube_imstore->getCSys() );
+    Vector<Double> freqlist( cube_shp[3] );
+
+    for(uInt i=0; i<csys.nCoordinates(); i++)
+    {
+      if( csys.type(i) == Coordinate::SPECTRAL )
+	{
+	  SpectralCoordinate speccoord(csys.spectralCoordinate(i));
+
+	  for(Int ch=0;ch<cube_shp[3];ch++)
+	    {
+	      Double freq;
+	      Bool ret = speccoord.toWorld( freq, ch );
+	      if(ret==False) throw(AipsError("Cannot read channel frequency"));
+	      freqlist[ch] = freq;
+	      
+	      //cout << "freq " << ch << "  is " << freq << endl;
+	    }
+
+	}
+    }
+
+
+    // Reset the Cube values to zero. 
+    //cube_imstore->model()->set(0.0);
+
+    //For each pol, do the Taylor-to-Cube calculation.    
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+	Vector< CountedPtr <ImageInterface<Float> > > mt_subims(nterms);
+	for(Int i=0;i<nterms;i++)
+	  {
+	    mt_subims[i] = mt_imstore->makeSubImage(0,1, 
+								       0, cube_shp[3],
+								       pol, cube_shp[2], 
+								       *mt_imstore->model(i) );
+	  }
+
+	for(Int chan=0; chan<cube_shp[3]; chan++)
+	  {
+	    CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+								       chan, cube_shp[3],
+								       pol, cube_shp[2], 
+								       *cube_imstore->model() );
+	
+	    Double wt = (freqlist[chan] - refval) / refval;
+
+	    cube_subim->set(0.0);
+	    for(Int tt=0;tt<nterms;tt++)
+	      {
+		Double fac = pow(wt,tt);
+		LatticeExpr<Float> oneterm = LatticeExpr<Float>( *cube_subim + (fac) * (*mt_subims[tt])) ;
+		cube_subim->copyData(oneterm);
+	      }
+	    
+
+	  }//for chan
+      }// for pol
+
+    return True;
+
+  }//end of func
+
+
+  // Calculate the RHS of the Normal equations for a linear least squares fit of a Taylor polynomial (per pixel). 
+  // This function is primarily for use with mtmfs_via_cube, and may be used for the PSF (2nterms-1), the residual (nterms) 
+  // and the primary beam (nterms=1).  
+  // imtype=0 : PSF with 2nterms-1 terms
+  // imtype=1 : residual with nterms terms
+  // imtype=2 : pb with 1 term
+  // imtype=3 : sumwt with 2nterms-1 terms
+  Bool SynthesisUtilMethods::cubeToTaylorSum(const String& cubename,const String& mtname,  const Int nterms, const String& reffreq, const Int imtype, const Float pblimit)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "cubeToTaylorSum"));
+
+    //cout << "imtype : " << imtype << endl;
+    if(imtype <0 || imtype >3)
+      {
+	throw( AipsError("cubeToTaylorSum currently only supports 'psf','residual','pb', 'sumwt' options"));
+      }
+    
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, nterms, true, true )); 
+    //For psf   avg pb has to be done already
+    // doing residual too for sensitivity  this is independent of beam spectral index removal
+    Float maxPB=1.0;
+    if(imtype < 2){
+      LatticeExprNode elnod( max( *(mt_imstore->pb(0)) ) );
+      maxPB=elnod.getFloat();
+      if(maxPB == 0.0){
+       throw(AipsError("Programmers error: should do tt psf images after making average PB")); 
+        
+      }
+     
+    }
+    //    cerr << "imtype " << imtype << " MAX PB " << maxPB << endl;
+    // If dopsf=True, calculate 2n-1 terms.
+    Int out_nterms=nterms; // for residual
+    if(imtype==0 || imtype==3){out_nterms=2 * nterms - 1;} // the psfs fill the upper triangle of the Hessian with 2 nterms-1 elements. Also sumwt.
+    if(imtype==2){out_nterms=1;} // For the PB, for mtmfs_via_cube, we need only tt0.  Later, if we need all terms to calculate PB alpha, then change this to nterms, and add the invHesian math (elsewhere) to later convert the RHS vector into the coefficients. 
+
+    CountedPtr <ImageInterface<Float> > use_cube, use_mt;
+    // If dopsf=True, check that .psf cube and mt's exist.  If dopsf=False, check residual images. 
+    try{
+      switch(imtype)
+	{
+	case 0: use_cube=cube_imstore->psf();break; 
+	case 1: use_cube=cube_imstore->residual();break;
+	case 2: use_cube=cube_imstore->pb();break;
+	case 3: use_cube=cube_imstore->sumwt();break;
+	}
+      cube_imstore->sumwt();
+      for(Int i=0;i<out_nterms;i++)
+	{
+	  switch(imtype)
+	    {
+	    case 0:mt_imstore->psf(i);break; 
+	    case 1:mt_imstore->residual(i);break;
+	    case 2:mt_imstore->pb(i);break;
+	    case 3:mt_imstore->sumwt(i);break;
+	    }
+	}
+    }
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\n " + imtype + " images must exist on disk." ));
+      }
+
+    // Get/check shapes ( Assume that the PSF always exists in the imstore... A valid assumption in the context of mtmfs_via_cube )
+    IPosition cube_shp( cube_imstore->psf()->shape() );
+    IPosition mt_shp( mt_imstore->psf(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    // Read reference frequency
+    Quantity reffreq_qa;
+    Quantity::read( reffreq_qa, reffreq );
+    Double refval = reffreq_qa.getValue("Hz");
+    
+    //cout << "ref freq : " << refval << endl;
+
+    //Get the frequency list for the cube
+    CoordinateSystem csys ( cube_imstore->getCSys() );
+    Vector<Double> freqlist( cube_shp[3] );
+
+    for(uInt i=0; i<csys.nCoordinates(); i++)
+    {
+      if( csys.type(i) == Coordinate::SPECTRAL )
+	{
+	  SpectralCoordinate speccoord(csys.spectralCoordinate(i));
+
+	  for(Int ch=0;ch<cube_shp[3];ch++)
+	    {
+	      Double freq;
+	      Bool ret = speccoord.toWorld( freq, ch );
+	      if(ret==False) throw(AipsError("Cannot read channel frequency"));
+	      freqlist[ch] = freq;
+	      // cout << "freq " << ch << "  is " << freq << endl;
+	    }
+
+	}
+    }
+
+
+    // Reset the Taylor Sum values to zero. 
+    for(Int i=0;i<out_nterms;i++)
+      {
+	switch(imtype)
+	  {
+	  case 0:mt_imstore->psf(i)->set(0.0);break;
+	  case 1:mt_imstore->residual(i)->set(0.0);break;
+	  case 2:mt_imstore->pb(i)->set(0.0);break;
+	  case 3:mt_imstore->sumwt(i)->set(0.0);break;
+	  }
+      }
+
+    // Get the sumwt spectrum.
+    Array<Float> lsumwt;
+    cube_imstore->sumwt()->get(lsumwt, False);
+
+    // Sum the weights ( or just use accumulate...) 
+    LatticeExprNode msum( sum( *cube_imstore->sumwt() ) );
+    Float wtsum = msum.getFloat();
+
+    //cerr << "perchansumwt : shape "<< lsumwt.shape() << "  "  << lsumwt << " sumwt "<< wtsum << endl;
+
+    //Float wtsum = cube_shp[3]; // This is sum of weights, if all weights are 1.0 
+
+    //For each pol, do the Cube-To-Taylor calculation.    
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+	Vector< CountedPtr <ImageInterface<Float> > > mt_subims(out_nterms);
+	for(Int i=0;i<out_nterms;i++)
+	  {
+	  switch(imtype)
+	    {
+	    case 0:use_mt=mt_imstore->psf(i);break; 
+	    case 1:use_mt=mt_imstore->residual(i);break;
+	    case 2:use_mt=mt_imstore->pb(i);break;
+	    case 3:use_mt=mt_imstore->sumwt(i);break;
+	    }
+	    	    mt_subims[i] = mt_imstore->makeSubImage(0,1, 
+	    					    0, cube_shp[3],
+	    					    pol, cube_shp[2], 
+	    					    *use_mt );
+	  }
+
+	for(Int chan=0; chan<cube_shp[3]; chan++)
+	  {
+	    CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *use_cube);
+        if(imtype < 2){
+          CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *(cube_imstore->pb()));
+          CountedPtr<ImageInterface<Float> > tmplat = new TempImage<Float>(cube_subim->shape(), cube_subim->coordinates());
+          tmplat->copyData(LatticeExpr<Float>((*pb_subim) *(*cube_subim)));
+          cube_subim = tmplat;
+          
+        }
+
+	    IPosition pos(4,0,0,pol,chan);
+	    
+	    Double wt = (freqlist[chan] - refval) / refval;
+
+	    for(Int tt=0;tt<out_nterms;tt++)
+	      {
+		Double fac = pow(wt,tt);
+		//cerr <<  "BEF accum " <<  max(mt_subims[tt]->get()) << " for imtype " << imtype <<  endl;
+		LatticeExpr<Float> eachterm = LatticeExpr<Float>( (*mt_subims[tt])  + ((fac) * (*cube_subim) * lsumwt(pos)))  ;
+		mt_subims[tt]->copyData(eachterm);
+		//cerr <<" AFT accum :  chan " <<  chan  <<  " tt " <<  tt <<  " fac " << fac <<  " lsumwt " <<  lsumwt(pos) <<  " pos " << pos << " max " <<  max(mt_subims[tt]->get()) <<  endl;
+	      }
+	    
+
+	  }//for chan
+
+		
+	// Divide by sum of weights.
+	for(Int tt=0;tt<out_nterms;tt++)
+	  {
+	    //cerr << "bef div : tt " <<  tt << " : " <<   max(mt_subims[tt]->get()) << " for imtype " << imtype << endl; 
+	    
+	    LatticeExpr<Float> eachterm;
+	    if (imtype < 2) {
+	      eachterm = LatticeExpr<Float>( iif( (*(mt_imstore->pb(0))) > pblimit , (*mt_subims[tt]) / wtsum/(*(mt_imstore->pb(0))),  0.0));
+	    }
+	    else{
+	      eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
+	    }
+	    mt_subims[tt]->copyData(eachterm);
+            mt_subims[tt]->flush();
+            // cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
+          }
+	
+      }// for pol
+
+
+    // Set the T/F mask, for PB images. Without this, the PB is fully masked, for aproj /mosaic gridders.
+    if( imtype==2 )
+      {
+	mt_imstore->removeMask( mt_imstore->pb(0) );
+	{
+	  //MSK//	
+	  LatticeExpr<Bool> pbmask( iif( *mt_imstore->pb(0) > fabs(pblimit) , True , False ) );
+	  //MSK// 
+	  mt_imstore->createMask( pbmask, mt_imstore->pb(0) );
+	  mt_imstore->pb(0)->pixelMask().unlock();
+	}
+	
+      }
+    
+    return True;
+
+  }//end of func
+
+
+  Bool SynthesisUtilMethods::removeFreqDepPB(const String& cubename, const String& mtname, const Float pblimit)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "removeFreqDepPB"));
+
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, 1, true, true )); 
+
+    try{
+      cube_imstore->residual();  // Residual Cube
+      cube_imstore->pb(); // PB cube
+      mt_imstore->pb(0); // avgPB in the tt0 pb. 
+    }
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\n Residual cube, PB cube, and multiterm PB.tt0 must exist on disk." ));
+      }
+    
+    // Get/check shapes
+    IPosition cube_shp( cube_imstore->residual()->shape() );
+    IPosition mt_shp( mt_imstore->pb(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    //For each pol, do the freq-dep PB math.//////////////////////////
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+
+	CountedPtr<ImageInterface<Float> >  mt_subim = mt_imstore->makeSubImage(0,1, 
+										0, cube_shp[3],
+										pol, cube_shp[2], 
+										(*mt_imstore->pb(0)) );
+
+	LatticeExprNode mtpbmax( max( *mt_subim ) );
+	Float mtpbmaxval = mtpbmax.getFloat();
+	if(mtpbmaxval <=0.0){os << LogIO::WARN << "pb.tt0 max is < or = zero" << LogIO::POST;}
+
+
+	for(Int chan=0; chan<cube_shp[3]; chan++)
+	  {
+	    CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *cube_imstore->residual() );
+	    CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										     chan, cube_shp[3],
+										     pol, cube_shp[2], 
+										     *cube_imstore->pb() );
+
+	    LatticeExprNode pbmax( max( *pb_subim ) );
+	    Float pbmaxval = pbmax.getFloat();
+	    if( pbmaxval<=0.0 )
+	      {
+		os << LogIO::WARN << "pb max is zero for chan" << chan << LogIO::POST;
+	      }
+	    else
+	      {
+		LatticeExpr<Float> thepbcor( iif( *(pb_subim) > pblimit , (*mt_subim)*(*(cube_subim))/(*(pb_subim)) , 0.0 ) );
+		cube_subim->copyData( thepbcor );
+	      }// if not zero
+	    
+	  }//for chan
+      }// for pol
+
+    return True;
+
+  }//end of func
+
+
+
+  Bool SynthesisUtilMethods::applyFreqDepPB(const String& cubename, const String& mtname, const Float pblimit)
+  {
+    LogIO os(LogOrigin("SynthesisUtilMethods", "applyFreqDepPB"));
+
+    // Set up imstores
+    CountedPtr<SIImageStore> cube_imstore;
+    cube_imstore = CountedPtr<SIImageStore>(new SIImageStore( cubename, true, true ));  
+
+    CountedPtr<SIImageStoreMultiTerm> mt_imstore;
+    mt_imstore = CountedPtr<SIImageStoreMultiTerm>(new SIImageStoreMultiTerm( mtname, 1, true, true )); 
+
+    try{
+      cube_imstore->model();  // Model Cube
+      cube_imstore->pb(); // PB cube
+      mt_imstore->pb(0); // avgPB in the tt0 pb. 
+    }
+    catch(AipsError &x)
+      {
+	throw( AipsError("Error in reading image : " + x.getMesg() + "\n Model cube, PB cube, and multiterm PB.tt0 must exist on disk." ));
+      }
+    
+    // Get/check shapes
+    IPosition cube_shp( cube_imstore->model()->shape() );
+    IPosition mt_shp( mt_imstore->pb(0)->shape() );
+    if( cube_shp[0] != mt_shp[0] || cube_shp[1] != mt_shp[1] ||cube_shp[2] != mt_shp[2] ){
+      throw( AipsError("The Cube and Multi-Term images should have the same nx, ny and npol"));
+    }
+
+    //For each pol, do the freq-dep PB math.//////////////////////////
+    for(Int pol=0; pol<cube_shp[2]; pol++)
+      {
+	CountedPtr<ImageInterface<Float> >  mt_subim = mt_imstore->makeSubImage(0,1, 
+										0, cube_shp[3],
+										pol, cube_shp[2], 
+										(*mt_imstore->pb(0)) );
+
+	LatticeExprNode mtpbmax( max( *mt_subim ) );
+	Float mtpbmaxval = mtpbmax.getFloat();
+	if(mtpbmaxval <=0.0)
+	  {os << LogIO::SEVERE << "pb.tt0 max is < or = zero. Cannot divide model image ! ERROR" << LogIO::POST;}
+	else
+	  {
+	    
+	    for(Int chan=0; chan<cube_shp[3]; chan++)
+	      {
+		CountedPtr<ImageInterface<Float> > cube_subim=cube_imstore->makeSubImage(0,1, 
+											 chan, cube_shp[3],
+											 pol, cube_shp[2], 
+											 *cube_imstore->model() );
+		CountedPtr<ImageInterface<Float> > pb_subim=cube_imstore->makeSubImage(0,1, 
+										       chan, cube_shp[3],
+										       pol, cube_shp[2], 
+										       *cube_imstore->pb() );
+		
+		
+		LatticeExprNode pbmax( max( *pb_subim ) );
+		Float pbmaxval = pbmax.getFloat();
+		if( pbmaxval<=0.0 )
+		  {
+		    os << LogIO::WARN << "pb max is zero for chan" << chan << LogIO::POST;
+		  }
+		else
+		  {
+		    LatticeExpr<Float> thepbcor( iif( *(pb_subim) > pblimit , (*(cube_subim)) *(*(pb_subim)) / (*mt_subim) , 0.0 ) );
+		    cube_subim->copyData( thepbcor );
+		  }// if not zero
+		
+	      }//for chan
+	  }// if mtpb >0
+      }// for pol
+
+    return True;
+
+  }//end of func
 
 
 
@@ -2025,6 +2500,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     if( imsize.nelements() != 2 ){ err += "imsize must be a vector of 2 Ints\n"; }
     if( cellsize.nelements() != 2 ) { err += "cellsize must be a vector of 2 Quantities\n"; }
+    if( cellsize[0].getValue() == 0.0 || cellsize[1].getValue() == 0.0 ) {
+        err += "cellsize must be nonzero\n";
+    }
 
     //// default is nt=2 but deconvolver != mtmfs by default.
     //    if( nchan>1 and nTaylorTerms>1 )
@@ -2319,8 +2797,10 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    nChannels[k]=(it->second)[0];
 	    firstChannels[k]=(it->second)[1];
 	  }
-	  if(j==0)
+	  if(j==0) {
+      spwids0.resize();
 	    spwids0=spwids;
+    }
 	  // std::tie (spwids, nChannels, firstChannels, channelIncrement)=(static_cast<vi::VisibilityIteratorImpl2 * >(vi2.getImpl()))->getChannelInformation(false);
 	  
 	  //cerr << "SPWIDS "<< spwids <<  "  nchan " << nChannels << " firstchan " << firstChannels << endl;
@@ -2393,6 +2873,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  if(imStartFreq > 0.0 && imStartFreq >= freqmin && imStartFreq <= freqmax){
             if(mode != "cubesource"){
               minfmsid=j;
+              spwids0.resize();
               spwids0=spwids;
               vi2.originChunks();
               vi2.origin();
@@ -3110,13 +3591,17 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     MDirection::Ref outref1(MDirection::AZEL, mframe);
     MDirection::Ref outref(outframe, mframe);
     MDirection tmpazel;
-    if(planetType >=MDirection::MERCURY && planetType <MDirection::COMET){
-      tmpazel=MDirection::Convert(trackDir, outref1)();
-    }
-    else{
+    // (TT) Switched the order of evaluation of if statement (if ephem table is readable
+    // one should use that. MDirection::getType will match MDirection::Types if a string conains and starts with
+    // one of the enum names in MDirection::Types. So the table name can be mistaken as a major planets in MDirection::Types
+    // if it is evaluated first.
+    if (Table::isReadable(ephemtab)){
       MeasComet mcomet(Path(ephemtab).absoluteName());
       mframe.set(mcomet);
       tmpazel=MDirection::Convert(MDirection(MDirection::COMET), outref1)();
+    }
+    else if (planetType >=MDirection::MERCURY && planetType <MDirection::COMET){
+      tmpazel=MDirection::Convert(trackDir, outref1)();
     }
     outdir=MDirection::Convert(tmpazel, outref)();
 
@@ -3501,106 +3986,122 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     String err("");
 
-    try
-      {
-	err += readVal( inrec, String("imagename"), imageName);
+    try {
+      err += readVal( inrec, String("imagename"), imageName );
 
-	// FTMachine parameters
-	err += readVal( inrec, String("gridder"), gridder );
-	err += readVal( inrec, String("padding"), padding );
-	err += readVal( inrec, String("useautocorr"), useAutoCorr );
-	err += readVal( inrec, String("usedoubleprec"), useDoublePrec );
-	err += readVal( inrec, String("wprojplanes"), wprojplanes );
-	err += readVal( inrec, String("convfunc"), convFunc );
+      // FTMachine parameters
+      err += readVal( inrec, String("gridder"), gridder );
+      err += readVal( inrec, String("padding"), padding );
+      err += readVal( inrec, String("useautocorr"), useAutoCorr );
+      err += readVal( inrec, String("usedoubleprec"), useDoublePrec );
+      err += readVal( inrec, String("wprojplanes"), wprojplanes );
+      err += readVal( inrec, String("convfunc"), convFunc );
 
-	err += readVal( inrec, String("vptable"), vpTable );
+      err += readVal( inrec, String("vptable"), vpTable );
 
-	//// convert 'gridder' to 'ftmachine' and 'mtype'
-	ftmachine="gridft";
-	mType="default";
-	if(gridder=="ft" || gridder=="gridft" || gridder=="standard" )
-	  { ftmachine="gridft"; }
-	if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes>1 || wprojplanes==-1))
-	  { ftmachine="wprojectft";}
 
-	if(gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" )
-	  { ftmachine="mosaicft"; }
-	if(gridder=="imagemosaic") {
-	    mType="imagemosaic";
-	    if (wprojplanes>1 || wprojplanes==-1){ ftmachine="wprojectft"; }
-	  }
-	if(gridder=="awproject" || gridder=="awprojectft" || gridder=="awp")
-	  {ftmachine="awprojectft";}
-	if(gridder=="singledish") {
-	  ftmachine="sd";
-	}
-
-	String deconvolver;
-	err += readVal( inrec, String("deconvolver"), deconvolver );
-	if( deconvolver== "mtmfs" ) 
-	  { mType="multiterm"; }// Takes precedence over imagemosaic
-
-	// facets	
-	err += readVal( inrec, String("facets"), facets);
-	// chanchunks
-	err += readVal( inrec, String("chanchunks"), chanchunks);
-
-	// Spectral interpolation
-	err += readVal( inrec, String("interpolation"), interpolation );// not used in SI yet...
-	// Track moving source ?
-	err += readVal( inrec, String("distance"), distance );
-	err += readVal( inrec, String("tracksource"), trackSource );
-	err += readVal( inrec, String("trackdir"), trackDir );
-
-	// The extra params for WB-AWP
-	err += readVal( inrec, String("aterm"), aTermOn );
-	err += readVal( inrec, String("psterm"), psTermOn );
-	err += readVal( inrec, String("mterm"), mTermOn );
- 	err += readVal( inrec, String("wbawp"), wbAWP );
-	err += readVal( inrec, String("cfcache"), cfCache );
-	err += readVal( inrec, String("usepointing"), usePointing );
-	err += readVal( inrec, String("pointingoffsetsigdev"), pointingOffsetSigDev );
-	err += readVal( inrec, String("dopbcorr"), doPBCorr );
-	err += readVal( inrec, String("conjbeams"), conjBeams );
-	err += readVal( inrec, String("computepastep"), computePAStep );
-	err += readVal( inrec, String("rotatepastep"), rotatePAStep );
-
-	// The extra params for single-dish
-	err += readVal( inrec, String("pointingcolumntouse"), pointingDirCol );
-	err += readVal( inrec, String("skypolthreshold"), skyPosThreshold );
-	err += readVal( inrec, String("convsupport"), convSupport );
-	err += readVal( inrec, String("truncate"), truncateSize );
-	err += readVal( inrec, String("gwidth"), gwidth );
-	err += readVal( inrec, String("jwidth"), jwidth );
-	err += readVal( inrec, String("minweight"), minWeight );
-	err += readVal( inrec, String("clipminmax"), clipMinMax );
-
-	// Single or MultiTerm mapper : read in 'deconvolver' and set mType here.
-	//	err += readVal( inrec, String("mtype"), mType );
-
-	if( ftmachine=="awprojectft" && cfCache=="" )
-	  {cfCache=imageName+".cf"; }
-
-	if( ftmachine=="awprojectft" && 
-	    usePointing==True && 
-	    pointingOffsetSigDev.nelements() != 2 )
-	  {
-	    // Set the default to a large value so that it behaves like CASA 5.6's usepointing=True.
-	    pointingOffsetSigDev.resize(2);
-	    pointingOffsetSigDev[0]=600.0;
-	    pointingOffsetSigDev[1]=600.0;
-	  }
-
-	err += verify();
-	
+      // convert 'gridder' to 'ftmachine' and 'mtype'
+      ftmachine = "gridft";
+      mType = "default";
+      if (gridder=="ft" || gridder=="gridft" || gridder=="standard") {
+        ftmachine = "gridft";
       }
-    catch(AipsError &x)
-      {
-	err = err + x.getMesg() + "\n";
+
+      if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
+           (wprojplanes>1 || wprojplanes==-1) ) {
+        ftmachine = "wprojectft";
       }
+        //facetting alone use gridft
+       else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
+          {ftmachine=="gridft";}
       
-      if( err.length()>0 ) throw(AipsError("Invalid Gridding/FTM Parameter set : " + err));
-      
+      if (gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" ) {
+        ftmachine = "mosaicft";
+      }
+
+      if (gridder=="imagemosaic") {
+        mType = "imagemosaic";
+        if (wprojplanes>1 || wprojplanes==-1) {
+          ftmachine = "wprojectft";
+        }
+      }
+
+      if (gridder=="awproject" || gridder=="awprojectft" || gridder=="awp") {
+        ftmachine = "awprojectft";
+      }
+
+      if (gridder=="singledish") {
+        ftmachine = "sd";
+      }
+
+      String deconvolver;
+      err += readVal( inrec, String("deconvolver"), deconvolver );
+      if (deconvolver=="mtmfs") {
+        mType = "multiterm"; // Takes precedence over imagemosaic
+      }
+
+      // facets
+      err += readVal( inrec, String("facets"), facets );
+      // chanchunks
+      err += readVal( inrec, String("chanchunks"), chanchunks );
+
+      // Spectral interpolation
+      err += readVal( inrec, String("interpolation"), interpolation ); // not used in SI yet...
+      // Track moving source ?
+      err += readVal( inrec, String("distance"), distance );
+      err += readVal( inrec, String("tracksource"), trackSource );
+      err += readVal( inrec, String("trackdir"), trackDir );
+
+      // The extra params for WB-AWP
+      err += readVal( inrec, String("aterm"), aTermOn );
+      err += readVal( inrec, String("psterm"), psTermOn );
+      err += readVal( inrec, String("mterm"), mTermOn );
+      err += readVal( inrec, String("wbawp"), wbAWP );
+      err += readVal( inrec, String("cfcache"), cfCache );
+      err += readVal( inrec, String("usepointing"), usePointing );
+      err += readVal( inrec, String("pointingoffsetsigdev"), pointingOffsetSigDev );
+      err += readVal( inrec, String("dopbcorr"), doPBCorr );
+      err += readVal( inrec, String("conjbeams"), conjBeams );
+      err += readVal( inrec, String("computepastep"), computePAStep );
+      err += readVal( inrec, String("rotatepastep"), rotatePAStep );
+
+      // The extra params for single-dish
+      err += readVal( inrec, String("pointingcolumntouse"), pointingDirCol );
+      err += readVal( inrec, String("convertfirst"), convertFirst );
+      err += readVal( inrec, String("skypolthreshold"), skyPosThreshold );
+      err += readVal( inrec, String("convsupport"), convSupport );
+      err += readVal( inrec, String("truncate"), truncateSize );
+      err += readVal( inrec, String("gwidth"), gwidth );
+      err += readVal( inrec, String("jwidth"), jwidth );
+      err += readVal( inrec, String("minweight"), minWeight );
+      err += readVal( inrec, String("clipminmax"), clipMinMax );
+
+      // Single or MultiTerm mapper : read in 'deconvolver' and set mType here.
+      // err += readVal( inrec, String("mtype"), mType );
+
+      if (ftmachine=="awprojectft" && cfCache=="") {
+        cfCache = imageName + ".cf";
+      }
+
+      if ( ftmachine=="awprojectft" &&
+           usePointing==True &&
+           pointingOffsetSigDev.nelements() != 2 ) {
+          // Set the default to a large value so that it behaves like CASA 5.6's usepointing=True.
+          pointingOffsetSigDev.resize(2);
+          pointingOffsetSigDev[0] = 600.0;
+          pointingOffsetSigDev[1] = 600.0;
+      }
+
+      err += verify();
+
+    } catch(AipsError &x) {
+      err = err + x.getMesg() + "\n";
+    }
+
+    if (err.length()>0) {
+      throw(AipsError("Invalid Gridding/FTM Parameter set: " + err));
+    }
+
   }
 
   String SynthesisParamsGrid::verify() const
@@ -3610,52 +4111,97 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Check for valid FTMachine type.
     // Valid other params per FTM type, etc... ( check about nterms>1 )
 
-    if( imageName=="" ) {err += "Please supply an image name\n";}
 
+    if ( imageName == "" ) {
+      err += "Please supply an image name\n";
+    }
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
-	(ftmachine != "mosaicft") && (ftmachine != "awprojectft") && 
+	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
 	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
 	(ftmachine != "sd"))
-      { err += "Invalid ftmachine name. Must be one of 'gridft', 'wprojectft', 'mosaicft', 'awprojectft', 'mawpojectft'";   }
+     {
+      err += "Invalid ftmachine name. Must be one of"
+        " 'gridft', 'wprojectft',"
+        " 'mosaicft', 'awprojectft',"
+        " 'mawpojectft', 'protoft',"
+        " 'sd'\n";
+    }
 
-    if( ((ftmachine=="mosaicft") && (mType=="imagemosaic"))  || 
-	((ftmachine=="awprojectft") && (mType=="imagemosaic")) )
-      {  err +=  "Cannot use " + ftmachine + " with " + mType + 
-	  " because it is a redundant choice for mosaicing. "
-	  "In the future, we may support the combination to signal the use of single-pointing sized image grids during gridding and iFT, "
-	  "and only accumulating it on the large mosaic image. For now, please set either mappertype='default' to get mosaic gridding "
-	  " or ftmachine='ft' or 'wprojectft' to get image domain mosaics. \n"; }
 
-    if( facets < 1 )
-      {err += "Must have at least 1 facet\n"; }
+    if ( ( ftmachine == "mosaicft"    and mType == "imagemosaic" ) or
+         ( ftmachine == "awprojectft" and mType == "imagemosaic" ) ) {
+      err +=  "Cannot use " + ftmachine + " with " + mType +
+        " because it is a redundant choice for mosaicing."
+        " In the future, we may support the combination"
+        " to signal the use of single-pointing sized image grids"
+        " during gridding and iFT,"
+        " and only accumulating it on the large mosaic image."
+        " For now, please set"
+        " either mappertype='default' to get mosaic gridding"
+        " or ftmachine='ft' or 'wprojectft' to get image domain mosaics.\n";
+    }
+
+    if ( facets < 1 ) {
+      err += "Must have at least 1 facet\n";
+    }
+
     //if( chanchunks < 1 )
     //  {err += "Must have at least 1 chanchunk\n"; }
-    if( (facets>1) && (chanchunks>1) )
-      { err += "The combination of facetted imaging with channel chunking is not yet supported. Please choose only one or the other for now. \n";}
+    if ( facets > 1 and chanchunks > 1 ) {
+      err += "The combination of facetted imaging"
+        " with channel chunking is not yet supported."
+        " Please choose only one or the other for now.\n";
+    }
 
-    if(ftmachine=="wproject" && (wprojplanes==0 || wprojplanes==1))
-      {err += "The wproject gridder must be accompanied with wprojplanes>1 or wprojplanes=-1\n";}
+    if ( ftmachine == "wproject" and ( wprojplanes == 0 or wprojplanes == 1 ) ) {
+      err += "The wproject gridder must be accompanied with"
+        " wprojplanes>1 or wprojplanes=-1\n";
+    }
 
-    if((ftmachine=="awprojectft") && (facets>1) )
-      {err += "The awprojectft gridder supports A- and W-Projection. "
-	  "Instead of using facets>1 to deal with the W-term, please set the number of wprojplanes to a value > 1 "
-	  "to trigger the combined AW-Projection algorithm. \n";  } // Also, the way the AWP cfcache is managed, even if all facets share a common one so that they reuse convolution functions, the first facet's gridder writes out the avgPB and all others see that it's there and don't compute their own. As a result, the code will run, but the first facet's weight image will be duplicated for all facets.  If needed, this must be fixed in the way the AWP gridder manages its cfcache. But, since the AWP gridder supports joint A and W projection, facet support may never be needed in the first place... 
+    if ( ftmachine == "awprojectft" and facets > 1 ) {
+      err += "The awprojectft gridder supports A- and W-Projection."
+        " Instead of using facets>1 to deal with the W-term,"
+        " please set the number of wprojplanes to a value > 1"
+        " to trigger the combined AW-Projection algorithm. \n";
+      // Also, the way the AWP cfcache is managed,
+      // even if all facets share a common one so that they reuse convolution functions,
+      // the first facet's gridder writes out the avgPB
+      // and all others see that it's there and don't compute their own.
+      // As a result, the code will run,
+      // but the first facet's weight image will be duplicated for all facets.
+      // If needed, this must be fixed in the way the AWP gridder manages its cfcache.
+      // But, since the AWP gridder supports joint A and W projection,
+      // facet support may never be needed in the first place...
+    }
 
-    if((ftmachine=="awprojectft") && (wprojplanes==-1) )
-      {err +="The awprojectft gridder does not support wprojplanes=-1 for automatic calculation. Please pick a value >1" ;}
+    if ( ftmachine == "awprojectft" and wprojplanes == -1 ) {
+      err += "The awprojectft gridder does not support wprojplanes=-1"
+        " for automatic calculation. Please pick a value >1\n";
+    }
 
-    if( (ftmachine=="mosaicft") && (facets>1) )
-      { err += "The combination of mosaicft gridding with multiple facets is not supported. "
-	  "Please use the awprojectft gridder instead, and set wprojplanes to a value > 1 to trigger AW-Projection. \n"; }
+    if ( ftmachine == "mosaicft" and facets > 1 ) {
+      err += "The combination of mosaicft gridding"
+        " with multiple facets is not supported."
+        " Please use the awprojectft gridder instead,"
+        " and set wprojplanes to a value > 1 to trigger AW-Projection.\n";
+    }
 
-    if( ftmachine=="awprojectft" && usePointing==True && pointingOffsetSigDev.nelements() != 2 )
-      {
-	err += "The pointingoffsetsigdev parameter must be a two-element vector of doubles in order to be used with usepointing=True and the AWProject gridder. Setting it to the default of \n ";
+    if ( ftmachine == "awprojectft" and usePointing == True and
+         pointingOffsetSigDev.nelements() != 2 ) {
+      err += "The pointingoffsetsigdev parameter must be"
+        " a two-element vector of doubles in order to be used with usepointing=True"
+        " and the AWProject gridder. Setting it to the default of \n";
+    }
+
+    // Single-dish parameters check
+    if ( ftmachine == "sd" ) {
+      if ( convertFirst != "always" and
+           convertFirst != "never" and
+           convertFirst != "auto" ) {
+        err += "convertfirst parameter: illegal value: '" + convertFirst + "'."
+          " Allowed values: 'always', 'never', 'auto'.\n";
       }
-
-
-
-    // todo: any single-dish specific limitation?
+    }
 
     return err;
   }
@@ -3706,6 +4252,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     // extra params for single-dish
     pointingDirCol = "";
+    convertFirst = "never";
     skyPosThreshold = 0.0;
     convSupport = -1;
     truncateSize = Quantity(-1.0);
@@ -3723,7 +4270,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
     Record gridpar;
 
-	gridpar.define("imagename", imageName);
+    gridpar.define("imagename", imageName);
     // FTMachine params
     gridpar.define("padding", padding);
     gridpar.define("useautocorr",useAutoCorr );
@@ -3754,6 +4301,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     gridpar.define("rotatepastep", rotatePAStep);
 
     gridpar.define("pointingcolumntouse", pointingDirCol );
+    gridpar.define("convertfirst", convertFirst );
     gridpar.define("skyposthreshold", skyPosThreshold );
     gridpar.define("convsupport", convSupport );
     gridpar.define("truncate", QuantityToString(truncateSize) );
@@ -4127,6 +4675,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
               err+= "noRequireSumwt must be a bool";
             }
           }
+        if( inrec.isDefined("fullsummary") )
+          {
+            if (inrec.dataType("fullsummary")==TpBool) {
+              err+= readVal(inrec, String("fullsummary"), fullsummary);
+            }
+            else {
+              err+= "fullsummary must be a bool";
+            }
+          }
         if( inrec.isDefined("restoringbeam") )     
 	  {
 	    String errinfo("");
@@ -4312,6 +4869,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     decpar.define("interactive",interactive);
     decpar.define("nsigma",nsigma);
     decpar.define("noRequireSumwt",noRequireSumwt);
+    decpar.define("fullsummary",fullsummary);
 
     return decpar;
   }

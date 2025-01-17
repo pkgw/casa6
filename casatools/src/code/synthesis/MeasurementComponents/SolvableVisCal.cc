@@ -1,4 +1,4 @@
-//# SolvableVisCal.cc: Implementation of SolvableVisCal classes
+//# SolvableVisCal.cc: Implementation of SolvableVisCal classes/Users/nschweig/CASA6/CASR-539/SolvableVisCal.cc
 //# Copyright (C) 1996,1997,1998,1999,2000,2001,2002,2003
 //# Associated Universities, Inc. Washington DC, USA.
 //#
@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -479,10 +479,13 @@ SolvableVisCal::SolvableVisCal(VisSet& vs) :
   solnorm_(false,"mean"),
   minSNR_(0.0f),
   combine_(""),
+  corrcomb_("none"),
   focusChan_(0),
   dataInterval_(0.0),
   fitWt_(0.0),
   fit_(0.0),
+  antennaMap_(),
+  refantMap_(),
   solveCPar_(vs.numberSpw(),NULL),  // TBD: move inflation into ctor body
   solveRPar_(vs.numberSpw(),NULL),
   solveParOK_(vs.numberSpw(),NULL),
@@ -1615,7 +1618,6 @@ void SolvableVisCal::setSolve(const Record& solve)
 
   if (solve.isDefined("combine"))
     combine()=solve.asString("combine");
-
   //  cout << "SVC::setsolve: minSNR() = " << minSNR() << endl;
 
   // TBD: Warn if table exists (and append=F)!
@@ -2899,7 +2901,25 @@ void SolvableVisCal::setOrVerifyCTFrequencies(Int spw) {
       currFreqHz.set(currFreqHz1);
     }
 
-    if (!allEQ(currCTFreq,currFreqHz)) {
+    Vector<Float> fcurrCTFreq(currCTFreq.size());
+    for (size_t i=0; i!=currCTFreq.size(); i++) {
+        fcurrCTFreq[i] = float(currCTFreq[i]);
+    }
+    Vector<Float> fcurrFreqHz(currFreqHz.size());
+    for (size_t i=0; i!=currCTFreq.size(); i++) {
+        fcurrFreqHz[i] = float(currFreqHz[i]);
+    }
+
+    // cout << "Diff (currFreqHz) = " << (currFreqHz - fcurrFreqHz) << endl;
+    // cout << "Diff (currCTFreq) = " << (currCTFreq - fcurrCTFreq) << endl;
+    // cout << "currFreqHz  = " << currFreqHz << endl;
+    // cout << "fcurrFreqHz  = " << fcurrFreqHz << endl;
+    // cout << "currCTFreq  = " << currCTFreq << endl;
+    // cout << "fcurrCTFreq  = " << fcurrCTFreq << endl;
+
+    
+    //    if (!allEQ(float(currCTFreq),float(currFreqHz))) {
+    if (!allEQ(fcurrCTFreq,fcurrFreqHz)) {
       cout << "For spw=" << spw << ":" << endl;
       cout << "Current CalTable nchan= " << currCTFreq.nelements() << endl;
       cout << "Current CalTable freq = " << currCTFreq << endl;
@@ -3657,6 +3677,85 @@ Bool SolvableVisCal::verifyConstraints(VisBuffGroupAcc& vbag) {
 
 }
 
+void SolvableVisCal::clearMap() {
+    // Clear or initalize values for the antennaMap_
+    Vector<Int> initVector(nPar(), 0);
+    Vector<Int> singleVector(1, 0);
+    
+    for (Int iant=0; iant<nAnt(); ++iant) {
+        antennaMap_[iant]["expected"] = initVector;
+        antennaMap_[iant]["data_unflagged"] = initVector;
+        antennaMap_[iant]["above_minblperant"] = initVector;
+        antennaMap_[iant]["above_minsnr"] = initVector;
+        antennaMap_[iant]["used_as_refant"] = singleVector;
+    }
+    
+}
+
+void SolvableVisCal::clearRefantMap() {
+    // Clear or initialize values for refantMap_
+    for (Int ispw=0; ispw<nSpw(); ++ispw) {
+        for (Int iant=0; iant<nAnt(); ++iant) {
+            refantMap_[ispw][iant] = 0;
+        }
+    }
+}
+
+void SolvableVisCal::expectedUnflagged(SDBList& sdbs) {
+    // Iterate over sdbs and add values to expected and data unflagged
+    for (Int isdb=0;isdb<sdbs.nSDB();++isdb) {
+        SolveDataBuffer& sdb(sdbs(isdb));
+        
+        Int nRow(sdb.nRows());
+        Int nCorr(sdb.nCorrelations());
+        for (Int irow=0;irow<nRow;++irow) {
+            const Int& a1(sdb.antenna1()(irow));
+            const Int& a2(sdb.antenna2()(irow));
+            
+            if (a1!=a2) {
+                for (int par=0;par<nPar();par++) {
+                  antennaMap_[a1]["expected"][par] = 1;
+                  antennaMap_[a2]["expected"][par] = 1;
+                }
+            }
+            // Do cal type-dependent setting of "data_unflagged" counts
+            
+            switch (this->type()) {
+            case VisCal::G:
+            case VisCal::K:
+            case VisCal::B: {  // nPar=2 (gain-like)
+                // Set each pol by flags from appropriate parallel-hand corr
+                if (nfalse(sdb.flagCube()(0,Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"][0] =
+                  antennaMap_[a2]["data_unflagged"][0] = 1;
+                }
+                if (nfalse(sdb.flagCube()(nCorr-1,Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"][1] =
+                  antennaMap_[a2]["data_unflagged"][1] = 1;
+                }
+                break;
+            }
+            case VisCal::T: {  // nPar=1 (gain-like)
+                // Set single pol by flags from all parallel-hand correlations
+                Int nsl(nCorr>1?2:1), isl(nCorr>2?3:1);
+                if (nfalse(sdb.flagCube()(Slice(0,nsl,isl),Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"][0] =
+                  antennaMap_[a2]["data_unflagged"][0] = 1;
+                }
+                break;
+            }
+            default: {
+                // Set all pols by flags from all correlations (any unflagged is ok)
+                if (nfalse(sdb.flagCube()(Slice(),Slice(),irow))>0) {
+                  antennaMap_[a1]["data_unflagged"].set(1);
+                  antennaMap_[a2]["data_unflagged"].set(1);
+                }
+            }
+            }
+        }
+    }
+}
+
 Bool SolvableVisCal::verifyConstraints(SDBList& sdbs) {  // VI2
 
   // TBD: handle multi-channel infocusFlag properly
@@ -3691,6 +3790,8 @@ Bool SolvableVisCal::verifyConstraints(SDBList& sdbs) {  // VI2
   // Recursively apply threshold on baselines per antenna
   Vector<Bool> antOK(nAnt(),True);  // nominally OK
   Vector<Int> blperant(nAnt(),0);
+  Vector<Int> initVector(nPar(), 0);
+    
   Int iant=0;
   while (iant<nAnt()) {
     if (antOK(iant)) {   // avoid reconsidering already bad ones
@@ -3720,6 +3821,9 @@ Bool SolvableVisCal::verifyConstraints(SDBList& sdbs) {  // VI2
     if (antOK(iant)) {
       // set solution good
       solveParOK().xyPlane(iant) = True;
+      for (Int ipar=0; ipar<nPar();++ipar) {
+        antennaMap_[iant]["above_minblperant"][ipar] = 1;
+      }
     }
     else {
       // This ant not ok, set soln to zero
@@ -3967,14 +4071,29 @@ void SolvableVisCal::formSolveSNR() {
 void SolvableVisCal::applySNRThreshold() {
 
   Int nOk1(ntrue(solveParOK()));
+    
+  std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>> resultMap;
+  Vector<Int> initVector(nPar(), 0);
+  Vector<Int> initVectorSingle(1, 0);
   
-  for (Int iant=0;iant<nAnt();++iant)
-    for (Int ipar=0;ipar<nPar();++ipar)
-      if (solveParOK()(ipar,0,iant))
-	solveParOK()(ipar,0,iant)=(solveParSNR()(ipar,0,iant)>minSNR());
+  for (Int iant=0;iant<nAnt();++iant) {
+    //if (refant() == iant) {
+    //  antennaMap_[iant]["used_as_refant"][0] += 1;
+    //}
+    for (Int ipar=0;ipar<nPar();++ipar) {
+      //antennaMap_[iant]["expected"][ipar] += 1;
+      if (solveParOK()(ipar,0,iant)){
+	    solveParOK()(ipar,0,iant)=(solveParSNR()(ipar,0,iant)>minSNR());
+        //antennaMap_[iant]["data_unflagged"][ipar] += 1;
+        if (solveParOK()(ipar,0,iant)) {antennaMap_[iant]["above_minsnr"][ipar] = 1;};
+      }
+    }
+  }
   
+  //cout << pexp << endl;
+    
   Int nOk2(ntrue(solveParOK()));
-  Int nFail=nOk1-nOk2;    
+  Int nFail=nOk1-nOk2;
   
   if (false) {
     // Report some stuff re SNR
@@ -4098,11 +4217,11 @@ void SolvableVisCal::calcPar() {
       if (currFreq().nelements()>1 && currFreq()(0)>currFreq()(1))
 	SBfactor=-1.0f;
       //cout << "freqOff=" << freqOff << " SBfactor=" << SBfactor << " netSB=" << msmc().msmd().getNetSidebands()[currSpw()] << endl;
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime(),(currFreq()-freqOff)*SBfactor);
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime(),(currFreq()-freqOff)*SBfactor);
     }
     else
       // absolute freq
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime(),currFreq());
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime(),currFreq());
 
     //    cout.precision(12);
     //    cout << typeName() << " t="<< currTime() << " newcal=" << boolalpha << newcal << endl;
@@ -4111,10 +4230,10 @@ void SolvableVisCal::calcPar() {
     if (parType()==VisCalEnum::COMPLEX)
       // Call w/ fiducial freq for phase-delay correction
       // TBD: improve freq spec, e.g., use spw center freq rather than _selected_ center
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime(),1.0e9*currFreq()(currFreq().nelements()/2));
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime(),1.0e9*currFreq()(currFreq().nelements()/2));
     else
       // No freq info at all
-      newcal=ci_->interpolate(currObs(),currField(),currSpw(),currTime());
+      newcal=ci_->interpolate(currObs(),currScan(),currField(),currSpw(),currTime());
   }
 
   // TBD: signal failure to find calibration??  (e.g., for a spw?)
@@ -4129,14 +4248,14 @@ void SolvableVisCal::calcPar() {
     
     // Reference result
     if (parType()==VisCalEnum::COMPLEX) 
-      currCPar().reference(ci_->resultC(currObs(),currField(),currSpw()));
+      currCPar().reference(ci_->resultC(currObs(),currScan(),currField(),currSpw()));
     else if (parType()==VisCalEnum::REAL) 
-      currRPar().reference(ci_->resultF(currObs(),currField(),currSpw()));
+      currRPar().reference(ci_->resultF(currObs(),currScan(),currField(),currSpw()));
     else
       throw(AipsError("Bad parType() in SVC::calcPar"));
 
     // Assign _inverse_ of parameter flags
-    currParOK().reference(!ci_->rflag(currObs(),currField(),currSpw()));
+    currParOK().reference(!ci_->rflag(currObs(),currScan(),currField(),currSpw()));
 
     // Ensure shapes recorded correctly
     // (New interpolation generates cal samples for all data channels...revisit?
@@ -4167,12 +4286,12 @@ void SolvableVisCal::calcParByCLPP() {
 
     if (freqDepPar()) {
       // Call w/ freq-dep
-      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),currFreq());
+      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),currFreq());
     }
     else {
       // Call w/ fiducial freq for phase-delay correction
       Double freq=1.0e9*currFreq()(currFreq().nelements()/2);
-      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),freq);
+      newcal=cpp_->interpolate(currCPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),freq);
     }
     break;
   }
@@ -4180,10 +4299,10 @@ void SolvableVisCal::calcParByCLPP() {
     // Interpolate solution   
     if (freqDepPar()) {
       // Call w/ freq-dep
-      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),currFreq());
+      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),currFreq());
     }
     else {
-      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currField(),currIntent(),currSpw(),currTime(),-1.0);
+      newcal=cpp_->interpolate(currRPar(),resFlag,currObs(),currScan(),currField(),currIntent(),currSpw(),currTime(),-1.0);
     }
     break;
   }
@@ -4477,9 +4596,10 @@ Bool SolvableVisCal::VBOKforCalApply(vi::VisBuffer2& vb) {
       // Get it from the new CLPatchPanel, which has
       //  obs, fld, intent specificity, too!
       const Int& iobs(vb.observationId()(0));
+      const Int& iscan(vb.scan()(0));
       const Int& ifld(vb.fieldId()(0));
       const Int& ient(vb.stateId()(0));
-      return cpp_->MSIndicesOK(iobs,ifld,ient,ispw,-1); // all ants
+      return cpp_->MSIndicesOK(iobs,iscan,ifld,ient,ispw,-1); // all ants
     }
     else
       // Assume ok for non-interpolable types
@@ -4519,9 +4639,10 @@ Bool SolvableVisCal::calAvailable(vi::VisBuffer2& vb) {
       // Get it from the new CLPatchPanel, which has
       //  obs, fld, intent specificity, too!
       const Int& iobs(vb.observationId()(0));
+      const Int& iscan(vb.scan()(0));
       const Int& ifld(vb.fieldId()(0));
       const Int& ient(vb.stateId()(0));
-      return cpp_->calAvailable(iobs,ifld,ient,ispw,-1); // all ants
+      return cpp_->calAvailable(iobs,iscan,ifld,ient,ispw,-1); // all ants
     }
     else
       // Assume ok for non-interpolable types
@@ -6691,6 +6812,9 @@ void SolvableVisJones::applyRefAnt() {
       usedaltrefant|=(ichoice>0);
       currrefant=refantchoices(ichoice);
       refantchoices(1)=currrefant;  // 2nd priorty next time
+        
+      // Mark refant in activity rec
+      refantMap_[ctiter.thisSpw()][currrefant] += 1;
 
       //      cout << " currrefant = " << currrefant << " (" << ichoice << ")" << endl;
 

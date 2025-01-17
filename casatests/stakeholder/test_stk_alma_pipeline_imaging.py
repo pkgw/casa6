@@ -84,12 +84,10 @@ And for mtmfs
 # Imports #
 import os
 import glob
-import sys
 import subprocess
 import unittest
 import numpy
 import shutil
-import inspect
 import scipy
 import matplotlib.pyplot as pyplot
 import json
@@ -103,28 +101,13 @@ from casatestutils import add_to_dict
 from casatestutils import stats_dict
 from casatestutils.stakeholder import almastktestutils
 
+from casatools import ctsys, image
+from casatasks import tclean, immoments#, imview
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+#from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
 
-CASA6 = False
-try:
-    from casatools import ctsys, quanta, measures, image, vpmanager, calibrater
-    from casatasks import casalog, delmod, imsubimage, tclean, uvsub, imhead, imsmooth, immath, widebandpbcor, immoments#, imview
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from casatasks.private.imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    CASA6 = True
-    _ia = image()
-    ctsys_resolve = ctsys.resolve
-
-except ImportError:
-    from __main__ import default  # reset given task to its default values
-    from tasks import *  # Imports all casa tasks
-    from taskinit import *  # Imports all casa tools
-    from parallel.parallel_task_helper import ParallelTaskHelper
-
-    _ia = iatool()
-    def ctsys_resolve(apath):
-        dataPath = os.path.join(os.environ['CASAPATH'].split()[0], 'casatestdata/')
-        return os.path.join(dataPath,apath)
+_ia = image()
+ctsys_resolve = ctsys.resolve
 
 # location of data
 data_path = ctsys_resolve('stakeholder/alma/')
@@ -176,14 +159,6 @@ class test_tclean_base(unittest.TestCase):
         del_files += img_files
         for f in del_files:
             shutil.rmtree(f)
-
-    def prepInputmask(self, maskname=""):
-        if maskname!="":
-            self.maskname=maskname
-        if (os.path.exists(self.maskname)):
-            shutil.rmtree(self.maskname)
-        shutil.copytree(refdatapath+self.maskname, self.maskname, symlinks=True)
-
 
     def check_dict_vals_beam(self, exp_dict, act_dict, suffix, epsilon=0.01):
         """ Compares expected dictionary with actual dictionary. Useful for comparing the restoring beam.
@@ -425,7 +400,7 @@ class test_tclean_base(unittest.TestCase):
             image+'.image.pbcor', image+'.mask', image+'.pb', image+'.model', \
             image+'.sumwt']
         mosaic = [image+'.weight']
-        mtmfs = [image+'.alpha', image+'.alpha.error', image+'.alpha.pbcor', \
+        mtmfs = [image+'.alpha', image+'.alpha.error', \
            image+'.psf.tt0', image+'.psf.tt1', image+'.psf.tt2', \
            image+'.residual.tt0', image+'.residual.tt1', image+'.image.tt0',\
            image+'.image.tt1', image+'.image.tt0.pbcor', image+'.image.tt1.pbcor', \
@@ -582,7 +557,7 @@ class Test_standard(test_tclean_base):
             deconvolver='hogbom', usepointing=False, restoration=False, \
             pbcor=False, weighting='briggs', restoringbeam='common', \
             robust=0.5, npixels=0, niter=0, threshold='0.0mJy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -607,7 +582,7 @@ class Test_standard(test_tclean_base):
             gridder='standard',  mosweight=False, \
             deconvolver='hogbom', restoringbeam='common', restoration=True, pbcor=True, \
             weighting='briggs', robust=0.5, npixels=0, niter=20000, \
-            threshold='0.354Jy', interactive=0, usemask='auto'
+            threshold='0.354Jy', usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -781,7 +756,7 @@ class Test_standard(test_tclean_base):
             deconvolver='hogbom', usepointing=False, restoration=False, \
             pbcor=False, weighting='briggs', restoringbeam='common', \
             robust=0.5, npixels=0, niter=0, threshold='0.0mJy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -806,7 +781,7 @@ class Test_standard(test_tclean_base):
             gridder='standard', mosweight=False, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggs', robust=0.5, npixels=0, niter=20000, \
-            threshold='0.354Jy', interactive=0, usemask='auto'
+            threshold='0.354Jy', usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.08, growiterations=75, dogrowprune=True, \
@@ -988,7 +963,7 @@ class Test_standard(test_tclean_base):
             deconvolver='hogbom', usepointing=False, restoration=False, \
             pbcor=False, weighting='briggsbwtaper', restoringbeam='common', \
             robust=0.5, npixels=0, niter=0, threshold='0.0mJy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -1013,7 +988,7 @@ class Test_standard(test_tclean_base):
             gridder='standard', mosweight=False, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggsbwtaper', robust=0.5, npixels=0, niter=20000, \
-            threshold='0.354Jy', interactive=0, usemask='auto'
+            threshold='0.354Jy', usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.08, growiterations=75, dogrowprune=True, \
@@ -1196,7 +1171,7 @@ class Test_standard(test_tclean_base):
             deconvolver='hogbom', nterms=2, restoration=False, \
             restoringbeam='common', pbcor=False, weighting='briggs', \
             robust=0.5, npixels=0, niter=0, threshold='0.0mJy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -1223,7 +1198,7 @@ class Test_standard(test_tclean_base):
             deconvolver='hogbom', nterms=2, restoration=True, \
             restoringbeam='common', pbcor=True, weighting='briggs', \
             robust=0.5, npixels=0, niter=30000, threshold='0.00723Jy', \
-            nsigma=0.0, interactive=0, usemask='auto-multithresh', \
+            nsigma=0.0, usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -1382,7 +1357,7 @@ class Test_standard(test_tclean_base):
             deconvolver='mtmfs', nterms=2, restoration=False, \
             restoringbeam='common', pbcor=False, weighting='briggs', \
             robust=0.5, npixels=0, niter=0, threshold='0.0mJy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -1409,7 +1384,7 @@ class Test_standard(test_tclean_base):
             deconvolver='mtmfs', nterms=2, restoration=True, \
             restoringbeam='common', pbcor=True, weighting='briggs', \
             robust=0.5, npixels=0, niter=30000, threshold='0.00723Jy', \
-            nsigma=0.0, interactive=0, usemask='auto-multithresh', \
+            nsigma=0.0, usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -1604,7 +1579,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='hogbom', \
             restoration=False, restoringbeam='common', pbcor=False, \
             weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -1630,7 +1605,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='hogbom', \
             restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggs', robust=0.5, npixels=0, niter=30000, \
-            threshold='0.274Jy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.274Jy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -1779,7 +1754,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='hogbom', \
             restoration=False, restoringbeam='common', pbcor=False, \
             weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -1804,7 +1779,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='hogbom', \
             restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggs', robust=0.5, npixels=0, niter=30000, \
-            threshold='0.274Jy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.274Jy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -1957,7 +1932,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='hogbom', \
             restoration=False, restoringbeam='common', pbcor=False, \
             weighting='briggsbwtaper', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -1982,7 +1957,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='hogbom', \
             restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggsbwtaper', robust=0.5, npixels=0, niter=30000, \
-            threshold='0.274Jy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.274Jy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -2137,7 +2112,7 @@ class Test_standard(test_tclean_base):
             mosweight=False, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -2163,7 +2138,7 @@ class Test_standard(test_tclean_base):
             mosweight=False, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=7000000, threshold='0.0316Jy', nsigma=0.0, interactive=0, \
+            niter=7000000, threshold='0.0316Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, \
@@ -2310,7 +2285,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='mtmfs', \
             restoration=False, restoringbeam='common', pbcor=False, \
             weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -2337,7 +2312,7 @@ class Test_standard(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='mtmfs', \
             restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggs', robust=0.5, npixels=0, niter=7000000, \
-            threshold='0.0316Jy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0316Jy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -2517,7 +2492,7 @@ class Test_standard(test_tclean_base):
             mosweight=False, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.5, noisethreshold=6.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -2541,7 +2516,7 @@ class Test_standard(test_tclean_base):
             mosweight=False, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=300000, threshold='0.0241Jy', nsigma=0.0, interactive=0, \
+            niter=300000, threshold='0.0241Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=1.5, \
             noisethreshold=6.0, lownoisethreshold=2.0, \
             negativethreshold=0.0, minbeamfrac=0.1, growiterations=75, \
@@ -2687,7 +2662,7 @@ class Test_standard(test_tclean_base):
             mosweight=False, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -2713,7 +2688,7 @@ class Test_standard(test_tclean_base):
             mosweight=False, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=7000000, threshold='0.0316Jy', nsigma=0.0, interactive=0, \
+            niter=7000000, threshold='0.0316Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, \
@@ -2863,7 +2838,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', interactive=0, usemask='auto-multithresh', \
+            threshold='0.0mJy', usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -2890,7 +2865,7 @@ class Test_mosaic(test_tclean_base):
             restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggs', robust=0.5,\
             npixels=0, niter=20000, threshold='0.354Jy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -3071,7 +3046,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', interactive=0, usemask='auto-multithresh', \
+            threshold='0.0mJy', usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -3098,7 +3073,7 @@ class Test_mosaic(test_tclean_base):
             restoration=True, restoringbeam='common', pbcor=True, \
             weighting='briggs', robust=0.5,\
             npixels=0, niter=20000, threshold='0.354Jy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -3294,7 +3269,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggsbwtaper', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', interactive=0, usemask='auto-multithresh', \
+            threshold='0.0mJy', usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -3321,7 +3296,7 @@ class Test_mosaic(test_tclean_base):
             restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggsbwtaper', robust=0.5,\
             npixels=0, niter=20000, threshold='0.354Jy', nsigma=0.0, \
-            interactive=0, usemask='auto-multithresh', \
+            usemask='auto-multithresh', \
             sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, \
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -3519,7 +3494,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common',\
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -3546,7 +3521,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=30000, threshold='0.00723Jy', nsigma=0.0, interactive=0, \
+            niter=30000, threshold='0.00723Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=1.25, \
             noisethreshold=5.0, lownoisethreshold=2.0, \
             negativethreshold=0.0, minbeamfrac=0.1, growiterations=75, \
@@ -3712,7 +3687,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='mtmfs', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=1.25, noisethreshold=5.0, \
             lownoisethreshold=2.0, negativethreshold=0.0, minbeamfrac=0.1, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -3738,7 +3713,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='mtmfs', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=30000, threshold='0.00723Jy', nsigma=0.0, interactive=0, \
+            niter=30000, threshold='0.00723Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=1.25, \
             noisethreshold=5.0, lownoisethreshold=2.0, negativethreshold=0.0,\
             minbeamfrac=0.1, growiterations=75, dogrowprune=True, \
@@ -3950,7 +3925,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=15.0, minbeamfrac=0.3, \
             growiterations=50, dogrowprune=True, minpercentchange=1.0, \
@@ -3975,7 +3950,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=700000, threshold='0.0106Jy', nsigma=0.0, interactive=0, \
+            niter=700000, threshold='0.0106Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=15.0, minbeamfrac=0.3, growiterations=50, \
@@ -4145,7 +4120,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=15.0, minbeamfrac=0.3, \
             growiterations=50, dogrowprune=True, minpercentchange=1.0, \
@@ -4169,7 +4144,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=700000, threshold='0.0106Jy', nsigma=0.0, interactive=0, \
+            niter=700000, threshold='0.0106Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=15.0, minbeamfrac=0.3, growiterations=50, \
@@ -4346,7 +4321,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggsbwtaper', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto'
+            threshold='0.0mJy', nsigma=0.0, usemask='auto'
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=15.0, minbeamfrac=0.3, \
             growiterations=50, dogrowprune=True, minpercentchange=1.0, \
@@ -4370,7 +4345,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggsbwtaper', robust=0.5, npixels=0, \
-            niter=700000, threshold='0.0106Jy', nsigma=0.0, interactive=0, \
+            niter=700000, threshold='0.0106Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=15.0, minbeamfrac=0.3, growiterations=50, \
@@ -4552,7 +4527,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=False, restoringbeam='common', \
             pbcor=False, weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto' \
+            threshold='0.0mJy', nsigma=0.0, usemask='auto' \
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -4578,7 +4553,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='hogbom', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=7000000, threshold='0.0316Jy', nsigma=0.0, interactive=0, \
+            niter=7000000, threshold='0.0316Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, \
@@ -4746,7 +4721,7 @@ class Test_mosaic(test_tclean_base):
             usepointing=False, pblimit=0.2, deconvolver='mtmfs', \
             restoration=False, restoringbeam='common', pbcor=False, \
             weighting='briggs', robust=0.5, npixels=0, niter=0, \
-            threshold='0.0mJy', nsigma=0.0, interactive=0, usemask='auto' \
+            threshold='0.0mJy', nsigma=0.0, usemask='auto' \
             '-multithresh', sidelobethreshold=2.0, noisethreshold=4.25, \
             lownoisethreshold=1.5, negativethreshold=0.0, minbeamfrac=0.3, \
             growiterations=75, dogrowprune=True, minpercentchange=1.0, \
@@ -4772,7 +4747,7 @@ class Test_mosaic(test_tclean_base):
             mosweight=True, usepointing=False, pblimit=0.2, \
             deconvolver='mtmfs', restoration=True, restoringbeam='common', \
             pbcor=True, weighting='briggs', robust=0.5, npixels=0, \
-            niter=7000000, threshold='0.0316Jy', nsigma=0.0, interactive=0, \
+            niter=7000000, threshold='0.0316Jy', nsigma=0.0, \
             usemask='auto-multithresh', sidelobethreshold=2.0, \
             noisethreshold=4.25, lownoisethreshold=1.5, \
             negativethreshold=0.0, minbeamfrac=0.3, growiterations=75, \
@@ -4957,10 +4932,6 @@ class Test_mosaic(test_tclean_base):
             msg = failed)
 
 # End of test_mosaic_mtmfs_eph
-
-
-def suite():
-    return [Test_standard, Test_mosaic]
 
 # Main #
 if __name__ == '__main__':

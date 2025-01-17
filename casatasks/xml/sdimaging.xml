@@ -294,6 +294,33 @@ values. See description below for details of gridfunction available.
             <value>True</value>
     </param>
 
+    <param type="string" name="convertfirst">
+        <shortdescription>pointing column: direction conversion-interpolation processing scheme to use [&quot;never&quot;, &quot;auto&quot;, &quot;always&quot;]</shortdescription>
+        <description>Specify whether the direction of the specified pointing column must be converted to image&quot;s reference frame prior to being interpolated at data-taking time, and when. &quot;never&quot;: interpolate against the pointing column, then convert.  &quot;always&quot;: interpolate against the beforehand converted pointing column. &quot;auto&quot;: if there are less pointings than selected data rows convert first, else interpolate first</description>
+        <value>never</value>
+        <allowed kind="enum">
+            <value>never</value>
+            <value>auto</value>
+            <value>always</value>
+        </allowed>
+    </param>
+
+    <param type="string" name="interpolation">
+        <shortdescription>Spectral interpolation [&quot;nearest&quot;, &quot;linear&quot;, &quot;cubic&quot;]</shortdescription>
+        <description>Spectral interpolation [&quot;nearest&quot;, &quot;linear&quot;, &quot;cubic&quot;]
+                Interpolation rules to use when binning data channels onto image channels and evaluating visibility values at the centers of image channels.
+                Note :
+                - &quot;linear&quot; and &quot;cubic&quot; interpolation requires data points on both sides of each image frequency. Errors are therefore possible at edge channels, or near flagged data channels. When image channel width is much larger than the data channel width there is nothing much to be gained using linear or cubic thus not worth the extra computation involved.
+                - If there are significant differences in the observation dates of the input MSes, &quot;nearest&quot; interpolation may cause some problems with frequency channel matching.
+        </description>
+        <value type="string">linear</value>
+        <allowed kind="enum">
+              <value>nearest</value>
+              <value>linear</value>
+              <value>cubic</value>
+        </allowed>
+    </param>
+
     <constraints>
             <when param="mode">
                 <equals value="channel">
@@ -557,8 +584,18 @@ clipminmax -- Clip minimum and maximum value from each pixel.
               encompassed by expected image.
         default: False
         option: True, False
-
-
+interpolation -- Spectral interpolation.
+                 Interpolation rules to use when binning data channels onto image channels and
+                 evaluating visibility values at the centers of image channels.
+                 Note :
+                  - 'linear' and 'cubic' interpolation requires data points on both sides of each image frequency.
+                    Errors are therefore possible at edge channels, or near flagged data channels.
+                    When image channel width is much larger than the data channel width there is nothing much to be gained
+                    using linear or cubic thus not worth the extra computation involved.
+                  - If there are significant differences in observing dates of input MSes, some problems merely occur
+                    in frequency channel matching when 'nearest' interpolation.
+        option: 'linear', 'nearest', 'cubic'
+        default: 'linear'
 -----------------
 Gridding Kernel
 -----------------

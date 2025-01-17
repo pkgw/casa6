@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -137,9 +137,11 @@ class Calibrater
                  const casacore::Bool zerorates=false,
        const casacore::Bool globalsolve=true,
        const casacore::Int niter=100,
+       const casacore::String& corrcomb="none",
        const casacore::Vector<casacore::Double>& delaywindow=casacore::Vector<casacore::Double>(), 
        const casacore::Vector<casacore::Double>& ratewindow=casacore::Vector<casacore::Double>(),
        const casacore::Vector<casacore::Bool>& paramactive=casacore::Vector<casacore::Bool>(),
+       const casacore::Bool concatspws=true,
 		 const casacore::String& solmode="",
 		 const casacore::Vector<casacore::Double>& rmsthresh=casacore::Vector<casacore::Double>()
 );
@@ -179,6 +181,8 @@ class Calibrater
   // Set corrDepFlags toggle
   casacore::Bool setCorrDepFlags(const casacore::Bool& corrDepFlags = false);
 
+  casacore::Bool setCorrcomb(const casacore::String& corrcomb = "none");
+  
   // Reset the VisCal lists in the Calibrator object
   casacore::Bool reset(const casacore::Bool& apply=true, 
 		       const casacore::Bool& solve=true);
@@ -421,9 +425,14 @@ class Calibrater
   //  (if false, when one correlation is flagged, all will be treated as flagged, per-antenna, per-channel)
   //  (CASA tradition is false; use cases where some antennas may only have one polarization, e.g., VLBI need true)
   casacore::Bool corrDepFlags_;
+ 
+  casacore::String corrcomb_;
 
+ 
   // Activity record
   casacore::Record actRec_;
+  // Results record
+  casacore::Record resRec_;
 
  private:
   // Copy constructor and assignment operator are forbidden
@@ -439,6 +448,56 @@ class Calibrater
   void setCalFilterConfiguration(casacore::String const &type,
       casacore::Record const &config);
 
+};
+
+// CalCounting objects
+
+class CalCounts {
+    
+  public:
+    // Constructor
+    CalCounts();
+    
+    // Destructor
+    virtual ~CalCounts();
+    
+    // initialize the shapes
+    void initCounts(casacore::Int NSpw, casacore::Int NAnt, casacore::Int NPol);
+    
+    // Methods for incrementing counts, initializing structure, and converting to record
+    void addAntennaCounts(casacore::Int spw, casacore::Int NAnt, casacore::Int NPol, std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>>);
+    
+    void updateRefants(casacore::Int, casacore::Int, std::map<casacore::Int, std::map<casacore::Int, casacore::Int>>);
+    
+    void logRecordInfo(casacore::Int NSpw, casacore::Int NAnt, casacore::Int NPol);
+    
+    casacore::Vector<casacore::Int> antMapVal(casacore::Int spw, casacore::Int ant, casacore::String);
+    
+    casacore::Vector<casacore::Int> spwMapVal(casacore::Int spw, casacore::String gate);
+    
+    casacore::Vector<casacore::Int> totalMapVal(casacore::String);
+    
+    casacore::Record makeRecord(casacore::Int, casacore::Int);
+    
+  private:
+    
+    // Log functions and variables
+    casacore::LogIO sink_p;
+    casacore::LogIO& logSink();
+    
+    CalCounts(const CalCounts&) {};
+    
+    casacore::Int nSpw, nAnt, nPol;
+    
+    // Map by spw of maps by ant
+    //       SPW                     ANT                     KEY               COUNT
+    std::map<casacore::Int, std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>>> antennaMap_;
+    
+    // Map of keys for each spw
+    std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>> spwMap_;
+    // Map of the whole ms
+    std::map<casacore::String, casacore::Vector<casacore::Int>> totalMap_;
+    
 };
 
 // Preserve old-fashioned Calibrater here:

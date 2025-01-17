@@ -1,4 +1,4 @@
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+
 #include <casaswig_types.h>
 #include <swigconvert_python.h>
 #include <Python.h>
@@ -9,8 +9,14 @@
 #endif
 #include <patchlevel.h>
 
-#include <stdcasa/StdCasa/string_conversions>
+#include <stdcasa/StdCasa/string_conversions.hpp>
 #include <iostream>
+
+#include <numpy/npy_math.h>
+#if NPY_ABI_VERSION < 0x02000000
+#include "npy_2_compat.h"
+#include "npy_2_complexcompat.h"
+#endif
 
 STRINGTOCOMPLEX_DEFINITION(casac::complex,stringtoccomplex)
 
@@ -22,6 +28,21 @@ STRINGTOCOMPLEX_DEFINITION(casac::complex,stringtoccomplex)
 #define PyInt_Type                      PyLong_Type
 #define PyNumber_Int                    PyNumber_Long
 #define MYPYSIZE                        Py_ssize_t
+
+//
+// Macros to avoid appending modifier to an empty conversion (CVT) function
+//
+#define CVTCONCAT(CVT,MOD) CVTCONCAT##_##CVT##_##MOD
+#define CVTCONCAT_CPXTOCOMPLEX_L CPXTOCOMPLEXL
+#define CVTCONCAT_CPXTOCOMPLEX_F CPXTOCOMPLEXF
+#define CVTCONCAT_CPXREALPART_F CPXREALPARTF
+#define CVTCONCAT_CPXREALPART_L CPXREALPARTL
+#define CVTCONCAT_CPXNONZERO_F CPXNONZEROF
+#define CVTCONCAT_CPXNONZERO_L CPXNONZEROL
+#define CVTCONCAT_CPXTOCCOMPLEX_F CPXTOCCOMPLEXF
+#define CVTCONCAT_CPXTOCCOMPLEX_L CPXTOCCOMPLEXL
+#define CVTCONCAT__F
+#define CVTCONCAT__L
 
 //#define PyString_Check                  PyBytes_Check
 inline bool PyString_Check( PyObject *o ) {
@@ -59,26 +80,33 @@ inline char *PyString_AsString( PyObject *o ) {
 // PyArray_NewFromDescr will steal it.
 static PyArray_Descr *get_string_description(unsigned int size) {
     auto string_descr = PyArray_DescrNewFromType(NPY_UNICODE);
-    string_descr->elsize = size*sizeof(uint32_t);
-
+    PyDataType_SET_ELSIZE( string_descr, size*sizeof(npy_intp) );
     return string_descr;
 }
 
-#define npycomplextostring(TYPE,FORMAT)				\
-inline std::string complextostring( const TYPE &c ) {		\
-    char buff[512];						\
-    sprintf( buff, FORMAT, c.real, c.imag );			\
-    return std::string( (const char *) buff );			\
+#define npycomplextostring(TYPE,T,FORMAT)							\
+inline std::string complextostring( const TYPE &c ) {				\
+    char buff[512];													\
+    sprintf( buff, FORMAT, npy_creal ## T(c), npy_cimag ## T(c) );	\
+    return std::string( (const char *) buff );						\
 }
 
-npycomplextostring(npy_cfloat,"(%f,%f)")
-npycomplextostring(npy_cdouble,"(%f,%f)")
-npycomplextostring(npy_clongdouble,"(%Lf,%Lf)")
+npycomplextostring(npy_cfloat,f,"(%f,%f)")
+npycomplextostring(npy_cdouble,,"(%f,%f)")
+npycomplextostring(npy_clongdouble,l,"(%Lf,%Lf)")
 
-#define CPXREALPART(cpx) cpx.real
-#define CPXNONZERO(cpx) (cpx.real != 0 && cpx.imag != 0) ? true : false
-#define CPXTOCCOMPLEX(cpx) casac::complex(cpx.real,cpx.imag)
-#define CPXTOCOMPLEX(cpx) std::complex<double>(cpx.real,cpx.imag)
+#define CPXREALPART(cpx) npy_creal(cpx)
+#define CPXREALPARTF(cpx) npy_crealf(cpx)
+#define CPXREALPARTL(cpx) npy_creall(cpx)
+#define CPXNONZERO(cpx) (npy_creal(cpx) != 0 && npy_cimag(cpx) != 0) ? true : false
+#define CPXNONZEROF(cpx) (npy_crealf(cpx) != 0 && npy_cimagf(cpx) != 0) ? true : false
+#define CPXNONZEROL(cpx) (npy_creall(cpx) != 0 && npy_cimagl(cpx) != 0) ? true : false
+#define CPXTOCCOMPLEX(cpx) casac::complex(npy_creal(cpx),npy_cimag(cpx))
+#define CPXTOCCOMPLEXF(cpx) casac::complex(npy_crealf(cpx),npy_cimagf(cpx))
+#define CPXTOCCOMPLEXL(cpx) casac::complex(npy_creall(cpx),npy_cimagl(cpx))
+#define CPXTOCOMPLEX(cpx) std::complex<double>(npy_creal(cpx),npy_cimag(cpx))
+#define CPXTOCOMPLEXF(cpx) std::complex<double>(npy_crealf(cpx),npy_cimagf(cpx))
+#define CPXTOCOMPLEXL(cpx) std::complex<double>(npy_creall(cpx),npy_cimagl(cpx))
 
 #define NUMPY2VECTOR_PLACEIT(TYPE,DATATYPE,BOOLVALUES,CPXFUNC,CPXFUNC2,STRFUNC) \
     if (PyArray_CHKFLAGS(obj,NPY_ARRAY_F_CONTIGUOUS)) {			\
@@ -213,7 +241,7 @@ npycomplextostring(npy_clongdouble,"(%Lf,%Lf)")
     else {									\
 	NPYTYPE *from = data;							\
 	for ( std::vector<TYPE>::iterator to = ITR; from < END; ++from, ++to ) {\
-	    *to = TYPE((*from).real,(*from).imag);                              \
+	    *to = TYPE(npy_creal(*from),npy_cimag(*from));                      \
 	}									\
     }
 
@@ -223,8 +251,8 @@ npycomplextostring(npy_clongdouble,"(%Lf,%Lf)")
     else {									\
 	NPYTYPE *from = data;							\
 	for ( std::vector<TYPE>::iterator to = ITR; from < END; ++from, ++to ) {\
-	    (*to).re = (*from).real;						\
-	    (*to).im = (*from).imag;						\
+	    (*to).re = npy_creal(*from);						\
+	    (*to).im = npy_cimag(*from);						\
 	}									\
     }
 
@@ -289,13 +317,13 @@ void casac::numpy2vector( PyArrayObject *obj, std::vector<TYPE > &vec, std::vect
 	NUMPY2VECTOR_PLACEIT(TYPE,npy_longdouble,,,CPXIMAG,DTOSTR)			\
 	break;										\
     case NPY_CFLOAT:									\
-	NUMPY2VECTOR_PLACEIT(TYPE,npy_cfloat,,CPXCVT,,CTOSTR)				\
+	NUMPY2VECTOR_PLACEIT(TYPE,npy_cfloat,,CVTCONCAT(CPXCVT,F),,CTOSTR) \
 	break;										\
     case NPY_CDOUBLE:									\
 	NUMPY2VECTOR_PLACEIT(TYPE,npy_cdouble,,CPXCVT,,CTOSTR)				\
 	break;										\
     case NPY_CLONGDOUBLE:								\
-	NUMPY2VECTOR_PLACEIT(TYPE,npy_clongdouble,,CPXCVT,,CTOSTR) 			\
+	NUMPY2VECTOR_PLACEIT(TYPE,npy_clongdouble,,CVTCONCAT(CPXCVT,L),,CTOSTR) \
 	break;										\
     case NPY_STRING:									\
 	NUMPY2VECTOR_PLACESTR(TYPE,STRCVT)						\
@@ -305,11 +333,6 @@ void casac::numpy2vector( PyArrayObject *obj, std::vector<TYPE > &vec, std::vect
 	shape.resize(0);								\
 	fprintf( stderr, "cannot handle numpy arrays of: NPY_OBJECT\n" );		\
 	break;										\
-    case NPY_CHAR:									\
-	vec.resize(0);									\
-	shape.resize(0);								\
- 	fprintf( stderr, "cannot handle numpy arrays of: NPY_CHAR\n" ); 		\
-	break;										\
     case NPY_UNICODE:									\
 	NUMPY2VECTOR_PLACEUNI(TYPE,STRCVT)						\
 	break;										\
@@ -317,11 +340,6 @@ void casac::numpy2vector( PyArrayObject *obj, std::vector<TYPE > &vec, std::vect
 	vec.resize(0);									\
 	shape.resize(0);								\
 	fprintf( stderr, "cannot handle numpy arrays of: NPY_VOID\n" ); 		\
-	break;										\
-    case NPY_NTYPES:									\
-	vec.resize(0);									\
-	shape.resize(0);								\
-	fprintf( stderr, "cannot handle numpy arrays of: NPY_NTYPES\n" );		\
 	break;										\
     case NPY_NOTYPE:									\
 	vec.resize(0);									\
@@ -687,8 +705,8 @@ MAP_ARRAY_NUMPY(long, npy_int64, NPY_LONG,*to = (npy_long) *from)
 MAP_ARRAY_NUMPY(unsigned long, npy_uint64, NPY_ULONG,*to = (npy_ulong) *from)
 MAP_ARRAY_NUMPY(long long, npy_int64, NPY_INT64,*to = (npy_int64) *from)
 MAP_ARRAY_NUMPY(double, npy_double,NPY_DOUBLE,*to = (npy_double) *from)
-MAP_ARRAY_NUMPY(std::complex<double>, npy_cdouble, NPY_CDOUBLE,(*to).real = (*from).real(); (*to).imag = (*from).imag())
-MAP_ARRAY_NUMPY(casac::complex, npy_cdouble, NPY_CDOUBLE,(*to).real = (*from).re; (*to).imag = (*from).im)
+MAP_ARRAY_NUMPY(std::complex<double>, npy_cdouble, NPY_CDOUBLE,NPY_CSETREAL(to,(*from).real()); NPY_CSETREAL(to,(*from).imag()))
+MAP_ARRAY_NUMPY(casac::complex, npy_cdouble, NPY_CDOUBLE,NPY_CSETREAL(to,(*from).re); NPY_CSETIMAG(to,(*from).im))
 MAP_ARRAY_NUMPY(bool, npy_bool, NPY_BOOL,*to = (npy_bool) *from)
 
 
@@ -763,16 +781,10 @@ else if ( casac::pyarray_check(obj) ) {						\
     case NPY_OBJECT:								\
 	fprintf( stderr, "cannot handle numpy arrays of: NPY_OBJECT\n" );	\
 	break;									\
-    case NPY_CHAR:								\
-	fprintf( stderr, "cannot handle numpy arrays of: NPY_CHAR\n" );		\
-	break;									\
     HANDLE_NUMPY_ARRAY_CASE(NPY_UNICODE,String)					\
 	break;									\
     case NPY_VOID:								\
 	fprintf( stderr, "cannot handle numpy arrays of: NPY_VOID\n" );		\
-	break;									\
-    case NPY_NTYPES:								\
-	fprintf( stderr, "cannot handle numpy arrays of: NPY_NTYPES\n" );	\
 	break;									\
     case NPY_NOTYPE:								\
 	fprintf( stderr, "cannot handle numpy arrays of: NPY_NOTYPE\n" );	\

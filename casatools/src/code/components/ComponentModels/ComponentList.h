@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -49,8 +49,11 @@ class Unit;
 template <class Ms> class MeasRef;
 }
 
-namespace casa { //# NAMESPACE CASA - BEGIN
+namespace casac {
+    class variant;
+}
 
+namespace casa { //# NAMESPACE CASA - BEGIN
 
 // <summary> A class for manipulating groups of components </summary>
 
@@ -97,6 +100,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 // <dt> functions to sort the components
 // <dd> See the <src>sort</src>, <src>type</src> &
 //      <src>namel</src> functions.
+// <dt> Functions to test the existence of, set, and retrieve a table record
+//      with keyword name "metadata".
 // </dl>
 
 // ComponentLists are memory based objects that can write their contents to and
@@ -180,7 +185,7 @@ public:
   // encapsulation; when changing an object's data, the object should be aware.
   ComponentList(
       const casacore::Path& fileName, casacore::Bool readOnly=false,
-      casacore::Bool rewriteTable=casacore::True
+      casacore::Bool rewriteTable=true
   );
 
   // The Copy constructor uses reference semantics
@@ -290,7 +295,7 @@ public:
   // get the the flux as a double
   // param: which - the component number (0 based)
   // return The flux as a Quantity
-  void getFlux(casacore::Vector<casacore::Quantity>& fluxQuant, const casacore::Int& which) const;
+  void getFlux(casacore::Vector<casacore::Quantity>& fluxQuant, int which) const;
   void getFlux(casacore::Vector<casacore::Quantum<casacore::Complex> >& fluxQuant, const casacore::Int& which);
 
   // get the associated polarizations as a vector of strings for the
@@ -478,6 +483,25 @@ public:
 
   const casacore::Table& getTable() const;
 
+
+  // Does the table have the specified table keyword? If the there isn't
+  // an attached table. an exception is thrown. This is a convenience method
+  // to support String keywords and is not meant as a complete replacement
+  // for the Table API.
+  bool hasKeyword(const casacore::String& keyword) const;
+
+  // Set the specified table keyword. If the there isn't an attached table,
+  // an exception is thrown. This is a convenience method
+  // to support String keywords and is not meant as a complete replacement
+  // for the Table API.
+  void putKeyword(const casacore::String& keyword, const casac::variant& value);
+
+  // Get the specified table keyword. If the there isn't an attached table,
+  // an exception is thrown. If the specified table keyword doesn't exist,
+  // an exception is thrown. This is a convenience method to support String
+  // keywords and is not meant as a complete replacement for the Table API.
+  casac::variant* getKeyword(const casacore::String& keyword) const;
+
 private:
   // Privarte function to create the casacore::Table which will hold the components
   //void createTable(const casacore::Path& fileName, const casacore::Table::TableOption option, const casacore::Bool addOptCol);
@@ -497,6 +521,7 @@ private:
   // <li> casacore::AipsError - If the table is not writable (and readOnly==false)
   // </thrown>
   void readTable(const casacore::Path& fileName, const casacore::Bool readOnly);
+  
   casacore::Block<SkyComponent> itsList;
   casacore::uInt itsNelements;
   casacore::Table itsTable;

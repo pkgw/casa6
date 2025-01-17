@@ -1,31 +1,21 @@
-from __future__ import absolute_import
 import os
 import shutil
 import stat
 import time
 
-# get is_python3 and is_CASA6
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from . import partitionhelper as ph
-    from .parallel.parallel_task_helper import ParallelTaskHelper
-    from .mstools import write_history
+from . import partitionhelper as ph
+from .parallel.parallel_task_helper import ParallelTaskHelper
+from .mslisthelper import check_mslist, sort_mslist
+from .mstools import write_history
 
-    from casatools import calibrater, quanta
-    from casatools import ms as mstool
-    from casatools import table as tbtool
-    from casatasks import casalog
+from casatools import calibrater, quanta
+from casatools import ms as mstool
+from casatools import table as tbtool
+from casatasks import casalog
 
-    qa = quanta( )
-    _cb = calibrater( )
-else:
-    from taskinit import *
-    from mstools import write_history
-    import partitionhelper as ph
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    
-    # uses the global qa tool
-    _cb = cbtool( )
+_cb = calibrater()
+_qa = quanta()
+
 
 def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
           visweightscale,keepcopy,copypointing):
@@ -41,9 +31,9 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
 
 
     Keyword arguments:
-    vis -- Name of input visibility files (MS)
+    vis -- Name of input visibility files (MSs, only use real paths, no symlinks)
         default: none; example: vis=['ngc5921-1.ms', 'ngc5921-2.ms']
-    concatvis -- Name of the output visibility file
+    concatvis -- Name of the output visibility file (MMS)
         default: none; example: concatvis='src2.ms'
     freqtol -- Frequency shift tolerance for considering data as the same spwid
         default: ''  means always combine
@@ -84,6 +74,17 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         #dto. for concavis
         theconcatvis = concatvis
 
+        #sanitize the members of vis
+        for i in range(len(vis)):
+            if type(vis[i]) == str:
+                vis[i] = vis[i].rstrip('/')
+                if os.path.islink(vis[i]):
+                    raise ValueError('Parameter vis must only contain real paths, not symbolic links.\n'
+                                    +vis[i]+' is a link.')
+            else:
+                raise ValueError('Parameter vis must only contain strings.')
+                
+
         doweightscale = False
         if(len(visweightscale)>0):
             if (len(visweightscale) != len(vis)):
@@ -103,33 +104,52 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         if(os.path.exists(concatvis)):
             raise ValueError('The output MMS must not yet exist.')
 
-        # process the input MSs in chronological order
-        sortedvis = []
-        sortedvisweightscale = []
-        namestuples = []
-        for name in vis:
-            t.open(name)
-            times = t.getcol('TIME')
-            t.close()
-            times.sort()
-            if doweightscale:
-                namestuples.append( (times[0], name, visweightscale[vis.index(name)]) )
-            else:
-                namestuples.append( (times[0], name, 0) )
+        # test the consistency of the setup of the different MSs
+        casalog.post('Checking MS setup consistency ...', 'INFO')
+        try:
+            mydiff = check_mslist(vislist, ignore_tables=['SORTED_TABLE', 'ASDM*'], testcontent=False)
+        except Exception as instance:
+            raise RuntimeError("*** Error \'%s\' while checking MS setup consistency" % (instance))
+ 
+        if mydiff != {}:
+            casalog.post('The setup of the input MSs is not fully consistent. The concatenation may fail', 'WARN')
+            casalog.post('and/or the affected columns may contain partially only default data.', 'WARN')
+            casalog.post(str(mydiff), 'WARN')
 
-        sorted_namestuples = sorted(namestuples, key=lambda msname: msname[0]) 
-    
-        for i in range(0,len(vis)):
-            sortedvis.append(sorted_namestuples[i][1])
-            sortedvisweightscale.append(sorted_namestuples[i][2])
+        # process the input MSs in chronological order
+        casalog.post('Checking order of MS list ...', 'INFO')
+        try:
+            sortedvis, sortedtimes, sortedvisweightscale = sort_mslist(vis, visweightscale)
+        except Exception as instance:
+            raise RuntimeError("*** Error \'%s\' while sorting MSs chronologially." % (instance))
+
+
+        if((type(concatvis)!=str) or (len(concatvis.split()) < 1)):
+                raise ValueError('parameter concatvis is invalid')
+
+        existingconcatvis = False
+        if(vis.count(concatvis) > 0):
+                existingconcatvis = True
+                cvisindex =  sortedvis.index(concatvis)
+                if not concatvis == sortedvis[0]:
+                        raise RuntimeError('If concatvis is set to the name of an existing MS in vis, it must be the chronologically first.'+\
+                              '\n I.e. in this case you should set concatvis to '+sortedvis[0])
+                sortedvis.pop(cvisindex)
+                if doweightscale:
+                        vwscale = sortedvisweightscale[cvisindex]
+                        sortedvisweightscale.pop(cvisindex)
+                        sortedvisweightscale = [vwscale] + sortedvisweightscale # move the corresponding weight to the front
 
         if not vis == sortedvis:
-            casalog.post('The list of input MSs is not in chronological order and will need to be sorted.' , 'INFO')
-            casalog.post('The chronological order in which the concatenation will take place is:' , 'INFO')
-            for name in sortedvis:
-                casalog.post('   MJD '+str(qa.splitdate(qa.quantity(sorted_namestuples[sortedvis.index(name)][0],'s'))['mjd'])+': '+name, 'INFO')
-            if doweightscale:
-                casalog.post('In this new order, the weights are:'+str(sortedvisweightscale) , 'INFO')
+                casalog.post('The list of input MSs is not in chronological order and needed to be sorted.' , 'INFO')
+                casalog.post('The chronological order in which the concatenation will take place is:' , 'INFO')
+                if existingconcatvis:
+                        casalog.post('   MJD '+str(_qa.splitdate(_qa.quantity(sortedtimes[0],'s'))['mjd'])+': '+concatvis, 'INFO')
+                for name in sortedvis:
+                        casalog.post('   MJD '+str(_qa.splitdate(_qa.quantity(sortedtimes[sortedvis.index(name)],'s'))['mjd'])+': '+name, 'INFO')
+                if doweightscale:
+                        casalog.post('In this new order, the weights are:'+str(sortedvisweightscale) , 'INFO')
+
 
         # replace the original vis and visweightscale by the sorted ones (with concatvis removed if it exists)
         vis = sortedvis
@@ -219,15 +239,25 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         # by checking if any of the MSs has them.
         
         considerscrcols = False
+        considercorr = False
+        considermodel = False
         needscrcols = []
+        needmodel = []
+        needcorr = []
         if ((type(theconcatvis)==str) and (os.path.exists(theconcatvis))):
             # check if all scratch columns are present
             t.open(theconcatvis)
-            if(t.colnames().count('CORRECTED_DATA')==1 or t.colnames().count('MODEL_DATA')==1):
-                considerscrcols = True  # there are scratch columns
-                
-            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0 or t.colnames().count('MODEL_DATA')==0)
+            if (t.colnames().count('MODEL_DATA')==1):
+                considermodel = True
+            if(t.colnames().count('CORRECTED_DATA')==1):
+                considercorr = True
+
+            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0
+                               or  t.colnames().count('MODEL_DATA')==0)
+            needmodel.append(t.colnames().count('MODEL_DATA')==0)
+            needcorr.append(t.colnames().count('CORRECTED_DATA')==0)
             t.close()
+
         else:
             raise ValueError('Visibility data set '+theconcatvis+' not found - please verify the name')
 
@@ -237,20 +267,28 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
 
             # check if all scratch columns are present
             t.open(elvis)
-            if(t.colnames().count('CORRECTED_DATA')==1 
-                           or  t.colnames().count('MODEL_DATA')==1):
-                considerscrcols = True  # there are scratch columns
+            if (t.colnames().count('MODEL_DATA')==1):
+                considermodel = True
+            if(t.colnames().count('CORRECTED_DATA')==1):
+                considercorr = True
 
-            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0 
-                      or  t.colnames().count('MODEL_DATA')==0)
+            needscrcols.append(t.colnames().count('CORRECTED_DATA')==0
+                               or  t.colnames().count('MODEL_DATA')==0)
+            needmodel.append(t.colnames().count('MODEL_DATA')==0)
+            needcorr.append(t.colnames().count('CORRECTED_DATA')==0)
             t.close()
+
+        considerscrcols = (considercorr or considermodel)   # there are scratch columns
+
 
         # start actual work, file existence has already been checked
 
         if(considerscrcols and needscrcols[0]):
             # create scratch cols            
             casalog.post('creating scratch columns in '+theconcatvis , 'INFO')
-            _cb.open(theconcatvis) # calibrator-open creates scratch columns
+            _cb.open(theconcatvis,
+                     addcorr=(considercorr and needcorr[0]),
+                     addmodel=(considermodel and needmodel[0])) # calibrator-open creates scratch columns
             _cb.close()
 
         # scale the weights of the first MS in the chain
@@ -276,7 +314,7 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
 
         i = 0
         for elvis in vis : 
-            i = i + 1
+            i += 1
 
             mmsmembers.append(elvis)
             casalog.post('adding '+elvis+' to multi-MS '+concatvis, 'INFO')
@@ -292,7 +330,9 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
             if(considerscrcols and needscrcols[i]):
                 # create scratch cols            
                 casalog.post('creating scratch columns for '+elvis, 'INFO')
-                _cb.open(elvis) # calibrator-open creates scratch columns
+                _cb.open(elvis,
+                         addcorr=(considercorr and needcorr[i]),
+                         addmodel=(considermodel and needmodel[i])) # calibrator-open creates scratch columns
                 _cb.close()
                 
             m.virtconcatenate(msfile=elvis,
@@ -306,11 +346,8 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         # Write history to MS
         try:
             param_names = virtualconcat.__code__.co_varnames[:virtualconcat.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]
+            vars = locals( )
+            param_vals = [vars[p] for p in param_names]
             write_history(mstool(), theconcatvis, 'virtualconcat', param_names,
                           param_vals, casalog)
         except Exception as instance:
@@ -323,7 +360,6 @@ def virtualconcat(vislist,concatvis,freqtol,dirtol,respectname,
         ptablemembers = []
         if os.path.exists(masterptable) and copypointing:
             casalog.post('Concatenating the POINTING tables ...', 'INFO')
-            i = 0
             for i in range(len(mmsmembers)):
                 ptable = mmsmembers[i]+'/POINTING'
                 if ismaster[i] and os.path.exists(ptable):

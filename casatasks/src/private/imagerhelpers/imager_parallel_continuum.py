@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import os
 import math
 import shutil
@@ -7,26 +6,14 @@ import time
 import re;
 import copy
 import pdb
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import synthesisimager, synthesisnormalizer
-    from casatasks import casalog
 
-    from .imager_base import PySynthesisImager
-    from .parallel_imager_helper import PyParallelImagerHelper
-    synth_imager_name = 'synthesisimager'
-    synth_imager_import = 'from casatools import synthesisimager'
+from casatools import synthesisimager, synthesisnormalizer
+from casatasks import casalog
 
-else:
-    from taskinit import *
-
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.parallel_imager_helper import PyParallelImagerHelper
-
-    synthesisimager = casac.synthesisimager
-    synthesisnormalizer = casac.synthesisnormalizer
-    synth_imager_name = 'casac.synthesisimager'
-    synth_imager_import = 'pass'
+from .imager_base import PySynthesisImager
+from .parallel_imager_helper import PyParallelImagerHelper
+synth_imager_name = 'synthesisimager'
+synth_imager_import = 'from casatools import synthesisimager'
 
 
 '''
@@ -72,16 +59,17 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                  self.allselpars[n][v]['usescratch']=mainparams[v]['usescratch']
 
 #############################################
-    def initializeImagers(self):
-        ### Drygridding, and Coordsys comes from a single imager on MAIN node.
-        ### No startmodel confusion. It's created only once and then scattered.
-        self.initializeImagers()
-
-        ### Note : Leftover from CAS-9977 
-        ### There is a coord system mismatch at scatter/gather, if the MAIN version already
-        ###   exists on disk. With startmodel, it's xxx.model.  With aproject, it's xxx.residual.
-        ### There is an exception in SIImageStore::openImage to handle this. 
-        ### Turn on casalog.filter('DEBUG1') to see the warning message.
+#    def initializeImagers(self):
+#        ### Drygridding, and Coordsys comes from a single imager on MAIN node.
+#        ### No startmodel confusion. It's created only once and then scattered.
+        #self.initializeImagers()
+#        pdb.set_trace()
+#        super().initializeImagers()
+#        ### Note : Leftover from CAS-9977 
+#        ### There is a coord system mismatch at scatter/gather, if the MAIN version already
+#        ###   exists on disk. With startmodel, it's xxx.model.  With aproject, it's xxx.residual.
+#        ### There is an exception in SIImageStore::openImage to handle this. 
+#        ### Turn on casalog.filter('DEBUG1') to see the warning message.
 
 
 #############################################
@@ -171,21 +159,21 @@ class PyParallelContSynthesisImager(PySynthesisImager):
 #############################################
 
     def initializeImagers(self):
-
         #---------------------------------------
         #  Check if cfcache exists.
         #
         cfCacheName=''
+        cfcExists=False
         if(self.allgridpars['0']['gridder'].startswith('awp')):
             cfCacheName=self.allgridpars['0']['cfcache']
         else:
             self.allgridpars['0']['cfcache']=''
-        cfcExists=False
+            cfcExists=True
         if(self.allgridpars['0']['gridder'] == 'awproject' or self.allgridpars['0']['gridder'] == 'awprojectft'):
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
                 cfCacheName=self.allgridpars['0']['cfcache'] = cfCacheName
- 
+                self.allgridpars['0']['cfcache']= cfCacheName
             cfcExists = (os.path.exists(cfCacheName) and os.path.isdir(cfCacheName));
             if (cfcExists):
                 nCFs = len(os.listdir(cfCacheName));
@@ -208,26 +196,35 @@ class PyParallelContSynthesisImager(PySynthesisImager):
 #            self.allimpars[str(fld)]['csys']=self.coordsyspars[str(fld)]['coordsys'].copy()
 
         # Dry Gridding on the MAIN node ( i.e. on self.toolsi)
-        if (not cfcExists):
-            self.dryGridding();
+        #if (not cfcExists):
+        #    self.dryGridding();
 
         ##weighting with mosfield=True
-        if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
+        if( ( ( (self.weightpars['type'].count('briggs') or  self.weightpars['type'].count('uniform')) > 0)  and (self.weightpars['multifield']) )  ):
             self.toolsi.setweighting(**self.weightpars)
             ###master create the weight density for all fields
             self.toolsi.getweightdensity()
             
         # Clean up the single imager (MAIN node)
-        self.toolsi.done()
-        self.toolsi = None
+        #self.toolsi.done()
+        #self.toolsi = None
 
         # Do the second round, initializing imagers on ALL nodes
         self.initializeImagersBase(self.allselpars,True);
 
         # Fill CFCache - it uses all nodes.
         if (not cfcExists):
-            self.fillCFCache();
-        self.reloadCFCache();
+            self.SItool=self.toolsi
+            #super().initializeImagers()
+            ###Doing this serially as in parallel it randomly has race condition
+            ###about table.dat not available
+            super().makeCFCache(False)
+            #self.fillCFCache()
+            self.reloadCFCache();
+            self.SItool=None
+        self.toolsi.done()
+        self.toolsi = None
+
 
 ######################################################################################################################################
         #---------------------------------------
@@ -311,7 +308,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
     def initializeNormalizers(self):
         for immod in range(0,self.NF):
             self.PStools.append(synthesisnormalizer())
-            normpars = copy.deepcopy( self.allnormpars[str(immod)] )
+            self.localnormpars = copy.deepcopy( self.allnormpars[str(immod)] )
             partnames = []
             if(self.NN>1):
                 #### MPIInterface related changes
@@ -322,16 +319,16 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                     #partnames.append( self.PH.getpath(node) + '/' + onename  )
                     #self.PH.deletepartimages( self.PH.getpath(node), onename ) # To ensure restarts work properly.
                     self.PH.deletepartimages( self.allimpars[str(immod)]['imagename'] ,  node ) # To ensure restarts work properly.
-                normpars['partimagenames'] = partnames
-            self.PStools[immod].setupnormalizer(normpars=normpars)
+                self.localnormpars['partimagenames'] = partnames
+            
+            self.PStools[immod].setupnormalizer(normpars=self.localnormpars)
 
 
 #############################################
     def setWeighting(self):
-
         ## Set weight parameters and accumulate weight density (natural)
         joblist=[];
-        if( (self.weightpars['type']=='briggs')  and (self.weightpars['multifield'])):
+        if( ( ((self.weightpars['type'].count('briggs') or self.weightpars['type'].count('uniform')) >0) and (self.weightpars['multifield']) ) ):
             ###master created the weight density for all fields
             ##Should have been in  initializeImagersBase_New but it is not being called !
             self.toolsi = synthesisimager()
@@ -345,6 +342,8 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             self.toolsi.done()
             self.toolsi=None
             destWgtim=weightimage+'_moswt'
+            if( os.path.exists(destWgtim)):
+                shutil.rmtree(destWgtim)
             shutil.move(weightimage, destWgtim)
             joblist=[];
             for node in self.listOfNodes:
@@ -376,7 +375,7 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             self.PH.checkJobs( joblist )
 
             ## If only one field, do the get/gather/set of the weight density.
-            if self.NF == 1 and self.allimpars['0']['stokes']=="I":   ## Remove after gridded wts appear for all fields correctly (i.e. new FTM).
+            if self.NF == 1: # and self.allimpars['0']['stokes']=="I":   ## Remove after gridded wts appear for all fields correctly (i.e. new FTM).
                 
                 if not ( (self.weightpars['type'] ==  'natural') or (self.weightpars['type'] == 'radial'))   :  ## For natural and radial, this array isn't created at all.
                                                                        ## Remove when we switch to new FTM
@@ -388,19 +387,47 @@ class PyParallelContSynthesisImager(PySynthesisImager):
                         joblist.append( self.PH.runcmd("toolsi.getweightdensity()", node ) )
                     self.PH.checkJobs( joblist )
 
+
+
+
+
                     ## gather weightdensity and sum and scatter
                     casalog.post("******************************************************")
                     casalog.post(" gather and scatter now ")
                     casalog.post("******************************************************")
-                    for immod in range(0,self.NF):
-                        self.PStools[immod].gatherweightdensity()
-                        self.PStools[immod].scatterweightdensity()
+                    locpstool=synthesisnormalizer() 
+                    locpstool.setupnormalizer(normpars=self.localnormpars)
+                                             
+                    locpstool.gatherweightdensity()
+                    sumgridname=locpstool.scatterweightdensity()
+                    resname=sumgridname.replace(".gridwt", ".residual")
+                    #print("%%%%%%%%", sumgridname)
+                    if(os.path.exists(sumgridname+"_temp") and (os.path.exists(resname) or os.path.exists(resname+".tt0")) ): # a restart
+                        shutil.rmtree(sumgridname, True)
+                        shutil.move(sumgridname+"_temp", sumgridname)
 
                     ## Set weight density for each nodel
                     joblist=[];
                     for node in self.listOfNodes:
-                        joblist.append( self.PH.runcmd("toolsi.setweightdensity()", node ) )
+                        joblist.append( self.PH.runcmd("toolsi.setweightdensity('"+str(sumgridname)+"')", node ) )
                     self.PH.checkJobs( joblist )
+                    ###For some reason we cannot stop psf being made along with gridwt image and 
+                    ### and may have the wrong shape at this stage
+                    #shutil.rmtree(sumgridname)
+                    shutil.rmtree(sumgridname+"_temp", True)
+                    shutil.move(sumgridname, sumgridname+"_temp")
+
+                    tmppsfname=sumgridname.replace(".gridwt", ".psf")
+                    resname=sumgridname.replace(".gridwt", ".residual")
+                    if(not os.path.exists(resname)) :  # not a restart so psf shape may be different if full pol...delete it
+                        shutil.rmtree(tmppsfname, True)
+                    if(not os.path.exists(resname+".tt0")) :
+                        shutil.rmtree(tmppsfname+".tt0", True)
+
+
+            else:
+                if not ( (self.weightpars['type'] ==  'natural') or (self.weightpars['type'] == 'radial'))   :    
+                    casalog.post("Parallel-Continuum-multifield  with briggs weighting will give different weighting schemes with number of processes used", "WARN")
 
 
 
@@ -445,39 +472,43 @@ class PyParallelContSynthesisImager(PySynthesisImager):
             joblist.append(self.PH.runcmd(cmd,node));
         self.PH.checkJobs(joblist);
 #############################################
-    def fillCFCache(self):
-        #casalog.post("-----------------------fillCFCache------------------------------------")
-        # cflist=[f for f in os.listdir(self.allgridpars['cfcache']) if re.match(r'CFS*', f)];
-        # partCFList = 
-        if(not str(self.allgridpars['0']['gridder']).startswith("awp")):
-            return
-         
-        allcflist = self.PH.partitionCFCacheList(self.allgridpars['0']);
-        cfcPath = "\""+str(self.allgridpars['0']['cfcache'])+"\"";
-        ftmname = "\""+str(self.allgridpars['0']['gridder'])+"\"";
-        psTermOn = str(self.allgridpars['0']['psterm']);
-        aTermOn = str(self.allgridpars['0']['aterm']);
-        conjBeams = str(self.allgridpars['0']['conjbeams']);
-        #aTermOn = str(True);
-        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        # casalog.post("AllCFList = ",allcflist)
-        m = len(allcflist);
-        # casalog.post("No. of nodes used: " + m,cfcPath,ftmname)
-        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+#    def fillCFCache(self):
+#        #casalog.post("-----------------------fillCFCache------------------------------------")
+#        # cflist=[f for f in os.listdir(self.allgridpars['cfcache']) if re.match(r'CFS*', f)];
+#        # partCFList = 
+#        if(not str(self.allgridpars['0']['gridder']).startswith("awp")):
+#            return
+#        allcflist = self.PH.partitionCFCacheList(self.allgridpars['0']);
+#        cfcPath = "\""+str(self.allgridpars['0']['cfcache'])+"\"";
+#        ftmname = "\""+str(self.allgridpars['0']['gridder'])+"\"";
+#        psTermOn = str(self.allgridpars['0']['psterm']);
+#        aTermOn = str(self.allgridpars['0']['aterm']);
+#        conjBeams = str(self.allgridpars['0']['conjbeams']);
+#        #aTermOn = str(True);
+#        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+#        # casalog.post("AllCFList = ",allcflist)
+#        m = len(allcflist);
+#        # casalog.post("No. of nodes used: " + m,cfcPath,ftmname)
+#        # casalog.post("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
-        joblist=[];
-        for node in self.listOfNodes[:m]:
-            # casalog.post("#!$#!%#!$#@$#@$ " + allcflist)
-            cmd = "toolsi.fillcfcache("+str(allcflist[node])+","+str(ftmname)+","+str(cfcPath)+","+psTermOn+","+aTermOn+","+conjBeams+")";
-            # casalog.post("CMD = " + str(node) +" " + cmd)
-            joblist.append(self.PH.runcmd(cmd,node));
-        self.PH.checkJobs(joblist);
+#        joblist=[];
+#        for node in self.listOfNodes[:m]:
+#            # casalog.post("#!$#!%#!$#@$#@$ " + allcflist)
+#           cmd = "toolsi.fillcfcache("+str(allcflist[node])+","+str(ftmname)+","+str(cfcPath)+","+psTermOn+","+aTermOn+","+conjBeams+")";
+#            # casalog.post("CMD = " + str(node) +" " + cmd)
+#            joblist.append(self.PH.runcmd(cmd,node));
+#        self.PH.checkJobs(joblist);
 
-        # Linear code
-        # cfcName = self.allgridpars['0']['cfcache'];
-        # cflist=[f for f in os.listdir(cfcName) if re.match(r'CFS*', f)];
-        # self.cfcachepars['cflist']=cflist;
-        # self.SItool.fillcfcache(**(self.cfcachepars)) ;
+#       # Linear code
+#        cfcName = self.allgridpars['0']['cfcache'];
+#        cflist=[f for f in os.listdir(cfcName) if re.match(r'CFS*', f)];
+#        self.cfcachepars['cflist']=cflist;
+#        self.toolsi.fillcfcache(cflist, self.allgridpars['0']['gridder'],
+#                                cfcName,
+#                                self.allgridpars['0']['psterm'],
+#                                self.allgridpars['0']['aterm'],
+#                                self.allgridpars['0']['conjbeams']);
+#        # self.SItool.fillcfcache(**(self.cfcachepars)) ;
 #############################################
     def makePSFCore(self):
         ### Make PSFs

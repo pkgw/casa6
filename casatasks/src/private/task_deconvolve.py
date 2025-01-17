@@ -1,47 +1,24 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
+import platform
 import time
 import numpy
 import os
 import shutil
 import re
 
-# get is_CASA6 and is_python3, and import other classes
-try:
-    from casatasks.private.casa_transition import *
-except:
-    from sys import version_info
-    is_python3 = version_info > (3,)
-    is_CASA6 = is_python3
-if is_CASA6:
-    from casatasks import casalog
+from casatasks import casalog
 
-    from casatools import image
-    from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
-    from .cleanhelper import write_tclean_history, get_func_params
-    from casatools import synthesisimager
-    ia = image( )
-else:
-    from taskinit import *
-
-    from imagerhelpers.imager_deconvolver import PyDeconvolver
-    from imagerhelpers.input_parameters import ImagerParameters
-    from imregrid import imregrid
-    from parallel.parallel_task_helper import ParallelTaskHelper
-    from cleanhelper import write_tclean_history, get_func_params
-    synthesisimager=casac.synthesisimager
-    ia = iatool( )
+from casatools import image
+from casatasks.private.imagerhelpers.imager_deconvolver import PyDeconvolver
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
+from casatasks.private.parallel.parallel_task_helper import ParallelTaskHelper
+from .cleanhelper import write_tclean_history, get_func_params
+from casatools import synthesisimager
+ia = image( )
 
 try:
-    if is_CASA6:
-        from casampi.MPIEnvironment import MPIEnvironment
-        from casampi import MPIInterface
-    else:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        from mpi4casa import MPIInterface
+    from casampi.MPIEnvironment import MPIEnvironment
+    from casampi import MPIInterface
     mpi_available = True
 except ImportError:
     mpi_available = False
@@ -139,8 +116,7 @@ def deconvolve(
     ####### Deconvolution parameters
     deconvolver,#='hogbom',
     scales,#=[],
-    # TODO in CAS-13570: uncomment once test_multirun_mtmfs3x passes
-    # nterms,#=1,
+    nterms,#=1,
     smallscalebias,#=0.0
     # TODO in CAS-13570: uncomment once asp is working
     # fusedthreshold,#=0.0
@@ -156,6 +132,7 @@ def deconvolve(
     threshold,#=0.0, 
     nsigma,#=0.0
     interactive,#=False,
+    fullsummary,#=False
     fastnoise,#=True,
 
     ##### (new) Mask parameters
@@ -181,6 +158,26 @@ def deconvolve(
 
     cppparallel=False
     decon=None
+
+    if interactive:
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS. Returning
+        # False instead of throwing an exception results in:
+        #
+        #    RuntimeError: No active exception to reraise
+        #
+        # from deconvolve run from casashell.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
+                    "WARN",
+                    "task_deconvolve",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
+
     try:
 
         # discard empty start model strings
@@ -197,9 +194,6 @@ def deconvolve(
         # TODO in CAS-13570: fix asp description and allow asp value once asp is working
         if deconvolver.lower() == "asp":
             raise RuntimeError("The "+deconvolver+" deconvolver currently has incorrect end-of-minor-cycle residual calculations and is therefore disabled. Please choose a different deconvolver.")
-        # TODO in CAS-13570: fix mtmfs description and allow mtmfs value once test_multirun_mtmfs3x passes
-        if deconvolver.lower() == "mtmfs":
-            raise RuntimeError("The "+deconvolver+" deconvolver currently has issues with the deconvolve task and is therefore disabled. Please choose a different deconvolver.")
 
         #####################################################
         #### Construct ImagerParameters
@@ -212,10 +206,7 @@ def deconvolve(
         check_starmodel_model_collisions(startmodel, imagename, deconvolver)
         
         # make a list of parameters with defaults from tclean
-        if is_python3:
-            defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
-        else:
-            defparm=dict(zip(ImagerParameters.__init__.__func__.__code__.co_varnames[1:], ImagerParameters.__init__.func_defaults))
+        defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
 
         ## assign values to the ones passed to deconvolve and if not defined yet in deconvolve...
         ## assign them the default value of the constructor
@@ -231,12 +222,8 @@ def deconvolve(
             if mpi_available and MPIEnvironment.is_mpi_enabled and isCube:
                 mint=MPIInterface.MPIInterface()
                 cl=mint.getCluster()
-                if(is_CASA6):
-                    cl._cluster.pgc("from casatools import synthesisimager", False)
-                    cl._cluster.pgc("si=synthesisimager()", False)
-                else:
-                    cl._cluster.pgc("from casac import casac", False)
-                    cl._cluster.pgc("si=casac.synthesisimager()", False) 
+                cl._cluster.pgc("from casatools import synthesisimager", False)
+                cl._cluster.pgc("si=synthesisimager()", False)
                 cl._cluster.pgc("si.initmpi()", False)
                 cppparallel=True
                 ###ignore chanchunk
@@ -285,6 +272,8 @@ def deconvolve(
         decon.updateMask()
 
         isit = decon.hasConverged() # here in case updateMaskMinor() produces an all-false mask
+        runmin = not isit   ##  Are minor cycles going to be run or not ?  Will the return dictionary have summaryminor or not ?
+        ##print ("Runmin? " , runmin)
         if not isit:
             # print("running minor cycle");
             t0=time.time();
@@ -293,9 +282,23 @@ def deconvolve(
             casalog.post("***Time for minor cycle: "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_deconvolve");
             isit = decon.hasConverged() # get the convergence state, to report back to the calling code
 
+
+        # Residual image needs to be computed for this to work
+        if niter==0 or runmin==False:
+            imdict = ImagingDict()
+            retrec1 = imdict.construct_residual_dict(paramList)
+
         ## Get summary from iterbot
-        if type(interactive) != bool and niter>0:
-            retrec=decon.getSummary();
+        #if type(interactive) != bool and niter>0:
+        # this requrirment should go...
+        #if niter>0:
+        retrec=decon.getSummary(fullsummary);
+
+        if niter==0 or runmin==False:
+            retrec['summaryminor'] = retrec1['summaryminor']  #CAS-14184
+            retrec['stopcode'] = retrec1['stopcode']
+            retrec['stopDescription'] = retrec1['stopDescription']
+
 
         #################################################
         #### Teardown

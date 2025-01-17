@@ -22,6 +22,7 @@
 #
 ##########################################################################
 
+
 import copy
 from enum import Enum
 import glob
@@ -34,15 +35,15 @@ import unittest
 import numpy
 
 from casatasks import casalog, flagdata
-from casatasks import split as split_ms
-from casatasks import tsdimaging as sdimaging
-from casatasks.private.sdutil import is_ms, table_manager, tool_manager
-from casatasks.private.task_tsdimaging import image_suffix, weight_suffix
+from casatasks import imhead
+from casatasks import split
+from casatasks import tsdimaging
+from casatasks.private.sdutil import is_ms, calibrater_manager, table_manager, tool_manager
 from casatestutils import restfreqtool, selection_syntax
 from casatestutils.testhelper import TableCacheValidator
 from casatools import ctsys, image, measures
 from casatools import ms as mstool
-from casatools import msmetadata, quanta, regionmanager, table
+from casatools import msmetadata, quanta, regionmanager
 
 ctsys_resolve = ctsys.resolve
 
@@ -50,13 +51,14 @@ _ia = image()
 _rg = regionmanager()
 me = measures()
 qa = quanta()
-tb = table()
 ms = mstool()
 
 #
 # Unit test of sdimaging task.
 #
 
+image_suffix = '.image'
+weight_suffix = '.weight'
 
 def construct_refstat_uniform(fluxval, blc_data, trc_data):
     """Return a dictionary of analytic reference statistics of uniform image.
@@ -304,6 +306,7 @@ class sdimaging_standard_paramset(object):
     nchan = 40
     start = 400
     width = 10
+    interpolation = 'linear'
 
 ###
 # Base class for sdimaging unit test
@@ -344,7 +347,7 @@ class sdimaging_unittest_base(unittest.TestCase, sdimaging_standard_paramset):
 
     """
 
-    taskname = 'sdimaging'
+    taskname = 'tsdimaging'
     datapath = ctsys_resolve('unittest/tsdimaging/')
     postfix = '.im'
     ms_nchan = 1024
@@ -383,7 +386,7 @@ class sdimaging_unittest_base(unittest.TestCase, sdimaging_standard_paramset):
         (4) image statistics
         (5) reference beam of image (optional)
         """
-        res = sdimaging(**task_param)
+        res = tsdimaging(**task_param)
         outprefix = task_param['outfile']
         outfile = outprefix + image_suffix
         # Tests
@@ -601,7 +604,7 @@ class sdimaging_unittest_base(unittest.TestCase, sdimaging_standard_paramset):
 
     def run_exception_case(self, task_param, expected_msg, expected_type=RuntimeError):
         with self.assertRaises(expected_type) as cm:
-            sdimaging(**task_param)
+            tsdimaging(**task_param)
         the_exception = cm.exception
         pos = str(the_exception).find(expected_msg)
         self.assertNotEqual(pos, -1,
@@ -703,8 +706,8 @@ class sdimaging_test0(sdimaging_unittest_base):
         print('existing file', file=f)
         f.close()
         self.task_param['overwrite'] = False
-        msg = 'Output file \'{0}\' exists.'.format(outfile)
-        self.run_exception_case(self.task_param, msg)
+        expected_task_err_msg = f"Output file exists: '{outfile}'"
+        self.run_exception_case(self.task_param, expected_task_err_msg)
 
     def test009(self):
         """Test009: Bad phasecenter string."""
@@ -723,8 +726,8 @@ class sdimaging_test0(sdimaging_unittest_base):
         self.run_exception_case(self.task_param, msg)
 #         # default for unknown direction frame is J2000
 #         refimage=self.outfile+'2'
-#         sdimaging(infiles=self.rawfile,outfile=self.outfile,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter.replace('J2000','J3000'),minweight=self.minweight0)
-#         sdimaging(infiles=self.rawfile,outfile=refimage,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter,minweight=self.minweight0)
+#         tsdimaging(infiles=self.rawfile,outfile=self.outfile,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter.replace('J2000','J3000'),minweight=self.minweight0)
+#         tsdimaging(infiles=self.rawfile,outfile=refimage,intent='',cell=self.cell,imsize=self.imsize,phasecenter=self.phasecenter,minweight=self.minweight0)
 #         tb.open(self.outfile)
 #         chunk=tb.getcol('map')
 #         tb.close()
@@ -747,15 +750,14 @@ class sdimaging_test0(sdimaging_unittest_base):
     def test012(self):
         """Test012: Bad imsize."""
         self.task_param['imsize'] = [1, 0]
-        msg = 'Error in building Coordinate System and Image Shape : ' + \
-              'Internal Error : Image shape is invalid :'
-        self.run_exception_case(self.task_param, msg)
+        cpp_err_msg = ( 'Error in building Coordinate System and Image Shape: '
+                        'Internal Error : Image shape is invalid :' )
+        self.run_exception_case(self.task_param, cpp_err_msg)
 
     def test013(self):
         """Test013: Bad cell size."""
         self.task_param['cell'] = [0., 0.]
-        msg = 'Error in building Coordinate System and Image Shape : ' + \
-              'wcs wcsset_error: Linear transformation matrix is singular'
+        msg = 'Invalid Image Parameter set : cellsize must be nonzero'
         self.run_exception_case(self.task_param, msg)
 
     def test014(self):
@@ -776,6 +778,12 @@ class sdimaging_test0(sdimaging_unittest_base):
             cell=self.cell, imsize=self.imsize, phasecenter=self.phasecenter, minweight=-1.)
         msg = 'min value is 0'
         self.run_parameter_verification_test(task_param, msg, expected_type=AssertionError)
+
+    def test016(self):
+        """Test016: Bad interpolation."""
+        self.task_param['interpolation'] = 'bad'
+        msg = 'unallowed value bad'
+        self.run_exception_case(self.task_param, msg, expected_type=AssertionError)
 
 
 ###
@@ -858,12 +866,12 @@ class sdimaging_test1(sdimaging_unittest_base):
 
     def test102(self):
         """Test 102: Full channel image."""
-        tb.open(self.rawfile)
-        if 'FLOAT_DATA' in tb.colnames():
-            nchan = tb.getcell('FLOAT_DATA').shape[1]
-        else:
-            nchan = tb.getcell('DATA').shape[1]
-        tb.close()
+        with table_manager(self.rawfile) as tb:
+            if 'FLOAT_DATA' in tb.colnames():
+                nchan = tb.getcell('FLOAT_DATA').shape[1]
+            else:
+                nchan = tb.getcell('DATA').shape[1]
+
         self.task_param.update(dict(nchan=nchan, start=0, width=1))
         # for testing
         # self.task_param['gridfunction'] = 'BOX'
@@ -1138,7 +1146,8 @@ class sdimaging_test2(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         remove_table(self.rawfile)
@@ -1200,18 +1209,18 @@ class sdimaging_test2(sdimaging_unittest_base):
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
-                    'max': numpy.array([21.55560875]),
+                    'max': numpy.array([20.27528954]),
                     'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
                     'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
-                    'mean': numpy.array([0.80467233]),
-                    'min': numpy.array([-0.27736959]),
+                    'mean': numpy.array([0.80622262]),
+                    'min': numpy.array([-0.26142693]),
                     'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
                     'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
                     'npts': numpy.array([562500.]),
-                    'rms': numpy.array([1.56429076]),
-                    'sigma': numpy.array([1.3414586]),
-                    'sum': numpy.array([452628.18628213]),
-                    'sumsq': numpy.array([1376440.6075593]),
+                    'rms': numpy.array([1.56367255]),
+                    'sigma': numpy.array([1.33980601]),
+                    'sum': numpy.array([453500.22199465]),
+                    'sumsq': numpy.array([1375352.91921593]),
                     'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
@@ -1224,6 +1233,32 @@ class sdimaging_test2(sdimaging_unittest_base):
         start = "%f%s" % (1420.2, loc_unit)
         width = "%f%s" % (0.01, loc_unit)
         self.task_param.update(dict(nchan=nchan, start=start, width=width))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
+                    'max': numpy.array([20.27528954]),
+                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
+                    'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
+                    'mean': numpy.array([0.80622262]),
+                    'min': numpy.array([-0.26142693]),
+                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
+                    'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([1.56367255]),
+                    'sigma': numpy.array([1.33980601]),
+                    'sum': numpy.array([453500.22199465]),
+                    'sumsq': numpy.array([1375352.91921593]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
+    def test204(self):
+        """Test 204: Selected frequency image with nearest interpolation."""
+        nchan = 100
+        start = "%f%s" % (1.4202, self.unit)
+        width = "%f%s" % (1.0e-5, self.unit)
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='nearest'))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
@@ -1243,6 +1278,33 @@ class sdimaging_test2(sdimaging_unittest_base):
                     'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
+
+    def test205(self):
+        """Test 205: Selected frequency image with cubic interpolation."""
+        nchan = 100
+        start = "%f%s" % (1.4202, self.unit)
+        width = "%f%s" % (1.0e-5, self.unit)
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='cubic'))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.4202e+09Hz',
+                    'max': numpy.array([20.5693531]),
+                    'maxpos': numpy.array([59, 21, 0, 67], dtype=numpy.int32),
+                    'maxposf': '17:10:00.642, +58.42.19.808, I, 1.42087e+09Hz',
+                    'mean': numpy.array([0.8062793]),
+                    'min': numpy.array([-0.27040794]),
+                    'minpos': numpy.array([58, 71, 0, 10], dtype=numpy.int32),
+                    'minposf': '17:09:45.684, +61.12.21.875, I, 1.4203e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([1.56608822]),
+                    'sigma': numpy.array([1.34259049]),
+                    'sum': numpy.array([453532.10599035]),
+                    'sumsq': numpy.array([1379605.68224346]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.42119e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
 
 ###
 # Test velocity imaging
@@ -1275,7 +1337,8 @@ class sdimaging_test3(sdimaging_unittest_base):
                                cell=self.cell, imsize=self.imsize,
                                phasecenter=self.phasecenter,
                                gridfunction=self.gridfunction,
-                               minweight=self.minweight0)
+                               minweight=self.minweight0,
+                               interpolation=self.interpolation)
 
     def tearDown(self):
         remove_table(self.rawfile)
@@ -1323,6 +1386,58 @@ class sdimaging_test3(sdimaging_unittest_base):
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
                     'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
+                    'max': numpy.array([20.83851051]),
+                    'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
+                    'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
+                    'mean': numpy.array([0.84265565]),
+                    'min': numpy.array([-0.27432534]),
+                    'minpos': numpy.array([61, 71, 0, 16], dtype=numpy.int32),
+                    'minposf': '17:08:30.980, +61.12.02.893, I, 1.421202e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([1.60797852]),
+                    'sigma': numpy.array([1.3694998]),
+                    'sum': numpy.array([473993.80551219]),
+                    'sumsq': numpy.array([1454397.14908556]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.420415e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
+    def test302(self):
+        """Test 302: Selected velocity image (different rest frequency)."""
+        nchan = 100
+        start = "%f%s" % (-100.0, self.unit)
+        width = "%f%s" % (2.0, self.unit)
+        self.task_param.update(dict(restfreq='1.420GHz', nchan=nchan, start=start, width=width))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.420474e+09Hz',
+                    'max': numpy.array([1.61340475]),
+                    'maxpos': numpy.array([4, 52, 0, 33], dtype=numpy.int32),
+                    'maxposf': '17:31:47.043, +60.13.54.473, I, 1.420161e+09Hz',
+                    'mean': numpy.array([0.12391789]),
+                    'min': numpy.array([-0.40290669]),
+                    'minpos': numpy.array([60, 71, 0, 93], dtype=numpy.int32),
+                    'minposf': '17:08:55.879, +61.12.09.501, I, 1.419593e+09Hz',
+                    'npts': numpy.array([562500.]),
+                    'rms': numpy.array([0.19238515]),
+                    'sigma': numpy.array([0.14716128]),
+                    'sum': numpy.array([69703.8118369]),
+                    'sumsq': numpy.array([20819.27620886]),
+                    'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.419536e+09Hz'}
+        self.run_test_common(self.task_param, refstats, outshape,
+                             compstats=self.keys, ignoremask=True)
+
+    def test303(self):
+        """Test 303: Selected velocity image with nearest interpolation."""
+        nchan = 100
+        start = "%f%s" % (-200.0, self.unit)
+        width = "%f%s" % (2.0, self.unit)
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='nearest'))
+        outshape = (self.imsize[0], self.imsize[1], 1, nchan)
+        refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
                     'max': numpy.array([21.97223091]),
                     'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
                     'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
@@ -1340,31 +1455,32 @@ class sdimaging_test3(sdimaging_unittest_base):
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
 
-    def test302(self):
-        """Test 302: Selected velocity image (different rest frequency)."""
+    def test304(self):
+        """Test 304: Selected velocity image with cubic interpolation."""
         nchan = 100
-        start = "%f%s" % (-100.0, self.unit)
+        start = "%f%s" % (-200.0, self.unit)
         width = "%f%s" % (2.0, self.unit)
-        self.task_param.update(dict(restfreq='1.420GHz', nchan=nchan, start=start, width=width))
+        self.task_param.update(dict(nchan=nchan, start=start, width=width, interpolation='cubic'))
         outshape = (self.imsize[0], self.imsize[1], 1, nchan)
         refstats = {'blc': numpy.array([0, 0, 0, 0], dtype=numpy.int32),
-                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.420474e+09Hz',
-                    'max': numpy.array([1.61916351]),
-                    'maxpos': numpy.array([4, 52, 0, 33], dtype=numpy.int32),
-                    'maxposf': '17:31:47.043, +60.13.54.473, I, 1.420161e+09Hz',
-                    'mean': numpy.array([0.12395606]),
-                    'min': numpy.array([-0.41655564]),
-                    'minpos': numpy.array([60, 71, 0, 93], dtype=numpy.int32),
-                    'minposf': '17:08:55.879, +61.12.09.501, I, 1.419593e+09Hz',
+                    'blcf': '17:32:18.690, +57.37.28.536, I, 1.421353e+09Hz',
+                    'max': numpy.array([21.01988792]),
+                    'maxpos': numpy.array([4, 5, 0, 50], dtype=numpy.int32),
+                    'maxposf': '17:30:54.243, +57.53.03.440, I, 1.42088e+09Hz',
+                    'mean': numpy.array([0.84267729]),
+                    'min': numpy.array([-0.28811091]),
+                    'minpos': numpy.array([61, 71, 0, 16], dtype=numpy.int32),
+                    'minposf': '17:08:30.980, +61.12.02.893, I, 1.421202e+09Hz',
                     'npts': numpy.array([562500.]),
-                    'rms': numpy.array([0.19268371]),
-                    'sigma': numpy.array([0.14751931]),
-                    'sum': numpy.array([69725.28195545]),
-                    'sumsq': numpy.array([20883.94443161]),
+                    'rms': numpy.array([1.60991199]),
+                    'sigma': numpy.array([1.37175615]),
+                    'sum': numpy.array([474005.97419012]),
+                    'sumsq': numpy.array([1457896.843721]),
                     'trc': numpy.array([74, 74, 0, 99], dtype=numpy.int32),
-                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.419536e+09Hz'}
+                    'trcf': '17:03:03.151, +61.19.10.757, I, 1.420415e+09Hz'}
         self.run_test_common(self.task_param, refstats, outshape,
                              compstats=self.keys, ignoremask=True)
+
 
 ###
 # Test auto-resolution of spatial gridding parameters
@@ -1422,7 +1538,7 @@ class sdimaging_test_autocoord(sdimaging_unittest_base):
         (3) image shape
         (4) image direction axis
         """
-        res = sdimaging(**task_param)
+        res = tsdimaging(**task_param)
         outprefix = task_param['outfile']
         outfile = outprefix + image_suffix
         # Tests
@@ -1540,7 +1656,7 @@ class TestTimeRangeHelper:
             else:
                 os.remove(sel_ms_name)
         try:
-            split_ms(vis=input_ms, outputvis=sel_ms_name, timerange=params['timerange'])
+            split(vis=input_ms, outputvis=sel_ms_name, timerange=params['timerange'])
             # ---- 1.2 Restore original POINTING table
             org_pointing = os.path.join(input_ms, 'POINTING')
             ref_pointing = os.path.join(sel_ms_name, 'POINTING')
@@ -1552,7 +1668,7 @@ class TestTimeRangeHelper:
             sel_ms_imaging_params = copy.deepcopy(params)
             sel_ms_imaging_params['infiles'] = [sel_ms_name]
             sel_ms_imaging_params['timerange'] = ''
-            sdimaging(**sel_ms_imaging_params)
+            tsdimaging(**sel_ms_imaging_params)
         finally:
             if not debug:
                 remove_table(sel_ms_name)
@@ -1627,7 +1743,7 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     @property
     def task(self):
-        return sdimaging
+        return tsdimaging
 
     @property
     def spw_channel_selection(self):
@@ -1657,7 +1773,8 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self.task_param = dict(mode=self.mode_def, intent="",
                                gridfunction=self.kernel, outfile=self.outfile,
                                phasecenter=self.phasecenter_auto,
-                               cell=self.cell_auto, imsize=self.imsize_auto)
+                               cell=self.cell_auto, imsize=self.imsize_auto,
+                               interpolation=self.interpolation)
 
         remove_tables_starting_with(self.prefix)
 
@@ -2174,8 +2291,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_default_list(self):
-        """Test spw selection w/ channel selection (spw=':6~7;2~5')."""
-        spw = ':6~7;2~5'  # chan=2-7 in all spws should be selected
+        """Test spw selection w/ channel selection (spw=':2~5;6~7')."""
+        #spw = ':6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                          # The parameter should be set a sorted value to get channel selection correctly.
+        spw = ':2~5;6~7'  # chan=2-7 in all spws should be selected
         region = self.spw_region_chan1
         infile = self.unifreq_ms
         flux_list = self.__get_flux_value(infile)
@@ -2224,8 +2343,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_exact_list(self):
-        """Test spw selection w/ channel selection (spw='2:6~7;2~5')."""
-        spw = '2:6~7;2~5'  # chan=2-7 of spw=2 should be selected
+        """Test spw selection w/ channel selection (spw='2:2~5;6~7')."""
+        #spw = '2:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                           # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '2:2~5;6~7'  # chan=2-7 of spw=2 should be selected
         selspw = [2]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -2284,8 +2405,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
         self._default_test()
 
     def test_spw_id_pattern_list(self):
-        """Test spw selection w/ channel selection (spw='*:6~7;2~5')."""
-        spw = '*:6~7;2~5'
+        """Test spw selection w/ channel selection (spw='*:2~5;6~7')."""
+        #spw = '*:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                           # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '*:2~5;6~7'
         region = self.spw_region_chan1
         infile = self.unifreq_ms
         flux_list = self.__get_flux_value(infile)
@@ -2300,7 +2423,9 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     def test_spw_value_frequency_channel(self):
         """Test spw selection w/ channel selection (spw='300.4~300.5GHz:2~7')."""
-        spw = '300.4~300.5GHz:2~7'
+        #spw = '300.4~300.5GHz:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                                        # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '300.4~300.5GHz:2~5;6~7'
         selspw = [1]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -2335,8 +2460,10 @@ class sdimaging_test_selection(selection_syntax.SelectionSyntaxTest, sdimaging_u
 
     @unittest.expectedFailure
     def test_spw_value_frequency_list(self):
-        """Test spw selection w/ channel selection (spw='299.9~300.1GHz:6~7;2~5')."""
-        spw = '299.9~300.1GHz:6~7;2~5'
+        """Test spw selection w/ channel selection (spw='299.9~300.1GHz:2~5;6~7')."""
+        #spw = '299.9~300.1GHz:6~7;2~5' # With interpolation='linear' or 'cubic', it cannot select appropriate channels.
+                                        # The parameter should be set a sorted value to get channel selection correctly.
+        spw = '299.9~300.1GHz:2~5;6~7'
         selspw = [0]
         region = self.spw_region_chan1
         infile = self.spwsel_ms
@@ -2640,9 +2767,9 @@ class sdimaging_test_flag(sdimaging_unittest_base):
 
     def testFlag01(self):
         """testFlag01."""
-        res = sdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
-                        gridfunction=self.gridfunction, cell=self.cell, imsize=self.imsize,
-                        phasecenter=self.phasecenter, minweight=self.minweight0)
+        res = tsdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
+                         gridfunction=self.gridfunction, cell=self.cell, imsize=self.imsize,
+                         phasecenter=self.phasecenter, minweight=self.minweight0)
         self.assertEqual(res, None,
                          msg='Any error occurred during imaging')
         outfile = self.outfile + image_suffix
@@ -2655,10 +2782,10 @@ class sdimaging_test_flag(sdimaging_unittest_base):
         self._check_weight()
 
     def testFlag02(self):
-        res = sdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
-                        width=10, gridfunction=self.gridfunction, cell=self.cell,
-                        imsize=self.imsize, phasecenter=self.phasecenter,
-                        minweight=self.minweight0)
+        res = tsdimaging(infiles=self.rawfile, outfile=self.outfile, intent="",
+                         width=10, gridfunction=self.gridfunction, cell=self.cell,
+                         imsize=self.imsize, phasecenter=self.phasecenter,
+                         minweight=self.minweight0)
         self.assertEqual(res, None,
                          msg='Any error occurred during imaging')
         outfile = self.outfile + image_suffix
@@ -2767,7 +2894,7 @@ class sdimaging_test_flag(sdimaging_unittest_base):
         with table_manager(file) as tb:
             val = tb.getcell(colname, 0)
 
-        boolean_types = (bool, numpy.bool, numpy.bool_)
+        boolean_types = (bool, numpy.bool_)
         for i in range(x_range[0], x_range[1]):
             for j in range(y_range[0], y_range[1]):
                 for k in range(f_range[0], f_range[1]):
@@ -2836,7 +2963,7 @@ class sdimaging_test_polflag(sdimaging_unittest_base):
 
     def run_test(self, task_param, refstats, shape,
                  atol=1.e-8, rtol=1.e-5, box=None):
-        self.res = sdimaging(**task_param)
+        self.res = tsdimaging(**task_param)
         # Tests
         imsize = [shape[0], shape[1]]
         outfile = self.outfile + image_suffix
@@ -2980,7 +3107,7 @@ class sdimaging_test_mslist(sdimaging_unittest_base):
             task_param = self.default_param
         if refstats is None:
             refstats = self.refstats
-        sdimaging(**task_param)
+        tsdimaging(**task_param)
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
         self._check_weight_image(outfile)
@@ -3076,7 +3203,7 @@ class sdimaging_test_restfreq(sdimaging_unittest_base):
 
     def run_test(self, restfreq_ref, beam_ref, cell_ref, stats, **kwargs):
         self.param.update(**kwargs)
-        status = sdimaging(**self.param)
+        status = tsdimaging(**self.param)
         if not status:
             return status
         stats.pop('sumsq')
@@ -3139,14 +3266,14 @@ class sdimaging_test_restfreq(sdimaging_unittest_base):
         stats = construct_refstat_uniform(self.unifval, [0, 0, 0, 0],
                                           [10, 10, 0, 9])
         # remove REST_REQUENCY in SOURCE TABLE
-        tb.open(self.infiles + '/SOURCE', nomodify=False)
-        rf = tb.getcell('REST_FREQUENCY', 0)
-        rf.resize(0)
-        for idx in range(tb.nrows()):
-            tb.putcell('REST_FREQUENCY', idx, rf)
-            self.assertTrue(len(tb.getcell('REST_FREQUENCY', idx)) == 0)
-        tb.flush()
-        tb.close()
+        with table_manager(self.infiles + '/SOURCE', nomodify=False) as tb:
+            rf = tb.getcell('REST_FREQUENCY', 0)
+            rf.resize(0)
+            for idx in range(tb.nrows()):
+                tb.putcell('REST_FREQUENCY', idx, rf)
+                self.assertTrue(len(tb.getcell('REST_FREQUENCY', idx)) == 0)
+            tb.flush()
+
         self.run_test(restfreq, beam_ref, cell_ref, stats,
                       restfreq='', imsize=[11, 11])
 
@@ -3239,7 +3366,7 @@ class sdimaging_test_mapextent(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.param.update(**kwargs)
-        status = sdimaging(**self.param)
+        status = tsdimaging(**self.param)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
@@ -3401,7 +3528,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.param.update(**kwargs)
-        status = sdimaging(**self.param)
+        status = tsdimaging(**self.param)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
@@ -3527,7 +3654,7 @@ class sdimaging_test_ephemeris(sdimaging_unittest_base):
 #
 ###
 class sdimaging_test_interp(sdimaging_unittest_base):
-    """Unit tests for sdimaging (interporation).
+    """Unit tests for sdimaging (interpolation).
 
     tests:
     test_spline_interp_single_infiles: check if spline interpolation works for single MS
@@ -3587,7 +3714,7 @@ class sdimaging_test_interp(sdimaging_unittest_base):
             self.__copy_table(infile)
         self.params.update(**kwargs)
 
-        status = sdimaging(infiles=infiles, outfile=outfile, **self.params)
+        status = tsdimaging(infiles=infiles, outfile=outfile, **self.params)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = outfile.rstrip('/') + '.image'
         self._checkfile(outfile)
@@ -3721,7 +3848,7 @@ class sdimaging_test_interp_old(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.params.update(**kwargs)
-        status = sdimaging(**self.params)
+        status = tsdimaging(**self.params)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self._checkfile(outfile)
@@ -3813,9 +3940,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         # CAS-10893 TODO: uncomment once true PSF image is available
         # remove_table(self.outfile_ref + '.psf')
 
-    def _test_clipping(self, infiles, is_clip_effective=True):
+    def _test_clipping(self, infiles, is_clip_effective=True, interpolation='linear'):
         if isinstance(infiles, str):
-            self._test_clipping([infiles], is_clip_effective)
+            self._test_clipping([infiles], is_clip_effective, interpolation)
             return
 
         for infile in infiles:
@@ -3834,10 +3961,10 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         imsize = 3
         cell = '1arcmin'
         phasecenter = 'J2000 0h0m0s 0d0m0s'
-        sdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
-                  mode=mode, nchan=nchan, start=start, width=width,
-                  gridfunction=gridfunction, imsize=imsize, cell=cell,
-                  phasecenter=phasecenter, clipminmax=True)
+        tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
+                   mode=mode, nchan=nchan, start=start, width=width,
+                   gridfunction=gridfunction, imsize=imsize, cell=cell,
+                   phasecenter=phasecenter, clipminmax=True, interpolation=interpolation)
         _outfile = outfile + image_suffix
         self._checkfile(_outfile)
         self._check_weight_image(_outfile)
@@ -3846,7 +3973,6 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
             # pre-flag the data to be clipped
             # myme = measures()
             mymsmd = msmetadata()
-            mytb = table()
             myqa = qa
             # center = myme.direction('J2000', myqa.quantity(0, 'rad'), myqa.quantity(0, 'rad'))
             offset_plus = myqa.convert(myqa.quantity('1arcmin'), 'rad')
@@ -3890,11 +4016,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                     meta = gridmeta[ira][idec]
                     for imeta in range(len(meta)):
                         infile, irow = meta[imeta]
-                        mytb.open(infile)
-                        try:
+                        with table_manager(infile) as mytb:
                             data = mytb.getcell('FLOAT_DATA', irow)[0]
-                        finally:
-                            mytb.close()
+
                         grid[ira][idec].append(data)
 
             for ira in range(imsize):
@@ -3911,8 +4035,7 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                             ira, idec, argmin, argmax))
                         for imeta in (argmin, argmax):
                             infile, irow = gridmeta[ira][idec][imeta]
-                            mytb.open(infile, nomodify=False)
-                            try:
+                            with table_manager(infile, nomodify=False) as mytb:
                                 print('### clip {} row {} chan {} data {}'.format(
                                     infile, irow, ichan, mytb.getcell('FLOAT_DATA', irow)))
                                 flag = mytb.getcell('FLAG', irow)
@@ -3920,14 +4043,12 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
                                 flag[0, ichan] = True
                                 print('### flag (after) {}'.format(flag))
                                 mytb.putcell('FLAG', irow, flag)
-                            finally:
-                                mytb.close()
 
         outfile = self.outfile_ref
-        sdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
-                  mode=mode, nchan=nchan, start=start, width=width,
-                  gridfunction=gridfunction, imsize=imsize, cell=cell,
-                  phasecenter=phasecenter, clipminmax=False)
+        tsdimaging(infiles=infiles, outfile=outfile, overwrite=overwrite,
+                   mode=mode, nchan=nchan, start=start, width=width,
+                   gridfunction=gridfunction, imsize=imsize, cell=cell,
+                   phasecenter=phasecenter, clipminmax=False, interpolation=interpolation)
         _outfile_ref = outfile + image_suffix
         self._checkfile(_outfile_ref)
         self._check_weight_image(_outfile_ref)
@@ -4016,9 +4137,9 @@ class sdimaging_test_clipping(sdimaging_unittest_base):
         self._test_clipping(infile, is_clip_effective=True)
 
     def test_multichan(self):
-        """test_multichan: check if clipping handles multi-channel data properly."""
-        infile = 'clipping_3rows_2chans.ms'
-        self._test_clipping(infile, is_clip_effective=True)
+        """test_multichan: check if clipping handles multi-channel data properly with nearest interpolation."""
+        infile = 'clipping_3rows_2chans.ms'  # note: it needs to make an another reference image if a test with linear interpolation should be made
+        self._test_clipping(infile, is_clip_effective=True, interpolation='nearest')
 
 
 class sdimaging_test_projection(sdimaging_unittest_base):
@@ -4235,7 +4356,7 @@ class sdimaging_test_output(sdimaging_unittest_base):
 
     def run_test(self, **kwargs):
         self.params.update(**kwargs)
-        status = sdimaging(**self.params)
+        status = tsdimaging(**self.params)
         self.assertIsNone(status, msg='sdimaging failed to execute')
         outfile = self.outfile + image_suffix
         self.assertTrue(os.path.exists(outfile), msg='output image is not created.')
@@ -4255,10 +4376,9 @@ class sdimaging_test_output(sdimaging_unittest_base):
                              msg=suffix + ' exists though it should not.')
 
 
-class sdimaging_antenna_move(sdimaging_unittest_base):
+class sdimaging_pm04_test_base(sdimaging_unittest_base):
     datapath = ctsys_resolve('unittest/tsdimaging/')
     infiles = ['PM04_A108.ms', 'PM04_T704.ms']
-    outfile = 'antenna_move'
 
     def setUp(self):
         self.__clear_files()
@@ -4275,10 +4395,10 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             if os.path.exists(f):
                 shutil.rmtree(f)
 
-    def test_antenna_move(self):
+    def _run_pm04_test(self, infiles=None):
         imsize = 11
         params = {
-            'infiles': self.infiles,
+            'infiles': self.infiles if infiles is None else infiles,
             'antenna': '2',
             'spw': '18',
             'phasecenter': 2,
@@ -4297,6 +4417,172 @@ class sdimaging_antenna_move(sdimaging_unittest_base):
             'sum': [1]
         }
         self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+
+class sdimaging_antenna_move(sdimaging_pm04_test_base):
+    """
+    Test imaging multiple data from the same antenna but different stations
+    """
+    outfile = 'antenna_move'
+
+    def test_antenna_move(self):
+        self._run_pm04_test()
+
+
+class sdimaging_ms_order(sdimaging_pm04_test_base):
+    """
+    Test MS order using the fact that sdimaging takes object name
+    from the first MS of internally sorted list of MSes.
+    """
+    field_names = ['SUCCESS', 'FAIL']
+    outfile = 'ms_order'
+
+    def setUp(self):
+        super(sdimaging_ms_order, self).setUp()
+        for infile, fname in zip(self.infiles, self.field_names):
+            self.__set_field_name(infile, 2, fname)
+
+    def __set_field_name(self, infile, field_id, name):
+        with table_manager(os.path.join(infile, 'FIELD'), nomodify=False) as tb:
+            tb.putcell('NAME', field_id, name)
+            assert tb.getcell('NAME', field_id) == name
+
+    def _verify_field_name(self, imagename):
+        object_name = imhead(imagename=imagename, mode='get', hdkey='OBJECT')
+        print('imagename="{}", object name="{}"'.format(imagename, object_name))
+        self.assertEqual(object_name, self.field_names[0])
+
+    def _test_ms_order(self, infiles):
+        self._run_pm04_test(infiles)
+        outputimage = self.outfile + '.image'
+        self._verify_field_name(outputimage)
+
+    def test_normal_order(self):
+        """test_normal_order: test normal chronological order"""
+        self._test_ms_order(self.infiles)
+
+    def test_reverse_order(self):
+        """test_reverse_order: test reverse chronological order"""
+        infiles = self.infiles[::-1]
+        self.assertEqual(infiles.index(self.infiles[0]), 1)
+        self._test_ms_order(infiles)
+
+
+class sdimaging_ms_conformance(sdimaging_pm04_test_base):
+    """
+    Test handling of non-conform set of MS inputs
+
+    This test checks the following:
+
+      - sdimaging works on conformant input MS list
+      - sdimaging removes WEIGHT_SPECTRUM from MS if non-conformant
+      - sdimaging creates backup for data whose WEIGHT_SPECTRUM need
+        to be removed
+    """
+    outfile = 'ms_conformance'
+
+    @staticmethod
+    def column_exists(name, colname):
+        with table_manager(name) as tb:
+            colnames = tb.colnames()
+
+        return colname in colnames
+
+    @staticmethod
+    def fill_weight_spectrum(name):
+        with calibrater_manager(name, addcorr=False, addmodel=False) as cb:
+            cb.initweights(wtmode='ones', dowtsp=True)
+
+    @staticmethod
+    def remove_weight_spectrum(name):
+        with table_manager(name, nomodify=False) as tb:
+            if 'WEIGHT_SPECTRUM' in tb.colnames():
+                tb.removecols(['WEIGHT_SPECTRUM'])
+            wt = tb.getcol('WEIGHT')
+            wt[:] = 1.0
+            tb.putcol('WEIGHT', wt)
+
+    @staticmethod
+    def fill_corrected_data(name):
+        with calibrater_manager(name, addmodel=False, addcorr=True):
+            pass
+
+    @staticmethod
+    def remove_corrected_data(name):
+        with table_manager(name, nomodify=False) as tb:
+            if 'CORRECTED_DATA' in tb.colnames():
+                tb.removecols(['CORRECTED_DATA'])
+
+    def setUp(self):
+        super(sdimaging_ms_conformance, self).setUp()
+        # keep existing backup files
+        self.existing_backup_files = set(glob.glob('*.sdimaging.backup-2*'))
+        self.additional_backup_files = set()
+
+    def tearDown(self):
+        super(sdimaging_ms_conformance, self).tearDown()
+        # remove backup files created during test
+        for name in self.additional_backup_files:
+            if os.path.exists(name):
+                shutil.rmtree(name)
+
+    def _test_backup(self, name):
+        backup_files = set(glob.glob('{}.sdimaging.backup-2*'.format(name)))
+        self.additional_backup_files.update(
+            backup_files.difference(self.existing_backup_files)
+        )
+        self.assertEqual(len(self.additional_backup_files), 1)
+
+    def test_nowtsp1(self):
+        """test_nowtsp1: no WEIGHT_SPECTRUM column in the first MS"""
+        self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[1])
+
+    def test_nowtsp2(self):
+        """test_nowtsp2: no WEIGHT_SPECTRUM column in the second MS"""
+        self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+        self._test_backup(self.infiles[0])
+
+    def test_conform1(self):
+        """test_conform1: WEIGHT_SPECTRUM exists"""
+        self.fill_weight_spectrum(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.fill_weight_spectrum(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform2(self):
+        """test_conform2: WEIGHT_SPECTRUM does not exist"""
+        self.remove_weight_spectrum(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'WEIGHT_SPECTRUM'))
+        self.remove_weight_spectrum(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'WEIGHT_SPECTRUM'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform3(self):
+        """test_conform3: CORRECTED_DATA column exists only for the first MS"""
+        self.fill_corrected_data(self.infiles[0])
+        self.assertTrue(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.remove_corrected_data(self.infiles[1])
+        self.assertFalse(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
+
+    def test_conform4(self):
+        """test_conform4: CORRECTED_DATA column exists only for the second MS"""
+        self.remove_corrected_data(self.infiles[0])
+        self.assertFalse(self.column_exists(self.infiles[0], 'CORRECTED_DATA'))
+        self.fill_corrected_data(self.infiles[1])
+        self.assertTrue(self.column_exists(self.infiles[1], 'CORRECTED_DATA'))
+        self._run_pm04_test(self.infiles)
+
 
 
 """
@@ -4385,6 +4671,48 @@ def calc_mapproperty(statistics):
     ddec = abs(trcdec - blcdec)
     return {'extent': numpy.array([dra, ddec]), 'npix': npix,
             'blc': numpy.array([blcra, blcdec]), 'trc': numpy.array([trcra, trcdec])}
+
+
+class sdimaging_interpolation(sdimaging_pm04_test_base):
+    """
+    Test imaging with interpolation parameters.
+    
+    This test checks linear(default), nearest, and cubic interpolation with the parameter.
+    """
+    outfile = 'interpolation'
+    
+    def run_base_test(self, interpolation='linear'):
+        imsize = 11
+        params = {
+            'infiles': self.infiles,
+            'antenna': '2',
+            'spw': '18',
+            'phasecenter': 2,
+            'outfile': self.outfile,
+            'overwrite': False,
+            'imsize': imsize,
+            'cell': '10arcsec',
+            'interpolation': interpolation
+        }
+        center = [imsize // 2, imsize // 2, 0, 0]
+        ref = {
+            'npts': [1],
+            'max': [1],
+            'min': [1],
+            'maxpos': center,
+            'minpos': center,
+            'sum': [1]
+        }
+        self.run_test_common(params, refstats=ref, shape=(imsize, imsize, 1, 1), ignoremask=False)
+
+    def test_interpolation_linear(self):
+        self.run_base_test()
+
+    def test_interpolation_nearest(self):
+        self.run_base_test('nearest')
+
+    def test_interpolation_cubic(self):
+        self.run_base_test('cubic')
 
 
 if __name__ == '__main__':

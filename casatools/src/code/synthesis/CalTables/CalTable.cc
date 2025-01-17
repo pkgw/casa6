@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -260,7 +260,7 @@ CalTable CalTable::select (const String& calSelect)
     return *this;
   } else {
     String parseString = "select from $1 where " + calSelect;
-    Table result = tableCommand (parseString, *itsMainTable);
+    Table result = tableCommand (parseString, *itsMainTable).table();
     return CalTable (result);
   };
 };
@@ -282,7 +282,7 @@ void CalTable::select2 (const String& calSelect)
   Int nspace = calSelect.freq (' ');
   if (!calSelect.empty() && nspace!=len) {
     String parseString = "select from $1 where " + calSelect;
-    Table *selected = new Table(tableCommand (parseString, *itsMainTable));
+    Table *selected = new Table(tableCommand (parseString, *itsMainTable).table());
     delete itsMainTable;
     itsMainTable=selected;
   };

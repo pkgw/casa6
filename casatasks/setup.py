@@ -17,7 +17,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be addressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -30,6 +30,9 @@ This is a standard python module that provides CASA tools and tasks
 without regular CASA's bespoke CLI.
 """
 from __future__ import division, print_function
+from urllib import request
+from shutil import copyfileobj
+
 
 classifiers = """\
 Development Status :: 3 - Alpha
@@ -60,9 +63,9 @@ import os
 try:
     import casatools
     from casatools.config import build as tools_config
-except ImportError as exc:
-    print(f'Exception found when importing casatools: {type(exc).__name__} {exc}')
-    sys.exit(1)
+except ImportError:
+    print(f'casatools.config.build could not be imported, using XML casa jar directly')
+    tools_config = None
 
 from setuptools import setup, find_packages
 from distutils.dir_util import copy_tree, remove_tree
@@ -161,11 +164,13 @@ xml_files = [ 'xml/imhead.xml',
               'xml/bandpass.xml',
               'xml/blcal.xml',
               'xml/calstat.xml',
+              'xml/defintent.xml',
               'xml/concat.xml',
               'xml/split.xml',
               'xml/listobs.xml',
               'xml/flagdata.xml',
               'xml/flagcmd.xml',
+              'xml/getephemtable.xml',
               'xml/setjy.xml',
               'xml/cvel.xml',
               'xml/cvel2.xml',
@@ -177,6 +182,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/listpartition.xml',
               'xml/flagmanager.xml',
               'xml/mstransform.xml',
+              'xml/msuvbin.xml',
               'xml/tclean.xml',
               'xml/deconvolve.xml',
               'xml/immath.xml',
@@ -206,8 +212,10 @@ xml_files = [ 'xml/imhead.xml',
               'xml/ft.xml',
               'xml/gaincal.xml',
               'xml/gencal.xml',
+              'xml/getantposalma.xml',
               'xml/testconcat.xml',
               'xml/apparentsens.xml',
+              'xml/getcalmodvla.xml',
               'xml/hanningsmooth.xml',
               'xml/imcollapse.xml',
               'xml/imcontsub.xml',
@@ -272,6 +280,7 @@ xml_files = [ 'xml/imhead.xml',
               'xml/sdsidebandsplit.xml',
               'xml/plotprofilemap.xml',
               'xml/imbaseline.xml',
+              'xml/wvrgcal.xml',
 ]
 
 if pyversion < 3:
@@ -336,7 +345,7 @@ def generate_pyinit(moduledir,tasks):
         for task in tasks:
             fd.write("            '%s',\n" % task)
         fd.write("          ]\n\n")
-        fd.write("""from . import config\n""")
+        fd.write("""from casaconfig import config\n""")
         fd.write("""casalog = _logsink( config.logfile )\n\n""")
         for task in tasks:
             fd.write("from .%s import %s\n" % (task,task))
@@ -395,48 +404,9 @@ def generate_pyinit(moduledir,tasks):
         fd.write('        casalog.post("Python version " + platform.python_version())\n')
         fd.write('        casalog.post("CASA Version " + package_variant.upper() + " %s")\n' % casatasks_version)
         fd.write('    except:\n')
-        fd.write('        print("Error: the logfile is not writable")\n')  
+        fd.write('        print("Error: the logfile is not writable")\n')
         fd.write("\n")
-        fd.write("from datetime import datetime as _time\n")
-        fd.write("telemetry_starttime = str(_time.now())\n")
-        fd.write("import os\n")
-        fd.write("serial_run = mpi_env_found and not MPIEnvironment.is_mpi_enabled\n")
-        fd.write("mpi_run_client = mpi_env_found and MPIEnvironment.is_mpi_enabled and MPIEnvironment.is_mpi_client\n")
-        fd.write("nompi_or_serial_or_client = not mpi_env_found or serial_run or mpi_run_client\n")
-        fd.write("telemetry_available=False\n")
-        fd.write("if nompi_or_serial_or_client:\n")
-        fd.write("  try:\n")
-        fd.write("    import casatelemetry\n")
-        fd.write("    telemetry_available=True\n")
-        fd.write("  except:\n")
-        fd.write('    casalog.post("Can\'t import casatelemetry module.")\n')
-        fd.write("if telemetry_available and config.telemetry_enabled and nompi_or_serial_or_client:\n")
-        fd.write("  try:\n") 
-        fd.write("    telemetrylogdirectory = None\n") 
-        fd.write("    if config.rcdir != None:\n")
-        fd.write("      telemetrylogdirectory = config.rcdir\n")
-        fd.write("    if config.telemetry_log_directory != None:\n")
-        fd.write("      telemetrylogdirectory = casatasks.config.telemetry_log_directory\n")
-        fd.write("    telemetrylogger = casatelemetry.casatelemetry.telemetry(telemetrylogdirectory)\n")
-        fd.write("  except:\n")       
-        fd.write("    telemetrylogger = casatelemetry.casatelemetry.telemetry()\n")
-        fd.write("  def logstop():\n")
-        # Telemetry may be stopped during runtime so check if it is still enabled
-        fd.write('    if telemetrylogger.telemetry_enabled:\n')
-        fd.write("      telemetry_stoptime = str(_time.now())\n")            
-        fd.write('      telemetrylogger.logger.info(telemetry_stoptime + " :: " + str(os.getpid()) + " :: CASAStop :: Stopping CASA at: " + telemetry_stoptime + \n') 
-        fd.write('      " Version " + version_string() + " Platform: " + platform.platform() +  " Start time: " + telemetry_starttime + " Variant: " + package_variant)\n')
-        #fd.write('   print("mpi_env " + str(mpi_env_found))\n')
-        fd.write('  if not mpi_env_found or (mpi_env_found and MPIEnvironment.is_mpi_client):\n')
-        fd.write('    telemetrylogger.submitStatistics()\n')
-        fd.write('    if telemetrylogger.telemetry_enabled:\n')
-        fd.write('      telemetrylogger.logger.info(telemetry_starttime + " :: " + str(os.getpid()) + " :: CASAStart :: Starting CASA at: " + telemetry_starttime + \n') 
-        fd.write('      " Version " + version_string() + " Platform: " + platform.platform() + " Variant: " + package_variant)\n')
-        fd.write("    import atexit\n")
-        fd.write("    atexit.register(logstop)\n")
-        fd.write('if telemetry_available and config.crashreporter_enabled:\n')
-        fd.write("    casatelemetry.CrashReporter.init(config.logfile)\n")
-        
+
 
 class BuildCasa(build):
     description = "Description of the command"
@@ -453,6 +423,13 @@ class BuildCasa(build):
         print("finalizing options...")
         build.finalize_options(self)
 
+    def xml_jar_fetch(self,xml_jar_path, xml_jar_url ):
+        if not os.path.exists(os.path.dirname(xml_jar_path)):
+            os.makedirs(os.path.dirname(xml_jar_path))
+        if not os.path.exists( xml_jar_path ):
+            with request.urlopen(xml_jar_url) as istream, open(xml_jar_path,'wb') as fd:
+                copyfileobj( istream, fd )
+
     def run(self):
 
         libdir = os.path.join("build",distutils_dir_name('lib'))
@@ -462,8 +439,15 @@ class BuildCasa(build):
         copy_tree('src',moduledir)
 
         print("generating task python files...")
-        proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
-                      stdout=subprocess.PIPE )
+        if tools_config is not None:
+            proc = Popen( [tools_config['build.compiler.xml-casa'], "output-task=%s" % moduledir, "-task"] + xml_files,
+                          stdout=subprocess.PIPE )
+        else:
+            xml_jar_file = 'xml-casa-assembly-1.86.jar'
+            xml_jar_url = 'http://casa.nrao.edu/download/devel/xml-casa/java/%s' % xml_jar_file
+            xml_jar_path = os.path.abspath(os.path.join( 'java', xml_jar_file))
+            self.xml_jar_fetch(xml_jar_path, xml_jar_url)
+            proc = Popen(['java', '-jar', xml_jar_path, '-task', 'output-task=%s' % moduledir] + xml_files, stdout=subprocess.PIPE)
 
         (output, error) = pipe_decode(proc.communicate( ))
 
@@ -478,6 +462,11 @@ class BuildCasa(build):
         mkpath(xmldir)
         for x in xml_files:
             copy2(x,xmldir)
+
+        os.makedirs(os.path.join(moduledir, 'tests'))
+        f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
+        f.close()
+        copy2('tests/test_casatasks.py',os.path.join(moduledir, 'tests'))
 
 class TestCasa(Command):
     user_options = []
@@ -646,7 +635,7 @@ setup( name=module_name,version=casatasks_version,
        maintainer="Darrell Schiebel",
        maintainer_email="drs@nrao.edu",
        author="CASA development team",
-       author_email="aips2-request@nrao.edu",
+       author_email="casa-feedback@nrao.edu",
        url="https://open-bitbucket.nrao.edu/projects/CASA/repos/casatools/browse",
        download_url="https://casa.nrao.edu/download/",
        license="GNU Library or Lesser General Public License (LGPL)",
@@ -654,12 +643,13 @@ setup( name=module_name,version=casatasks_version,
                   "%s.__xml__" % module_name,
                   "%s.private" % module_name,
                   "%s.private.parallel" % module_name,
-                  "%s.private.imagerhelpers" % module_name ],
+                  "%s.private.imagerhelpers" % module_name,
+                  "%s.tests" % module_name ],
        classifiers=[ 'Programming Language :: Python :: %s' % pyversion ],
        description="the CASA tasks",
        long_description="The CASAtasks are a collection of (mostly) stateless functions for\nthe analysis of radio astronomy observations.",
        cmdclass=cmd_setup,
        package_dir={module_name: os.path.join('build',distutils_dir_name('lib'), module_name)},
        package_data={'': ['*.xml','*.txt']},
-       install_requires=[ 'casatools==%s' % casatools.version_string( ), 'matplotlib', 'scipy', 'certifi' ]
+       install_requires=[ 'casatools==%s' % casatasks_version, 'matplotlib', 'scipy', 'certifi', 'pyerfa' ]
 )

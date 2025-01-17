@@ -19,7 +19,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be adressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -67,29 +67,15 @@
 # <todo>
 # </todo>
 
-from __future__ import absolute_import
 import inspect
 import os
 import sys
 import numpy
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, regionmanager, quanta
-    from casatasks import casalog
-    from .ialib import write_image_history
-
-    _qa = quanta( )
-else:
-    from taskinit import *
-    from ialib import write_image_history
-
-    image = iatool
-    regionmanager = rgtool
-
-    # not a local tool
-    _qa = qa
+from casatools import image, regionmanager, quanta
+from casatasks import casalog
+from .ialib import write_image_history
+_qa = quanta()
 
 from casatasks.private.callabletask import log_origin_setter
 
@@ -115,7 +101,7 @@ def imsmooth(
         if len(beam) != 0:
             err = "beam cannot be a non-empty string"
             casalog.post(err, "SEVERE")
-            raise Exception(err)
+            raise ValueError(err)
         beam = {}
 
     # First check to see if the output file exists.  If it
@@ -172,7 +158,7 @@ def imsmooth(
                     raise ValueError("Minor axis must be specified")
                 if not pa:
                     raise ValueError("Position angle must be specified")
-       
+     
             outia = _myia.convolve2d(
                 axes=[0,1], region=reg, major=major,
                 minor=minor, pa=pa, outfile=outfile,
@@ -220,11 +206,7 @@ def imsmooth(
 
         try:
             param_names = imsmooth.__code__.co_varnames[:imsmooth.__code__.co_argcount]
-            if is_python3:
-                vars = locals( )
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]   
+            param_vals = [eval(p) for p in param_names]   
             write_image_history(
                 outia, sys._getframe().f_code.co_name,
                 param_names, param_vals, casalog

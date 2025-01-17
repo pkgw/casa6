@@ -19,7 +19,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -2425,7 +2425,10 @@ Bool Imager::createFTMachine()
     }
     ft_p->setPointingDirColumn(pointingDirCol_p);
     auto * sdgrid = dynamic_cast<SDGrid *>(ft_p);
-    if (sdgrid) sdgrid->setEnableCache(enablecache_p);
+    if (sdgrid) {
+      sdgrid->setEnableCache(enablecache_p);
+      sdgrid->setConvertFirst(convertfirst_p);
+    }
 
     ROVisIter& vi(*rvi_p);
     // Get bigger chunks o'data: this should be tuned some time

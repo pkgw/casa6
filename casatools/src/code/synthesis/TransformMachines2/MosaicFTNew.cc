@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -25,9 +25,8 @@
 //#
 //# $Id$
 
+
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
-
-
 #include <msvis/MSVis/VisibilityIterator.h>
 #include <casacore/casa/Quanta/UnitMap.h>
 #include <casacore/casa/Quanta/MVTime.h>
@@ -96,6 +95,16 @@ using namespace casa::refim;
 {
   
 }
+MosaicFTNew& MosaicFTNew::operator=(const MosaicFTNew& other) {
+  if(this!=&other) {
+
+    //Do the base parameters
+    MosaicFT::operator=(other);
+   
+    }
+    return *this;
+    
+  }
 // Finalize the FFT to the Sky. Here we actually do the FFT and
 // return the resulting image
 ImageInterface<Complex>& MosaicFTNew::getImage(Matrix<Float>& weights,
@@ -234,9 +243,13 @@ void MosaicFTNew::getWeightImage(ImageInterface<Float>& weightImage,
 {
   
   logIO() << LogOrigin("MosaicFTNew", "getWeightImage") << LogIO::NORMAL;
-  
+
+  //cerr << "SUMWEIGHT " << sumWeight << endl;
   weights.resize(sumWeight.shape());
   convertArray(weights,sumWeight);
+  if(!skyCoverage_p)
+    throw(AipsError("MosaicFTNew::getWeightImage: called before initializing"));
+  //cerr << "skyCoverage_p " << skyCoverage_p.get() << endl;
   Record rec=skyCoverage_p->miscInfo();
   Float inx=1;
   Float iny=1;

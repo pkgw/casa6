@@ -1,6 +1,7 @@
 #include <casacore/casa/Arrays/ArrayMath.h>
 #include <casacore/casa/Arrays/ArrayPartMath.h>
 #include <casacore/casa/BasicMath/Functors.h>
+#include <casacore/casa/Utilities/CountedPtr.h>
 #include <stdcasa/UtilJ.h>
 #include <msvis/MSVis/AveragingTvi2.h>
 #include <msvis/MSVis/AveragingVi2Factory.h>
@@ -1592,8 +1593,10 @@ VbAvg::finalizeBaseline (MsRowAvg * msRowAvg)
 // Functor to divide variables of possibly different types.
 // This is unlike std::divides which requires equal types.
 template <typename L, typename R=L, typename RES=L>
-struct DividesNonZero : public std::binary_function<L,R,RES>
-{
+struct DividesNonZero {
+  using first_argument_type = L;
+  using second_argument_type = R;
+  using result_type = RES;
   RES operator() (const L& x, const R& y) const
   {
     { return y > 0? RES(x)/y : RES(x); }

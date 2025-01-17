@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -284,8 +284,7 @@ template <class T> template <class U> void ImageFFT<T>::_fft(
     ImageInterface<U>& out, const ImageInterface<T>& in,
     const Vector<Bool>& axes
 ) {
-    static const U dummy(0.0);
-    static const auto myType = casacore::whatType(&dummy);
+    static const auto myType = casacore::whatType<U>();
     ThrowIf(
         ! (myType == casacore::TpDComplex || myType == casacore::TpComplex),
         "Logic error. ImageFFT<T>::_fft called with "

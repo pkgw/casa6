@@ -1,18 +1,10 @@
-from __future__ import absolute_import
 import os
 import numpy as np
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import ms
-    from . import partitionhelper as ph
-    from . import flaghelper as fh
-else:
-    from taskinit import *
-    import partitionhelper as ph
-
-    ms = casac.ms
+from casatasks import casalog
+from casatools import ms
+from . import partitionhelper as ph
+from . import flaghelper as fh
 
 
 def listpartition(vis=None, createdict=None, listfile=None):

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -70,6 +70,9 @@ namespace casa{
    void doFFT(casacore::Complex*& out, casacore::Float *& in, casacore::Long x, casacore::Long y);
    //C style element conversion avoiding overhead of iterators etc...
    static void complexConvert(casacore::DComplex*& srcD, casacore::Complex*& scr,  const ooLong len, const casacore::Bool down=false);
+   //This returns the x, y shape for which the plan was generated for this object
+   std::tuple<casacore::Long , casacore::Long> getShape();
+
  private:
    //casacore::FFTW stuff
    fftwf_plan planC2C_forw_p;

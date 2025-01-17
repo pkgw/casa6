@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -76,7 +76,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void SDAlgorithmBase::deconvolve( SIMinorCycleController &loopcontrols, 
 				    std::shared_ptr<SIImageStore> &imagestore,
 				    Int deconvolverid,
-                                    Bool isautomasking, Bool fastnoise, Record robuststats)
+                                    Bool isautomasking, Bool fastnoise, Record robuststats, bool fullsummary)
   {
     LogIO os( LogOrigin("SDAlgorithmBase","deconvolve",WHERE) );
 
@@ -136,7 +136,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 	    peakresidualnomask = itsImages->getPeakResidual();
 	    if( validMask ) peakresidual = itsImages->getPeakResidualWithinMask();
-	    else peakresidual = peakresidualnomask;
+        else peakresidual = 0; // CAS-14201 : If mask is zero, peakresidual is zero
+	    //else peakresidual = peakresidualnomask;
 	    modelflux = itsImages->getModelFlux();
 
 	    startpeakresidual = peakresidual;
@@ -342,12 +343,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    }
 
 	    int chunkId = chanid; // temporary CAS-13683 workaround
-	    if (SIMinorCycleController::useSmallSummaryminor()) { // temporary CAS-13683 workaround
+	    //if (SIMinorCycleController::useSmallSummaryminor()) { // temporary CAS-13683 workaround
+	    if (!fullsummary) { // temporary CAS-13683 workaround
 	        chunkId = chanid + nSubChans*polid;
 	    }
 	    loopcontrols.addSummaryMinor( deconvolverid, chunkId, polid, cycleStartIteration,
 	                                  startiteration, startmodelflux, startpeakresidual, startpeakresidualnomask,
-	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, stopCode);
+	                                  modelflux, peakresidual, peakresidualnomask, masksum, rank, stopCode, fullsummary);
 
 	    loopcontrols.resetCycleIter(); 
 

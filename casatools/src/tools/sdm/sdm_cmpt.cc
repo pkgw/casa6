@@ -44,10 +44,12 @@
 #include <alma/Enumerations/CSubscanIntent.h>
 #include <alma/Enumerations/CTimeSampling.h>
 #include <alma/Enumerations/CWindowFunction.h>
+#include <alma/Enumtcl/SubscanIntent.h>
 #include <casacore/casa/Logging/StreamLogSink.h>
 #include <casacore/casa/Logging/LogSink.h>
 
 #include "ASDM2MSException.h"
+#include "SDMMSTooLargeException.h"
 
 #include <casacore/tables/Tables/TableProxy.h>
 #include <alma/MS2ASDM/MS2ASDM.h>
@@ -61,7 +63,6 @@
 #include "UvwCoords.h"
 #include "Name2Table.h"
 #include "BDF2AsdmStManIndex.h"
-#include "SubscanIntent.h"
 
 using namespace std;
 using namespace asdm;
@@ -200,7 +201,7 @@ static void linearInterpCoeff(uint32_t npoints, const vector<double> &time_v, co
 
 template<class T>  vector<T> reorder(const vector<T>& v, vector<int> index) {
     vector<T> result(v.size());
-    for (unsigned int i = 0; i < result.size(); i++)
+    for (size_t i = 0; i < result.size(); i++)
         result.at(i) = v.at(index.at(i));
     return result;
 }
@@ -258,7 +259,7 @@ private:
 
 ComplexDataFilter::ComplexDataFilter() { }
 ComplexDataFilter::~ComplexDataFilter() {
-    for (unsigned int i = 0; i < storage.size(); i++) 
+    for (size_t i = 0; i < storage.size(); i++) 
         delete[] storage.at(i);
 }
 
@@ -351,7 +352,7 @@ static vector<unsigned int> getIntegrationSlices(int nIntegrations, uint64_t bdf
       } else {
 	// final slice would too small, redistribute it to the other slices
 	while(residualInts > 0) {
-	  for (unsigned int i = 0; residualInts > 0 && i < result.size(); i++) {
+	  for (size_t i = 0; residualInts > 0 && i < result.size(); i++) {
 	    result[i]++; 
 	    residualInts--;
 	  }
@@ -538,7 +539,7 @@ casacore::Stokes::StokesTypes* StokesMapper::to1DArray(const vector<StokesParame
   }
 
   sa = new casacore::Stokes::StokesTypes[v.size()];
-  for (unsigned int i = 0; i < v.size(); i++) 
+  for (size_t i = 0; i < v.size(); i++) 
     sa[i] = value(v.at(i));
 
   return sa;
@@ -547,7 +548,7 @@ casacore::Stokes::StokesTypes* StokesMapper::to1DArray(const vector<StokesParame
 vector<int> StokesMapper::toVectorI(const vector<StokesParameterMod::StokesParameter>& v) {
   vector<int> result;
 
-  for (unsigned int i = 0; i < v.size(); i++)
+  for (size_t i = 0; i < v.size(); i++)
     result.push_back(value(v[i]));
 
   return result;
@@ -556,7 +557,7 @@ vector<int> StokesMapper::toVectorI(const vector<StokesParameterMod::StokesParam
 vector<casacore::Stokes::StokesTypes> StokesMapper::toVectorST(const vector<StokesParameterMod::StokesParameter>& v) {
   vector<casacore::Stokes::StokesTypes> result;
 
-  for (unsigned int i = 0; i < v.size(); i++)
+  for (size_t i = 0; i < v.size(); i++)
     result.push_back(value(v[i]));
 
   return result;
@@ -577,8 +578,8 @@ public:
             //
             // Simply linearize the vector of vectors.
             //
-            for (unsigned int i = 0; i < vvT.size(); i++)
-                for (unsigned int j = 0; j < vvT.at(i).size(); j++)
+            for (size_t i = 0; i < vvT.size(); i++)
+                for (size_t j = 0; j < vvT.at(i).size(); j++)
                     result.push_back(vvT.at(i).at(j).get());
         } else {
             //
@@ -587,15 +588,15 @@ public:
             // a rectangular matrix, i.e. all the elements of this vector are vectors with possibly
             // different size. 
             //
-            unsigned int maxsize = 0;
-            unsigned int cursize = 0;
-            for (unsigned int i = 0; i < vvT.size(); i++) {
+            size_t maxsize = 0;
+            size_t cursize = 0;
+            for (size_t i = 0; i < vvT.size(); i++) {
                 cursize = vvT.at(i).size();
                 if (cursize > maxsize) maxsize = cursize;
             }
       
-            for (unsigned int i = 0; i < maxsize; i++)
-                for (unsigned int j = 0; j < vvT.size(); j++)
+            for (size_t i = 0; i < maxsize; i++)
+                for (size_t j = 0; j < vvT.size(); j++)
                     if (i < vvT.at(j).size())
                         result.push_back(vvT.at(j).at(i).get());     
         }
@@ -609,8 +610,8 @@ vector<float> FConverter::toVectorF(const vector< vector <float> > & vvF, bool t
         //
         // Simply linearize the vector of vectors.
         //
-        for (unsigned int i = 0; i < vvF.size(); i++)
-            for (unsigned int j = 0; j < vvF.at(i).size(); j++)
+        for (size_t i = 0; i < vvF.size(); i++)
+            for (size_t j = 0; j < vvF.at(i).size(); j++)
                 result.push_back(vvF.at(i).at(j));
     } else {
         //
@@ -619,15 +620,15 @@ vector<float> FConverter::toVectorF(const vector< vector <float> > & vvF, bool t
         // a rectangular matrix, i.e. all the elements of this vector are vectors with possibly
         // different size. 
         //
-        unsigned int maxsize = 0;
-        unsigned int cursize = 0;
-        for (unsigned int i = 0; i < vvF.size(); i++) {
+        size_t maxsize = 0;
+        size_t cursize = 0;
+        for (size_t i = 0; i < vvF.size(); i++) {
             cursize = vvF.at(i).size();
             if (cursize > maxsize) maxsize = cursize;
         }
 
-        for (unsigned int i = 0; i < maxsize; i++)
-            for (unsigned int j = 0; j < vvF.size(); j++)
+        for (size_t i = 0; i < maxsize; i++)
+            for (size_t j = 0; j < vvF.size(); j++)
                 if (i < vvF.at(j).size())
                     result.push_back(vvF.at(j).at(i));     
     }
@@ -731,7 +732,7 @@ char PolTypeMapper::value(PolarizationTypeMod::PolarizationType p) {
 
 vector<string> PolTypeMapper::toStringVector(const vector<PolarizationTypeMod::PolarizationType>& v) {
     polType.clear();
-    for (unsigned int i = 0; i < v.size(); i++) {
+    for (size_t i = 0; i < v.size(); i++) {
         polType.push_back((CPolarizationType::name(v.at(i))));
     }
     return polType;
@@ -936,8 +937,6 @@ namespace casac {
 
         bool ac_xc_per_timestamp = false; // for the time being the option is 'preserve the old order'
 
-        bool      interpolate_ephemeris            = false; 
-        bool      tabulate_ephemeris_polynomials   = false;
         bool      checkRowUniqueness               = false; 
         string    scansOptionInfo;
         string    asisOption;
@@ -946,7 +945,6 @@ namespace casac {
         bool      processCalDevice                 = true;
         bool      processPointing                  = true;
         bool      withPointingCorrection           = false;
-        bool      processEphemeris                 = true;
         bool      checkdupints                     = true;
 
         LOGENTER("sdm::gen_ms( " + vis + " , ... )");
@@ -1144,29 +1142,9 @@ namespace casac {
             // always available because of defaults
             ac_xc_per_timestamp = false;
 
-            // Do we want to tabulate polynomial present in the ephemeris table ?
-            // This is inferred by seeing if the user specifically set this.
-            // But it's set at least once because of defaults, so, look for there being
-            // more than one of these in options.
-            tabulate_ephemeris_polynomials = polyephem_tabtimestep > 0;
-    
-            if (tabulate_ephemeris_polynomials) {
-                // If we tabluate then ignore all the other options about ephemeris    
-                //  infostream.str();
-                //  infostream << "The MS Ephemeris table(s) will be produced by tabulating the polynomials found in the columns 'dir', 'distance' and optionally 'radVel' with a timestep of '"
-                //		 << polyephem_tabtimestep << "' day, i.e. '"<< ((uint64_t) (polyephem_tabtimestep * 86400 * 1.e09)) <<"' nanoseconds."; 
-                // info(infostream.str());
-            } else {
-                // Do we want interpolate the values found in the ASDM Ephemeris table or not ?
-                // always available because of defaults
-                string intEphOpt = "no";
-                interpolate_ephemeris = false;
+            if (polyephem_tabtimestep <= 0.0) {
                 infostream.str("");
-                if (interpolate_ephemeris) {
-                    infostream << "the MS Ephemeris table(s) will be produced by interpolation of the values present in the ASDM Ephemeris table on a resampled time grid."; 
-                } else {
-                    infostream << "the MS Ephemeris tables(s) will be produced by simple copies of the values found in the ASDM Ephemeris table with just units conversion.";
-                }
+                infostream << "the MS Ephemeris tables(s) will be produced by simple copies of the values found in the ASDM Ephemeris table with just units conversion.";
                 info(infostream.str());
             }
 
@@ -1179,7 +1157,6 @@ namespace casac {
             processCalDevice = process_caldevice;
             processPointing = process_pointing;
             withPointingCorrection = with_pointing_correction;
-            processEphemeris = true;
         } catch (std::exception& e) {
             errstream.str("");
             errstream << e.what();
@@ -1358,7 +1335,6 @@ namespace casac {
         if (!processCalDevice)  infostream << "The CalDevice table will not be processed." << endl;
         if (!processPointing)   infostream << "The Pointing table will not be processed." << endl;
         if (processPointing && withPointingCorrection ) infostream << "The correction (encoder - pointingDirection) will be applied" << endl;
-        if (!processEphemeris)  infostream << "The Ephemeris table will not be processed." << endl;
         if (ac_xc_per_timestamp)
             infostream << "For each data description for each timestamp auto correlations followed by cross correlations will be written in the Main table" << endl;
         else 
@@ -1506,12 +1482,12 @@ namespace casac {
             AntennaTable& antennaT = ds->getAntenna();
             AntennaRow*   r   = 0;
 
-            int nAntenna = antennaT.size();
+            unsigned int nAntenna = antennaT.size();
             infostream.str("");
             infostream << "The dataset has " << nAntenna << " antenna(s)...";
             info(infostream.str());
     
-            for (int i = 0; i < nAntenna; i++) {
+            for (unsigned int i = 0; i < nAntenna; i++) {
                 if ((r = antennaT.getRowByKey(Tag(i, TagType::Antenna))) == 0){
                     errstream.str("");
                     errstream << "Problem while reading the Antenna table, the row with key = Tag(" << i << ") does not exist.Aborting." << endl;
@@ -1633,7 +1609,7 @@ namespace casac {
                 }
             }
 
-            int numTrueAntenna = msFillers.begin()->second->ms()->antenna().nrow();
+            casacore::rownr_t numTrueAntenna = msFillers.begin()->second->ms()->antenna().nrow();
             if (numTrueAntenna) {
                 infostream.str("");
                 infostream << "converted in " << numTrueAntenna << " antenna(s)  in the measurement set(s)." ;
@@ -1674,12 +1650,12 @@ namespace casac {
         try {
             PolarizationTable& polT = ds->getPolarization();  
             PolarizationRow* r = 0;
-            int nPolarization = polT.size();
+            unsigned int nPolarization = polT.size();
             infostream.str("");
             infostream << "The dataset has " << nPolarization << " polarization(s)..."; 
             info(infostream.str());
 
-            for ( int i = 0; i < nPolarization; i++ ) {
+            for ( unsigned int i = 0; i < nPolarization; i++ ) {
                 if ((r=polT.getRowByKey(Tag(i, TagType::Polarization))) == 0) {
                     errstream.str("");
                     (errstream << "Problem while reading the Polarization table, the row with key = Tag(" << i << ") does not exist.Aborting." << endl);
@@ -1766,12 +1742,12 @@ namespace casac {
         try {
             DataDescriptionTable& ddT = ds->getDataDescription();
             DataDescriptionRow* r = 0;
-            int nDataDescription = ddT.size();
+            unsigned int nDataDescription = ddT.size();
             infostream.str("");
             infostream << "The dataset has " << nDataDescription << " data description(s)...";
             info(infostream.str());
 
-            for (int i = 0; i < nDataDescription; i++) {
+            for (unsigned int i = 0; i < nDataDescription; i++) {
                 if ((r=ddT.getRowByKey(Tag(i, TagType::DataDescription))) == 0) {
                     errstream.str("");
                     (errstream << "Problem while reading the DataDescription table, the row with key = Tag(" << i << ") does not exist.Aborting." << endl);
@@ -1810,7 +1786,7 @@ namespace casac {
         try {
             const ExecBlockTable& execBlockT = ds->getExecBlock(); 
             ExecBlockRow* r = 0;
-            int nExecBlock = execBlockT.size();
+            unsigned int nExecBlock = execBlockT.size();
             infostream.str("");
             infostream << "The dataset has " << nExecBlock << " execBlock(s) ...";
 
@@ -1826,7 +1802,7 @@ namespace casac {
             info(infostream.str());
 
             bool isEVLA = false;
-            for (unsigned int i = 0; i < v.size(); i++) {
+            for (size_t i = 0; i < v.size(); i++) {
                 r = v.at(i);
       
                 telescopeName	     = r->getTelescopeName();
@@ -1893,8 +1869,8 @@ namespace casac {
                 infostream << v.size() << " of them in the exec blocks / selected scans ... ";
     
             info(infostream.str());
-            int nFeed = v.size();
-            for (int i = 0; i < nFeed; i++) {
+            size_t nFeed = v.size();
+            for (size_t i = 0; i < nFeed; i++) {
                 r = v.at(i);
                 // For now we just adapt the types of the time related informations and compute a mid-time.
                 //
@@ -1952,17 +1928,18 @@ namespace casac {
 
         // Process the Ephemeris table.
         //
-        // Create and fill the MS ephemeris table(s) with a time interpolation time step set to 86400000000 nanoseconds ( 1/1000 day).
-        if (processEphemeris) {
-            uint64_t timeStepInNanoSeconds = polyephem_tabtimestep * 86400 * 1.e09;
-            fillEphemeris(ds, timeStepInNanoSeconds, interpolate_ephemeris, telescopeName);
+        // Create and fill the MS ephemeris table(s) with a polynomial evaluation time step set to polyephem_tabtimestep converted to nano seconds
+        uint64_t timeStepInNanoSeconds = 0;
+        if (polyephem_tabtimestep > 0.0) {
+            timeStepInNanoSeconds = polyephem_tabtimestep * 86400 * 1.e09;
         }
+        fillEphemeris(ds, timeStepInNanoSeconds, telescopeName);
 
         // Process the Field table.
         // Now it respects the degree of the polynomials but it ignores the ephemerisId.
         // The ephemerisId will be processed during the call to fillEphemeris.
         //
-        fillField(ds, processEphemeris);
+        fillField(ds);
    
         // Process the FlagCmd table.
         //
@@ -1978,8 +1955,8 @@ namespace casac {
                 infostream << v.size() << " of them in the exec blocks / selected scans ... ";
 
             info(infostream.str());
-            int nFlagCmd = v.size();
-            for (int i = 0; i < nFlagCmd; i++) {
+            size_t nFlagCmd = v.size();
+            for (size_t i = 0; i < nFlagCmd; i++) {
                 r = v.at(i);
                 // For now we just adapt the types of the time related informations and compute a mid-time.
                 //
@@ -2023,7 +2000,7 @@ namespace casac {
         try {
             const HistoryTable& historyT = ds->getHistory();
             HistoryRow* r = 0;
-            int nHistory = historyT.size();
+            unsigned int nHistory = historyT.size();
             infostream.str("");
             infostream << "The dataset has " << nHistory << " history(s)...";
             rowsInAScanbyTimeFunctor<HistoryRow> selector(selectedScanRow_v);
@@ -2034,7 +2011,7 @@ namespace casac {
 
             info(infostream.str()); 
 
-            for (int i = 0; i < nHistory; i++) {
+            for (unsigned int i = 0; i < nHistory; i++) {
                 r = v.at(i);
                 double time        =  ((double) r->getTime().get()) / ArrayTime::unitsInASecond ;
                 string message     = r->getMessage();
@@ -2083,7 +2060,7 @@ namespace casac {
                     infostream << v.size() << " of them in the selected exec blocks / scans ... ";
 
                 info(infostream.str());
-                int nPointing = v.size();
+                size_t nPointing = v.size();
 
                 if (nPointing > 0) {
 
@@ -2094,20 +2071,20 @@ namespace casac {
                     // to compute the number of rows to be created in the MS-Pointing by summing
                     // all the numSample attributes values. Watch for duplicate times due and avoid.
                     //
-                    int numMSPointingRows = 0;
+                    casacore::rownr_t numMSPointingRows = 0;
 
                     // initialize the lastTime to 0.0 for all antennaIds
                     map<Tag, double> lastTime;
                     const AntennaTable& antennaT = ds->getAntenna();
                     const vector<AntennaRow *>& vAntRow = antennaT.get();
-                    for (unsigned int i=0; i < vAntRow.size(); i++) {
+                    for (size_t i=0; i < vAntRow.size(); i++) {
                         lastTime[vAntRow[i]->getAntennaId()] = 0.0;
                     }
 
                     // set this to true for any rows where the first element should be skipped because the time is a duplicate
                     vector<bool> vSkipFirst(v.size(),false);
 
-                    for (unsigned int i = 0; i < v.size(); i++) {
+                    for (size_t i = 0; i < v.size(); i++) {
                         if (v[i]->getUsePolynomials()) {
                             errstream.str("");
                             errstream << "Found usePolynomials equal to true at row #" << i <<". Can't go further.";
@@ -2332,7 +2309,7 @@ namespace casac {
         try {
             ProcessorTable& processorT = ds->getProcessor();
             ProcessorRow* r = 0;
-            int nProcessor = processorT.size();
+            unsigned int nProcessor = processorT.size();
 
             CorrelatorModeTable & correlatorModeT = ds->getCorrelatorMode();
             CorrelatorModeRow* cmrow = 0;
@@ -2405,9 +2382,9 @@ namespace casac {
                 infostream << v.size() << " of them in the selected scans ... ";
 
             info(infostream.str());
-            int nSource = v.size();
+            size_t nSource = v.size();
 
-            for (int i = 0; i < nSource; i++) {
+            for (size_t i = 0; i < nSource; i++) {
                 r = v.at(i);
                 //
                 // Check some assertions. 
@@ -2556,9 +2533,9 @@ namespace casac {
                 infostream << v.size() << " of them in the selected scans ... ";
 
             info(infostream.str());
-            int nSysCal = v.size();
+            size_t nSysCal = v.size();
 
-            for (int i = 0; i < nSysCal; i++) {
+            for (size_t i= 0; i < nSysCal; i++) {
                 r = v.at(i);
                 double interval = ((double) r->getTimeInterval().getDuration().get()) / ArrayTime::unitsInASecond ;
                 double time;
@@ -2881,7 +2858,7 @@ namespace casac {
                     }      
                 }
 
-                unsigned int numMSCalDevices = (const_cast<casacore::MeasurementSet*>(msFillers.begin()->second->ms()))->rwKeywordSet().asTable("CALDEVICE").nrow();
+                casacore:: rownr_t numMSCalDevices = (const_cast<casacore::MeasurementSet*>(msFillers.begin()->second->ms()))->rwKeywordSet().asTable("CALDEVICE").nrow();
                 if (numMSCalDevices > 0) {
                     infostream.str("");
                     infostream << "converted in " << numMSCalDevices << " caldevice(s) in the measurement set.";
@@ -2918,7 +2895,7 @@ namespace casac {
                 infostream << v.size() << " of them in the selected scans ... ";
 
             info(infostream.str());
-            int nWeather = v.size();
+            size_t nWeather = v.size();
 
             infostream.str("");
             infostream << "The dataset has " << nWeather << " weather(s)...";
@@ -2934,7 +2911,7 @@ namespace casac {
     
 #define OPT_ATTR_PAIR( rowPtr, AttributeName ) rowPtr -> is ## AttributeName ## Exists() ? make_pair ( true, rowPtr -> get ## AttributeName ().get()) : make_pair( false, 0.)        
     
-            for (int i = 0; i < nWeather; i++) {
+            for (size_t i = 0; i < nWeather; i++) {
                 r			 = v.at(i);      
                 double	interval = ((double) r->getTimeInterval().getDuration().get()) / ArrayTime::unitsInASecond ;
                 double	time	 = ((double) r->getTimeInterval().getStart().get()) / ArrayTime::unitsInASecond + interval / 2.0;
@@ -2974,7 +2951,25 @@ namespace casac {
         // And then finally process the state and the main table.
         //
         if (lazy) {
-            fillMainLazily(dsName, ds, selected_eb_scan_m,effectiveBwPerDD_m,e_query_cm,checkdupints);
+            try {
+                fillMainLazily(dsName, ds, selected_eb_scan_m,effectiveBwPerDD_m,e_query_cm,checkdupints);
+            } catch (SDMMSTooLargeException& e) {
+                // this needs to exit with an exception, but some cleanup should happen first
+                // clean up the fillers
+                for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
+                      iter != msFillers.end(); ++iter )
+                    iter->second->end();
+  
+                for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
+                      iter != msFillers.end(); ++iter )
+                    delete iter->second;
+
+                delete ds;
+
+                infostream.str("");
+                infostream << e.getMessage();
+                error(infostream.str());
+            }
         } else {
 
             const MainTable&		mainT  = ds->getMain();
@@ -3004,7 +2999,7 @@ namespace casac {
 
             MSMainRowsInSubscanChecker msMainRowsInSubscanChecker(*this);
 
-            unsigned int  nMain = v.size();      
+            size_t  nMain = v.size();      
             const sdmbin::VMSData *vmsDataPtr = 0;
 
             // Initialize an UVW coordinates engine.
@@ -3020,7 +3015,7 @@ namespace casac {
             // for debugging - to report on what uid the lastTime being compared came from
             // map<Tag, string> lastTimeUIDMap;
 
-            for (unsigned int i = 0; i < nMain; i++) {
+            for (size_t i = 0; i < nMain; i++) {
                 try {
                     // What's the processor for this Main row ?
                     Tag cdId = v[i]->getConfigDescriptionId();
@@ -3118,12 +3113,12 @@ namespace casac {
                         int N = v[i]->getNumIntegration();
                         uint64_t bdfSize = v[i]->getDataSize();
                         vector<unsigned int> integrationSlices(getIntegrationSlices(N, bdfSize, bdfSliceSizeInMb*1024*1024));
-                        int32_t			numberOfMSMainRows	 = 0;
-                        int32_t			numberOfIntegrations	 = 0;
-                        int32_t			numberOfReadIntegrations = 0;
+                        casacore::rownr_t	numberOfMSMainRows	 = 0;
+                        size_t			numberOfIntegrations	 = 0;
+                        size_t			numberOfReadIntegrations = 0;
 	  
                         // For each slice of the BDF with a size approx equal to the required size
-                        for ( unsigned int j = 0; j < integrationSlices.size(); j++ ) {
+                        for ( size_t j = 0; j < integrationSlices.size(); j++ ) {
                             numberOfIntegrations = integrationSlices[j];
                             if (numberOfIntegrations) {
                                 infostream.str("");
@@ -3154,10 +3149,12 @@ namespace casac {
                                 infostream << vmsDataPtr->v_antennaId1.size()  << " MS Main rows." << endl;
                                 info(infostream.str());
                                 numberOfMSMainRows += vmsDataPtr->v_antennaId1.size();
-                                infostream.str("");
-                                infostream << "ASDM Main row #" << mainRowIndex[i] << "produced a total of " << numberOfMSMainRows << " MS Main rows." << endl;
+
                             }
                         }
+                        infostream.str("");
+                        infostream << "ASDM Main row #" << mainRowIndex[i] << " produced a total of " << numberOfMSMainRows << " MS Main rows." << endl;
+                        info(infostream.str());
                     }
                 } catch ( ConversionException& e) {
                     infostream.str("");
@@ -3183,8 +3180,24 @@ namespace casac {
                     infostream.str("");
                     infostream << e.getMessage();
                     info(infostream.str());
+                } catch (SDMMSTooLargeException& e) {
+                    // this needs to exit with an exception, but some cleanup should happen first
+                    // clean up the fillers
+                    for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
+                          iter != msFillers.end(); ++iter )
+                        iter->second->end();
+  
+                    for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
+                          iter != msFillers.end(); ++iter )
+                        delete iter->second;
+
+                    delete ds;
+
+                    infostream.str("");
+                    infostream << e.getMessage();
+                    error(infostream.str());
                 }
-                /*
+                /* 
                   catch ( std::exception & e) {
                   infostream.str("");
                   infostream << e.what();
@@ -3308,7 +3321,7 @@ namespace casac {
         infostream << endl;
         infostream << antennaIds.size() << " antennas have been used in this exec block." << endl;
         infostream << "        Id     Name         Make Station    Diameter         X              Y             Z" << endl;
-        for (unsigned int i = 0; i < antennaIds.size(); i++) {
+        for (size_t i = 0; i < antennaIds.size(); i++) {
             antenna_p = aT.getRowByKey(antennaIds[i]);
             station_p = sT.getRowByKey(antenna_p->getStationId());
             std::vector<asdm::Length> position = station_p->getPosition();
@@ -3505,7 +3518,7 @@ namespace casac {
         // infostream.str("");
 
         const std::vector<asdm::ExecBlockRow*>& ebs = ds.getExecBlock().get();
-        for (unsigned int i = 0; i < ebs.size(); i++) {
+        for (size_t i = 0; i < ebs.size(); i++) {
             asdm::ExecBlockRow* eb_p = ebs[i];
             infostream << "\n";
             infostream << "Exec Block : " << eb_p->getExecBlockId() << endl;
@@ -3526,10 +3539,10 @@ namespace casac {
 
         vector<MainRow *> mRs = ds.getMain().get();
   
-        for (unsigned int i = 0; i < mRs.size(); i++) {
+        for (size_t i = 0; i < mRs.size(); i++) {
             ConfigDescriptionRow * configDescriptionRow = mRs.at(i)->getConfigDescriptionUsingConfigDescriptionId();
             vector<AtmPhaseCorrectionMod::AtmPhaseCorrection> apc = configDescriptionRow -> getAtmPhaseCorrection();
-            for (unsigned int i = 0; i < apc.size(); i++)
+            for (size_t i = 0; i < apc.size(); i++)
                 result.set(apc.at(i));
         }
         return result;
@@ -3563,6 +3576,27 @@ namespace casac {
         casacore::LogSink::postGlobally(casacore::LogMessage(message, casacore::LogOrigin("sdm",WHERE), casacore::LogMessage::WARN));
     }
 
+    // if adding numNewRows to the MS in use by filler will exceed the max uint32 value then this throws an SDMMSTooLargeException
+    // The code has been update to use rownr_t and size_t as appropriate instead of 32 bit integers that were used in some place and
+    // there remain problems when an attempt is made to exceed the uint32 maximum for the number of rows. Specifically TSMCube::makeCache
+    // tries to dereference a pointer (fileptr_p) that has a value of 0. The cause of that bug has not been identified. Additionally,
+    // the bdf flagging code (which happens after the fill step) has not been examined closely for remaining uint32 issues and the
+    // asdm storage manager used in lazy filling has not been updated to allow for rows past the uint32 limit. The decision has been
+    // made to not fix these problems so an exception is thrown (previously it would crash, leaving the MS completely unusable without
+    // a clear explanation as to the cause). Documentation exists describing work arounds (filling fewer ASDM rows at a time, basically).
+    
+    void sdm::checkMSSize(ASDM2MSFiller *filler, std::size_t numNewRows) {
+        if (filler && filler->ms()) {
+            casacore::rownr_t newSize = filler->ms()->nrow()+numNewRows;
+            if (newSize > std::numeric_limits<unsigned int>::max()) {
+                ostringstream oss;
+                oss << "MS would exceed the row limit. Adding " << numNewRows << " to " << filler->ms()->tableName()
+                    << " would exceed the limit of " << std::numeric_limits<unsigned int>::max() << " rows" << endl;
+                throw SDMMSTooLargeException(oss.str());
+            }
+        }
+    }
+
     /** 
      * This function fills the MS Spectral Window table.
      * given :
@@ -3581,7 +3615,7 @@ namespace casac {
             for (vector<Tag>::size_type i = 0; i != reorderedSwIds.size() ; i++) swIdx2Idx[reorderedSwIds[i].getTagValue()] = i;
 
             SpectralWindowRow* r = 0;
-            int nSpectralWindow = spwT.size();
+            unsigned int nSpectralWindow = spwT.size();
     
             infostream.str("");
             infostream << "The dataset has " << nSpectralWindow << " spectral window(s)..."; 
@@ -3862,12 +3896,18 @@ namespace casac {
     }
 
     static std::map<int, double>ephemStartTime_m;
-    void sdm::fillEphemeris(ASDM* ds_p, uint64_t timeStepInNanoSecond, bool interpolate_ephemeris, string telescopeName) {
+    void sdm::fillEphemeris(ASDM* ds_p, uint64_t timeStepInNanoSecond, string telescopeName) {
         LOGENTER("fillEphemeris");
 
-        // division by timeStepInNanoSecond below causes FPE - ensure it's set to something non-zero
-        // default to 0.001s = 1e6 ns
-        timeStepInNanoSecond = (timeStepInNanoSecond == 0 ? 1e6 : timeStepInNanoSecond);
+        // remember if a time step was intentionally set to a value > 0 - for use in a logging warning later if necessary
+        bool timeStepSet = timeStepInNanoSecond > 0;
+        if (timeStepInNanoSecond <= 0) {
+            // timeStepInNanoSecond is needed for polynomial evaluation, default to 0.001 days if <= 0
+            timeStepInNanoSecond = 0.001 * 86400 * 1.e09;
+        }
+
+        // make sure the warning only happens once
+        bool polyephemWarn = false;
 
         try {
             // Retrieve the Ephemeris table's content.
@@ -3948,9 +3988,8 @@ namespace casac {
 
                 double mjd0 = ArrayTime(t0MS).getMJD();
      
-                double dmjd = interpolate_ephemeris ? 0.001 : ephRow_v[0]->getTimeInterval().getDuration().get() / 1000000000LL / 86400.0;
-                // Grid time step == 0.001 if ephemeris interpolation requested
-                // otherwise == the interval of time of the first element of ephemeris converted in days.
+                double dmjd = ephRow_v[0]->getTimeInterval().getDuration().get() / 1000000000LL / 86400.0;
+                // Grid time step == the interval of time of the first element of ephemeris converted in days.
                 // *SUPPOSEDLY* constant over all the ephemeris. 
  
                 // determine the position reference system
@@ -4126,7 +4165,7 @@ namespace casac {
                     const vector<vector<double> >& dir_v =  ephRow_v[0]->getDir();
                     vector<double>	ra_coeff_v;
                     vector<double>	dec_coeff_v;
-                    for (unsigned int idir = 0; idir < dir_v.size(); idir++) {
+                    for (size_t idir = 0; idir < dir_v.size(); idir++) {
                         ra_coeff_v.push_back(dir_v[idir][0]);
                         dec_coeff_v.push_back(dir_v[idir][1]);
                     }
@@ -4150,7 +4189,7 @@ namespace casac {
 
                     // And proceed...
                     LOG ("There will be " + TO_STRING(tabulation_time_v.size()) + " time steps used to tabulate the polynomials.");
-                    for (unsigned int itab = 0; itab < tabulation_time_v.size(); itab++) {
+                    for (size_t itab = 0; itab < tabulation_time_v.size(); itab++) {
                         double tabulation_time = tabulation_time_v[itab] * 1.0e-09 / 86400.0 ;  // It appeared that times should be expressed in "day" !!
 
                         // MJD
@@ -4195,13 +4234,21 @@ namespace casac {
                             }
                         }
                     }
-                    if (!interpolate_ephemeris && allNumPolyIsOne) {
-                        // interpolation is NOT requested and all possible polynomial columns are simple scalars, numPoly==1
-                        // Just copy ephemeris without any interpolation. Just adapt the units.
+                    if (allNumPolyIsOne) {
+                        // all possible polynomial columns are simple scalars, numPoly==1
+                        // Just copy ephemeris as is (it's not a polynomial to be evaluated). Just adapt the units.
                         infostream.str("");
                         infostream << "The MS Ephemeris table for ephemerisId = '" << ephemerisId
-                                   << "' will be produced by copying the values found in the ASDM with no interpolation";
+                                   << "' will be produced by copying the values found in the ASDM";
                         info(infostream.str());
+                        if (timeStepSet && !polyephemWarn) {
+                            // warn if a time step was set, not used for this case
+                            infostream.str("");
+                            infostream << "A polyephem_tabtimestep > 0 was set but is not used because the ephemeris does not contain polynomials to be evaluated";
+                            warning(infostream.str());
+                            // but only once
+                            polyephemWarn = true;
+                        }
                         for(const EphemerisRow *eR_p: ephRow_v) {
                             mjdMS_v.push_back(eR_p->getTimeInterval().getMidPoint().getMJD()); // MJD
                             vector<vector<double> > dir = eR_p->getDir();
@@ -4250,7 +4297,7 @@ namespace casac {
                             // and populate time_v and look for gaps
                             time_v.push_back(1.0e-09*t0ASDM);  
 
-                            for (unsigned int i = 1; i < ephRow_v.size(); i++) {
+                            for (size_t i = 1; i < ephRow_v.size(); i++) {
                                 int64_t midPoint_i = ephRow_v[i]->getTimeInterval().getMidPoint().get() ;
                                 int64_t midPoint_i_1 = ephRow_v[i-1]->getTimeInterval().getMidPoint().get();
                                 int64_t duration_i_1 = ephRow_v[i-1]->getTimeInterval().getDuration().get();
@@ -4280,7 +4327,7 @@ namespace casac {
                         // all times here the integer times in nano seconds
                         vector<int64_t> intMStimes_v;
                         int64_t tMS = t0MS;
-                        int32_t lastIntIndx = ephRow_v.size()-1;
+                        size_t lastIntIndx = ephRow_v.size()-1;
                         int64_t end = ephRow_v[lastIntIndx]->getTimeInterval().getStart().get() + ephRow_v[lastIntIndx]->getTimeInterval().getDuration().get();
                         // there must be a vector way to do this - revisit this part later, and even a for loop would be better
                         do {
@@ -4291,7 +4338,7 @@ namespace casac {
                         // populate the pairs as needed
                         if (!allNumPolyIsOne) {
                             // some polynomials exist
-                            uint32_t index = 0;  
+                            size_t index = 0;  
                             int64_t  start =  ephRow_v[index]->getTimeInterval().getStart().get();
                             int64_t  end   =  start + ephRow_v[index]->getTimeInterval().getDuration().get();
 
@@ -4325,7 +4372,7 @@ namespace casac {
                         }
                         if (anyNumPolyIsOne) {
                             // some linear interpolation is needed - breaks at the interval midpoint
-                            uint32_t index = 0;  
+                            size_t index = 0;  
                             int64_t  start =  ephRow_v[index]->getTimeInterval().getMidPoint().get();
                             int64_t  end   =  start + ephRow_v[index]->getTimeInterval().getDuration().get();
 
@@ -4377,7 +4424,7 @@ namespace casac {
                         vector<double>           temp_v;
 
                         cout.precision(10);
-                        for (unsigned int i = 0; i < ephRow_v.size(); i++) {
+                        for (size_t i = 0; i < ephRow_v.size(); i++) {
                             LOG_EPHEM("original " + TO_STRING (ArrayTime(ephRow_v[i]->getTimeInterval().getStart().get()).getMJD()));
                             vector<vector<double> > temp_vv = ephRow_v[i]->getDir();
                             if (numPolyDirIsOne) {
@@ -4546,7 +4593,7 @@ namespace casac {
                 // Now the data are ready to be written to the MS Ephemeris table.
                 // Let's proceed, using Slicers.
 
-                unsigned int numRows = raMS_v.size();
+                size_t numRows = raMS_v.size();
                 casacore::Slicer slicer(casacore::IPosition(1, 0), casacore::IPosition(1, numRows-1), casacore::Slicer::endIsLast);
 
                 for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
@@ -4616,16 +4663,15 @@ namespace casac {
      * This function fills the MS Field table.
      * given :
      * @parameter ds_p a pointer to the ASDM dataset.
-     * @parameter considerEphemeris take into account the reference to Ephemeris table(s).
      */
-    void sdm::fillField(ASDM* ds_p, bool considerEphemeris) {
+    void sdm::fillField(ASDM* ds_p) {
         LOGENTER("fillField");
         vector<pair<int, int> > idxEphemerisId_v;
 
         try {
             FieldTable& fieldT = ds_p->getField();
             FieldRow* r = 0;
-            int nField = fieldT.size();
+            unsigned int nField = fieldT.size();
             infostream.str("");
             infostream << "The dataset has " << nField << " field(s)...";
             info(infostream.str());
@@ -4713,7 +4759,7 @@ namespace casac {
                 }
             }
 
-            if (considerEphemeris && (idxEphemerisId_v.size() > 0)) 
+            if (idxEphemerisId_v.size() > 0)
                 for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
                       iter != msFillers.end(); ++iter) {
                     iter->second->updateEphemerisIdInField(idxEphemerisId_v);
@@ -4965,7 +5011,7 @@ namespace casac {
                 else 
                     throw ConversionException ("fillSysPower: no file found for SysPower", "SysPower");
 
-                unsigned int numMSSysPowers =  (const_cast<casacore::MeasurementSet*>(msFillers_m.begin()->second->ms()))->rwKeywordSet().asTable("SYSPOWER").nrow();
+                casacore::rownr_t numMSSysPowers = (const_cast<casacore::MeasurementSet*>(msFillers_m.begin()->second->ms()))->rwKeywordSet().asTable("SYSPOWER").nrow();
                 if (numMSSysPowers > 0) {
                     infostream.str("");
                     infostream << "converted in " << numMSSysPowers << " syspower(s) in the measurement set.";
@@ -5144,20 +5190,20 @@ namespace casac {
         //   * to populate all the columns other than the DATA's one in the non lazy way.
         //
 
-        casacore::uInt		lastMSNUrows = 0;
-        casacore::uInt		lastMSNCrows = 0;
+        casacore::rownr_t	lastMSNUrows = 0;
+        casacore::rownr_t	lastMSNCrows = 0;
 
         // used in checking for duplicate integrations in the WVR (Radiometer) case
         // This holds the most recent last integration time for each configDescriptionId - but only for Radiometer data.
         map<Tag, double> lastTimeMap;
 
+        // reuses the SDMDataObjectStreamReader previously used above - now closed, so that it can be closed on irregular exists (exceptions)
         try {
             unsigned int mainRowIndex;
             vector<MainRowCUStruct>::iterator iter;
             for (iter=mRCU_s_v.begin(), mainRowIndex=0; iter!=mRCU_s_v.end(); iter++, mainRowIndex++) {
                 MainRow* mR_p = iter->mR_p;
 
-                SDMDataObjectStreamReader sdosr;
                 sdosr.open(iter->bdfName);
                 LOG("Processing " + iter->bdfName);
                 unsigned int numberOfAntennas = sdosr.numAntenna();
@@ -5180,6 +5226,7 @@ namespace casac {
                     infostream.str("");
                     infostream << "The main row # " << iter->index << " is ignored because the correlationMode is excluded by the selected mode to fill.";
                     info(infostream.str());
+                    sdosr.close();
                     continue;
                 }
 
@@ -5194,6 +5241,7 @@ namespace casac {
                     infostream.str("");
                     infostream << e.getMessage() << ". The main row # " << iter->index << " is ignored.";
                     info(infostream.str());
+                    sdosr.close();
                     continue;
                 }
       
@@ -5404,7 +5452,7 @@ namespace casac {
                     }
                     lastTimeMap[mR_p->getConfigDescriptionId()] = ArrayTime(startTime+(sdosr.numTime()-1)*deltaTime).getMJD();
 	
-                    for (unsigned int iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
+                    for (size_t iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
                         //
                         // Prepare a pair<int, int> to transport the shape of some cells
                         //
@@ -5420,7 +5468,7 @@ namespace casac {
 
                         for (unsigned int itime = 0; itime < sdosr.numTime(); itime++) {
                             if (skipFirstIntegration && itime==0) continue;
-                            for (unsigned int iA = 0; iA < antennaIds.size(); iA++) {
+                            for (size_t iA = 0; iA < antennaIds.size(); iA++) {
                                 antenna1_vv[iDD].push_back(antennaIds[iA].getTagValue());
                                 antenna2_vv[iDD].push_back(antennaIds[iA].getTagValue());
                                 dataDescId_vv[iDD].push_back(dataDescriptionIdx2Idx[dataDescriptionIds[iDD].getTagValue()]);
@@ -5478,11 +5526,12 @@ namespace casac {
 
                     //
                     // It's now time to populate the columns of the MAIN table but the DATA's one.
-                    for (unsigned int iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
+                    for (size_t iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
                         for (map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator msfIter = msFillers.begin();
                              msfIter != msFillers.end();
                              ++msfIter) {
                             if (time_vv[iDD].size() > 0) {
+                                checkMSSize(msfIter->second, time_vv[iDD].size());
                                 msfIter->second->addData(true,             // Yes ! these are complex data.
                                                          time_vv[iDD],
                                                          antenna1_vv[iDD],
@@ -5597,7 +5646,7 @@ namespace casac {
                         }
 
                         if (hasCrossData) {
-                            for (unsigned int iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
+                            for (size_t iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
                                 unsigned int uvwIndex = uvwIndexBase + iDD;
                                 unsigned int ddIndex = dataDescriptionIdx2Idx[dataDescriptionIds[iDD].getTagValue()];
 
@@ -5614,8 +5663,8 @@ namespace casac {
                                 double sigma = 1.0 / sqrt (weight);
 
 #if !TRANSPOSE_BL_NUM
-                                for (unsigned int iA1 = 0; iA1 < antennaIds.size(); iA1++)
-                                    for (unsigned int iA2 = iA1+1; iA2 < antennaIds.size(); iA2++) {
+                                for (size_t iA1 = 0; iA1 < antennaIds.size(); iA1++)
+                                    for (size_t iA2 = iA1+1; iA2 < antennaIds.size(); iA2++) {
                                         cross_antenna1_vv[iDD].push_back(antennaIds[iA1].getTagValue());
                                         cross_antenna2_vv[iDD].push_back(antennaIds[iA2].getTagValue());
                                         cross_dataDescId_vv[iDD].push_back(ddIndex);
@@ -5636,8 +5685,8 @@ namespace casac {
                                         cross_sigma_vv[iDD].push_back(sigma);
                                     }
 #else
-                                for (unsigned int iA2 = 1; iA2 < antennaIds.size(); iA2++)
-                                    for (unsigned int iA1 = 0; iA1 < iA2; iA1++) {
+                                for (size_t iA2 = 1; iA2 < antennaIds.size(); iA2++)
+                                    for (size_t iA1 = 0; iA1 < iA2; iA1++) {
                                         cross_antenna1_vv[iDD].push_back(antennaIds[iA1].getTagValue());
                                         cross_antenna2_vv[iDD].push_back(antennaIds[iA2].getTagValue());
                                         cross_dataDescId_vv[iDD].push_back(ddIndex);
@@ -5691,7 +5740,7 @@ namespace casac {
                         }
 	  
                         if (hasAutoData) {
-                            for (unsigned int iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
+                            for (size_t iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
                                 unsigned int ddIndex = dataDescriptionIdx2Idx[dataDescriptionIds[iDD].getTagValue()];
                                 //
                                 // Prepare a pair<int, int> to transport the shape of some cells
@@ -5707,7 +5756,7 @@ namespace casac {
                                 double sigma = 1.0 / sqrt (weight);
 
 
-                                for (unsigned int iA = 0; iA < antennaIds.size(); iA++) {
+                                for (size_t iA = 0; iA < antennaIds.size(); iA++) {
                                     auto_antenna1_vv[iDD].push_back(antennaIds[iA].getTagValue());
                                     auto_antenna2_vv[iDD].push_back(antennaIds[iA].getTagValue());
                                     auto_dataDescId_vv[iDD].push_back(ddIndex);
@@ -5766,13 +5815,14 @@ namespace casac {
                     // It's now time to populate the columns of the MAIN table but the DATA's one.
                     // This is done with data descriptions varying the more slowly.
                     //
-                    for (unsigned int iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
+                    for (size_t iDD = 0; iDD < dataDescriptionIds.size(); iDD++) {
                         if (hasAutoData)
                             for (map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator msfIter = msFillers.begin();
                                  msfIter != msFillers.end();
                                  ++msfIter)
                                 if ((msfIter->first == AtmPhaseCorrectionMod::AP_UNCORRECTED and iter->uncorrected and produceUncorrected) ||
                                     (msfIter->first == AtmPhaseCorrectionMod::AP_CORRECTED and iter->corrected and produceCorrected)) {
+                                    checkMSSize(msfIter->second, auto_time_vv[iDD].size());
                                     msfIter->second->addData(true,             // Yes ! these are complex data.
                                                              auto_time_vv[iDD],
                                                              auto_antenna1_vv[iDD],
@@ -5800,6 +5850,7 @@ namespace casac {
                                  ++msfIter)
                                 if ((msfIter->first == AtmPhaseCorrectionMod::AP_UNCORRECTED and iter->uncorrected and produceUncorrected) ||
                                     (msfIter->first == AtmPhaseCorrectionMod::AP_CORRECTED and iter->corrected and produceCorrected)) {
+                                    checkMSSize(msfIter->second, cross_time_vv[iDD].size());
                                     msfIter->second->addData(true,             // Yes ! these are complex data.
                                                              cross_time_vv[iDD],
                                                              cross_antenna1_vv[iDD],
@@ -5852,12 +5903,22 @@ namespace casac {
 
             info(infostream.str());
         }
-        catch (SDMDataObjectStreamReaderException e) {
+        catch (SDMDataObjectStreamReaderException& e) {
             cout << e.getMessage() << endl;
         }
-        catch (SDMDataObjectException e) {
+        catch (SDMDataObjectException& e) {
             cout << e.getMessage() << endl;
         }
+        catch (SDMMSTooLargeException& e) {
+            // caught here so that these can be cleaned up and then rethrown so that further cleanup and the call to sdm::error happens upstream
+            bdf2AsdmStManIndexU.done();
+            bdf2AsdmStManIndexC.done();
+            // it's OK to close this even if it's already closed, but it might not be closed.
+            sdosr.close();
+            throw;
+        }
+        // there is no harm in closing sdosr here, just in case
+        sdosr.close();
         bdf2AsdmStManIndexU.done();
         bdf2AsdmStManIndexC.done();
         LOGEXIT("fillMainLazily");
@@ -5899,7 +5960,7 @@ namespace casac {
         }
 
         const vector<StateRow *>& sRs =  ds.getState().get() ;
-        for (unsigned int iState = 0; iState < sRs.size(); iState++) {							     	    
+        for (size_t iState = 0; iState < sRs.size(); iState++) {							     	    
             bool pushed = false;
     
             for (map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
@@ -6004,7 +6065,7 @@ namespace casac {
             // set them in order, skipping times as appropriate
             // it's not obvious that the vmsData_p rows are time sorted, but the first time there should be the time to be skipped
             double timeToSkip = vmsData_p->v_time[0];
-            for (unsigned int i = 0; i < msRowReIndex_v.size(); i++) {
+            for (size_t i = 0; i < msRowReIndex_v.size(); i++) {
                 if (skipFirstTime && (vmsData_p->v_time[i] == timeToSkip)) {
                     msRowReIndex_v[i] = -1;
                 } else {
@@ -6014,12 +6075,12 @@ namespace casac {
         }
   
         vector<vector<unsigned int> > filteredShape_vv = vmsData_p->vv_dataShape;
-        for (unsigned int ipart = 0; ipart < filteredShape_vv.size(); ipart++) {
+        for (size_t ipart = 0; ipart < filteredShape_vv.size(); ipart++) {
             if (filteredShape_vv.at(ipart).at(0) == 3) filteredShape_vv.at(ipart).at(0) = 4;
         }
 
         vector<int> filteredDD;
-        for (unsigned int idd = 0; idd < vmsData_p->v_dataDescId.size(); idd++){
+        for (size_t idd = 0; idd < vmsData_p->v_dataDescId.size(); idd++){
             filteredDD.push_back(dataDescriptionIdx2Idx.at(vmsData_p->v_dataDescId.at(idd)));
         }
 
@@ -6050,7 +6111,7 @@ namespace casac {
         // set sigma_v and weight_v first, in order.
         weight_v.resize(vmsData_p->v_time.size());
         sigma_v.resize(vmsData_p->v_time.size());
-        for (unsigned int i = 0; i < weight_v.size(); i++) {
+        for (size_t i = 0; i < weight_v.size(); i++) {
             weight_v[i] = vmsData_p->v_exposure[i] * effectiveBwPerDD_m[filteredDD[i]];
             if (vmsData_p->v_antennaId1[i] != vmsData_p->v_antennaId2[i])
                 weight_v[i] *= 2.0;
@@ -6070,7 +6131,7 @@ namespace casac {
             */
             uvw_v.resize(3*vmsData_p->v_time.size());
             int k = 0;
-            for (unsigned int iUvw = 0; iUvw < vv_uvw.size(); iUvw++) {
+            for (size_t iUvw = 0; iUvw < vv_uvw.size(); iUvw++) {
                 uvw_v[k++] = vv_uvw[msRowReIndex_v[iUvw]](0); 
                 uvw_v[k++] = vv_uvw[msRowReIndex_v[iUvw]](1);
                 uvw_v[k++] = vv_uvw[msRowReIndex_v[iUvw]](2);
@@ -6081,7 +6142,7 @@ namespace casac {
             */
             uncorrectedWeight_v.resize(weight_v.size());
             uncorrectedSigma_v.resize(weight_v.size());
-            for (unsigned int i = 0; i < weight_v.size(); i++) {
+            for (size_t i = 0; i < weight_v.size(); i++) {
                 uncorrectedWeight_v[i] = weight_v.at(msRowReIndex_v[i]);
                 uncorrectedSigma_v[i] = sigma_v.at(msRowReIndex_v[i]);
             }
@@ -6126,7 +6187,7 @@ namespace casac {
         // Do we have to fill an MS with uncorrected data + radiometric data (radiometric data are considered as uncorrected data)  ?
         // Apply here the redindexing on uncorrected data !!!!
         //
-        for (unsigned int iData = 0; iData < vmsData_p->v_m_data.size(); iData++) {
+        for (size_t iData = 0; iData < vmsData_p->v_m_data.size(); iData++) {
             if (skipFirstTime && msRowReIndex_v[iData] < 0) {
                 continue;
             }
@@ -6273,6 +6334,7 @@ namespace casac {
                 // state must have already been filled so that the stateIdx2IDx map is available to extract the state ID for this main row pointer (r_p).
                 vector<int> msStateId_v(uncorrectedTime_v.size(), stateIdx2Idx[r_p]);
 
+                checkMSSize(msFillers[AtmPhaseCorrectionMod::AP_UNCORRECTED], uncorrectedTime_v.size());
                 msFillers[AtmPhaseCorrectionMod::AP_UNCORRECTED]->addData(complexData,
                                                    uncorrectedTime_v	, // this is already time midpoint
                                                    uncorrectedAntennaId1_v,
@@ -6304,6 +6366,7 @@ namespace casac {
                 // Here we make the assumption that the State is the same for all the antennas and let's use the first State found in the vector stateId contained in the ASDM Main Row
                 // state must have already been filled so that the stateIdx2IDx map is available to extract the state ID for this main row pointer (r_p).
                 vector<int>  correctedMsStateId_v(correctedTime_v.size(), stateIdx2Idx[r_p]);
+                checkMSSize(msFillers[AtmPhaseCorrectionMod::AP_CORRECTED], correctedTime_v.size());
                 msFillers[AtmPhaseCorrectionMod::AP_CORRECTED]->addData(complexData,
                                                  correctedTime_v, // this is already time midpoint
                                                  correctedAntennaId1_v, 
@@ -6383,3 +6446,5 @@ namespace casac {
     }
 
 }
+
+#include "BdFlagger.inc"

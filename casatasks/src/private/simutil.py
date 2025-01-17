@@ -1,7 +1,6 @@
 # geodesy and pointing and other helper functions that are useful
 # to be available outside of the simdata task
 # geodesy from NGS: http://www.ngs.noaa.gov/TOOLS/program_descriptions.html
-from __future__ import absolute_import
 import os
 import shutil
 import pylab as pl
@@ -13,38 +12,20 @@ import scipy.signal as spsig
 import scipy.interpolate as spintrp
 from collections import OrderedDict
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import table, image, imagepol, regionmanager, calibrater, measures, quanta, coordsys, componentlist, simulator, synthesisutils, ctsys
-    from casatasks import casalog, tclean
-    from casatasks.private.cleanhelper import cleanhelper
-    tb = table( )
-    ia = image( )
-    po = imagepol( )
-    rg = regionmanager( )
-    cb = calibrater( )
-    me = measures( )
-    qa = quanta( )
-    cs = coordsys( )
-    cl = componentlist( )
-    sm = simulator( )
-    _su = synthesisutils( )
-
-else:
-    #import casac
-    # all I really need is casalog, but how to get it:?
-    from taskinit import *
-    from tclean import tclean
-    from clean import clean
-
-    # qa doesn't hold state.
-    #qatool = casac.homefinder.find_home_by_name('quantaHome')
-    #qa = qatool.create()
-    im,cb,ms,tb,me,ia,po,sm,cl,cs,rg,sl,dc,vp,msmd,fi,fn,imd,sdms=gentools(['im','cb','ms','tb','me','ia','po','sm','cl','cs','rg','sl','dc','vp','msmd','fi','fn','imd','sdms'])
-    _su = casac.synthesisutils( )
-
-    # 4.2.2:
-    #im, cb, ms, tb, fl, me, ia, po, sm, cl, cs, rg, sl, dc, vp, msmd, fi, fn, imd = gentools()
+from casatools import table, image, imagepol, regionmanager, calibrater, measures, quanta, coordsys, componentlist, simulator, synthesisutils, ctsys
+from casatasks import casalog, tclean
+from casatasks.private.cleanhelper import cleanhelper
+tb = table( )
+ia = image( )
+po = imagepol( )
+rg = regionmanager( )
+cb = calibrater( )
+me = measures( )
+qa = quanta( )
+cs = coordsys( )
+cl = componentlist( )
+sm = simulator( )
+_su = synthesisutils( )
 
 # functions defined outside of the simutil class
 def is_array_type(value):
@@ -994,6 +975,9 @@ class simutil:
         """
 
         if telescope==None: telescope=self.telescopename
+        # Noisetemp only knows about 6 observatories, 
+        # none of which have measure.observatory dicts that
+        # contain lowercase characters so str.upper is harmless here
         telescope=str.upper(telescope)
         
         obs =['ALMASD','ALMA','ACA','EVLA','VLA','SMA']
@@ -1059,7 +1043,7 @@ class simutil:
             # go to higher band in gaps
             #f0=[ 31, 45, 84, 116, 162, 211, 275, 373, 500, 720, 950]
             # CASR-669
-            f0=[ 35, 52, 84, 116, 162, 211, 275, 373, 500, 720, 950]
+            f0=[ 35, 50, 84, 116, 162, 211, 275, 373, 500, 720, 950]
             # 80% spec
             #t0=[ 17, 30, 37, 51, 65, 83, 147, 196, 175, 230]
             # cycle 1 OT values 7/12
@@ -1183,15 +1167,27 @@ class simutil:
             if nant==None:
                 self.msg("Number of antennas has not been set.",priority="error")
                 return False
-               
-            found=False
-            t=telescope.upper()
-            for l in pl.arange(len(t)-1)+2:
-                if t[0:l] in me.obslist(): found=True
-            if found:
-                posobs=me.measure(me.observatory(telescope),'WGS84')
+
+            known, found_match, found_partial_match = False, False, False
+            # check if telescope is known to measures tool
+            # ensure case insensitivity - CAS-12753
+            obslist_lower = [obs.lower() for obs in me.obslist()]
+            if telescope.lower() in obslist_lower:
+                found_match = True
             else:
-                self.msg("Unknown telescope and no antenna list.",priority="error")
+                # e.g., aca.tp.cfg, where a substring of a known obsname (ALMASD) is known
+                for obsname in obslist_lower:
+                    if obsname in telescope.lower():
+                        found_partial_match = True
+
+            if found_match == True or found_partial_match == True:
+                known = True
+
+            if known == True:
+                posobs = me.measure(me.observatory(telescope), 'WGS84')
+            else:
+                self.msg("Unknown telescope and no antenna list.",
+                         priority="error")
                 return False
 
             obslat=qa.convert(posobs['m1'],'deg')['value']
@@ -1670,23 +1666,32 @@ class simutil:
             self.msg("Using observatory= %s" % self.telescopename,
                      origin="readantenna")
 
-        # me.observatory has partial matching implemented
-        found=False
-        t=self.telescopename.upper()
-        for l in pl.arange(len(t)-1)+2:
-            if t[0:l] in me.obslist(): found=True
-        if found:
-            posobs=me.measure(me.observatory(self.telescopename),'WGS84')
+        known, found_match, found_partial_match = False, False, False
+        # case insensitive check if telescopename is known
+        obslist_lower = [obs.lower() for obs in me.obslist()]
+        if self.telescopename.lower() in obslist_lower:
+            found_match = True
+        else:
+            # e.g., aca.tp.cfg, where a substring of a known obsname (ALMASD) is known
+            for obsname in obslist_lower:
+                if obsname in self.telescopename.lower():
+                    found_partial_match = True
+
+        if found_match == True or found_partial_match == True:
+            t = self.telescopename
+            known = True
+            posobs=me.measure(me.observatory(t),'WGS84')
             
         if "COFA" in params:
+            if known: 
+                self.msg("antenna config file specifies COFA for a known observatory "+
+                         self.telescopename+", overriding with specified COFA.",priority="warn")
             obs_latlon=params["COFA"].split(",")
             cofa_lon=float(obs_latlon[0])
             cofa_lat=float(obs_latlon[1])
             cofa_alt=0.
             posobs=me.position("WGS84",qa.quantity(cofa_lon,"deg"),qa.quantity(cofa_lat,"deg"),qa.quantity(cofa_alt,"m"))
-            if found: 
-                self.msg("antenna config file specifies COFA but a known observatory "+self.telescopename+", so ignoring specified COFA.",priority="warn")
-        elif not found:
+        elif not known:
             if params["coordsys"].upper()[0:3]=="LOC":
                 self.msg("To use local coordinates in the antenna position file, you must either use a known observatory name, or provide the COFA explicitly",priority="error")
                 return -1

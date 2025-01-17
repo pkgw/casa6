@@ -1,24 +1,11 @@
-from __future__ import absolute_import
 import os
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import vlafiller, ms, agentflagger, table
-    from casatasks import casalog
-    from .mstools import write_history
+from casatools import vlafiller, ms, agentflagger, table
+from casatasks import casalog
+from .mstools import write_history
 
-    _ms = ms( )
-    _filler = vlafiller( )
-else:
-    from taskinit import casac, casalog
-    from taskinit import tbtool as table
-    from mstools import write_history
-
-    _filler = casac.vlafillertask()
-    _ms = casac.ms()
-
-    agentflagger = casac.agentflagger
+_ms = ms( )
+_filler = vlafiller( )
 
 def importvla(archivefiles,vis,bandname,frequencytol,project,starttime,
               stoptime,applytsys,autocorr,antnamescheme,keepblanks,evlabands):
@@ -63,11 +50,9 @@ def importvla(archivefiles,vis,bandname,frequencytol,project,starttime,
     # Write history
     try:
         param_names = importvla.__code__.co_varnames[:importvla.__code__.co_argcount]
-        if is_python3:
-            vars = locals( )
-            param_vals = [vars[p] for p in param_names]
-        else:
-            param_vals = [eval(p) for p in param_names]
+        vars = locals( )
+        param_vals = [vars[p] for p in param_names]
+        
         ok &= write_history(_ms, vis, 'importvla', param_names,param_vals, casalog)
     except Exception as instance:
         casalog.post("*** Error \'%s\' updating HISTORY" % instance, 'WARN')

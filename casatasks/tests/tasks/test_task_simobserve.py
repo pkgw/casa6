@@ -28,7 +28,7 @@ import numpy
 import glob
 import unittest
 
-from casatools import ctsys, image, ms, msmetadata, quanta, atmosphere
+from casatools import ctsys, image, ms, msmetadata, quanta, atmosphere, table
 from casatasks import simobserve
 from casatasks.private.simutil import *
 
@@ -270,7 +270,11 @@ class simobserve_sky(simobserve_unittest_base):
     def tearDown(self):
         if self.teardown and os.path.exists(self.project):
             shutil.rmtree(self.project)
-        #pass
+            for stray_file in [self.inmodel, self.sdantlist, self.antlist]:
+                try:
+                    self._remove(stray_file)
+                except(FileNotFoundError, NotADirectoryError):
+                    pass
 
     # Tests of skymodel simulations
     def testSky_skymodel(self):
@@ -533,6 +537,7 @@ class simobserve_comp(simobserve_unittest_base):
     """
     project = simobserve_unittest_base.thistask+"_comp"
     incomp = "core5ps.clist"
+    point_comp = 'point.cl'
     compwidth = "10MHz"
     comp_nchan = 1
     direction = "J2000 19h00m00 -23d00m00"
@@ -564,11 +569,16 @@ class simobserve_comp(simobserve_unittest_base):
 
         # copy input components list
         self._copy_input(self.incomp)
+        self._copy_input(self.point_comp)
 
     def tearDown(self):
-        if self.teardown and os.path.exists(self.project):
-            shutil.rmtree(self.project)        
-        #pass
+        if self.teardown:
+            if os.path.exists(self.project):
+                shutil.rmtree(self.project)
+            if os.path.exists(self.incomp):
+                shutil.rmtree(self.incomp)
+            if os.path.exists(self.point_comp):
+                shutil.rmtree(self.point_comp)
 
     # Tests of complist simulations
     def testComp_complist(self):
@@ -829,6 +839,38 @@ class simobserve_comp(simobserve_unittest_base):
                             self.refms_int_8ch)
 
 
+    def testComp_plp(self):
+        """Test plp (spectral dependency) is supported CAS-13776"""
+        complist = self.point_comp
+        antennalist = 'alma.cycle5.1.cfg'
+        totaltime = '2000s'
+        direction = 'J2000 10h00m00.08s -30d00m00.0s'
+        try:
+            simobserve(
+                project=self.project, complist=complist, compwidth='10GHz',
+                direction=direction, obsmode="int",
+                antennalist=antennalist, totaltime=totaltime,
+                mapsize="10arcsec", thermalnoise='', comp_nchan=10
+            )
+        except Exception:
+            self.fail()
+        ms = os.path.join(
+            self.project, self.project + '.' + antennalist[:-4] + '.ms'
+        )
+        tb = table()
+        tb.open(ms)
+        x = tb.getcol('DATA')
+        spw = os.path.join(ms, 'SPECTRAL_WINDOW')
+        tb.open(spw)
+        f = tb.getcol('CHAN_FREQ')
+        tb.done()
+        k = f/230e9
+
+        expect = (7 * k**(2 + 3*numpy.log(k)))[:, 0]
+        got = x[0, :, 0]
+        self.assertTrue(numpy.isclose(numpy.real(got), expect).all(), f'Failed plp test got {numpy.real(got)} \n expect {expect} \n {numpy.real(got) - expect}')
+
+
 ########################################################################
 #
 # Test skymodel + components list simulations
@@ -875,9 +917,13 @@ class simobserve_skycomp(simobserve_unittest_base):
         self._copy_input([self.incomp, self.inmodel])
 
     def tearDown(self):
-        if self.teardown and os.path.exists(self.project):
-            shutil.rmtree(self.project)        
-        #pass
+        if self.teardown:
+            if os.path.exists(self.project):
+                shutil.rmtree(self.project)
+            if os.path.exists(self.incomp):
+                shutil.rmtree(self.incomp)
+            if os.path.exists(self.inmodel):
+                self._remove(self.inmodel)
 
     # Tests of skymodel + components list simulations
     def testSC_skymodel(self):
@@ -1166,6 +1212,8 @@ class simobserve_noise(simobserve_unittest_base):
                 shutil.rmtree(self.inimage)
             if os.path.exists(self.project):
                 shutil.rmtree(self.project)
+            if os.path.exists(self.ptgfile):
+                os.remove(self.ptgfile)
 
     #-----------------------------------------------------------------#
     # thermalnoise = "tsys-manual"
@@ -1713,11 +1761,17 @@ class simobserve_badinputs(simobserve_unittest_base):
     def tearDown(self):
 
         if self.teardown:
+            if (os.path.exists(self.project)):
+                shutil.rmtree(self.project)
+            if os.path.exists(self.incomp):
+                shutil.rmtree(self.incomp)
+            if os.path.exists(self.project+".badptg.txt"):
+                self._remove(self.project+".badptg.txt")
+
             for data in self.indata:
                 if os.path.exists(data):
                     os.system("rm -rf %s" % data)
-                if (os.path.exists(self.project)):
-                    shutil.rmtree(self.project)
+
 
     # Tests on invalid parameter sets
     def test_default(self):

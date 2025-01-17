@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -391,25 +391,17 @@ Bool SpectralIndex::convertUnit(String& errorMessage,
 }
 
 Bool SpectralIndex::ok() const {
-  if (!SpectralModel::ok()) return false;
-  if (refFrequency().getValue().getValue() <= 0.0) {
-    LogIO logErr(LogOrigin("SpectralIndex", "ok()"));
-    logErr << LogIO::SEVERE << "The reference frequency is zero or negative!" 
-           << LogIO::POST;
-    return false;
-  }
-  if (abs(itsIndex) > 100) {
-    LogIO logErr(LogOrigin("SpectralIndex", "ok()"));
-    logErr << LogIO::SEVERE << "The spectral index is greater than 100!" 
-           << LogIO::POST;
-    return false;
-  }
-  return true;
+    if (!SpectralModel::ok()) return false;
+    ThrowIf(
+        refFrequency().getValue().getValue() <= 0.0,
+        "The reference frequency is zero or negative!"
+    ); 
+    ThrowIf(abs(
+        itsIndex) > 100,
+        "The absolute value of the spectral index is greater than 100!"
+    ); 
+    return true;
 }
 
-// Local Variables: 
-// compile-command: "gmake SpectralIndex"
-// End: 
-
-} //# NAMESPACE CASA - END
+}
 

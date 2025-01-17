@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -52,8 +52,7 @@ ImageMoments<T>::~ImageMoments () {}
 
 template <class T> 
 Bool ImageMoments<T>::setNewImage(const casacore::ImageInterface<T>& image) {
-    T *dummy = nullptr;
-    DataType imageType = whatType(dummy);
+    DataType imageType = whatType<T>();
 
     ThrowIf(
         imageType != TpFloat && imageType != TpDouble,

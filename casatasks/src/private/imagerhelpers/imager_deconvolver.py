@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import math
 import shutil
@@ -8,25 +6,13 @@ import time
 import re
 import copy
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import synthesisdeconvolver, iterbotsink, ctsys, table
-    from casatasks import casalog
-    from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
+from casatools import synthesisdeconvolver, iterbotsink, ctsys, table
+from casatasks import casalog
+from casatasks.private.imagerhelpers.summary_minor import SummaryMinor
 
-    ctsys_hostinfo = ctsys.hostinfo
-    _tb = table() # TODO is this necessary?
-else:
-    from taskinit import *
-    from imagerhelpers.summary_minor import SummaryMinor
+ctsys_hostinfo = ctsys.hostinfo
+_tb = table() # TODO is this necessary?
 
-    synthesisdeconvolver = casac.synthesisdeconvolver
-    # make it look like the CASA6 version even though it's using the CASA5 named tool not present in CASA6
-    iterbotsink = casac.synthesisiterbot
-
-    ctsys_hostinfo = casac.cu.hostinfo
-
-    _tb = tb # TODO is this necessary?
 '''
 A set of helper functions for deconvolve.
 
@@ -112,10 +98,10 @@ class PyDeconvolver:
               self.SDtools[immod].pbcor()
 
 #############################################
-    def getSummary(self,fignum=1):
+    def getSummary(self,fullsummary, fignum=1):
         summ = self.IBtool.getiterationsummary()
         if ('summaryminor' in summ):
-            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'])
+            summ['summaryminor'] = SummaryMinor.convertMatrix(summ['summaryminor'], fullsummary)
         return summ
 
 #############################################
@@ -153,7 +139,7 @@ class PyDeconvolver:
          self.initrecs = []
          for immod in range(0,self.NF):
               initrec =  self.SDtools[immod].initminorcycle() 
-              self.IBtool.mergeinitrecord( initrec );
+              self.IBtool.mergeinitrecord(initrec, immod);
               self.initrecs.append(initrec)
 
          # Check with the iteration controller about convergence.
@@ -249,7 +235,7 @@ class PyDeconvolver:
 
         # Get iteration control parameters
         iterbotrec = self.IBtool.getminorcyclecontrols()
-        ##print("Minor Cycle controls : ", iterbotrec)
+        #print("In synthdeconv. Minor Cycle controls : ", iterbotrec)
 
         self.IBtool.resetminorcycleinfo() 
 

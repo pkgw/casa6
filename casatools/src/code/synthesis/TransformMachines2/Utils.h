@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -32,15 +32,19 @@
 #include <casacore/casa/aips.h>
 #include <casacore/casa/Exceptions/Error.h>
 #include <msvis/MSVis/VisBuffer2.h>
+
+#include <casacore/images/Images/ImageOpener.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/images/Images/ImageInterface.h>
 //#include <ms/MeasurementSets/MeasurementSet.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <casacore/ms/MeasurementSets/MSColumns.h>
 #include <synthesis/TransformMachines/CFCell.h>
+#include <casacore/images/Images/TempImage.h>
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/casa/Logging/LogIO.h>
 #include <iostream>
+#include <array>
 
 namespace casa
 {
@@ -61,33 +65,34 @@ namespace casa
     void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::Complex>& cf);
     void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::DComplex>& cf);
     void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::Float>& cf);
+    void storeArrayAsImage(casacore::String fileName, const casacore::CoordinateSystem& coords, const casacore::Array<casacore::Double>& cf);
     
     casacore::Bool isVBNaN(const VisBuffer2& vb, casacore::String& mesg);
     namespace SynthesisUtils
-    {
-      //using namespace vi;
-      void rotateComplexArray(casacore::LogIO& logIO, casacore::Array<casacore::Complex>& inArray, 
-			      casacore::CoordinateSystem& inCS,
-			      casacore::Array<casacore::Complex>& outArray, 
+    { 
+        //using namespace vi;
+          void rotateComplexArray(casacore::LogIO& logIO, casacore::Array<casacore::Complex>& inArray, 
+                    casacore::CoordinateSystem& inCS,
+                    casacore::Array<casacore::Complex>& outArray, 
 			      casacore::Double dAngleRad, 
 			      casacore::String interpMathod=casacore::String("CUBIC"),
 			      casacore::Bool modifyInCS=true);
-      void findLatticeMax(const casacore::Array<casacore::Complex>& lattice,
+          void findLatticeMax(const casacore::Array<casacore::Complex>& lattice,
 			  casacore::Vector<casacore::Float>& maxAbs,
 			  casacore::Vector<casacore::IPosition>& posMaxAbs) ;
-      void findLatticeMax(const casacore::ImageInterface<casacore::Complex>& lattice,
+          void findLatticeMax(const casacore::ImageInterface<casacore::Complex>& lattice,
 			  casacore::Vector<casacore::Float>& maxAbs,
 			  casacore::Vector<casacore::IPosition>& posMaxAbs) ;
-      void findLatticeMax(const casacore::ImageInterface<casacore::Float>& lattice,
+          void findLatticeMax(const casacore::ImageInterface<casacore::Float>& lattice,
 			  casacore::Vector<casacore::Float>& maxAbs,
 			  casacore::Vector<casacore::IPosition>& posMaxAbs) ;
       inline  casacore::Int nint(const casacore::Double& v) {return (casacore::Int)std::floor(v+0.5);}
-      inline  casacore::Int nint(const casacore::Float& v) {return (casacore::Int)std::floor(v+0.5);}
-      inline  casacore::Bool near(const casacore::Double& d1, const casacore::Double& d2, 
+      inline casacore::Int nint(const casacore::Float& v) {return (casacore::Int)std::floor(v+0.5);}
+      inline casacore::Bool near(const casacore::Double& d1, const casacore::Double& d2, 
 			const casacore::Double EPS=1E-6) 
       {
-	casacore::Bool b1=(fabs(d1-d2) < EPS)?true:false;
-	return b1;
+        casacore::Bool b1=(fabs(d1-d2) < EPS)?true:false;
+        return b1;
       }
       template <class T>
       inline void SETVEC(casacore::Vector<T>& lhs, const casacore::Vector<T>& rhs)
@@ -111,7 +116,7 @@ namespace casa
       
       template <class T>
       void libreConvolver(casacore::Array<T>& c1, const casacore::Array<T>& c2);
-      inline casacore::Double conjFreq(const casacore::Double& freq, const casacore::Double& refFreq) 
+      inline static casacore::Double conjFreq(const casacore::Double& freq, const casacore::Double& refFreq) 
       {return sqrt(2*refFreq*refFreq - freq*freq);};
       
       casacore::Double nearestValue(const casacore::Vector<casacore::Double>& list, const casacore::Double& val, casacore::Int& index);
@@ -119,8 +124,8 @@ namespace casa
       template <class T>
       T stdNearestValue(const std::vector<T>& list, const T& val, casacore::Int& index);
       
-      casacore::CoordinateSystem makeUVCoords(casacore::CoordinateSystem& imageCoordSys,
-				    casacore::IPosition& shape);
+      casacore::CoordinateSystem makeUVCoords(const casacore::CoordinateSystem& imageCoordSys,
+				    const casacore::IPosition& shape);
       
       casacore::Vector<casacore::Int> mapSpwIDToDDID(const VisBuffer2& vb, const casacore::Int& spwID);
       casacore::Vector<casacore::Int> mapSpwIDToPolID(const VisBuffer2& vb, const casacore::Int& spwID);
@@ -135,11 +140,14 @@ namespace casa
       
       void showCS(const casacore::CoordinateSystem& cs, std::ostream& os, const casacore::String& msg=casacore::String());
       const casacore::Array<casacore::Complex> getCFPixels(const casacore::String& Dir, const casacore::String& fileName);
+      void putCFPixels(const casacore::String& Dir, const casacore::String& fileName,
+		       const casacore::Array<casacore::Complex>& srcpix);
       const casacore::IPosition getCFShape(const casacore::String& Dir, const casacore::String& fileName);
 
       void rotate2(const double& actualPA, CFCell& baseCFC, CFCell& cfc, const double& rotAngleIncr);
       
       casacore::TableRecord getCFParams(const casacore::String& dirName,const casacore::String& fileName,
+					casacore::IPosition& cfShape,
 					casacore::Array<casacore::Complex>& pixelBuffer,
 					casacore::CoordinateSystem& coordSys, 
 					casacore::Double& sampling,
@@ -152,8 +160,45 @@ namespace casa
 
       casacore::Vector<casacore::String> parseBandName(const casacore::String& fullName);
 
-    }
+      casacore::CoordinateSystem makeModelGridFromImage(const std::string& modelImageName,
+				  casacore::TempImage<casacore::DComplex>& modelImageGrid);
+
+      void makeAWLists(const casacore::Vector<double>& wVals,
+		       const casacore::Vector<double>& fVals,
+		       const bool& wbAWP, const uint& nw,
+		       const double& imRefFreq, const double& spwRefFreq,
+		       casacore::Vector<int>& wNdxList, casacore::Vector<int>& spwNdxList,
+		       const int vbSPW);
+      
+      
     
+      
+      
+    }; ///end of  namespace SynthesisUtils 
+    
+    class MathUtils
+    {
+    public:
+      MathUtils();
+      casacore::Float interpLanczos( const casacore::Double& x , const casacore::Double& y, const casacore::Double& nx, const casacore::Double& ny,   const casacore::Float* data, const casacore::Float a=3);
+      casacore::Float sinc(const casacore::Float x) ;
+      casacore::Array<casacore::Complex> resample(const casacore::Array<casacore::Complex>& inarray, const casacore::Double factorX, const casacore::Double factorY);
+      static casacore::Array<casacore::Complex> resampleViaFFT(const casacore::Array<casacore::Complex>& inarray, const casacore::Double factorX, const casacore::Double factorY);
+      static casacore::Array<casacore::Complex> resampleViaFFT(const casacore::Array<casacore::Complex>& inarray, const casacore::Int nX, const casacore::Int nY);
+      //get the middle nx, ny of inArr ...obviously inArr fist 2 dim must be bigger or 
+      //equal to nx ny 
+      static casacore::Array<casacore::Complex> getMiddle(const casacore::Array<casacore::Complex>& inArr, const int nx, const int ny);
+      //put inArr in the middle of ouArr...first 2 dim of inArr have to be smaller or equal to outArr and all other axes have to be of the same length
+      static void putMiddle(casacore::Array<casacore::Complex>& outArr, const casacore::Array<casacore::Complex>& inArr);  
+    private:
+      std::array<casacore::Float,8000> sincCache_p;
+      casacore::Float *sincCachePtr_p;
+      void initSincCache();
+      
+      
+      
+    };
+      
     void getHADec(casacore::MeasurementSet& ms, const VisBuffer2& vb, casacore::Double &HA, casacore::Double& RA, casacore::Double& Dec);
 
     /////////////////////////////////////////////////////////////////////////////

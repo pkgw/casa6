@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -2805,7 +2805,7 @@ Bool Simulator::setdata(const Vector<Int>& spectralwindowids,
 	MeasurementSet* mssel_p2;
 	// Apply the TAQL selection string, to remake the original MS
 	String parseString="select from $1 where " + msSelect;
-	mssel_p2=new MeasurementSet(tableCommand(parseString,*mssel_p));
+	mssel_p2=new MeasurementSet(tableCommand(parseString,*mssel_p).table());
 	AlwaysAssert(mssel_p2, AipsError);
 	// Rename the selected MS as */SELECTED_TABLE2
 	//mssel_p2->rename(msname_p+"/SELECTED_TABLE2", Table::Scratch); 

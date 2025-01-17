@@ -1,9 +1,11 @@
 # casatestutils Package
-
-##casatestutils 
 A generic testhelper module for use with CASA testing.
 
-Documentation: https://open-confluence.nrao.edu/display/CASA/casatestutils%3A+A+generic+test+helper+module
+Internal documentation: https://open-confluence.nrao.edu/display/CASA/casatestutils%3A+A+generic+test+helper+module
+
+**Table of Contents**
+- [runtest.py](#runtest.py): Wrapper to run tests using pytest
+- [sparse_check.py](#sparse_check.py): Tool to do sparse checkout of data from casatestdata.git
 
 ## runtest.py
 [runtest.py](casatestutils/runtest.py) is a single test wrapper to run CASA Python tests. The script can run one or
@@ -23,7 +25,7 @@ The script uses unittest and pytest and has the following command line options.
 usage: runtest.py [-h] [-i] [-v] [-x] [-s test [test ...]] [-f [FILE]]
                   [-e [MAPFILE]] [-b BRANCH] [-p PKG] [-w WORK_DIR]
                   [-n NCORES] [-t TEST_PATHS] [-l TEST_LIST] [-c TEST_CONFIG]
-                  [-j TEST_GROUP] [-m PMODE] [--bamboo] [-r RCDIR]
+                  [-j TEST_GROUP] [-m PMODE] [--bamboo] [-r CACHEDIR]
                   [--ignore_list IGNORE_LIST]
 ```
 Execute it with a casalith tarball or python
@@ -62,7 +64,7 @@ python3 runtest.py -j Flagging
 python3 runtest.py --TEST_GROUP Flagging
 ...
 
-Namespace(bamboo=False, branch=None, classes=None, dry_run=True, file=None, list=False, mapfile=None, ncores=2, pkg=None, pmode=None, rcdir=None, test_config=None, test_group='Flagging', test_list=None, test_paths=None, verbose=False, work_dir=None)
+Namespace(bamboo=False, branch=None, classes=None, dry_run=True, file=None, list=False, mapfile=None, ncores=2, pkg=None, pmode=None, cachedir=None, test_config=None, test_group='Flagging', test_list=None, test_paths=None, verbose=False, work_dir=None)
 Testing Components['Flagging']
 
 Testnames: ['test_flagcmd', 'test_flagdata', 'test_flagmanager']
@@ -151,7 +153,7 @@ Required Flags
 
 Optional Flags
 -n, --ncores    : Number of Cores to Use for MPI Tests ( Default to 2)
--r, --rcdir     : Casa rcdir 
+-r, --cachedir     : Casa cachedir ( previously --rcdir, which also covered the paths to the startup and config files)
 ##### Examples
 python3 runtest.py --bamboo -n 4 -p casa-6.4.3-3-py3.6.tar.xz -m serial -j asdmsummary -w /path/to/working/directory
 python3 runtest.py --bamboo -p casa-6.4.3-3-py3.6.tar.xz -m serial  -w /path/to/working/directory --test_list test_coordsys,test_tclean,
@@ -174,3 +176,34 @@ Run locally using a casa tarball:
 <tarball>/bin/python3 -m jupyter notebook --browser=firefox --ip='*' --NotebookApp.toke='' --NotebookApp.password='' tests/nb_test_runtest.ipynb
 ```
 Run in [Google Colab](https://colab.research.google.com/drive/1lunhY-8iLot2H0UwFJ98_IWsmBM2TIMd?usp=sharing)
+
+## sparse_check.py
+Download test datasets from casatestdata.git using a sparse checkout. Use it inside a script or
+in the command line. See the usage:
+```
+./python3 sparse_check.py -h
+```
+
+#### from a script
+Import the module to download datasets on-the-fly based on the dataset name stored in casatestdata.git.
+```
+from casatestutils import sparse_check
+sparse_check.download_data(["ngc5921.ms"])
+```
+#### from the command line
+Download datasets used in a specific test script based on the taskname. The script will create a 
+taskname-data file with the contents to be fetched from git and will create a local casatestdata directory
+containing symbolic links to the datasets. Follow the steps below to sparse checkout data for test_task_flagdata.
+```
+./python3 sparse_check.py -j flagdata
+cd casatestdata
+mv ../flagdata-data .
+source flagdata-data
+git checkout master
+cd ../
+```
+With the above steps the datasets needed to run the flagdata tests will be checked out to casatestdata.
+Run the tests in the usual way; for example:
+```
+./python3 ./test_task_flagdata.py
+```

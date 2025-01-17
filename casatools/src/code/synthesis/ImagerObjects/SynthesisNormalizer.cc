@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -92,7 +92,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
             normpars.get( RecordFieldId("psfcutoff") , itsPsfcutoff  );
         }else
         {
-            throw( AipsError("psfcutoff not specified"));
+          itsPsfcutoff=0.35;
         }
           
           
@@ -168,6 +168,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //    cout << " partimagenames :" << itsPartImageNames << endl;
 
     Bool needToGatherImages = setupImagesOnDisk();
+    //if(dopsf)
+    //  cerr << "GATHER " << itsImages->psf()->shape() << endl;
 
     if( needToGatherImages )
       {
@@ -271,14 +273,99 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
   }// end of scatterModel
   
-  void SynthesisNormalizer::scatterWeightDensity()
+//----------------
+
+void SynthesisNormalizer::gatherWeightDensity(){
+
+  Bool needToGatherImages = setupImagesOnDisk();
+  // if(dopsf)
+  //   cerr << "GATHER " << itsImages->psf()->shape() << endl;
+
+  if (needToGatherImages) {
+    LogIO os(LogOrigin("SynthesisNormalizer", "gatherWeightDensity", WHERE));
+
+    itsImages->gridwt()->set(0.0);
+    Record iminfo(itsImages->gridwt()->miscInfo());
+    Vector<Float> d2out;
+    Vector<Float> f2out;
+    if(iminfo.isDefined("d2")){
+      iminfo.get("d2", d2out);
+      iminfo.get("f2", f2out);
+    }
+    Vector<Float> f2part(f2out.nelements(), 0.0);
+    bool recalcF2 = (d2out.nelements() >0 && d2out[0] == 1.0); // need to recalculate F2 for normalized Briggs
+    if(recalcF2)
+      f2out.set(0.0);
+    Int nxim = itsImages->gridwt()->shape()(0);
+    Int nyim = itsImages->gridwt()->shape()(1);
+    for (uInt part = 0; part < itsPartImages.nelements(); part++) {
+      itsImages->addImages(itsPartImages[part], false,
+                           /*residual*/ false, /*weight*/ false,
+                           /*griddedwt*/ true);
+      if (recalcF2) {
+        Vector<Float> f2in;
+        (itsPartImages[part]->gridwt()->miscInfo()).get("f2", f2in);
+        Array<Float> arr;
+        if (d2out.nelements() > 1) {
+          IPosition blc(5, 0, 0, 0, 0, 0);
+          IPosition shp(5, nxim, nyim, 1, 1, 1);
+          for (uInt k = 0; k < d2out.nelements(); ++k) {
+            blc[4] = k;
+            itsPartImages[part]->gridwt()->getSlice(arr, blc, shp, True);
+            f2in[k] = f2in[k] * sum(arr * arr);
+          }
+        }
+        else{ //not multifield weighting
+          itsPartImages[part]->gridwt()->get(arr, True);
+          f2in[0] = f2in[0] * sum(arr * arr);
+        }
+        f2out += f2in;
+      }
+      itsPartImages[part]->releaseLocks();
+    }
+    if(recalcF2){
+      Array<Float> arr;
+      if (d2out.nelements() > 1) {
+        IPosition blc(5, 0, 0, 0, 0, 0);
+        IPosition shp(5, nxim, nyim, 1, 1, 1);
+        for (uInt k = 0; k < d2out.nelements(); ++k) {
+          blc[4] = k;
+          itsImages->gridwt()->getSlice(arr, blc, shp, True);
+          Float sumarr2 = sum(arr * arr);
+          if(sumarr2> 0)
+            f2out[k] = f2out[k] / sumarr2;
+        }
+      }
+      else{
+        itsImages->gridwt()->get(arr, True);
+        Float sumarr2 = sum(arr * arr);
+        if (sumarr2 > 0)
+          f2out[0] = f2out[0] / sumarr2;
+      }
+      iminfo.define("f2", f2out);
+      itsImages->gridwt()->setMiscInfo(iminfo);
+    }
+
+  } // end of image gathering.
+
+  // Normalize by the weight image.
+  //    divideResidualByWeight();
+  itsImages->releaseLocks();
+
+}//end of gatherweightdensity
+
+//-------------------------
+
+
+  string SynthesisNormalizer::scatterWeightDensity()
   {
 
     LogIO os( LogOrigin("SynthesisNormalizer", "scatterWeightDensity",WHERE) );
 
     setupImagesOnDisk(); // To open up and initialize itsPartImages.
-
-    //    os << "In ScatterModel : " << itsPartImages.nelements() << " for " << itsPartImageNames << LogIO::POST;
+    string weightname = "";
+    //    os << "In ScatterModel : " << itsPartImages.nelements() << " for " <<
+    //    itsPartImageNames << LogIO::POST;
 
     if( itsPartImages.nelements() > 0 )
       {
@@ -289,11 +376,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	    itsPartImages[part]->setWeightDensity( itsImages );
 	    itsPartImages[part]->releaseLocks();
 	  }
-	itsImages->releaseLocks();
+          weightname=itsImages->gridwt()->name();
+          itsImages->releaseLocks();
       }
-  }// end of gatherImages
-
-  
+      return weightname;
+  } // end of gatherImages
 
   void SynthesisNormalizer::divideResidualByWeight()
   {
@@ -310,6 +397,35 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
   }
   
+  void SynthesisNormalizer::divideResidualByWeightSD()
+  {
+    LogIO os( LogOrigin("SynthesisNormalizer", "divideResidualByWeightSD",WHERE) );
+
+    if( itsNFacets==1) {
+      itsImages->divideResidualByWeightSD( itsPBLimit );
+    }
+    else {
+      for ( uInt facet=0; facet<itsNFacets*itsNFacets; facet++ )
+        { itsFacetImageStores[facet]->divideResidualByWeightSD( itsPBLimit ); }
+    }
+    itsImages->releaseLocks();
+
+  }
+  void SynthesisNormalizer::makePSFBeamset(){
+    LogIO os(LogOrigin("SynthesisNormalizer", "dividePSFByWeight", WHERE));
+    try{
+      if(!itsImages){
+        itsImages = makeImageStore( itsImageName, false );
+      }
+
+    }
+    catch(AipsError& x){
+
+      throw(AipsError("Programmers error no psf is made on disk and  trying to fit"));
+    }
+    itsImages->makeImageBeamSet(itsPsfcutoff);
+    itsImages->releaseLocks();
+  }
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );
@@ -429,14 +545,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     try
       {
 	itsImages = makeImageStore( itsImageName );
+  //if( (itsImages->hasPsf() || itsImages->hasResidual() || itsImages->hasPB() ))
 	foundFullImage = true;
-      }
-    catch(AipsError &x)
-      {
-	//throw( AipsError("Error in constructing a Deconvolver : "+x.getMesg()) );
-	err = err += String(x.getMesg()) + "\n";
-	foundFullImage = false;
-      }
+  //else
+  //  itsImages = nullptr;
+    } catch (AipsError &x) {
+      // throw( AipsError("Error in constructing a Deconvolver : "+x.getMesg())
+      // );
+      err = err += String(x.getMesg()) + "\n";
+      foundFullImage = false;
+    }
 
     os << LogIO::DEBUG2 << " Found full images : " << foundFullImage << LogIO::POST;
 
@@ -550,12 +668,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		  }
 
 	      }
-
+      
 	    PagedImage<Float> temppart( imopen );
-
+      
 	    Bool useweightimage = itsPartImages[0]->getUseWeightImage( *(itsPartImages[0]->sumwt()) );
-	    itsImages = makeImageStore (itsImageName, temppart, useweightimage);
-	    foundFullImage = true;
+            //cerr << "@@@@ image" << imopen << " useweight " << useweightimage << endl;
+            itsImages = makeImageStore(itsImageName, temppart, useweightimage);
+            foundFullImage = true;
 	  }
 
 	// By now, all partial images and the full images exist on disk, and have the same shape.
@@ -607,12 +726,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   }// end of setupImagesOnDisk
 
 
-  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename )
+  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename , const bool useweightimage)
   {
+    //The constructors use ignoresumwt  so use the !useweightimage
     if( itsMapperType == "multiterm" )
-      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true ));   }
+      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true, !useweightimage ));   }
     else
-      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true ));   }
+      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true /*ignorefacets*/, !useweightimage ));   }
     itsImages->releaseLocks();
   }
 
@@ -636,18 +756,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     auto csys = part.coordinates();
     auto objectname = part.imageInfo().objectName();
     auto miscinfo = part.miscInfo();
-    if( itsMapperType == "multiterm" )
-      {
-        std::shared_ptr<SIImageStore> multiTermStore =
-            std::make_shared<SIImageStoreMultiTerm>(imagename, csys, shape, objectname,
-                                                    miscinfo, itsNFacets, false, itsNTaylorTerms, useweightimage );
-        return multiTermStore;
-      }
-    else
-      {
-        return std::make_shared<SIImageStore>(imagename, csys, shape, objectname, miscinfo,
-                                              false, useweightimage);
-       }
+    if (itsMapperType == "multiterm") {
+      std::shared_ptr<SIImageStore> multiTermStore =
+          std::make_shared<SIImageStoreMultiTerm>(
+              imagename, csys, shape, objectname, miscinfo, itsNFacets, false,
+              itsNTaylorTerms, useweightimage);
+      return multiTermStore;
+    } else {
+      return std::make_shared<SIImageStore>(imagename, csys, shape, objectname,
+                                            miscinfo, false, useweightimage);
+    }
   }
 
   //

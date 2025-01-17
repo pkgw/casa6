@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -36,21 +36,21 @@
 #include <chrono>
 #endif
 
-#include <casa/Arrays/Array.h>
-#include <casa/Arrays/Matrix.h>
-#include <casa/Arrays/Vector.h>
-#include <casa/Containers/Block.h>
-#include <coordinates/Coordinates/DirectionCoordinate.h>
-#include <images/Images/ImageInterface.h>
-#include <lattices/Lattices/ArrayLattice.h>
-#include <lattices/Lattices/LatticeCache.h>
-#include <measures/Measures/Measure.h>
-#include <measures/Measures/MDirection.h>
-#include <measures/Measures/MPosition.h>
-#include <ms/MeasurementSets/MSColumns.h>
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/casa/Arrays/Matrix.h>
+#include <casacore/casa/Arrays/Vector.h>
+#include <casacore/casa/Containers/Block.h>
+#include <casacore/coordinates/Coordinates/DirectionCoordinate.h>
+#include <casacore/images/Images/ImageInterface.h>
+#include <casacore/lattices/Lattices/ArrayLattice.h>
+#include <casacore/lattices/Lattices/LatticeCache.h>
+#include <casacore/measures/Measures/Measure.h>
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/ms/MeasurementSets/MSColumns.h>
 #include <msvis/MSVis/VisBuffer.h>
 #include <msvis/MSVis/VisibilityIterator.h>
-#include <scimath/Mathematics/FFTServer.h>
+#include <casacore/scimath/Mathematics/FFTServer.h>
 
 #include <synthesis/TransformMachines/FTMachine.h>
 #include <synthesis/TransformMachines/SkyJones.h>
@@ -198,19 +198,19 @@ public:
   // this is to allow for proper non natural weighting scheme while imaging
   // <group>
   SDGrid(SkyJones& sj, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
+     casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, SkyJones& sj, casacore::Int cachesize,
-	 casacore::Int tilesize, casacore::String convType="BOX", casacore::Int userSupport=-1,
-	 casacore::Float minweight=0., casacore::Bool clipminmax=false, casacore::Bool useImagingWeight=false);
+     casacore::Int tilesize, casacore::String convType="BOX", casacore::Int userSupport=-1,
+     casacore::Float minweight=0., casacore::Bool clipminmax=false, casacore::Bool useImagingWeight=false);
   SDGrid(casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
+     casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Float minweight=0., casacore::Bool clipminmax=false,
-	 casacore::Bool useImagingWeight=false);
+     casacore::String convType="BOX", casacore::Int userSupport=-1, casacore::Float minweight=0., casacore::Bool clipminmax=false,
+     casacore::Bool useImagingWeight=false);
   SDGrid(casacore::MPosition& ml, casacore::Int cachesize, casacore::Int tilesize,
-	 casacore::String convType="TGAUSS", casacore::Float truncate=-1.0, 
-	 casacore::Float gwidth=0.0, casacore::Float jwidth=0.0, casacore::Float minweight=0., casacore::Bool clipminmax=false,
-	 casacore::Bool useImagingWeight=false);
+     casacore::String convType="TGAUSS", casacore::Float truncate=-1.0, 
+     casacore::Float gwidth=0.0, casacore::Float jwidth=0.0, casacore::Float minweight=0., casacore::Bool clipminmax=false,
+     casacore::Bool useImagingWeight=false);
   // </group>
 
   // Copy constructor
@@ -276,6 +276,16 @@ public:
 
   // Enable/disable SDGrid::Cache
   void setEnableCache(casacore::Bool doEnable);
+
+  // Interpolation-Conversion processing scheme
+  enum class ConvertFirst {
+    NEVER = 0,
+    ALWAYS = 1,
+    AUTO = 2
+  };
+  static const casacore::String & toString(const ConvertFirst convertFirst);
+  static ConvertFirst fromString(const casacore::String & name);
+  void setConvertFirst(const casacore::String &convertFirst);
 
 private:
 
@@ -380,7 +390,7 @@ private:
   void clipMinMax();
 
   casacore::Int getIndex(const casacore::MSPointingColumns& mspc, const casacore::Double& time,
-	       const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);
+                    const casacore::Double& interval=-1.0, const casacore::Int& antid=-1);
 
   casacore::Bool getXYPos(const VisBuffer& vb, casacore::Int row);
 
@@ -554,6 +564,39 @@ private:
   sdgrid_perfs::ChronoStat cHandleMovingSource;
   sdgrid_perfs::ChronoStat cGridData;
 #endif
+
+    // Computation of image's spatial coordinates:
+    // conversion-interpolation scheme
+    casacore::Bool convertFirst;
+    ConvertFirst processingScheme;
+
+    casacore::MSPointing ramPointingTable;
+    casacore::CountedPtr<casacore::MSPointingColumns> ramPointingColumnsPtr;
+
+    // Control logic
+    // Decide if we must convert the user-specified pointing column
+    casacore::Bool mustConvertPointingColumn(
+        const casacore::MeasurementSet &ms
+    );
+    void handleNewMs(
+        ROVisibilityIterator &vi,
+        const casacore::ImageInterface<Complex>& image
+    );
+    void convertPointingColumn(
+        const casacore::MeasurementSet & ms,
+        const casacore::MSPointingEnums::PredefinedColumns columnEnum,
+        const casacore::MDirection::Types refTypeType
+    );
+    void initRamPointingTable(
+        const casacore::MSPointing & pointingTable,
+        const casacore::MSPointingEnums::PredefinedColumns columnEnum,
+        const casacore::MDirection::Types refType
+    );
+    std::pair<casacore::MeasFrame,casacore::MDirection::Convert>
+    setupConversionTools(
+        const casacore::MeasurementSet & ms,
+        const casacore::MDirection::Types refType
+    );
 };
 
 } //# NAMESPACE CASA - END

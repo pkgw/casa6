@@ -65,9 +65,9 @@ def statwt(
         if rval != None and not preview:
             try:
                 # Write history to MS
-                vars = locals( )
+                local_vars = locals( )
                 param_names = statwt.__code__.co_varnames[:statwt.__code__.co_argcount]
-                param_vals = [vars[p] for p in param_names]
+                param_vals = [local_vars[p] for p in param_names]
                 write_history(
                     ms(), vis, 'statwt', param_names, param_vals, casalog
                 )

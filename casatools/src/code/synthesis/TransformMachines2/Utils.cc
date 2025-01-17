@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -33,6 +33,7 @@
 #include <casacore/measures/Measures/MeasTable.h>
 #include <synthesis/TransformMachines2/Utils.h>
 #include <synthesis/TransformMachines/StokesImageUtil.h>
+#include <synthesis/Utilities/FFT2D.h>
 #include <casacore/casa/Utilities/Assert.h>
 #include <casacore/casa/Arrays/Vector.h>
 #include <casacore/casa/Arrays/ArrayMath.h>
@@ -44,6 +45,8 @@
 #include <casacore/lattices/Lattices/TiledLineStepper.h> 
 #include <casacore/lattices/Lattices/LatticeStepper.h> 
 #include <casacore/lattices/LatticeMath/LatticeFFT.h>
+#include <casacore/casa/OS/Timer.h>
+
 #include <casacore/casa/System/Aipsrc.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 
@@ -66,7 +69,8 @@ namespace casa{
 	imName << "im" << fileName;
 	{
 	  PagedImage<Float> tmp(theImg.shape(), theImg.coordinates(), reName);
-	  LatticeExpr<Float> le(abs(theImg));
+	  //LatticeExpr<Float> le(abs(theImg));
+	  LatticeExpr<Float> le(real(theImg));
 	  tmp.copyData(le);
 	}
 	{
@@ -300,9 +304,9 @@ namespace casa{
 		   Int &row2) const
   {
     if (row1<0) row1=0;
-    Int jrow = row2;
+    int jrow = row2;
     if (jrow < 0) jrow = vb.nRows()-1;
-    DebugAssert(jrow<vb.nRows(),AipsError);
+    DebugAssert(jrow<(int)vb.nRows(),AipsError);
     
     // It is not important now to have a separate function for a "block"
     // operation. Because an appropriate caching is implemented inside
@@ -311,7 +315,7 @@ namespace casa{
     // first row where the change occured rather than the last unchanged 
     // row as it was for BeamSkyJones::changedBuffer
       
-    for (Int ii=row1;ii<=jrow;++ii)
+    for (int ii=row1;ii<=jrow;++ii)
          if (changed(vb,ii)) {
              row2 = ii;
              return true;
@@ -523,6 +527,8 @@ namespace casa{
     return true;
   }
   //
+  
+ 
   //---------------------------------------------------------------
   //Rotate a complex array using a the given coordinate system and the
   //angle in radians.  Default interpolation method is "CUBIC".
@@ -789,6 +795,8 @@ namespace casa{
     Float SynthesisUtils::getenv(const char *name, const Float defaultVal);
     template 
     double SynthesisUtils::getenv(const char *name, const double defaultVal);
+  template 
+    String SynthesisUtils::getenv(const char *name, const String defaultVal);
 
   Float SynthesisUtils::libreSpheroidal(Float nu) 
   {
@@ -987,6 +995,10 @@ namespace casa{
   template <class T>
   T SynthesisUtils::stdNearestValue(const vector<T>& list, const T& val, Int& index)
   {
+    // auto const it = std::lower_bound(list.begin(), list.end(), val);
+    // if (it == list.begin()) return list[0];
+    // else return list[*(it-1)];
+
     vector<T> diff=list;
     for (uInt i=0;i<list.size();i++)
       diff[i] = fabs(list[i] - val);
@@ -1000,8 +1012,8 @@ namespace casa{
     return list[index];
   }
 
-  CoordinateSystem SynthesisUtils::makeUVCoords(CoordinateSystem& imageCoordSys,
-						IPosition& shape)
+  CoordinateSystem SynthesisUtils::makeUVCoords(const CoordinateSystem& imageCoordSys,
+						const IPosition& shape)
   {
     CoordinateSystem FTCoords = imageCoordSys;
     
@@ -1170,6 +1182,22 @@ namespace casa{
     return casacore::Array<Complex>(); // Just to keep the complier happy.  Program control should never get here.
   }
   
+ void SynthesisUtils::putCFPixels(const casacore::String& Dir,
+				  const casacore::String& fileName,
+				  const casacore::Array<Complex>& srcpix)
+  {
+    try
+      {
+	casacore::PagedImage<casacore::Complex> thisCF(Dir+'/'+fileName);
+	return thisCF.put(srcpix);
+      }
+    catch (AipsError &x)
+      {
+	LogIO log_l(LogOrigin("SynthesisUtils","putCFPixels"));
+	log_l << x.getMesg() << LogIO::EXCEPTION;
+      }
+  }
+  
  const casacore::IPosition SynthesisUtils::getCFShape(const casacore::String& Dir,
 						      const casacore::String& fileName)
   {
@@ -1188,6 +1216,7 @@ namespace casa{
   
   casacore::TableRecord SynthesisUtils::getCFParams(const casacore::String& Dir,
 						    const casacore::String& fileName,
+						    casacore::IPosition& cfShape,
 						    casacore::Array<Complex>& pixelBuffer,
 						    casacore::CoordinateSystem& coordSys, 
 						    casacore::Double& sampling,
@@ -1200,7 +1229,9 @@ namespace casa{
   {
     try
       {
+	//casacore::Table tThisCF(Dir+'/'+fileName);
 	casacore::PagedImage<casacore::Complex> thisCF(Dir+'/'+fileName);
+	cfShape = thisCF.shape();
 	if (loadPixels) pixelBuffer.assign(thisCF.get());
 	casacore::TableRecord miscinfo;
 	if (loadMiscInfo)
@@ -1312,8 +1343,118 @@ namespace casa{
     }
 
 
-  
-  
+//
+//-----------------------------------------------------------------------------------------
+//
+    casacore::CoordinateSystem SynthesisUtils::makeModelGridFromImage(const std::string& modelImageName,
+								      casacore::TempImage<casacore::DComplex>& modelImageGrid)
+    {
+      // This code is basically loading a floating point image from
+      // the disk, and loading it into a complex<double> image.  This
+      // should be possible on-the-fly.
+      //
+      // However currently it is not possible to this OTF.  So one has
+      // to load the image from the disk in a float image (copy-1 of
+      // the image in the memory).  Then, since
+      // StokesImageUtil::From() does not work with complex<double>
+      // images, convert it first to a complex<float> image (equal to
+      // 2 more float buffers in the memory).  And then covert the
+      // complex<float> image to a complex<Double> image (equal to 4
+      // more float buffers in the memory).
+      //
+      // In the end, just because of limitations of OTF type
+      // conversions, we end up with 7x memory footprint!
+
+      casacore::LatticeBase* lattPtr = casacore::ImageOpener::openImage (modelImageName);
+      casacore::ImageInterface<float> *fImage;
+      fImage = dynamic_cast<casacore::ImageInterface<float>*>(lattPtr);
+
+      TempImage<casacore::Complex> tmp(fImage->shape(), fImage->coordinates());
+      StokesImageUtil::From(tmp, *fImage);
+
+      modelImageGrid  = casacore::TempImage<casacore::DComplex> (fImage->shape(), fImage->coordinates());
+
+      Bool d0,d1;
+      casacore::Array<casacore::DComplex> dcArray=modelImageGrid.get();
+      casacore::Array<casacore::Complex> fcArray=tmp.get();
+
+      casacore::DComplex* dcArrayPtr= dcArray.getStorage(d0);
+      casacore::Complex* fcArrayPtr = fcArray.getStorage(d1);
+      IPosition ndx(4,0,0,0,0),shape=fImage->shape();
+
+      for (ndx(0)=0; ndx(0)<shape(0);ndx(0)++)
+	for (ndx(1)=0; ndx(1)<shape(1);ndx(1)++)
+	  for (ndx(2)=0; ndx(2)<shape(2);ndx(2)++)
+	    for (ndx(3)=0; ndx(3)<shape(3);ndx(3)++)
+	      dcArray(ndx) = DComplex(fcArray(ndx).real(), fcArray(ndx).imag());
+
+      modelImageGrid.put(dcArray);
+      return fImage->coordinates();
+    }
+    //
+    //-------------------------------------------------------------------------------------
+    //
+    void SynthesisUtils::makeAWLists(const casacore::Vector<double>& wVals,
+				     const casacore::Vector<double>& fVals,
+				     const bool& wbAWP, const uint& nw,
+				     const double& imRefFreq, const double& spwRefFreq,
+				     casacore::Vector<int>& wNdxList,
+				     casacore::Vector<int>& spwNdxList,
+				     const int vbSPW)
+    {
+      //
+      // The following can be generalized to pick a subset of CFs along
+      // W and SPW axis in the CFB.  Perhaps also useful in the longer
+      // run, e.g. when using a super-set CFC not all of which may be
+      // used for a given imaging.
+      //
+      // W-pixels in the CFC should be >= w-planes user setting
+      assert(wVals.nelements() >= nw);
+      
+      // Make list of W-CF indexes
+      int nWCFs=(nw<=1)?nw:wVals.nelements();
+      wNdxList.resize(nWCFs);
+      for(int i=0;i<nWCFs;i++) wNdxList[i] = i;
+      
+      // Make list of SPW-CF indexes
+      int nSPWCFs=fVals.nelements();
+      if (wbAWP==true)
+	{
+	  // If a valid SPW ID is given, translate it to the spwNdx for the nearest SPW
+	  if ((vbSPW>=0))// && (vbSPW <nSPWCFs))
+	    {
+	      int refSPW;
+	      std::vector<double> stdList(nSPWCFs);
+	      for (int i=0; i<nSPWCFs; i++) stdList[i] = fVals[i];
+	      //Double refCFFreq =
+	      SynthesisUtils::stdNearestValue(stdList, spwRefFreq, refSPW);
+	      
+	      spwNdxList.resize(1);
+	      spwNdxList[0]=refSPW;
+	    }
+	  else
+	    {
+	      spwNdxList.resize(nSPWCFs);
+	      for(int i=0;i<nSPWCFs;i++) spwNdxList[i] = i;
+	    }
+	}
+      else
+	{
+	  // For wbAWP=F, pick up the CF closest to the image reference frequency
+	  int refSPW;
+	  std::vector<double> stdList(nSPWCFs);
+	  for (int i=0; i<nSPWCFs; i++) stdList[i] = fVals[i];
+	  //Double refCFFreq =
+	  SynthesisUtils::stdNearestValue(stdList, imRefFreq, refSPW);
+	  
+	  spwNdxList.resize(1);
+	  spwNdxList[0]=refSPW;
+	}
+      
+      return;
+    }
+
+
   template
   std::vector<Double>::iterator SynthesisUtils::Unique(std::vector<Double>::iterator first, std::vector<Double>::iterator last);
   template
@@ -1328,7 +1469,274 @@ namespace casa{
   template 
   Int SynthesisUtils::stdNearestValue(const vector<Int>& list, const Int& val, Int& index);
 
+/////===========
+   MathUtils::MathUtils(){
+     //Timer tim;
+     //tim.mark();
+    initSincCache();
+    //tim.show("Calculating 16000 sines");
+  }
+  Array<Complex> MathUtils::resample(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
 
+    if(factorX == 1.0 && factorY==1.0)
+      return inarray;
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    IPosition shp=inarray.shape();
+    //cerr <<  "shp " <<  shp <<  endl;
+    shp(0)=Int(nx*factorX/8.0)*8;
+    shp(1)=Int(ny*factorY/8.0)*8;
+    Int newNx=shp(0);
+    Int newNy=shp(1);
+    // cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));
+   
+   /*IPosition incursor=IPosition(inarray.shape().nelements(),1);
+    incursor[0]=nx;
+    incursor[1]=ny;
+    IPosition outcursor=IPosition(inarray.shape().nelements(),1);
+    outcursor[0]=shp[0];
+    outcursor[1]=shp[1];
+    */
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    //for (zzz=0; zzz< shp.(4); ++zzz){
+    //  for(yyy=0; yyy< shp.(3); ++yyy){
+    // for(xxx=0; xxx< shp.(2); ++xxx){
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        //Matrix<Float> leReal=real(Matrix<Complex>(inIt.array()));
+        //Matrix<Float> leImag=imag(Matrix<Complex>(inIt.array()));
+        Matrix<Float> leReal=real(inmat);
+        Matrix<Float> leImag=imag(inmat);
+        Bool leRealCopy, leImagCopy;
+        Float *realptr=leReal.getStorage(leRealCopy);
+        Float *imagptr=leImag.getStorage(leImagCopy);
+        Bool isCopy;
+        Matrix<Complex> outMat(outIt.array());
+        Complex *intPtr=outMat.getStorage(isCopy);
+        Float realval, imagval;
+#ifdef _OPENMP
+        omp_set_nested(0);
+#endif
+        #pragma omp parallel for default(none) private(realval, imagval) firstprivate(intPtr, realptr, imagptr, nx, ny, newNx, newNy) shared(leReal, leImag)
+
+        for (Int k =0; k < newNy; ++k) {
+            Double y =Double(k)/Double(newNy)*Double(ny);
+
+            for (Int j=0; j < newNx; ++j) {
+                //      Interpolate2D interp(Interpolate2D::LANCZOS);
+                Double x=Double(j)/Double(newNx)*Double(nx);
+                //interp.interp(realval, where, leReal);
+                realval=interpLanczos(x , y, nx, ny,
+                                      realptr, 3);
+                imagval=interpLanczos(x , y, nx, ny,
+                                      imagptr, 3);
+                //interp.interp(imagval, where, leImag);
+                intPtr[k*Int(newNx)+j]=Complex(realval, imagval);
+            }
+
+        }
+        outMat.putStorage(intPtr, isCopy);
+        leReal.putStorage(realptr, leRealCopy);
+        leImag.putStorage(imagptr, leImagCopy);
+        inIt.next();
+        outIt.next();
+    }
+    return out;
+}
+    void MathUtils::initSincCache(){
+     for (Float u=-4000; u<4000; ++u){ 
+      Float ux=u/1000.0;
+      if (ux == 0) {
+        sincCache_p[u+4000]=1.0;
+      }
+      else{
+	sincCache_p[u+4000]= sin(C::pi * ux) / (C::pi * ux);
+      }
+    }
+    sincCachePtr_p=sincCache_p.data(); 
+      
+    }
+    Float MathUtils::sinc(const Float x)  {
+        Int index=x*1000+4000;
+ 
+    
+        return sincCachePtr_p[index];
+
+    }
+    casacore::Float MathUtils::interpLanczos( const casacore::Double& x , const casacore::Double& y, const casacore::Double& nx, const casacore::Double& ny,   const casacore::Float* data, const casacore::Float a){
+          Double floorx = floor(x);
+          Double floory = floor(y);
+          Float result=0.0;
+          if (floorx < a || floorx >= nx - a || floory < a || floory >= ny - a) {
+            result = 0;
+            return result;
+          }
+    for (Float i = floorx - a + 1; i <= floorx + a; ++i) {
+      for (Float j = floory - a + 1; j <= floory + a; ++j) {
+        result += Float(Double(data[Int(j*nx+i)]) * sinc(x - i)*sinc((x-i)/ a) * sinc(y - j)*sinc((y-j)/ a));
+      }
+    }
+    return result;
+    
+    
+    }
+    Array<Complex> MathUtils::getMiddle(const Array<Complex>& inArr, const int nx, const int ny){
+     IPosition outshape=inArr.shape();
+     outshape[0]=nx;
+     outshape[1]=ny;
+     IPosition blc(2, (inArr.shape()[0]-nx)/2, (inArr.shape()[1]-ny)/2);
+     IPosition trc(2, (inArr.shape()[0]+nx)/2-1, (inArr.shape()[1]+ny)/2-1);
+     Array<Complex> outArr(outshape);
+     ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+     ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+     inIt.origin();
+     outIt.origin();
+     while(!inIt.pastEnd()){
+       //cerr << "Shapes in getM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+       outIt.array().assign(inIt.array()(blc,  trc));
+       inIt.next();
+       outIt.next();
+       
+       
+     }
+      
+      return outArr;
+    }
+     
+    void MathUtils::putMiddle(Array<Complex>& outArr, const Array<Complex>& inArr) {
+     Int nx = inArr.shape()[0];
+     Int ny = inArr.shape()[1];
+     if(nx < outArr.shape()[0] && ny < outArr.shape()[1]){
+       IPosition blc(2,  (outArr.shape()[0]-nx)/2,  (outArr.shape()[1]-ny)/2);
+       IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
+       ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+       ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+       inIt.origin();
+       outIt.origin();
+       while(!inIt.pastEnd() && !inIt.pastEnd()){
+      
+        (outIt.array())(blc, trc).assign(inIt.array());
+       
+        inIt.next();
+        outIt.next();
+       }
+     }
+     else if(outArr.shape()[0] < nx && outArr.shape()[1] < ny){// take the inner of inArray
+        IPosition blc(2,  (nx-outArr.shape()[0])/2,  (ny-outArr.shape()[1])/2);
+        IPosition trc(2,  (outArr.shape()[0]+nx)/2-1,  (outArr.shape()[1]+ny)/2-1);
+        ArrayIterator<Complex> inIt(inArr, IPosition(2,0,1));
+        ArrayIterator<Complex> outIt(outArr, IPosition(2,0,1));
+        inIt.origin();
+        outIt.origin();
+        while(!inIt.pastEnd() && !inIt.pastEnd()){
+          //cerr << "Shapes in putM " << outIt.array().shape() << " in " << inIt.array()(blc, trc).shape() << endl;
+          outIt.array()=inIt.array()(blc, trc);
+          inIt.next();
+          outIt.next();
+        }
+
+
+     }
+     else{
+       throw(AipsError("Programmer's error  cannot use PutMiddle"));
+
+     }
+       
+       
+    }
+      
+    Array<Complex> MathUtils::resampleViaFFT(const Array<Complex>& inarray, const Double factorX, const Double factorY) {
+
+      if(factorX==1.0 && factorY==1.0)
+        return inarray;
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    IPosition shp=inarray.shape();
+    //cerr <<  "shp " <<  shp <<  endl;
+    shp(0)=Int(std::ceil(nx*factorX/8.0))*8;
+    shp(1)=Int(std::ceil(ny*factorY/8.0))*8;
+    Int newNx=shp(0);
+    Int newNy=shp(1);
+    /* cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));  
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    FFT2D ftsmall;
+    FFT2D ftlarge;
+    
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        Bool isCopy;
+        Complex * inmatptr=inmat.getStorage(isCopy);
+        ftsmall.c2cFFT(inmatptr, nx, ny, True);
+        inmat.putStorage(inmatptr,isCopy);
+        Matrix<Complex> outMat(outIt.array());
+        putMiddle(outMat, inmat);
+        Complex *intPtr=outMat.getStorage(isCopy);
+        ftlarge.c2cFFT(intPtr, newNx, newNy, False);
+        outMat.putStorage(intPtr, isCopy);
+        Float fac=Float(newNx)*Float(newNy)/Float(nx*ny);
+        outMat *= fac; 
+        inIt.next();
+        outIt.next();
+        
+    }*/
+  
+    return resampleViaFFT(inarray,  newNx,  newNy);
+    }
+    Array<Complex> MathUtils::resampleViaFFT(const Array<Complex>& inarray, const Int newNx, const Int newNy) {
+
+     
+    Double nx=Double(inarray.shape()(0));
+    Double ny=Double(inarray.shape()(1));
+    if (newNx == nx && newNy == ny)
+       return inarray;
+    IPosition shp=inarray.shape();
+    cerr <<  "shp " <<  shp <<  endl;
+    
+    shp(0) = newNx;
+    shp(1) = newNy;
+     cerr << "SHP " << shp << endl;
+    Array<Complex> out(shp, Complex(0.0));  
+    ArrayIterator<Complex> inIt(inarray, IPosition(2,0,1), True);
+    ArrayIterator<Complex> outIt(out, IPosition(2,0,1),True);
+    inIt.origin();
+    outIt.origin();
+    FFT2D ftsmall;
+    FFT2D ftlarge;
+    
+    while(!inIt.pastEnd()) {
+       // cerr << "Iter shape " << inIt.array().shape() << endl;
+        Matrix<Complex> inmat;
+        inmat=inIt.array();    
+        Bool isCopy;
+        Complex * inmatptr=inmat.getStorage(isCopy);
+        ftsmall.c2cFFT(inmatptr, nx, ny, True);
+        inmat.putStorage(inmatptr,isCopy);
+        Matrix<Complex> outMat(outIt.array());
+        putMiddle(outMat, inmat);
+        Complex *intPtr=outMat.getStorage(isCopy);
+        ftlarge.c2cFFT(intPtr, newNx, newNy, False);
+        outMat.putStorage(intPtr, isCopy);
+        Float fac=Float(newNx)*Float(newNy)/Float(nx*ny);
+        outMat *= fac; 
+        inIt.next();
+        outIt.next();
+        
+    }
+  
+    return out;
+    }
   }  
    
     //using namespace casacore;

@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -1875,7 +1875,8 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
                           const Quantity truncate,
                           const Quantity gwidth, const Quantity jwidth,
                           const Float minweight, const Bool clipminmax,
-                          const Bool enablecache)
+                          const Bool enablecache,
+                          const String & convertfirst)
 {
   LogIO os(LogOrigin("imager", "setsdoptions()", WHERE));
   
@@ -1899,6 +1900,9 @@ Bool Imager::setsdoptions(const Float scale, const Float weight,
   minWeight_p = minweight;
   clipminmax_p = clipminmax;
   enablecache_p = enablecache;
+  convertfirst_p = convertfirst;
+  convertfirst_p.upcase();
+
 
   // Destroy the FTMachine
   if(ft_p) {delete ft_p; ft_p=0;}
@@ -2209,14 +2213,14 @@ Bool Imager::feather(const String& image, const String& highRes,
 	  os << LogIO::NORMAL // Loglevel PROGRESS
              << "Making some temporary images as the inputs have no Stokes axis.\n" 
              << LogIO::POST;
-	  PtrHolder<ImageInterface<Float> > outImage1;
+	  std::unique_ptr<ImageInterface<Float> > outImage1;
 	  outHighRes= highRes+"_stokes";
 	  ImageUtilities::addDegenerateAxes (os, outImage1, hightemp, outHighRes,
 					     false, false,
 					     "I", false, false,
 					     false);
 
-	  PtrHolder<ImageInterface<Float> > outImage2;
+	  std::unique_ptr<ImageInterface<Float> > outImage2;
 	  outLowRes= lowRes+"_stokes";
 	  ImageUtilities::addDegenerateAxes (os, outImage2, lowtemp, outLowRes,
 					     false, false,
@@ -2648,7 +2652,7 @@ Bool Imager::uvrange(const Double& uvmin, const Double& uvmax)
      spwsel << "]";
 
      MSSpectralWindow msspw(tableCommand(spwsel.str(), 
-					 mssel_p->spectralWindow()));
+					 mssel_p->spectralWindow()).table());
      MSSpWindowColumns spwc(msspw);
 
      // This averaging scheme will work even if the spectral windows are
@@ -2689,7 +2693,7 @@ Bool Imager::uvrange(const Double& uvmin, const Double& uvmax)
      // Apply the TAQL selection string, to remake the selected MS
      String parseString="select from $1 where (SQUARE(UVW[1]) + SQUARE(UVW[2]))*" + (string) strInvLambda + " > " + strUVmin.str( ) + " &&  (SQUARE(UVW[1]) + SQUARE(UVW[2]))*" + (string) strInvLambda + " < " + strUVmax.str( );
 
-     mssel_p2=new MeasurementSet(tableCommand(parseString,*mssel_p));
+     mssel_p2=new MeasurementSet(tableCommand(parseString,*mssel_p).table());
      AlwaysAssert(mssel_p2, AipsError);
      // Rename the selected MS as */SELECTED_UVRANGE
      //mssel_p2->rename(msname_p+"/SELECTED_UVRANGE", Table::Scratch);
@@ -5628,8 +5632,10 @@ TempImage<Float>* Imager::sjy_prepImage(LogIO& os, FluxStandard& fluxStd,
   
   Double freqMax, freqMin;
   Vector<Vector<Int> >dummy;
-  String msname=mssel_p->antenna().tableName();
-  msname.erase(msname.length()-8);
+  // TT for MMS this may not work
+  //String msname=mssel_p->antenna().tableName();
+  //msname.erase(msname.length()-8);
+  String msname=ms_p->tableName();
   //adviseChanSelex(freqMin, freqMax, 0.0, MFrequency::LSRK, dummy, dummy, dummy, msname, fieldId, true, String::toString(rawspwid));
   // Get freqmin and freqmax in LSRK for the entire span of the selected spws
   String selSpwsStr;

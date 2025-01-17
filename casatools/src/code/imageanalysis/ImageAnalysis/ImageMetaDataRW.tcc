@@ -16,7 +16,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -1247,7 +1247,7 @@ template <class T> void ImageMetaDataRW<T>::_toHistory(
 
 template <class T> template <class U> String ImageMetaDataRW<T>::_quotify(const U& val) {
     ostringstream oss;
-    DataType x = whatType(&val);
+    DataType x = whatType<U>();
     if (x == TpOther && typeid(ValueHolder) == typeid(val)) {
         x = ((ValueHolder)val).dataType();
     }

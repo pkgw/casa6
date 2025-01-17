@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -28,7 +28,6 @@
 //# Includes
 #include <components/SpectralComponents/SpectralFit.h>
 
-#include <casacore/casa/Utilities/PtrHolder.h>
 #include <components/SpectralComponents/CompiledSpectralElement.h>
 #include <components/SpectralComponents/GaussianSpectralElement.h>
 #include <components/SpectralComponents/LogTransformedPolynomialSpectralElement.h>
@@ -67,38 +66,38 @@ bool SpectralFit::fit(
 	// The functions to fit
 	casacore::CompoundFunction<casacore::AutoDiff<MT> > func;
 	casacore::uInt ncomps = slist_p.nelements();
-	casacore::PtrHolder<casacore::Function<casacore::AutoDiff<MT> > > autodiff;
+	std::unique_ptr<casacore::Function<casacore::AutoDiff<MT> > > autodiff;
 	for (casacore::uInt i=0; i<ncomps; i++) {
 		SpectralElement *elem = slist_p[i];
 		casacore::uInt nparms = elem->getOrder();
 		SpectralElement::Types type = slist_p[i]->getType();
 		switch(type) {
 		case SpectralElement::GAUSSIAN: {
-			autodiff.set(new casacore::Gaussian1D<casacore::AutoDiff<MT> >());
+			autodiff.reset(new casacore::Gaussian1D<casacore::AutoDiff<MT> >());
 		}
 		break;
 		case SpectralElement::POLYNOMIAL: {
 			PolynomialSpectralElement *x = dynamic_cast<PolynomialSpectralElement *>(elem);
-			autodiff.set(new casacore::Polynomial<casacore::AutoDiff<MT> >(x->getDegree()));
+			autodiff.reset(new casacore::Polynomial<casacore::AutoDiff<MT> >(x->getDegree()));
 		}
 		break;
 		case SpectralElement::COMPILED:
 			// Allow fall through; these use the same code
 		case SpectralElement::GMULTIPLET: {
 			CompiledSpectralElement *x = dynamic_cast<CompiledSpectralElement *>(elem);
-			autodiff.set(new casacore::CompiledFunction<casacore::AutoDiff<MT> >());
+			autodiff.reset(new casacore::CompiledFunction<casacore::AutoDiff<MT> >());
 			dynamic_cast<casacore::CompiledFunction<casacore::AutoDiff<MT> > *>(
-				autodiff.ptr()
+				autodiff.get()
 			)->setFunction(x->getFunction());
 		}
 		break;
 		case SpectralElement::LORENTZIAN: {
-			autodiff.set(new casacore::Lorentzian1D<casacore::AutoDiff<MT> >());
+			autodiff.reset(new casacore::Lorentzian1D<casacore::AutoDiff<MT> >());
 		}
 		break;
 		case SpectralElement::POWERLOGPOLY: {
 			casacore::Vector<casacore::Double> parms = elem->get();
-			autodiff.set(new casacore::PowerLogarithmicPolynomial<casacore::AutoDiff<MT> > (nparms));
+			autodiff.reset(new casacore::PowerLogarithmicPolynomial<casacore::AutoDiff<MT> > (nparms));
 		}
 		break;
 		case SpectralElement::LOGTRANSPOLY: {
@@ -107,7 +106,7 @@ bool SpectralFit::fit(
 			>(elem);
 			// treated as a polynomial for fitting purposes. The caller is responsible for passing the ln's of
 			// the ordinate and obscissa values to the fitter.
-			autodiff.set(new casacore::Polynomial<casacore::AutoDiff<MT> > (x->getDegree()));
+			autodiff.reset(new casacore::Polynomial<casacore::AutoDiff<MT> > (x->getDegree()));
 		}
 		break;
 		default:

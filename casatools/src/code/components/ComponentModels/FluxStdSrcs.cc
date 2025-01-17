@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -160,15 +160,16 @@ FluxStdSrcs::Source FluxStdSrcs::srcNameToEnum(const String& srcName, const MDir
       String resolvepath = casatools::get_state( ).resolve("nrao/VLA/standards/"+tabName);
       if (resolvepath != "nrao/VLA/standards/"+tabName) {
           fcaldatapath = resolvepath;
-      } else if(!Aipsrc::findDir(fcaldatapath,"./"+tabName)) {
-          if(!Aipsrc::findDir(fcaldatapath, Aipsrc::aipsRoot()+"/data/nrao/VLA/standards/"+tabName)) {
-              //LogIO os(LogOrigin("FluxStdSrcs", "srcNameToEnum", WHERE));
-               os << LogIO::NORMAL
-                  << "No flux calibrator table: " <<  tabName
-                  << " ./ or in ~/data/nrao/VLA/standards/. Skip a cone search "
-                  << LogIO::POST;
-               return srcEnum;
-          }
+      }
+      else {
+          fcaldatapath = "./"+tabName;
+      }
+      if (!Table::isReadable(fcaldatapath)) {
+          os << LogIO::NORMAL
+             << "No flux calibrator table: " <<  tabName
+             << " in the current directory or in datapath/measurespath. Skip a cone search "
+             << LogIO::POST;
+          return srcEnum;
       }
       // input source coordinates (input dir must be in J2000)
       Quantum<Vector<Double> > radec = dir.getAngle();
@@ -182,7 +183,7 @@ FluxStdSrcs::Source FluxStdSrcs::srcNameToEnum(const String& srcName, const MDir
       os << LogIO::NORMAL
 	 << "Trying to determine source match by position..."
 	 << LogIO::POST;
-      Table tmpsubtab = tableCommand(taql);
+      Table tmpsubtab = tableCommand(taql).table();
       if(tmpsubtab.nrow()) {
 	  ScalarColumn<String> srcNameCol(tmpsubtab,"Name");
 	  String srcNameInTable = srcNameCol.getColumnCells(RefRows(0,0))[0];

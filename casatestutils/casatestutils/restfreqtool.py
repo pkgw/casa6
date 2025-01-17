@@ -4,20 +4,13 @@ import itertools
 import numpy
 import os
 
-try:
-    from casatools import msmetadata
-    from casatools import table
-    from casatools import measures
-    from casatools import quanta
-    from casatools import ms as mstool
-    from casatools import image
-except Exception:
-    from __casac__.msmetadata import msmetadata
-    from __casac__.table import table
-    from __casac__.measures import measures
-    from __casac__.quanta import quanta
-    from __casac__.ms import ms as mstool
-    from __casac__.image import image
+from casatasks import casalog
+from casatools import msmetadata
+from casatools import table
+from casatools import measures
+from casatools import quanta
+from casatools import ms as mstool
+from casatools import image
 
 MetaDataSet = collections.namedtuple(
     'MetaDataSet',
@@ -47,7 +40,7 @@ DEBUG = False
 def debug_print(msg):
     if DEBUG:
         for m in msg.split('\n'):
-            print('DEBUG: {}'.format(m))
+            casalog.post('DEBUG: {}'.format(m))
 
 
 def inspect_ms(vis, fieldid, spwid, chanstart=0, nchan=-1):

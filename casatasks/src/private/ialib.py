@@ -1,44 +1,17 @@
-from __future__ import absolute_import
 
 import os
 from stat import S_ISDIR, ST_MODE
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import image
-    from casatools import ctsys
+from casatools import image
+from casatools import ctsys
 
-    from .. import casalog
-    from . import cvt
+from .. import casalog
+from . import cvt
 
-    locimage = image
+locimage = image
 
-    def _getvestr():
-        return 'version: ' + ctsys.version_info( )
-
-else:
-    from taskinit import find_casa
-    from init_tools import iatool
-
-    locimage = iatool
-
-    def _getvestr():
-        try:
-            vestr = 'version :'
-            casa = find_casa()
-            # Don't use myclog.version(); it also prints to the
-            # logger, which is confusing.
-            vestr += casa['build']['version'] + ' '
-            #vestr += casa['source']['url']
-            #vestr += ' rev. ' + casa['source']['revision']
-            vestr += ' ' + casa['build']['time']
-        except Exception as instance:
-            if hasattr(myclog, 'version'):
-                # Now give it a try.
-                vestr += myclog.version()
-            else:
-                vestr += ' could not be determined' # We tried.
-        return vestr
+def _getvestr():
+    return 'version: ' + ctsys.version_info( )
 
 def write_image_history(myia, tname, param_names, param_vals, myclog=None):
     """
@@ -51,9 +24,8 @@ def write_image_history(myia, tname, param_names, param_vals, myclog=None):
     myclog - a casalog instance (optional)
     """
 
-    if is_CASA6:
-        param_names = cvt.as_list(param_names)
-        param_vals = cvt.as_list(param_vals)
+    param_names = cvt.as_list(param_names)
+    param_vals = cvt.as_list(param_vals)
 
     myia_is_string = type(myia) == str
     if myia_is_string:

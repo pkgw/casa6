@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -45,17 +45,17 @@ const ByteSource& VLAArchiveInput::logicalRecord() const {
 }
 
 Bool VLAArchiveInput::hasData() const {
-  MemoryIO& nonconstmemio = const_cast<MemoryIO&>(itsMemIO);
-  return nonconstmemio.length() != 0 ? true: false;
+  MemoryIO *nonconstmemio = const_cast<MemoryIO *>(itsMemIO.get());
+  return nonconstmemio->length() != 0 ? true: false;
 }
 
 VLAArchiveInput::VLAArchiveInput()
-  :itsMemIO(VLAArchiveInput::BlockSize, VLAArchiveInput::BlockSize),
-   itsModComp(),
-   itsCtrIO(&itsModComp, &itsMemIO, VLAArchiveInput::BlockSize, false),
-   itsRecord(&itsCtrIO)
+  :itsMemIO(std::make_shared<MemoryIO>(VLAArchiveInput::BlockSize, VLAArchiveInput::BlockSize)),
+   itsModComp(std::make_shared<ModcompDataConversion>()),
+   itsCtrIO(std::make_shared<ConversionIO>(itsModComp, itsMemIO, VLAArchiveInput::BlockSize)),
+   itsRecord(itsCtrIO)
 {
 }
-// Local Variables: 
+// Local Variables:
 // compile-command: "gmake VLAArchiveInput"
-// End: 
+// End:

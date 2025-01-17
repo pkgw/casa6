@@ -12,8 +12,16 @@ from casatasks.private.casa_transition import is_CASA6
 if is_CASA6:
     from casatools import synthesisutils
     from casatasks import casalog
+    from casatools import calibrater 
+    from casatools import table 
+    from casatasks.private.mslisthelper import check_mslist
+    from casatasks.private.mslisthelper import sort_mslist 
 else:
     from taskinit import *
+    from taskinit import cbtool as calibrater 
+    from taskinit import tbtool as table
+    from recipes.mslisthelper import check_mslist
+    from recipes.mslisthelper import sort_mslist 
 
     synthesisutils = casac.synthesisutils
 
@@ -399,10 +407,45 @@ class ImagerParameters():
             #casalog.post("Already in correct format")
             return errs
 
+        #print("allselpars=",self.allselpars)
         # msname, field, spw, etc must all be equal-length lists of strings, or all except msname must be of length 1.
-        if not 'msname'in self.allselpars:
+        if not 'msname' in self.allselpars:
             errs = errs + 'MS name(s) not specified'
         else:
+            if type(self.allselpars['msname']) == list:
+                #(timesortedvislist, times) = sort_mslist(self.allselpars['msname'])
+                (timesortedvislist, times, newindex) = self.mslist_timesorting(self.allselpars['msname'])
+                if timesortedvislist != self.allselpars['msname']:
+                    self.allselpars['msname'] = timesortedvislist
+                    casalog.post("Sorting the vis list by time. The new vis list:"+ str(self.allselpars['msname']))
+                    for selp in ['spw','field','timestr','uvdist','antenna','scan','obs','state']:
+                        if len(self.allselpars[selp]) == len(newindex):
+                            self.allselpars[selp] = [self.allselpars[selp][i] for i in newindex]
+                       
+                #msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'])
+                msdiff = check_mslist(self.allselpars['msname'], ignore_tables=['SORTED_TABLE', 'ASDM*'], testcontent=False)
+        
+                # Only call this if vis == list and there is mismatch in wtspec columns
+                # Maybe expanded for other checks later...
+                if msdiff != {}:
+                    #print("MS diff===",msdiff)
+                    noWtspecmslist=[]
+                    for msfile, diff_info in msdiff.items():
+                        # check Main 
+                        if 'Main' in diff_info:
+                            for diffkey in diff_info['Main']:
+                                if diffkey == "missingcol_a" or diffkey == "missingcol_b":
+                                    if ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_a'] and 
+                                        self.allselpars['msname'][0] not in noWtspecmslist):
+                                        noWtspecmslist.append(self.allselpars['msname'][0])
+                                    if ('WEIGHT_SPECTRUM' in diff_info['Main']['missingcol_b'] and
+                                        msfile not in noWtspecmslist):
+                                        noWtspecmslist.append(msfile)
+                                        # repalce this by addwtspec(list_of_ms_withoutWtSpec)
+                                        #self.checkmsforwtspec`
+                    if noWtspecmslist!=[]:
+                        #print ("OK addwtspec to "+str(noWtspecmslist))
+                        self.addwtspec(noWtspecmslist)
 
             selkeys = self.allselpars.keys()
 
@@ -818,4 +861,71 @@ class ImagerParameters():
                 errmsg="Mixed continuum and cube mode for multifields is currently not supported for parallel mode"
         errs = errmsg
         return errs
+
+    def checkmsforwtspec(self):
+        ''' check if WEIGHT_SPECTRUM column exist when 
+            a list of vis is given. Add the column for an MS
+            which does not have one if other MSs have the column.
+            This is a workaround for the issue probably in Vi/VB2
+            not handling the state change for the optional column
+            when dealing with multiples MSs
+        '''
+        mycb = calibrater()
+        mytb = table()
+        haswtspec=False
+        mswithnowtspec=[]
+        nms = 1 
+        if type(self.allselpars['msname'])==list:
+            nms = len(self.allselpars['msname'])
+            
+        if nms > 1:
+            for inms in self.allselpars['msname']:
+                mytb.open(inms)
+                cols = mytb.colnames()
+                mytb.close()
+                if 'WEIGHT_SPECTRUM' in cols:
+                    haswtspec=True
+                else:
+                    mswithnowtspec.append(inms)
+            if haswtspec and len(mswithnowtspec) > 0:
+                casalog.post("Some of the MSes donot have WEIGHT_SPECTRUM while some other do."+
+                             " Automatically adding the column and initialize for those don't to avoid a process failure.","WARN") 
+                for inms in mswithnowtspec:    
+                    mycb.open(inms, addcorr=False, addmodel=False)
+                    mycb.initweights(wtmode='weight', dowtsp=True)
+                    mycb.close()
+        # noOp for nms==1 
+
+    def mslist_timesorting(self, mslist):
+        ''' 
+            wrapper for mslisthelper.sort_mslist to get a sorting order w.r.t the original
+        '''
+        (thenewmslist, times) = sort_mslist(mslist)
+        theindex = []
+        for vnew in thenewmslist:
+            for vold in mslist:
+                if vnew == vold:
+                    theindex.append(mslist.index(vnew))
+        return (thenewmslist, times, theindex)            
+ 
+    def addwtspec(self, mslist):
+        ''' 
+            Add the column for an MS which does not have one if other MSs have the column.
+            This is a workaround for the issue probably in Vi/VB2
+            not handling the state change for the optional column
+            when dealing with multiples MSs
+        ''' 
+        mycb = calibrater()
+
+        if len(mslist) > 0:
+            casalog.post("Some of the MSes donot have WEIGHT_SPECTRUM while some other do."+
+                         " Automatically adding the column and initialize using the existing WEIGHT column for those don't to avoid a process failure.","WARN")
+            casalog.post("Adding WEIGHT_SPECTRUM in the following MS(s): "+str(mslist),"WARN")
+            for inms in mslist:
+                mycb.open(inms, addcorr=False, addmodel=False)
+                mycb.initweights(wtmode='weight', dowtsp=True)
+                mycb.close()
+        mycb.done()
+        # noOp for len(mlist) ==0
+
       ############################

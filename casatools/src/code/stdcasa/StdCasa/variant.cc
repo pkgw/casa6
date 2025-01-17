@@ -77,7 +77,7 @@ variant::TYPE variant::compatible_type( TYPE one_, TYPE two_ ) {
     }
 }
 
-#include "string_conversions"
+#include "string_conversions.hpp"
 
 variant::variant(const record &arg) : typev(RECORD), shape_(1,arg.size()) {
     val.recordv = new record(arg);
@@ -1613,6 +1613,7 @@ PUSHIMPL(long                ,INT     ,tostring ,== 0 ? false : true            
 PUSHIMPL(unsigned long ,UINT     ,tostring ,== 0 ? false : true                          ,                     ,               , , , , , )
 PUSHIMPL(double              ,DOUBLE  ,tostring ,== 0 ? false : true                          ,                     ,               , , , , , )
 PUSHIMPL(const std::string&  ,STRING  ,         , , , ,stringtobool ,stringtoint,stringtolong, stringtodouble ,stringtocomplex )
+PUSHIMPL(const char*         ,STRING  ,         , , , ,stringtobool ,stringtoint,stringtolong, stringtodouble ,stringtocomplex )
 
 #define PLACEIMPL(TYPEX,TYPETAG,TYPETOSTRING,NUMTWEAK,BOOLTWEAK,BOOLCPX,STRBOOL, STRINT, STRLONG ,STRDBL,STRCPX) \
 void variant::place(TYPEX v, unsigned int index, bool conform ) {			\
@@ -1703,7 +1704,7 @@ PLACEIMPL(long                ,INT     ,tostring ,== 0 ? false : true           
 PLACEIMPL(unsigned long ,UINT    ,tostring ,== 0 ? false : true                          ,                     ,               , , , , , )
 PLACEIMPL(double              ,DOUBLE  ,tostring ,== 0 ? false : true                          ,                     ,               , , , , , )
 PLACEIMPL(const std::string&  ,STRING  ,         , , , ,stringtobool ,stringtoint, stringtolong, stringtodouble ,stringtocomplex )
-
+PLACEIMPL(const char*         ,STRING  ,         , , , ,stringtobool ,stringtoint, stringtolong, stringtodouble ,stringtocomplex )
 
 std::string variant::create_message( const std::string s ) const {
     std::string type = (typev == BOOL ? "bool" :

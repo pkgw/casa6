@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -168,6 +168,10 @@ private:
  
   // I_M : Model Images [nx,ny,ntaylor]
   casacore::Block<casacore::Matrix<casacore::Float> > vecModel_p; 
+
+  // Previous I_M : Model images at the start of mtclean(). Used for residual calculations. 
+  casacore::Block<casacore::Matrix<casacore::Float> > vecInitialModel_p; 
+
   //  casacore::Block <casacore::Matrix<casacore::Float> > vecScaleModel_p;
  
   // A_{smn} = B_{sm} * B{sn} [nx,ny,ntaylor,ntaylor,nscales,nscales]

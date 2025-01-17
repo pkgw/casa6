@@ -4,49 +4,28 @@
 #
 ################################################
 
-from __future__ import absolute_import
-
+import platform
 import os
 import shutil
 import numpy
 import copy
 import time
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
+from casatasks import casalog
 
-    from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    #from casatasks import imregrid
-    from .cleanhelper import write_tclean_history, get_func_params
-    from .sdint_helper import *
-    from casatools import table
-    from casatools import synthesisimager,synthesisutils
-else:
-    from taskinit import *
-    from tasks import *
-
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from imagerhelpers.input_parameters import ImagerParameters
-    from cleanhelper import write_tclean_history, get_func_params
-    from sdint_helper import *
-    table=casac.table
-    synthesisimager=casac.synthesisimager
-    synthesisutils=casac.synthesisutils
+from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+#from casatasks import imregrid
+from .cleanhelper import write_tclean_history, get_func_params
+from .sdint_helper import *
+from casatools import table
+from casatools import synthesisimager,synthesisutils
 
 try:
-    if is_CASA6:
-        from casampi.MPIEnvironment import MPIEnvironment
-        from casampi import MPIInterface
-    else:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        from mpi4casa import MPIInterface
+    from casampi.MPIEnvironment import MPIEnvironment
+    from casampi import MPIInterface
     mpi_available = True
 except ImportError:
     mpi_available = False
@@ -293,7 +272,7 @@ def sdintimaging(
     sdpsf, 
     sdgain, 
     dishdia,
-    ####### Interfermeter Data Selection
+    ####### Interferometer Data Selection
     vis,#='', 
     selectdata,
     field,#='', 
@@ -387,6 +366,7 @@ def sdintimaging(
     minpsffraction,#=0.1,
     maxpsffraction,#=0.8,
     interactive,#=False, 
+    fullsummary,#=False,
     nmajor,#=-1,
 
     ##### (new) Mask parameters
@@ -441,6 +421,20 @@ def sdintimaging(
     #####################################################
     #### Sanity checks and controls
     #####################################################
+
+    if interactive:
+        # Check for casaviewer, if it does not exist flag it up front for macOS
+        # since casaviewer is no longer provided by default with macOS.
+        try:
+            import casaviewer as __test_casaviewer
+        except:
+            if platform.system( ) == "Darwin":
+                casalog.post(
+                    "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol Please restart by setting interactive=F",
+                    "WARN",
+                    "task_sdintimaging",
+                )
+                raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
     
     ### Move these checks elsewhere ? 
     inpparams=locals().copy()
@@ -466,6 +460,62 @@ def sdintimaging(
     sdparms['sdpsf']=inpparams['sdpsf']
     sdparms['sdgain']=inpparams['sdgain']
 
+    if usedata!='int': # check sd parameters
+        
+        _myia = image()
+
+        if not os.path.exists(sdparms['sdimage']):
+            casalog.post( "Input image sdimage = '"+str(sdparms['sdimage'])+"' does not exist.", "WARN", "task_sdintimaging" )
+            return
+        else:
+            try:
+                _myia.open(sdparms['sdimage'])
+            except Exception as instance:
+                casalog.post( "Input image sdimage = '"+str(sdparms['sdimage'])+"' cannot be opened.", "WARN", "task_sdintimaging" )
+                casalog.post( str(instance), "WARN", "task_sdintimaging" )
+                return
+            
+            mysummary = _myia.summary(list=False)
+            _myia.close()
+
+            try:
+                freqaxis_index = list(mysummary['axisnames']).index('Frequency')
+            except(ValueError):
+                casalog.post('The image '+sdparms['sdimage']+' has no frequency axis. Try adding one with ia.adddegaxis() .',
+                             'WARN', 'task_sdintimaging')
+                return
+                
+            if freqaxis_index != 3:
+                casalog.post('The image '+sdparms['sdimage']+' has its frequency axis on position '+str(freqaxis_index)+
+                             ' whereas it should be in position 3 (counting from 0). Use task imtrans() with order=["r", "d", "s", "f"] to fix this.',
+                             'WARN', 'task_sdintimaging')
+                return
+                    
+            
+        if sdparms['sdpsf']!='':
+            if not os.path.exists(sdparms['sdpsf']):
+                casalog.post( "Input image sdpsf = '"+str(sdparms['sdpsf'])+"' does not exist.", "WARN", "task_sdintimaging" )
+                return
+            else:
+                try:
+                    _myia.open(sdparms['sdpsf'])
+                    _myia.close()
+                except Exception as instance:
+                    casalog.post( "Input image sdpsf = '"+str(sdparms['sdpsf'])+"' cannot be opened.", "WARN", "task_sdintimaging" )
+                    casalog.post( str(instance), "WARN", "task_sdintimaging" )
+                    return
+
+        if (sdparms['sdgain']*0!=0 or sdparms['sdgain']<=0):
+            casalog.post('Invalid sdgain: '+str(sdparms['sdgain']), 'WARN')
+            casalog.post("The sdgain parameter needs to be chosen as a number > 0 which represents the weight of the SD contribution relative to the INT contribution to the joint image.", "WARN", "task_sdintimaging")
+            return
+
+        if (dishdia*0!=0 or dishdia<=0): 
+            casalog.post('Invalid dishdia: '+str(dishdia), 'WARN')
+            casalog.post("The dishdia parameter needs to provide the diameter (meters) of the SD telescope which produced the SD image.", "WARN", "task_sdintimaging")
+            return
+
+
     if specmode=='cont':
         specmode='mfs'
         inpparams['specmode']='mfs'
@@ -489,17 +539,12 @@ def sdintimaging(
         casalog.post("Currently, only the multi-term MFS algorithm is supported for specmode=mfs. To make a single plane MFS image (while retaining the frequency dependence for the cube major cycle stage), please pick nterms=1 along with deconvolver=mtmfs. The scales parameter is still usable for multi-scale multi-term deconvolution","WARN","task_sdintimaging")
         return;
         
-    if(gridder=='awproject'):
-        casalog.post("The awproject gridder is temporarily not supported with cube major cycles. Support will be brought back in a subsequent release.","WARN","task_sdintimaging")
-        return;
-
     if(usedata=='sd'):
         casalog.post("The Single-Dish-Only mode of sdintimaging is better supported via the deconvolve task which supports spectral cube, mfs and multi-term mfs deconvolution in the image domain alone. The deconvolve task is the more appropriate version to use for stand-alone image-domain deconvolution, and will not have the bookkeeping overheads currently present in the sdintimaging task's sd-only mode. Please note that the 'sd' option of the sdintimaging task will be removed in a subsequent release.  Please refer to the task deconvolve documentation for instructions on how to prepare image and psf cubes for the deconvolve task for all these modes.","WARN","task_sdintimaging");
 
     if (nmajor < -1):
         casalog.post("Negative values less than -1 for nmajor are reserved for possible future implementation", "WARN", "task_sdintimaging")
         return
-
 
 #    if parallel==True:
 #        casalog.post("Cube parallelization (all major cycles) is currently not supported via task_sdintimaging. This will be enabled after a cube parallelization rework.")
@@ -515,11 +560,8 @@ def sdintimaging(
 
     # Put all parameters into dictionaries and check them.
     ##make a dictionary of parameters that ImagerParameters take
+    defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
 
-    if is_python3:
-        defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
-    else:
-        defparm=dict(zip(ImagerParameters.__init__.__func__.__code__.co_varnames[1:], ImagerParameters.__init__.func_defaults))
         
     ###assign values to the ones passed to tclean and if not defined yet in tclean...
     ###assign them the default value of the constructor
@@ -548,17 +590,17 @@ def sdintimaging(
     if mpi_available and MPIEnvironment.is_mpi_enabled:
         mint=MPIInterface.MPIInterface()
         cl=mint.getCluster()
-        if(is_CASA6):
-            cl._cluster.pgc("from casatools import synthesisimager", False)
-            cl._cluster.pgc("si=synthesisimager()", False)
-        else:
-            cl._cluster.pgc("from casac import casac", False)
-            cl._cluster.pgc("si=casac.synthesisimager()", False) 
+        cl._cluster.pgc("from casatools import synthesisimager", False)
+        cl._cluster.pgc("si=synthesisimager()", False)
+
         cl._cluster.pgc("si.initmpi()", False)
         cppparallel=True
         ###ignore chanchunk
         bparm['chanchunks']=1
 
+    #################################################
+    #### start of more computing-intensive work #####
+    #################################################
     
     retrec={}
 
@@ -586,7 +628,6 @@ def sdintimaging(
             deconvolvertool=setup_deconvolver(decname, specmode, bparm )
             #imager.initializeDeconvolvers()
             t1=time.time();
-            #casalog.post("***Time for initializing deconvolver(s): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_tclean");
             casalog.post("***Time for seting up deconvolver(s): "+"%.2f"%(t1-t0)+" sec", "INFO3", "task_sdintimaging");
 
         if usedata!='int':
@@ -665,7 +706,13 @@ def sdintimaging(
                                         nterms=nterms, reffreq=inpparams['reffreq'], dopsf=False)
 
             #print("Fit for multiterm")
-            synu.fitPsfBeam(joint_multiterm,nterms=nterms)
+            if(deconvolver=='mtmfs' and nterms==1): # work around file naming issue
+                os.system('rm -rf '+joint_multiterm+'tmp.psf')
+                os.system('ln -sf '+joint_multiterm+'.psf.tt0 '+joint_multiterm+'tmp.psf')
+                synu.fitPsfBeam(joint_multiterm+'tmp',nterms=nterms)
+                os.system('rm -rf '+joint_multiterm+'tmp.psf')
+            else:
+                synu.fitPsfBeam(joint_multiterm,nterms=nterms)
 
         if niter>0 :
             isit = deconvolvertool.hasConverged()
@@ -780,12 +827,12 @@ def sdintimaging(
                 deconvolvertool.updateMask()
 
                 ## Get summary from iterbot
-                if type(interactive) != bool:
+                #if type(interactive) != bool:
                     #retrec=imager.getSummary();
-                    retrec=deconvolvertool.getSummary();
-                    retrec['nmajordone'] = imager.majorCnt
-                    if calcres==True: 
-                        retrec['nmajordone'] = retrec['nmajordone'] + 1  ## To be consistent with tclean. Remove, when we can change the meaning of nmajordone to exclude the initial major cycles. 
+                retrec=deconvolvertool.getSummary(fullsummary);
+                retrec['nmajordone'] = imager.majorCnt
+                if calcres==True: 
+                    retrec['nmajordone'] = retrec['nmajordone'] + 1  ## To be consistent with tclean. Remove, when we can change the meaning of nmajordone to exclude the initial major cycles. 
 
             ## Restore images.
             if restoration==True:  

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -55,7 +55,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 // <summary> Class that contains functions needed for imager </summary>
 
-class SynthesisNormalizer 
+class SynthesisNormalizer
 {
  public:
   // Default constructor
@@ -77,17 +77,21 @@ class SynthesisNormalizer
   // Copy out model to all pieces. Currently a No-Op.
   void scatterModel();
 
-  // Gather all part gridded weights and add them up.
+  // Gather all part gridded weights and add them up and store some 
+  // Briggs weighting factors in miscinfo
   void gatherWeightDensity();
   // Scatter summed gridded weights to all parts
-  void scatterWeightDensity();
+  // return the disk name if it exists of the sum gridded weights
+  string scatterWeightDensity();
 
   std::shared_ptr<SIImageStore> getImageStore();
   void setImageStore( SIImageStore* imstore );
   void setImageStore( std::shared_ptr<SIImageStore>& imstore );
 
   void divideResidualByWeight();
+  void divideResidualByWeightSD();
   void dividePSFByWeight();
+  void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
 
@@ -100,7 +104,7 @@ protected:
   casacore::Bool setupImagesOnDisk();
   casacore::Bool doImagesExist( casacore::String imagename );
 
-  std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename );
+  std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename, const bool useweightimage=true);
   std::shared_ptr<SIImageStore> makeImageStore( const casacore::String &imagename,
                                            const casacore::PagedImage<casacore::Float> &part,
                                            casacore::Bool useweightimage );
@@ -114,7 +118,7 @@ protected:
   casacore::Block<std::shared_ptr<SIImageStore> > itsFacetImageStores;
 
   casacore::IPosition itsImageShape;
-  
+
   casacore::String itsImageName;
   casacore::Vector<casacore::String> itsPartImageNames;
   casacore::String itsStartingModelName;
@@ -126,7 +130,7 @@ protected:
   casacore::String itsNormType;
 
   casacore::String itsUseBeam;
-    
+
   casacore::Float itsPsfcutoff;
 
 };

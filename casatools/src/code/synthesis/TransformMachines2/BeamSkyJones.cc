@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -236,7 +236,7 @@ Bool BeamSkyJones::changed(const vi::VisBuffer2& vb, Int row)
 // return true if two directions are close enough to consider the
 // operator unchanged, false otherwise
 Bool BeamSkyJones::directionsCloseEnough(const MDirection &dir1,
-                           const MDirection &dir2) const throw(AipsError)
+                           const MDirection &dir2) const
 {
   Double sep; 
   if (dir1.getRef()!=dir2.getRef())

@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -174,7 +174,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Method to initialize the internal memory cache.
     //
     void initCache();
-    void initCache2(casacore::Bool verbose=false, casacore::Float selectedPA=400.0, casacore::Float dPA=-1.0);
+    void initCache2(casacore::Bool verbose=false, casacore::Float selectedPA=400.0, casacore::Float dPA=-1.0,
+		    casacore::String prefix=casacore::String(""));
     void initCacheFromList2(const casacore::String& path, 
 			    const casacore::Vector<casacore::String>& cfFileNames, 
 			    const casacore::Vector<casacore::String>& cfWtFileNames, 
@@ -279,12 +280,13 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     void flush();
     void flush(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""));
-    casacore::Int loadAvgPB(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""));
-    casacore::Int loadAvgPB(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > & avgPB, casacore::String qualifier=casacore::String(""))
-    {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier);};
+	///cubeinfo tuple contains nchan and frequency of first channel
+    casacore::Int loadAvgPB(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier=casacore::String(""), std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0));
+    casacore::Int loadAvgPB(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> > & avgPB, casacore::String qualifier=casacore::String(""), std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0))
+    {if (avgPB.null()) avgPB = new casacore::TempImage<casacore::Float>(); return loadAvgPB(*avgPB,qualifier,cubeinfo);};
 
     // loadAvgPB calls the method below if WtImgPrefix was set.
-    casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier);
+    casacore::Int loadWtImage(casacore::ImageInterface<casacore::Float>& avgPB, casacore::String qualifier, std::tuple<int, double> cubeinfo=std::tuple<int,double>(1,-1.0));
 
     casacore::Bool avgPBReady(const casacore::String& qualifier=casacore::String("")) 
     {return (avgPBReady_p && (avgPBReadyQualifier_p == qualifier));};

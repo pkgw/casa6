@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -1391,12 +1391,12 @@ void BJones::calcWtScale() {
 
   if (cpp_) {
     Cube<Float> tr;
-    cpp_->getTresult(tr,ampfl,currObs(),currField(),-1,currSpw());
+    cpp_->getTresult(tr,ampfl,currObs(),currScan(),currField(),-1,currSpw());
     amps.reference(tr(Slice(0,2,2),Slice(),Slice()));
   }
   else if (ci_) {
-    amps=Cube<Float>(ci_->tresultF(currObs(),currField(),currSpw()))(Slice(0,2,2),Slice(),Slice());
-    ampfl=ci_->tresultFlag(currObs(),currField(),currSpw());
+    amps=Cube<Float>(ci_->tresultF(currObs(),currScan(),currField(),currSpw()))(Slice(0,2,2),Slice(),Slice());
+    ampfl=ci_->tresultFlag(currObs(),currScan(),currField(),currSpw());
   }
   else
     // BPOLY?

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -271,7 +271,8 @@ class Imager
                    const casacore::Quantity jwidth=casacore::Quantity(),
                    const casacore::Float minweight=0.,
                    const casacore::Bool clipminmax=false,
-                   const casacore::Bool enablecache=false);
+                   const casacore::Bool enablecache=false,
+                   const casacore::String & convertfirst="NEVER");
 
   // Set the voltage pattern
   casacore::Bool setvp(const casacore::Bool dovp,
@@ -753,6 +754,8 @@ protected:
   casacore::Bool clipminmax_p;
 
   casacore::Bool enablecache_p;
+
+  casacore::String convertfirst_p;
 
   // special mf control parms, etc
   casacore::Float cyclefactor_p;

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -650,8 +650,9 @@ void KJones::setApply(const Record& apply) {
 
   // Extract per-spw ref Freq for phase(delay) calculation
   //  from the CalTable
-  MSSpectralWindow msSpw(ct_->spectralWindow());
-  MSSpWindowColumns msCol(msSpw);
+  MSSpectralWindow ctSpw(ct_->spectralWindow());
+  MSSpWindowColumns ctSpwCol(ctSpw);
+  Int nCalSpws(ctSpw.nrow());
 
   String ctvers=ct_->CASAvers();
   if (ctvers==String("Unknown") ||    // pre-5.3.0-80 (no version recorded in table)
@@ -663,7 +664,7 @@ void KJones::setApply(const Record& apply) {
       ctvers==String("5.3.0-105") ||
       ctvers==String("5.3.0-106") ) {
     // Old-fashioned; use spw edge freq
-    msCol.refFrequency().getColumn(KrefFreqs_,true);
+    ctSpwCol.refFrequency().getColumn(KrefFreqs_,true);
     if (typeName()!=String("KMBD Jones") &&
 	typeName()!=String("KAntPos Jones") )
       logSink() << LogIO::WARN 
@@ -673,16 +674,25 @@ void KJones::setApply(const Record& apply) {
   else {
   // Use the "physical" (centroid) frequency, per spw 
     Vector<Double> chanfreq;
-    KrefFreqs_.resize(nSpw()); KrefFreqs_.set(0.0);
-    for (Int ispw=0;ispw<nSpw();++ispw) {
-      msCol.chanFreq().get(ispw,chanfreq,true);  // reshape, if nec.
+    // Nominally, there should be nSpw() (MS) reference frequencies,
+    //  but caltable may have more (or less)
+    KrefFreqs_.resize(max(nSpw(),nCalSpws)); KrefFreqs_.set(0.0);
+    // Fill KrefFreqs_ with as many as caltable can support (nCalSpws)
+    //   assuming identity with MS spw ids, for now (spwmap applied below)
+    //  (if nCalSpws>nSpw(), maybe spwmap will need more than nSpw() spws)
+    for (Int ispw=0;ispw<nCalSpws;++ispw) {
+      ctSpwCol.chanFreq().get(ispw,chanfreq,true);  // reshape, if nec.
       Int nch=chanfreq.nelements();
       KrefFreqs_(ispw)=chanfreq(nch/2);
     }
   }
-
+  
   KrefFreqs_/=1.0e9;  // in GHz
 
+  // Catch spwmap indices not available in the caltable
+  if (spwMap().nelements()>0 && max(spwMap())>=nCalSpws)
+    throw(AipsError("Specified spwmap includes calibration spws not available in the caltable ("+ct_->tableName()+")"));
+    
   /// Re-assign KrefFreq_ according spwmap (if any)
   if (spwMap().nelements()>0) {
     Vector<Double> tmpfreqs;
@@ -693,6 +703,7 @@ void KJones::setApply(const Record& apply) {
 	KrefFreqs_(ispw)=tmpfreqs(spwMap()(ispw));
   }
 
+  
     
 }
 void KJones::setApply() {
@@ -723,6 +734,7 @@ void KJones::setCallib(const Record& callib,
 
   // Extract per-spw ref Freq for phase(delay) calculation
   //  from the CalTable
+  Int nCTSpw(cpp_->nCTSpw());   // number of spws in _caltable_
   String ctvers=cpp_->CTCASAvers();
   if (ctvers==String("Unknown") ||    // pre-5.3.0-80 (no version recorded in table)
       ctvers==String("5.3.0-100") ||  // a few pre-release versions with reverted behavior
@@ -741,8 +753,14 @@ void KJones::setCallib(const Record& callib,
   }
   else {
     // Extract physical freq
-    KrefFreqs_.resize(nSpw());
-    for (Int ispw=0;ispw<nSpw();++ispw) {
+    // Nominally, there should be nSpw() (MS) reference frequencies,
+    //  but caltable may have more (or less)
+    KrefFreqs_.resize(max(nSpw(),nCTSpw));
+    KrefFreqs_.set(0.0f);
+    // Fill KrefFreqs_ with as many as caltable can support (nCTSpw)
+    //   assuming identity with MS spw ids, for now (spwmap applied below)
+    //  (if nCTSpw>nSpw(), maybe spwmap will need more than nSpw() spws)
+    for (Int ispw=0;ispw<nCTSpw;++ispw) {
       const Vector<Double>& f(cpp_->freqIn(ispw));
       Int nf=f.nelements();
       KrefFreqs_[ispw]=f[nf/2];  // center (usually this will be same as [0])
@@ -764,6 +782,10 @@ void KJones::setCallib(const Record& callib,
   if (spwMap().nelements()>uInt(nSpw()))
     throw(AipsError("Specified spwmap has more elements ("+String::toString(spwMap().nelements())+") than the number of spectral windows in the MS ("+String::toString(nSpw())+")."));
 
+  // Catch spwmap indices not available in the caltable
+  if (spwMap().nelements()>0 && max(spwMap())>=nCTSpw)
+    throw(AipsError("Specified spwmap includes calibration spws not available in the caltable ("+Path(ct_->tableName()).baseName()+"); cal spws are all <"+String::toString(nCTSpw)+". "));
+  
   // Re-assign KrefFreq_ according spwmap (if any)
   if (spwMap().nelements()>0) {
     Vector<Double> tmpfreqs;

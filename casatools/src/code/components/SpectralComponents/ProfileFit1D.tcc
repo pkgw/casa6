@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -460,8 +460,7 @@ void ProfileFit1D<T>::copy(const ProfileFit1D& other)
 template <class T> 
 void ProfileFit1D<T>::checkType() const
 {
-   T* p=0;
-   AlwaysAssert(casacore::whatType(p)==casacore::TpDouble,casacore::AipsError);
+   AlwaysAssert(casacore::whatType<T>()==casacore::TpDouble,casacore::AipsError);
 }
 
 } //#End casa namespace

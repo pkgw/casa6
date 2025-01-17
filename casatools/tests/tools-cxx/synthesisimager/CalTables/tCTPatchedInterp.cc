@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -77,27 +77,27 @@ void doTest1 (Bool verbose=false) {
   CTPatchedInterp ci(tnct,VisCalEnum::JONES,1,"linear","none","");
   if (verbose) ci.state();
   
-  Bool newcal1=ci.interpolate(0,0,0,4832568310.0);
-  Bool newcal2=ci.interpolate(0,0,1,4832568310.0);
+  Bool newcal1=ci.interpolate(0,0,0,0,4832568310.0);
+  Bool newcal2=ci.interpolate(0,0,0,1,4832568310.0);
 
   if (verbose) {
     cout << "new = " << newcal1  << endl;
-    cout << "resultF = " << ci.resultF(0,0,0) << endl;
+    cout << "resultF = " << ci.resultF(0,0,0,0) << endl;
     cout << "new = " << newcal2 << endl;
-    cout << "resultF = " << ci.resultF(0,0,1) << endl;
+    cout << "resultF = " << ci.resultF(0,0,0,1) << endl;
   }
 
   Double tol(2.e-7);
   Complex cfval0=NewCalTable::NCTtestvalueC(0,0,0,4832568310.0,refTime,tint);
   Complex cfval1=NewCalTable::NCTtestvalueC(0,1,0,4832568310.0,refTime,tint);
 
-  Cube<Complex> rc0(ci.resultC(0,0,0));
+  Cube<Complex> rc0(ci.resultC(0,0,0,0));
   Complex r0(rc0(0,0,0));
   Complex d0=r0-cfval0;
   if (verbose) cout << "diff0=" << d0 << " (abs=" << abs(d0) << ")" << endl;
   AlwaysAssert( nearAbs(abs(d0),0.0f,tol), AipsError);
 
-  Cube<Complex> rc1(ci.resultC(0,0,1));
+  Cube<Complex> rc1(ci.resultC(0,0,0,1));
   Complex r1(rc1(0,0,0));
   Complex d1=r1-cfval1;
   if (verbose) cout << "diff1=" << d1 << " (abs=" << abs(d1) << ")" << endl;
@@ -141,16 +141,16 @@ void doTest2 (Bool verbose=false) {
 
   Double t(4832568311.0);
 
-  Bool newcal=ci.interpolate(0,0,0,t,f);
+  Bool newcal=ci.interpolate(0,0,0,0,t,f);
 
   if (verbose) {
     cout.precision(7);
     cout << "f=" << f << endl;
     cout << "new = " << newcal  << endl;
-    cout << "resultF = " << ci.resultF(0,0,0) << endl;
+    cout << "resultF = " << ci.resultF(0,0,0,0) << endl;
   }
   
-  Cube<Complex> rc(ci.resultC(0,0,0));
+  Cube<Complex> rc(ci.resultC(0,0,0,0));
   Vector<Complex> r(rc(Slice(0,1,1),Slice(),Slice(0,1,1)));
   
   // Invent comparison values at fraction ichans manually (see NCTtestvalueC)
@@ -226,8 +226,8 @@ void doTest3 (Bool verbose=false) {
       for (Int itime=0;itime<10;++itime) {
 	thistime+=Double(6.0);
 	//    cout << itime << " " << thistime << endl;
-	ci.interpolate(iobs,0,0,thistime);
-	r.reference(ci.resultC(iobs,0,0));
+	ci.interpolate(iobs,0,0,0,thistime);
+	r.reference(ci.resultC(iobs,0,0,0));
 
 	Float reltime=thistime-refTime;   // precise reltime
 	reltime=max(reltime,0.0);
@@ -266,8 +266,8 @@ void doTest3 (Bool verbose=false) {
       for (Int itime=0;itime<10;++itime) {
 	thistime+=Double(6.0);
 	//    cout << itime << " " << thistime << endl;
-	ci.interpolate(iobs,0,0,thistime);
-	r.reference(ci.resultC(iobs,0,0));
+	ci.interpolate(iobs,0,0,0,thistime);
+	r.reference(ci.resultC(iobs,0,0,0));
 
 	Float reltime=iobs*tint;  // effective time is caltable timestamps
 	Complex cfval=NewCalTable::NCTtestvalueC(0,0,0,reltime,0.0,tint);
@@ -337,8 +337,8 @@ void doTest4 (Bool verbose=false) {
       for (Int itime=0;itime<10;++itime) {
 	thistime+=Double(6.0);
 	//    cout << itime << " " << thistime << endl;
-	ci.interpolate(iobs,0,0,thistime);
-	r.reference(ci.resultF(iobs,0,0));
+	ci.interpolate(iobs,0,0,0,thistime);
+	r.reference(ci.resultF(iobs,0,0,0));
 
 	Float reltime=thistime-refTime;   // precise reltime
 	reltime=max(reltime,0.0);
@@ -377,8 +377,8 @@ void doTest4 (Bool verbose=false) {
       for (Int itime=0;itime<10;++itime) {
 	thistime+=Double(6.0);
 	//    cout << itime << " " << thistime << endl;
-	ci.interpolate(iobs,0,0,thistime);
-	r.reference(ci.resultF(iobs,0,0));
+	ci.interpolate(iobs,0,0,0,thistime);
+	r.reference(ci.resultF(iobs,0,0,0));
 
 	Float reltime=iobs*tint;  // effective time is caltable timestamps
 	Float cfval=NewCalTable::NCTtestvalueF(0,0,0,reltime,0.0,tint);
@@ -447,8 +447,8 @@ void doTest5 (Bool verbose=false) {
   for (uInt ispw=0;ispw<nSpw;++ispw) {
     for (Int itime=0;itime<N;++itime) {
       thistime=refTime+Double(itime);
-      ci.interpolate(0,0,ispw,thistime);
-      r.reference(ci.resultC(0,0,ispw));
+      ci.interpolate(0,0,0,ispw,thistime);
+      r.reference(ci.resultC(0,0,0,ispw));
     }
     if (verbose)
       cout << ispw << " time =" << timer.real() << " (dt="<<thistime-refTime<<")"<< endl;
@@ -556,17 +556,17 @@ void doTest6 (Bool verbose=false) {
   for (Int i=0;i<13;++i) {
 
     Int& fld(flds(i));
-    Bool newcal=ci.interpolate(0,fld,0,t,f);
+    Bool newcal=ci.interpolate(0,0,fld,0,t,f);
 
-    Cube<Float> r(ci.resultF(0,fld,0));
+    Cube<Float> r(ci.resultF(0,0,fld,0));
     if (verbose) {
       cout.precision(7);
       cout << "fld=" << fld
 	   << " new = " << newcal  << endl;
-      cout << "resultF = " << ci.resultF(0,fld,0) << endl;
+      cout << "resultF = " << ci.resultF(0,0,fld,0) << endl;
     }
 
-    Cube<Complex> rc(ci.resultC(0,fld,0));
+    Cube<Complex> rc(ci.resultC(0,0,fld,0));
     Cube<Complex> diff;
     diff=rc-cfval[fldmap(fld)];
 

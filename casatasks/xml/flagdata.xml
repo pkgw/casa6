@@ -509,11 +509,15 @@ timerange parameters in flag commands.
                         Example: correlation=&quot;XX,YY&quot;.
 
                      For modes clip, tfcrop or rflag, the default
-                     means ABS_ALL. If the input is cal table that
-                     does not contain a complex data column, the
-                     default will fall back to REAL_ALL.
+                     means ABS_ALL.
+                     If the input is cal table that does not contain
+                     a complex data column, the default will fall back
+                     to REAL_ALL.
                      For calibration tables, the solutions are:
                      'Sol1', 'Sol2', Sol3, Sol4.
+                     When using the 'ARG' option, the values of
+                     parameters such as clipminmax are expeced in
+                     units of radians.
 
                      NOTE: correlation selection is not supported for
                      modes other than clip, tfcrop or rflag in cal
@@ -714,7 +718,7 @@ visibilities for flagging.
 <shortdescription>Quack n seconds from scan beginning or end</shortdescription>
 <description>Time in seconds from scan beginning or end to flag.
                      Subparameter of mode='quack'
-                     Default: 0.0
+                     Default: 1.0
 
                      Note: Make time slightly smaller than the desired
                      time.
@@ -1400,8 +1404,11 @@ in histogram
                 <value type="bool">False</value>
             </param>
             <param subparam="true" name="basecnt" type="bool">
-<shortdescription>Print summary counts per baseline</shortdescription>
-<description>List the number of flags per baseline
+<shortdescription>Count flags per baseline</shortdescription>
+<description>Count the number of flags per baseline. The counts are added to the
+return result dictionary (in the 'baseline'' key) and also printed
+to the log. In addition, counts per antenna/scan are also reported
+and added to the result dictionary (key 'antenna:scan').
                      Subparameter of mode='summary'
                      Default: False
                      Options: False|True
@@ -1646,7 +1653,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/></default>
+                        <default param="timebin"> <value type="string">0s</value></default>
                         <default param="clipzeros"> <value type="bool">False</value></default>
                     </equals>
                     <equals value="quack">
@@ -1661,7 +1668,7 @@ save to FLAG_CMD
                         <default param="uvrange"><value type="string"/></default>
                         <default param="observation"><value type="string"/></default>
                         <default param="feed"><value type="string"/></default>
-                        <default param="quackinterval"><value type="double">0.0</value></default>
+                        <default param="quackinterval"><value type="double">1.0</value></default>
                         <default param="quackmode"><value type="string">beg</value></default>
                         <default param="quackincrement"><value type="bool">False</value></default>                   
                     </equals>                    
@@ -1722,7 +1729,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/></default>                        
+                        <default param="timebin"> <value type="string">0s</value></default>
                     </equals>
                     <equals value="rflag">
                         <default param="field"><value type="string"/></default>
@@ -1750,7 +1757,7 @@ save to FLAG_CMD
                         <default param="channelavg"> <value type="bool">False</value></default>
                         <default param="chanbin"><value type="int">1</value></default>
                         <default param="timeavg"> <value type="bool">False</value></default>
-                        <default param="timebin"> <value type="string"/></default>                        
+                        <default param="timebin"> <value type="string">0s</value></default>
                     </equals>
                     <equals value="antint">
                         <default param="field"><value type="string"/></default>

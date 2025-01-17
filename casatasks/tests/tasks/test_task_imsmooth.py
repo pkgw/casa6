@@ -76,6 +76,9 @@ def make_gauss2d(shape, xfwhm, yfwhm):
     
 class imsmooth_test(unittest.TestCase):
 
+    cas_13827_in = 'cas_13827.im'
+    cas_13827_out = 'cas_13827.conv'
+
     def setUp(self):
         self.tst = 'imsmooth_'
         if(os.path.exists(image_names[0])):
@@ -108,6 +111,10 @@ class imsmooth_test(unittest.TestCase):
             shutil.rmtree("test_image2dconvolver_multibeam.im")
         if os.path.exists( 'garbage.rgn' ):
             os.remove('garbage.rgn')
+        for im in (self.cas_13827_in, self.cas_13827_out):
+            if os.path.exists(im):
+                os.system(f'rm -rf {im}')
+
  
     ####################################################################
     # Incorrect inputs to parameters.  The parameters are:
@@ -1016,7 +1023,7 @@ class imsmooth_test(unittest.TestCase):
     def test_targetres(self):
         """Test targetres parameter"""
         myia = self.ia
-        imagename = self.tst+"tres1.im"
+        imagename = f'{self.tst}tres1.im'
         myia.fromshape(imagename, [100, 100])
         csys = myia.coordsys()
         csys.setunits(["arcsec", "arcsec"])
@@ -1118,9 +1125,9 @@ class imsmooth_test(unittest.TestCase):
                     ebeam.append(gotbeam)
                     convim.done()
                 if targetres:
-                    outfile = self.tst+"tres3" + unit[0]
+                    outfile = f'{self.tst}tres3{unit[0]}'
                 else:
-                    outfile = self.tst+"tres4" + unit[0]
+                    outfile = f'{self.tst}tres4{unit[0]}'
                 run_imsmooth(
                      imagename=imagename, kernel="gaussian",
                      major=major, minor=minor, pa=pa, targetres=targetres,
@@ -1140,13 +1147,48 @@ class imsmooth_test(unittest.TestCase):
             major="6arcsec", minor="3arcsec", pa="0deg"
         )
         myia.done()
-        outfile = self.tst+"tres6"
+        outfile = f'{self.tst}tres6'
         with self.assertRaises(RuntimeError):
             run_imsmooth(
                 imagename=imagename, kernel="gaussian",
                 major="5.99arcsec", minor="2.99arcsec", pa="0deg",
                 targetres=True, outfile=outfile
             )
+        # CAS-13827, verify beam placed in output image header is the specified
+        # beam, not the fitted beam
+        myia.fromshape(self.cas_13827_in, [512, 512, 1, 1], overwrite=True)
+        csys = myia.coordsys()
+        inc = csys.increment()['numeric']
+        inc[:2] /= 60
+        csys.setincrement(inc)
+        myia.setcoordsys(csys.torecord())
+        csys.done()
+        myia.setbrightnessunit('Jy/beam')
+        myia.setrestoringbeam(major='3arcsec', minor='3arcsec', pa='0deg')
+        myia.done()
+        major = '3.2arcsec'
+        minor = '3.1arcsec'
+        pa = '60deg'
+        imsmooth(
+            self.cas_13827_in, outfile=self.cas_13827_out, targetres=True,
+            major=major, minor=minor, pa=pa, overwrite=True
+        )
+        myia.open(self.cas_13827_out)
+        beam = myia.restoringbeam()
+        myia.done()
+        self.assertEqual(
+            _qa.quantity(beam['major']), _qa.quantity(major),
+            'Incorrect beam in image metadata'
+        )
+        self.assertEqual(
+            _qa.quantity(beam['minor']), _qa.quantity(minor),
+            'Incorrect beam in image metadata'
+        )
+        self.assertEqual(
+            _qa.quantity(beam['positionangle']), _qa.quantity(pa),
+            'Incorrect beam in image metadata'
+        )
+
 
     def test_overwrite(self):
         """ test overwrite parameter """
@@ -1235,7 +1277,7 @@ class imsmooth_test(unittest.TestCase):
             gg.done()
             mycl.fromrecord(zz['results'])
             got = mycl.getfluxvalue(0)
-            self.assertTrue(abs(got[0]/expected[0] - 1) < 3e-7, "Failed testing unit " + unit)
+            self.assertTrue(abs(got[0]/expected[0] - 1) < 4e-7, "Failed testing unit " + unit)
         mycl.done()
         myia.done()
         

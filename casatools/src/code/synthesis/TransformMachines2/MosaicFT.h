@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -179,13 +179,15 @@ public:
   void finalizeToSky();
 
   // Get actual coherence from grid by degridding
-  void get(vi::VisBuffer2& vb, casacore::Int row=-1);
+  virtual void get(vi::VisBuffer2& vb, casacore::Int row=-1);
 
 
   // Put coherence to grid by gridding.
-  void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
+  virtual void put(const vi::VisBuffer2& vb, casacore::Int row=-1, casacore::Bool dopsf=false, 
 	   FTMachine::Type type=FTMachine::OBSERVED);
 
+  virtual void gridImgWeights(const vi::VisBuffer2& vb);
+  
   // Make the entire image
   void makeImage(FTMachine::Type type,
 		 vi::VisibilityIterator2& vs,
@@ -237,14 +239,14 @@ public:
   virtual void ComputeResiduals(vi::VisBuffer2&/*vb*/, casacore::Bool /*useCorrected*/) {};
 
   //Sometimes weightimage is already calculated ...just use it
-  virtual void setWeightImage(casacore::CountedPtr<casacore::TempImage<casacore::Float> >& wgtimage);
+  virtual void setWeightImage(casacore::CountedPtr<casacore::ImageInterface<casacore::Float> >& wgtimage);
 protected:        
 
   casacore::Int nint(casacore::Double val) {return casacore::Int(floor(val+0.5));};
 
   // Find the convolution function
-  void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
-			const vi::VisBuffer2& vb);
+  virtual void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
+			const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& uvw);
 
   
 
@@ -260,7 +262,7 @@ protected:
 
   void ok();
 
-  void init();
+  virtual void init(const vi::VisBuffer2& vb);
 
   // Is this record on Grid? check both ends. This assumes that the
   // ends bracket the middle

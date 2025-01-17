@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -158,7 +158,7 @@ namespace casa{
     virtual void setMiscInfo(const casacore::RecordInterface& /*params*/) {};
     virtual casacore::CountedPtr<CFTerms> getTerm(const casacore::String& /*name*/) {return NULL;}
     virtual int getOversampling(){return 1;};
-
+    virtual bool isWBAWP() {return false;};
     // virtual casacore::Vector<casacore::Vector<casacore::Double> > findPointingOffset(const casacore::ImageInterface<casacore::Complex>& image,
     // 								  const VisBuffer2& vb, const casacore::Bool& doPointing) = 0;
 

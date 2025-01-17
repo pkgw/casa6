@@ -1,25 +1,17 @@
 import os
 import logging
+import re
 
-try:
-    # CASA 6
-    logging.debug("Importing CASAtools")
-    import casatools
-    tb = casatools.table()
-    casa6 = True
-
-except ImportError:
-    # CASA 5
-    logging.debug("Import casa6 errors. Trying CASA5...")
-    from taskinit import tbtool
-    tb = tbtool()
-    casa5 = True
+logging.debug("Importing CASAtools")
+import casatools
+tb = casatools.table()
 
 class Weblog():
     def __init__(self, taskname, localdict):
         self.localdict = localdict
         self.taskname = taskname
         self.test_counter = 1
+        self.total_runtime = 0
         self.all_passed = True
         #self.html = open("test_{}_weblog.html".format(self.taskname.lower()), 'w')
 
@@ -109,6 +101,12 @@ class Weblog():
             self.html.write('  text-decoration: none;' + '\n')
             self.html.write('  cursor: pointer;' + '\n')
             self.html.write('}' + '\n')
+            
+            self.html.write('.wrap {' + '\n')
+            self.html.write('  text-wrap: wrap; text-wrap-style: wrap;flex: 1 0 auto;' + '\n')
+            self.html.write('}' + '\n')
+            
+            
             self.html.write('/* 100% Image Width on Smaller Screens */' + '\n')
             self.html.write('@media only screen and (max-width: 700px){' + '\n')
             self.html.write('  .modal-content {' + '\n')
@@ -206,7 +204,10 @@ class Weblog():
                     continue
             self.all_passed = False
             Weblog(self.taskname, self.localdict).generate_table_row(str(self.test_counter), str(key), dictionary[key]['description'],  dictionary[key]['runtime'], "tg-ck9b" if dictionary[key]['status'] == True else "tg-r50r" )
+            self.total_runtime += dictionary[key]['runtime']
             self.test_counter += 1
+        Weblog(self.taskname, self.localdict).generate_table_row(str(self.test_counter),'Total', 'Total test runtime', self.total_runtime, "tg-ck9b")
+        
         with open("test_{}_weblog.html".format(self.taskname.lower()), 'a+') as self.html:
             if self.all_passed:
                 self.html.write("<tr>" + "\n")
@@ -245,9 +246,10 @@ class Weblog():
             self.html.write('<ul>' + '\n')
             for item in array:
                 if isinstance(item,str):
-                    self.html.write('<li>{}</li>'.format(item.replace('\\,','\n')) + '\n')
+                    item = re.sub(r",(?=(?:[^'\"]*[\"'][^\"]*[\"'])*[^\"']*$)", ", ", item)
+                    self.html.write('<li class="wrap">{}</li>'.format(item.replace('\\,','\n')) + '\n')
                 else:
-                    self.html.write('<li>{}</li>'.format(item) + '\n')
+                    self.html.write('<li class="wrap">{}</li>'.format(item) + '\n')
                 if str(item).endswith(".png"):
                     self.html.write('<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>'+ '\n')
                     self.html.write('<img  class="myImg" src="{}" alt="{}" height="300" width="300">'.format(item, item) + '\n')
@@ -292,4 +294,5 @@ class Weblog():
         Weblog(self.taskname, self.localdict).generate_status_table(self.localdict, show_passed)
         Weblog(self.taskname, self.localdict).generate_summary_box(self.localdict, show_passed)
         Weblog(self.taskname, self.localdict).generate_tail(self.localdict)
+
 

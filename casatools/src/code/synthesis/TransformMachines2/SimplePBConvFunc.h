@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -142,6 +142,17 @@ namespace refim{ //namespace for imaging refactor
       virtual void reset();
       virtual casacore::String name() {return casacore::String("SimplePBConvFunc");};
       void setUsePointing(casacore::Bool usepointing){usePointingTable_p=usepointing;};
+      void findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb);
+      //Spply phase gradient to convfuncs 5 dim convfuncs expected X,Y, pol, chan, row
+      virtual void rephaseConvFunc(const casacore::ImageInterface<casacore::Complex>& iimage, 
+                                 const vi::VisBuffer2& vb,const casacore::Int& convSampling, casacore::Array<casacore::Complex>& convFunc, 
+                                 casacore::Array<casacore::Complex>& weightConvFunc,
+                                 const std::vector<casacore::Int>& pmap, 
+                                 const std::vector<casacore::Int>& cmap, 
+                                 const std::vector<casacore::Int>& rmap, 
+                                 const casacore::MVDirection& extraShift, const casacore::Bool useExtraShift);
+     
+
     protected:
       SkyJones* sj_p;
       casacore::TempImage<casacore::Float> fluxScale_p;

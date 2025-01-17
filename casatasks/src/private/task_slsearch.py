@@ -20,7 +20,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be adressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -61,15 +61,9 @@
 # </motivation>
 #
 ###########################################################################
-from __future__ import absolute_import
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import spectralline
-    from casatasks import casalog
-else:
-    from taskinit import *
-    from taskinit import sltool as spectralline
+from casatools import spectralline
+from casatasks import casalog
 
 def slsearch(
     table=None, outfile=None, freqrange=None,

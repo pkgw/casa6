@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -204,7 +204,7 @@ namespace casa { //# name space casa begins
       return rstat;
     }
     auto im1=itsImPol->imageInterface();
-    PtrHolder<ImageInterface<Float> > im2;
+    std::unique_ptr<ImageInterface<Float> > im2;
     ImageUtilities::openImage(im2, infile);
     ImageExpr<Float> tmpim=itsImPol->depolarizationRatio(*im1, *im2, 
 							 debias, 

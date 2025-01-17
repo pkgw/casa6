@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -77,27 +77,51 @@ Applicator::~Applicator()
 
 void Applicator::initThreads(Int argc, Char *argv[]){
 
+  Int numprocs=0;
+ 
    // A no-op if not using MPI
 #ifdef HAVE_MPI
   //if (debug_p) {
+
   if(initialized_p) return;
-  //  cerr << "In initThreads. argc: " << argc << ", argv: " << argv << '\n';
-      //}
-  // Initialize the MPI transport layer
-  try {
-     comm = new MPITransport(argc, argv);
-
-     // Initialize the process status list
-     setupProcStatus();
-
-     // If controller then exit, else loop, waiting for an assigned task
-     if (isWorker()) {
-       loop();
-     }
-
-  } catch (MPIError x) {
-    cerr << x.getMesg() << " doing serial "<< endl;
+  
+  //If detecting only  1 proc is offered to OpenMPI but compiling with MPI
+  if (!getenv("OMPI_COMM_WORLD_LOCAL_SIZE") ||  (String::toInt(getenv("OMPI_COMM_WORLD_LOCAL_SIZE")) <2) ) {
+    //go serial
     initThreads();
+  } 
+  else {
+    //cerr << "In initThreads. argc: " << argc << ", argv: " << argv << '\n';
+    int flag=0;
+    MPI_Initialized(&flag);
+    //cerr << "FLAG " << flag << endl;
+    if(flag || MPI_Init(&argc, &argv)==MPI_SUCCESS){
+      Int numproc=0;
+      MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
+      if(numprocs < 2){
+        initThreads();
+        MPI_Finalize();
+        return;
+      }
+    }
+ 
+    //  cerr << "In initThreads. argc: " << argc << ", argv: " << argv << '\n';
+    // Initialize the MPI transport layer
+    try {
+      comm = new MPITransport(argc, argv);
+
+       // Initialize the process status list
+       setupProcStatus();
+
+       // If controller then exit, else loop, waiting for an assigned task
+       if (isWorker()) {
+         loop();
+       }
+
+    } catch (MPIError x) {
+      cerr << x.getMesg() << " doing serial "<< endl;
+      initThreads();
+    }
   } 
 
 #else

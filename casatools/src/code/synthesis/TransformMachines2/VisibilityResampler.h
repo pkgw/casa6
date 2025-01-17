@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -47,19 +47,25 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   class VisibilityResampler: public VisibilityResamplerBase
   {
   public: 
-    VisibilityResampler(): VisibilityResamplerBase() {};
+    VisibilityResampler(): VisibilityResamplerBase() {nVBs_p=nVisGridded_p=0;};
     //    VisibilityResampler(const CFStore& cfs): VisibilityResamplerBase(cfs) {};
     VisibilityResampler(const VisibilityResampler& other):VisibilityResamplerBase()
     {copy(other);}
 
     //    {setConvFunc(cfs);};
-    virtual ~VisibilityResampler() {};
+    virtual ~VisibilityResampler()
+    {
+      // cerr << "~VisibilityResampler:: "
+      // 	   << "No. of VBs  processed: " << nVBs_p << endl
+      // 	   << "No. of vis. processed: " << nVisGridded_p << endl;
+    };
 
     //    VisibilityResampler& operator=(const VisibilityResampler& other);
 
     void copy(const VisibilityResamplerBase& other)
     {VisibilityResamplerBase::copy(other);}
 
+    virtual Bool needCFPhaseScreen() {return true;};
     virtual VisibilityResamplerBase* clone() 
     {return new VisibilityResampler(*this);}
 
@@ -141,7 +147,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 				      const casacore::Matrix<casacore::Double>& sumwt) {(void)griddedData;(void)sumwt;};
     virtual void initializeDataBuffers(VBStore& vbs) {(void)vbs;};
 
-
     virtual void releaseBuffers() {};
     //
     //------------------------------------------------------------------------------
@@ -150,6 +155,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
   protected:
     async::Mutex *myMutex_p;
+    double nVBs_p, nVisGridded_p;
     // casacore::Vector<casacore::Double> uvwScale_p, offset_p, dphase_p;
     // casacore::Vector<casacore::Int> chanMap_p, polMap_p;
     // CFStore convFuncStore_p;

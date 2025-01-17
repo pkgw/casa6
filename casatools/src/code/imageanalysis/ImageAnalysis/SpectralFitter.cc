@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -170,7 +170,7 @@ Bool SpectralFitter::fit(const Vector<Float> &spcVals,
 	Bool ok(false);
 	try {
 		ok = _fit.fit();
-	} catch (AipsError x) {
+	} catch (AipsError& x) {
 		msg = x.getMesg();
 		*_log << LogIO::WARN << msg << LogIO::POST;
 		return false;

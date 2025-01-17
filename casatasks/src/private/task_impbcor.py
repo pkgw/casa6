@@ -19,7 +19,7 @@
 # Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 #
 # Correspondence concerning AIPS++ should be adressed as follows:
-#        Internet email: aips2-request@nrao.edu.
+#        Internet email: casa-feedback@nrao.edu.
 #        Postal address: AIPS++ Project Office
 #                        National Radio Astronomy Observatory
 #                        520 Edgemont Road
@@ -61,20 +61,11 @@
 #
 
 ###########################################################################
-from __future__ import absolute_import
 import sys
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image
-    from casatasks import casalog
-    from .ialib import write_image_history
-else:
-    from taskinit import *
-    from ialib import write_image_history
-
-    image = iatool
+from casatools import image
+from casatasks import casalog
+from .ialib import write_image_history
 
 def impbcor(
     imagename=None, pbimage=None, outfile=None, overwrite=None,
@@ -97,11 +88,8 @@ def impbcor(
 
         try:
             param_names = impbcor.__code__.co_varnames[:impbcor.__code__.co_argcount]
-            if is_python3:
-                vars = locals()
-                param_vals = [vars[p] for p in param_names]
-            else:
-                param_vals = [eval(p) for p in param_names]   
+            vars = locals()
+            param_vals = [vars[p] for p in param_names]
             write_image_history(
                 outia, sys._getframe().f_code.co_name,
                 param_names, param_vals, casalog

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -78,7 +78,7 @@ namespace casa {
         //--- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         casacore::Array<double> SummaryMinor;
         casacore::Array<int>    SummaryMajor;
-
+        bool FullSummary;
         //--- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
         float MinorCyclePeakResidual;
         float PrevPeakResidual;
@@ -179,7 +179,7 @@ namespace casa {
         void resetMinorCycleInitInfo( );
         void addSummaryMajor( );
 
-        void mergeCycleInitializationRecord( casacore::Record &initRecord );
+        void mergeCycleInitializationRecord( casacore::Record &initRecord, casacore::Int immod );
         void mergeCycleExecutionRecord( casacore::Record&, casacore::Int immod );
 
         void changeStopFlag( bool stopEnabled );

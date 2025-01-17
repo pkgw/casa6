@@ -18,7 +18,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -1350,7 +1350,7 @@ record* msmetadata::observatoryposition(const long which) {
 ::casac::record* msmetadata::phasecenter(const long fieldid, const ::casac::record& epoch){
     ::casac::record *rval=0;
     _FUNC(   
-        PtrHolder<Record> ep(toRecord(epoch));
+        std::unique_ptr<Record> ep(toRecord(epoch));
           Record outRec;
           MeasureHolder mh;
           String err;
@@ -1547,6 +1547,55 @@ variant* msmetadata::restfreqs(long sourceid, long spw) {
         }
     )
     return nullptr;
+}
+
+vector<long> msmetadata::rxbands(const variant& spwids) {
+    _FUNC(
+        variant::TYPE myType = spwids.type();
+        vector<uInt> spwIDs;
+        if (myType == variant::INT) {
+            Int id = spwids.toInt();
+            ThrowIf(id < 0, "Spectral window ID must be nonnegative.");
+            ThrowIf(
+                id >= (Int)_msmd->nSpw(true),
+                "Spectral window ID must be less than total number of spws"
+            );
+            spwIDs.push_back(id);
+        }
+        else if (myType == variant::INTVEC) {
+            auto kk = spwids.toIntVec();
+            Vector<Int> xx(kk);
+            ThrowIf(
+                min(xx) < 0,
+                "All spectral window IDs must be nonnegative."
+            );
+            ThrowIf(
+                max(xx) >= (Int)_msmd->nSpw(true),
+                "All spectral window IDs must be less than "
+                "the total number of spws"
+            );
+            spwIDs = _vectorIntToVectorUInt(kk);
+        }
+        else if (
+            (myType == variant::STRING && spwids.toString().empty())
+            || myType == variant::BOOLVEC
+        ) {
+            return _vectorIntToVectorLong(_msmd->getSpwReceiverBands());
+        }
+        else if (spwids.size() != 0) {
+            ThrowCc(
+                "Unsupported type for spwids. It must be a "
+                "nonnegative integer or nonnegative integer array"
+            );
+        }
+        auto allVals = _msmd->getSpwReceiverBands();
+        vector<long> ret;
+        for(auto i : spwIDs) {
+            ret.push_back(allVals[i]);
+        }
+        return ret;
+    )
+    return vector<long>();
 }
 
 vector<long> msmetadata::scannumbers(long obsid, long arrayid) {
@@ -1997,6 +2046,55 @@ record* msmetadata::statesforscans(long obsid, long arrayid) {
     return nullptr;
 }
 
+vector<long> msmetadata::subwindows(const variant& spwids) {
+    _FUNC(
+        variant::TYPE myType = spwids.type();
+        vector<uInt> spwIDs;
+        if (myType == variant::INT) {
+            Int id = spwids.toInt();
+            ThrowIf(id < 0, "Spectral window ID must be nonnegative.");
+            ThrowIf(
+                id >= (Int)_msmd->nSpw(true),
+                "Spectral window ID must be less than total number of spws"
+            );
+            spwIDs.push_back(id);
+        }
+        else if (myType == variant::INTVEC) {
+            auto kk = spwids.toIntVec();
+            Vector<Int> xx(kk);
+            ThrowIf(
+                min(xx) < 0,
+                "All spectral window IDs must be nonnegative."
+            );
+            ThrowIf(
+                max(xx) >= (Int)_msmd->nSpw(true),
+                "All spectral window IDs must be less than "
+                "the total number of spws"
+            );
+            spwIDs = _vectorIntToVectorUInt(kk);
+        }
+        else if (
+            (myType == variant::STRING && spwids.toString().empty())
+            || myType == variant::BOOLVEC
+        ) {
+            return _vectorIntToVectorLong(_msmd->getSpwSubwindows());
+        }
+        else if (spwids.size() != 0) {
+            ThrowCc(
+                "Unsupported type for spwids. It must be a "
+                "nonnegative integer or nonnegative integer array"
+            );
+        }
+        auto allVals = _msmd->getSpwSubwindows();
+        vector<long> ret;
+        for(auto i : spwIDs) {
+            ret.push_back(allVals[i]);
+        }
+        return ret;
+    )
+    return vector<long>();
+}
+
 record* msmetadata::timerangeforobs(long obsid) {
     _FUNC(
         _checkObsId(obsid, true);
@@ -2283,6 +2381,12 @@ std::vector<long> msmetadata::_setIntToVectorInt(const std::set<casacore::Int>& 
 
 std::vector<std::string> msmetadata::_vectorStringToStdVectorString(const std::vector<casacore::String>& inset) {
     vector<string> output;
+    std::copy(inset.begin(), inset.end(), std::back_inserter(output));
+    return output;
+}
+
+std::vector<long> msmetadata::_vectorIntToVectorLong(const std::vector<int>& inset) {
+    vector<long> output;
     std::copy(inset.begin(), inset.end(), std::back_inserter(output));
     return output;
 }

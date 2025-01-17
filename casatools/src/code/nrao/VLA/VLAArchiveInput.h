@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -27,6 +27,8 @@
 
 #ifndef NRAO_VLAARCHIVEINPUT_H
 #define NRAO_VLAARCHIVEINPUT_H
+
+#include <memory>
 
 #include <casacore/casa/aips.h>
 #include <casacore/casa/IO/ByteSinkSource.h>
@@ -58,7 +60,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 // This class is designed to reads VLA archive records from a Tape
 // </etymology>
 //
-// <synopsis> 
+// <synopsis>
 
 // This class is designed to read VLA archive data.  The data may be read from
 // a disk, tape drive or any other data source supported by the IO module.  A
@@ -100,7 +102,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 // 1. Read a 2048 chunk from the input.
 //
 // The first two 16-bit integers should contain the values 1 and n,
-// where n is the number of "physical records" in the current "logical  
+// where n is the number of "physical records" in the current "logical
 // record."  (If the first value is not 1, then the chunk is rejected
 // and a new one read until the first 16-bit value is 1.)  These two
 // values are not part of the reconstituted "logical record."
@@ -124,8 +126,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 // on...
 //
 // An end-of-file condition on the input will cause record processing
-// to be declared complete.  
-// </synopsis> 
+// to be declared complete.
+// </synopsis>
 //
 // <example>
 // To open and read a VLA archive data file
@@ -165,9 +167,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 class VLAArchiveInput
 {
-public: 
+public:
   // The destructor is virtual to ensure that the destructor in a derived
-  // class is actually used. 
+  // class is actually used.
   virtual ~VLAArchiveInput();
 
   // This returns a reconstructed VLA logical record from the input
@@ -184,7 +186,7 @@ public:
 
   // Returns if true if the current record contains data. The current record
   // could be empty for a number of reasons including:
-  // <ul> 
+  // <ul>
   // <li> You attempted to read beyond the end of the file.
   // <li> The physical record sequence numbers were not the expected ones
   // <li> An I/O Error occured while trying to read from the file.
@@ -193,10 +195,10 @@ public:
   // </ul>
   casacore::Bool hasData() const;
 
-protected: 
+protected:
   //# the default constructor initialises the itsRecord data member
   VLAArchiveInput();
-  
+
   //# All reads will be in multiples of this blocksize.
   static const casacore::uInt BlockSize;
   //# The size in bytes of the physical record sequence numbers
@@ -207,13 +209,13 @@ protected:
   //# These objects contains the current logical record. The memory IO object
   //# is used to put the data. It is taken out using the casacore::ByteSinkSource which
   //# will apply any numeric conversions.
-  casacore::MemoryIO itsMemIO;
+  std::shared_ptr<casacore::MemoryIO> itsMemIO;
 
 private:
-  casacore::ModcompDataConversion itsModComp;
-  casacore::ConversionIO itsCtrIO;
+  std::shared_ptr<casacore::ModcompDataConversion> itsModComp;
+  std::shared_ptr<casacore::ConversionIO> itsCtrIO;
 
-protected: 
+protected:
   casacore::ByteSinkSource itsRecord;
 };
 #endif

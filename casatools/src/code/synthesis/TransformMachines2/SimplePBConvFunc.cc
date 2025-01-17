@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -224,6 +224,7 @@ SimplePBConvFunc::SimplePBConvFunc(): nchan_p(-1),
 
   void SimplePBConvFunc::setWeightImage(CountedPtr<TempImage<Float> >& wgtimage){
     convWeightImage_p=wgtimage;
+    filledFluxScale_p=false;
     calcFluxScale_p=true;
 
   }
@@ -253,7 +254,7 @@ SimplePBConvFunc::SimplePBConvFunc(): nchan_p(-1),
 
   const MDirection& SimplePBConvFunc::pointingDirAnt1(const vi::VisBuffer2& vb){
    
-    
+
     std::ostringstream oss;
     
     oss << vb.msId() << "_" << vb.antenna1()(0) << "_";
@@ -285,6 +286,44 @@ SimplePBConvFunc::SimplePBConvFunc(): nchan_p(-1),
     ant1PointVal_p[elkey]=val;
     return ant1PointingCache_p[val];
 
+  }
+  
+  void SimplePBConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
+					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
+					  Array<Complex>& weightConvFunc,const std::vector<casacore::Int>& pmap, 
+                                 const std::vector<casacore::Int>& cmap, 
+                                 const std::vector<casacore::Int>& rmap, const MVDirection& extraShift, const Bool useExtraShift){
+    /*storeImageParams(iimage,vb);
+     toPix(vb, extraShift, useExtraShift);
+    Vector<Double> pixFieldDir(2);
+    pixFieldDir=thePix_p;
+     pixFieldDir(0)=pixFieldDir(0)- Double(nx / 2);
+    pixFieldDir(1)=pixFieldDir(1)- Double(ny / 2);
+    pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx)/Double(convSamp)ling;
+    pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny)/Double(convSampling);
+    Int nconvrow=convFunc.shape()(4);
+    Int nconvchan=convFunc.shape(3);
+    Int nconvpol=convFunc.shape()(2);
+    Int convsize=convFunc.shape()(0);
+    Bool delc;
+    Bool delw;
+    Double dirX=pixFieldDir(0);
+    Double dirY=pixFieldDir(1);
+    Complex *convstor=convFunc.getStorage(delc);
+    Complex *weightstor=weightConvFunc.getStorage(delw);
+    #pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol)
+    {
+      
+        #pragma omp for
+        for(Int iy=0; iy<convsize; ++iy) {
+            applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol);
+
+        }
+    }///End of pragma
+    convFunc.putStorage(convstor, delc);
+    weightConvFunc.putStorage(weightstor, delw);
+    */
+    throw(AipsError("Programmers' error: no implemented"));
   }
 void SimplePBConvFunc::findConvFunction(const ImageInterface<Complex>& iimage, 
 					const vi::VisBuffer2& vb,
@@ -844,6 +883,29 @@ void SimplePBConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
     sj_p=sj;
   }
   
+  void SimplePBConvFunc::findUsefulChannels(std::vector<double>& freqs, const vi::VisBuffer2& vb){
+	Int spw=vb.spectralWindows()(0);
+	//bandName_p=vb.subtableColumns().spectralWindow().name()(spw);
+        Vector<Double> spwfreq=vb.subtableColumns().spectralWindow().chanFreq()(spw);
+        
+        double tol=(max(spwfreq))*0.5/100;
+        Double spwfreqwidth=abs(Vector<Double>(vb.subtableColumns().spectralWindow().chanWidth()(spw))(0));
+        if(tol < spwfreqwidth)
+          tol=spwfreqwidth;
+         Double topFreq=max(spwfreq);
+         Double bottomFreq=min(spwfreq);
+         uint nchan=std::round(topFreq-bottomFreq)/tol;
+        if(nchan==0)
+          nchan=1;
+          
+         freqs.resize(nchan);
+         for (uint k = 0; k < nchan; ++k){
+           freqs[k]=k*tol+bottomFreq;
+         }
+
+  }
+
+
   
   void SimplePBConvFunc::findUsefulChannels(Vector<Int>& chanMap, Vector<Double>& chanFreqs,  const vi::VisBuffer2& vb, const Vector<Double>& freq){
     

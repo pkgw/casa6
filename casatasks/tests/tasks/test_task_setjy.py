@@ -45,6 +45,7 @@ Features tested:
 """
 
 datapath = ctsys_resolve('unittest/setjy/')
+#datapath = '/export/home/murasame2/casadev/vlanewmodels/'
 
 # Pick up alternative data directory to run tests on MMSs
 testmms = False
@@ -1234,7 +1235,207 @@ class test_newStandards(SetjyUnitTestBase):
         self.check_eq(sjran['12']['1']['fluxd'][0],0.99132,0.0001)
         self.assertTrue(ret)
         #print("ret=%s" % sjran)
-    
+   
+class test_newVLAmodelimages(SetjyUnitTestBase):
+    """Test new VLA model images"""
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        self.resetMS()
+
+    def prepData(self,msname="", fieldname=""):
+        if msname != "":
+            self.setUpMS(msname)
+        if fieldname !="":
+            self.field=fieldname
+          
+ 
+    def test_3C48_KaBandModel(self):
+        self.prepData(msname='3C48Ka.ms', fieldname='3C48')
+
+        # temporary location for test
+        # current
+        # updated
+        #self.modelim = "/export/home/murasame/casa-data2/nrao/VLA/CalModels/3C48_A.im"
+        self.modelim = "3C48_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+             standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0],0.71951878,0.0001)
+        self.assertTrue(ret)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C48',
+                                     baseline='8&26',
+                                     time='2019/10/04/08:17:00.33665',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn,  0.613553935289383,0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 0.6241399765014649,0.0001) 
+
+    def test_3C138_KaBandModel(self):
+        self.prepData(msname='3C138Ka.ms', fieldname='3C138')
+
+        # temporary location for test
+        # current
+        #self.modelim = "/export/home/murasame/casa-data/nrao/VLA/CalModels/3C138_A.im"
+        # updated models
+        self.modelim = "3C138_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+                      standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0],0.96944,0.0001)
+        self.assertTrue(ret)
+        #print("ret=%s" % sjran)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C138',
+                                     baseline='8&26',
+                                     time='2019/10/04/08:17:00.33665',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn, 0.842083877325058, 0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 0.8425455033779145, 0.0001) 
+
+    def test_3C147_KaBandModel(self):
+        self.prepData(msname='3C147Ka.ms', fieldname='3C147')
+
+        # temporary location for test
+        # current
+        #self.modelim = "/export/home/murasame/casa-data/nrao/VLA/CalModels/3C147_A.im"
+        # updated models
+        self.modelim = "3C147_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+                      standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0], 1.418634,0.0001)
+        self.assertTrue(ret)
+        #print("ret=%s" % sjran)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C147',
+                                     baseline='8&17',
+                                     time='2019/10/03/10:42:17.8322',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn, 1.3835243344306944, 0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 1.3845574140548706, 0.0001) 
+
+    def test_3C286_KaBandModel(self):
+        self.prepData(msname='3C286Ka.ms', fieldname='3C286')
+
+        # temporary location for test
+        # current
+        #self.modelim = "/export/home/murasame/casa-data/nrao/VLA/CalModels/3C286_A.im"
+        # updated models
+        self.modelim = "3C286_A.im"
+        sjran = setjy(vis=self.inpms, 
+                      field=self.field,
+                      model=self.modelim,
+                      standard='Perley-Butler 2017',
+                      usescratch=True
+                      )
+        ret = True
+        if type(sjran)!=dict:
+            ret = False
+        else: 
+            outfldid = ""
+            for ky in sjran.keys():
+                if 'fieldName' in sjran[ky] and sjran[ky]['fieldName']==self.field:
+                    outfldid = ky
+                    break 
+            ret = len(outfldid)
+            if not ret:
+                print("FAIL: missing field = %s in the returned dictionary" % self.field) 
+        self.check_eq(sjran['0']['0']['fluxd'][0], 1.920785,0.0001)
+        self.assertTrue(ret)
+        #print("ret=%s" % sjran)
+        #print("sjran=%s" % sjran)
+        mslocal.open(self.inpms)
+        # check a long baseline data point 
+        longbsn = mslocal.statistics(column='MODEL',
+                                     complex_value='amp',
+                                     field='3C286',
+                                     baseline='8&15',
+                                     time='2019/10/03/18:30:11.3840',
+                                            correlation='rr',
+                                            reportingaxes='field')['FIELD_ID=0']['mean']
+        mslocal.close()
+        # ToDO: turn on new value when the new model images are put into the data repo.
+        # new model
+        self.check_eq(longbsn, 1.8970248341560365, 0.0001) 
+        # old model 
+        #self.check_eq(longbsn, 1.9001002073287965, 0.0001) 
+
+
+ 
 class test_newStandards_MMS(SetjyUnitTestBase):
     """Test simple Stnadard Scaling with MMS data"""
     # can be just mpicasa specific tests but for now it will be tested for serial
@@ -1429,83 +1630,81 @@ class test_fluxscaleStandard(SetjyUnitTestBase):
         self.check_eq(sjran['1']['0']['fluxd'][0],2.48362403,0.0001)
         self.assertTrue(ret)
 
-class test_setpol(SetjyUnitTestBase):
-    """Test multi-term spix and polarization parameter setting"""
+# duplicated with test_setpol2
+#class test_setpol(SetjyUnitTestBase):
+#    """Test multi-term spix and polarization parameter setting"""
+#
+#    def setUp(self):
+#        prefix = '3c391calonly'
+#        msfile = prefix + '.ms'
+#        #self.setUpMS('unittest/setjy/3c391calonly.ms')
+#        self.setUpMS(msfile)
+#        self.result = {}
+#
+#    def tearDown(self):
+#        self.resetMS()
+#
+#    def test_setpol1(self):
+#        """ Test for multi-term spix (alpha and beta) """
+#
+#        sjran = setjy(vis=self.inpms,
+#                      standard='manual',
+#                      field = 'J1331+3030',
+#                      fluxdensity = [7.81694, 0.355789, 0.79909, 0],
+#                      spix = [-0.62,-0.1], 
+#                      reffreq='4536.0MHz',
+#                      usescratch=True)
+#        ret = True
+#        if type(sjran)!=dict:
+#            ret = False
+#        #else:
+#        #    print sjran 
+#        #print "fluxdic=",sjran 
+# 
+#        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
+#        self.assertTrue(ret)
+#
+#        # expected flux
+#        #fref = 4.536e9
+#        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
+#        # fmin at last chan (Freq=4662000000.0Hz)
+#        fexpmin = 7.68502
+#        ms.open(self.inpms)
+#        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
+#        ms.close()
+#        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
+#
+#    def test_setpol2(self):
+#        """ Test for constant polindex and polangle with I flux density  """
+#
+#        sjran = setjy(vis=self.inpms,
+#                      standard='manual',
+#                      field = 'J1331+3030',
+#                      fluxdensity = [7.81694, 0, 0, 0],
+#                      spix = [-0.62],
+#                      reffreq='4536.0MHz',
+#                      usescratch=True)
+#        ret = True
+#        if type(sjran)!=dict:
+#            ret = False
+#        #else:
+#        #    print sjran
+#
+#        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
+#        self.assertTrue(ret)
+#
+#        # expected flux
+#        #fref = 4.536e9
+#        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
+#        # fmin at last chan (Freq=4662000000.0Hz)
+#        fexpmin = 7.68527
+#        ms.open(self.inpms)
+#        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
+#        #retrec2 = ms.statistics(field='0', baseline='1&2', correlation='rl', column='model', complex_value='phase')
+#        ms.close()
+#        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
+#
 
-    def setUp(self):
-        prefix = '3c391calonly'
-        msfile = prefix + '.ms'
-        #self.setUpMS('unittest/setjy/3c391calonly.ms')
-        self.setUpMS(msfile)
-        self.result = {}
-
-    def tearDown(self):
-        self.resetMS()
-
-    def test_setpol1(self):
-        """ Test for multi-term spix (alpha and beta) """
-
-        sjran = setjy(vis=self.inpms,
-                      standard='manual',
-                      field = 'J1331+3030',
-                      fluxdensity = [7.81694, 0.355789, 0.79909, 0],
-                      spix = [-0.62,-0.1], 
-                      reffreq='4536.0MHz',
-                      usescratch=True)
-        ret = True
-        if type(sjran)!=dict:
-            ret = False
-        #else:
-        #    print sjran 
-        #print "fluxdic=",sjran 
- 
-        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
-        self.assertTrue(ret)
-
-        # expected flux
-        #fref = 4.536e9
-        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
-        # fmin at last chan (Freq=4662000000.0Hz)
-        fexpmin = 7.68502
-        ms.open(self.inpms)
-        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
-        ms.close()
-        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
-
-    def test_setpol2(self):
-        """ Test for constant polindex and polangle with I flux density  """
-
-        sjran = setjy(vis=self.inpms,
-                      standard='manual',
-                      field = 'J1331+3030',
-                      fluxdensity = [7.81694, 0, 0, 0],
-                      spix = [-0.62],
-                      reffreq='4536.0MHz',
-                      usescratch=True)
-        ret = True
-        if type(sjran)!=dict:
-            ret = False
-        #else:
-        #    print sjran
-
-        self.check_eq(sjran['0']['0']['fluxd'][0],7.81694, 0.0001)
-        self.assertTrue(ret)
-
-        # expected flux
-        #fref = 4.536e9
-        #logflx = log10(7.81694) + (-0.62)*log10(f/fref) + (-0.1)*log10(f/fref)
-        # fmin at last chan (Freq=4662000000.0Hz)
-        fexpmin = 7.68527
-        ms.open(self.inpms)
-        retrec = ms.statistics(field='0', baseline='1&2', correlation='rr', column='model', complex_value='amp', reportingaxes='field')
-        #retrec2 = ms.statistics(field='0', baseline='1&2', correlation='rl', column='model', complex_value='phase')
-        ms.close()
-        self.check_eq(retrec['FIELD_ID=0']['min'],fexpmin,0.0001)
-
-    def test_setpol3(self):
-        """ Test for frequency-dependent polindex (2 terms)   """
-        # the constant terms (polindex[0] and polangle[0] is ignored..
-    
 class test_inputs(SetjyUnitTestBase):
     """Test input parameter checking"""
     def setUp(self):
@@ -1542,6 +1741,11 @@ class test_inputs(SetjyUnitTestBase):
             setjy(vis=self.inpms,listmodels=True)
         except Exception as exc:
             self.fail('Unexpected task exception: {}'.format(exc))
+
+    def test_usescratchFalseForEphemObject(self):
+        """ Test to catch usescratch=T when Butler-JPL-Horizons is used """
+        with self.assertRaisesRegex(RuntimeError, r'usescratch=False and standard=Butler-JPL-Horizons 2012'):
+            setjy(vis=self.inpms, standard='Butler-JPL-Horizons 2012', usescratch=False )  
 
 
 class test_conesearch(SetjyUnitTestBase):
@@ -1893,6 +2097,36 @@ class test_setpol(SetjyUnitTestBase):
         self.check_eq(retrecU['FIELD_ID=0']['min'],ufexpmin,0.0001)
         self.check_eq(retrecAngle['FIELD_ID=0']['min'],anglemin,0.0001)
 
+    def test_setpol_wrongspix(self):
+        """ Test for wrong spix value  """
+
+        sjran=None
+        try:
+            sjran = setjy(vis=self.inpms,
+                      standard='manual',
+                      field = 'J1331+3030',
+                      fluxdensity = [7.81694, 0, 0, 0],
+                      spix = [-62],
+                      reffreq='4536.0MHz')
+        except Exception as setjyUTerr:
+            msg = str(setjyUTerr)
+            self.assertNotEqual(msg.find("less than -10"), -1,
+                                'wrong type of exception is thrown')
+
+        self.assertEqual(sjran,None,"Failed to raise exception.") 
+
+        try:
+            sjran = setjy(vis=self.inpms,
+                      standard='manual',
+                      field = 'J1331+3030',
+                      fluxdensity = [7.81694, 0, 0, 0],
+                      spix = [62],
+                      reffreq='4536.0MHz')
+        except Exception as setjyUTerr:
+            msg = str(setjyUTerr)
+            self.assertNotEqual(msg.find("greater than 10"), -1,
+                                'wrong type of exception is thrown')
+        self.assertEqual(sjran,None,"Failed to raise exception.") 
 
 class test_ephemtbl(SetjyUnitTestBase):
     """Test for data with attached ephem table(s)"""

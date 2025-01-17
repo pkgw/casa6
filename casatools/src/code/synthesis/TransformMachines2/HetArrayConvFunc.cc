@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -438,6 +438,10 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         return;
 
     }
+    /////TESTOO elkey
+    String elkey=String::toString(vb.msId())+String("_")+String::toString(vb.spectralWindows()[0])+String("_")+String::toString(visFreq.nelements());
+
+    /////////////////
     actualConvIndex_p=convIndex(vb, visFreq.nelements());
     //cerr << "actual conv index " << actualConvIndex_p << " doneMainconv " << doneMainConv_p << endl;
     if(doneMainConv_p.shape()[0] < (actualConvIndex_p+1)) {
@@ -457,7 +461,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
     ////Trap for cases when the selection seem to have changed
     if(doneMainConv_p[actualConvIndex_p]){
-      if(nBeamChans != (*convFunctions_p[actualConvIndex_p]).shape()[3])
+      if(nBeamChans > (*convFunctions_p[actualConvIndex_p]).shape()[3])
 	doneMainConv_p[actualConvIndex_p]=False;
       
     }
@@ -649,8 +653,15 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
                     //subim2.copyData((LatticeExpr<Complex>) (iif(abs(subim2)> 25e-4, subim2, 0)));
 
 					//wtime0=omp_get_wtime();
-					ft_p.c2cFFTInDouble(subim);
-					ft_p.c2cFFTInDouble(subim2);
+
+                    //make sure fft2d plan shape is the same or else recalculate it
+                    auto [ftx, fty] = ft_p.getShape();
+                    if(ftx >0 && fty >0 && (ftx != subim.shape()(0)) && (fty != subim.shape()(1))){
+                      ft_p = FFT2D(true);
+                    }
+
+                    ft_p.c2cFFTInDouble(subim);
+                    ft_p.c2cFFTInDouble(subim2);
 					//ft_p.c2cFFT(subim);
 					//ft_p.c2cFFT(subim2);
 					//wtime2+=omp_get_wtime()-wtime0;
@@ -799,7 +810,7 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
         Int lattSize=convFuncTemp.shape()(0);
         (*convSupportBlock_p[actualConvIndex_p])=convSupport_p;
         LogIO os(LogOrigin("HetArrConvFunc", "findConvFunction", WHERE));
-        os << "convolution function support: " << convSupport_p  << LogIO::POST;
+        os << "convolution function support: " << convSupport_p<< "ELKEY " << elkey  << " actualConvInd "<< actualConvIndex_p <<  " pointer " << this << LogIO::POST;
 
         if(newConvSize < lattSize) {
             IPosition blc(5, (lattSize/2)-(newConvSize/2),
@@ -945,6 +956,43 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 
 
 }
+  void HetArrayConvFunc::rephaseConvFunc(const ImageInterface<Complex>& iimage, 
+					const vi::VisBuffer2& vb,const Int& convSampling,Array<Complex>& convFunc, 
+					 Array<Complex>& weightConvFunc, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap, const MVDirection& extraShift, const Bool useExtraShift){
+    storeImageParams(iimage,vb);
+     toPix(vb, extraShift, useExtraShift);
+    Vector<Double> pixFieldDir(2);
+    pixFieldDir=thePix_p;
+     pixFieldDir(0)=pixFieldDir(0)- Double(nx_p / 2);
+    pixFieldDir(1)=pixFieldDir(1)- Double(ny_p / 2);
+    pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx_p)/Double(convSampling);
+    pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny_p)/Double(convSampling);
+    Int nconvrow=convFunc.shape()(4);
+    Int nconvchan=convFunc.shape()(3);
+    Int nconvpol=convFunc.shape()(2);
+    Int convsize=convFunc.shape()(0);
+    Bool delc;
+    Bool delw;
+    Double dirX=pixFieldDir(0);
+    Double dirY=pixFieldDir(1);
+    Complex *convstor=convFunc.getStorage(delc);
+    Complex *weightstor=weightConvFunc.getStorage(delw);
+    //Vector<Int> pmap(polmap);
+    //Vector<Int> cmap(chanmap);
+    //Vector<Int> rmap(rowmap);
+#pragma omp parallel default(none) firstprivate(convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol) shared(polmap, chanmap, rowmap)
+    {
+      
+        #pragma omp for
+        for(Int iy=0; iy<convsize; ++iy) {
+	  applyGradientToYLine(iy,  convstor, weightstor, dirX, dirY, convsize, nconvrow, nconvchan, nconvpol, polmap, chanmap, rowmap);
+
+        }
+    }///End of pragma
+    convFunc.putStorage(convstor, delc);
+    weightConvFunc.putStorage(weightstor, delw);
+    
+  }
 
 typedef unsigned long long ooLong;
 
@@ -971,6 +1019,37 @@ void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunction
 
     }
 }
+void HetArrayConvFunc::applyGradientToYLine(const Int iy, Complex*& convFunctions, Complex*& convWeights, const Double pixXdir, const Double pixYdir, Int convSize, const Int ndishpair, const Int nChan, const Int nPol, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap ) {
+    Double cy, sy;
+
+    SINCOS(Double(iy-convSize/2)*pixYdir, sy, cy);
+    Complex phy(cy,sy) ;
+    for (Int ix=0; ix<convSize; ix++) {
+        Double cx, sx;
+        SINCOS(Double(ix-convSize/2)*pixXdir, sx, cx);
+        Complex phx(cx,sx) ;
+        for (uint p=0; p< polmap.size(); ++p) {
+        //for (uint p=0; p < nPol; ++p) {
+            Int ipol=polmap[p];
+            //Int ipol=p;
+            for (uint c=0; c < chanmap.size(); ++c) {
+            //for (uint c=0; c < nChan; ++c) {
+                Int ichan=chanmap[c];
+                //Int ichan=c;
+                for (uint z=0; z < rowmap.size(); ++z) {
+                //for (uint z=0; z < ndishpair; ++z) {
+                    Int iz=rowmap[z];
+                    //Int iz=z;
+                    ooLong index=((ooLong(iz*nChan+ichan)*nPol+ipol)*ooLong(convSize)+ooLong(iy))*ooLong(convSize)+ooLong(ix);
+                    convFunctions[index]= convFunctions[index]*phx*phy;
+                    convWeights[index]= convWeights[index]*phx*phy;
+                }
+            }
+        }
+
+    }
+}
+
 Int  HetArrayConvFunc::conjSupport(const casacore::Vector<casacore::Double>& freqs){
   Double centerFreq=SpectralImageUtil::worldFreq(csys_p, 0.0);
   Double maxRatio=-1.0;
@@ -1377,52 +1456,18 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
         return 2;
     }
     String pointingid=String::toString(pixdepoint(0))+"_"+String::toString(pixdepoint(1));
-    //Int fieldid=vb.fieldId();
     String msid=vb.msName(true);
-    //If channel or pol length has changed underneath...then its time to
-    //restart the map
-    /*
-    if(convFunctionMap_p.ndefined() > 0){
-      if ((fluxScale_p.shape()[3] != nchan_p) || (fluxScale_p.shape()[2] != npol_p)){
-    convFunctionMap_p.clear();
-      }
-    }
 
-    */
-    if(convFunctionMap_p.nelements() > 0) {
-        if (calcFluxScale_p && ((fluxScale_p.shape()[3] != nchan_p) || (fluxScale_p.shape()[2] != npol_p))) {
-            convFunctionMap_p.resize();
-            nDefined_p=0;
-        }
-    }
-    //String mapid=msid+String("_")+pointingid;
-    /*
-    if(convFunctionMap_p.ndefined() == 0){
-      convFunctionMap_p.define(mapid, 0);
-      actualConvIndex_p=0;
-      fluxScale_p=TempImage<Float>(IPosition(4,nx_p,ny_p,npol_p,nchan_p), csys_p);
-      filledFluxScale_p=false;
-      fluxScale_p.set(0.0);
-      return -1;
-    }
-    */
+   
     if(convFunctionMap_p.nelements() == 0) {
         convFunctionMap_p.resize(nx_p*ny_p);
         convFunctionMap_p.set(-1);
         convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]]=0;
         nDefined_p=1;
         actualConvIndex_p=0;
-        if(calcFluxScale_p) {
-            fluxScale_p=TempImage<Float>(IPosition(4,nx_p,ny_p,npol_p,nchan_p), csys_p);
-            filledFluxScale_p=false;
-            fluxScale_p.set(0.0);
-        }
         return -1;
     }
 
-    // if(!convFunctionMap_p.isDefined(mapid)){
-    //  actualConvIndex_p=convFunctionMap_p.ndefined();
-    //  convFunctionMap_p.define(mapid, actualConvIndex_p);
     if(convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]] <0) {
         actualConvIndex_p=nDefined_p;
         convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]]=nDefined_p;
@@ -1431,22 +1476,6 @@ Int HetArrayConvFunc::checkPBOfField(const vi::VisBuffer2& vb,
         return -1;
     }
     else {
-        /*
-        actualConvIndex_p=convFunctionMap_p[pixdepoint[1]*nx_p+pixdepoint[0]];
-        convFunc_p.resize(); // break any reference
-        weightConvFunc_p.resize();
-        convSupport_p.resize();
-        //Here we will need to use the right xyPlane for different PA range
-        //and frequency may be
-        convFunc_p.reference(*convFunctions_p[actualConvIndex_p]);
-        weightConvFunc_p.reference(*convWeights_p[actualConvIndex_p]);
-        //Again this for one time of antenna only later should be fixed for all
-        // antennas independently
-        //these are not really needed right now
-        convSupport_p=(*convSupportBlock_p[actualConvIndex_p]);
-        convSize_p=(*convSizes_p[actualConvIndex_p])[0];
-        makerowmap(vb, rowMap);
-        */
         actualConvIndex_p=0;
         return -1;
     }
@@ -1625,41 +1654,42 @@ Float HetArrayConvFunc::interpLanczos( const Double& x , const Double& y, const 
 }
 
 ImageInterface<Float>&  HetArrayConvFunc::getFluxScaleImage() {
-    if(!calcFluxScale_p)
-        throw(AipsError("Programmer Error: flux image cannot be retrieved"));
-    if(!filledFluxScale_p) {
-        //The best flux image for a heterogenous array is the weighted coverage
-        fluxScale_p.copyData(*(convWeightImage_p));
-        IPosition blc(4,nx_p, ny_p, npol_p, nchan_p);
-        IPosition trc(4, ny_p, ny_p, npol_p, nchan_p);
-        blc(0)=0;
-        blc(1)=0;
-        trc(0)=nx_p-1;
-        trc(1)=ny_p-1;
+  if(!calcFluxScale_p)
+    throw(AipsError("Programmer Error: flux image cannot be retrieved"));
+  if(!filledFluxScale_p) {
+    //The best flux image for a heterogenous array is the weighted coverage
+    fluxScale_p=TempImage<Float>(IPosition(4, nx_p, ny_p, npol_p, nchan_p), csys_p);
+    fluxScale_p.copyData(*(convWeightImage_p));
+    IPosition blc(4,nx_p, ny_p, npol_p, nchan_p);
+    IPosition trc(4, ny_p, ny_p, npol_p, nchan_p);
+    blc(0)=0;
+    blc(1)=0;
+    trc(0)=nx_p-1;
+    trc(1)=ny_p-1;
 
-        for (Int j=0; j < npol_p; ++j) {
-            for (Int k=0; k < nchan_p ; ++k) {
+    for (Int j=0; j < npol_p; ++j) {
+      for (Int k=0; k < nchan_p ; ++k) {
 
-                blc(2)=j;
-                trc(2)=j;
-                blc(3)=k;
-                trc(3)=k;
-                Slicer sl(blc, trc, Slicer::endIsLast);
-                SubImage<Float> fscalesub(fluxScale_p, sl, true);
-                Float planeMax;
-                LatticeExprNode LEN = max( fscalesub );
-                planeMax =  LEN.getFloat();
-                if(planeMax !=0) {
-                    fscalesub.copyData( (LatticeExpr<Float>) (fscalesub/planeMax));
+        blc(2)=j;
+        trc(2)=j;
+        blc(3)=k;
+        trc(3)=k;
+        Slicer sl(blc, trc, Slicer::endIsLast);
+        SubImage<Float> fscalesub(fluxScale_p, sl, true);
+        Float planeMax;
+        LatticeExprNode LEN = max( fscalesub );
+        planeMax =  LEN.getFloat();
+        if(planeMax !=0) {
+          fscalesub.copyData( (LatticeExpr<Float>) (fscalesub/planeMax));
 
-                }
-            }
         }
-        filledFluxScale_p=true;
+      }
     }
+    filledFluxScale_p=true;
+  }
 
 
-    return fluxScale_p;
+  return fluxScale_p;
 
 }
 

@@ -66,11 +66,10 @@ A factor or gain to adjust single dish flux scale (to use in feather stage)
     </param>
 
     <param name="dishdia" type="double" subparam="true">
-     <shortdescription>Effective dish diameter</shortdescription>
+     <shortdescription>Effective dish diameter (meters)</shortdescription>
 <description>
-(Optional) effective dish diameter (if sdpsf is given as a dish diameter this will be ignored)
+Effective dish diameter of the SD telescope (meters)
 </description>
-      <value type="double">100.0</value>
     </param>
 
  
@@ -259,9 +258,6 @@ A factor or gain to adjust single dish flux scale (to use in feather stage)
 </description>
       <value type="string">corrected</value>
     </param>
-
-
-
 
 
 
@@ -1541,6 +1537,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                       This method approximately minimizes rms sidelobes
                                                       for an east-west synthesis array.
 
+                       weighting='briggsbwtaper' : A modified version of Briggs weighting for cubes where an inverse uv taper,
+                                                         which is proportional to the fractional bandwidth of the entire cube,
+                                                         is applied per channel. The objective is to modify cube (perchanweightdensity = True)
+                                                         imaging weights to have a similar density to that of the continuum imaging weights.
+                                                         This is currently an experimental weighting scheme being developed for ALMA.
+
+						      
                For more details on weighting please see Chapter3
                of Dan Briggs' thesis (http://www.aoc.nrao.edu/dissertations/dbriggs)
 
@@ -1553,6 +1556,7 @@ to use the correct direction in which the antenna is pointing with respect to th
         <value>briggsabs</value>
         <value>radial</value>
         <value>superuniform</value>
+        <value>briggsbwtaper</value>
       </allowed>
 
     </param>
@@ -1832,7 +1836,7 @@ to use the correct direction in which the antenna is pointing with respect to th
     </param>
 
 
-    <param subparam="true" name="interactive" type="any">
+    <param subparam="true" name="interactive" type="bool">
      <shortdescription>Modify masks and parameters at runtime</shortdescription>
 <description>Modify masks and parameters at runtime
 
@@ -1881,12 +1885,30 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                     once minor cycles begin.
 
 
-                       [ For scripting purposes, replacing True/False with 1/0 will get sdintimaging to
-                         return an imaging summary dictionary to python ]
 
 </description>
-      <type>bool</type><type>int</type>
       <value type="bool">False</value>
+    </param>
+
+    <param type="bool" name="fullsummary" subparam="true">
+      <shortdescription>Return dictionary with complete convergence history</shortdescription>
+      <description>Return dictionary with complete convergence history 
+
+                         fullsummary=True: A full version of the summary dictionary is returned.
+                         Keys include 'iterDone','peakRes','modelFlux','cycleThresh' that record the
+                         convergence state at the end of each set of minor cycle iterations
+                         separately for each image plane (i.e. channel/stokes) being
+                         deconvolved. Additional keys report the convergence state at the 
+                         start of minor cycle iterations, stopping criteria that triggered major 
+                         cycles, and a processor ID per channel, for parallel cube runs.
+
+                         fullsummary=False (default): A shorten version of the summary dictionary is returned
+                         with only 'iterDone','peakRes','modelFlux', and 'cycleThresh'.
+
+                         Detailed  information about the return dictionary fields may be found 
+                         at CASA Docs > Synthesis Imaging > Iteration Control > Returned Dictionary. 
+       </description>
+       <value type='bool'>False</value>
     </param>
     
     <param type="int" name="nmajor">
@@ -2285,13 +2307,11 @@ to use the correct direction in which the antenna is pointing with respect to th
         <default param="sdimage"><value>&quot;&quot;</value></default>
         <default param="sdpsf"><value>&quot;&quot;</value></default>
         <default param="sdgain"><value>1.0</value></default>
-        <default param="dishdia"><value>100.0</value></default>
       </equals>
       <equals type="string" value="sdint">
         <default param="sdimage"><value>&quot;&quot;</value></default>
         <default param="sdpsf"><value>&quot;&quot;</value></default>
         <default param="sdgain"><value>1.0</value></default>
-        <default param="dishdia"><value>100.0</value></default>
       </equals>
       </when>
 
@@ -2462,6 +2482,7 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="minpsffraction"><value>0.05</value></default>
          <default param="maxpsffraction"><value>0.8</value></default>
          <default param="interactive"><value>False</value></default>
+         <default param="fullsummary"><value>False</value></default>
 
          <default param="calcres"><value>True</value></default>
          <default param="calcpsf"><value>True</value></default>  --&gt;

@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -140,7 +140,6 @@ private:
 };
 
 
-
  
 class SolvableVisCal : virtual public VisCal {
 public:
@@ -188,6 +187,7 @@ public:
   inline casacore::String&      solint()         { return solint_; };
   inline casacore::String&      fsolint()        { return fsolint_; };
   inline casacore::Double&      preavg()         { return preavg_; };
+  inline casacore::String&      corrcomb()       { return corrcomb_; };
   inline const SolNorm&         solNorm()        { return solnorm_;};
   inline casacore::Bool         solnorm()        { return solnorm_.donorm();};
   inline casacore::Float&       minSNR()         { return minSNR_; };
@@ -334,6 +334,12 @@ public:
 
   // Access to source pol parameters
   inline casacore::Vector<casacore::Complex>& srcPolPar() { return srcPolPar_; };
+    
+  // get antenna map
+  virtual std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>> getAntennaMap() {return antennaMap_;};
+  // get refant map
+  virtual std::map<casacore::Int, std::map<casacore::Int, casacore::Int>> getRefantMap() {return refantMap_;};
+    
 
   // Synchronize the meta data with a solvable VisBuffer
   //   (returns false if VisBuffer has no valid data)
@@ -347,6 +353,12 @@ public:
   // If it is "P", convert them to phase + 0i.
   // Otherwise (i.e. "AP"), leave them alone.
   virtual void enforceAPonData(VisBuffer& vb);
+    
+  // Fill expected and data_unflagged
+  virtual void expectedUnflagged(SDBList& sdbs);
+  // Clear antennaMap values
+  void clearMap();
+  void clearRefantMap();
 
   // Verify VisBuffer data sufficient for solving (wts, etc.)
   virtual casacore::Bool verifyConstraints(VisBuffGroupAcc& vbag);
@@ -612,6 +624,8 @@ protected:
   casacore::Float userPrintActivityInterval_p, userPrintActivityFraction_p;
   casacore::uInt caiRC_p, cafRC_p;
   casacore::Timer timer_p;
+  // Map for refant information SPW || ANT || VAL
+  std::map<casacore::Int, std::map<casacore::Int, casacore::Int>> refantMap_;
 
   // Set state flag to simulate cal terms
   inline void setSimulated(const casacore::Bool& flag) {simulated_=flag;};
@@ -699,6 +713,9 @@ private:
   // Preavering interval
   casacore::Double preavg_;
 
+  // Combine polarizations
+  casacore::String corrcomb_;
+  
   // Do solution normalization after a solve
   SolNorm solnorm_;
 
@@ -730,6 +747,11 @@ private:
   casacore::PtrBlock<casacore::Cube<casacore::Float>*>   solveAllParSNR_; // [nSpw](nPar,nChan,{1|nElm})
 
   casacore::Vector<casacore::Complex> srcPolPar_;
+    
+  // Map for antenna information
+  std::map<casacore::Int, std::map<casacore::String, casacore::Vector<casacore::Int>>> antennaMap_;
+  // Map for refant information SPW || ANT || VAL
+  // std::map<casacore::Int, std::map<casacore::Int, casacore::Int>> refantMap_;
 
   // A _pointer_ to the external channel mask
   casacore::PtrBlock<casacore::Vector<casacore::Bool>*> *chanmask_;
@@ -1070,7 +1092,6 @@ private:
   casacore::uInt wTime_p,  wField_p, wChan_p, wAmp_p, 
        wPhase_p, wFlag_p,  wPol_p,  wAntCol_p, 
        wTotal_p, wPreAnt_p;
-
 
 };
 

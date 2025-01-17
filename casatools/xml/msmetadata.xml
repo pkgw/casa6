@@ -103,7 +103,9 @@ windows in the dataset and close the tool.
                 
                 1. its bandwidth is less than 2 GHz, or
                 2. the number of channels it contains is greater than or equal to 15 but not
-                   equal to 256, 128, 64, 32, 16, 248, 124, 62, or 31.
+                   equal to 256, 128, 64, 32, 16, 248, 124, 62, or 31, or
+                3. the product of the number of polarizations and the number of
+                   channels it contains exceeds 256.
 
                 The window is classified as a *TDM spectral window* if it is neither a WVR window,
                 a channel average window, nor an FDM window.
@@ -699,11 +701,12 @@ windows in the dataset and close the tool.
         </method>
         
         <method name="fdmspws" type="function">
-            <shortdescription>Get an array of spectral window IDs used for FDM. These are windows that do not have 64, 128, or 256 channels.</shortdescription>
+            <shortdescription>Get an array of spectral window IDs used for FDM.</shortdescription>
             <returns type="intVec"/>
             <description>
-                
-                Get an array of spectral window IDs used for FDM. These are windows that do not have 64, 128, or 256 channels.
+                Get an array of spectral window IDs used for FDM. These windows
+                are defined by the rules in the description of the method
+                almaspws().
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -1594,6 +1597,43 @@ windows in the dataset and close the tool.
             </example>
         </method>
         
+        <method direction="in" name="rxbands" type="function">
+            <shortdescription>ALMA-specific. Get the values of the receiver bands for the specified spws.</shortdescription>
+             <input>
+                <param name="spwids" direction="in" type="any">
+                    <description>Zero-based spw ID(s) for which to get the values (integer or interger array). Unspecified will return all receiver band values.</description>
+                     <value type="string"/>
+                    <type>string</type><type>int</type><type>intVec</type>
+                </param>
+            </input>
+            <returns type="intVec"/>
+            <description>
+                ALMA-only. Returns an integer array containing the receiver band
+                of the specified spw(s). A return value of -1 means no receiver
+                band number could be determined. The name of the spw is first
+                checked to determine if the receiver band value is encoded
+                there. If not, the corresponding spectral window ID is sought in
+                the ASDM_RECEIVER table, if it exists, and if it has less than
+                or equal number of rows compared to the SPECTRAL_WINDOW table.
+                If the corresponding spectral window can be found in the
+                ASDM_RECEIVER table, then the corresponding frequencyBand column
+                value is checked to determine if the receiver band information
+                is encoded there. In the case where the spectral window ID is
+                present in multiple cells of the spectralWindowId column, the
+                first row in which the ID is found is used to determine the
+                receiver band. If all these tests fail, -1 is returned for the
+                specified spectral window.
+            </description>
+            <example>
+    msmd.open(&quot;my.ms&quot;)
+    # get the receiver bands for spws 8 and 2.
+    rx_bands = msmd.rxbands([8, 2])
+    # get all receiver bands
+    all_rx_bands = msmd.rxbands()
+    msmd.done()
+            </example>
+        </method>
+
         <method name="scannumbers" type="function">
             <shortdescription>Get an array of the unique scan numbers associated with the MS for the specified observation ID and array ID.</shortdescription>
             <input>
@@ -2146,6 +2186,32 @@ windows in the dataset and close the tool.
             </example>
         </method>
         
+        <method direction="in" name="subwindows" type="function">
+            <shortdescription>ALMA-specific. Get the values of the subwindows for the specified spws.</shortdescription>
+             <input>
+                <param name="spwids" direction="in" type="any">
+                    <description>Zero-based spw ID(s) for which to get the values (integer or interger array). Unspecified will return all receiver band values.</description>
+                     <value type="string"/>
+                    <type>string</type><type>int</type><type>intVec</type>
+                </param>
+            </input>
+            <returns type="intVec"/>
+            <description>
+                ALMA-only. Returns an integer array containing the subwindow of
+                the specified spw(s). The spw name is checked to determine if
+                the subwindow value is encoded within it. A return value of -1
+                indicates that a subwindow number could be determined. 
+            </description>
+            <example>
+    msmd.open(&quot;my.ms&quot;)
+    # get the subwindows for spws 8 and 2.
+    sws = msmd.subwindows([8, 2])
+    # get all subwindows
+    all_sws = msmd.subwindows()
+    msmd.done()
+            </example>
+        </method>
+
         <method name="statesforscan" type="function">
             <shortdescription>Get an array of the unique state IDs for the specified scan number, observation ID, and array ID.</shortdescription>
              <input>
@@ -2215,11 +2281,12 @@ windows in the dataset and close the tool.
         </method>
         
         <method name="tdmspws" type="function">
-            <shortdescription>Get an array of spectral window IDs used for TDM. These are windows that have 64, 128, or 256 channels.</shortdescription>
+            <shortdescription>Get an array of spectral window IDs used for TDM.</shortdescription>
             <returns type="intVec"/>
             <description>
-                
-                Get an array of spectral window IDs used for TDM. These are windows that have 64, 128, or 256 channels.
+                Get an array of spectral window IDs used for TDM. These windows
+                are defined by the rules in the description of the method
+                almaspws().
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -2262,12 +2329,12 @@ windows in the dataset and close the tool.
             </input>
             <returns type="doubleVec"/>
             <description>
-                Get an array of the unique times for the specified field.
+                 Get an array of the unique times associated with the specified field ID. The times correspond to those in the TIME column, so are values of the time system associated with that column and have units associated with that column. Only unique times are returned; duplicates are dropped. Providing a negative field ID will result in an exception being thrown.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
     # get the times associated with field 3
-    times = msmd.timesforfields(3)
+    times = msmd.timesforfield(3)
     msmd.done()
             </example>
         </method>
@@ -2282,7 +2349,7 @@ windows in the dataset and close the tool.
             </input>
             <returns type="doubleVec"/>
             <description>
-                Get an array of the unique times for the specified intent.
+                Get an array of the unique times associated with the specified intent.  The times correspond to those in the TIME column, so are values of the time system associated with that column and have units associated with that column. Only unique times are returned; duplicates are dropped.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)
@@ -2346,7 +2413,7 @@ windows in the dataset and close the tool.
             </input>
             <returns type="doubleVec"/>
             <description>
-                Get an array of the unique times for the specified scan numbers, observation ID, and array ID.
+                Get an array of the unique times for the specified scan numbers, observation ID, and array ID.  The times correspond to those in the TIME column, so are values of the time system associated with that column and have units associated with that column. Only unique times are returned; duplicates are dropped. For the scans parameter, a single non-negative integer or a list of non-negative integers, all of which are valid scan numbers in the MS, must be supplied.
             </description>
             <example>
     msmd.open(&quot;my.ms&quot;)

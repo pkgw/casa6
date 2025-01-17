@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -121,11 +121,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       //Matrix<Float> tempMat1(itsMatResidual);
       //itsCleaner.setOrigDirty( tempMat1 );
 
-      if (itsFusedThreshold < 0)
-      {
-        os << LogIO::WARN << "Acceptable fusedthreshld values are >= 0. Changing fusedthreshold from " << itsFusedThreshold << " to 0." << LogIO::POST;
-        itsFusedThreshold = 0.0;
-      }
 
       itsCleaner.setFusedThreshold(itsFusedThreshold);
     }

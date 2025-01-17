@@ -73,11 +73,13 @@ This is used to construct {\tt synthesisnormalizer} tool.
    <method name="scatterweightdensity" type="function">
    <shortdescription>Scatter summed Gridded Weight images</shortdescription>
 
-<description>
+   <description>
+     scatter sum gridded weight image for continuum Briggs style to other siimagestore
+     returns the disk name if it exists 
 </description>
 <input/>
 
-<returns type="bool"/>
+<returns type="string"/>
 </method>
 
 
@@ -114,8 +116,17 @@ This is used to construct {\tt synthesisnormalizer} tool.
 <input/>
 
 <returns type="bool"/>
-</method>
+   </method>
+   
+<method name="makepsfbeamset" type="function">
+   <shortdescription>make the psf beamset and store it in the psf image</shortdescription>
 
+<description>
+</description>
+<input/>
+
+<returns type="bool"/>
+</method>
 
 
    <method name="normalizeprimarybeam" type="function">
@@ -132,7 +143,12 @@ This is used to construct {\tt synthesisnormalizer} tool.
 
    <method name="divideresidualbyweight" type="function">
    <shortdescription>Divide residual by weight</shortdescription>
-
+   <input>
+     <param type="bool" name="singledish">
+       <shortdescription>True if the method tries to handle single dish images.</shortdescription>
+       <value>false</value>
+     </param>
+   </input>
 <description>
 </description>
 <input/>

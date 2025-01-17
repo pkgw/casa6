@@ -17,7 +17,7 @@
 //# 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be addressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -157,6 +157,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
      }
 
+  void SIMapper::handleNewMs(const casacore::MeasurementSet &ms)
+  {
+    if (not ift2_p.null()) {
+        ift2_p->handleNewMs(ms, imageStore());
+    }
+  }
 
   void SIMapper::grid(vi::VisBuffer2& vb, Bool dopsf, refim::FTMachine::Type col,
 		      const Int whichFTM)

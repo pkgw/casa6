@@ -17,7 +17,7 @@
 //# Inc., 675 Massachusetts Ave, Cambridge, MA 02139, USA.
 //#
 //# Correspondence concerning AIPS++ should be adressed as follows:
-//#        Internet email: aips2-request@nrao.edu.
+//#        Internet email: casa-feedback@nrao.edu.
 //#        Postal address: AIPS++ Project Office
 //#                        National Radio Astronomy Observatory
 //#                        520 Edgemont Road
@@ -30,8 +30,9 @@
 
 #include <casacore/casa/aips.h>
 #include <synthesis/MeasurementComponents/StandardVisCal.h>
-#include <synthesis/MeasurementComponents/SolvableVisCal.h> 
+#include <synthesis/MeasurementComponents/DelayRateFFT.h>
 #include <synthesis/CalTables/CTTimeInterp1.h>
+
 
 namespace casa { //# NAMESPACE CASA - BEGIN
 
@@ -69,104 +70,6 @@ private:
   //  CTRateAwareTimeInterp1(); 
 
 };
-
-// A utility class that provides an API that allows clients to find
-// grid indices in time and frequency from a SBDList that can include
-// multiple spectral windows.
-class SDBListGridManager {
-public:
-     casacore::Double fmin, fmax, df;
-     casacore::Double tmin, tmax, dt;
-     casacore::Int nt, totalChans = 0, nSPWChan;
-private:
-    SDBList& sdbs;
-    std::set< casacore::Int > spwins;
-    std::set< casacore::Double > times;
-    // You can't store references in a map.
-    // C++ 11 has a reference_wrapper type, but for now:
-    std::map< casacore::Int, casacore::Vector<casacore::Double> const * > spwIdToFreqMap;
-public:
-    SDBListGridManager(SDBList& sdbs_);
-    size_t nSPW() { return spwins.size();   }
-    casacore::Int bigFreqGridIndex(casacore::Double f) { return round( (f - fmin)/df ); }
-    casacore::Int getTimeIndex(casacore::Double t) { return round( (t - tmin)/dt ); }
-    casacore::Int nChannels() { return totalChans;  }
-    casacore::Int swStartIndex(casacore::Int spw);
-    void checkAllGridpoints();
-};
-
-
-// DelayRateFFT is responsible for the two-dimensional FFT of
-// visibility phases to find an estimate for deay. rate and phase
-// offset parameters during fringe-fitting.
-class DelayRateFFT {
-    // The idiom used in KJones solvers is:
-    // DelayFFT delfft1(vbga(ibuf), ptbw, refant());
-    // delfft1.FFT();
-    // delfft1.shift(f0[0]);
-    // delfft1.searchPeak();
-    // This class is designed to follow that API (without the shift).
-private:
-    casacore::Int refant_;
-    // SBDListGridManager handles all the sizing and interpolating of
-    // multiple spectral windows onto a single frequency grid.
-    SDBListGridManager gm_;
-    casacore::Int nPadFactor_;
-    casacore::Int nt_;
-    casacore::Int nPadT_;
-    casacore::Int nChan_;
-    //casacore::Int nSPWChan_;
-    casacore::Int nPadChan_;
-    casacore::Int nElem_;
-    casacore::Double dt_, f0_, df_, df_all_;
-    //casacore::Double t0_, t1_;
-    //casacore::Double padBW_;
-    casacore::Array<casacore::Complex> Vpad_;
-    casacore::Array<casacore::Int> xcount_;
-    casacore::Array<casacore::Float> sumw_;
-    casacore::Array<casacore::Float> sumww_;
-    casacore::Int nCorr_;
-    // 
-    casacore::Matrix<casacore::Float> param_;
-    casacore::Matrix<casacore::Bool> flag_; //?
-    std::map< casacore::Int, std::set<casacore::Int> > activeAntennas_;
-    std::set<casacore::Int> allActiveAntennas_;
-    casacore::Array<casacore::Double>& delayWindow_;
-    casacore::Array<casacore::Double>& rateWindow_;
-    
-public:
-    DelayRateFFT(SDBList& sdbs, casacore::Int refant,
-                 casacore::Double reffreq,
-                 casacore::Array<casacore::Double>& delayWindow_,
-                 casacore::Array<casacore::Double>& rateWindow_
-         );
-    DelayRateFFT(casacore::Array<casacore::Complex>& data, casacore::Int nPadFactor,
-                 casacore::Float f0, casacore::Float df, casacore::Float dt, SDBList& s,
-                 casacore::Array<casacore::Double>& delayWindow_,
-                 casacore::Array<casacore::Double>& rateWindow_
-         );
-    // The following are copied from KJones.h definition of DelayFFT.
-    const std::map<casacore::Int, std::set<casacore::Int> >& getActiveAntennas() const
-    { return activeAntennas_; }
-    const std::set<casacore::Int>& getActiveAntennasCorrelation(casacore::Int icor) const
-    { return activeAntennas_.find(icor)->second; }
-    void removeAntennasCorrelation(casacore::Int, std::set< casacore::Int >);
-    const casacore::Array<casacore::Complex>& Vpad() const { return Vpad_; }
-    const casacore::Matrix<casacore::Bool>& flag() const { return flag_; }
-    const casacore::Matrix<casacore::Float>& param() const { return param_; }
-    casacore::Matrix<casacore::Float> delay() const;
-    casacore::Matrix<casacore::Float> rate() const;
-    casacore::Int refant() const { return refant_; }
-    casacore::Double get_df_all() { return df_all_; }
-    
-    void FFT();
-    std::pair<casacore::Bool, casacore::Float>  xinterp(casacore::Float alo, casacore::Float amax, casacore::Float ahi);
-    void searchPeak();
-    casacore::Float snr(casacore::Int icorr, casacore::Int ielem, casacore::Float delay, casacore::Float rate);
-
-    void printActive();
-}; // End of class DelayRateFFT.
-
 
 
 // Fringe-fitting (parametrized phase) VisCal
@@ -253,6 +156,7 @@ public:
   virtual casacore::Array<casacore::Double>& delayWindow() { return delayWindow_; }
   virtual casacore::Array<casacore::Double>& rateWindow() { return rateWindow_; }
   virtual casacore::Array<casacore::Bool>& paramActive() { return paramActive_; }
+  virtual casacore::Bool& concatSPWs() { return concatspws_; }
   
   // Apply reference antenna
   virtual void applyRefAnt();
@@ -286,7 +190,7 @@ private:
   // Pointer to CTRateAwareTimeInterp1 factory method
   // This ensures the rates are incorporated into the time-dep interpolation
   virtual CTTIFactoryPtr cttifactoryptr() { return &CTRateAwareTimeInterp1::factory; };
-  void calculateSNR(casacore::Int, DelayRateFFT);
+  void calculateSNR(casacore::Int, casa::DelayRateFFT&);
 
   casacore::Int refant_; // Override
   casacore::Bool zeroRates_;
@@ -295,6 +199,7 @@ private:
   casacore::Array<casacore::Double> rateWindow_;
   casacore::Array<casacore::Bool> paramActive_;
   casacore::Int maxits_;
+  casacore::Bool concatspws_;
 };
 
 
