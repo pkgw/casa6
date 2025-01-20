@@ -102,15 +102,16 @@ class phaseshift_base_checks(unittest.TestCase):
         :param field_selection: field selected as integer if used (only single value supported)
 
         """
-        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+        from casatasks.private.task_phaseshift import (_find_field_ref_frames,
+                                                       _convert_to_ref_frame)
 
         def get_expected_output_ra_dec(row, new_centers, input_phase_col,
-                                       field_selection):
+                                       field_selection, field_frames):
             field_id = str(row)
             if isinstance(new_centers, dict):
                 if field_id in new_centers:
-                    ra_rad, dec_rad = _convert_to_ra_dec_j2000(
-                        new_centers[field_id])
+                    ra_rad, dec_rad = _convert_to_ref_frame(new_centers[field_id],
+                                                            field_frames[row])
                 else:
                     ra_rad = input_phase_col[0, 0, row]
                     dec_rad = input_phase_col[1, 0, row]
@@ -119,7 +120,7 @@ class phaseshift_base_checks(unittest.TestCase):
                     ra_rad = input_phase_col[0, 0, row]
                     dec_rad = input_phase_col[1, 0, row]
                 else:
-                    ra_rad, dec_rad = _convert_to_ra_dec_j2000(new_centers)
+                    ra_rad, dec_rad = _convert_to_ref_frame(new_centers, field_frames[row])
 
             return ra_rad, dec_rad
 
@@ -133,13 +134,27 @@ class phaseshift_base_checks(unittest.TestCase):
 
             return phase_col
 
+        def get_field_frame_names(vis_path):
+            try:
+                tblocal = table()
+                tblocal.open(vis_path + '/FIELD', nomodify=True)
+                field_frames = _find_field_ref_frames(tblocal)
+            finally:
+                tblocal.done()
+
+            return field_frames
 
         phase_col = get_field_subt_phasedir_col(outputvis)
         input_phase_col = get_field_subt_phasedir_col(inputvis)
+        # Get as reference the ref frames of the input vis (with mstransform we expect the output MS
+        # should have the same metadata = same frames as the input MS)
+        field_frames = get_field_frame_names(inputvis)
+
         for row in range(0, phase_col.shape[-1]):
             ra_rad, dec_rad = get_expected_output_ra_dec(row, new_centers,
                                                          input_phase_col,
-                                                         field_selection)
+                                                         field_selection,
+                                                         field_frames)
 
             # The 0 in the middle is the 'NUM_POLY' axis
             self.assertEqual(phase_col[0, 0, row], ra_rad,
@@ -1027,30 +1042,73 @@ class reference_frame_tests(unittest.TestCase):
 
 class phaseshift_subfunctions_test(unittest.TestCase):
 
-    def test__convert_to_j2000(self):
-        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+    def setUp(self):
+        shutil.copytree(datapath, datacopy)
+        shutil.copytree(datapath_ngc, datacopy_ngc)
+        change_perms(datacopy)
+        change_perms(datacopy_ngc)
+
+    def tearDown(self):
+        shutil.rmtree(datacopy)
+        shutil.rmtree(datacopy_ngc)
+
+    def test__fiend_field_ref_frame(self):
+        from casatasks.private.task_phaseshift import _find_field_ref_frames
+
+        try:
+            tblocal = table()
+            tblocal.open(datacopy + "/FIELD", nomodify=True)
+            ref_frames = _find_field_ref_frames(tblocal)
+        finally:
+            tblocal.close()
+
+        self.assertEqual(ref_frames, {0: "J2000"})
+
+    def test__fiend_field_ref_frame_b1950_vla(self):
+        from casatasks.private.task_phaseshift import _find_field_ref_frames
+
+        try:
+            tblocal = table()
+            tblocal.open(datacopy_ngc + "/FIELD", nomodify=True)
+            ref_frames = _find_field_ref_frames(tblocal)
+        finally:
+            tblocal.close()
+
+        self.assertEqual(ref_frames, {0: "B1950_VLA", 1: 'B1950_VLA', 2: 'B1950_VLA'})
+
+    def test__convert_to_ref_frame(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
 
         phasecenter = 'J2000 19h53m50 40d06m00'
-        fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
+        fra, fdec = _convert_to_ref_frame(phasecenter, "J2000")
         places = 6
         self.assertAlmostEqual(fra, -1.074105, places=places)
         self.assertAlmostEqual(fdec, 0.6998770, places=places)
 
-    def test__convert_to_j2000_using_default_frame(self):
-        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+    def test__convert_to_ref_frame_using_default_frame(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
 
         phasecenter = '19h53m50 40d06m00'
-        fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
+        fra, fdec = _convert_to_ref_frame(phasecenter, "J2000")
         places = 6
         self.assertAlmostEqual(fra, -1.074105, places=places)
         self.assertAlmostEqual(fdec, 0.6998770, places=places)
 
-    def test__convert_to_j2000_wrong(self):
-        from casatasks.private.task_phaseshift import _convert_to_ra_dec_j2000
+    def test__convert_to_ref_frame_wrong(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
 
         phasecenter = 'BOGUS xxh53m50 40d06m00'
         with self.assertRaisesRegex(RuntimeError, expected_regex="failed"):
-            fra, fdec = _convert_to_ra_dec_j2000(phasecenter)
+            fra, fdec = _convert_to_ref_frame(phasecenter, "B1950_VLA")
+
+    def test__convert_to_ref_frame_icrs(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
+
+        phasecenter = 'B1950 19h53m50 40d06m00'
+        fra, fdec = _convert_to_ref_frame(phasecenter, "ICRS")
+        places = 6
+        self.assertAlmostEqual(fra, -1.066522, places=places)
+        self.assertAlmostEqual(fdec, 0.7022094, places=places)
 
 
 class phaseshift_multi_phasecenter_test(phaseshift_base_checks):
@@ -1158,8 +1216,8 @@ class phaseshift_multi_phasecenter_test(phaseshift_base_checks):
 
     def test_phasecenter_dict_one_out(self):
         ''' Check multiple field phasecenter(s) given as a dict, skip one field '''
-        new_centerA = 'J2000 19h53m50 40d06m00'
-        new_centerB = 'J2000 22h01m02 40d04m03'
+        new_centerA = 'GALACTIC 19h53m50 40d06m00'
+        new_centerB = 'GALACTIC 22h01m02 40d04m03'
         phasecenter = {'0': new_centerA,
                        '2' : new_centerB}
         result = phaseshift(datacopy, outputvis=self.outputvis,
@@ -1176,8 +1234,8 @@ class phaseshift_multi_phasecenter_test(phaseshift_base_checks):
     def test_phasecenter_dict_with_field_selection_overlapping(self):
         ''' Check multiple field phasecenter(s) given as a dict,
         skip one field, with selection of all fields in phasecenter dict '''
-        new_centerA = 'J2000 19h53m50 40d06m00'
-        new_centerB = 'J2000 22h01m02 40d04m03'
+        new_centerA = 'ICRS 19h53m50 40d06m00'
+        new_centerB = 'ICRS 22h01m02 40d04m03'
         phasecenter = {'0': new_centerA,
                        '2' : new_centerB}
         result = phaseshift(datacopy, outputvis=self.outputvis, field='0,2',
