@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 from .mstools import write_history
@@ -140,31 +140,34 @@ def _get_col_names(vis: str) -> np.ndarray:
 
 def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, dict]):
     """Update MS/FIELD subtable with shifted center(s)."""
+
     try:
         tblocal = table()
         # modify FIELD table
         tblocal.open(outputvis + "/FIELD", nomodify=False)
         pcol = tblocal.getcol("PHASE_DIR")
 
+        field_frames = _find_field_ref_frames(tblocal)
         if isinstance(phasecenter, str):
-            thenewra_rad, thenewdec_rad = _convert_to_ra_dec_j2000(phasecenter)
             if field:
                 try:
                     field_id = int(field)
                 except ValueError as _exc:
                     fnames = tblocal.getcol("NAME")
                     field_id = np.where(fnames == field)[0][0]
+                thenewra_rad, thenewdec_rad = _convert_to_ref_frame(phasecenter, field_frames[field_id])
                 pcol[0][0][field_id] = thenewra_rad
                 pcol[1][0][field_id] = thenewdec_rad
             else:
                 for row in range(0, tblocal.nrows()):
+                    thenewra_rad, thenewdec_rad = _convert_to_ref_frame(phasecenter, field_frames[row])
                     pcol[0][0][row] = thenewra_rad
                     pcol[1][0][row] = thenewdec_rad
 
         elif isinstance(phasecenter, dict):
             for field_id, field_center in phasecenter.items():
-                thenewra_rad, thenewdec_rad = _convert_to_ra_dec_j2000(field_center)
                 field_iidx = int(field_id)
+                thenewra_rad, thenewdec_rad = _convert_to_ref_frame(field_center, field_frames[field_iidx])
                 pcol[0][0][field_iidx] = thenewra_rad
                 pcol[1][0][field_iidx] = thenewdec_rad
 
@@ -177,11 +180,53 @@ def _update_field_subtable(outputvis: str, field: str, phasecenter: Union[str, d
         tblocal.done()
 
 
-def _convert_to_ra_dec_j2000(phasecenter: str) -> Tuple[float, float]:
-    """Parse phase center string to obtain ra/dec (in rad)"""
+def _find_field_ref_frames(tblocal: table) -> Dict[int, str]:
+    """
+    Given an open FIELD subtable, returns a dict of {field: reference_frame} for the PHASE_DIR
+    column, where field is of type int, and reference_frame is of type str.
+
+    This handles:
+    - simple metadata where the reference frame is in the keywords of the PHASE_DIR column (same
+      ref frame for all fields)
+    - variable (per-field) reference frame metadata, usually in a PhaseDir_Ref additional column
+    """
+
+    dir_col = "PHASE_DIR"
+    metainfo = tblocal.getcolkeyword(dir_col, "MEASINFO")
+    nrows = tblocal.nrows()
+    if "Ref" in metainfo:
+        ref_frame = metainfo["Ref"]
+        field_ref_frames = {field_id: ref_frame for field_id in range(0, nrows)}
+    elif "Ref" not in metainfo and ("VarRefCol" in metainfo and "TabRefTypes" in metainfo and
+                                    "TabRefCodes" in metainfo):
+        col = metainfo["VarRefCol"]   # presumably PhaseDir_Ref
+        ref_frame_codes = tblocal.getcol(col)
+        ref_codes_to_frame_idx = {code: idx for idx, code in enumerate(metainfo["TabRefCodes"])}
+        ref_frame_names = [metainfo["TabRefTypes"][ref_codes_to_frame_idx[code]] for code in
+                           ref_frame_codes]
+        field_ref_frames = {field_id: ref_frame_names[field_id] for field_id in np.arange(0, nrows)}
+    else:
+        raise RuntimeError("Error when retrieving reference frames from the metadata of column "
+                           f"{dir_col}. The field 'Ref' is not present but could not find the "
+                           "fields 'VarRefCol', 'TabRefTypes', and 'TabRefCodes'")
+
+    return field_ref_frames
+
+
+def _convert_to_ref_frame(phasecenter: str, output_ref_frame: str) -> Tuple[float, float]:
+    """
+    Converts one phasecenter (presumably given as input to this task) to another reference
+    frame (presumably the frame used in the (output) MS for the relevant field).
+
+    When applying phaseshift, the output MS has the same reference frames as the input MS, as
+    propagated by mstransform.
+
+    Returns the v0,v1 (RA,Dec) values in units of radians and using the requested frame, ready to be
+    written to a FIELD subtable.
+    """
     def parse_phasecenter(center: str) -> Tuple[str, str, str]:
         """
-        Splits the:
+        Parse phase center string to obtain ra/dec (in rad). Splits the:
         - (optional) frame,
         - v0 (typically RA),
         - v1 (typically Dec)
@@ -202,6 +247,9 @@ def _convert_to_ra_dec_j2000(phasecenter: str) -> Tuple[float, float]:
     try:
         melocal = me()
         dir_frame, dir_v0, dir_v1 = parse_phasecenter(phasecenter)
+
+        # Note: even if the input frame is the same as output_ref_frame, we need to ensure units of
+        # radians for the FIELD subtable
         if dir_frame:
             thedir = melocal.direction(dir_frame, dir_v0, dir_v1)
         else:
@@ -210,9 +258,9 @@ def _convert_to_ra_dec_j2000(phasecenter: str) -> Tuple[float, float]:
             raise RuntimeError(
                 f"measures.direction() failed for phasecenter string: {phasecenter}"
             )
-        if dir_frame != "J2000":
-            # Convert to J2000
-            thedir = melocal.measure(thedir, "J2000")
+
+        if dir_frame != output_ref_frame:
+            thedir = melocal.measure(thedir, output_ref_frame)
         thenewra_rad = thedir["m0"]["value"]
         thenewdec_rad = thedir["m1"]["value"]
     except Exception as instance:
