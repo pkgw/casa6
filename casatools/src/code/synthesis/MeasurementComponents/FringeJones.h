@@ -32,6 +32,7 @@
 #include <synthesis/MeasurementComponents/StandardVisCal.h>
 #include <synthesis/MeasurementComponents/DelayRateFFT.h>
 #include <synthesis/CalTables/CTTimeInterp1.h>
+#include <synthesis/CalTables/NewCalTable.h>
 
 
 namespace casa { //# NAMESPACE CASA - BEGIN
@@ -158,6 +159,11 @@ public:
   virtual casacore::Array<casacore::Bool>& paramActive() { return paramActive_; }
   virtual casacore::Bool& concatSPWs() { return concatspws_; }
   
+  virtual void smooth(casacore::Vector<casacore::Int>& fields,
+                      const casacore::String& smtype,
+                      const casacore::Double& smtime,
+                      const bool ratesmooth);
+  
   // Apply reference antenna
   virtual void applyRefAnt();
 
@@ -202,6 +208,10 @@ private:
   casacore::Bool concatspws_;
 };
 
+void smoothCTFringe(NewCalTable ct,
+                    const casacore::String& smtype,
+                    const casacore::Double& smtime,
+                    casacore::Vector<casacore::Int> selfields);
 
 } //# NAMESPACE CASA - END
 

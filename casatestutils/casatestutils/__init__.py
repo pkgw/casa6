@@ -160,6 +160,8 @@ def add_to_dict(self, output=None, dataset="TestData", status=False, **kwargs):
 
                         if is_vistask:
                             call = "{}({},{}".format(taskname, dataset, ','.join(params))
+                            if call.endswith(","):
+                                call = call[:-1] + ")"
                         else:
                             call = "{}({}".format(taskname, ','.join(params))
                         #print(call)

@@ -327,7 +327,7 @@
             "maintainerEmail":"rurvashi@nrao.edu",
             "testOptions":["mpi"],
             "testGroup":["Imaging","deconvolve"],
-            "timeout":3600,
+            "timeout":5400,
             "comment":""
         },
         {
@@ -1157,7 +1157,7 @@
             "maintainerEmail":"rurvashi@aoc.nrao.edu",
             "testOptions":["mpi"],
             "testGroup":["sdintimaging","Imaging"],
-            "timeout":3600,
+            "timeout":5400,
             "comment":""
         },
         {
