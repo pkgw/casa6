@@ -81,7 +81,8 @@ public:
   // Add time-averaging layer factory
   void addTimeAve(float timebin);
 
-  void addCorrCombine();
+  void addCorrCombine(casacore::String corrcombmode=
+		      casacore::String("default"));
 
   
   // Add calibration specific data filter
