@@ -711,9 +711,14 @@ PolAverageVi2Factory::~PolAverageVi2Factory() {
 }
 
 ViImplementation2 * PolAverageVi2Factory::createVi() const {
+  LogIO os(LogOrigin("PolAverageVi2Factory", __func__, WHERE));
   if (mode_ == AveragingMode::GEOMETRIC) {
+    String msg("Combining parallel-hand correlations directly.");
+    os << LogIO::NORMAL << msg << LogIO::POST;
     return new GeometricPolAverageTVI(inputVII_p);
   } else if (mode_ == AveragingMode::STOKES) {
+    String msg("Combining parallel-hand correlations to form Stokes I.");
+    os << LogIO::NORMAL << msg << LogIO::POST;
     return new StokesPolAverageTVI(inputVII_p);
   }
 

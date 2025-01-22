@@ -490,7 +490,7 @@ void MultiTermFTNew::finalizeToSkyNew(Bool dopsf,
 	}
 
 	// Take sumWeights from corrToStokes here....
-	Matrix<Float> sumWeightStokes( (imstore->sumwt())->shape()[2], (imstore->sumwt())->shape()[3]   );
+	Matrix<Float> sumWeightStokes( (imstore->sumwt(taylor))->shape()[2], (imstore->sumwt(taylor))->shape()[3]   );
 	StokesImageUtil::ToStokesSumWt( sumWeightStokes, sumWeights );
 
 	AlwaysAssert( ( (imstore->sumwt(taylor))->shape()[2] == sumWeightStokes.shape()[0] ) && 
