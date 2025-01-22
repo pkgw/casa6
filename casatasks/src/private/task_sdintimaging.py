@@ -4,8 +4,6 @@
 #
 ################################################
 
-from __future__ import absolute_import
-
 import platform
 import os
 import shutil
@@ -13,41 +11,21 @@ import numpy
 import copy
 import time
 
-# get is_CASA6 and is_python3
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatasks import casalog
+from casatasks import casalog
 
-    from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
-    #from casatasks import imregrid
-    from .cleanhelper import write_tclean_history, get_func_params
-    from .sdint_helper import *
-    from casatools import table
-    from casatools import synthesisimager,synthesisutils
-else:
-    from taskinit import *
-    from tasks import *
-
-    from imagerhelpers.imager_base import PySynthesisImager
-    from imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
-    from imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-    from imagerhelpers.input_parameters import ImagerParameters
-    from cleanhelper import write_tclean_history, get_func_params
-    from sdint_helper import *
-    table=casac.table
-    synthesisimager=casac.synthesisimager
-    synthesisutils=casac.synthesisutils
+from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
+from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
+from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
+#from casatasks import imregrid
+from .cleanhelper import write_tclean_history, get_func_params
+from .sdint_helper import *
+from casatools import table
+from casatools import synthesisimager,synthesisutils
 
 try:
-    if is_CASA6:
-        from casampi.MPIEnvironment import MPIEnvironment
-        from casampi import MPIInterface
-    else:
-        from mpi4casa.MPIEnvironment import MPIEnvironment
-        from mpi4casa import MPIInterface
+    from casampi.MPIEnvironment import MPIEnvironment
+    from casampi import MPIInterface
     mpi_available = True
 except ImportError:
     mpi_available = False
@@ -582,11 +560,8 @@ def sdintimaging(
 
     # Put all parameters into dictionaries and check them.
     ##make a dictionary of parameters that ImagerParameters take
+    defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
 
-    if is_python3:
-        defparm=dict(list(zip(ImagerParameters.__init__.__code__.co_varnames[1:], ImagerParameters.__init__.__defaults__)))
-    else:
-        defparm=dict(zip(ImagerParameters.__init__.__func__.__code__.co_varnames[1:], ImagerParameters.__init__.func_defaults))
         
     ###assign values to the ones passed to tclean and if not defined yet in tclean...
     ###assign them the default value of the constructor
@@ -615,12 +590,9 @@ def sdintimaging(
     if mpi_available and MPIEnvironment.is_mpi_enabled:
         mint=MPIInterface.MPIInterface()
         cl=mint.getCluster()
-        if(is_CASA6):
-            cl._cluster.pgc("from casatools import synthesisimager", False)
-            cl._cluster.pgc("si=synthesisimager()", False)
-        else:
-            cl._cluster.pgc("from casac import casac", False)
-            cl._cluster.pgc("si=casac.synthesisimager()", False) 
+        cl._cluster.pgc("from casatools import synthesisimager", False)
+        cl._cluster.pgc("si=synthesisimager()", False)
+
         cl._cluster.pgc("si.initmpi()", False)
         cppparallel=True
         ###ignore chanchunk

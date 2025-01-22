@@ -22,6 +22,11 @@ def sdimaging(infiles, outfile, overwrite, field, spw, antenna, scan, intent,
               # Performances optimization options
               enablecache, convertfirst,
               interpolation):
+    
+    casalog.post(
+        'The sdimaging task is deprecated and will be removed in future releases. '
+        'Please use tsdimaging instead.', 
+        "WARN")
     with sdimaging_worker(**locals()) as worker:
         worker.initialize()
         worker.execute()

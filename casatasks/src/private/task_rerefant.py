@@ -1,14 +1,8 @@
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatasks import casalog
-    from casatools import calibrater
-    _cb = calibrater()
-else:
-    from taskinit import *
-    _cb = cbtool( )
+from casatasks import casalog
+from casatools import calibrater
+_cb = calibrater()
 
 def rerefant(vis,tablein,caltable,refantmode,refant):
     """ Smooth calibration solution(s) derived from one or more sources:

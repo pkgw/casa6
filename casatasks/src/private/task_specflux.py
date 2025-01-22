@@ -33,18 +33,11 @@
 ###########################################################################
 import os.path
 import numpy
-from casatasks.private.casa_transition import *
-if is_CASA6:
-    from casatools import image, regionmanager, quanta
-    from casatasks import casalog
-    from .ialib import write_image_history, get_created_images
-else:
-    from taskinit import *
-    from taskinit import iatool as image
-    from ialib import write_image_history, get_created_images
-    image = iatool
-    regionmanager = rgtool
-    quanta = qatool
+
+from casatools import image, regionmanager, quanta
+from casatasks import casalog
+from .ialib import write_image_history, get_created_images
+
 
 def specflux(
     imagename, region, box, chans, stokes, mask, stretch,

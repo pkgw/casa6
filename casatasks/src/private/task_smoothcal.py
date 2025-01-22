@@ -1,16 +1,9 @@
-from __future__ import absolute_import
 import os
 
-from casatasks.private.casa_transition import is_CASA6
-if is_CASA6:
-    from casatools import calibrater
-    from casatasks import casalog
+from casatools import calibrater
+from casatasks import casalog
 
-    _cb = calibrater()
-else:
-    from taskinit import *
-
-    _cb = cbtool( )
+_cb = calibrater()
 
 def smoothcal(vis,tablein,caltable,field,smoothtype,smoothtime):
         """ Smooth calibration solution(s) derived from one or more sources:
