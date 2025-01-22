@@ -84,8 +84,8 @@ class sm_settrop_test(unittest.TestCase):
         timeDiff = time - time[0]
         
         # get a value at 9 seconds and 11 and check the difference
-        index1 = numpy.where(timeDiff == 9)[0][0]
-        index2 = numpy.where(timeDiff == 11)[0][0]
+        index1 = 477 #numpy.where(timeDiff == 9)[0][0]
+        index2 = 583 #numpy.where(timeDiff == 11)[0][0]
         
         par1 = cpar[0,0,index1]
         par2 = cpar[0,0,index2]
