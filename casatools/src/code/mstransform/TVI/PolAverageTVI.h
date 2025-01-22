@@ -372,7 +372,8 @@ private:
     if (configuration.isDefined("mode")) {
       casacore::String mode = configuration.asString("mode");
       mode.downcase();
-      if (mode == "geometric") {
+      if (mode == "geometric" ||
+	  mode == "parallel") {
         return AveragingMode::GEOMETRIC;
       } else if (mode == "stokes") {
         return AveragingMode::STOKES;

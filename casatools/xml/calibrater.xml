@@ -2132,6 +2132,11 @@ cb.close();
      <value>60.0</value>
      </param>
 
+     <param name="ratesmooth" direction="in" type="bool">
+     <description>Use rate aware smoothing with fringfit data</description>
+     <value>false</value>
+     </param>
+
 </input>
 <returns type="bool"/>
 
