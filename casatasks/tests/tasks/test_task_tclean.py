@@ -4074,7 +4074,7 @@ class test_wproject(testref_base):
 
            
           tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
-                 niter=20, weighting='uniform', stokes="IV", gridder='awp2', wprojplanes=16, 
+                 niter=20, weighting='uniform', stokes="IV", gridder='awp2', wprojplanes=4, 
                  computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
           ## source peak after pbcor
           report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]), (self.img+'.awp2.image.pbcor',0.0,[323,858,1,0]) ] )
@@ -4125,7 +4125,7 @@ class test_widefield(testref_base):
           ##Do IV after mvc for stokes bug CAS-14454 is fixed 
           tclean(vis=msname, imagename=self.img+'.awp2',  imsize=2000, cell='1.6arcsec',field='', 
                  specmode='mvc', deconvolver='mtmfs', nchan=-1,
-                 niter=20, weighting='uniform', stokes="I", phasecenter='J2000 00h07m0.0 50d0m0.000', gridder='awp2', wprojplanes=16, 
+                 niter=20, weighting='uniform', stokes="I", phasecenter='J2000 00h07m0.0 50d0m0.000', gridder='awp2', wprojplanes=4, 
                  computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
           ## source peak after pbcor
           report=self.th.checkall(imgexist=[self.img+'.awp2.image.tt0'],
