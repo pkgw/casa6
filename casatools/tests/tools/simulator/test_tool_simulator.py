@@ -97,7 +97,7 @@ class sm_settrop_test(unittest.TestCase):
         phaseDiff = phaseang2 - phaseang1
         
         # Test that there is no more large positive jump in phase angle
-        self.assertTrue(numpy.isclose(phaseDiff, -15.6033857), msg=phaseDiff)
+        self.assertTrue(numpy.isclose(phaseDiff, -15.6033857), msg=(phaseDiff,par1,par2))
         # check that a corrected data col exists
         self.assertTrue(corDataExists)
         # if simint is lower than 0.1  get warning and value changed to 0.1
