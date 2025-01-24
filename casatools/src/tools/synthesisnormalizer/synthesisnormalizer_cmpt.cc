@@ -99,19 +99,19 @@ bool synthesisnormalizer::gatherweightdensity()
 {
   Bool rstat(false);
   try {
-    itsNormalizer->gatherImages( /*dopsf*/false, /*doresidual*/false, /*density*/ true );
+    //itsNormalizer->gatherImages( /*dopsf*/false, /*doresidual*/false, /*density*/ true );
+    itsNormalizer->gatherWeightDensity();
     rstat=true;
   } catch  (AipsError x) {
     RETHROW(x);
   }
   return rstat;
 }
-bool synthesisnormalizer::scatterweightdensity()
+string synthesisnormalizer::scatterweightdensity()
 {
-  Bool rstat(false);
+  string rstat="";
   try {
-    itsNormalizer->scatterWeightDensity( ); 
-    rstat=true;
+    rstat=itsNormalizer->scatterWeightDensity( ); 
   } catch  (AipsError x) {
     RETHROW(x);
   }
@@ -154,6 +154,20 @@ bool synthesisnormalizer::gatherresidual()
   }
   return rstat;
 }
+
+  bool synthesisnormalizer::divideweightbysumwt()
+  {
+    Bool rstat(false);
+    try {
+      itsNormalizer->divideWeightBySumWt();
+      rstat = true;
+    }
+    catch (AipsError x) {
+      RETHROW(x);
+    }
+    return rstat;
+  }
+
 bool synthesisnormalizer::makepsfbeamset() {
   Bool rstat(false);
   try {
@@ -164,6 +178,7 @@ bool synthesisnormalizer::makepsfbeamset() {
   }
   return rstat;
 }
+
   bool synthesisnormalizer::normalizeprimarybeam()
 {
   Bool rstat(false);
@@ -217,7 +232,7 @@ bool synthesisnormalizer::makepsfbeamset() {
 
 bool synthesisnormalizer::scattermodel()
 {
-  Bool rstat(false);
+  bool rstat(false);
   try {
     itsNormalizer->scatterModel( );
     rstat=true;

@@ -295,7 +295,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     StokesImageUtil::To(pbTemp, ctemp);
     LatticeLocker lock1(*(itsImages->pb()), FileLocker::Write);
     itsImages->pb()->copyData(  (LatticeExpr<Float>)((*(itsImages->pb()))+pbTemp) );
-
+    itsImages->pb()->unlock();
   }//addPB
   
 
@@ -362,6 +362,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
     LatticeLocker lock1(*(itsImages->pb()), FileLocker::Write);
     itsImages->pb()->set(0.0);
+    itsImages->pb()->unlock();
   }
 
   void SIMapper::addPB(VisBuffer& vb, PBMath& pbMath)
@@ -378,7 +379,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     StokesImageUtil::To(pbTemp, ctemp);
     LatticeLocker lock1(*(itsImages->pb()), FileLocker::Write);
     itsImages->pb()->copyData(  (LatticeExpr<Float>)((*(itsImages->pb()))+pbTemp) );
-
+    itsImages->pb()->unlock();
   }//addPB
   
 

@@ -2,7 +2,7 @@
 //#
 //#  CASA - Common Astronomy Software Applications (http://casa.nrao.edu/)
 //#  Copyright (C) Associated Universities, Inc. Washington DC, USA 2011, All rights reserved.
-//#  Copyright (C) European Southern Observatory, 2011, All rights reserved.
+//#  Copyright (C) European Southern Observatory, 2011-2024, All rights reserved.
 //#
 //#  This library is free software; you can redistribute it and/or
 //#  modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,8 @@
 
 #ifndef PhaseShiftingTVI_H_
 #define PhaseShiftingTVI_H_
+
+#include <unordered_map>
 
 // Base class
 #include <mstransform/TVI/FreqAxisTVI.h>
@@ -68,22 +70,29 @@ public:
 
 protected:
 
-    casacore::Bool parseConfiguration(const casacore::Record &configuration);
+    void parseConfiguration(const casacore::Record &configuration);
+    void parsePhasecenter(const casacore::Record &configuration);
+    void parsePhasecenterDict(const casacore::Record &configuration);
+    casacore::MDirection checkPhaseCenterStr(const casacore::String &phasecenter,
+                                             const std::string &fieldInfo = "");
+    casacore::rownr_t getMaxMSFieldID() const;
+    std::pair<bool, casacore::MDirection> findConvertedPhaseCenter() const;
     void initialize();
-    void initializeUWVMachine();
     void shiftUVWPhases();
 
+	// only used when not using wide-field algorithm (not wideFieldMode_p)
 	casacore::Double dx_p, dy_p;
 
+	std::unordered_map<int, casacore::MDirection> phaseCenterSpec_p;
 	// CAS-12706 Members wide-field phase shifting algorithm
 	bool wideFieldMode_p;
-	bool uvwMachineInitialized_p;
-	casacore::String phaseCenterName_p;
-	casacore::MDirection phaseCenter_p;
-	casacore::MSColumns *selectedInputMsCols_p;
+
+	// Set once from Vii/MS at init time, if wideFieldMode_p
 	casacore::MPosition observatoryPosition_p;
 	casacore::MEpoch referenceTime_p;
 	casacore::String referenceTimeUnits_p;
+
+	// buffer to pass shift from shiftUVWPhases() => TVI uvw/data cols
 	casacore::Matrix<casacore::Double> newUVW_p;
 	casacore::Vector<casacore::Double> phaseShift_p;
 };

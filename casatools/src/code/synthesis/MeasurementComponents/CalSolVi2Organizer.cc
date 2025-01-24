@@ -267,12 +267,12 @@ void CalSolVi2Organizer::addCalFilter(Record const &config) {
 
 
 
-void CalSolVi2Organizer::addCorrCombine() {
+void CalSolVi2Organizer::addCorrCombine(String corrcombmode) {
   //  Must be at least one other layer already...
     AlwaysAssert(factories_.nelements()>0, AipsError);
 
   Record config;
-  config.define("mode", "default");
+  config.define("mode", corrcombmode);
   polave_= new PolAverageTVILayerFactory(config);
   this->appendFactory(polave_);
 }

@@ -33,7 +33,7 @@
 #define SYNTHESIS_TRANSFORM2_AWCONVFUNCHOLDER_H
 #include <casacore/coordinates/Coordinates/CoordinateSystem.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
-
+#include <msvis/MSVis/VisBufferUtil.h>
 namespace casa{ //# namespace casa
 namespace refim{ //#	 namespace for refactored imaging code with vi2/vb2
 class AWConvFuncHolder{
@@ -44,23 +44,58 @@ class AWConvFuncHolder{
   AWConvFuncHolder& operator=(const AWConvFuncHolder& other);
   bool loadConvFromFile();
   bool saveConvToFile(const casacore::String& filename);
-  bool addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& painc);
+  //paMAxRange is the maximum -ve and +ve value that pa range 
+  bool addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& paMaxRange);
   //Get the convFunctions and indexing from a given vb
   casacore::Array<casacore::Complex>& getConvFunc();
   casacore::Array<casacore::Complex>& getWeightConvFunc();
   casacore::Vector<casacore::Int> getConvSizes();
   casacore::Vector<casacore::Int> getConvSupports();
+  casacore::Vector<Stokes::StokesTypes> getPolVals(){return polVals_p;};
+  casacore::Vector<Double> getFreqVals(){return freqVals_p;};
+  casacore::Vector<Double> getWVals(){return wVals_p;};
+  casacore::Vector<Double> getPAVals() { return paVals_p; };
+  int getOverSampling() { return oversamp_p; };
   //Rowmap will return the indices to match along the 5th axis of convFunc, polmap is for the 3rd axis, and chanmap is for the 4th axis.
   //Rowmap will map combination of pa, antennapair and w to give the 5th index that matches 
   //Rowmap will be the same nrow as vb.nrows , polmap will gave the same length of vb.ncorrelations and chanmap will be the length of vb.nchannelscasacore::Vector<casacore::Int>& rowMap
-  void getConvIndices( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
 
-  
+  void getConvIndices(casacore::Vector<casacore::Int> &polMap,
+                      casacore::Vector<casacore::Int> &chanMap,
+                      casacore::Vector<casacore::Int> &rowMap,
+                      const vi::VisBuffer2 &vb,
+                      const casacore::Matrix<casacore::Double> &rotuvw,
+                      const casacore::Vector<casacore::Double> &freqs,
+                      const casacore::Bool predictMode=false,
+                      const bool ispsf=false);
 
- private:
-   void appendConvFuncs(const casacore::Array<casacore::Complex>& awConv,  const casacore::Array<casacore::Complex>& aWwtConv,  const casacore::Matrix<casacore::Int>& awsupport, const casacore::Vector<casacore::Double>& newfreqs, const casacore::Double paval);
-   
-   
+
+  // This function will return a subset of the convFuncs, i.e those used in this
+  // vb 
+  void getConvFuncs(casacore::Vector<casacore::Int> &polMap,
+                    casacore::Vector<casacore::Int> &chanMap,
+                    casacore::Vector<casacore::Int> &rowMap,
+                    casacore::Array<casacore::Complex>& convFunc,
+                    casacore::Array<casacore::Complex>& wgtConvFunc,
+                    const vi::VisBuffer2 &vb,
+                    const casacore::Matrix<casacore::Double> &rotuvw,
+                    const casacore::Vector<casacore::Double>& interpFreqs,
+                    const casacore::Bool predictMode=false,
+                    const bool ispsf=false);
+
+  //help AWConvFunc decide if single field or not
+  void setSingleField(const bool isSingleField = False){
+    isSingleField_p = isSingleField;
+  };
+
+private:
+  void appendConvFuncs(const casacore::Array<casacore::Complex> &awConv,
+                       const casacore::Array<casacore::Complex> &aWwtConv,
+                       const casacore::Matrix<casacore::Int> &awsupport,
+                       const casacore::Vector<casacore::Double> &newfreqs,
+                       const casacore::Double paval,
+                       const int startrow=0);
+
   double painc_p;
   bool dosquint_p;
   casacore::Array<casacore::Complex> convFunc_p;
@@ -86,8 +121,8 @@ class AWConvFuncHolder{
   int calcNpix_p;
   int oversamp_p;
   std::shared_ptr<EVLAAperture> aterm_p;
-                   
-  
+  std::shared_ptr<VisBufferUtil> vbutil_p;
+  bool isSingleField_p;
 };
   
    }//# end namespace refim

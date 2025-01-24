@@ -246,7 +246,7 @@ protected:
 
   // Find the convolution function
   virtual void findConvFunction(const casacore::ImageInterface<casacore::Complex>& image,
-			const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& uvw);
+			const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& uvw, const bool ispsf=false);
 
   
 
