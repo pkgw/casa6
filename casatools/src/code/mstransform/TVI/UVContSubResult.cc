@@ -77,11 +77,11 @@ void UVContSubResult::addOneFit(int field, int scan, int spw, int pol, Complex c
 Record UVContSubResult::getAccumulatedResult() const
 {
     Record fieldRec;
-    for (const auto fieldIt : accum) {
+    for (const auto &fieldIt : accum) {
         Record srec;
-        for (const auto scanIt : fieldIt.second) {
+        for (const auto &scanIt : fieldIt.second) {
             Record sprec;
-            for (const auto spwIt : scanIt.second) {
+            for (const auto &spwIt : scanIt.second) {
                 Record polrec;
                 for (const auto polIt : spwIt.second) {
                     const auto fitResult = polIt.second;
