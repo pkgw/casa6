@@ -63,6 +63,11 @@ class sm_settrop_test(unittest.TestCase):
         
     def test_smsettrop(self):
         """  """
+        # testing closing existing
+        self.assertTrue(len(_tb.showcache()) == 0)
+        _tb.close()
+        _sm.done()
+
         _sm.openfromms(self.vis_copy)
         # This call exercises the new parameter CAS-13194
         _sm.settrop(mode='screen', table=self.res_table,pwv=3.0,deltapwv=0.15,
@@ -97,7 +102,7 @@ class sm_settrop_test(unittest.TestCase):
         phaseDiff = phaseang2 - phaseang1
         
         # Test that there is no more large positive jump in phase angle
-        self.assertTrue(numpy.isclose(phaseDiff, -15.6033857), msg=(phaseDiff,par1,par2))
+        self.assertTrue(numpy.isclose(phaseDiff, -15.6033857), msg=(phaseDiff,cpar[0,0,477:584]))
         # check that a corrected data col exists
         self.assertTrue(corDataExists)
         # if simint is lower than 0.1  get warning and value changed to 0.1
