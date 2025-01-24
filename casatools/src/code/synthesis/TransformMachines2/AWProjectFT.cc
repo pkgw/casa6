@@ -110,10 +110,12 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     }
   }
 
-  ATerm* AWProjectFT::createTelescopeATerm(const String& telescopeName, const Bool& isATermOn)
+    ATerm* AWProjectFT::createTelescopeATerm(const String& telescopeName,
+					     const Bool& // isATermOn
+					     )
   {
     
-    if (!isATermOn) return new NoOpATerm();
+    //    if (!isATermOn) return new NoOpATerm();
     
     // MSObservationColumns msoc(ms.observation());
     // String ObsName=msoc.telescopeName()(0);
@@ -174,8 +176,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       rotateOTFPAIncr_p(0.1),
       Second("s"),Radian("rad"),Day("d"), pbNormalized_p(false), paNdxProcessed_p(),
       visResampler_p(nullptr), sensitivityPatternQualifier_p(-1),sensitivityPatternQualifierStr_p(""),
-    rotatedConvFunc_p(),
-      runTime1_p(0.0), previousSPWID_p(-1), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true), timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
+      rotatedConvFunc_p(),
+      runTime1_p(0.0), previousSPWID_p(-1), self_p(nullptr), vb2CFBMap_p(nullptr), po_p(nullptr),wbAWP_p(true),
+    timemass_p(0.0), timegrid_p(0.0), timedegrid_p(0.0)
   {
     //    convSize=0;
     tangentSpecified_p=false;
@@ -228,7 +231,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 			   PolOuterProduct::MuellerType muellerType)
     : FTMachine(cfcache,cf), padding_p(1.0), nWPlanes_p(nWPlanes),
       imageCache(0), cachesize(icachesize), tilesize(itilesize),
-      gridder(0), isTiled(false), lattice( ), 
+      gridder(0), isTiled(false),  lattice( ), 
       maxAbsData(0.0), centerLoc(IPosition(4,0)), offsetLoc(IPosition(4,0)),
       pointingToImage(0), usezero_p(usezero), avgPB_p(nullptr),
       // convFunc_p(), convWeights_p(),
@@ -297,7 +300,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       log_l << "Failed to create " << name() << " object." << LogIO::EXCEPTION;
     };
     maxConvSupport=-1;
-    //convSampling=OVERSAMPLING;
     convSampling=-1;
     visResampler_p->init(useDoubleGrid_p);
     //convSize=CONVSIZE;
@@ -432,15 +434,15 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	//	self_p = other.self_p;
 	wbAWP_p=other.wbAWP_p;
         timemass_p=0.0;
-        timegrid_p=0.0;
-        timedegrid_p=0.0;
+        timegrid_p = 0.0;
+        timedegrid_p = 0.0;
       };
     return *this;
   };
   //
   //----------------------------------------------------------------------
   //
-  void AWProjectFT::init() 
+  void AWProjectFT::init(const vi::VisBuffer2& /*vb*/) 
   {
     LogIO log_l(LogOrigin("AWProjectFT2", "init[R&D]"));
 
@@ -1098,6 +1100,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         
         cubeinfo=std::make_tuple(image.shape()(3),freqofBegChan);
 
+
         if(!avgPBReady_p)
           avgPBReady_p = (cfCache_p->loadAvgPB(avgPB_p,sensitivityPatternQualifierStr_p, cubeinfo) != CFDefs::NOTCACHED);
     
@@ -1197,7 +1200,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     if(doPBCorrection) 
       {
 	// Make the sensitivity Image if applicable
-	init();
+	init(vb);
 	initMaps(vb);
 	findConvFunction(*(compImageVec[0]), vb); // Pure virtual -- call local version
 
@@ -1249,7 +1252,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     ok();
     
-    init();
+    init(vb);
     makingPSF = false;
     initMaps(vb);
     
@@ -1377,7 +1380,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void AWProjectFT::finalizeToVis()
   {
     visResampler_p->runTimeDG_p=0.0;
-    logIO()<< LogIO::NORMAL2 << "Time degrid " << timedegrid_p << LogIO::POST;
+
+    logIO() << LogOrigin("AWProjectFT", "finalizeToVis")  << LogIO::NORMAL;
+    logIO()<< LogIO::WARN << "Time degrid " << timedegrid_p << LogIO::POST;
     timedegrid_p=0.0;
 
   if(!lattice.null()) lattice=0;
@@ -1412,7 +1417,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // image always points to the image
     image=&iimage;
     
-    init();
+    init(vb);
     initMaps(vb);
     log_l << "Computed maps using FTMachine::initMaps. " << "polMap = " << polMap << LogIO::POST;
     visResampler_p->setMaps(chanMap, polMap);
@@ -1445,14 +1450,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // point to the appropriate Lattice, either the ArrayLattice for
     // in memory gridding or to the image for to disk gridding.
     //
-    if(isTiled) 
-      {
-	imageCache->flush();
-	image->set(Complex(0.0));
-	lattice=CountedPtr<Lattice<Complex> > (image, false);
-      }
-    else 
-      {
+    
+  
 	IPosition gridShape(4, nx, ny, npol, nchan);
 	if(!useDoubleGrid_p){
 	griddedData.resize(gridShape);
@@ -1462,7 +1461,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  griddedData2.resize(gridShape);
 	  griddedData2=DComplex(0.0);
 	}
-      }
+      
 
     //cerr << "initializeToSky for grid" << endl;
     if(useDoubleGrid_p) 
@@ -1475,9 +1474,9 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   void AWProjectFT::finalizeToSky()
   {
-
-    logIO() <<   LogIO::NORMAL2 << "time to massage data " << timemass_p << LogIO::POST;
-    logIO() <<  LogIO::NORMAL2 << "time gridding " << timegrid_p << LogIO::POST;
+    logIO() << LogOrigin("AWProjectFT", "finalizeToSky")  << LogIO::NORMAL;
+    logIO() <<   LogIO::WARN << "time to massage data " << timemass_p << LogIO::POST;
+    logIO() <<  LogIO::WARN << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
     
@@ -1487,14 +1486,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     //
     //    LogIO log_l(LogOrigin("AWProjectFT2", "finalizeToSky[R&D]"));
 
-    if(isTiled) 
-      {
-	AlwaysAssert(image, AipsError);
-	AlwaysAssert(imageCache, AipsError);
-	imageCache->flush();
-	ostringstream o;
-	imageCache->showCacheStatistics(o);
-      }
     if(pointingToImage) delete pointingToImage;
     pointingToImage=0;
 
@@ -1529,12 +1520,22 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     void AWProjectFT::put(const VisBuffer2& vb, Int /*row*/, Bool dopsf,
 			FTMachine::Type type)
   {
+
+    
+    matchChannel(vb);
+ 
+
+    //cerr << "CHANMAP " << chanMap << endl;
+    //No point in reading data if its not matching in frequency
+    if(max(chanMap)==-1)
+      return;
     // Take care of translation of Bools to Integer
     makingPSF=dopsf;
     if(dopsf)
       ftmType_p=refim::FTMachine::PSF;
     Timer tim;
     tim.mark();
+
     
     try
       {
@@ -1585,7 +1586,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     setupVBStore(vbs,vb, elWeight,data,uvw,flags, dphase,dopsf,gridShape);
     timemass_p +=tim.real();
     tim.mark();
-    
     if (useDoubleGrid_p)
       {
 	resampleDataToGrid(griddedData2, vbs, vb, dopsf);//, *imagingweight, *data, uvw,flags,dphase,dopsf);
@@ -1628,6 +1628,16 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   //
   void AWProjectFT::get(VisBuffer2& vb, Int /*row*/)
   {
+
+    matchChannel(vb);
+ 
+
+    //cerr << "CHANMAP " << chanMap << endl;
+    //No point in reading data if its not matching in frequency
+    if(max(chanMap)==-1)
+      return;
+
+    
     findConvFunction(*image, vb);
     Timer tim;
     tim.mark();
@@ -1655,9 +1665,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     Bool tmpDoPSF=false;
 
     setupVBStore(vbs,vb, vb.imagingWeight(),data,uvw,flags, dphase,tmpDoPSF,griddedData.shape().asVector());
-    resampleGridToData(vbs, griddedData, vb);//, uvw, flags, dphase);
+
+     tim.mark();
+     resampleGridToData(vbs, griddedData, vb);//, uvw, flags, dphase);
+     timedegrid_p+=tim.real();
     interpolateFrequencyFromgrid(vb, data, FTMachine::MODEL);
-    timedegrid_p+=tim.real();
   }
   //
   //-------------------------------------------------------------------------
@@ -1722,7 +1734,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	const IPosition latticeShape = lattice->shape();
 
         int samp=getAWConvFunc()->getOversampling();
-        //cerr << "SAMP " << samp << endl;
+        //cerr << "SAMP " << samp << " ConvSampling "<< convSampling << endl;
         //Do sampling size correction    
         Vector<Float> sincConvX(nx);
         for (Int ix=0;ix<nx;ix++) {
@@ -2012,7 +2024,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	retval = (retval || image->fromRecord(error, imageAsRec));    
 	
 	// Might be changing the shape of sumWeight
-	init(); 
+	//init(vb); 
 	
 	if(isTiled) 
     	  lattice=CountedPtr<Lattice<Complex> > (image, false);
@@ -2143,36 +2155,30 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     po_p->fetchPointingOffset(*image, vb, doPointing);
     
-    if (makingPSF || (vbs.ftmType_p==casa::refim::FTMachine::WEIGHT)){
-      cfwts2_p->invokeGC(vbs.spwID_p);
-      vb2CFBMap_p->setDoPointing(doPointing);
-      vb2CFBMap_p->makeVBRow2CFBMap(*cfwts2_p,
-				      vb,
-				      paChangeDetector.getParAngleTolerance(),
-				      chanMap,polMap,po_p);
-    }
+    // Run the garbage collector for the supplied CFStore2 and make VB to CFB map in VB2CFBMap.
+    auto cleanup_setup = [&](CountedPtr<CFStore2>& cfs_l, const VisBuffer2& vb_l)
+		     {
+		       cfs_l->invokeGC(vbs.spwID_p);
+		       vb2CFBMap_p->setDoPointing(doPointing);
+		       vb2CFBMap_p->makeVBRow2CFBMap(*cfs_l,
+						     vb_l,
+						     paChangeDetector.getParAngleTolerance(),
+						     chanMap,polMap,po_p);
+		       
+		     };
+    if (makingPSF || (vbs.ftmType_p==casa::refim::FTMachine::WEIGHT))
+      cleanup_setup(cfwts2_p, vb);
     else
       {
-       // If the Wt. CFs are still in the memory, clear them.  They
+	// If the Wt. CFs are still in the memory, clear them.  They
 	// won't be required again (though with the silly check below,
 	// if the in-memory Wt. CFs are less than 1KB, they will be
 	// left in memory).
-	if (cfwts2_p->memUsage() > 1000)
-	  {
-	    cfwts2_p->clear();
-	  }
+	if (cfwts2_p->memUsage() > 1000) cfwts2_p->clear();
 
-	cfs2_p->invokeGC(vbs.spwID_p);
-	vb2CFBMap_p->setDoPointing(doPointing);
-	vb2CFBMap_p->makeVBRow2CFBMap(*cfs2_p, vb,
-				       paChangeDetector.getParAngleTolerance(),
-				       chanMap,polMap,po_p);
+	cleanup_setup(cfs2_p,vb);
       }
 
-    // 
-    // Trigger the computation of phase gradiant corresponding to the
-    // field offset (from the VB) w.r.t. the image phase center.
-    //
     //
     // For AzElApertures, this rotates the CFs.
     //

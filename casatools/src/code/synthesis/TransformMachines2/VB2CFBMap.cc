@@ -56,7 +56,10 @@ namespace casa{
       vectorPhaseGradCalculator_p.resize(0);
       // sigmaDev = SynthesisUtils::getenv("PO_SIGMADEV",3.0);
     };
-
+    VB2CFBMap::VB2CFBMap(const VB2CFBMap& other){
+      operator=(other);
+    }
+    
     VB2CFBMap& VB2CFBMap::operator=(const VB2CFBMap& other)
     {
       if(this!=&other) 
@@ -71,6 +74,7 @@ namespace casa{
 	}
       return *this;
     };
+    
 
     // void VB2CFBMap::setPhaseGradPerRow(const CountedPtr<PointingOffsets>& pointingOffset,
     // 				       const casacore::CountedPtr<CFBuffer>& cfb,

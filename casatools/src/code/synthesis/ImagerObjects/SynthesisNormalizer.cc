@@ -418,6 +418,7 @@ void SynthesisNormalizer::gatherWeightDensity(){
         itsImages = makeImageStore( itsImageName, false );
       }
 
+
     }
     catch(AipsError& x){
 
@@ -426,6 +427,17 @@ void SynthesisNormalizer::gatherWeightDensity(){
     itsImages->makeImageBeamSet(itsPsfcutoff);
     itsImages->releaseLocks();
   }
+
+
+  void SynthesisNormalizer::divideWeightBySumWt() {
+
+    LogIO os(LogOrigin("SynthesisNormalizer", "divideWeightBySumWt", WHERE));
+    itsImages->divideWeightBySumwt();
+
+  }
+  
+
+  
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );

@@ -229,8 +229,9 @@
                                                  (for natural weighting, sensitivity=1/sqrt(sumwt)).
                        try.pb            - Primary Beam (PB) model (values depend on the gridder used).
 
-                       Widefield projection algorithms (gridder=mosaic,awproject) will
+                       A-projection algorithms (gridder=mosaic,awproject, awp2) will
                        compute the following images too.
+
                        try.weight        - FT of gridded weights or the
                                                  un-normalized sum of PB-square (for all pointings).
                                                  Here, PB = sqrt(weight) normalized to a maximum of 1.0.
@@ -730,8 +731,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
 
     <param type="string" name="gridder">
-           <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject)</shortdescription>
-<description>Gridding options (standard, wproject, widefield, mosaic, awproject)
+           <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)</shortdescription>
+<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)
 
                        The following options choose different gridding convolution
                        functions for the process of convolutional resampling of the measured
@@ -815,7 +816,38 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                        [ This mode can also be invoked using 'awprojectft' ]
 
+
+                       awp2 : A-Projection with azimuthally asymmetric beams and
+                                            including beam rotation, squint correction and W-projection.
+                                            [Bhatnagar et.al, 2008]
+
+                                            Gridding convolution functions are computed from
+                                            aperture illumination models (assuming similar antennas) and optionally
+                                            combined with W-Projection kernels.
+                                            This gridder can be run on single fields as well as mosaics.
+                                            The other sub-parameters that are of significance when using this gridder
+                                            are wprojplanes, computepastep, mosweight, usepointing, pblimit and normtype.
+
+                                        Only supports VLA : Uses ray traced model (VLA and EVLA) including feed
+                                                 leg and subreflector shadows, off-axis feed location
+                                                 (for beam squint and other polarization effects), and
+                                                 a Gaussian fit for the feed beams (Ref: Brisken 2009)
+
+                                                 For squint correction the value passed in computepastep has to be smaller than 180.
+                                                 Anything larger awp2 will use an average of LL and RR beams. If computepastep=5, for
+                                                 e.g., PB every 5 degrees, over the range of parallactic angle covered by the data, will be calculated
+                                                 and the nearest beam to every integration will be used to correct for the squint between the L and R beams.   
+
+                                                 NOTE : For mtmfs with nterms &gt;1 and using awp2 gridder, for accurate results  always use specmode=&quot;mvc&quot;
+                                                 as awp2 with specmode=&quot;mfs&quot; does not use  conjugate beams to remove the spectral
+                                                 index of the primary beam.
+
+                                                 
+
+                                       
+                      
                        imagemosaic : (untested implementation).
+
                                                Grid and iFT each pointing separately and combine the
                                                images as a linear mosaic (weighted by a PB model) in
                                                the image domain before a joint minor cycle.
@@ -842,7 +874,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                 ------ Note on PB masks :
 
-                         In tclean, A-Projection gridders (mosaic and awproject) produce a
+                         In tclean, A-Projection gridders (mosaic, awproject, and awp2) produce a
                          .pb image and use the 'pblimit' subparameter to decide normalization
                          cutoffs and construct an internal T/F mask in the .pb and .image images.
                          However, this T/F mask cannot directly be used during deconvolution
@@ -856,7 +888,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                             -- Run tclean with usemask='pb' for it to automatically construct
                          a 1/0 mask from the internal T/F mask from .pb at a fixed 0.2 threshold.
 
-                ----- Making PBs for gridders other than mosaic,awproject.
+
+                ----- Making PBs for gridders other than mosaic, awproject, awp2
 
                       After the PSF generation, a PB is constructed using the same
                       models used in gridder='mosaic' but just evaluated in the image
@@ -877,7 +910,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
               <value>imagemosaic</value>
               <value>awproject</value>
               <value>awprojectft</value>
- <!--             <value>awp2</value> --> 
+              <value>awp2</value>  
       </allowed>
     </param>
 
@@ -983,7 +1016,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
       <value type="string"/>
     </param>
     <param type="bool" name="mosweight" subparam="true">
-           <shortdescription>Indepently weight each field in a mosaic</shortdescription>
+           <shortdescription>Independently weight each field in a mosaic</shortdescription>
 <description>When doing Brigg's style weighting (including uniform) to perform the weight density calculation for each field indepedently if True. If False the weight density is calculated from the average uv distribution of all the fields.
 </description>
       <value type="bool">True</value>
@@ -1099,6 +1132,9 @@ to use the correct direction in which the antenna is pointing with respect to th
                        AIFs are computed for the PA value of the first valid data received and used for 
                        all of the data.
 
+                       For gridder=awp2 a value of 180.0 deg or larger implies no squint correction will be
+                       attempted i.e an average beam of the left hand and right hand polarization will be calculated
+
 </description>
       <value type="double">360.0</value>
     </param>
@@ -1188,7 +1224,7 @@ to use the correct direction in which the antenna is pointing with respect to th
     
     
 
-    <param type="double" name="pblimit" subparam="true">
+    <param type="double" name="pblimit">
      <shortdescription>PB gain level at which to cut off normalizations </shortdescription>
 <description>PB gain level at which to cut off normalizations.
 
@@ -1561,7 +1597,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                         be PB-corrected. 
 
                                   (c) For mosaics, run tclean with specmode='mvc', deconvolver='mtmfs', 
-                                        and gridder='standard' or 'mosaic' with pbcor=True.  
+                                        and gridder='mosaic' or 'awp2' with pbcor=True.  
                                         This option applies wideband PB-correction to channelized residual images
                                         prior to the minor cycle and pbcor=True will be accurate because the spectral 
                                         index map will already be PB-corrected. 
@@ -2143,8 +2179,10 @@ to use the correct direction in which the antenna is pointing with respect to th
                            Example: usemask=&quot;pb&quot;, pbmask=0.2.
                                              Construct a mask at the 0.2 pb gain level.
                                              (Currently, this option will work only with
-                                             gridders that produce .pb (i.e. mosaic and awproject)
-                                             or if an externally produced .pb image exists on disk).
+
+                                             gridders that produce .pb (i.e. mosaic, awp2 and awproject)
+                                             or if an externally produced .pb image exists on disk)
+
 
                        auto-multithresh : auto-masking by multiple thresholds for deconvolution.
                           subparameters : sidelobethreshold, noisethreshold, lownoisethreshold, negativethrehsold,  smoothfactor,
@@ -2445,13 +2483,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                        column on disk may be too much extra disk I/O, when the
                                        gridder is simple enough that on-the-fly recomputing of the
                                        model visibilities is quicker than disk I/O.
-                                       For e.g. that gridder='awproject' does not support virtual model. 
+                                       For e.g. that gridder='awproject' and 'awp2' does not support virtual model. 
 
                           modelcolumn : In the last major cycle, save predicted model visibilities
                                       in the MODEL_DATA column of the MS. This mode is useful when
                                       the de-gridding cost to produce the model visibilities is higher
                                       than the I/O required to read the model visibilities from disk.
-                                      This mode is currently required for gridder='awproject'.
+                                      This mode is currently required for gridder='awproject' and 'awp2'.
                                       This mode is also required for the ability to later pull out
                                       model visibilities from the MS into a python array for custom
                                       processing.
@@ -2660,30 +2698,25 @@ to use the correct direction in which the antenna is pointing with respect to th
      <when param="gridder">
        <equals type="string" value="standard">
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="widefield">
          <default param="wprojplanes"><value>1</value></default>
          <default param="facets"><value>1</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="wproject">
          <default param="wprojplanes"><value>1</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="wprojectft">
          <default param="wprojplanes"><value>1</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="mosaic">
          <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
          <default param="usepointing"><value>False</value></default> 
          <default param="mosweight"><value>True</value></default>
-         <default param="pblimit"><value>0.2</value></default>
          <default param="conjbeams"><value>False</value></default>
          <default param="psfphasecenter"><value>&quot;&quot;</value></default>
        </equals>
@@ -2692,7 +2725,6 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="vptable"><value>&quot;&quot;</value></default>
          <default param="usepointing"><value>False</value></default>
          <default param="doweight"><value>True</value></default>
-         <default param="pblimit"><value>0.2</value></default>
          <default param="conjbeams"><value>False</value></default>
          <default param="psfphasecenter"><value>&quot;&quot;</value></default>
        </equals>
@@ -2701,13 +2733,11 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="vptable"><value>&quot;&quot;</value></default>
          <default param="usepointing"><value>False</value></default>
          <default param="mosweight"><value>True</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="imagemosaic">
          <default param="wprojplanes"><value>1</value></default>
          <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="awproject">
 	 <default param="wprojplanes"><value>1</value></default>
@@ -2721,7 +2751,6 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="wbawp"><value>True</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 
-	 <default param="pblimit"><value>0.2</value></default>
 	 <default param="conjbeams"><value>False</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
@@ -2738,18 +2767,17 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="wbawp"><value>True</value></default>
 	 <default param="mosweight"><value>False</value></default>
 
-	 <default param="pblimit"><value>0.2</value></default>
 	 <default param="conjbeams"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals>
-<!--       <equals type="string" value="awp2">
+       <equals type="string" value="awp2">
          <default param="wprojplanes"><value>1</value></default>
 	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
 	 <default param="computepastep"><value>360.0</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals> 
--->
+
 
      </when>
 

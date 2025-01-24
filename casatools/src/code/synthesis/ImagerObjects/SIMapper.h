@@ -100,7 +100,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
   const casacore::CountedPtr<FTMachine>& getFTM(const casacore::Bool ift=true) {if (ift) return ift_p; else return ft_p;};
   const casacore::CountedPtr<refim::FTMachine>& getFTM2(const casacore::Bool ift=true) {if (ift) return ift2_p; else return ft2_p;};
-
+  void setFTM2(casacore::CountedPtr<refim::FTMachine>& ftmptr, const casacore::Bool ift=true){if(ift) ift2_p=ftmptr; else ft2_p=ftmptr;};
+  
   
   virtual void initPB();
   
