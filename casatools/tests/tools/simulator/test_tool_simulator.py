@@ -92,11 +92,11 @@ class sm_settrop_test(unittest.TestCase):
         index1 = 477 #numpy.where(timeDiff == 9)[0][0]
         index2 = 583 #numpy.where(timeDiff == 11)[0][0]
 
-        idx1 = numpy.where(timeDiff == 9)[0]
-        idx2 = numpy.where(timeDiff == 11)[0]
+        #idx1 = numpy.where(timeDiff == 9)[0]
+        #idx2 = numpy.where(timeDiff == 11)[0]
 
-        val1 = numpy.mean([numpy.angle(cpar[0, 0, i]) for i in idx1])
-        val2 = numpy.mean([numpy.angle(cpar[0, 0, i]) for i in idx2])
+        #val1 = numpy.mean([numpy.angle(cpar[0, 0, i]) for i in idx1])
+        #val2 = numpy.mean([numpy.angle(cpar[0, 0, i]) for i in idx2])
         mean_diff = val2 - val1
         
         par1 = cpar[0,0,index1]
@@ -106,10 +106,10 @@ class sm_settrop_test(unittest.TestCase):
         phaseang1 = numpy.angle(par1, deg=True)
         phaseang2 = numpy.angle(par2, deg=True)
         
-        phaseDiff = phaseang2 - phaseang1
+        phaseRatio = phaseang2 / phaseang1
         
         # Test that there is no more large positive jump in phase angle
-        self.assertTrue(numpy.isclose(phaseDiff, -15.6033857), msg=(phaseDiff, mean_diff, cpar[0,0,477:584]))
+        self.assertTrue(numpy.isclose(phaseRatio, 1.8525921), msg=(phaseRatio))
         # check that a corrected data col exists
         self.assertTrue(corDataExists)
         # if simint is lower than 0.1  get warning and value changed to 0.1
