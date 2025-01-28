@@ -97,7 +97,7 @@ class sm_settrop_test(unittest.TestCase):
 
         #val1 = numpy.mean([numpy.angle(cpar[0, 0, i]) for i in idx1])
         #val2 = numpy.mean([numpy.angle(cpar[0, 0, i]) for i in idx2])
-        mean_diff = val2 - val1
+        #mean_diff = val2 - val1
         
         par1 = cpar[0,0,index1]
         par2 = cpar[0,0,index2]
