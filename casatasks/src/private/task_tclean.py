@@ -281,6 +281,14 @@ def tclean(
         )
         return
 
+    # CAS-14146
+    if (specmode == "mfs" and deconvolver == 'mtmfs' and (gridder == 'mosaic' or gridder == 'awp2')):
+        casalog.post(
+            "Please consider using specmode=mvc with " + gridder + " gridder"
+            " as this gridder does not implement conjbeams \n thus it needs a few major cycles to converge towards the correct answer",
+            "WARN",
+            "task_tclean",
+        )
     
     #####################################################
     #### Construct ImagerParameters object
@@ -306,7 +314,7 @@ def tclean(
 
     ###default mosweight=True is tripping other gridders as they are not
     ###expecting it to be true
-    if bparm["mosweight"] == True and bparm["gridder"].find("mosaic") == -1:
+    if bparm["mosweight"] == True and (not bparm["gridder"] in ['mosaic', 'awp2']):
         bparm["mosweight"] = False
 
     if specmode == "mfs":

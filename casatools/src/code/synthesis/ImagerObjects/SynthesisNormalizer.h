@@ -94,6 +94,7 @@ class SynthesisNormalizer
   void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
+  void divideWeightBySumWt();
 
   void normalizePrimaryBeam();
 

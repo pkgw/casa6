@@ -1111,7 +1111,8 @@ calibrater::smooth(const std::string& tablein,
 		   const std::string& tableout, 
 		   const ::casac::variant& field,
 		   const std::string& smoothtype,
-		   const double smoothtime)
+		   const double smoothtime,
+       const bool ratesmooth)
 {
   bool rstat(false);
 
@@ -1131,7 +1132,7 @@ calibrater::smooth(const std::string& tablein,
 
     rstat = itsCalibrater->smooth(tablein,tabo,
 				  smoothtype,smoothtime,
-				  toCasaString(field));
+				  toCasaString(field), ratesmooth);
 
   } catch(AipsError x) {
     *itsLog << LogIO::SEVERE << "Exception Reported: " << x.getMesg() << LogIO::POST;

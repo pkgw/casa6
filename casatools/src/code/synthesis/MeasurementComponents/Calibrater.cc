@@ -2995,7 +2995,8 @@ Bool Calibrater::smooth(const String& infile,
 			String& outfile,  // const Bool& append,
 			const String& smoothtype,
 			const Double& smoothtime,
-			const String& fields)
+			const String& fields,
+      const bool ratesmooth)
 {
 
   // TBD: support append?
@@ -3048,7 +3049,7 @@ Bool Calibrater::smooth(const String& infile,
 	fldidx=getFieldIdx(fields);
 
       // Delegate to SVC
-      svc->smooth(fldidx,smoothtype,smoothtime);
+      svc->smooth(fldidx,smoothtype,smoothtime,ratesmooth);
       
       // Store the result on disk
       //    if (append) logSink() << "Appending result to " << outfile << LogIO::POST;
@@ -3539,9 +3540,15 @@ casacore::Bool Calibrater::genericGatherAndSolve()
   // cases of "all" and "none"; there will be a need to extend this, but the
   // PolAverageTVILayerFactory that underlies this feature will also need to be extended
   // to make that possible
-  if (svc_p->corrcomb().contains("all")) {
-    //cerr << "Calibrater::genericGatherAndSolve(): Combining correlations!" << endl;
-      vi2org.addCorrCombine();
+  // gmoellen (2024-08-06): We now support 'stokes' (forms Stokes I) and 'parallel' (direct
+  //   statistical combo of parallel hands).  If one parallel-hand is flagged, 'stokes'
+  //   effectively flags both; 'parallel' will retain the unflagged parallel hand.
+  if (svc_p->corrcomb().contains("stokes") ||
+      svc_p->corrcomb().contains("parallel") ) {
+    //cerr << "Calibrater::genericGatherAndSolve(): Combining correlations: "
+    //	 << svc_p->corrcomb()
+    //	 << endl;
+    vi2org.addCorrCombine(svc_p->corrcomb());
   }
   //else {
   //    cerr << "Calibrater::genericGatherAndSolve(): Not combining correlations!" << endl;
@@ -5590,7 +5597,8 @@ Bool OldCalibrater::smooth(const String& infile,
 			   String& outfile,  // const Bool& append,
 			   const String& smoothtype,
 			   const Double& smoothtime,
-			   const String& fields)
+			   const String& fields,
+         const bool ratesmooth)
 {
 
   // TBD: support append?
@@ -5643,7 +5651,7 @@ Bool OldCalibrater::smooth(const String& infile,
 	fldidx=getFieldIdx(fields);
 
       // Delegate to SVC
-      svc->smooth(fldidx,smoothtype,smoothtime);
+      svc->smooth(fldidx,smoothtype,smoothtime,ratesmooth);
       
       // Store the result on disk
       //    if (append) logSink() << "Appending result to " << outfile << LogIO::POST;
