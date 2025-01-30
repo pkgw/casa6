@@ -44,7 +44,8 @@ class AWConvFuncHolder{
   AWConvFuncHolder& operator=(const AWConvFuncHolder& other);
   bool loadConvFromFile();
   bool saveConvToFile(const casacore::String& filename);
-  bool addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& painc);
+  //paMAxRange is the maximum -ve and +ve value that pa range 
+  bool addConvFunc(const casacore::Vector<casacore::Double>& freqs, const casacore::Vector<Double>& wVals,  const casacore::Double& paMaxRange);
   //Get the convFunctions and indexing from a given vb
   casacore::Array<casacore::Complex>& getConvFunc();
   casacore::Array<casacore::Complex>& getWeightConvFunc();
@@ -55,14 +56,6 @@ class AWConvFuncHolder{
   casacore::Vector<Double> getWVals(){return wVals_p;};
   casacore::Vector<Double> getPAVals() { return paVals_p; };
   
-// This function will return a subset of the convFuncs, i.e those used in this vb 
-  void getConvFuncs(casacore::Vector<casacore::Int> &polMap,
-                    casacore::Vector<casacore::Int> &chanMap,
-                    casacore::Vector<casacore::Int> &rowMap,
-                    casacore::Array<casacore::Complex>& convFunc,
-                    casacore::Array<casacore::Complex>& wgtConvFunc,
-                    const vi::VisBuffer2 &vb,
-                    const casacore::Matrix<casacore::Double> &rotuvw);
 
   // For the HPG gridder we have to get some specialized version as it cannot load all frequencies and all
   // w-vals in one go. So do it by spw in the vb
@@ -76,21 +69,51 @@ class AWConvFuncHolder{
   //Rowmap will return the indices to match along the 5th axis of convFunc, polmap is for the 3rd axis, and chanmap is for the 4th axis.
   //Rowmap will map combination of pa, antennapair and w to give the 5th index that matches 
   //Rowmap will be the same nrow as vb.nrows , polmap will gave the same length of vb.ncorrelations and chanmap will be the length of vb.nchannelscasacore::Vector<casacore::Int>& rowMap
-  void getConvIndices( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
+
+  void getConvIndices(casacore::Vector<casacore::Int> &polMap,
+                      casacore::Vector<casacore::Int> &chanMap,
+                      casacore::Vector<casacore::Int> &rowMap,
+                      const vi::VisBuffer2 &vb,
+                      const casacore::Matrix<casacore::Double> &rotuvw,
+                      const casacore::Vector<casacore::Double> &freqs,
+                      const casacore::Bool predictMode=false,
+                      const bool ispsf=false);
+
+
+  
   //This version is for HPG gridder only;  which uses subsets of the convfuncs
   void getConvIndicesHPG( casacore::Vector<casacore::Int>& polMap, casacore::Vector<casacore::Int>& chanMap, casacore::Vector<casacore::Int>& rowMap, const vi::VisBuffer2& vb, const casacore::Matrix<casacore::Double>& rotuvw);
   //Function gives pointing direction w.r.t image center  in phase shift: used in putting a phase gradient in the UV domain
   // Will be using for now only 1st row.
   Vector<Double> getPointingPhaseShift(const vi::VisBuffer2& vb, const bool usepointing=False);
-  
-//help AWConvFunc decide if single field or not
-  void setSingleField(const bool isSingleField = false){
+
+ 
+  // This function will return a subset of the convFuncs, i.e those used in this
+  // vb 
+  void getConvFuncs(casacore::Vector<casacore::Int> &polMap,
+                    casacore::Vector<casacore::Int> &chanMap,
+                    casacore::Vector<casacore::Int> &rowMap,
+                    casacore::Array<casacore::Complex>& convFunc,
+                    casacore::Array<casacore::Complex>& wgtConvFunc,
+                    const vi::VisBuffer2 &vb,
+                    const casacore::Matrix<casacore::Double> &rotuvw,
+                    const casacore::Vector<casacore::Double>& interpFreqs,
+                    const casacore::Bool predictMode=false,
+                    const bool ispsf=false);
+
+  //help AWConvFunc decide if single field or not
+  void setSingleField(const bool isSingleField = False){
     isSingleField_p = isSingleField;
   };
- private:
-   void appendConvFuncs(const casacore::Array<casacore::Complex>& awConv,  const casacore::Array<casacore::Complex>& aWwtConv,  const casacore::Matrix<casacore::Int>& awsupport, const casacore::Vector<casacore::Double>& newfreqs, const casacore::Double paval);
-   
-   
+
+private:
+  void appendConvFuncs(const casacore::Array<casacore::Complex> &awConv,
+                       const casacore::Array<casacore::Complex> &aWwtConv,
+                       const casacore::Matrix<casacore::Int> &awsupport,
+                       const casacore::Vector<casacore::Double> &newfreqs,
+                       const casacore::Double paval,
+                       const int startrow=0);
+
   double painc_p;
   bool dosquint_p;
   casacore::Array<casacore::Complex> convFunc_p;
@@ -124,7 +147,7 @@ class AWConvFuncHolder{
   int calcNpix_p;
   int oversamp_p;
   std::shared_ptr<EVLAAperture> aterm_p;
-  std::shared_ptr<VisBufferUtil> vbutil_p;                 
+  std::shared_ptr<VisBufferUtil> vbutil_p;
   bool isSingleField_p;
 };
   

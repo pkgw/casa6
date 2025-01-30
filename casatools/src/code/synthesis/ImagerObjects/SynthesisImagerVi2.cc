@@ -83,9 +83,9 @@
 #include <synthesis/TransformMachines2/MosaicFTNew.h>
 #include <synthesis/TransformMachines2/AWPLPG.h>
 #include <synthesis/TransformMachines2/MultiTermFTNew.h>
-#include <synthesis/TransformMachines2/AWProjectFT.h>
 #include <synthesis/TransformMachines2/AWProjectWBFTHPG.h>
 #include <synthesis/TransformMachines2/AWVisResamplerHPG.h>
+#include <synthesis/TransformMachines2/AWProjectWBFT.h>
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/SDGrid.h>
 #include <synthesis/TransformMachines/WProjectFT.h>
@@ -660,6 +660,7 @@ Bool SynthesisImagerVi2::defineImage(
 	os << "Error in building Coordinate System and Image Shape: " << x.getMesg() << LogIO::EXCEPTION;
       }
 
+
 	
     try
       {
@@ -669,72 +670,62 @@ Bool SynthesisImagerVi2::defineImage(
 
 	itsMakeVP= ( gridpars.ftmachine.contains("mosaicft") ||
                      (gridpars.ftmachine.at(0,3)=="awp") )?False:True;
-       
-      createFTMachine(
-        ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType,
-        gridpars.facets, gridpars.wprojplanes,
-        gridpars.padding, gridpars.useAutoCorr, gridpars.useDoublePrec,
-        gridpars.convFunc,
-        gridpars.aTermOn, gridpars.psTermOn, gridpars.mTermOn,
-        gridpars.wbAWP, gridpars.cfCache, gridpars.usePointing, gridpars.pointingOffsetSigDev.tovector(),
-        gridpars.doPBCorr, gridpars.conjBeams,
-        gridpars.computePAStep, gridpars.rotatePAStep,
-        gridpars.interpolation, impars_p.freqFrameValid, 1000000000, 16, impars_p.stokes,
-        impars_p.imageName,
-        gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
-        gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
-        gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi
-      );
 
+	//cerr << "DEFINEimage " << impars_p.toRecord() << endl; 				 
+					 
+	createFTMachine(ftm, iftm, gridpars.ftmachine, impars_p.nTaylorTerms, gridpars.mType, 
+			gridpars.facets, gridpars.wprojplanes,
+			gridpars.padding,gridpars.useAutoCorr,gridpars.useDoublePrec,
+			gridpars.convFunc,
+			gridpars.aTermOn,gridpars.psTermOn, gridpars.mTermOn,
+			gridpars.wbAWP,gridpars.cfCache,gridpars.usePointing,gridpars.pointingOffsetSigDev.tovector(),
+			gridpars.doPBCorr,gridpars.conjBeams,
+			gridpars.computePAStep,gridpars.rotatePAStep,
+			gridpars.interpolation, impars_p.freqFrameValid, 1000000000,  16, impars_p.stokes,
+			impars_p.imageName, gridpars.pointingDirCol, gridpars.convertFirst, gridpars.skyPosThreshold,
+			gridpars.convSupport, gridpars.truncateSize, gridpars.gwidth, gridpars.jwidth,
+			gridpars.minWeight, gridpars.clipMinMax, impars_p.pseudoi);
       }
-    catch (AipsError &x) {
-      os << "Error in setting up FTMachine(): " << x.getMesg() << LogIO::EXCEPTION;
+    catch(AipsError &x)
+      {
+	os << "Error in setting up FTMachine() : " << x.getMesg() << LogIO::EXCEPTION;
+      }
+
+
+    try{
+      appendToMapperList(impars_p.imageName,  csys,  impars_p.shp(),
+                         ftm, iftm,
+                         gridpars.distance, gridpars.facets, gridpars.chanchunks,impars_p.overwrite,
+                         gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel);      
+      imageDefined_p=true;      
     }
+    catch(AipsError &x)
+      {
+        os << "Error in adding Mapper : "+x.getMesg() << LogIO::EXCEPTION;
+      }
+	imparsVec_p.resize(imparsVec_p.nelements()+1, true);
+	imparsVec_p[imparsVec_p.nelements()-1]=impars_p;
+	///For now cannot deal with cube and mtmfs in C++ parallel mode
+	if(imparsVec_p[0].deconvolver=="mtmfs") setCubeGridding(False);
+	//cerr <<"DECONV " << imparsVec_p[0].deconvolver << " cube gridding " << doingCubeGridding_p << endl;
+	gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
+	gridparsVec_p[imparsVec_p.nelements()-1]=gridpars_p;
+	//For now as awproject does not work with the c++ mpi cube gridding make sure it works the old way as mfs
+	//if(gridparsVec_p[0].ftmachine.contains("awproject"))
+	 //  setCubeGridding(False);
+    itsMakeVP= ( gridparsVec_p[0].ftmachine.contains("mosaicft") ||
+                     (gridparsVec_p[0].ftmachine.at(0,3)=="awp") )?False:True;
 
-
-    try {
-      appendToMapperList(
-        impars_p.imageName, csys, impars_p.shp(),
-        ftm, iftm,
-        gridpars.distance, gridpars.facets, gridpars.chanchunks, impars_p.overwrite,
-        gridpars.mType, gridpars.padding, impars_p.nTaylorTerms, impars_p.startModel
-      );
-
-      imageDefined_p = true;
-    }
-    catch(AipsError &x) {
-      os << "Error in adding Mapper: " + x.getMesg() << LogIO::EXCEPTION;
-    }
-
-    imparsVec_p.resize(imparsVec_p.nelements()+1, true);
-    imparsVec_p[imparsVec_p.nelements()-1] = impars_p;
-    ///For now cannot deal with cube and mtmfs in C++ parallel mode
-    if (imparsVec_p[0].deconvolver == "mtmfs") setCubeGridding(False);
-    // cerr << "DECONV " << imparsVec_p[0].deconvolver
-    //      << " cube gridding " << doingCubeGridding_p << endl;
-    gridparsVec_p.resize(gridparsVec_p.nelements()+1, true);
-    gridparsVec_p[imparsVec_p.nelements()-1] = gridpars_p;
-    // For now as awproject does not work with the c++ mpi cube gridding
-    // make sure it works the old way as mfs
-    // if ( gridparsVec_p[0].ftmachine.contains("awproject") )
-    //   setCubeGridding(False);
-    itsMakeVP =
-      (  gridparsVec_p[0].ftmachine.contains("mosaicft") or
-        (gridparsVec_p[0].ftmachine.at(0,3) == "awp")
-      ) ? False : True;
     return true;
   }
+Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor, SynthesisParamsImage& impars, 
+			   const SynthesisParamsGrid& gridpars){
 
 
-Bool SynthesisImagerVi2::defineImage(
-        CountedPtr<SIImageStore> imstor,
-        SynthesisParamsImage& impars,
-        const SynthesisParamsGrid& gridpars)
-  {
-    gridpars_p=gridpars;
-    Int id = itsMappers.nMappers();
-    CoordinateSystem csys = imstor->getCSys();
-    IPosition imshape = imstor->getShape();
+  gridpars_p=gridpars; // some parameters are used in createftmachine
+	Int id=itsMappers.nMappers();
+    CoordinateSystem csys =imstor->getCSys();
+    IPosition imshape=imstor->getShape();
     Int nx=imshape[0], ny=imshape[1];
     if ( (id==0) || (nx*ny > itsMaxShape[0]*itsMaxShape[1]) ) {
       itsMaxShape=imshape;
@@ -1118,27 +1109,30 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
      std::tie(procInfo, std::ignore, std::ignore) =
          nSubCubeFitInMemory(fudge_factor, imshape, padding);
 
-     // chanchunks auto-calculation block, for now still here for awproject (CAS-12204)
-     if(chanchunks<1)
-	{
-	  log_l << "Automatically calculated chanchunks";
-	  log_l << " using imshape : " << imshape << LogIO::POST;
+     // chanchunks auto-calculation block, for now still here for
+     // awproject (CAS-12204)
+     if (chanchunks < 1) {
+       log_l << "Automatically calculated chanchunks";
+       log_l << " using imshape : " << imshape << LogIO::POST;
 
-	  // Do calculation here.
-	  // This runs once per image field (for multi-field imaging)
-	  // This runs once per cube partition, and will see only its own partition's shape
-		//chanchunks=1;
+       // Do calculation here.
+       // This runs once per image field (for multi-field imaging)
+       // This runs once per cube partition, and will see only its own
+       // partition's shape
+       // chanchunks=1;
 
-                chanchunks = procInfo.chnchnks;
+       chanchunks = procInfo.chnchnks;
 
-		/*log_l << "Required memory " << required_mem / nlocal_procs / 1024. / 1024. / 1024.
-                 << "\nAvailable memory " << memory_avail / 1024. / 1024 / 1024.
-                 << " (rc: memory fraction " << usr_memfrac << "% rc memory " << usr_mem / 1024.
-                 << ")\n" << nlocal_procs << " other processes on node\n"
-                 << "Setting chanchunks to " << chanchunks << LogIO::POST;
-		*/
-	}
-	//record this in gridpars_p
+       /*log_l << "Required memory " << required_mem / nlocal_procs / 1024. /
+        1024. / 1024.
+        << "\nAvailable memory " << memory_avail / 1024. / 1024 / 1024.
+        << " (rc: memory fraction " << usr_memfrac << "% rc memory " << usr_mem
+        / 1024.
+        << ")\n" << nlocal_procs << " other processes on node\n"
+        << "Setting chanchunks to " << chanchunks << LogIO::POST;
+       */
+     }
+        //record this in gridpars_p
 	gridpars_p.chanchunks=chanchunks;
       if( imshape.nelements()==4 && imshape[3]<chanchunks )
 	{
@@ -1237,9 +1231,8 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
 		std::stringstream ss(getenv("OMPI_COMM_WORLD_LOCAL_SIZE"));
 		ss >> nlocal_procs;
 	}
-        //cerr << "NUM_PROC " << nlocal_procs << endl;
-	// assumes all processes need the same amount of memory
-	required_mem *= nlocal_procs;
+	// assumes all processes need the same amount of memory with a 10% overhead
+	required_mem *= nlocal_procs*1.1;
 	Double usr_memfrac, usr_mem;
 	AipsrcValue<Double>::find(usr_memfrac, "system.resources.memfrac", 80.);
 	AipsrcValue<Double>::find(usr_mem, "system.resources.memory", -1.);
@@ -1328,7 +1321,6 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
             << ") => Subcubes: " << nsubcube
             << ". Processes on node: " << nlocal_procs << ".\n";
         log_l << oss.str() << LogIO::POST;
-
         TcleanProcessingInfo procInfo;
         procInfo.mpiprocs = nlocal_procs;
         procInfo.chnchnks = nsubcube;
@@ -2464,6 +2456,7 @@ void SynthesisImagerVi2::unlockMSs()
     LogIO os( LogOrigin("SynthesisImagerVi2","createFTMachine",WHERE));
 
 
+
     if (ftname == "gridft") {
       if (facets >1) {
         theFT = new refim::GridFT(
@@ -2514,9 +2507,13 @@ void SynthesisImagerVi2::unlockMSs()
       static_cast<refim::WProjectFT &>(*theIFT).setConvFunc(sharedconvFunc);
     }
 
-    else if ( ftname == "mosaic" || ftname== "mosft" || ftname == "mosaicft" || ftname== "MosaicFT" || ftname == "awp2"){
+    else if ( ftname == "mosaic" || ftname== "mosft" ||
+              ftname == "mosaicft" || ftname== "MosaicFT" ||
+              ftname == "awp2"){
 
-      createMosFTMachine(theFT, theIFT, padding, useAutocorr, useDoublePrec, rotatePAStep, stokes, conjBeams);
+      createMosFTMachine(theFT, theIFT, padding,
+                         useAutocorr, useDoublePrec, rotatePAStep,
+                         stokes, conjBeams);
     } 
     else if ((ftname.at(0,3)=="awp") || (ftname== "mawprojectft") || (ftname == "protoft")) {
       createAWPFTMachine(theFT, theIFT, ftname, facets, wprojplane, 
@@ -2846,9 +2843,11 @@ void SynthesisImagerVi2::unlockMSs()
     //dosquint = False;
     ///////
     
-    //cerr <<  "Doing AWPLPG" <<   " wprojplanes " << gridpars_p.wprojplanes << endl;
+
+     //cerr <<  "Doing AWPLPG" <<  endl;
      theFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
      theIFT = new refim::AWPLPG(vps , gridpars_p.wprojplanes, dosquint, gridpars_p.computePAStep*(C::pi)/180.0, mLocation_p, stokes, useAutoCorr, useDoublePrec, gridpars_p.usePointing);
+
      CountedPtr<refim::SimplePBConvFunc> mospb=new refim::HetArrayConvFunc();
       static_cast<refim::AWPLPG &>(*theFT).setConvFunc(mospb);
       static_cast<refim::AWPLPG &>(*theIFT).setConvFunc(mospb);

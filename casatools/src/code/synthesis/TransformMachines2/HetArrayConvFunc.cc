@@ -961,8 +961,16 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
 					 Array<Complex>& weightConvFunc, const vector<Int>& polmap, const vector<Int>& chanmap, const vector<Int>& rowmap, const MVDirection& extraShift, const Bool useExtraShift){
     storeImageParams(iimage,vb);
      toPix(vb, extraShift, useExtraShift);
-    Vector<Double> pixFieldDir(2);
-    pixFieldDir=thePix_p;
+     Vector<Int> dummy;
+     Int isOnImage = checkPBOfField(vb, dummy, extraShift, useExtraShift);
+     if (isOnImage == 2) {
+       convFunc.resize();
+       weightConvFunc.resize();
+       return;
+     }
+
+     Vector<Double> pixFieldDir(2);
+     pixFieldDir = thePix_p;
      pixFieldDir(0)=pixFieldDir(0)- Double(nx_p / 2);
     pixFieldDir(1)=pixFieldDir(1)- Double(ny_p / 2);
     pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx_p)/Double(convSampling);

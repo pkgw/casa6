@@ -26,7 +26,7 @@
 <description>Name(s) of input visibility file(s)
                default: none;
                example: vis='ngc5921.ms'
-                        vis=['ngc5921a.ms','ngc5921b.ms']; multiple MSes
+                        vis=['ngc5921a.ms','ngc5921b.ms']; multiple MSs
 </description>
       
       <type mustexist="true">path</type><type mustexist="true">pathVec</type>
@@ -45,18 +45,18 @@
      <shortdescription>field(s) to select</shortdescription>
 <description> Select fields to image or mosaic.  Use field id(s) or name(s).
                   ['go listobs' to obtain the list id's or names]
-               default: ''= all fields
+               default: ''= all fields. 
                  If field string is a non-negative integer, it is assumed to
-                 be a field index otherwise, it is assumed to be a
-                 field name
-                 field='0~2'; field ids 0,1,2
-                 field='0,4,5~7'; field ids 0,4,5,6,7
-                 field='3C286,3C295'; field named 3C286 and 3C295
-                 field = '3,4C\*'; field id 3, all names starting with 4C
+                 be a field index, otherwise it is assumed to be a
+                 field name.
+                 field='0~2'; field ids 0,1,2.
+                 field='0,4,5~7'; field ids 0,4,5,6,7.
+                 field='3C286,3C295'; field names 3C286 and 3C295.
+                 field = '3,4C\*'; field id 3, all names starting with 4C.
                  For multiple MS input, a list of field strings can be used:
                  field = ['0~2','0~4']; field ids 0-2 for the first MS and 0-4
-                         for the second
-                 field = '0~2'; field ids 0-2 for all input MSes
+                         for the second.
+                 field = '0~2'; field ids 0-2 for all input MSs.
 
 </description>
       <type>string</type><type>stringVec</type>
@@ -65,24 +65,24 @@
 
     <param type="any" name="spw" subparam="true">
      <shortdescription>spw(s)/channels to select</shortdescription>
-<description> Select spectral window/channels
-               NOTE: channels de-selected here will contain all zeros if
-                         selected by the parameter mode subparameters.
-               default: ''=all spectral windows and channels
-                 spw='0~2,4'; spectral windows 0,1,2,4 (all channels)
-                 spw='0:5~61'; spw 0, channels 5 to 61
-                 spw='&lt;2';   spectral windows less than 2 (i.e. 0,1)
-                 spw='0,10,3:3~45'; spw 0,10 all channels, spw 3,
+<description> Select spectral window/channels.
+               NOTE: channels not selected here will contain all zeros if
+                         selected by other subparameters.
+               default: ''=all spectral windows and channels.
+                 spw='0~2,4'; spectral windows 0,1,2,4 (all channels).
+                 spw='0:5~61'; spw 0, channels 5 to 61.
+                 spw='&lt;2';   spectral windows less than 2 (i.e. 0,1).
+                 spw='0,10,3:3~45'; spw 0,10 all channels, and spw 3
                                     channels 3 to 45.
                  spw='0~2:2~6'; spw 0,1,2 with channels 2 through 6 in each.
                  For multiple MS input, a list of spw strings can be used:
-                 spw=['0','0~3']; spw ids 0 for the first MS and 0-3 for the second
-                 spw='0~3' spw ids 0-3 for all input MS
-                 spw='3:10~20;50~60' for multiple channel ranges within spw id 3
-                 spw='3:10~20;50~60,4:0~30' for different channel ranges for spw ids 3 and 4
+                 spw=['0','0~3']; spw ids 0 for the first MS and 0-3 for the second.
+                 spw='0~3' spw ids 0-3 for all input MS.
+                 spw='3:10~20;50~60' for multiple channel ranges within spw id 3.
+                 spw='3:10~20;50~60,4:0~30' for different channel ranges for spw ids 3 and 4.
                  spw='0:0~10,1:20~30,2:1;2;3'; spw 0, channels 0-10,
-                      spw 1, channels 20-30, and spw 2, channels, 1,2 and 3
-                 spw='1~4;6:15~48' for channels 15 through 48 for spw ids 1,2,3,4 and 6
+                      spw 1, channels 20-30, and spw 2, channels, 1,2 and 3.
+                 spw='1~4;6:15~48' for channels 15 through 48 for spw ids 1,2,3,4 and 6.
 
 </description>
       <type>string</type><type>stringVec</type>
@@ -96,18 +96,18 @@
                    default: '' (all); examples,
                    timerange = 'YYYY/MM/DD/hh:mm:ss~YYYY/MM/DD/hh:mm:ss'
                    Note: if YYYY/MM/DD is missing date defaults to first
-                         day in data set
-                   timerange='09:14:0~09:54:0' picks 40 min on first day
+                         day in data set.
+                   timerange='09:14:0~09:54:0' picks 40 min on first day.
                    timerange='25:00:00~27:30:00' picks 1 hr to 3 hr
-                             30min on NEXT day
+                             30min on NEXT day.
                    timerange='09:44:00' pick data within one integration
-                             of time
-                   timerange='&gt; 10:24:00' data after this time
+                             of time.
+                   timerange='&gt; 10:24:00' data after this time.
                    For multiple MS input, a list of timerange strings can be
                    used:
-                   timerange=['09:14:0~09:54:0','&gt; 10:24:00']
+                   timerange=['09:14:0~09:54:0','&gt; 10:24:00'].
                    timerange='09:14:0~09:54:0''; apply the same timerange for
-                                                 all input MSes
+                                                 all input MSs.
 
 </description>
       <type>string</type><type>stringVec</type>
@@ -118,13 +118,14 @@
      <shortdescription>Select data within uvrange</shortdescription>
 <description>Select data within uvrange (default unit is meters)
                    default: '' (all); example:
-                   uvrange='0~1000klambda'; uvrange from 0-1000 kilo-lambda
-                   uvrange='&gt; 4klambda';uvranges greater than 4 kilo lambda
+                   uvrange='0~1000klambda'; uvrange from 0-1000 kilo-lambda.
+                   uvrange='&gt; 4klambda';uvranges greater than 4 kilo lambda.
                    For multiple MS input, a list of uvrange strings can be
                    used:
-                   uvrange=['0~1000klambda','100~1000klamda']
+                   uvrange=['0~1000klambda','100~1000klamda'].
                    uvrange='0~1000klambda'; apply 0-1000 kilo-lambda for all
-                                            input MSes
+                   input MSs.
+		   uvrange='0~1000'; apply 0-1000 meter for all input MSs.
  </description>
       <type>string</type><type>stringVec</type>
       <value type="string"/>
@@ -142,17 +143,17 @@
                                  index 6.
                    antenna='VA05\&amp;VA06'; baseline between VLA antenna 5
                                        and 6.
-                   antenna='5\&amp;6;7\&amp;8'; baselines 5-6 and 7-8
-                   antenna='5'; all baselines with antenna index 5
+                   antenna='5\&amp;6;7\&amp;8'; baselines 5-6 and 7-8.
+                   antenna='5'; all baselines with antenna index 5.
                    antenna='05'; all baselines with antenna number 05
-                                (VLA old name)
+                                (VLA old name).
                    antenna='5,6,9'; all baselines with antennas 5,6,9
-                                   index number
+                                   index number.
                    For multiple MS input, a list of antenna strings can be
                    used:
                    antenna=['5','5\&amp;6'];
-                   antenna='5'; antenna index 5 for all input MSes
-                   antenna='!DV14'; use all antennas except DV14
+                   antenna='5'; antenna index 5 for all input MSs.
+                   antenna='!DV14'; use all antennas except DV14.
 
 </description>
       <type>string</type><type>stringVec</type>
@@ -163,11 +164,11 @@
      <shortdescription>Scan number range</shortdescription>
 <description>Scan number range
 
-                   default: '' (all)
-                   example: scan='1~5'
+                   default: '' (all).
+                   example: scan='1~5'.
                    For multiple MS input, a list of scan strings can be used:
-                   scan=['0~100','10~200']
-                   scan='0~100; scan ids 0-100 for all input MSes
+                   scan=['0~100','10~200'].
+                   scan='0~100; scan ids 0-100 for all input MSs.
 
 </description>
       <type>string</type><type>stringVec</type>
@@ -177,8 +178,8 @@
     <param type="any" name="observation" subparam="true">
      <shortdescription>Observation ID range</shortdescription>
 <description>Observation ID range
-                   default: '' (all)
-                   example: observation='1~5'
+                   default: '' (all).
+                   example: observation='1~5'.
 </description>
       <type>string</type><type>int</type>
       <value type="string"/>
@@ -188,10 +189,10 @@
      <shortdescription>Scan Intent(s)</shortdescription>
 <description>Scan Intent(s)
 
-                   default: '' (all)
-                   example: intent='TARGET_SOURCE'
-                   example: intent='TARGET_SOURCE1,TARGET_SOURCE2'
-                   example: intent='TARGET_POINTING\*'
+                   default: '' (all).
+                   example: intent='TARGET_SOURCE'.
+                   example: intent='TARGET_SOURCE1,TARGET_SOURCE2'.
+                   example: intent='TARGET_POINTING\*'.
 </description>
       <type>string</type><type>stringVec</type>
       <value type="string"/>
@@ -220,30 +221,31 @@
 
                        Output images will be (a subset of) :
 
-                       try.psf              - Point spread function
-                       try.residual      - Residual image
-                       try.image         - Restored image
-                       try.model         - Model image (contains only flux components)
-                       try.sumwt        - Single pixel image containing sum-of-weights.
-                                                 (for natural weighting, sensitivity=1/sqrt(sumwt))
-                       try.pb              - Primary beam model (values depend on the gridder used)
+                       try.psf           - Point Spread Function (PSF).
+                       try.residual      - Residual image.
+                       try.image         - Restored image.
+                       try.model         - Model image (contains only flux components).
+                       try.sumwt         - Single pixel image containing sum-of-weights.
+                                                 (for natural weighting, sensitivity=1/sqrt(sumwt)).
+                       try.pb            - Primary Beam (PB) model (values depend on the gridder used).
 
-                       Widefield projection algorithms (gridder=mosaic,awproject) will
+                       A-projection algorithms (gridder=mosaic,awproject, awp2) will
                        compute the following images too.
+
                        try.weight        - FT of gridded weights or the
-                                                 un-normalized sum of PB-square (for all pointings)
-                                                 Here, PB = sqrt(weight) normalized to a maximum of 1.0
+                                                 un-normalized sum of PB-square (for all pointings).
+                                                 Here, PB = sqrt(weight) normalized to a maximum of 1.0.
 
                        For multi-term wideband imaging, all relevant images above will
                        have additional .tt0,.tt1, etc suffixes to indicate Taylor terms,
                        plus the following extra output images.
-                       try.alpha            - spectral index
-                       try.alpha.error   - estimate of error on spectral index
-                       try.beta              - spectral curvature (if nterms \&gt; 2)
+                       try.alpha            - spectral index.
+                       try.alpha.error   - estimate of error on spectral index.
+                       try.beta              - spectral curvature (if nterms \&gt; 2).
 
                        Tip : Include a directory name in 'imagename' for all
                                output images to be sent there instead of the
-                               current working directory : imagename='mydir/try'
+                               current working directory : imagename='mydir/try'.
 
                        Tip : Restarting an imaging run without changing 'imagename'
                                implies continuation from the existing model image on disk.
@@ -270,8 +272,8 @@
 <description>Number of pixels
 example:
 
-    imsize = [350,250]
-    imsize = 500 is equivalent to [500,500]
+    imsize = [350,250].
+    imsize = 500 is equivalent to [500,500].
     
 To take proper advantage of internal optimized FFT routines, the
 number of pixels must be even and factorizable by 2,3,5 only.
@@ -290,8 +292,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
      <shortdescription>Cell size</shortdescription>
 <description>Cell size
                example: cell=['0.5arcsec,'0.5arcsec'] or
-               cell=['1arcmin', '1arcmin']
-               cell = '1arcsec' is equivalent to ['1arcsec','1arcsec']
+               cell=['1arcmin', '1arcmin'].
+               cell = '1arcsec' is equivalent to ['1arcsec','1arcsec'].
 </description>
       <type>int</type><type>double</type><type>intVec</type><type>doubleVec</type><type>string</type><type>stringVec</type>
       <value type="stringVec">&quot;1arcsec&quot;</value>
@@ -303,14 +305,14 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                              Note : If unspecified, tclean will use the phase-center from the first data field of the MS (or list of MSs) selected for imaging. 
 
-			example: phasecenter=6
-                        phasecenter='J2000 19h30m00 -40d00m00'
-                        phasecenter='J2000 292.5deg  -40.0deg'
-                        phasecenter='J2000 5.105rad  -0.698rad'
-                        phasecenter='ICRS 13:05:27.2780 -049.28.04.458'
-                        phasecenter='myComet_ephem.tab'
-                        phasecenter='MOON'
-                        phasecenter='TRACKFIELD'
+			example: phasecenter='6'.
+                        phasecenter='J2000 19h30m00 -40d00m00'.
+                        phasecenter='J2000 292.5deg  -40.0deg'.
+                        phasecenter='J2000 5.105rad  -0.698rad'.
+                        phasecenter='ICRS 13:05:27.2780 -049.28.04.458'.
+                        phasecenter='myComet_ephem.tab'.
+                        phasecenter='MOON'.
+                        phasecenter='TRACKFIELD'.
 </description>
       <type>int</type><type>string</type>
       <value type="string"/>
@@ -328,7 +330,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                         So, in an MS with XX,YY, if only YY is flagged, neither a
                                         Stokes I image nor an XX image can be made from those data points.
                                         In such a situation, please split out only the unflagged correlation into
-                                        a separate MS.
+                                        a separate MS, or use the option 'pseudoI'.
 
                              Note : The 'pseudoI' option is a partial solution, allowing Stokes I imaging
                                     when either of the parallel-hand correlations are unflagged.
@@ -360,7 +362,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
     <param type="string" name="projection"> 
      <shortdescription>Coordinate projection </shortdescription>
 <description>Coordinate projection
-                     Examples : SIN,   NCP
+                     Examples : SIN,   NCP.
                      A list of supported (but untested) projections can be found here :
                      http://casa.nrao.edu/active/docs/doxygen/html/classcasa_1_1Projection.html#a3d5f9ec787e4eabdce57ab5edaf7c0cd
 
@@ -377,10 +379,10 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                       The contents of the supplied starting model image will be
                       copied to the imagename.model before the run begins.
 
-                      example : startmodel = 'singledish.im'
+                      example : startmodel = 'singledish.im'.
 
                       For deconvolver='mtmfs', one image per Taylor term must be provided.
-                      example : startmodel = ['try.model.tt0', 'try.model.tt1']
+                      example : startmodel = ['try.model.tt0', 'try.model.tt1'].
                                       startmodel = ['try.model.tt0']  will use a starting model only
                                                            for the zeroth order term.
                                       startmodel = ['','try.model.tt1']  will use a starting model only
@@ -390,14 +392,14 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                        what is currently being imaged. If so, an image regrid is first triggered
                        to resample the input image onto the target coordinate system.
 
-                       A common usage is to set this parameter equal to a single dish image
+                       A common usage is to set this parameter equal to a single dish image.
 
                        Negative components in the model image will be included as is.
 
-                      [ Note : If an error occurs during image resampling/regridding,
+                      Note : If an error occurs during image resampling/regridding,
                                    please try using task imregrid to resample the starting model
                                    image onto a CASA image with the target shape and
-                                   coordinate system before supplying it via startmodel ]
+                                   coordinate system before supplying it via startmodel.
 
  </description>
       <value type="string"/>
@@ -416,7 +418,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                        specmode='mfs' : Continuum imaging with only one output image channel.
                                                       (mode='cont' can also be used here)
 
-                       specmode='cube' : Spectral line imaging with one or more channels
+                       specmode='cube' : Spectral line imaging with one or more channels.
                                                       Parameters start, width,and nchan define the spectral
                                                      coordinate system and can be specified either in terms
                                                      of channel numbers, frequency or velocity in whatever
@@ -424,23 +426,16 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                      All internal and output images are made with outframe as the
                                                      base spectral frame. However imaging code internally uses the fixed
                                                      spectral frame, LSRK for automatic internal software
-                                                     Doppler tracking so that a spectral line observed over an
+                                                     Doppler correction, so that a spectral line observed over an
                                                      extended time range will line up appropriately.
                                                      Therefore the output images have additional spectral frame conversion
                                                       layer in LSRK on the top the base frame.
 
-
-                                               (Note : Even if the input parameters are specified in a frame
-                                                           other than LSRK, the viewer still displays spectral
-                                                           axis in LSRK by default because of the conversion frame
-                                                           layer mentioned above. The viewer can be used to relabel
-                                                           the spectral axis in any desired frame - via the spectral
-                                                           reference option under axis label properties in the
-                                                           data display options window.)
+                                               
 
 
-                        specmode='cubedata' : Spectral line imaging with one or more channels
-                                                        There is no internal software Doppler tracking so
+                        specmode='cubedata' : Spectral line imaging with one or more channels.
+                                                        There is no internal software Doppler correction, so
                                                         a spectral line observed over an extended time range
                                                         may be smeared out in frequency. There is strictly
                                                         no valid spectral frame with which to associate with the
@@ -456,7 +451,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                         the frame in the image will be labelled &quot;REST&quot; (but do note the
                                                         velocity of a given line reported may be different from the rest frame
                                                         velocity if the emission region is moving w.r.t the systemic
-                                                        velocity frame of the source)
+                                                        velocity frame of the source).
 
                         specmode='mvc' : Multiterm continuum imaging with cube major cycles. 
                                                         This mode requires deconvolver='mtmfs' with nterms>1 
@@ -516,7 +511,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
     <param type="any" name="reffreq" subparam="true">
      <shortdescription>Reference frequency</shortdescription>
-<description>Reference frequency of the output image coordinate system
+<description>Reference frequency of the output image coordinate system.
 
                        Example :  reffreq='1.5GHz'    as a string with units.
 
@@ -531,7 +526,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
     <param type="int" name="nchan" subparam="true">
      <shortdescription>Number of channels in the output image</shortdescription>
-<description>Number of channels in the output image
+<description>Number of channels in the output image.
                        For default (=-1), the number of channels will be automatically determined
                        based on data selected by 'spw' with 'start' and 'width'.
                        It is often easiest to leave nchan at the default value.
@@ -559,9 +554,9 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                        For specmode='cube', when velocity or frequency is used it is
                        interpreted with the frame defined in outframe. [The parameters of
                        the desired output cube can be estimated by using the 'transform'
-                       functionality of 'plotms']
-                       examples: start='5.0km/s'; 1st channel, 5.0km/s in outframe
-                                 start='22.3GHz'; 1st channel, 22.3GHz in outframe
+                       functionality of 'plotms'].
+                       examples: start='5.0km/s'; 1st channel, 5.0km/s in outframe.
+                                 start='22.3GHz'; 1st channel, 22.3GHz in outframe.
 </description>
       <value type="string"/>
     </param>
@@ -571,17 +566,17 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 <description>Channel width (e.g. width=2,width=\'0.1MHz\',width=\'10km/s\') of output cube images
                       specified by data channel number (integer), velocity (string with a unit), or
                       or frequency (string with a unit).
-                      Default:''; data channel width
+                      Default:''; data channel width.
                       The sign of width defines the direction of the channels to be incremented.
                       For width specified in velocity or frequency with '-' in front  gives image channels in
                       decreasing velocity or frequency, respectively.
                       For specmode='cube', when velocity or frequency is used it is interpreted with
                       the reference frame defined in outframe.
-                      examples: width='2.0km/s'; results in channels with increasing velocity
-                                width='-2.0km/s';  results in channels with decreasing velocity
-                                width='40kHz'; results in channels with increasing frequency
+                      examples: width='2.0km/s'; results in channels with increasing velocity.
+                                width='-2.0km/s';  results in channels with decreasing velocity.
+                                width='40kHz'; results in channels with increasing frequency.
                                 width=-2; results in channels averaged of 2 data channels incremented from
-                                          high to low channel numbers
+                                          high to low channel numbers.
 
 </description>
       <value type="string"/>
@@ -591,20 +586,20 @@ To find the nearest optimal imsize to that desired by the user, please use the f
      <shortdescription>Spectral reference frame in which to interpret \'start\' and \'width\'</shortdescription>
 <description>Spectral reference frame in which to interpret \'start\' and \'width\'
                       Options: '','LSRK','LSRD','BARY','GEO','TOPO','GALACTO','LGROUP','CMB'
-                      example: outframe='bary' for Barycentric frame
+                      example: outframe='bary' for Barycentric frame.
 
-                      REST -- Rest frequency
-                      LSRD -- Local Standard of Rest (J2000)
-                               -- as the dynamical definition (IAU, [9,12,7] km/s in galactic coordinates)
-                      LSRK -- LSR as a kinematical (radio) definition
-                               -- 20.0 km/s in direction ra,dec = [270,+30] deg (B1900.0)
-                      BARY -- Barycentric (J2000)
-                      GEO --- Geocentric
-                      TOPO -- Topocentric
+                      REST -- Rest frequency.
+                      LSRD -- Local Standard of Rest (J2000).
+                               -- as the dynamical definition (IAU, [9,12,7] km/s in galactic coordinates).
+                      LSRK -- LSR as a kinematical (radio) definition.
+                               -- 20.0 km/s in direction ra,dec = [270,+30] deg (B1900.0).
+                      BARY -- Barycentric (J2000).
+                      GEO --- Geocentric.
+                      TOPO -- Topocentric.
                       GALACTO -- Galacto centric (with rotation of 220 km/s in direction l,b = [90,0] deg.
-                      LGROUP -- Local group velocity -- 308km/s towards l,b = [105,-7] deg (F. Ghigo)
-                     CMB -- CMB velocity -- 369.5km/s towards l,b = [264.4, 48.4] deg (F. Ghigo)
-                     DEFAULT = LSRK
+                      LGROUP -- Local group velocity -- 308km/s towards l,b = [105,-7] deg (F. Ghigo).
+                     CMB -- CMB velocity -- 369.5km/s towards l,b = [264.4, 48.4] deg (F. Ghigo).
+                     DEFAULT = LSRK.
 
 </description>
       <value type="string">LSRK</value>
@@ -613,21 +608,21 @@ To find the nearest optimal imsize to that desired by the user, please use the f
     <param type="string" name="veltype" subparam="true">
      <shortdescription>Velocity type (radio, z, ratio, beta, gamma, optical)</shortdescription>
 <description>Velocity type (radio, z, ratio, beta, gamma, optical)
-                      For start and/or width specified in velocity, specifies the velocity definition
+                      For 'start' and/or 'width' specified in velocity, specifies the velocity definition
                       Options: 'radio','optical','z','beta','gamma','optical'
                       NOTE: the viewer always defaults to displaying the 'radio' frame,
                         but that can be changed in the position tracking pull down.
 
                        The different types (with F = f/f0, the frequency ratio), are:
 
-                       Z = (-1 + 1/F)
-                      RATIO = (F) \*
-                      RADIO = (1 - F)
-                      OPTICAL == Z
-                      BETA = ((1 - F2)/(1 + F2))
-                      GAMMA = ((1 + F2)/2F) \*
-                      RELATIVISTIC == BETA (== v/c)
-                      DEFAULT == RADIO
+                      Z = (-1 + 1/F).
+                      RATIO = (F) \*.
+                      RADIO = (1 - F).
+                      OPTICAL == Z.
+                      BETA = ((1 - F^2)/(1 + F^2)).
+                      GAMMA = ((1 + F^2)/2F) \*.
+                      RELATIVISTIC == BETA (== v/c).
+                      DEFAULT == RADIO.
                       Note that the ones with an '\*' have no real interpretation
                       (although the calculation will proceed) if given as a velocity.
 
@@ -639,12 +634,13 @@ To find the nearest optimal imsize to that desired by the user, please use the f
      <shortdescription>List of rest frequencies</shortdescription>
 <description>List of rest frequencies or a rest frequency in a string.
                       Specify rest frequency to use for output image.
-                      \*Currently it uses the first rest frequency in the list for translation of
+
+		      Currently it uses the first rest frequency in the list for translation of
                       velocities. The list will be stored in the output images.
                       Default: []; look for the rest frequency stored in the MS, if not available,
-                      use center frequency of the selected channels
-                      examples: restfreq=['1.42GHz']
-                                restfreq='1.42GHz'
+                      use center frequency of the selected channels.
+                      examples: restfreq=['1.42GHz'].
+                                restfreq='1.42GHz'.
 
 </description>
       <value type="stringVec"/>
@@ -735,8 +731,10 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
 
     <param type="string" name="gridder">
-           <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject)</shortdescription>
-<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awphpg)
+
+           <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)</shortdescription>
+<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2, awphpg)
+
 
                        The following options choose different gridding convolution
                        functions for the process of convolutional resampling of the measured
@@ -746,7 +744,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                        convolution functions. Gridding (degridding) runtime will rise in
                        proportion to the support size of these convolution functions (in uv-pixels).
 
-                       standard : Prolate Spheroid with 7x7 uv pixel support size
+                       standard : Prolate Spheroid with 7x7 uv pixel support size.
 
                                         [ This mode can also be invoked using 'ft' or 'gridft' ]
 
@@ -770,8 +768,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                         wprojplanes=1 : standard prolate spheroid gridder per facet.
                                         wprojplanes &gt; 1 : W-Projection gridder per facet.
-                                        nfacets=1, wprojplanes &gt; 1 : Pure W-Projection and no facetting
-                                        nfacets=1, wprojplanes=1 : Same as standard,ft,gridft
+                                        nfacets=1, wprojplanes &gt; 1 : Pure W-Projection and no facetting.
+                                        nfacets=1, wprojplanes=1 : Same as standard,ft,gridft.
 
                                         A combination of facetting and W-Projection is relevant only for
                                         very large fields of view. (In our current version of tclean, this 
@@ -783,8 +781,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                         from FTs of PB models per antenna.
                                         This gridder can be run on single fields as well as mosaics.
 
-                                       VLA : PB polynomial fit model (Napier and Rots, 1982)
-                                       EVLA : PB polynomial fit model (Perley, 2015)
+                                       VLA : PB polynomial fit model (Napier and Rots, 1982).
+                                       EVLA : PB polynomial fit model (Perley, 2015).
                                        ALMA : Airy disks for a 10.7m dish (for 12m dishes) and
                                                    6.25m dish (for 7m dishes) each with 0.75m
                                                    blockages (Hunter/Brogan 2011). Joint mosaic
@@ -809,7 +807,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                         VLA : Uses ray traced model (VLA and EVLA) including feed
                                                  leg and subreflector shadows, off-axis feed location
                                                  (for beam squint and other polarization effects), and
-                                                 a Gaussian fit for the feed beams (Ref: Brisken 2009)
+                                                 a Gaussian fit for the feed beams (Brisken 2009)
                                         ALMA : Similar ray-traced model as above (but the correctness
                                                     of its polarization properties remains un-verified).
 
@@ -820,12 +818,43 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                                        [ This mode can also be invoked using 'awprojectft' ]
 
-                       imagemosaic : (untested implementation)
+
+                       awp2 : A-Projection with azimuthally asymmetric beams and
+                                            including beam rotation, squint correction and W-projection.
+                                            [Bhatnagar et.al, 2008]
+
+                                            Gridding convolution functions are computed from
+                                            aperture illumination models (assuming similar antennas) and optionally
+                                            combined with W-Projection kernels.
+                                            This gridder can be run on single fields as well as mosaics.
+                                            The other sub-parameters that are of significance when using this gridder
+                                            are wprojplanes, computepastep, mosweight, usepointing, pblimit and normtype.
+
+                                        Only supports VLA : Uses ray traced model (VLA and EVLA) including feed
+                                                 leg and subreflector shadows, off-axis feed location
+                                                 (for beam squint and other polarization effects), and
+                                                 a Gaussian fit for the feed beams (Ref: Brisken 2009)
+
+                                                 For squint correction the value passed in computepastep has to be smaller than 180.
+                                                 Anything larger awp2 will use an average of LL and RR beams. If computepastep=5, for
+                                                 e.g., PB every 5 degrees, over the range of parallactic angle covered by the data, will be calculated
+                                                 and the nearest beam to every integration will be used to correct for the squint between the L and R beams.   
+
+                                                 NOTE : For mtmfs with nterms &gt;1 and using awp2 gridder, for accurate results  always use specmode=&quot;mvc&quot;
+                                                 as awp2 with specmode=&quot;mfs&quot; does not use  conjugate beams to remove the spectral
+                                                 index of the primary beam.
+
+                                                 
+
+                                       
+                      
+                       imagemosaic : (untested implementation).
+
                                                Grid and iFT each pointing separately and combine the
                                                images as a linear mosaic (weighted by a PB model) in
                                                the image domain before a joint minor cycle.
 
-                                               VLA/ALMA PB models are same as for gridder='mosaicft'
+                                               VLA/ALMA PB models are same as for gridder='mosaicft'.
 
                   ------ Notes on PB models :
 
@@ -847,7 +876,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                 ------ Note on PB masks :
 
-                         In tclean, A-Projection gridders (mosaic and awproject) produce a
+                         In tclean, A-Projection gridders (mosaic, awproject, and awp2) produce a
                          .pb image and use the 'pblimit' subparameter to decide normalization
                          cutoffs and construct an internal T/F mask in the .pb and .image images.
                          However, this T/F mask cannot directly be used during deconvolution
@@ -861,7 +890,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                             -- Run tclean with usemask='pb' for it to automatically construct
                          a 1/0 mask from the internal T/F mask from .pb at a fixed 0.2 threshold.
 
-                ----- Making PBs for gridders other than mosaic,awproject
+
+                ----- Making PBs for gridders other than mosaic, awproject, awp2
 
                       After the PSF generation, a PB is constructed using the same
                       models used in gridder='mosaic' but just evaluated in the image
@@ -883,7 +913,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
               <value>awproject</value>
               <value>awprojectft</value>
                <value>awphpg</value>
-               <value>awp2</value>  
+               <value>awp2</value> 
       </allowed>
     </param>
 
@@ -916,11 +946,11 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
                              example:
 
-                                psfphasecenter=6 #center psf on field 6
-                                psfphasecenter='J2000 19h30m00 -40d00m00'
-                                psfphasecenter='J2000 292.5deg -40.0deg'
-                                psfphasecenter='J2000 5.105rad -0.698rad'
-                                psfphasecenter='ICRS 13:05:27.2780 -049.28.04.458'
+                                psfphasecenter='6' #center psf on field 6.
+                                psfphasecenter='J2000 19h30m00 -40d00m00'.
+                                psfphasecenter='J2000 292.5deg -40.0deg'.
+                                psfphasecenter='J2000 5.105rad -0.698rad'.
+                                psfphasecenter='ICRS 13:05:27.2780 -049.28.04.458'.
 </description>
       <type>int</type><type>string</type>
       <value type="string"/>
@@ -961,13 +991,13 @@ To find the nearest optimal imsize to that desired by the user, please use the f
      <shortdescription>Name of Voltage Pattern table</shortdescription>
 <description> VP table saved via the vpmanager
 
-                       vptable=&quot;&quot; : Choose default beams for different telescopes
-                                           ALMA : Airy disks
+                       vptable=&quot;&quot; : Choose default beams for different telescopes.
+                                           ALMA : Airy disks.
                                            EVLA : old VLA models.
 
                        Other primary beam models can be chosen via the vpmanager tool.
 
-                       Step 1 :  Set up the vpmanager tool and save its state in a table
+                       Step 1 :  Set up the vpmanager tool and save its state in a table.
 
                                      vp.setpbpoly(telescope='EVLA', coeff=[1.0, -1.529e-3, 8.69e-7, -1.88e-10])
                                      vp.saveastable('myvp.tab')
@@ -989,14 +1019,14 @@ To find the nearest optimal imsize to that desired by the user, please use the f
       <value type="string"/>
     </param>
     <param type="bool" name="mosweight" subparam="true">
-           <shortdescription>Indepently weight each field in a mosaic</shortdescription>
+           <shortdescription>Independently weight each field in a mosaic</shortdescription>
 <description>When doing Brigg's style weighting (including uniform) to perform the weight density calculation for each field indepedently if True. If False the weight density is calculated from the average uv distribution of all the fields.
 </description>
       <value type="bool">True</value>
     </param>
     <param type="bool" name="aterm" subparam="true">
            <shortdescription>Use aperture illumination functions during gridding</shortdescription>
-<description>Use aperture illumination functions during gridding
+<description>Use aperture illumination functions during gridding.
 
                        This parameter turns on the A-term of the AW-Projection gridder.
                        Gridding convolution functions are constructed from aperture illumination
@@ -1017,21 +1047,12 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                         particularly near the edges.
 
                         When set to true, the .pb images will contain the fourier transform
-                        of the of the PS funtion. The table below enumarates the functional
-                        effects of the psterm, aterm and wprojplanes settings. PB referes to 
-                        the Primary Beam and FT() refers to the Fourier transform operation.
+                        of the of the PS funtion.
 
-                        Operation       aterm   psterm  wprojplanes  Contents of the .pb image
-                        ----------------------------------------------------------------------
-                        AW-Projection    True    True      &gt;1                FT(PS) x PB
-                                                 False                       PB
+			For more information on the functional
+                        effects of the psterm, aterm and wprojplanes settings, see the 
+                        'Wide-field Imaging' pages in CASA Docs (https://casadocs.readthedocs.io).
 
-                        A-Projection     True    True       1                FT(PS) x PB
-                                                 False                       PB
-
-                        W-Projection     False   True      &gt;1                FT(PS)
-
-                        Standard         False   True       1                FT(PS)
 
 </description>
       <value type="bool">False</value>
@@ -1039,7 +1060,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
     <param type="bool" name="wbawp" subparam="true">
            <shortdescription>Use wideband A-terms</shortdescription>
-<description>Use frequency dependent A-terms
+<description>Use frequency dependent A-terms.
                        Scale aperture illumination functions appropriately with frequency
                        when gridding and combining data from multiple channels.
  </description>
@@ -1048,7 +1069,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
     <param type="bool" name="conjbeams" subparam="true">
            <shortdescription>Use conjugate frequency for wideband A-terms</shortdescription>
-<description>Use conjugate frequency for wideband A-terms
+<description>Use conjugate frequency for wideband A-terms.
 
                        While gridding data from one frequency channel, choose a convolution 
                        function from a 'conjugate' frequency such that the resulting baseline 
@@ -1063,7 +1084,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                        If left uncorrected during gridding, this spectral structure must be modeled 
                        in the minor cycle (using the mtmfs algorithm) to avoid dynamic range limits 
                        (of a few hundred for a 2:1 bandwidth).
-                       This works for specmode='mfs' and its value is ignored for cubes
+                       This works for specmode='mfs' and its value is ignored for cubes.
 
 </description>
       <value type="bool">False</value>
@@ -1071,7 +1092,7 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
     <param type="string" name="cfcache" subparam="true">
            <shortdescription>Convolution function cache directory name</shortdescription>
-<description>Convolution function cache directory name
+<description>Convolution function cache directory name.
 
                        Name of a directory in which to store gridding convolution functions.
                        This cache is filled at the beginning of an imaging run. This step can be time
@@ -1103,7 +1124,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="computepastep" subparam="true">
      <shortdescription>Parallactic angle interval after the AIFs are recomputed (deg)</shortdescription>
-<description>Parallactic angle interval after the AIFs are recomputed (deg)
+<description>Parallactic angle interval after the AIFs are recomputed (deg).
 
                        This parameter controls the accuracy of the aperture illumination function
                        used with AProjection for alt-az mount dishes where the AIF rotates on the
@@ -1113,6 +1134,9 @@ to use the correct direction in which the antenna is pointing with respect to th
                        A value of 360.0 deg (the default) implies no re-computation due to PA rotation.
                        AIFs are computed for the PA value of the first valid data received and used for 
                        all of the data.
+
+                       For gridder=awp2 a value of 180.0 deg or larger implies no squint correction will be
+                       attempted i.e an average beam of the left hand and right hand polarization will be calculated
 
 </description>
       <value type="double">360.0</value>
@@ -1203,9 +1227,9 @@ to use the correct direction in which the antenna is pointing with respect to th
     
     
 
-    <param type="double" name="pblimit" subparam="true">
+    <param type="double" name="pblimit">
      <shortdescription>PB gain level at which to cut off normalizations </shortdescription>
-<description>PB gain level at which to cut off normalizations
+<description>PB gain level at which to cut off normalizations.
 
                        Divisions by .pb during normalizations have a cut off at a .pb gain
                        level given by pblimit. Outside this limit, image values are set to zero.
@@ -1237,7 +1261,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="string" name="normtype" subparam="true">
      <shortdescription>Normalization type (flatnoise, flatsky,pbsquare)</shortdescription>
-<description>Normalization type (flatnoise, flatsky, pbsquare)
+<description>Normalization type (flatnoise, flatsky, pbsquare).
 
                        Gridded (and FT'd) images represent the PB-weighted sky image.
                        Qualitatively it can be approximated as two instances of the PB
@@ -1275,27 +1299,27 @@ to use the correct direction in which the antenna is pointing with respect to th
       <shortdescription>Minor cycle algorithm (hogbom,clark,multiscale,mtmfs,mem,clarkstokes,asp)</shortdescription>
 <description>Name of minor cycle algorithm (hogbom,clark,multiscale,mtmfs,mem,clarkstokes,asp)
 
-                       Each of the following algorithms operate on residual images and psfs
+                       Each of the following algorithms operate on residual images and PSFs
                        from the gridder and produce output model and restored images.
                        Minor cycles stop and a major cycle is triggered when cyclethreshold
                        or cycleniter are reached. For all methods, components are picked from
                        the entire extent of the image or (if specified) within a mask.
 
-                       hogbom : An adapted version of Hogbom Clean [Hogbom, 1974]
-                                       - Find the location of the peak residual
-                                       - Add this delta function component to the model image
+                       hogbom : An adapted version of Hogbom Clean [Hogbom, 1974].
+                                       - Find the location of the peak residual.
+                                       - Add this delta function component to the model image.
                                        - Subtract a scaled and shifted PSF of the same size as the image
                                          from regions of the residual image where the two overlap.
-                                       - Repeat
+                                       - Repeat.
 
-                       clark : An adapted version of Clark Clean [Clark, 1980]
-                                       - Find the location of max(I^2+Q^2+U^2+V^2)
-                                       - Add delta functions to each stokes plane of the model image
+                       clark : An adapted version of Clark Clean [Clark, 1980].
+                                       - Find the location of max(I^2+Q^2+U^2+V^2).
+                                       - Add delta functions to each stokes plane of the model image.
                                        - Subtract a scaled and shifted PSF within a small patch size
                                          from regions of the residual image where the two overlap.
                                        - After several iterations trigger a Clark major cycle to subtract
                                          components from the visibility domain, but without de-gridding.
-                                       - Repeat
+                                       - Repeat.
 
                                       ( Note : 'clark' maps to imagermode='' in the old clean task.
                                                    'clark_exp' is another implementation that maps to
@@ -1303,33 +1327,33 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                     but the behavior is not identical. For now, please
                                                     use deconvolver='hogbom' if you encounter problems. )
 
-                       clarkstokes : Clark Clean operating separately per Stokes plane
+                       clarkstokes : Clark Clean operating separately per Stokes plane.
 
                                   (Note : 'clarkstokes_exp' is an alternate version. See above.)
 
-                       multiscale : MultiScale Clean [Cornwell, 2008]
-                                       - Smooth the residual image to multiple scale sizes
-                                       - Find the location and scale at which the peak occurs
-                                       - Add this multiscale component to the model image
+                       multiscale : MultiScale Clean [Cornwell, 2008].
+                                       - Smooth the residual image to multiple scale sizes.
+                                       - Find the location and scale at which the peak occurs.
+                                       - Add this multiscale component to the model image.
                                        - Subtract a scaled,smoothed,shifted PSF (within a small
-                                         patch size per scale) from all residual images
-                                       - Repeat from step 2
+                                         patch size per scale) from all residual images.
+                                       - Repeat from step 2.
 
-                       mtmfs : Multi-term (Multi Scale) Multi-Frequency Synthesis [Rau and Cornwell, 2011]
-                                       - Smooth each Taylor residual image to multiple scale sizes
+                       mtmfs : Multi-term (Multi Scale) Multi-Frequency Synthesis [Rau and Cornwell, 2011].
+                                       - Smooth each Taylor residual image to multiple scale sizes.
                                        - Solve a NTxNT system of equations per scale size to compute
-                                         Taylor coefficients for components at all locations
+                                         Taylor coefficients for components at all locations.
                                        - Compute gradient chi-square and pick the Taylor coefficients
                                           and scale size at the location with maximum reduction in
-                                          chi-square
+                                          chi-square.
                                        - Add multi-scale components to each Taylor-coefficient
-                                         model image
+                                         model image.
                                        - Subtract scaled,smoothed,shifted PSF (within a small patch size
-                                         per scale) from all smoothed Taylor residual images
-                                       - Repeat from step 2
+                                         per scale) from all smoothed Taylor residual images.
+                                       - Repeat from step 2.
 
 
-                       mem : Maximum Entropy Method [Cornwell and Evans, 1985]
+                       mem : Maximum Entropy Method [Cornwell and Evans, 1985].
                                        - Iteratively solve for values at all individual pixels via the
                                          MEM method. It minimizes an objective function of
                                           chi-square plus entropy (here, a measure of difference
@@ -1338,20 +1362,16 @@ to use the correct direction in which the antenna is pointing with respect to th
                                          (Note : This MEM implementation is not very robust.
                                                       Improvements will be made in the future.)
 
-                       asp : Adaptive Scale Pixel algorithm [Bhatnagar and Cornwell, 2004]
-                                       - Define a set of initial scales defined as 0, W, 2W 4W and 8W 
-                                         where W is a 2D Gaussian fitting width to the PSF 
-                                       - Smooth the residual image by a Gaussian beam at initial scales
-                                       - Search for the global peak (F) among these smoothed residual images
-                                       - form an active Aspen set: amplitude(F), amplitude location(x,y)
+                       asp : Adaptive Scale Pixel algorithm [Bhatnagar and Cornwell, 2004].
+                                       - Define a set of initial scales defined as 0, W, 2W 4W and 8W.
+                                         where W is a 2D Gaussian fitting width to the PSF.
+                                       - Smooth the residual image by a Gaussian beam at initial scales.
+                                       - Search for the global peak (F) among these smoothed residual images.
+                                       - form an active Aspen set: amplitude(F), amplitude location(x,y).
                                        - Optimize the Aspen set by minimizing the objective function RI-Aspen*PSF, 
                                          where RI is the residual image and * is the convulition operation. 
                                        - Compute the model image and update the residual image
                                        - Repeat from step 2
-				       
-				       (Note : This is an experimental version of the ASP algorithm.)
-
-
 
 
 </description>
@@ -1379,7 +1399,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                   of dominant features in the image being reconstructed.
 
                                   The smallest scale size is recommended to be 0 (point source),
-                                  the second the size of the synthesized beam and the third 3-5
+                                  the second being the size of the synthesized beam and the third being 3-5
                                   times the synthesized beam, etc. For example, if the synthesized
                                   beam is 10&quot; FWHM and cell=2&quot;,try scales = [0,5,15].
 
@@ -1388,7 +1408,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                   comparable to the scale corresponding to the lowest measured
                                   spatial frequency (as a scale size much larger than what the
                                   instrument is sensitive to is unconstrained by the data making
-                                  it harder to recovery from errors during the minor cycle).
+                                  it harder to recover from errors during the minor cycle).
      </description>
       <type>intVec</type><type>doubleVec</type>
       <value type="intVec"/>
@@ -1396,14 +1416,14 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="int" name="nterms" subparam="true">
      <shortdescription>Number of Taylor coefficients in the spectral model</shortdescription>
-<description>Number of Taylor coefficients in the spectral model
+<description>Number of Taylor coefficients in the spectral model.
 
-                       - nterms=1 : Assume flat spectrum source
-                       - nterms=2 : Spectrum is a straight line with a slope
-                       - nterms=N : A polynomial of order N-1
+                       - nterms=1 : Assume flat spectrum source.
+                       - nterms=2 : Spectrum is a straight line with a slope.
+                       - nterms=N : A polynomial of order N-1.
 
                        From a Taylor expansion of the expression of a power law, the
-                       spectral index is derived as alpha = taylorcoeff_1 / taylorcoeff_0
+                       spectral index is derived as alpha = taylorcoeff_1 / taylorcoeff_0.
 
                        Spectral curvature is similarly derived when possible.
 
@@ -1436,7 +1456,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                      'error' on tt1 and tt0 are simply the values picked from
                                      the corresponding residual images. The absolute value
                                      of the error is not always accurate and it is best to interpret
-                                     the errors across the image only in a relative sense.)
+                                     the errors across the image only in a relative sense.
 
 
 </description>
@@ -1461,9 +1481,9 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="fusedthreshold" subparam="true">
      <shortdescription>Threshold for triggering Hogbom Clean </shortdescription>
-     <description> Threshold for triggering Hogbom Clean (number in units of Jy)
+     <description> Threshold for triggering Hogbom Clean (number in units of Jy).
 
-                     fusedthreshold = 0.0001  : 0.1 mJy
+                     fusedthreshold = 0.0001  : 0.1 mJy.
 
                      This is a subparameter of the Asp Clean deconvolver. When peak residual 
                      is lower than the threshold, Asp Clean is "switched to Hogbom Clean" (i.e. only use the 0 scale for cleaning) for 
@@ -1528,18 +1548,18 @@ to use the correct direction in which the antenna is pointing with respect to th
            <shortdescription>Restoring beam shape to use. Default is the PSF main lobe</shortdescription>
 <description> Restoring beam shape/size to use.
 
-                       - restoringbeam='' or ['']
+                       - restoringbeam='' or [''].
                          A Gaussian fitted to the PSF main lobe (separately per image plane).
 
-                       - restoringbeam='10.0arcsec'
-                         Use a circular Gaussian of this width for all planes
+                       - restoringbeam='10.0arcsec'.
+                         Use a circular Gaussian of this width for all planes.
 
-                       - restoringbeam=['8.0arcsec','10.0arcsec','45deg']
-                         Use this elliptical Gaussian for all planes
+                       - restoringbeam=['8.0arcsec','10.0arcsec','45deg'].
+                         Use this elliptical Gaussian for all planes.
 
-                       - restoringbeam='common'
+                       - restoringbeam='common'.
                          Automatically estimate a common beam shape/size appropriate for
-                         all planes.
+                         all planes. This option can be used when the beam shape is different as a function of frequency, and will smooth all planes to a single beam, defined by the largest beam in the cube.
 
                        Note : For any restoring beam different from the native resolution
                                   the model image is convolved with the beam and added to
@@ -1552,7 +1572,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="bool" name="pbcor" subparam="true">
      <shortdescription>Apply PB correction on the output restored image</shortdescription>
-<description> Apply PB correction on the output restored image
+<description> Apply PB correction on the output restored image.
 
                        A new image with extension .image.pbcor will be created from
                        the evaluation of   .image / .pb  for all pixels above the specified pblimit.
@@ -1560,8 +1580,8 @@ to use the correct direction in which the antenna is pointing with respect to th
                        Note : Stand-alone PB-correction can be triggered by re-running
                                  tclean with the appropriate imagename and with
                                  niter=0, calcpsf=False, calcres=False, pbcor=True, vptable='vp.tab'
-                                 ( where vp.tab is the name of the vpmanager file.
-                                    See the inline help for the 'vptable' parameter )
+                                 ( where vp.tab is the name of the vpmanager file;
+                                    see the inline help for the 'vptable' parameter ). Alternatively, task impbcor can be used for primary beam correction using the .image and .pb files.
 
                        Note : For deconvolver='mtmfs', pbcor will divide each Taylor term image by the .tt0 average PB.   
                                   For all gridders, this calculation is accurate for small fractional bandwidths.  
@@ -1580,7 +1600,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                         be PB-corrected. 
 
                                   (c) For mosaics, run tclean with specmode='mvc', deconvolver='mtmfs', 
-                                        and gridder='standard' or 'mosaic' with pbcor=True.  
+                                        and gridder='mosaic' or 'awp2' with pbcor=True.  
                                         This option applies wideband PB-correction to channelized residual images
                                         prior to the minor cycle and pbcor=True will be accurate because the spectral 
                                         index map will already be PB-corrected. 
@@ -1602,7 +1622,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="string" name="outlierfile">
      <shortdescription>Name of outlier-field image definitions</shortdescription>
-<description>Name of outlier-field image definitions
+<description>Name of outlier-field image definitions.
 
                        A text file containing sets of parameter=value pairs,
                        one set per outlier field.
@@ -1632,7 +1652,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
                               imagename, imsize, cell, phasecenter, startmodel, mask
                               specmode, nchan, start, width, nterms, reffreq,
-                              gridder, deconvolver, wprojplanes
+                              gridder, deconvolver, wprojplanes.
 
                           Note : 'specmode' is an option, so combinations of mfs and cube
                                      for different image fields, for example, are supported.
@@ -1647,9 +1667,6 @@ to use the correct direction in which the antenna is pointing with respect to th
                                      to first image the outlier, subtract it out of the data (uvsub) and
                                      then image the main field.
 
-                          Note : If you encounter a use-case where some other parameter needs
-                                    to be allowed in the outlier file (and it is logical to do so), please
-                                    send us feedback. The above is an initial list.
 
 </description>
       <value type="string"/>
@@ -1662,7 +1679,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="string" name="weighting">
            <shortdescription>Weighting scheme (natural,uniform,briggs, superuniform, radial, briggsabs[experimental], briggsbwtaper[experimental])</shortdescription>
-<description>Weighting scheme (natural,uniform,briggs,superuniform,radial, briggsabs, briggsbwtaper)
+<description>Weighting scheme (natural,uniform,briggs,superuniform,radial, briggsabs, briggsbwtaper).
 
                        During gridding of the dirty or residual image, each visibility value is
                        multiplied by a weight before it is accumulated on the uv-grid.
@@ -1673,7 +1690,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                          the weightgrid will follow the sample density
                                                          pattern on the uv-plane. This weighting scheme
                                                          provides the maximum imaging sensitivity at the
-                                                         expense of a possibly fat PSF with high sidelobes.
+                                                         expense of a PSF with possibly wider main lobes and high sidelobes.
                                                          It is most appropriate for detection experiments
                                                          where sensitivity is most important.
 
@@ -1775,7 +1792,7 @@ to use the correct direction in which the antenna is pointing with respect to th
     <param type="int" name="npixels" subparam="true">
            <shortdescription>Number of pixels to determine uv-cell size </shortdescription>
 <description>Number of pixels to determine uv-cell size for super-uniform weighting
-                      (0 defaults to -/+ 3 pixels)
+                      (0 defaults to -/+ 3 pixels).
 
                      npixels -- uv-box used for weight calculation
                                     a box going from -npixel/2 to +npixel/2 on each side
@@ -1796,7 +1813,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="stringVec" name="uvtaper" subparam="true">
      <shortdescription>uv-taper on outer baselines in uv-plane</shortdescription>
-<description>uv-taper on outer baselines in uv-plane
+<description>uv-taper on outer baselines in uv-plane.
 
                    Apply a Gaussian taper in addition to the weighting scheme specified
                    via the 'weighting' parameter. Higher spatial frequencies are weighted
@@ -1806,19 +1823,19 @@ to use the correct direction in which the antenna is pointing with respect to th
                    specified either as the HWHM of a Gaussian in uv-space (eg. units of lambda)
                    or as the FWHM of a Gaussian in the image domain (eg. angular units like arcsec).
 
-                   uvtaper = [bmaj, bmin, bpa]
+                   uvtaper = [bmaj, bmin, bpa].
 
-		   Note : FWHM_uv_lambda = (4 log2) / ( pi * FWHM_lm_radians )  
+		   Note : FWHM_uv_lambda = (4 log2) / ( pi * FWHM_lm_radians ).  
   
-		   A FWHM_lm of 100.000 arcsec maps to a HWHM_uv of 910.18 lambda
-                   A FWHM_lm of 1 arcsec maps to a HWHM_uv of 91 klambda
+		   A FWHM_lm of 100.000 arcsec maps to a HWHM_uv of 910.18 lambda.
+                   A FWHM_lm of 1 arcsec maps to a HWHM_uv of 91 klambda.
 		   
-                   default: uvtaper=[]; no Gaussian taper applied
-                   example: uvtaper=['5klambda']  circular taper of  HWHM=5 kilo-lambda
-                            uvtaper=['5klambda','3klambda','45.0deg'] uv-domain HWHM
-			    uvtaper=['50arcsec','30arcsec','30.0deg'] : image domain FWHM
-                            uvtaper=['10arcsec'] : image domain FWHM 
-                            uvtaper=['300.0'] default units are lambda in aperture plane
+                   default: uvtaper=[]; no Gaussian taper applied.
+                   example: uvtaper=['5klambda']  circular taper of  HWHM=5 kilo-lambda.
+                            uvtaper=['5klambda','3klambda','45.0deg'] uv-domain HWHM.
+			    uvtaper=['50arcsec','30arcsec','30.0deg'] : image domain FWHM.
+                            uvtaper=['10arcsec'] : image domain FWHM. 
+                            uvtaper=['300.0'] default units are lambda in aperture plane.
 
 </description>
       <value type="vector">
@@ -1836,7 +1853,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="int" name="niter">
      <shortdescription>Maximum number of iterations</shortdescription>
-<description>Maximum number of iterations
+<description>Maximum number of iterations.
 
                        A stopping criterion based on total iteration count.
                        Currently the parameter type is defined as an integer therefore the integer value 
@@ -1845,22 +1862,22 @@ to use the correct direction in which the antenna is pointing with respect to th
                        Iterations are typically defined as the selecting one flux component
                        and partially subtracting it out from the residual image.
 
-                       niter=0 : Do only the initial major cycle (make dirty image, psf, pb, etc)
+                       niter=0 : Do only the initial major cycle (make dirty image, psf, pb, etc).
 
                        niter larger than zero : Run major and minor cycles.
 
-                       Note : Global stopping criteria vs major-cycle triggers
+                       Note : Global stopping criteria vs major-cycle triggers.
 
                                   In addition to global stopping criteria, the following rules are
                                   used to determine when to terminate a set of minor cycle iterations
-                                  and trigger major cycles [derived from Cotton-Schwab Clean, 1984]
+                                  and trigger major cycles [derived from Cotton-Schwab Clean, 1984].
 
                                   'cycleniter' : controls the maximum number of iterations per image
                                                       plane before triggering a major cycle.
                                   'cyclethreshold' : Automatically computed threshold related to the
                                                               max sidelobe level of the PSF and peak residual.
                                    Divergence, detected as an increase of 10% in peak residual from the
-                                   minimum so far (during minor cycle iterations)
+                                   minimum so far (during minor cycle iterations).
 
                                    The first criterion to be satisfied takes precedence.
 
@@ -1876,9 +1893,9 @@ to use the correct direction in which the antenna is pointing with respect to th
                                    a total of 200 iterations will be done in the first set of minor cycles
                                    before the total is compared with niter=100 and it exits.
 
-                        Note : Additional global stopping criteria include
-                                  - no change in peak residual across two major cycles
-                                  - a 50% or more increase in peak residual across one major cycle
+                        Note : Additional global stopping criteria include:
+                                  - no change in peak residual across two major cycles.
+                                  - a 50% or more increase in peak residual across one major cycle.
 
 
 </description>
@@ -1887,7 +1904,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="gain" subparam="true">
      <shortdescription>Loop gain</shortdescription>
-<description>Loop gain
+<description>Loop gain.
 
                        Fraction of the source flux to subtract out of the residual image
                        for the CLEAN algorithm and its variants.
@@ -1898,7 +1915,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                        there is a good match between the true sky brightness structure and
                        the basis function shapes.  For example, for extended emission,
                        multiscale clean with an appropriate set of scale sizes will tolerate
-                       a higher loop gain than Clark clean (for example).
+                       a higher loop gain than Clark clean.
 
                        
 
@@ -1908,7 +1925,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="any" name="threshold" subparam="true">
      <shortdescription>Stopping threshold </shortdescription>
-<description>Stopping threshold (number in units of Jy, or string)
+<description>Stopping threshold (number in units of Jy, or string).
 
                       A global stopping threshold that the peak residual (within clean mask)
                       across all image planes is compared to.
@@ -1917,7 +1934,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                       threshold = '5.0mJy'
 
                       Note : A 'cyclethreshold' is internally computed and used as a major cycle
-                                 trigger. It is related what fraction of the PSF can be reliably
+                                 trigger. It is related to what fraction of the PSF can be reliably
                                  used during minor cycle updates of the residual image. By default
                                  the minor cycle iterations terminate once the peak residual reaches
                                  the first sidelobe level of the brightest source.
@@ -1934,7 +1951,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                 If nsigma is set (&gt;0.0), the N-sigma threshold is calculated (see
                                 the description under nsigma), then cyclethreshold is further modified as,
 
-                                cyclethreshold = max( cyclethreshold, nsgima_threshold )
+                                cyclethreshold = max( cyclethreshold, nsgima_threshold ).
 
 
                                 'cyclethreshold' is made visible and editable only in the
@@ -1946,7 +1963,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="nsigma" subparam="true">
      <shortdescription>Multiplicative factor for rms-based threshold stopping</shortdescription>
-<description>Multiplicative factor for rms-based threshold stopping
+<description>Multiplicative factor for rms-based threshold stopping.
 
                        N-sigma threshold is calculated as nsigma \* rms value per image plane determined
                        from a robust statistics. For nsigma &gt; 0.0, in a minor cycle, a maximum of the two values,
@@ -1965,7 +1982,7 @@ to use the correct direction in which the antenna is pointing with respect to th
     <param type="int" name="cycleniter" subparam="true">
      <shortdescription>Maximum number of minor-cycle iterations</shortdescription>
 <description>Maximum number of minor-cycle iterations (per plane) before triggering
-                       a major cycle
+                       a major cycle.
 
                        For example, for a single plane image, if niter=100 and cycleniter=20,
                        there will be 5 major cycles after the initial one (assuming there is no
@@ -1987,7 +2004,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 <description>Scaling on PSF sidelobe level to compute the minor-cycle stopping threshold.
 
                        Please refer to the Note under the documentation for 'threshold' that
-                       discussed the calculation of 'cyclethreshold'
+                       discussed the calculation of 'cyclethreshold'.
 
                        cyclefactor=1.0 results in a cyclethreshold at the first sidelobe level of
                        the brightest source in the residual image before the minor cycle starts.
@@ -2001,10 +2018,10 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="minpsffraction" subparam="true">
      <shortdescription>PSF fraction that marks the max depth of cleaning in the minor cycle</shortdescription>
-<description>PSF fraction that marks the max depth of cleaning in the minor cycle
+<description>PSF fraction that marks the max depth of cleaning in the minor cycle.
 
                        Please refer to the Note under the documentation for 'threshold' that
-                       discussed the calculation of 'cyclethreshold'
+                       discussed the calculation of 'cyclethreshold'.
 
                        For example, minpsffraction=0.5 will stop cleaning at half the height of
                        the peak residual and trigger a major cycle earlier.
@@ -2015,10 +2032,10 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="maxpsffraction" subparam="true">
      <shortdescription>PSF fraction that marks the minimum depth of cleaning in the minor cycle </shortdescription>
-<description>PSF fraction that marks the minimum depth of cleaning in the minor cycle
+<description>PSF fraction that marks the minimum depth of cleaning in the minor cycle.
 
                        Please refer to the Note under the documentation for 'threshold' that
-                       discussed the calculation of 'cyclethreshold'
+                       discussed the calculation of 'cyclethreshold'.
 
                        For example, maxpsffraction=0.8 will ensure that at least the top 20
                        percent of the source will be subtracted out in the minor cycle even if
@@ -2032,7 +2049,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="bool" name="interactive" subparam="true">
      <shortdescription>Modify masks and parameters at runtime</shortdescription>
-<description>Modify masks and parameters at runtime
+<description>Modify masks and parameters at runtime.
 
                        interactive=True will trigger an interactive GUI at every major cycle
                        boundary (after the major cycle and before the minor cycle).
@@ -2052,13 +2069,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                                          no contours will be visible.
 
 
-                       Operation buttons :  -- Stop execution now (restore current model and exit)
+                       Operation buttons :  -- Stop execution now (restore current model and exit).
                                                         -- Continue on until global stopping criteria are reached
-                                                           without stopping for any more interaction
+                                                           without stopping for any more interaction.
                                                         -- Continue with minor cycles and return for interaction
                                                             after the next major cycle.
 
-                       Iteration control : -- max cycleniter :  Trigger for the next major cycle
+                       Iteration control : -- max cycleniter :  Trigger for the next major cycle.
 
                                                                                    The display begins with
                                                                                    [ min( cycleniter, niter - itercount ) ]
@@ -2068,7 +2085,7 @@ to use the correct direction in which the antenna is pointing with respect to th
                                                                                 and can be edited to increase or
                                                                                 decrease the total allowed niter.
 
-                                                    -- threshold : Edit global stopping threshold
+                                                    -- threshold : Edit global stopping threshold.
 
                                                     -- cyclethreshold : The display begins with the
                                                                                   automatically computed value
@@ -2122,7 +2139,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="bool" name="fullsummary">
       <shortdescription>Return dictionary with complete convergence history</shortdescription>
-      <description>Return dictionary with complete convergence history
+      <description>Return dictionary with complete convergence history.
 
                          fullsummary=True: A full version of the summary dictionary is returned.
                          Keys include 'iterDone','peakRes','modelFlux','cycleThresh' that record the
@@ -2155,23 +2172,25 @@ to use the correct direction in which the antenna is pointing with respect to th
     <param type="string" name="usemask">
            <shortdescription>Type of mask(s) for deconvolution:  user, pb, or auto-multithresh</shortdescription>
 
-<description>Type of mask(s) to be used for deconvolution
+<description>Type of mask(s) to be used for deconvolution.
 
-                       user: (default) mask image(s) or user specified region file(s) or string CRTF expression(s)
-                         subparameters: mask, pbmask
-                       pb: primary beam mask
-                         subparameter: pbmask
+                       user: (default) mask image(s) or user specified region file(s) or string CRTF expression(s).
+                         subparameters: mask, pbmask.
+                       pb: primary beam mask.
+                         subparameter: pbmask.
 
-                           Example: usemask=&quot;pb&quot;, pbmask=0.2
+                           Example: usemask=&quot;pb&quot;, pbmask=0.2.
                                              Construct a mask at the 0.2 pb gain level.
                                              (Currently, this option will work only with
-                                             gridders that produce .pb (i.e. mosaic and awproject)
+
+                                             gridders that produce .pb (i.e. mosaic, awp2 and awproject)
                                              or if an externally produced .pb image exists on disk)
 
-                       auto-multithresh : auto-masking by multiple thresholds for deconvolution
+
+                       auto-multithresh : auto-masking by multiple thresholds for deconvolution.
                           subparameters : sidelobethreshold, noisethreshold, lownoisethreshold, negativethrehsold,  smoothfactor,
-                                          minbeamfrac, cutthreshold, pbmask, growiterations, dogrowprune, minpercentchange, verbose
-                          Additional top level parameter relevant to auto-multithresh: fastnoise
+                                          minbeamfrac, cutthreshold, pbmask, growiterations, dogrowprune, minpercentchange, verbose.
+                          Additional top level parameter relevant to auto-multithresh: fastnoise.
 
                           if pbmask is &gt;0.0, the region outside the specified pb gain level is excluded from
                           image statistics in determination of the threshold.
@@ -2198,7 +2217,7 @@ to use the correct direction in which the antenna is pointing with respect to th
     
     <param type="any" name="mask" subparam="true">
      <shortdescription>Mask (a list of image name(s) or region file(s) or region string(s) )</shortdescription>
-<description>Mask (a list of image name(s) or region file(s) or region string(s)
+<description>Mask (a list of image name(s) or region file(s) or region string(s).
 
     
                        The name of a CASA image or region file or region string that specifies
@@ -2232,7 +2251,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
                        mask='circle[[40pix,40pix],10pix]'  : A CASA region string.
 
-                       mask=['xxx.mask','xxx.crtf', 'circle[[40pix,40pix],10pix]']  : a list of masks
+                       mask=['xxx.mask','xxx.crtf', 'circle[[40pix,40pix],10pix]']  : a list of masks.
 
 
               
@@ -2258,10 +2277,10 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="double" name="pbmask" subparam="true">
      <shortdescription>primary beam mask</shortdescription>
-<description>Sub-parameter for usemask: primary beam mask
+<description>Sub-parameter for usemask: primary beam mask.
 
-                       Examples : pbmask=0.0 (default, no pb mask)
-                                  pbmask=0.2 (construct a mask at the 0.2 pb gain level)
+                       Examples : pbmask=0.0 (default, no pb mask).
+                                  pbmask=0.2 (construct a mask at the 0.2 pb gain level).
 
 </description>
       <value type="double">0.0</value>
@@ -2273,38 +2292,38 @@ to use the correct direction in which the antenna is pointing with respect to th
     <param type="double" name="sidelobethreshold" subparam="true">
            <shortdescription>sidelobethreshold \*  the max sidelobe level \* peak residual</shortdescription>
            <value type="double">3.0</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;:  mask threshold based on sidelobe levels:  sidelobethreshold \* max_sidelobe_level \* peak residual
+<description>Sub-parameter for &quot;auto-multithresh&quot;:  mask threshold based on sidelobe levels:  sidelobethreshold \* max_sidelobe_level \* peak residual.
 
 </description>
     </param>
     <param type="double" name="noisethreshold" subparam="true">
     <shortdescription>noisethreshold \* rms in residual image + location(median) </shortdescription>
            <value type="double">5.0</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;:  mask threshold based on the noise level: noisethreshold \* rms + location (=median)
+<description>Sub-parameter for &quot;auto-multithresh&quot;:  mask threshold based on the noise level: noisethreshold \* rms + location (=median).
 
-              The rms is calculated from MAD with rms = 1.4826\*MAD.
+              The rms is calculated from the median absolute deviation (MAD), with rms = 1.4826\*MAD.
 </description>
     </param>
     <param type="double" name="lownoisethreshold" subparam="true">
     <shortdescription>lownoisethreshold \* rms in residual image + location(median) </shortdescription>
            <value type="double">1.5</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;:  mask threshold to grow previously masked regions via binary dilation:   lownoisethreshold \* rms in residual image + location (=median)
+<description>Sub-parameter for &quot;auto-multithresh&quot;:  mask threshold to grow previously masked regions via binary dilation:   lownoisethreshold \* rms in residual image + location (=median).
 
-              The rms is calculated from MAD with rms = 1.4826\*MAD.
+              The rms is calculated from the median absolute deviation (MAD), with rms = 1.4826\*MAD.
 </description>
     </param>
     <param type="double" name="negativethreshold" subparam="true">
            <shortdescription>negativethreshold \* rms in residual image + location(median) </shortdescription>
            <value type="double">0.0</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;: mask threshold  for negative features: -1.0* negativethreshold \* rms + location(=median)
+<description>Sub-parameter for &quot;auto-multithresh&quot;: mask threshold  for negative features: -1.0* negativethreshold \* rms + location(=median).
 
-              The rms is calculated from MAD with rms = 1.4826\*MAD.
+              The rms is calculated from the median absolute deviation (MAD), with rms = 1.4826\*MAD.
 </description>
     </param>
     <param type="double" name="smoothfactor" subparam="true">
            <shortdescription>smoothing factor in a unit of the beam</shortdescription>
            <value type="double">1.0</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;:  smoothing factor in a unit of the beam
+<description>Sub-parameter for &quot;auto-multithresh&quot;:  smoothing factor in a unit of the beam.
 </description>
     </param>
     <param type="double" name="minbeamfrac" subparam="true">
@@ -2317,20 +2336,20 @@ to use the correct direction in which the antenna is pointing with respect to th
     <param type="double" name="cutthreshold" subparam="true">
            <shortdescription>threshold to cut the smoothed mask to create a final mask</shortdescription>
            <value type="double">0.01</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;: threshold to cut the smoothed mask to create a final mask: cutthreshold \* peak of the smoothed mask
+<description>Sub-parameter for &quot;auto-multithresh&quot;: threshold to cut the smoothed mask to create a final mask: cutthreshold \* peak of the smoothed mask.
 </description>
     </param>
     <param type="int" name="growiterations" subparam="true">
            <shortdescription>number of binary dilation iterations for growing the mask</shortdescription>
            <value type="int">75</value>
-<description>Sub-parameter for &quot;auto-multithresh&quot;: Maximum number of iterations to perform using binary dilation for growing the mask
+<description>Sub-parameter for &quot;auto-multithresh&quot;: Maximum number of iterations to perform using binary dilation for growing the mask.
 </description>
     </param>
 
     <param type="bool" name="dogrowprune" subparam="true">
            <shortdescription>Do pruning on the grow mask</shortdescription>
            <value type="bool">True</value>
-<description>Experimental sub-parameter for &quot;auto-multithresh&quot;: Do pruning on the grow mask
+<description>Experimental sub-parameter for &quot;auto-multithresh&quot;: Do pruning on the grow mask.
 </description>
     </param>
 
@@ -2347,18 +2366,18 @@ to use the correct direction in which the antenna is pointing with respect to th
 <description> If it is set to True, the summary of automasking at the end of each automasking process
                         is printed in the logger.  Following information per channel will be listed in the summary.
 
-                        chan: channel number
-                        masking?: F - stop updating automask for the subsequent iteration cycles
-                        RMS: robust rms noise
-                        peak: peak in residual image
-                        thresh_type: type of threshold used (noise or sidelobe)
-                        thresh_value: the value of threshold used
-                        N_reg: number of the automask regions
-                        N_pruned: number of the automask regions removed by pruning
-                        N_grow: number of the grow mask regions
-                        N_grow_pruned: number of the grow mask regions removed by pruning
-                        N_neg_pix: number of pixels for negative mask regions
-
+                        chan: channel number.
+                        masking?: F - stop updating automask for the subsequent iteration cycles.
+                        RMS: robust rms noise.
+                        peak: peak in residual image.
+                        thresh_type: type of threshold used (noise or sidelobe).
+                        thresh_value: the value of threshold used.
+                        N_reg: number of the automask regions.
+                        N_pruned: number of the automask regions removed by pruning.
+                        N_grow: number of the grow mask regions.
+                        N_grow_pruned: number of the grow mask regions removed by pruning.
+                        N_neg_pix: number of pixels for negative mask regions.
+			
                         Note that for a large cube, extra logging may slow down the process.
 </description>
     </param>
@@ -2372,14 +2391,14 @@ to use the correct direction in which the antenna is pointing with respect to th
                         If it is set to False,  the new noise calculation
                         method is used based on pre-existing mask.   
  
-                        Case 1: no exiting mask
-                        Calculate image statistics using Chauvenet algorithm 
+                        Case 1: no exiting mask.
+                        Calculate image statistics using Chauvenet algorithm.
                         
-                        Case 2: there is an existing mask
+                        Case 2: there is an existing mask.
                         Calculate image statistics by classical method on the region
                         outside the mask and inside the primary beam mask.
 
-                        In all cases above RMS noise is calculated from MAD. 
+                        In all cases above RMS noise is calculated from the median absolute deviation (MAD). 
 </description>
     </param>
 
@@ -2398,9 +2417,9 @@ to use the correct direction in which the antenna is pointing with respect to th
                                   the other can be used.
 
                                   startmodel='', imagename.model exists :
-                                            - Start from imagename.model
+                                            - Start from imagename.model.
                                   startmodel='xxx', imagename.model does not exist :
-                                            - Start from startmodel
+                                            - Start from startmodel.
                                   startmodel='xxx', imagename.model exists :
                                             - Exit with an error message requesting the user to pick
                                               only one model.  This situation can arise when doing one
@@ -2444,7 +2463,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="string" name="savemodel">
      <shortdescription>Options to save model visibilities (none, virtual, modelcolumn)</shortdescription>
-<description>Options to save model visibilities (none, virtual, modelcolumn)
+<description>Options to save model visibilities (none, virtual, modelcolumn).
 
                        Often, model visibilities must be created and saved in the MS
                        to be later used for self-calibration (or to just plot and view them).
@@ -2467,13 +2486,13 @@ to use the correct direction in which the antenna is pointing with respect to th
                                        column on disk may be too much extra disk I/O, when the
                                        gridder is simple enough that on-the-fly recomputing of the
                                        model visibilities is quicker than disk I/O.
-                                       For e.g. that gridder='awproject' does not support virtual model. 
+                                       For e.g. that gridder='awproject' and 'awp2' does not support virtual model. 
 
                           modelcolumn : In the last major cycle, save predicted model visibilities
                                       in the MODEL_DATA column of the MS. This mode is useful when
                                       the de-gridding cost to produce the model visibilities is higher
                                       than the I/O required to read the model visibilities from disk.
-                                      This mode is currently required for gridder='awproject'.
+                                      This mode is currently required for gridder='awproject' and 'awp2'.
                                       This mode is also required for the ability to later pull out
                                       model visibilities from the MS into a python array for custom
                                       processing.
@@ -2504,7 +2523,7 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="bool" name="calcres">
      <shortdescription>Calculate initial residual image</shortdescription>
-<description>Calculate initial residual image
+<description>Calculate initial residual image.
 
                       This parameter controls what the first major cycle does.
 
@@ -2575,26 +2594,26 @@ to use the correct direction in which the antenna is pointing with respect to th
 
     <param type="bool" name="parallel">
       <shortdescription>Run major cycles in parallel</shortdescription>
-      <description>Run major cycles in parallel (this feature is experimental)
+      <description>Run major cycles in parallel.
 
                        Parallel tclean will run only if casa has already been started using mpirun.
-                       Please refer to HPC documentation for details on how to start this on your system.
+                       Please refer to external resources on high performance computing for details on how to start this on your system.
 
                        Example :  mpirun -n 3 -xterm 0 `which casa`
 
                        Continuum Imaging :
-                          -  Data are partitioned (in time) into NProc pieces
-                          -  Gridding/iFT is done separately per partition
-                          -  Images (and weights) are gathered and then normalized
-                          - One non-parallel minor cycle is run
-                          - Model image is scattered to all processes
-                          - Major cycle is done in parallel per partition
+                          -  Data are partitioned (in time) into NProc pieces.
+                          -  Gridding/iFT is done separately per partition.
+                          -  Images (and weights) are gathered and then normalized.
+                          - One non-parallel minor cycle is run.
+                          - Model image is scattered to all processes.
+                          - Major cycle is done in parallel per partition.
 
                       Cube Imaging :
-                          - Data and Image coordinates are partitioned (in freq) into NProc pieces
-                          - Each partition is processed independently (major and minor cycles)
-                          - All processes are synchronized at major cycle boundaries for convergence checks
-                          - At the end, cubes from all partitions are concatenated along the spectral axis
+                          - Data and Image coordinates are partitioned (in freq) into NProc pieces.
+                          - Each partition is processed independently (major and minor cycles).
+                          - All processes are synchronized at major cycle boundaries for convergence checks.
+                          - At the end, cubes from all partitions are concatenated along the spectral axis.
 
                       Note 1 :  Iteration control for cube imaging is independent per partition.
                                     - There is currently no communication between them to synchronize
@@ -2682,30 +2701,25 @@ to use the correct direction in which the antenna is pointing with respect to th
      <when param="gridder">
        <equals type="string" value="standard">
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="widefield">
          <default param="wprojplanes"><value>1</value></default>
          <default param="facets"><value>1</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="wproject">
          <default param="wprojplanes"><value>1</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="wprojectft">
          <default param="wprojplanes"><value>1</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="mosaic">
          <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
          <default param="usepointing"><value>False</value></default> 
          <default param="mosweight"><value>True</value></default>
-         <default param="pblimit"><value>0.2</value></default>
          <default param="conjbeams"><value>False</value></default>
          <default param="psfphasecenter"><value>&quot;&quot;</value></default>
        </equals>
@@ -2714,7 +2728,6 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="vptable"><value>&quot;&quot;</value></default>
          <default param="usepointing"><value>False</value></default>
          <default param="doweight"><value>True</value></default>
-         <default param="pblimit"><value>0.2</value></default>
          <default param="conjbeams"><value>False</value></default>
          <default param="psfphasecenter"><value>&quot;&quot;</value></default>
        </equals>
@@ -2723,13 +2736,11 @@ to use the correct direction in which the antenna is pointing with respect to th
          <default param="vptable"><value>&quot;&quot;</value></default>
          <default param="usepointing"><value>False</value></default>
          <default param="mosweight"><value>True</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="imagemosaic">
          <default param="wprojplanes"><value>1</value></default>
          <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
          <default param="vptable"><value>&quot;&quot;</value></default>
-         <default param="pblimit"><value>0.2</value></default>
        </equals>
        <equals type="string" value="awproject">
 	 <default param="wprojplanes"><value>1</value></default>
@@ -2743,7 +2754,6 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="wbawp"><value>True</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 
-	 <default param="pblimit"><value>0.2</value></default>
 	 <default param="conjbeams"><value>False</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
@@ -2769,18 +2779,17 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="wbawp"><value>True</value></default>
 	 <default param="mosweight"><value>False</value></default>
 
-	 <default param="pblimit"><value>0.2</value></default>
 	 <default param="conjbeams"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals>
-<!--       <equals type="string" value="awp2">
+       <equals type="string" value="awp2">
          <default param="wprojplanes"><value>1</value></default>
 	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
 	 <default param="computepastep"><value>360.0</value></default>
 	 <default param="mosweight"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals> 
--->
+
 
      </when>
 
@@ -2902,7 +2911,10 @@ to use the correct direction in which the antenna is pointing with respect to th
 
   <example>
 
-    Please refer to the CASAdocs pages for the task tclean for examples.
+For more information, see the task pages of tclean in CASA Docs:
+
+https://casadocs.readthedocs.io
+
 
   </example>
 

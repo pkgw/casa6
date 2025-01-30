@@ -1484,11 +1484,13 @@ namespace casa{
     Double ny=Double(inarray.shape()(1));
     IPosition shp=inarray.shape();
     //cerr <<  "shp " <<  shp <<  endl;
+
     shp(0)=Int(ceil(nx*factorX/8.0))*8;
     shp(1)=Int(ceil(ny*factorY/8.0))*8;
     Int newNx=shp(0);
     Int newNy=shp(1);
    //cerr << "SHP " << shp << endl;
+
     Array<Complex> out(shp, Complex(0.0));
    
    /*IPosition incursor=IPosition(inarray.shape().nelements(),1);

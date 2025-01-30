@@ -232,6 +232,19 @@ class testref_base(unittest.TestCase):
 
 
 
+
+     def get_beam(self, imname, stokes='I', chan='0'):
+        retv = imhead(imname)
+
+        stokes_ind_map = {'I':'*0', 'Q':'*1', 'U':'*2', 'V':'*3'}
+        stok = stokes_ind_map[stokes]
+
+        bmajor = retv['perplanebeams']['beams'][f'*{chan}'][stok]['major']['value']
+        bminor = retv['perplanebeams']['beams'][f'*{chan}'][stok]['minor']['value']
+        bpa = retv['perplanebeams']['beams'][f'*{chan}'][stok]['positionangle']['value']
+
+        return bmajor, bminor, bpa
+
         
 
 ##############################################
@@ -1699,6 +1712,231 @@ class test_stokes(testref_base):
                report = report + "(Fail : Restoring beam is not present in the restored image)\n"
           _ia.close()
           self.assertTrue(self.check_final(report))
+
+     # weighting test
+     # CAS-14324 : Beam sizes for IQUV should come out as expected.
+     def test_stokes_weighting(self):
+          """ [onefield] Test_Onefield_weighting : mfs with different weighting (natural, uniform, briggs, radial, superuniform)"""
+          self.prepData('refim_twochan.ms')
+          # default = natural
+          tclean(vis=self.msfile,imagename=self.img+'0',imsize=100,cell='8.0arcsec',niter=10,weighting='natural', specmode='mfs', stokes='IQUV',parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'0.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'0.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'0.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'0.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # uniform
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,cell='8.0arcsec',niter=10,weighting='uniform', specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # briggs r=-2
+          tclean(vis=self.msfile,imagename=self.img+'2',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=-2, specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'2.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'2.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'2.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'2.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # briggs r=0.5(default)
+          tclean(vis=self.msfile,imagename=self.img+'3',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=0.5, specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'3.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'3.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'3.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'3.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+          # briggs r=2
+          tclean(vis=self.msfile,imagename=self.img+'4',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=2, specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'4.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'4.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'4.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'4.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # radial
+          tclean(vis=self.msfile,imagename=self.img+'5',imsize=100,cell='8.0arcsec',niter=10,weighting='radial',specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'5.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'5.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'5.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'5.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # superuniform
+          tclean(vis=self.msfile,imagename=self.img+'6',imsize=100,cell='8.0arcsec',niter=10,weighting='superuniform',specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'6.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'6.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'6.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'6.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # briggs r=0.5(default) with mtmfs (to test SIImageStoreMultiTerm)
+          tclean(vis=self.msfile,imagename=self.img+'7',imsize=100,cell='8.0arcsec',niter=10,deconvolver='mtmfs', weighting='briggs', robust=0.5,specmode='mfs', stokes='IQUV', parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'7.image.tt0', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'7.image.tt0', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'7.image.tt0', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'7.image.tt0', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+
+          # Cube + briggs weighting (to test BriggsCubeWeightor)
+          tclean(vis=self.msfile,imagename=self.img+'8',imsize=100,cell='8.0arcsec',niter=10,weighting='briggs', robust=0, specmode='cube', stokes='IQUV',parallel=self.parallel)
+          imaj, imin, ipa = self.get_beam(self.img+'8.image', stokes='I')
+          qmaj, qmin, qpa = self.get_beam(self.img+'8.image', stokes='Q')
+          umaj, umin, upa = self.get_beam(self.img+'8.image', stokes='U')
+          vmaj, vmin, vpa = self.get_beam(self.img+'8.image', stokes='V')
+
+          self.assertTrue(imaj == qmaj and imaj == umaj and imaj == vmaj)
+          self.assertTrue(imin == qmin and imin == umin and imin == vmin)
+          self.assertTrue(ipa == qpa and ipa == upa and ipa == vpa)
+
+          # beamareas: uniform < briggs-r=-2 < briggs r=0.5 < briggs r=+2 < natural, ...
+          # by default, it checks if im1's beam < im2's beam
+          print("Test beamarea of tst0.image (natural) is greater than beamarea of tst.image (uniform)")
+          self.assertTrue(self.th.check_beam_compare(self.img+'.image', self.img+'0.image'))
+          print("Test beamarea of tst2.image (briggs -2) is greater than beamarea of tst.image (uniform)")
+          self.assertTrue(self.th.check_beam_compare(self.img+'.image', self.img+'2.image'))
+          print("Test beamarea of tst3.image (briggs 0.5) is greater than beamarea of tst2.image (briggs -2))")
+          self.assertTrue(self.th.check_beam_compare(self.img+'2.image', self.img+'3.image'))
+          print("Test beamarea of tst4.image (briggs 2) is greater than beamarea of tst3.image (briggs 0.5))")
+          self.assertTrue(self.th.check_beam_compare(self.img+'3.image', self.img+'4.image'))
+
+
+
+
+
+     def test_stokes_awp2_mfs_I(self):
+          """ [stokes] test_stokes_awp2_I_mfs mfs with stokes I"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='I',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0])])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_IV(self):
+          """ [stokes] test_stokes_awp2_mfs_IV : mfs with stokes IV"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IV',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0]),(self.img+'.image',4.0,[50,50,1,0])  ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_QU(self):
+          """ [stokes] test_stokes_awp2_mfs_QU : mfs with stokes QU"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='QU',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]),(self.img+'.image',3.0,[50,50,1,0])  ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_Q(self):
+          """ [stokes] test_stokes_awp2_mfs_Q : mfs with stokes Q"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='Q',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_U(self):
+          """ [stokes] test_stokes_awp2_mfs_U : mfs with stokes U"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='U',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',3.0,[50,50,0,0]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_mfs_V(self):
+          """ [stokes] test_stokes_awp2_mfs_V : mfs with stokes V"""
+          self.prepData('refim_point_linRL.ms')
+          tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='V',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',4.0,[50,50,0,0]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_I(self):
+          """ [stokes] test_stokes_awp2_cube_I : cube with stokes I"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='I',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0]),(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',1.0,[50,50,0,2]) ] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_IV(self):
+          """ [stokes] test_stokes_awp2_stokes_IV : cube with stokes V"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IV',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,0]),(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',1.0,[50,50,0,2]),  (self.img+'.image',4.0,[50,50,1,0]),(self.img+'.image',4.0,[50,50,1,1]),(self.img+'.image',4.0,[50,50,1,2])] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_QU(self):
+          """ [stokes] test_stokes_awp2_stokes_QU : cube with stokes QU"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='QU',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]),(self.img+'.image',2.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,0,2]),  (self.img+'.image',3.0,[50,50,1,0]),(self.img+'.image',3.0,[50,50,1,1]),(self.img+'.image',3.0,[50,50,1,2])] )
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_Q(self):
+          """ [stokes] test_stokes_awp2_cube_Q : cube with stokes Q"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='Q',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',2.0,[50,50,0,0]),(self.img+'.image',2.0,[50,50,0,1]) ,(self.img+'.image',2.0,[50,50,0,2]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_U(self):
+          """ [stokes] test_stokes_awp2_cube_U : cube with stokes U"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='U',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',3.0,[50,50,0,0]),(self.img+'.image',3.0,[50,50,0,1]) ,(self.img+'.image',3.0,[50,50,0,2]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_V(self):
+          """ [stokes] test_stokes_awp2_cube_V : cube with stokes V"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='V',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',4.0,[50,50,0,0]),(self.img+'.image',4.0,[50,50,0,1]) ,(self.img+'.image',4.0,[50,50,0,2]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_IQUV_fromRL(self):
+          """ [stokes] test_stokes_awp2_cube_IQUV_fromRL : cube with stokes IQUV"""
+          self.prepData('refim_point_linRL.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IQUV',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+          self.assertTrue(self.check_final(report))
+
+     def test_stokes_awp2_cube_IQUV_fromXY(self):
+          """ [stokes] test_stokes_awp2_cube_IQUV_fromXY : cube with stokes IQUV"""
+          self.prepData('refim_point_linXY.ms')
+          ret = tclean(vis=self.msfile,imagename=self.img,imsize=100,gridder='awp2',cell='8.0arcsec',niter=10, stokes='IQUV',specmode='cube',interpolation='nearest',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+          self.assertTrue(self.check_final(report))
+     ####this  test has been replaced by      test_widefield_mvc_squint_awp2
+     #def test_stokes_awp2_mtmfs_IV_squintcorr(self):
+     #     """ [stokes] test_stokes_awp2_mtmfs_IV_squintcorr : mtmfs with stokes IV"""
+     #     self.prepData("vla_wideband_2ptg_w_squint.ms")
+     #    msname = self.msfile
+     #    ret = tclean(vis=msname,imagename=self.img,imsize=1200,gridder='awp2',cell='1.6arcsec',niter=10, stokes='I',specmode='mvc',deconvolver='mtmfs', nterms=2,parallel=self.parallel)
+     #    report=self.th.checkall(imgexist=[self.img+'.image'],imgval=[(self.img+'.image.tt0',1.0,[50,50,0,1]),(self.img+'.image',2.0,[50,50,1,1]), (self.img+'.image',3.0,[50,50,2,1]),(self.img+'.image',4.0,[50,50,3,1]) ])
+     #     self.assertTrue(self.check_final(report))
 
 
 #     def test_stokes_cube_I_flags(self):
@@ -3831,6 +4069,7 @@ class test_wproject(testref_base):
 
           report=self.th.checkall(imgexist=[self.img+'.awp.image'],imgval=[(self.img+'.awp.psf',1.0,[1024,1024,0,0]),(self.img+'.awp.image',1.0,[1158,1384,0,0]) ] )
           self.assertTrue(self.check_final(report))
+          
 ##############################################
           
      @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not correct GPU or MPI is not compatible with hpg ")
@@ -3850,10 +4089,38 @@ class test_wproject(testref_base):
           self.assertTrue(self.check_final(report))    
      
 
+          
+     #@unittest.skipIf(True, "We need to copy vla_wideband_2ptg_w_squint.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
+     def test_wterm_awp2(self):
+          """ [wproject] Test_Widefield_wproj : W-Projection using the AWP2 gridder """ 
+          self.prepData("vla_wideband_2ptg_w_squint.ms")
+          msname = self.msfile
+          #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
 
+           
+          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
+                 niter=20, weighting='uniform', gridder='awp2', wprojplanes=16, pblimit=-0.1, pbcor=True, 
+                 parallel=self.parallel)
+          ## source peak after pbcor
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]) ] )
+          self.assertTrue(self.check_final(report))    
+     
 ##############################################
-##############################################
+     def test_wterm_squint_awp2(self):
+          """ [wproject] Test_Widefield_wproj : W-Projection with squint using the AWP2 gridder """ 
+          self.prepData("vla_wideband_2ptg_w_squint.ms")
+          msname = self.msfile
+          #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
 
+           
+          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
+                 niter=20, weighting='uniform', stokes="IV", gridder='awp2', wprojplanes=4, 
+                 computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
+          ## source peak after pbcor
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]), (self.img+'.awp2.image.pbcor',0.0,[323,858,1,0]) ] )
+          self.assertTrue(self.check_final(report))    
+     
+##############################################
 ##Task level tests : awproject and mosaics
 class test_widefield(testref_base):
      def test_widefield_aproj_mfs(self):
@@ -3876,6 +4143,38 @@ class test_widefield(testref_base):
 
           #do stokes V too.....
 
+     def test_widefield_awp2_mfs(self):
+          """ [widefield] Test_Widefield_awp2 : MFS with narrowband AWProjection (1spw)  stokes I """
+          # casalog.post("EMPTY TEST")
+          # return
+
+          self.prepData("refim_mawproject.ms")
+          ret = tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+                       niter=30,gridder='awp2',deconvolver='hogbom',savemodel='modelcolumn',parallel=self.parallel)
+         ## ret = tclean(vis=self.msfile,spw='2',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",niter=30,gridder='awproject',wbawp=False,conjbeams=True,psterm=False,computepastep=360.0,rotatepastep=360.0,deconvolver='hogbom')
+          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',1.0,[256,256,0,0]),(self.img+'.pb',0.96,[256,256,0,0]),(self.img+'.weight',0.463,[256,256,0,0]) ] )
+          #
+         
+          self.assertTrue(self.check_final(report))
+     ##############################################
+     def test_widefield_mvc_squint_awp2(self):
+          """ [wproject] Test_Widefield_wproj : W-Projection with squint using the AWP2 gridder """ 
+          self.prepData("vla_wideband_2ptg_w_squint.ms")
+          msname = self.msfile
+          #msname = '/home/heron2/kgolap/TEST/WFIELD/vla_wideband_2ptg_w_squint.ms'
+
+          ##Do IV after mvc for stokes bug CAS-14454 is fixed 
+          tclean(vis=msname, imagename=self.img+'.awp2',  imsize=2000, cell='1.6arcsec',field='', 
+                 specmode='mvc', deconvolver='mtmfs', nchan=-1,
+                 niter=20, weighting='uniform', stokes="I", phasecenter='J2000 00h07m0.0 50d0m0.000', gridder='awp2', wprojplanes=4, 
+                 computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
+          ## source peak after pbcor
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image.tt0'],
+                                  imgval=[(self.img+'.awp2.pb.tt0',0.54,[723,1446,0,0]),
+                                        (self.img+'.awp2.image.tt0.pbcor',0.66,[723,1446,0,0]),
+                                        (self.img+'.awp2.alpha',-0.05,[723,1446,0,0])] )
+          self.assertTrue(self.check_final(report))    
+     
      @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not Correct GPU or MPI is not compatible with hpg ")
      def test_widefield_awphpg_mfs(self):
           """ [widefield] Test_Widefield_awphpg : MFS with narrowband AWProjection 1spw  stokes I """
@@ -3906,11 +4205,26 @@ class test_widefield(testref_base):
           self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
           self.assertTrue(self.check_final(report))
 
+##############################
+     def test_widefield_awp2_cube(self):
+          """ [widefield] Test_Widefield_awp2_cube : Cube with AW-Projection  and rotation off """
 
+          #casalog.post("EMPTY TEST")
+          #return
+
+          self.prepData("refim_mawproject.ms")
+          ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+                       specmode='cube',niter=1,gain=1.0,gridder='awp2',
+                       deconvolver='hogbom',parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',1.001,[256,256,0,0]),(self.img+'.weight',0.62,[256,256,0,0]) ] )
+          self.assertTrue(os.path.exists(self.img+'.psf') and os.path.exists(self.img+'.residual') )
+          self.assertTrue(self.check_final(report))
+
+ ##########################
+ 
      @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not Correct GPU or MPI is not compatible with hpg ")
      def test_widefield_awphpg_cube(self):
           """ [widefield] Test_Widefield_awphpg_cube : Cube with AW-Projection  and rotation off """
-
           #casalog.post("EMPTY TEST")
           #return
 
@@ -3981,6 +4295,25 @@ class test_widefield(testref_base):
           ## alpha should be ZERO as the pb spectrum has been taken out.
           self.assertTrue(self.check_final(report))
 
+
+     def test_widefield_awp2_mtmfs(self):
+          """ [widefield] Test_Widefield_wbaproj_mtmfs : MFS with wideband AWProjection (wbawp=T,conjbeams=T, allspw) and nt=2 stokes I  """
+
+          # casalog.post("EMPTY TEST")
+          # return
+
+          self.prepData("refim_mawproject.ms")
+          ret = tclean(vis=self.msfile,field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+                       niter=30,gridder='awp2',deconvolver='mtmfs',pblimit=0.1,parallel=self.parallel)
+          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight.tt0'],imgval=[(self.img+'.image.tt0',0.96,[256,256,0,0]),(self.img+'.weight.tt0',0.486,[256,256,0,0]),(self.img+'.alpha',0.04,[256,256,0,0]) ] )
+          #
+          # Changed to the following for 5.5.0 release of AWP.  Will revisit and replace the test MS later.
+          #
+          #report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.psf.tt0', self.img+'.weight.tt0'],imgval=[(self.img+'.image.tt0',0.696,[256,256,0,0]),(self.img+'.weight.tt0',0.486,[256,256,0,0]),(self.img+'.alpha',0.0,[256,256,0,0]) ] )
+          ## alpha should be ZERO as the pb spectrum has been taken out.
+          self.assertTrue(self.check_final(report))
+################
+
      @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not correct GPU or MPI is not compatible with hpg ")
      def test_widefield_awphpg_mtmfs_via_cube(self):
           """ [widefield] Test_Widefield_wbaproj_mtmfs : MFS with wideband AWProjection (wbawp=T,conjbeams=T, allspw) and nt=2 stokes I  """
@@ -4029,17 +4362,28 @@ class test_widefield(testref_base):
 
      #@unittest.skipIf(ParallelTaskHelper.isMPIEnabled(), "Skip test. mosaic, Briggs weighting with mosweight=True. Enable this after fixing CAS-11978")
      def test_widefield_mosaicft_mfs_mosweightTrue(self):
-          """ [widefield] Test_Widefield_mosaic : MFS with mosaicft  stokes I briggs mosweight=True(default)"""
+          """ [widefield] Test_Widefield_mosaic : MFS with mosaicft  stokes I and IQUV briggs mosweight=True(default)"""
           self.prepData("refim_mawproject.ms")
           ret = tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
                        niter=30,gridder='mosaicft',deconvolver='hogbom',pblimit=0.3,weighting='briggs', parallel=self.parallel)
           #just write the model column            
           tclean(vis=self.msfile,spw='1',field='*',imagename=self.img,imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
                        niter=0,gridder='mosaicft',deconvolver='hogbom',pblimit=0.3,weighting='briggs', savemodel='modelcolumn', parallel=self.parallel)
+          tclean(vis=self.msfile,spw='1',field='*',imagename=self.img+'_uniform_IQUV',
+                 imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+                 stokes='IQUV', niter=0,gridder='mosaic',deconvolver='hogbom',
+                 pblimit=0.3,weighting='uniform', mosweight=True, parallel=self.parallel)
+          tclean(vis=self.msfile,spw='1',field='*',imagename=self.img+'_briggs_IQUV',
+                 imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",
+                 stokes='IQUV', niter=0,gridder='mosaic',deconvolver='hogbom',
+                 pblimit=0.3,weighting='briggs', mosweight=True, parallel=self.parallel)
           report=self.th.checkall(imgexist=[self.img+'.image', self.img+'.psf', self.img+'.weight'],imgval=[(self.img+'.image',0.962813, [256,256,0,0]),(self.img+'.weight',0.50520, [256,256,0,0]) ] )
           #ret = clean(vis=self.msfile,spw='1',field='*',imagename=self.img+'.old',imsize=512,cell='10.0arcsec',phasecenter="J2000 19:59:28.500 +40.44.01.50",niter=30,imagermode='mosaic',psfmode='hogbom')
+          report_IQUV=self.th.checkall(imgexist=[self.img+'_uniform_IQUV.image',
+                                                 self.img+'_briggs_IQUV.image'],
+                                       imgval=[(self.img+'_uniform_IQUV.image',0.96, [256,256,0,0]),(self.img+'_briggs_IQUV.image',0.96, [256,256,0,0]), (self.img+'_uniform_IQUV.image',-0.004, [256,256,3,0]),(self.img+'_briggs_IQUV.image',-0.004, [256,256,3,0])] )
           self.assertTrue(self.check_final(report))
-
+          self.assertTrue(self.check_final(report_IQUV))
      def test_widefield_mosaicft_mtmfs(self):
           """ [widefield] Test_Widefield_mosaicft_mtmfs : MT-MFS with mosaicft  stokes I, alpha """
           self.prepData("refim_mawproject.ms")
@@ -4875,7 +5219,7 @@ class test_pbcor(testref_base):
           self.prepData('refim_mawproject.ms')
           ret1 = tclean(vis=self.msfile, imagename=self.img, field='0', imsize=512, cell='10.0arcsec', phasecenter="J2000 19:59:28.500 +40.44.01.50", 
                         niter=10, specmode='mfs', vptable='evlavp.tab', pbcor=True, deconvolver='mtmfs',parallel=self.parallel)
-          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.pb.tt0'], imgexistnot=[self.img+'.image.tt0.pbcor', self.img+'.alpha.pbcor'], imgval=[(self.img+'.pb.tt0',0.7,[256,256,0,0])])  
+          report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.pb.tt0', self.img+'.image.tt0.pbcor', self.img+'.alpha.pbcor'], imgval=[(self.img+'.pb.tt0',0.7,[256,256,0,0])])  
           #report=self.th.checkall(imgexist=[self.img+'.image.tt0', self.img+'.pb.tt0', self.img+'.image.tt0.pbcor', self.img+'.alpha.pbcor'], imgval=[(self.img+'.pb.tt0',0.7,[256,256,0,0]),(self.img+'.image.tt0.pbcor',1.0,[256,256,0,0]),(self.img+'.alpha',-0.7,[256,256,0,0]), (self.img+'.alpha.pbcor',-0.7,[256,256,0,0]) ])  
           # uncorrected alpha, for now. 
           self.assertTrue(self.check_final(report))
@@ -5049,25 +5393,6 @@ class test_hetarray_imaging(testref_base):
                                           (self.img+'_pcorr1_time1_cross.pb' ,1.0,[924,1024,0,0]) ] )   
           report4 = report4 + "This test checks for cross-baseline PB values that are known to be incorrect. Edit these values/test once the algorithm for cross-baseline PBs is fixed.\n"
 
-
-          ## Antenna/time correction : usepointing=True, pointingoffsetsigdev=[20,2000], timerange='*', antenna='grp1' : PB = Mosaiced PB. 
-
-          tclean(vis=msname, imagename=self.img+'_pcorr1_time1_2', specmode='cube', deconvolver='hogbom',
-                   niter = 0, datacolumn='observed', imsize=2048, cell=5.0, nchan=3, start='1.9GHz',
-                   width='0.4GHz', interpolation='nearest', pblimit=-0.01, gridder='awp2',
-                   usepointing=True, antenna=f"{self.baselines['grp1']}&")
-          report5=self.th.checkall(imgval=[
-                                          ## Check source intensity
-                                          (self.img+'_pcorr1_time1_2.image' ,0.56,[1024,1024,0,0]), 
-                                          (self.img+'_pcorr1_time1_2.image' ,0.22,[1024,1024,0,1]), 
-                                          (self.img+'_pcorr1_time1_2.image' ,0.07,[1024,1024,0,2]), 
-                                          ## Check PB at source location
-                                          (self.img+'_pcorr1_time1_2.pb' ,0.51,[1024,1024,0,0]), 
-                                          (self.img+'_pcorr1_time1_2.pb' ,0.52,[1024,1024,0,1]), 
-                                          (self.img+'_pcorr1_time1_2.pb' ,0.34,[1024,1024,0,2]), 
-                                          ## Check that PB peak is at the expected location
-                                          (self.img+'_pcorr1_time1_2.pb' ,1.0,[927,1124,0,0]) ] )   
-                                          #(self.img+'_pcorr1_time1_2.pb' ,1.0,[1121,1124,0,0]) ] )   
 
 
           ## Four corners : usepointing=True, pointingoffsetsigdev=[20,20], timerange='*', antenna='grp1,grp2' : PB = Sum of PB in all 4 corners (with no cross-terms). Flux/alpha are correct. 
@@ -5715,6 +6040,41 @@ class test_mtmfsviacube(testref_base):
                        ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
                        ('tst.alpha', -0.56, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
                        ('tst.image.tt0.pbcor', 1.0, [256,256,0,0]), # Sky : point source with alpha=-0.5
+               ]
+          )  
+          casalog.post(report, "SEVERE")
+          self.assertTrue(self.check_final(pstr=report))
+
+     ## Tests for mvc : AWProject gridder
+     #@unittest.skip('Skip test of "awp2" gridder until it comes in via CAS-14146.')
+     def test_mtmfsviacube_awp2(self):
+          """ [mtmfsviacube] test_awp2_mtmfs_cube: test mosaic with mtmfs via cube """
+          ###########################################
+          self.prepData('refim_oneshiftpoint.mosaic.ms')
+          ret = tclean(vis='refim_oneshiftpoint.mosaic.ms' ,imagename='tst', field='0',
+                       phasecenter = 'J2000 19h59m28.523 +40d54m01.152', 
+                       imsize=512,    
+                       cell='10.0arcsec', 
+                       specmode='mvc', 
+                       gridder='awp2',
+                       deconvolver='mtmfs', 
+                       nterms=2,
+                       reffreq='1.5GHz',
+                       nchan=3,
+                       pblimit=0.1, 
+                       niter=100, 
+                       pbcor=True)
+
+          report=self.th.checkall(
+               imgexist=['tst.psf.tt0',
+                         'tst.residual.tt0',
+                         'tst.image.tt0',
+                         'tst.image.tt1',
+                         'tst.alpha'], 
+               imgval=[('tst.psf.tt0', 1.0, [256,256,0,0]),
+                       ('tst.image.tt0', 0.5, [256,256,0,0]), # Sky x PB : point source with alpha=-0.5
+                       ('tst.alpha', -0.48, [256,256,0,0]),     #### The alpha is away from -0.5 as the awproject PB model is different from mosaic (which was used to simulate the test dataset)
+                       ('tst.image.tt0.pbcor', 1.05, [256,256,0,0]), # Sky : point source with alpha=-0.5
                ]
           )  
           casalog.post(report, "SEVERE")

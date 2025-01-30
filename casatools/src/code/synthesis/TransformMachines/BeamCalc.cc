@@ -170,11 +170,6 @@ namespace casa{
         String fullFileName;
         const std::list<std::string> &data_path = AppStateSource::fetch( ).dataPath( );
         const std::string distrodata_path = repoPath_p.size()> 0 ? repoPath_p :  casatools::get_state().distroDataPath( );
-        cerr<<"distrodata_path="<<distrodata_path<<endl;
-        cerr << "DATA PATH===";
-         for (auto l : data_path)
-           cerr << l << "  ";
-         cerr << endl;
          // The data path search need to be rewritten to adopt the recommanded
          // setting via python file for CASA6. For now, only the first path that
          // actually exist will be set to the data path (TT 2018.12.10)
@@ -193,6 +188,7 @@ namespace casa{
              }
              // Directory ddir(slpath+subdirname);
              try {
+
                Directory ddir(slpath+subdirname);
                ddir.exists();
                found = True;
@@ -682,6 +678,7 @@ namespace casa{
     
     freq = ap->freq;
     if(freq <= 0.0) freq = geom->reffreq;
+
 
     df = freq-geom->reffreq;
     x = 1.0;

@@ -1380,6 +1380,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   void AWProjectFT::finalizeToVis()
   {
     visResampler_p->runTimeDG_p=0.0;
+
     logIO() << LogOrigin("AWProjectFT", "finalizeToVis")  << LogIO::NORMAL;
     logIO()<< LogIO::WARN << "Time degrid " << timedegrid_p << LogIO::POST;
     timedegrid_p=0.0;

@@ -147,6 +147,15 @@ class PySynthesisImager:
         ### to create it as it is not multiprocess safe
         if(("cube" in self.allimpars['0']['specmode']) or ("awphpg" in self.allgridpars['0']['gridder'])):
             self.makeCFCache(exists);
+        ### Warning about awp2/mosaic not having conjbeam thus will not be correct on first major cycles
+        ## CAS-14146 : Krishna : Moved this warning to task_tclean.py along with the other warnings there.
+        #if( ("mfs" in self.allimpars['0']['specmode']) and ("mtmfs" in self.allimpars['0']['deconvolver']) and (self.allgridpars['0']['gridder'] in ['awp2', 'mosaic']) ):
+        #    casalog.post(
+        #        "You may consider using specmode=mvc with "+self.allgridpars['0']['gridder']
+        #        +" as this gridder does not use conjbeams \n thus need a couple of major cycle to converge to the correct answer",
+        #        "WARN"
+        #    )
+
 
     #############################################
 
