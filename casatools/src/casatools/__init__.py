@@ -84,7 +84,7 @@ from .utils import utils as __utils
 import os as __os
 import sys as __sys
 from casaconfig import get_data_info, do_auto_updates, config
-from casaconfig import UnsetMeasurespath, AutoUpdatesNotAllowed, BadLock, BadReadme, NoReadme, RemoteError
+from casaconfig import UnsetMeasurespath, AutoUpdatesNotAllowed, BadLock, BadReadme, NoReadme, RemoteError, NoNetwork
 # useful to use here
 from casaconfig.private.print_log_messages import print_log_messages
 
@@ -166,6 +166,13 @@ except NoReadme as exc:
     msgs.append('If the IERSeop2000 table is found in datapth then casatools will import.')
     msgs.append('')
     # print this
+    user_verbose = 2
+    config_except = exc
+
+except NoNetwork as exc:
+    msgs.append('')
+    msgs.append('No data or measures updates could be done because there is no network connection.')
+    # print it, this is ONLY reraised if the IERSeop2000 table is not found so it's clearer what the root cause likely was.
     user_verbose = 2
     config_except = exc
 
