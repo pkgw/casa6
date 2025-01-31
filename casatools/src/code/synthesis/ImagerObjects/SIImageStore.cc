@@ -64,6 +64,7 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+#include "SIImageStore.h"
 using namespace std;
 
 using namespace casacore;
@@ -1641,7 +1642,18 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
 
   }
 
+  void SIImageStore::divideWeightBySumwt()
+  {
+    LogIO os(LogOrigin("SIImageStore", "divideWeightBySumWt", WHERE));
 
+   
+    if( itsUseWeight )
+    { 
+
+      divideImageByWeightVal( *weight() ); 
+    }
+
+  }
   
 
   void SIImageStore::dividePSFByWeight(const Float /* pblimit*/)
@@ -1650,12 +1662,14 @@ void SIImageStore::setWeightDensity( std::shared_ptr<SIImageStore> imagetoset )
 
     LatticeLocker lock1 (*(psf()), FileLocker::Write);
     normPSF();
-
-    if( itsUseWeight )
-    { 
+    //This bit us twice now...hiding this sensitivity division in psf division has wasted a few FTE days
+    // Leaving it commented so as it is a lesson of not what to do...
+    // moving it to its own function
+      //  if( itsUseWeight )
+   // { 
 	
-	divideImageByWeightVal( *weight() ); 
-    }
+	//divideImageByWeightVal( *weight() ); 
+  //  }
     (psf())->unlock();
     
   }
