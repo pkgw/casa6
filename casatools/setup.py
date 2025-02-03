@@ -313,6 +313,7 @@ def setup_package():
         META_DATA["version"] = compute_version()
         META_DATA["cmdclass"] = cmd_class
         META_DATA["ext_modules"] = extensions
+        META_DATA["install_requires"] = ["casaconfig==1.0.3dev2",]
 
     setup(**META_DATA)
     if os.path.exists("version.txt") and "sdist" in sys.argv:
