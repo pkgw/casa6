@@ -1,4 +1,10 @@
 [build-system]
 # Minimum requirements for the build system to execute.
-requires = ["setuptools", "wheel", "numpy"]
+requires = ["setuptools", "wheel", "numpy","casaconfig==1.0.3.dev2"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# Specify runtime dependencies here
+install_requires = [
+    "casaconfig==1.0.3.dev2",
+]
