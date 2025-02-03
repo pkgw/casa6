@@ -4,6 +4,7 @@ requires = ["setuptools", "wheel", "numpy","casaconfig==1.0.3.dev2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
+name = "casatools"  
 # Specify runtime dependencies here
 install_requires = [
     "casaconfig==1.0.3.dev2",
