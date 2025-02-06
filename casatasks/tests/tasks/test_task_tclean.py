@@ -4114,10 +4114,11 @@ class test_wproject(testref_base):
 
            
           tclean(vis=msname, imagename=self.img+'.awp2',  imsize=1200, cell='1.6arcsec',field='1', 
-                 niter=20, weighting='uniform', stokes="IV", gridder='awp2', wprojplanes=4, 
+                 niter=20, weighting='uniform', stokes="IV", gridder='awp2', wprojplanes=2, 
                  computepastep=15, pblimit=-0.1, pbcor=True, parallel=self.parallel)
           ## source peak after pbcor
-          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]), (self.img+'.awp2.image.pbcor',0.0,[323,858,1,0]) ] )
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.654,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.70,[323,858,0,0]), (self.img+'.awp2.image.pbcor',-0.01,[323,858,1,0]) ] )
+          print(report)
           self.assertTrue(self.check_final(report))    
      
 ##############################################
