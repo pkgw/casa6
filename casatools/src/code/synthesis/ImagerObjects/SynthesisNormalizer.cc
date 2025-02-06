@@ -823,9 +823,12 @@ void SynthesisNormalizer::gatherWeightDensity(){
    }
 
    void SynthesisNormalizer::mergeWeightDensityInfo(Record& outinfo, const Record& partinfo){
-     uInt mapsize;
-     outinfo.get("multimapsize", mapsize);
+     uInt mapsize=0;
+     if(outinfo.isDefined("multimapsize"))
+      outinfo.get("multimapsize", mapsize);
      uInt partsize;
+     if(!partinfo.isDefined("multimapsize"))
+       return;
      partinfo.get("multimapsize", partsize);
      std::vector<String> key2add;
      std::vector<Int> val2add;
