@@ -169,6 +169,7 @@ namespace casa{
         Bool found = False;
         String fullFileName;
         const std::list<std::string> &data_path = AppStateSource::fetch( ).dataPath( );
+
         const std::string distrodata_path = casatools::get_state().distroDataPath( );
         //cerr<<"distrodata_path="<<distrodata_path<<endl; 
         //cerr<<"DATA PATH==="<< *data_path <<endl;
@@ -680,9 +681,7 @@ namespace casa{
     freq = ap->freq;
     if(freq <= 0.0) freq = geom->reffreq;
 
-    //cerr << "BEam CAlc freq "<< freq << " reffreq " << geom->reffreq << endl; 
 
-    
     df = freq-geom->reffreq;
     x = 1.0;
     ftaper = 0.0;

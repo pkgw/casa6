@@ -110,7 +110,11 @@ class SIMapperCollection
     AlwaysAssert(which>=0 && which<(casacore::Int)itsMappers.nelements(),casacore::AipsError);
     return itsMappers[which]->getFTM2(ift);
   };
-
+  ////Have to reset the ftmachine for the 1 shot FTM like AWPHPG
+  void setFTM2(const casacore::Int which, casacore::CountedPtr<refim::FTMachine>& ftm, const casacore::Bool ift=true){
+    AlwaysAssert(which>=0 && which<(casacore::Int)itsMappers.nelements(),casacore::AipsError);
+    itsMappers[which]->setFTM2(ftm, ift);
+  }
   
   void initPB();
 

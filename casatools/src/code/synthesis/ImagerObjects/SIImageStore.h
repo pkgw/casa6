@@ -154,7 +154,7 @@ class SIImageStore
   virtual void divideResidualByWeightSD(const casacore::Float pblimit=casacore::C::minfloat);
   virtual void divideModelByWeight(const casacore::Float pblimit=casacore::C::minfloat, const casacore::String normtype="flatnoise");
   virtual void multiplyModelByWeight(const casacore::Float pblimit=casacore::C::minfloat, const casacore::String normtype="flatnoise");
-
+  virtual void divideWeightBySumwt();
   /// Other
   virtual casacore::Bool releaseLocks();
   virtual casacore::Bool releaseComplexGrids();
@@ -295,6 +295,8 @@ protected:
 
   
   void rescaleResolution(casacore::Int chan, casacore::ImageInterface<casacore::Float>& subResidual, const casacore::GaussianBeam& newbeam, const casacore::GaussianBeam& oldbeam);
+
+  
 
   casacore::Bool findMinMaxLattice(const casacore::Lattice<casacore::Float>& lattice, const casacore::Lattice<casacore::Float>& mask, const casacore::Lattice<casacore::Bool>& pixmask,
 			 casacore::Float& maxAbs, casacore::Float& maxAbsMask, casacore::Float& minAbs, casacore::Float& minAbsMask );

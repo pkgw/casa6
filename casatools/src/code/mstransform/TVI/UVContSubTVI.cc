@@ -570,7 +570,7 @@ void UVContSubTVI::populatePerFieldSpec(int fieldID,
 
     // Create line-free channel mask, spw->(channel_mask, fit_order)
     unordered_map<int, FitSpec> lineFreeChannelMaskMap;   // rename: fitSpecMap
-    for (auto const spwInp: spwInpChanIdxMap_p)
+    for (auto const &spwInp: spwInpChanIdxMap_p)
     {
         const auto spw = spwInp.first;
         if (lineFreeChannelMaskMap.find(spw) == lineFreeChannelMaskMap.end())
@@ -614,13 +614,13 @@ void UVContSubTVI::populatePerFieldSpec(int fieldID,
 void UVContSubTVI::fitSpecToPerFieldMap(const InFitSpecMap &fitspec)
 {
      // Process line-free channel specifications
-    for (const auto item: fitspec) {
+    for (const auto &item: fitspec) {
         unordered_map<int, FitSpec> fieldSpecMap;
         // Parse line-free channel selection using MSSelection syntax
         const auto fieldID = item.first;
         const auto &specs = item.second;
         bool noneFound = false;
-        for (const auto spwSpec : specs) {
+        for (const auto &spwSpec : specs) {
             const auto spwStr = spwSpec.first;
             const auto order = spwSpec.second;
             const auto fieldName = fieldTextFromId(fieldID);
@@ -811,7 +811,6 @@ template<class T> void UVContSubTVI::transformDataCube(	const Cube<T> &inputVis,
     }
 
     // Get polynomial model for this SPW (depends on number of channels and gridding)
-    const auto freqIter = inputFrequencyMap_p.find(spwId);
     const Vector<Double> &inputFrequencies = vb->getFrequencies(0);
     // Could perhaps have a per field-spw pair map to avoid re-allocations - But can be big
     // (n_fields X n_spws X n_chans) for many fields, many SPWs MSs

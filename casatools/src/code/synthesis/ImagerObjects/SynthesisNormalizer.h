@@ -77,10 +77,12 @@ class SynthesisNormalizer
   // Copy out model to all pieces. Currently a No-Op.
   void scatterModel();
 
-  // Gather all part gridded weights and add them up.
+  // Gather all part gridded weights and add them up and store some 
+  // Briggs weighting factors in miscinfo
   void gatherWeightDensity();
   // Scatter summed gridded weights to all parts
-  void scatterWeightDensity();
+  // return the disk name if it exists of the sum gridded weights
+  string scatterWeightDensity();
 
   std::shared_ptr<SIImageStore> getImageStore();
   void setImageStore( SIImageStore* imstore );
@@ -92,6 +94,7 @@ class SynthesisNormalizer
   void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
+  void divideWeightBySumWt();
 
   void normalizePrimaryBeam();
 

@@ -119,8 +119,8 @@ def deconvolve(
     nterms,#=1,
     smallscalebias,#=0.0
     # TODO in CAS-13570: uncomment once asp is working
-    # fusedthreshold,#=0.0
-    # largestscale,#=-1
+    fusedthreshold,#=0.0
+    largestscale,#=-1
 
     ### restoration options
     restoration,#=True,
@@ -192,8 +192,8 @@ def deconvolve(
         inp['scalebias']   = inp.pop('smallscalebias')
 
         # TODO in CAS-13570: fix asp description and allow asp value once asp is working
-        if deconvolver.lower() == "asp":
-            raise RuntimeError("The "+deconvolver+" deconvolver currently has incorrect end-of-minor-cycle residual calculations and is therefore disabled. Please choose a different deconvolver.")
+        #if deconvolver.lower() == "asp":
+        #    raise RuntimeError("The "+deconvolver+" deconvolver currently has incorrect end-of-minor-cycle residual calculations and is therefore disabled. Please choose a different deconvolver.")
 
         #####################################################
         #### Construct ImagerParameters
