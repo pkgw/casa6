@@ -123,6 +123,7 @@ This is used to construct {\tt synthesisnormalizer} tool.
 
 <description>
 </description>
+
 <input/>
 
 <returns type="bool"/>
@@ -130,12 +131,14 @@ This is used to construct {\tt synthesisnormalizer} tool.
 
 <method name="divideweightbysumwt" type="function">
    <shortdescription>Divide psf by weight</shortdescription>
+
 <description>
 </description>
 <input/>
 
 <returns type="bool"/>
 </method>
+
 
    <method name="normalizeprimarybeam" type="function">
    <shortdescription>Normalize PB to peak 1</shortdescription>

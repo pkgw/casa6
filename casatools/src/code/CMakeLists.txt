@@ -39,6 +39,7 @@ project(
 
 # Add directory with additional macros
 set (CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -ldl")
 
 include(DeclareCasacppComponent)
 include(GNUInstallDirs)
@@ -122,6 +123,13 @@ find_package(SQLite3 REQUIRED)
 
 # SAKURA dependency
 pkg_check_modules(SAKURA REQUIRED IMPORTED_TARGET libsakura)
+
+# HPG dependency
+find_package(hpg CONFIG PATHS /opt/nrao.edu/hpg/ )
+if(DEFINED hpg_FOUND AND ${hpg_FOUND})
+  message("USE_HPG set. ")
+  add_definitions(-DUSE_HPG)
+endif()
 
 # OpenMP dependency
 find_package(OpenMP)
