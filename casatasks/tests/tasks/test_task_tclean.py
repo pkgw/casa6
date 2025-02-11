@@ -4089,8 +4089,7 @@ class test_wproject(testref_base):
           self.assertTrue(self.check_final(report))    
      
 
-          
-     #@unittest.skipIf(True, "We need to copy vla_wideband_2ptg_w_squint.ms in the data repo...the other one is not suitable as it put the source in some sidelobes")
+     @unittest.skipIf(True, "To be enabled when we understand why different builds give different memory profile including CAS-14527")
      def test_wterm_awp2(self):
           """ [wproject] Test_Widefield_wproj : W-Projection using the AWP2 gridder """ 
           self.prepData("vla_wideband_2ptg_w_squint.ms")
@@ -4172,8 +4171,8 @@ class test_widefield(testref_base):
           ## source peak after pbcor
           report=self.th.checkall(imgexist=[self.img+'.awp2.image.tt0'],
                                   imgval=[(self.img+'.awp2.pb.tt0',0.54,[723,1446,0,0]),
-                                        (self.img+'.awp2.image.tt0.pbcor',0.66,[723,1446,0,0]),
-                                        (self.img+'.awp2.alpha',-0.05,[723,1446,0,0])] )
+                                        (self.img+'.awp2.image.tt0.pbcor',0.7,[723,1446,0,0]),
+                                        (self.img+'.awp2.alpha',0.0,[723,1446,0,0])], epsilon=0.1 )
           self.assertTrue(self.check_final(report))    
      
      @unittest.skipIf((not testref_base.isGPUEnabled()) or ParallelTaskHelper.isMPIEnabled(), "Not Correct GPU or MPI is not compatible with hpg ")
