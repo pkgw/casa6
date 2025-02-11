@@ -294,7 +294,7 @@ def tclean(
     # XXX : Remove this once awp-hpg is released for general use
     if gridder == 'awphpg':
         casalog.post(
-            "The awphpg gridder is not available for general use in the CASA 6.7.0 release. It will be made available in a future release.",`
+            "The awphpg gridder is not available for general use in the CASA 6.7.0 release. It will be made available in a future release.",
             "WARN",
             "task_tclean",
         )
