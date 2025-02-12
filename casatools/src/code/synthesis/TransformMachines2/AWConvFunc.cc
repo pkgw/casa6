@@ -2115,9 +2115,9 @@ void AWConvFunc::makeAConvFunc(Array<Complex>& convFunc,
 		  // doing squint that may be a memory hog ...so avoiding it for that case
 		  //pbFov goes into sidelobes
 
-          if (((inpFov < pbFov && !isSingleField) || isSingleField)) {
-              convnx *= 4.0;
-              pbFov *= 4.0;
+          if (((inpFov < pbFov) || isSingleField)) {
+              convnx *= 2.0;
+              pbFov *= 2.0;
           }
 
           npix = convnx; // return that npix

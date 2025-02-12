@@ -4089,7 +4089,6 @@ class test_wproject(testref_base):
           self.assertTrue(self.check_final(report))    
      
 
-     @unittest.skipIf(True, "To be enabled when we understand why different builds give different memory profile including CAS-14527")
      def test_wterm_awp2(self):
           """ [wproject] Test_Widefield_wproj : W-Projection using the AWP2 gridder """ 
           self.prepData("vla_wideband_2ptg_w_squint.ms")
