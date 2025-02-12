@@ -78,8 +78,9 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   
  
   //oversample if image is small
-  //But not more than 5000 pixels
- convSampling=(max(nx, ny) < 100) ? 100: Int(ceil(5000.0/max(nx, ny)));
+  //But not more than 10000 pixels
+ convSampling=(max(nx, ny) < 100) ? 100: Int(ceil(10000.0/max(nx, ny)));
+
   if(convSampling <4) 
     convSampling=4;
   //For multiple pa angle reduce mem consumed
@@ -166,6 +167,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     std::sort(freqs.begin(), freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
+
     if(freqs.size()==0){
       cerr << "No matching frequency in data in freq range of image " +
                   String::toString(f1) + " to " + String::toString(f2)
@@ -210,8 +212,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   
  void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const bool ispsf ){
   //
-  // pbConvFunc_p.phasegradient
-
+  // pbConvFunc_p.phasegradient=
   //double time0=omp_get_wtime();
   //Complex *oWgtPtr, *oConPtr;
   //Bool isCopy;
@@ -256,8 +257,10 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
     //////
     } */  
 
+
     awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
                              weightConvFunc_p, vb, rotuvw, interpVisFreq_p, toVis_p, ispsf);
+
     //double time1=omp_get_wtime();
     //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
@@ -286,6 +289,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
+
     pbConvFunc_p->rephaseConvFunc(
         iimage, vb, convSampling, convFunc, weightConvFunc_p, pmapused,
         cmapused, rmapused, MVDirection(-(movingDirShift_p.getAngle())),

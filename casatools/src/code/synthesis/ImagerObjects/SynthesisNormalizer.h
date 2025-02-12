@@ -111,6 +111,8 @@ protected:
                                            casacore::Bool useweightimage );
 
   void setPsfFromOneFacet();
+  //Merge the imageinfo from the part image weightdensities to the gathered weight density
+  void mergeWeightDensityInfo(casacore::Record &finalIminfo, const casacore::Record &partIminfo);
 
   /////////////// Member Objects
 

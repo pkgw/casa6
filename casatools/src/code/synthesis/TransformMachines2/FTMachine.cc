@@ -1809,8 +1809,8 @@ using namespace casa::vi;
   Bool FTMachine::matchChannel(const vi::VisBuffer2& vb){
     //Int spw=vb.spectralWindows()[0];
     nvischan  = vb.nChannels();
-    
-    romscol_p = new MSColumns(vb.ms());
+    if(lastMSId_p != vb.msId()  || romscol_p.null())
+       romscol_p = new MSColumns(vb.ms());
     //Try to avoid a bug in visiter2 than once in a while gets nchan more than what is in ms
     Int nchaninms = romscol_p->spectralWindow().numChan()(vb.spectralWindows()(0));
     if(nvischan > nchaninms){

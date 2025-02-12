@@ -442,7 +442,6 @@ class PySynthesisImager:
                 # continuum A style gridders need their .weight divided by sumwt except for awphpg 
                 if(("awphpg" not in self.allgridpars['0']['gridder'])):
                     self.PStools[immod].divideweightbysumwt()
-                    
             self.check_psf(immod)
 
     def check_psf(self, immod):
