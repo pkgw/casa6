@@ -109,6 +109,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       ft_p = FFT2D(true);
       usePointingTable_p = False;
     }
+
     SimplePBConvFunc::~SimplePBConvFunc() {
       //
 
@@ -890,6 +891,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       //bandName_p=vb.subtableColumns().spectralWindow().name()(spw);
       Vector<Double> spwfreq = vb.subtableColumns().spectralWindow().chanFreq()(spw);
 
+
       double tol = (max(spwfreq)) * 1.0 / 100.0;
       Double spwfreqwidth = abs(Vector<Double>(vb.subtableColumns().spectralWindow().chanWidth()(spw))(0));
       if (tol < spwfreqwidth)
@@ -936,8 +938,8 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
 
 
-    void SimplePBConvFunc::findUsefulChannels(Vector<Int>& chanMap, Vector<Double>& chanFreqs, const vi::VisBuffer2& vb, const Vector<Double>& freq) {
 
+    void SimplePBConvFunc::findUsefulChannels(Vector<Int>& chanMap, Vector<Double>& chanFreqs, const vi::VisBuffer2& vb, const Vector<Double>& freq) {
 
       Int spw = vb.spectralWindows()(0);
       bandName_p = vb.subtableColumns().spectralWindow().name()(spw);

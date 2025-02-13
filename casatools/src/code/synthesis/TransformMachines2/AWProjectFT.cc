@@ -168,7 +168,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   AWProjectFT::AWProjectFT()
     : FTMachine(), padding_p(1.0), nWPlanes_p(1),
       imageCache(0), cachesize(0), tilesize(16),
-      gridder(0), isTiled(false), lattice( ), 
+      gridder(0), isTiled(false),  lattice( ), 
       maxAbsData(0.0), centerLoc(IPosition(4,0)), offsetLoc(IPosition(4,0)),
       pointingToImage(0), usezero_p(false), avgPB_p(nullptr), 
       epJ_p(nullptr),
@@ -1454,10 +1454,11 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   
 	IPosition gridShape(4, nx, ny, npol, nchan);
 	if(!useDoubleGrid_p){
-	griddedData.resize(gridShape);
-	griddedData=Complex(0.0); 
+	    griddedData.resize(gridShape);
+	  griddedData=Complex(0.0); 
 	}
-	else	  {
+	else	  
+  {
 	  griddedData2.resize(gridShape);
 	  griddedData2=DComplex(0.0);
 	}
@@ -1469,6 +1470,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     else
       visResampler_p->initializeToSky(griddedData, sumWeight);
   }
+  
   //
   //---------------------------------------------------------------
   //
@@ -1479,7 +1481,18 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     logIO() <<  LogIO::WARN << "time gridding " << timegrid_p << LogIO::POST;
    timemass_p=0.0;
    timegrid_p=0.0;
+   if(name()=="AWProjectWBFTHPG"){
+    Matrix<Double> tmpSumWgt(sumWeight.shape());
+    tmpSumWgt=0.0;
+    if(useDoubleGrid_p) 
+      visResampler_p->finalizeToSky(griddedData2, tmpSumWgt);
+    else
+      visResampler_p->finalizeToSky(griddedData, tmpSumWgt);
+    sumWeight=tmpSumWgt;
+   
+    return;
     
+   }
     //
     // Now we flush the cache and report statistics For memory based,
     // we don't write anything out yet.
@@ -1842,6 +1855,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     
     const IPosition latticeShape = weightImage.shape();
     const IPosition avgpbShape = avgPB_p->shape();
+
     //cout << "AWP::getWeightImage : weightimage shape : " << latticeShape << "  and avgpb shape : " << avgpbShape << " nelems " << avgpbShape.nelements()<< "  " << sumWeight << endl;
      if(avgpbShape.nelements()==0 || ( avgpbShape != latticeShape) )
       avgPB_p->resize(weightImage.shape());
@@ -1850,6 +1864,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     Int ny=latticeShape(1);
 
     int samp=getAWConvFunc()->getOversampling();
+    //cerr << "2 samp " << samp << " convSamp " << convSampling << endl;
     //Do sampling size correction    
     Vector<Float> sincConvX(nx);
     for (Int ix=0;ix<nx;ix++) {

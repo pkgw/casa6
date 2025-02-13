@@ -11,6 +11,7 @@
 #include <cstring>
 #include <exception>
 #include <sstream>
+#include <cstring> //strerror
 
 #include <alma/ASDMBinaries/CommonDefines.h>
 

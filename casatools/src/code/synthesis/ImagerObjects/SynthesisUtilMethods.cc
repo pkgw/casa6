@@ -4008,8 +4008,6 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       if (gridder=="ft" || gridder=="gridft" || gridder=="standard") {
         ftmachine = "gridft";
       }
-
-
       else if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
            (wprojplanes>1 || wprojplanes==-1) ) {
         ftmachine = "wprojectft";
@@ -4034,6 +4032,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       }
 
       else if (gridder=="singledish") {
+
         ftmachine = "sd";
       }
       else{
@@ -4041,6 +4040,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
         ftmachine.downcase();
         
       }
+
       String deconvolver;
       err += readVal( inrec, String("deconvolver"), deconvolver );
       if (deconvolver=="mtmfs") {
@@ -4101,7 +4101,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       err += verify();
 
-    } catch(AipsError &x) {
+       } catch(AipsError &x) {
       err = err + x.getMesg() + "\n";
     }
 
@@ -4126,7 +4126,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
 	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
-	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
+	(ftmachine != "mawprojectft")  &&
 	(ftmachine != "sd"))
      {
       err += "Invalid ftmachine name. Must be one of"
