@@ -6,8 +6,8 @@ import sys
 import time
 import unittest
 import subprocess
+import shutil
 from subprocess import Popen, PIPE
-from distutils.dir_util import remove_tree
 import errno
 
 # from xml.sax.saxutils import escape
@@ -122,7 +122,7 @@ if len(sys.argv) == 1:
             if f.endswith(".py") and f.startswith("test_"):
                 workingdir = "%s/work/%s" % (test_dir, f[:-3])
                 if os.path.exists(workingdir):
-                    remove_tree(workingdir)
+                    shutil.rmtree(workingdir)
                 mkpath(workingdir)
                 tests.append((os.path.abspath("%s/%s" % (d1, f)), workingdir))
 
