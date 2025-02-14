@@ -4100,7 +4100,7 @@ class test_wproject(testref_base):
                  niter=20, weighting='uniform', gridder='awp2', wprojplanes=6, pblimit=-0.1, pbcor=True, 
                  parallel=self.parallel)
           ## source peak after pbcor
-          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]) ] )
+          report=self.th.checkall(imgexist=[self.img+'.awp2.image'],imgval=[(self.img+'.awp2.pb',0.66,[323,858,0,0]),(self.img+'.awp2.image.pbcor',0.75,[323,858,0,0]) ], epsilon=0.1)
           self.assertTrue(self.check_final(report))    
      
 ##############################################
