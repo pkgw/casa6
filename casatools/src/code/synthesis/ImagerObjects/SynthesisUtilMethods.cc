@@ -514,6 +514,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	      eachterm  = LatticeExpr<Float>( (*mt_subims[tt]) / wtsum ) ;
 	    }
 	    mt_subims[tt]->copyData(eachterm);
+
             mt_subims[tt]->flush();
             // cerr << "aft div : " <<  max(mt_subims[tt]->get()) <<  endl;
           }
@@ -4000,38 +4001,44 @@ namespace casa { //# NAMESPACE CASA - BEGIN
       err += readVal( inrec, String("vptable"), vpTable );
 
 
+
       // convert 'gridder' to 'ftmachine' and 'mtype'
       ftmachine = "gridft";
       mType = "default";
       if (gridder=="ft" || gridder=="gridft" || gridder=="standard") {
         ftmachine = "gridft";
       }
-
-      if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
+      else if ( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) &&
            (wprojplanes>1 || wprojplanes==-1) ) {
         ftmachine = "wprojectft";
       }
         //facetting alone use gridft
-       else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
+      else if( (gridder=="widefield" || gridder=="wproject" || gridder=="wprojectft" ) && (wprojplanes==1))
           {ftmachine=="gridft";}
       
-      if (gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" ) {
+      else if (gridder=="ftmosaic" || gridder=="mosaicft" || gridder=="mosaic" ) {
         ftmachine = "mosaicft";
       }
 
-      if (gridder=="imagemosaic") {
+      else if (gridder=="imagemosaic") {
         mType = "imagemosaic";
         if (wprojplanes>1 || wprojplanes==-1) {
           ftmachine = "wprojectft";
         }
       }
 
-      if (gridder=="awproject" || gridder=="awprojectft" || gridder=="awp") {
+      else if (gridder=="awproject" || gridder=="awprojectft" || gridder=="awp") {
         ftmachine = "awprojectft";
       }
 
-      if (gridder=="singledish") {
+      else if (gridder=="singledish") {
+
         ftmachine = "sd";
+      }
+      else{
+        ftmachine=gridder;
+        ftmachine.downcase();
+        
       }
 
       String deconvolver;
@@ -4094,7 +4101,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 
       err += verify();
 
-    } catch(AipsError &x) {
+       } catch(AipsError &x) {
       err = err + x.getMesg() + "\n";
     }
 
@@ -4112,12 +4119,14 @@ namespace casa { //# NAMESPACE CASA - BEGIN
     // Valid other params per FTM type, etc... ( check about nterms>1 )
 
 
+
     if ( imageName == "" ) {
       err += "Please supply an image name\n";
     }
+
     if( (ftmachine != "gridft") && (ftmachine != "wprojectft") && 
 	(ftmachine != "mosaicft") && (ftmachine.at(0,3) != "awp") && 
-	(ftmachine != "mawprojectft") && (ftmachine != "protoft") &&
+	(ftmachine != "mawprojectft")  &&
 	(ftmachine != "sd"))
      {
       err += "Invalid ftmachine name. Must be one of"

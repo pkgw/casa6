@@ -272,13 +272,25 @@ void CubeMajorCycleAlgorithm::task(){
             
           }
           else{
+            if((gridSel_p[0]).ftmachine=="awphpg"){
+              if(!subImgr.loadMosaicSensitivity()){
+                subImgr.makeMosaicSensitivity();
+                writeBackToFullImage(weightNames_p[0], chanRange_p[0],chanRange_p[1], (subImStor[0]->weight()));
+                writeBackToFullImage(sumwtNames_p[0], chanRange_p[0], chanRange_p[1], (subImStor[0]->sumwt()));
+                                                                                                                   
+                
+              }
+              subImgr.loadMosaicSensitivity();
+            }
             Record&& outrec=subImgr.makePSF();
 	    if(outrec.isDefined("tempfilenames")){
 	      returnRec_p.define("tempfilenames", outrec.asArrayString("tempfilenames"));
 	    }
 	    ////tclean expects a PB to be always there...
 	    //so for standard make it
-	    subImgr.makePB();
+            
+      subImgr.makePB();
+            
             for(uInt k=0; k < subImStor.nelements(); ++k){
               if(controlRecord_p.isDefined("dividebyweight") && controlRecord_p.asBool("dividebyweight"))
 		{
@@ -294,13 +306,15 @@ void CubeMajorCycleAlgorithm::task(){
                     norm.setupNormalizer(normpars);
                     norm.setImageStore(subImStorShared[k]);
                     norm.dividePSFByWeight();
-		    copyBeamSet(*(subImStorShared[k]->psf()), k);
+                    norm.divideWeightBySumWt();
+                    copyBeamSet(*(subImStorShared[k]->psf()), k);
                   }
                   else{
                     LatticeLocker lock1 (*(subImStor[k]->psf()), FileLocker::Write);
                     LatticeLocker lock2 (*(subImStor[k]->sumwt()), FileLocker::Read);
                     subImStor[k]->dividePSFByWeight();
-		    copyBeamSet(*(subImStor[k]->psf()), k);
+                    subImStor[k]->divideWeightBySumwt();
+                    copyBeamSet(*(subImStor[k]->psf()), k);
                     //subImStor[k]->psf()->flush();
                   }
 		}
@@ -316,7 +330,8 @@ void CubeMajorCycleAlgorithm::task(){
               if(subImStor[k]->getType() != "multiterm"){
                 writeBackToFullImage(psfNames_p[k], chanBeg, chanEnd, (subImStor[k]->psf()));
                 writeBackToFullImage(sumwtNames_p[k], chanBeg, chanEnd, (subImStor[k]->sumwt()));
-		if((subImStor[k]->hasSensitivity()) && Table::isWritable(weightNames_p[k])){
+		if((subImStor[k]->hasSensitivity()) && Table::isWritable(weightNames_p[k]) && (gridSel_p[0]).ftmachine != "awphpg"){
+                  
 		  writeBackToFullImage(weightNames_p[k], chanBeg, chanEnd, (subImStor[k]->weight()));
 		  
 		}
@@ -485,6 +500,12 @@ String&	CubeMajorCycleAlgorithm::name(){
 				///Pass some extra channels for interpolation while degridding..should match or be less than in SynthesisImager::tuneSelect
 				Int startmodchan=(chanBeg-2) >0 ? chanBeg-2 : 0;
 				Int endmodchan=(chanEnd+2) < nchannels ? chanEnd+2 : nchannels-1 ;
+                                if((gridSel_p[0]).ftmachine=="awphpg"){
+                                  ////Only one channel is used
+                                  startmodchan=chanBeg;
+                                  endmodchan=chanEnd;
+                                }
+                                
 				//cerr << "START END mod " << startmodchan << "  " << endmodchan << endl;
 				//Darn has to lock it as writable because overlap in SIMapperCollection code 
 				//wants that...though we are not really modifying it here

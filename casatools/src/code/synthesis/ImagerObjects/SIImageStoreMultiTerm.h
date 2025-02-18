@@ -137,6 +137,7 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 		  casacore::Bool addpsf, casacore::Bool addresidual, casacore::Bool addweight, casacore::Bool adddensity);
 
   void dividePSFByWeight(const casacore::Float pblimit=casacore::C::minfloat);
+  void divideWeightBySumWt();
   void normalizePrimaryBeam(const float pblimit=casacore::C::minfloat);
 
   void divideResidualByWeight(const casacore::Float pblimit=casacore::C::minfloat, const casacore::String normtype="flatnoise");

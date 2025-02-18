@@ -1219,9 +1219,6 @@ least_squares_driver(SDBList& sdbs, Matrix<Float>& casa_param, Matrix<Bool>& cas
     }
 }
 
-    
-
-
 // **********************************************************
 //  CTRateAwareTimeInterp1 Implementations
 //
@@ -1813,7 +1810,8 @@ FringeJones::selfSolveOne(SDBList& sdbs) {
         }
     }
     // Copy the results to the second polarisation for combined pols
-    if (corrcomb()=="all") { 
+    if (corrcomb().contains("stokes") ||
+	corrcomb().contains("parallel")) {
         logSink() << "Correlations combined: Copying results to other correlation" << LogIO::POST;
         for (Int iant=0; iant != nAnt(); iant++) {
             for (Int i=0; i !=4; i++) {
@@ -2156,6 +2154,253 @@ void FringeJones::applyRefAnt() {
   return;
 
 }
+
+// CT Smooth for fringefit table
+// Some duplication from CTglobals Smooth
+
+void FringeJones::smooth(Vector<Int>& fields,
+                         const String& smtype,
+                         const Double& smtime,
+                         const bool ratesmooth) {
+    NewCalTable ct = *ct_;
+
+    // half-width
+    Double thw(smtime/2.0);
+
+    // Workspace
+    Vector<Double> times;
+    Vector<Float> p,newp,pRate, newRate;
+    Vector<Float> d;
+    Vector<Bool> pOK, newpOK;
+    // Unwrapped
+    vector<vector<float>> temp;
+
+    Cube<Float> fpar;
+    Cube<Bool> fparok,newfparok;
+
+    Vector<Bool> mask;
+    
+    // Set up spw col for ref freq
+    MSSpectralWindow msSpw(ct.spectralWindow());
+    MSSpWindowColumns msCol(msSpw);
+
+    IPosition blc(3,0,0,0), fblc(3,0,0,0);
+    IPosition trc(3,0,0,0), ftrc(3,0,0,0);
+    IPosition vec(1,0);
+
+    Block<String> cols(4);
+    cols[0]="SPECTRAL_WINDOW_ID";
+    cols[1]="FIELD_ID";
+    cols[2]="ANTENNA1";
+    cols[3]="ANTENNA2";
+    CTIter ctiter(ct,cols);
+    int counter = 0;
+      
+    while (!ctiter.pastEnd()) {
+      
+      //MSSpectralWindow msSpw(ct.spectralWindow());
+      //MSSpWindowColumns msCol(msSpw);
+
+      Int nSlot=ctiter.nrow();
+      Int ifld=ctiter.thisField();
+      Int ispw=ctiter.thisSpw();
+
+      // Only if more than one slot in this spw _AND_
+      //  field is among those requested (if any)
+      if (nSlot>1 &&
+      (fields.nelements()<1 || anyEQ(fields,ifld))) {
+        vec(0)=nSlot;
+        trc(2)=ftrc(2)=nSlot-1;
+
+        times.assign(ctiter.time());
+
+        fpar.assign(ctiter.fparam());
+        fparok.assign(!ctiter.flag());
+        newfparok.assign(fparok);
+        IPosition fsh(fpar.shape());
+
+        blc(1)=trc(1)=fblc(1)=ftrc(1)=0;
+        
+        // get chan Freqs
+        Vector<Double> freqs;
+        msCol.chanFreq().get(ispw,freqs,True);
+        Double refFreq = freqs(0);
+        
+        // For each param (pol)
+        counter = 0;
+        temp.clear();
+        vector<vector<float>> unwrap(2);
+        //int polId = 0;
+        bool polReset = false;
+
+        // Smoothing beforehand for rates
+
+
+              
+        // Need a seperate iter to construct unwrapped phase estimates
+        // Iterate over polId rather than ipar
+        for (Int polId=0; polId<2;++polId) {
+          temp.clear();
+          counter = 0;
+
+          blc(0)=trc(0)=polId * 4;
+          fblc(0)=ftrc(0)=(polId * 4) + 2;
+
+          // Reference slices of par twice. Once for pol and again for delay rates
+          p.reference(fpar(blc,trc).reform(vec));
+          newp.assign(p);
+          pRate.reference(fpar(fblc,ftrc).reform(vec));
+          newRate.assign(pRate);
+          pOK.reference(fparok(fblc,ftrc).reform(vec));
+          newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+          
+          Vector<Bool> mask;
+          int cycles = 0;
+            
+          for (Int i=0;i<nSlot;++i) {
+            // holder for phase, delay, and time
+            vector<float> holder {0.0, 0.0, 0.0};
+            // mask for rate smoothing
+            // Make mask
+            mask = pOK;
+            mask = (mask && ( (times >  (times(i)-thw)) &&
+                        (times <= (times(i)+thw)) ) );
+
+
+            // Save the phase rate and time to use for the estimates
+
+            holder[0] = newp(i);
+            holder[1] = pRate(i);
+            holder[2] = times(i);
+
+            // Smooth the rates
+            if (ntrue(mask)>0) {
+                if (smtype=="mean") {
+                    pRate(i) = mean(newRate(mask));
+                }
+                else if (smtype=="median") {
+                    pRate(i) = median(newRate(mask), false);
+                }
+            }
+
+            // array of phases delays and times to be used in the cycle estimations
+            temp.push_back(holder);
+
+            // Estimate the number of Phase cycles
+            if (counter == 0) {
+                // If we are at 0 we cant interpolate backwards. Just instert as starting value
+                unwrap[polId].push_back(temp[counter][0]);
+            }
+            else {
+                // Get the time difference between two points
+                float timeStep = temp[counter][2] - temp[counter-1][2];
+                // Get Forwards and backwards predictions (in cycles)
+                float predictFWDiff = ((temp[counter-1][0]/(2*M_PI)) + (temp[counter-1][1] * refFreq * timeStep * 2) * int(ratesmooth)) - (temp[counter][0]/(2*M_PI));
+                float predictBWDiff = ((temp[counter][0]/(2*M_PI)) - (temp[counter][1] * refFreq * timeStep * 2) * int(ratesmooth)) - (temp[counter-1][0]/(2*M_PI));
+                // Take the average prediction of cycles
+                float cycleDiff = ((predictFWDiff-predictBWDiff)/2);
+                // Adjust total cycle estimate
+                if (cycleDiff > 0.5) {
+                  cycles += (int)(floor(cycleDiff + 0.5));
+                }
+                if (cycleDiff < 0.5) {
+                  cycles -= (int)(floor(abs(cycleDiff) + 0.5));
+                }
+
+                // Add unwrapped phase values to array
+                unwrap[polId].push_back(temp[counter][0] + 2 * M_PI * cycles);
+            }
+            
+            // increment counter
+            counter++;
+          }
+        }
+          
+      // Convert unwrap to casa Vector so we can use the same mean and masking functions
+      Vector<Float> unwrapPhasesPol1(unwrap[0]);
+      Vector<Float> unwrapPhasesPol2(unwrap[1]);
+          
+      // Regular ipar interation
+      for (Int ipar=0;ipar<fsh(0);++ipar) {
+        blc(0)=trc(0)=ipar;
+        fblc(0)=ftrc(0)=ipar;
+        
+        // Reference slices of par/parOK
+        p.reference(fpar(blc,trc).reform(vec));
+        newp.assign(p);
+        pOK.reference(fparok(fblc,ftrc).reform(vec));
+        newpOK.reference(newfparok(fblc,ftrc).reform(vec));
+          
+        Vector<Bool> mask;
+        
+        //cout << "IPAR: " << ipar << "\n"
+        //<< "VAL: " << newp << "\n" << endl;
+
+        for (Int i=0;i<nSlot;++i) {
+          // Make mask
+          mask = pOK;
+          mask = (mask && ( (times >  (times(i)-thw)) &&
+                    (times <= (times(i)+thw)) ) );
+    
+          if (ntrue(mask)>0) {
+            if (smtype=="mean") {
+              
+              // If phases use our unwrapped vector
+              if (ipar==0) {newp(i)=mean(unwrapPhasesPol1(mask));};
+              if (ipar==4) {newp(i)=mean(unwrapPhasesPol2(mask));};
+
+              if (ipar == 0 || ipar == 4){
+                while (newp(i) < -M_PI) {
+                  newp(i) += 2*M_PI;
+                }
+                while (newp(i) > M_PI) {
+                  newp(i) -= 2*M_PI;
+                }
+              }
+              else{
+                newp(i)=mean(p(mask));
+              }
+
+            }
+            else if (smtype=="median") {
+              if (ipar==0) {newp(i)=median(unwrapPhasesPol1(mask),false);};
+              if (ipar==4) {newp(i)=median(unwrapPhasesPol2(mask),false);};
+              
+              if (ipar == 0 || 4) {
+                while (newp(i) < -M_PI) {
+                  newp(i) += 2*M_PI;
+                }
+                while (newp(i) > M_PI) {
+                  newp(i) -= 2*M_PI;
+                }
+              }
+              else {
+                newp(i)= median(p(mask),false);
+              }
+            }
+            newpOK(i)=true;
+          }
+          else
+            newpOK(i)=false;
+          
+        } // i
+          
+        // keep new ok info
+        p=newp;
+      } // ipar
+
+        // Put info back
+        ctiter.setfparam(fpar);
+
+        ctiter.setflag(!newfparok);
+
+      } // nSlot>1
+
+      ctiter.next();
+    } // ispw
+}
+
+
 
 } //# NAMESPACE CASA - END
 

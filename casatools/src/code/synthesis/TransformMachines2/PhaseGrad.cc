@@ -141,6 +141,7 @@ namespace casa{
 	  int nx=maxCFShape_p(0), ny=maxCFShape_p(1);
 	  double grad;
 	  DComplex phx,phy;
+
 	  Vector<int> convOrigin = (maxCFShape_p[0]%2==0) ? maxCFShape_p/2 : maxCFShape_p/2+1 ;
 	  
 	  field_phaseGrad_p.resize(nx,ny);
@@ -177,6 +178,7 @@ namespace casa{
 	    }
 
 	    {
+
 	      //cerr << "Cached Field Offset is : " << cached_FieldOffset_p[row](0) << " " << cached_FieldOffset_p[row](1)<< " for row " << row << " field id " << vb.fieldId()(0) << " " << needCFPhaseGrad_p<< endl;
 	      for(int ix=0;ix<nx;ix++)
 		{

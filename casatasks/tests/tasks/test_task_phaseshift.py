@@ -72,7 +72,100 @@ datacopy_mms = 'mms_copy.mms'
 output = 'phaseshiftout.ms'
 
 
-class phaseshift_test(unittest.TestCase):
+class phaseshift_base_checks(unittest.TestCase):
+
+    def check_nrows(self, vis, expected_nrows):
+        """ Simple check to ensure the correct number of rows has been produced in the main
+        table of an (output) MS. Checks the vis exists on disk and looks at the number of
+        rows of the TIME column. """
+        tbt = table()
+        try:
+            tbt.open(vis)
+            nrows = len(tbt.getcol('TIME'))
+        finally:
+            tbt.close()
+
+        self.assertTrue(os.path.exists(vis), f"MeasurementSet not found: {vis}")
+        self.assertEqual(nrows, expected_nrows,
+                         f"Incorrect number of rows found in MS: {vis}")
+
+    def check_field_subtable(self, outputvis, inputvis, new_centers,
+                             field_selection=None):
+        """
+        Ensures that the field subtable of outputvis has the expected phase centers
+        (from 'new_centers' passed to the phasecenter parameter of phaseshift),
+        comparing also unmodified ('passthrough') fields with the 'inputvis'.
+
+        :param outputvis: output, phase-shifted MS to check
+        :param inputvis: input MS, to compare against when some fields unchanged
+        :param new_centers: string or dict with new phase center(s)
+        :param field_selection: field selected as integer if used (only single value supported)
+
+        """
+        from casatasks.private.task_phaseshift import (_find_field_ref_frames,
+                                                       _convert_to_ref_frame)
+
+        def get_expected_output_ra_dec(row, new_centers, input_phase_col,
+                                       field_selection, field_frames):
+            field_id = str(row)
+            if isinstance(new_centers, dict):
+                if field_id in new_centers:
+                    ra_rad, dec_rad = _convert_to_ref_frame(new_centers[field_id],
+                                                            field_frames[row])
+                else:
+                    ra_rad = input_phase_col[0, 0, row]
+                    dec_rad = input_phase_col[1, 0, row]
+            else:
+                if field_selection and row != field_selection:
+                    ra_rad = input_phase_col[0, 0, row]
+                    dec_rad = input_phase_col[1, 0, row]
+                else:
+                    ra_rad, dec_rad = _convert_to_ref_frame(new_centers, field_frames[row])
+
+            return ra_rad, dec_rad
+
+        def get_field_subt_phasedir_col(vis_path):
+            try:
+                tblocal = table()
+                tblocal.open(vis_path + '/FIELD', nomodify=True)
+                phase_col = tblocal.getcol('PHASE_DIR')
+            finally:
+                tblocal.done()
+
+            return phase_col
+
+        def get_field_frame_names(vis_path):
+            try:
+                tblocal = table()
+                tblocal.open(vis_path + '/FIELD', nomodify=True)
+                field_frames = _find_field_ref_frames(tblocal)
+            finally:
+                tblocal.done()
+
+            return field_frames
+
+        phase_col = get_field_subt_phasedir_col(outputvis)
+        input_phase_col = get_field_subt_phasedir_col(inputvis)
+        # Get as reference the ref frames of the input vis (with mstransform we expect the output MS
+        # should have the same metadata = same frames as the input MS)
+        field_frames = get_field_frame_names(inputvis)
+
+        for row in range(0, phase_col.shape[-1]):
+            ra_rad, dec_rad = get_expected_output_ra_dec(row, new_centers,
+                                                         input_phase_col,
+                                                         field_selection,
+                                                         field_frames)
+
+            # The 0 in the middle is the 'NUM_POLY' axis
+            self.assertEqual(phase_col[0, 0, row], ra_rad,
+                             f"unexpected PHASE_DIR ra value in row {row} "
+                             f"(with {new_centers=})")
+            self.assertEqual(phase_col[1, 0, row], dec_rad,
+                             f"unexpected PHASE_DIR dec value in row {row} "
+                             f"(with {new_centers=})")
+
+
+class phaseshift_test(phaseshift_base_checks):
 
     def setUp(self):
         shutil.copytree(datapath, datacopy)
@@ -102,57 +195,63 @@ class phaseshift_test(unittest.TestCase):
 
     def test_takesVis(self):
         ''' Check that the task requires a valid input MS '''
+        phasecenter = 'J2000 19h53m50 40d06m00'
         result = phaseshift(
             datacopy, outputvis=output,
-            phasecenter='J2000 19h53m50 40d06m00'
+            phasecenter=phasecenter
         )
+        self.check_nrows(output, 63180)
+        self.check_field_subtable(output, datacopy, phasecenter)
 
     def test_outvis(self):
         '''
         Check that the outvis parameter specifies the name of the output
         '''
+        phasecenter = 'J2000 19h53m50 40d06m00'
         phaseshift(
             datacopy, outputvis=output,
-            phasecenter='J2000 19h53m50 40d06m00'
+            phasecenter=phasecenter
         )
 
-        self.assertTrue(os.path.exists(output))
+        self.check_nrows(output, 63180)
+        self.check_field_subtable(output, datacopy, phasecenter)
 
     def test_fieldSelect(self):
         ''' Check the field selection parameter '''
+        phasecenter = 'J2000 00h00m01 -29d55m40'
         phaseshift(
             datacopy_Itziar, outputvis=output,
-            phasecenter='J2000 00h00m01 -29d55m40', field='2'
+            phasecenter=phasecenter, field='2'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('FIELD_ID'))
-        tb.close()
 
-        self.assertTrue(data_selected == 6125)
+        self.check_nrows(output, 6125)
+        self.check_field_subtable(output, datacopy_Itziar, phasecenter,
+                                  field_selection=2)
 
     def test_spwSelect(self):
         ''' Check the spw selection parameter '''
+        phasecenter = 'B1950_VLA 23h11m54 61d10m54'
         phaseshift(
             datacopy_ngc, outputvis=output,
-            phasecenter='B1950_VLA 23h11m54 61d10m54', spw='1'
+            phasecenter=phasecenter, spw='1'
         )
         tb.open(output)
         data_selected = len(tb.getcol('TIME'))
         tb.close()
 
-        self.assertTrue(data_selected == 13338, msg=data_selected)
+        self.check_nrows(output, 13338)
+        self.check_field_subtable(output, datacopy_ngc, phasecenter)
 
     def test_intentSelect(self):
         ''' Check the intent selection parameter '''
+        phasecenter = 'ICRS 00h06m14 -06d23m35'
         phaseshift(
             datacopy_nep, outputvis=output,
-            phasecenter='ICRS 00h06m14 -06d23m35', intent='*FLUX*'
+            phasecenter=phasecenter, intent='*FLUX*'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('TIME'))
-        tb.close()
 
-        self.assertTrue(data_selected == 570)
+        self.check_nrows(output, 570)
+        self.check_field_subtable(output, datacopy_nep, phasecenter)
 
     def test_arraySelect(self):
         ''' Check the array selection parameter '''
@@ -163,18 +262,15 @@ class phaseshift_test(unittest.TestCase):
                     phasecenter='ICRS 00h06m14 -06d23m35',
                     array='1'
             )
+
+        phasecenter = 'ICRS 00h06m14 -06d23m35'
         phaseshift(
             datacopy_nep, outputvis=output,
-            phasecenter='ICRS 00h06m14 -06d23m35', array='0'
+            phasecenter=phasecenter, array='0'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('TIME'))
-        tb.close()
 
-        self.assertTrue(
-            data_selected == 6270,
-            "Incorrect number of rows found"
-        )
+        self.check_nrows(output, 6270)
+        self.check_field_subtable(output, datacopy_nep, phasecenter)
 
     def test_observationSelect(self):
         ''' Check the observation selection parameter '''
@@ -185,32 +281,32 @@ class phaseshift_test(unittest.TestCase):
                     phasecenter='ICRS 00h06m14 -06d23m35', observation='1'
             )
 
+        phasecenter = 'ICRS 00h06m14 -06d23m35'
         phaseshift(
             datacopy_nep, outputvis=output,
-            phasecenter='ICRS 00h06m14 -06d23m35', observation='0'
+            phasecenter=phasecenter, observation='0'
         )
-        tb.open(output)
-        data_selected = len(tb.getcol('TIME'))
-        tb.close()
 
-        self.assertTrue(
-            data_selected == 6270, "Incorrect number of rows found"
-        )
+        self.check_nrows(output, 6270)
+        self.check_field_subtable(output, datacopy_nep, phasecenter)
 
     def test_keepsMMS(self):
         '''
         Test the keepmms paramter creates the output as an MMS
         if the input is one as well
         '''
+        phasecenter = 'J2000 05h30m48 13d31m48'
         phaseshift(
             datacopy_mms, outputvis=output,
-            phasecenter='J2000 05h30m48 13d31m48', keepmms=False
+            phasecenter=phasecenter, keepmms=False
         )
         ms.open(output)
         is_mms = ms.ismultims()
         ms.close()
 
         self.assertFalse(is_mms)
+        self.check_nrows(output, 1080)
+        self.check_field_subtable(output, datacopy_mms, phasecenter)
 
     def test_datacolumn(self):
         '''
@@ -224,11 +320,16 @@ class phaseshift_test(unittest.TestCase):
                     phasecenter='ICRS 00h06m14 -06d23m35',
                     datacolumn='MODEL'
             )
-            # running to completion indicates success in CASA 6
-            phaseshift(
-                datacopy_nep, outputvis=output,
-                phasecenter='ICRS 00h06m14 -06d23m35', datacolumn='DATA'
-            )
+
+        # running to completion indicates success in CASA 6
+        phasecenter = 'ICRS 00h06m14 -06d23m35'
+        phaseshift(
+            datacopy_nep, outputvis=output,
+            phasecenter=phasecenter, datacolumn='DATA'
+        )
+
+        self.check_nrows(output, 6270)
+        self.check_field_subtable(output, datacopy_nep, phasecenter)
 
     def test_phasecenter(self):
         '''
@@ -242,10 +343,10 @@ class phaseshift_test(unittest.TestCase):
                     phasecenter=''
             )
 
-        phaseshift(
-            datacopy_nep, outputvis=output,
-            phasecenter='ICRS 00h06m14 -08d23m35'
-        )
+        phasecenter = 'ICRS 00h06m14 -08d23m35'
+        phaseshift(datacopy_nep, outputvis=output, phasecenter=phasecenter)
+
+        self.check_nrows(output, 6270)
         tb.open(output)
         data_mean = np.mean(tb.getcol('DATA'))
         tb.close()
@@ -253,6 +354,33 @@ class phaseshift_test(unittest.TestCase):
         self.assertTrue(np.isclose(
             data_mean, -0.00968202886279957-0.004072808512879953j)
         )
+        self.check_field_subtable(output, datacopy_nep, phasecenter)
+
+
+    def test_phasecenter_default_frame(self):
+        '''
+        Check default frame (J2000) is used when not given in the
+        phasecenter input string, and no errors handling the phasecenter
+        '''
+
+        phasecenter = '00h06m14 -08d23m35'
+        phaseshift(datacopy_nep, outputvis=output, phasecenter=phasecenter)
+
+        self.check_nrows(output, 6270)
+        tb.open(output)
+        data_mean = np.mean(tb.getcol('DATA'))
+        tb.close()
+
+        #self.assertTrue(np.isclose(
+        #    data_mean, -0.00968202886279957-0.004072808512879953j)
+        #)
+        # self.assertAlmostEqual(fra, -1.074105, places=places)
+        self.assertAlmostEqual(data_mean, -0.009287334203197287-0.0033281368850437308j,
+                               places=6)
+
+        phasecenter_J2000 = 'J2000 00h06m14 -08d23m35'
+        self.check_field_subtable(output, datacopy_nep, phasecenter_J2000)
+
 
     def test_shiftAndCompare(self):
         '''
@@ -263,10 +391,13 @@ class phaseshift_test(unittest.TestCase):
         # Run phaseshift to shift the MS phasecenter to a new location.
         post_vis = 'post_phaseshift.ms'
         os.system('rm -rf ' + post_vis)
+        phasecenter = 'J2000 19h53m50 40d06m00'
         phaseshift(
             vis=datacopy, outputvis=post_vis,
-            phasecenter='J2000 19h53m50 40d06m00'
+            phasecenter=phasecenter
         )
+        self.check_nrows(post_vis, 63180)
+        self.check_field_subtable(post_vis, datacopy, phasecenter)
 
         # (1) Imaging on the original dataset
         os.system('rm -rf im2_pre*')
@@ -756,20 +887,7 @@ class reference_frame_tests(unittest.TestCase):
                 vis=self.orig_ms, outputvis=self.pshift_ms,
                 phasecenter=pcenter, field=myfield
             )
-            md.open(self.pshift_ms)
-            exp_nfields = 2 if len(myfield) == 0 else 1
-            self.assertEqual(
-                md.nfields(), exp_nfields,
-                msg='Wrong number of fields for field ' + myfield
-            )
-            sep = me.separation(md.refdir(field=0), expdir)
-            md.done()
-            self.assertEqual(
-                qa.getvalue(sep), 0,
-                msg='Ref direction is wrong for field ' + myfield
-                + ' separation is ' + qa.tos(qa.convert(sep, 'arcsec'))
-            )
-            # check times and baselines
+
             field_id = ''
             if len(myfield) > 0:
                 try:
@@ -778,6 +896,27 @@ class reference_frame_tests(unittest.TestCase):
                     md.open(self.orig_ms)
                     field_id = md.fieldsforname(myfield)[0]
                     md.done()
+            if field_id:
+                separation_field = field_id
+            else:
+                separation_field = 0
+
+            md.open(self.pshift_ms)
+            # re-indexing disabled. Output FIELD subtable has all the original fields
+            exp_nfields = 2
+            self.assertEqual(
+                md.nfields(), exp_nfields,
+                msg='Wrong number of fields in FIELD subtable for field ' + myfield
+            )
+            sep = me.separation(md.refdir(field=separation_field), expdir)
+            md.done()
+            self.assertEqual(
+                qa.getvalue(sep), 0,
+                msg='Ref direction is wrong for field ' + myfield
+                + ' separation is ' + qa.tos(qa.convert(sep, 'arcsec'))
+            )
+
+            # check times and baselines
             if field_id == 0:
                 exp_ms = ctsys_resolve(
                     os.path.join(
@@ -899,6 +1038,231 @@ class reference_frame_tests(unittest.TestCase):
                 + str(x['max'][0]/x['rms'][0])
             )
             self.__delete_intermediate_products()
+
+
+class phaseshift_subfunctions_test(unittest.TestCase):
+
+    def setUp(self):
+        shutil.copytree(datapath, datacopy)
+        shutil.copytree(datapath_ngc, datacopy_ngc)
+        change_perms(datacopy)
+        change_perms(datacopy_ngc)
+
+    def tearDown(self):
+        shutil.rmtree(datacopy)
+        shutil.rmtree(datacopy_ngc)
+
+    def test__fiend_field_ref_frame(self):
+        from casatasks.private.task_phaseshift import _find_field_ref_frames
+
+        try:
+            tblocal = table()
+            tblocal.open(datacopy + "/FIELD", nomodify=True)
+            ref_frames = _find_field_ref_frames(tblocal)
+        finally:
+            tblocal.close()
+
+        self.assertEqual(ref_frames, {0: "J2000"})
+
+    def test__fiend_field_ref_frame_b1950_vla(self):
+        from casatasks.private.task_phaseshift import _find_field_ref_frames
+
+        try:
+            tblocal = table()
+            tblocal.open(datacopy_ngc + "/FIELD", nomodify=True)
+            ref_frames = _find_field_ref_frames(tblocal)
+        finally:
+            tblocal.close()
+
+        self.assertEqual(ref_frames, {0: "B1950_VLA", 1: 'B1950_VLA', 2: 'B1950_VLA'})
+
+    def test__convert_to_ref_frame(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
+
+        phasecenter = 'J2000 19h53m50 40d06m00'
+        fra, fdec = _convert_to_ref_frame(phasecenter, "J2000")
+        places = 6
+        self.assertAlmostEqual(fra, -1.074105, places=places)
+        self.assertAlmostEqual(fdec, 0.6998770, places=places)
+
+    def test__convert_to_ref_frame_using_default_frame(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
+
+        phasecenter = '19h53m50 40d06m00'
+        fra, fdec = _convert_to_ref_frame(phasecenter, "J2000")
+        places = 6
+        self.assertAlmostEqual(fra, -1.074105, places=places)
+        self.assertAlmostEqual(fdec, 0.6998770, places=places)
+
+    def test__convert_to_ref_frame_wrong(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
+
+        phasecenter = 'BOGUS xxh53m50 40d06m00'
+        with self.assertRaisesRegex(RuntimeError, expected_regex="failed"):
+            fra, fdec = _convert_to_ref_frame(phasecenter, "B1950_VLA")
+
+    def test__convert_to_ref_frame_icrs(self):
+        from casatasks.private.task_phaseshift import _convert_to_ref_frame
+
+        phasecenter = 'B1950 19h53m50 40d06m00'
+        fra, fdec = _convert_to_ref_frame(phasecenter, "ICRS")
+        places = 6
+        self.assertAlmostEqual(fra, -1.066522, places=places)
+        self.assertAlmostEqual(fdec, 0.7022094, places=places)
+
+
+class phaseshift_multi_phasecenter_test(phaseshift_base_checks):
+    """ Tests around the use of multi-field phasecenter values (dicts) """
+
+    # Other candidates, could have been:
+    # uid___A002_X30a93d_X43e_small.ms: 3 fields, but only 3 scans, and >240MB
+    # uid___X02_X3d737_X1_01_small.ms: 3 fields, but only 3 scans
+    # twocenteredpointsources.ms: simulated, 2 fields, only 2 scans, (fixvis)
+    datadir_multifield = os.path.join('measurementset', 'alma')
+    ms_multifield = "uid___A002_X1c6e54_X223-thinned.ms"
+    datapath_multifield = ctsys_resolve(os.path.join(datadir_multifield,
+                                                     ms_multifield))
+    relevant_ddis_multifield = ['0', '1']
+
+    def setUp(self):
+        shutil.copytree(self.datapath_multifield, datacopy)
+        self.outputvis = "test_vis_multi_field_phasecenter_dict.ms"
+
+    def tearDown(self):
+        shutil.rmtree(datacopy)
+
+        if os.path.exists(self.outputvis):
+            shutil.rmtree(self.outputvis)
+
+    def get_col_for_field(self, vis, field, ddi, col_name='DATA',):
+        """
+        Get the visibilities from a data column (specified in param 'col_name'),
+        given a field ID and a DDI ID.
+
+        Note: orders the vis values by TIME col, using TaQL, to prevent
+        re-ordering seen for example with uid___A002_X1c6e54_X223-thinned.ms
+        (It might have needed to reorder by ANTENNA1, ANTENNA2, SCAN_NUMBER,
+         etc. but that was not needed)
+        """
+        tbt = table()
+
+        try:
+            tbt.open(vis)
+
+            if field is None:
+                col = tbt.getcol(col_name)
+            else:
+                query_str = ('FIELD_ID in [{}] AND DATA_DESC_ID in [{}]'
+                             ' ORDERBY TIME'.format(field, ddi))
+
+                try:
+                    query_col = tbt.query(query_str, columns=col_name,
+                                          style='python')
+                    col = query_col.getcol(col_name)
+                finally:
+                    query_col.done()
+                    if len(col) == 0:
+                        raise RuntimeError('Unexpected empty column/query, '
+                                           'check test setup')
+        finally:
+            tbt.done()
+
+        return col
+
+    def check_field_unchanged(self, inputvis, outputvis, field, ddi='0'):
+        """ Compare the visibility values between the input and output
+        MSs, given one field ID and DDI ID and ensure that the values are
+        close (for unchanged / 'passthrough' fields) . """
+        vis_in = self.get_col_for_field(datacopy, field=field, ddi=ddi)
+
+        vis_out = self.get_col_for_field(outputvis, field=field, ddi=ddi)
+
+        m1 = np.mean(vis_in)
+        m2 = np.mean(vis_out)
+        self.assertEqual(m1, m2)
+        np.testing.assert_allclose(vis_in, vis_out, rtol=1e-7)
+
+    def test_phasecenter_dict_outofrange(self):
+        ''' Check handling of dict with unknown / too many fields '''
+        new_center = 'J2000 19h53m50 40d06m00'
+        with self.assertRaisesRegex(RuntimeError, "field IDs"):
+            result = phaseshift(datacopy, outputvis=self.outputvis,
+                                phasecenter={'0': new_center,
+                                             '3': new_center})
+
+    def test_phasecenter_dict_simple(self):
+        ''' Check multiple field phasecenter(s) given as a dict, one field '''
+        new_center = 'J2000 19h53m50 40d06m00'
+        phasecenter = {'0': new_center,}
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter=phasecenter)
+
+        self.assertEqual(result, None)
+        self.check_nrows(self.outputvis, 15344)
+        self.check_field_subtable(self.outputvis, datacopy, phasecenter)
+
+        for field in ['1', '2']:
+            for ddi in self.relevant_ddis_multifield:
+                self.check_field_unchanged(datacopy, self.outputvis, ddi=ddi,
+                                           field=field)
+
+    def test_test_nodict(self):
+        new_center = 'J2000 19h53m50 40d06m00'
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter=new_center)
+
+        self.check_nrows(self.outputvis, 15344)
+        self.check_field_subtable(self.outputvis, datacopy, new_center)
+
+    def test_phasecenter_dict_one_out(self):
+        ''' Check multiple field phasecenter(s) given as a dict, skip one field '''
+        new_centerA = 'GALACTIC 19h53m50 40d06m00'
+        new_centerB = 'GALACTIC 22h01m02 40d04m03'
+        phasecenter = {'0': new_centerA,
+                       '2' : new_centerB}
+        result = phaseshift(datacopy, outputvis=self.outputvis,
+                            phasecenter=phasecenter)
+
+        self.assertEqual(result, None)
+        self.check_nrows(self.outputvis, 15344)
+        self.check_field_subtable(self.outputvis, datacopy, phasecenter)
+
+        for ddi in self.relevant_ddis_multifield:
+            self.check_field_unchanged(datacopy, self.outputvis, ddi=ddi,
+                                       field='1')
+
+    def test_phasecenter_dict_with_field_selection_overlapping(self):
+        ''' Check multiple field phasecenter(s) given as a dict,
+        skip one field, with selection of all fields in phasecenter dict '''
+        new_centerA = 'ICRS 19h53m50 40d06m00'
+        new_centerB = 'ICRS 22h01m02 40d04m03'
+        phasecenter = {'0': new_centerA,
+                       '2' : new_centerB}
+        result = phaseshift(datacopy, outputvis=self.outputvis, field='0,2',
+                            phasecenter=phasecenter)
+
+        self.assertEqual(result, None)
+        self.check_nrows(self.outputvis, 11536)
+        self.check_field_subtable(self.outputvis, datacopy, phasecenter)
+
+    def test_phasecenter_dict_with_field_selection_nonoverlapping(self):
+        ''' Check multiple field phasecenter(s) given as a dict,
+        skip one field, with selection of fields partially overlapping with
+        fields in phasecenter '''
+        new_centerA = 'J2000 19h53m50 40d06m00'
+        new_centerB = 'J2000 22h01m02 40d04m03'
+        phasecenter = {'1': new_centerA,
+                       '2' : new_centerB}
+        result = phaseshift(datacopy, outputvis=self.outputvis, field='0,2',
+                            phasecenter=phasecenter)
+
+        self.assertEqual(result, None)
+        self.check_nrows(self.outputvis, 11536)
+        self.check_field_subtable(self.outputvis, datacopy, phasecenter)
+        for ddi in self.relevant_ddis_multifield:
+            self.check_field_unchanged(datacopy, self.outputvis, ddi=ddi,
+                                       field='0')
+
 
 if __name__ == '__main__':
     unittest.main()

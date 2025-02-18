@@ -147,11 +147,19 @@ namespace casa { //# NAMESPACE CASA - BEGIN
 	  }
 	else if (decpars.algorithm==String("asp"))
 	  {
-      bool isSingle = false;
-      if (decpars.specmode == String("mfs"))
-        isSingle = true;
+            /*bool isSingle = false;
+            if (decpars.specmode == String("mfs"))
+              isSingle = true;
+            */
 
-	    itsDeconvolver.reset(new SDAlgorithmAAspClean(decpars.fusedThreshold, isSingle, decpars.largestscale));
+            // CAS-13901 : When `deconvolve()` is called on a cube,
+            // `decpars.specmode` defaults to MFS here, since there is no way to
+            // specify specmode within deconvolve. Therefore `isSingle` is
+            // forced to False always.  The side-effect of this is that
+            // multi-plane MFS images will be slightly slowed down.
+
+            bool isSingle = false;
+            itsDeconvolver.reset(new SDAlgorithmAAspClean(decpars.fusedThreshold, isSingle, decpars.largestscale));
 	  }
 	else
 	  {
