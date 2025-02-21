@@ -30,6 +30,7 @@ import math
 import os
 import shutil
 import stat
+from typing import Optional
 import unittest
 
 import numpy
@@ -4395,7 +4396,7 @@ class sdimaging_pm04_test_base(sdimaging_unittest_base):
             if os.path.exists(f):
                 shutil.rmtree(f)
 
-    def _run_pm04_test(self, infiles=None):
+    def _run_pm04_test(self, infiles=None, **kw):
         imsize = 11
         params = {
             'infiles': self.infiles if infiles is None else infiles,
@@ -4407,6 +4408,7 @@ class sdimaging_pm04_test_base(sdimaging_unittest_base):
             'imsize': imsize,
             'cell': '10arcsec'
         }
+        params.update(kw)
         center = [imsize // 2, imsize // 2, 0, 0]
         ref = {
             'npts': [1],
@@ -4584,6 +4586,149 @@ class sdimaging_ms_conformance(sdimaging_pm04_test_base):
         self._run_pm04_test(self.infiles)
 
 
+class sdimaging_brightness_unit(sdimaging_pm04_test_base):
+    outfile = 'brightness_unit_test'
+
+    def setUp(self):
+        super().setUp()
+        # Remove unit-like keywords from data columns of input files
+        for infile in self.infiles:
+            with table_manager(infile, nomodify=False) as tb:
+                data_columns = {
+                    'DATA', 'FLOAT_DATA', 'CORRECTED_DATA'
+                }.intersection(tb.colnames())
+                for column in data_columns:
+                    column_keywords = tb.getcolkeywords(column)
+                    unit_keywords = {
+                        'UNIT', 'QuantumUnits'
+                    }.intersection(column_keywords.keys())
+                    for unit in unit_keywords:
+                        tb.removecolkeyword(column, unit)
+
+    def _set_intensity_unit(
+            self, msname: str, unit_key: str, unit_val: str,
+            column: Optional[str] = None
+    ):
+        """Set intensity unit to data column(s).
+
+        If optional column parameter is not given, units are
+        set to all possible data columns (CORRECTED_DATA,
+        FOAT_DATA, and DATA).
+
+        Args:
+            msname: Name of the MeasurementSet
+            unit_key: Keyword name of the unit
+            unit_val: Value of the unit
+            column: Name of the data column. Defaults to None.
+        """
+        with table_manager(msname, nomodify=False) as tb:
+            if column:
+                # column should specify only one column name
+                data_columns = {column}
+            else:
+                data_columns = {
+                    'CORRECTED_DATA', 'FLOAT_DATA', 'DATA'
+                }
+            for column in data_columns.intersection(tb.colnames()):
+                tb.putcolkeyword(column, unit_key, unit_val)
+
+                # verify edits
+                column_keywords = tb.getcolkeywords(column)
+                self.assertTrue(unit_key in column_keywords)
+                self.assertEqual(column_keywords[unit_key], unit_val)
+
+    def _verify_brightness_unit(self, imagename: str, expected: str):
+        """Verify brightness unit of the image.
+
+        Args:
+            imagename: Name of the image file
+            expected: Expected unit value
+        """
+        with tool_manager(imagename, image) as ia:
+            self.assertEqual(ia.brightnessunit(), expected)
+
+    def _run_brightness_unit_test(self, unit_expected: str, override_unit: str = ''):
+        """Run tsdimaging task and verify brightness unit.
+
+        Args:
+            unit_expected: Expected unit string.
+                Should be either 'Jy/beam' or 'K'.
+        """
+        kw = {}
+        if override_unit in ('K', 'Jy/beam'):
+            kw['brightnessunit'] = override_unit
+        self._run_pm04_test(**kw)
+        self._verify_brightness_unit(self.outfile + '.image', unit_expected)
+
+    def test_no_unit(self):
+        """test_no_unit: default brightness unit should be Jy/beam."""
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_Kelvin(self):
+        """test_UNIT_Kelvin: UNIT keyword with K -> K"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'K')
+        self._run_brightness_unit_test('K')
+
+    def test_UNIT_Jy(self):
+        """test_UNIT_Jy: UNIT keyword with Jy -> Jy/beam"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'Jy')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_invalid(self):
+        """test_UNIT_invalid: UNIT keyword with invalid value -> Jy/beam"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'blah')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_empty(self):
+        """test_UNIT_empty: UNIT keyword with empty string -> Jy/beam"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', '')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_QuantumUnits_Kelvin(self):
+        """test_QuantumUnits_Kelvin: QuantumUnits keyword with K -> K"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'QuantumUnits', ['K'])
+        self._run_brightness_unit_test('K')
+
+    def test_UNIT_Jy_QuantumUnits_Kelvin(self):
+        """test_UNIT_Jy_QuantumUnits_Kelvin: UNIT takes priority (Jy/beam)"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'Jy')
+            self._set_intensity_unit(infile, 'QuantumUnits', ['K'])
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_Kelvin_QuantumUnits_Jy(self):
+        """test_UNIT_Jy_QuantumUnits_Kelvin: UNIT takes priority (K)"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'UNIT', 'K')
+            self._set_intensity_unit(infile, 'QuantumUnits', ['Jy'])
+        self._run_brightness_unit_test('K')
+
+    def test_UNIT_first_ms(self):
+        """test_UNIT_first_ms: first MS takes priority"""
+        self._set_intensity_unit(self.infiles[0], 'UNIT', 'Jy')
+        self._set_intensity_unit(self.infiles[1], 'UNIT', 'K')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_UNIT_CORRECTED_DATA(self):
+        """test_UNIT_CORRECTED_DATA: CORRECTED_DATA takes priority"""
+        for infile in self.infiles:
+            with calibrater_manager(infile, addcorr=True, addmodel=False) as cb:
+                pass
+            self._set_intensity_unit(infile, 'UNIT', 'K', 'FLOAT_DATA')
+            self._set_intensity_unit(infile, 'UNIT', 'Jy', 'CORRECTED_DATA')
+        self._run_brightness_unit_test('Jy/beam')
+
+    def test_override_by_parameter(self):
+        """test_override_by_parameter: make sure parameter value takes priority"""
+        for infile in self.infiles:
+            self._set_intensity_unit(infile, 'QuantumUnits', ['K'])
+        self._run_brightness_unit_test('Jy/beam', override_unit='Jy/beam')
+
 
 """
 # utility for sdimaging_test_mapextent
@@ -4676,11 +4821,11 @@ def calc_mapproperty(statistics):
 class sdimaging_interpolation(sdimaging_pm04_test_base):
     """
     Test imaging with interpolation parameters.
-    
+
     This test checks linear(default), nearest, and cubic interpolation with the parameter.
     """
     outfile = 'interpolation'
-    
+
     def run_base_test(self, interpolation='linear'):
         imsize = 11
         params = {
