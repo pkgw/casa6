@@ -302,6 +302,8 @@ void SynthesisNormalizer::gatherWeightDensity(){
       itsImages->addImages(itsPartImages[part], false,
                            /*residual*/ false, /*weight*/ false,
                            /*griddedwt*/ true);
+      Record partiminfo(itsPartImages[part]->gridwt()->miscInfo());
+      mergeWeightDensityInfo(iminfo, partiminfo);
       if (recalcF2) {
         Vector<Float> f2in;
         (itsPartImages[part]->gridwt()->miscInfo()).get("f2", f2in);
@@ -343,9 +345,10 @@ void SynthesisNormalizer::gatherWeightDensity(){
           f2out[0] = f2out[0] / sumarr2;
       }
       iminfo.define("f2", f2out);
-      itsImages->gridwt()->setMiscInfo(iminfo);
+      
     }
-
+    itsImages->gridwt()->setMiscInfo(iminfo);
+    
   } // end of image gathering.
 
   // Normalize by the weight image.
@@ -418,6 +421,7 @@ void SynthesisNormalizer::gatherWeightDensity(){
         itsImages = makeImageStore( itsImageName, false );
       }
 
+
     }
     catch(AipsError& x){
 
@@ -426,6 +430,17 @@ void SynthesisNormalizer::gatherWeightDensity(){
     itsImages->makeImageBeamSet(itsPsfcutoff);
     itsImages->releaseLocks();
   }
+
+
+  void SynthesisNormalizer::divideWeightBySumWt() {
+
+    LogIO os(LogOrigin("SynthesisNormalizer", "divideWeightBySumWt", WHERE));
+    itsImages->divideWeightBySumwt();
+
+  }
+  
+
+  
   void SynthesisNormalizer::dividePSFByWeight()
   {
     LogIO os( LogOrigin("SynthesisNormalizer", "dividePSFByWeight",WHERE) );
@@ -807,7 +822,43 @@ void SynthesisNormalizer::gatherWeightDensity(){
   
    }
 
-
+   void SynthesisNormalizer::mergeWeightDensityInfo(Record& outinfo, const Record& partinfo){
+     uInt mapsize=0;
+     if(outinfo.isDefined("multimapsize"))
+      outinfo.get("multimapsize", mapsize);
+     uInt partsize;
+     if(!partinfo.isDefined("multimapsize"))
+       return;
+     partinfo.get("multimapsize", partsize);
+     std::vector<String> key2add;
+     std::vector<Int> val2add;
+     for (uInt k = 0; k < partsize; ++k){
+      String key;
+      partinfo.get("key" + String::toString(k), key);
+      Bool hasKey = False;
+      for (uInt j = 0; j < mapsize; ++j) {
+        String imkey;
+        outinfo.get("key" + String::toString(j), imkey);
+        hasKey = hasKey || (imkey == key);
+      }  
+      if (!hasKey) {
+          key2add.push_back(key);
+          Int val;
+          partinfo.get("val" + String::toString(k), val);
+          val2add.push_back(val);
+        }
+       }
+     if (key2add.size() > 0) {
+       for (uInt k = mapsize; k < (mapsize + key2add.size()); ++k) {
+         String key = "key" + String::toString(k);
+        outinfo.define(key, key2add[k - mapsize]);
+        String val = "val" + String::toString(k);
+        outinfo.define(val, val2add[k - mapsize]);
+      }
+      mapsize += key2add.size();
+      outinfo.define("multimapsize", mapsize);
+     }
+   }
 
 } //# NAMESPACE CASA - END
 

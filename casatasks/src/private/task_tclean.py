@@ -14,13 +14,14 @@ import filecmp
 import time
 import pdb
 
+
 from casatasks import casalog
 
 from casatasks.private.imagerhelpers.imager_base import PySynthesisImager
 from casatasks.private.imagerhelpers.input_parameters import saveparams2last
 from casatasks.private.imagerhelpers.imager_parallel_continuum import PyParallelContSynthesisImager
 from casatasks.private.imagerhelpers.imager_parallel_cube import PyParallelCubeSynthesisImager
-from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import PyMtmfsViaCubeSynthesisImager
+from casatasks.private.imagerhelpers.imager_mtmfs_via_cube import  PyMtmfsViaCubeSynthesisImager
 from casatasks.private.imagerhelpers.input_parameters import ImagerParameters
 from casatasks.private.imagerhelpers.imager_return_dict import ImagingDict
 from .cleanhelper import write_tclean_history, get_func_params
@@ -28,7 +29,6 @@ from casatools import table
 from casatools import image
 from casatools import synthesisutils
 from casatools import synthesisimager
-
 
 try:
     from casampi.MPIEnvironment import MPIEnvironment
@@ -38,9 +38,9 @@ try:
 except ImportError:
     mpi_available = False
 
+
 # if you want to save tclean.last.* from python call of tclean uncomment the decorator
 #@saveparams2last(multibackup=True)
-
 def tclean(
     ####### Data Selection
     vis,  # ='',
@@ -281,7 +281,24 @@ def tclean(
         )
         return
 
-    
+    # CAS-14146
+    if (specmode == "mfs" and deconvolver == 'mtmfs' and (gridder == 'mosaic' or gridder == 'awp2')):
+        casalog.post(
+            "Please consider using specmode=mvc with " + gridder + " gridder"
+            " as this gridder does not implement conjbeams \n thus it needs a few major cycles to converge towards the correct answer",
+            "WARN",
+            "task_tclean",
+        )
+
+    # CAS-13581
+    # XXX : Remove this once awp-hpg is released for general use
+    if gridder == 'awphpg':
+        casalog.post(
+            "The awphpg gridder is not available for general use in the CASA 6.7.0 release. It will be made available in a future release.",
+            "WARN",
+            "task_tclean",
+        )
+ 
     #####################################################
     #### Construct ImagerParameters object
     #####################################################
@@ -306,7 +323,7 @@ def tclean(
 
     ###default mosweight=True is tripping other gridders as they are not
     ###expecting it to be true
-    if bparm["mosweight"] == True and bparm["gridder"].find("mosaic") == -1:
+    if bparm["mosweight"] == True and (not bparm["gridder"] in ['mosaic', 'awp2']):
         bparm["mosweight"] = False
 
     if specmode == "mfs":
@@ -320,7 +337,14 @@ def tclean(
             "WARN",
         )
 
-    # paramList.printParameters()
+
+    #paramList.printParameters()
+    
+
+    if len(pointingoffsetsigdev)>0 and pointingoffsetsigdev[0]!=0.0 and usepointing==True and gridder.count('awproj')>1:
+        casalog.post("pointingoffsetsigdev will be used for pointing corrections with AWProjection", "WARN") 
+#    elif usepointing==True and pointingoffsetsigdev[0] == 0:
+#        casalog.post("pointingoffsetsigdev is set to zero which is an unphysical value, will proceed with the native sky pixel resolution instead". "WARN")
 
     if (
         len(pointingoffsetsigdev) > 0
@@ -362,7 +386,20 @@ def tclean(
         cl._cluster.pgc("si.initmpi()", False)
         cppparallel = True
         ###ignore chanchunk
-        bparm["chanchunks"] = 1
+        bparm['chanchunks']=1
+    ######awphpg case
+    if(gridder=='awphpg'):
+        localsi=synthesisimager()
+        localsi.inithpg()
+    # catch non operational case (parallel cube tclean with interative=T)
+    if pcube and interactive:
+        casalog.post(
+            "Interactive mode is not currently supported with parallel apwproject cube CLEANing, please restart by setting interactive=F",
+            "WARN",
+            "task_tclean",
+        )
+        return False
+
 
     if interactive:
         # catch non operational case (parallel cube tclean with interative=T)
@@ -391,6 +428,7 @@ def tclean(
                     "task_tclean",
                 )
                 raise RuntimeError( "casaviewer is no longer available for macOS, for more information see: http://go.nrao.edu/casa-viewer-eol" )
+
 
     #casalog.post('parameters {}'.format(bparm))    
     paramList=ImagerParameters(**bparm)
@@ -471,9 +509,13 @@ def tclean(
             )
 
         ## Make PSF
-        if calcpsf == True:
-            t0 = time.time()
 
+        if calcpsf==True:
+            t0=time.time();
+            #####TESTOO
+            if(gridder=="awphpg" and specmode=="mfs"):
+                imager.makePB()
+            #####TESTOO 
             imager.makePSF()
             if (psfphasecenter != "") and ("mosaic" in gridder):
                 ###for some reason imager keeps the psf open delete it and recreate it afterwards
@@ -573,8 +615,10 @@ def tclean(
                 retrec = id.construct_residual_dict(paramList)
 
             ## Do deconvolution and iterations
-            if niter > 0 :
-                t0=time.time();
+            if niter > 0:
+                t0 = time.time()
+
+
                 isit = imager.hasConverged()
                 imager.updateMask()
                 # if((type(usemask)==str) and ('auto' in usemask)):

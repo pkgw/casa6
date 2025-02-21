@@ -270,7 +270,7 @@ CountedPtr<SimplePBConvFunc>& MosaicFT::getConvFunc(){
 }
 
 void MosaicFT::findConvFunction(const ImageInterface<Complex>& iimage,
-				const vi::VisBuffer2& vb, const Matrix<Double>& /*rotateduvw*/) {
+				const vi::VisBuffer2& vb, const Matrix<Double>& /*rotateduvw*/, const bool /*ispsf*/) {
   
   
   //oversample if image is small
@@ -1067,7 +1067,7 @@ void MosaicFT::put(const vi::VisBuffer2& vb, Int row, Bool dopsf,
 
   // cerr << "rot  " << vbRotuvw.uvw().row(2) << endl;
 
-  findConvFunction(*image, vb, uvw);
+  findConvFunction(*image, vb, uvw, dopsf);
   
   //cerr << "Put convsup " << convSupport << " max min convFunc " << max(convFunc) << "   " << min(convFunc) << "  "  << max(weightConvFunc_p) << min(weightConvFunc_p)  << "SHP " << convFunc.shape() << "   " << weightConvFunc_p.shape() << endl;
   //cerr << "convRowMap " << convRowMap_p  << " " << convChanMap_p << "  " << convPolMap_p << endl; 

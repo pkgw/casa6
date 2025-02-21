@@ -7,6 +7,7 @@ import re
 import copy
 from typing import TYPE_CHECKING
 
+
 from casatools import (
     synthesisimager,
     synthesisdeconvolver,
@@ -115,7 +116,7 @@ class PySynthesisImager:
 
         cfCacheName=''
         exists=False
-        if(self.allgridpars['0']['gridder'].startswith('awpr') or self.allgridpars['0']['gridder'].startswith('awph') ):
+        if(self.allgridpars['0']['gridder'].startswith('awpr') ):
             cfCacheName=self.allgridpars['0']['cfcache'];
             if (cfCacheName == ''):
                 cfCacheName = self.allimpars['0']['imagename'] + '.cf'
@@ -144,8 +145,17 @@ class PySynthesisImager:
         #   self.SItool.tuneselectdata()
         ###For cubes create cfcache ahead of each partition trying
         ### to create it as it is not multiprocess safe
-        if("cube" in self.allimpars['0']['specmode']):
+        if(("cube" in self.allimpars['0']['specmode']) or ("awphpg" in self.allgridpars['0']['gridder'])):
             self.makeCFCache(exists);
+        ### Warning about awp2/mosaic not having conjbeam thus will not be correct on first major cycles
+        ## CAS-14146 : Krishna : Moved this warning to task_tclean.py along with the other warnings there.
+        #if( ("mfs" in self.allimpars['0']['specmode']) and ("mtmfs" in self.allimpars['0']['deconvolver']) and (self.allgridpars['0']['gridder'] in ['awp2', 'mosaic']) ):
+        #    casalog.post(
+        #        "You may consider using specmode=mvc with "+self.allgridpars['0']['gridder']
+        #        +" as this gridder does not use conjbeams \n thus need a couple of major cycle to converge to the correct answer",
+        #        "WARN"
+        #    )
+
 
     #############################################
 
@@ -429,6 +439,9 @@ class PySynthesisImager:
             if divideInPython:
                 self.PStools[immod].gatherpsfweight()
                 self.PStools[immod].dividepsfbyweight()
+                # continuum A style gridders need their .weight divided by sumwt except for awphpg 
+                if(("awphpg" not in self.allgridpars['0']['gridder'])):
+                    self.PStools[immod].divideweightbysumwt()
             self.check_psf(immod)
 
     def check_psf(self, immod):
