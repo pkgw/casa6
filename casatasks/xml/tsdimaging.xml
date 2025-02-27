@@ -8,7 +8,7 @@
 
     <description>
 Task sdimaging creates an image from input single-dish data sets.
-The input can be either total power and spectral data. 
+The input can be either total power and spectral data.
 
 The coordinate of output image is defined by four axes, i.e., two
 spatial axes, frequency and polarization axes.\n
@@ -32,17 +32,17 @@ Finally, polarizations of image is defined by stokes parameter or
 polarization. For example, stokes='XXYY' produces an image cube with
 each plane contains the image of one of the polarizations, while
 stokes='I' produces a 'total intensity' or Stokes I image.
-The stokes parameter has a special option, 'pseudoI'. The option is 
-introduced to support imaging of partially flagged correlations. 
-Main difference between 'I' and 'pseudoI' is that the former only takes 
-into account the data whose correlations are all valid (this is the 
-Stokes I in the strict sense) while the latter accumulates partially 
-flagged data in addition. Note that the 'pseudoI' option is compatible 
-with 'I' for sdimaging task. 
+The stokes parameter has a special option, 'pseudoI'. The option is
+introduced to support imaging of partially flagged correlations.
+Main difference between 'I' and 'pseudoI' is that the former only takes
+into account the data whose correlations are all valid (this is the
+Stokes I in the strict sense) while the latter accumulates partially
+flagged data in addition. Note that the 'pseudoI' option is compatible
+with 'I' for sdimaging task.
 
 The task also supports various grid function (convolution kernel) to
-weight spectra as well as an option to remove the most extreme minimum 
-and maximum (unweighted) values prior to computing the gridded pixel 
+weight spectra as well as an option to remove the most extreme minimum
+and maximum (unweighted) values prior to computing the gridded pixel
 values. See description below for details of gridfunction available.
 
     </description>
@@ -386,7 +386,10 @@ values. See description below for details of gridfunction available.
 
         <param type="string" name="brightnessunit">
             <shortdescription>Overwrite the brightness unit in image (\'\' = respect the unit in MS) [\'K\' or \'Jy/beam\']</shortdescription>
-            <description>Overwrite the brightness unit in image (\'\' = respect the unit in MS) [\'K\' or \'Jy/beam\']</description>
+            <description>Overwrite the brightness unit in image (\'\' = respect the unit in MS) [\'K\' or \'Jy/beam\'].
+            If no unit is provided, the task examines unit keywords ('UNIT' and 'QuantumUnits' in turn) of data columns.
+            Order of the examination is 'CORRECTED_DATA' - 'FLOAT_DATA' - 'DATA'. The order also represents the priority.
+            When unit string is found, it will be used as brightness unit. </description>
             <value/>
             <allowed kind="enum">
                 <value/>
@@ -488,7 +491,7 @@ outfile -- prefix of output images
                .weight -- weight image
                .sumwt -- sumwt image
                .psf -- psf image (equivalent to weight image)
-           .sumwt and .psf are kind of useless so far. image products 
+           .sumwt and .psf are kind of useless so far. image products
            will be improved later.
         default: ''
         example: 'mySDimage.im'
@@ -498,7 +501,7 @@ overwrite -- overwrite the output file if already exists
         example: if True, existing file will be overwritten
 field -- select data by field IDs and names
                 If field string is a non-negative integer, it is assumed to
-                be a field index otherwise, it is assumed to be a 
+                be a field index otherwise, it is assumed to be a
                 field name
         default: '' (use all fields)
         example: field='3C2*' (all names starting with 3C2)
@@ -506,12 +509,12 @@ field -- select data by field IDs and names
                  field='0,3C273' (field ID 3 or filed named 3C273)
                  For multiple MS input, a list of field strings can be used:
                  field = ['0~2','0~4'] (field ids 0-2 for the first MS and 0-4
-                         for the second) 
+                         for the second)
                  field = '0~2' (field ids 0-2 for all input MSes)
         this selection is in addition to the other selections to data
 spw -- select data by spectral window IDs/channels
        NOTE: channels de-selected here will contain all zeros if
-       selected by the parameter mode subparameters.    
+       selected by the parameter mode subparameters.
         default: '' (use all IFs and channels)
         example: spw='3,5,7' (IF IDs 3,5,7; all channels)
                  spw='&lt;2' (IF IDs less than 2, i.e., 0,1; all channels)
@@ -525,7 +528,7 @@ spw -- select data by spectral window IDs/channels
                  spw='0~3' (spw ids 0-3 for all input MSes)
         this selection is in addition to the other selections to data
 antenna -- select data by antenna names or IDs
-           If antenna string is a non-negative integer, it is 
+           If antenna string is a non-negative integer, it is
            assumed to be an antenna index, otherwise, it is
            considered an antenna name.
         default: '' (all baselines, i.e. all antenna in case of auto data)
@@ -555,12 +558,12 @@ mode -- spectral gridding type
         default: 'channel'
     &gt;&gt;&gt; mode expandable parameters
        nchan -- Total number of channels in the output image.
-           default: -1; Automatically selects enough channels to cover 
+           default: -1; Automatically selects enough channels to cover
                     data selected by 'spw' consistent with 'start' and 'width'.
-                    It is often easiest to leave nchan at the default value. 
+                    It is often easiest to leave nchan at the default value.
            example: nchan=100
-       start -- First channel, velocity, or frequency. 
-                For mode='channel'; This selects the channel index number 
+       start -- First channel, velocity, or frequency.
+                For mode='channel'; This selects the channel index number
                 from the MS (0 based) that you want to correspond to the
                 first channel of the output cube. The output cube will be
                 in frequency space with the first channel having the
@@ -580,17 +583,17 @@ mode -- spectral gridding type
                For mode='channel', default=1; width&gt;1 indicates channel averaging
                example: width=4.
                For mode= 'velocity' or 'frequency', default=''; width of
-               first input channel, or more precisely, the difference 
-               in frequencies between the first two selected channels. 
-               -- For example if channels 1 and 3 are selected with spw, 
+               first input channel, or more precisely, the difference
+               in frequencies between the first two selected channels.
+               -- For example if channels 1 and 3 are selected with spw,
                 then the default width will be the difference between their
-                frequencies, and not the width of channel 1. 
+                frequencies, and not the width of channel 1.
                -- Similarly, if the selected data has uneven channel-spacing,
                  the default width will be picked from the first two selected
                  channels. In this case, please specify the desired width.
                When specifying the width, one must give units
                examples: width='1.0km/s', or width='24.2kHz'.
-               Setting width&gt;0 gives channels of increasing frequency for 
+               Setting width&gt;0 gives channels of increasing frequency for
                mode='frequency', and increasing velocity for mode='velocity'.
        veltype -- Velocity definition
            Options: 'radio','optical','true','relativistic'
@@ -615,7 +618,7 @@ specmode -- Spectral definition mode (cube, cubedata, cubesource)
                              a spectral line observed over an extended time range
                              may be smeared out in frequency. There is strictly
                              no valid spectral frame with which to label the output
-                             images, but they will list the frame defined in the MS                
+                             images, but they will list the frame defined in the MS
                 'cubesource': Spectral line imaging while
                               tracking moving source (near field or solar system
                               objects). The velocity of the source is accounted
@@ -628,26 +631,26 @@ outframe -- velocity reference frame of output image
         Options: '','LSRK','LSRD','BARY','GEO','TOPO','GALACTO',
                  'LGROUP','CMB'
         default: ''; same as input data or 'LSRK' for multiple-MS inputs
-        example: frame='bary' for Barycentric frame 
+        example: frame='bary' for Barycentric frame
 gridfunction -- gridding function for imaging
-        options: 'BOX' (Box-car), 'SF' (Spheroidal), 
+        options: 'BOX' (Box-car), 'SF' (Spheroidal),
                  'PB' (Primary-beam), 'GAUSS' (Gaussian),
                  'GJINC' (Gaussian*Jinc)
         default: 'BOX'
         example: 'SF'
     &gt;&gt;&gt; gridfunction expandable parameter:
-       convsupport -- convolution support for 'SF' 
+       convsupport -- convolution support for 'SF'
            default: -1 (use default for each gridfunction)
            example: 3
        truncate -- truncattion radius of convolution kernel.
                    effective only for 'GAUSS' and 'GJINC'.
            default: '-1' (use default for each gridfunction)
            example: 3, '20arcsec', '3pixel'
-       gwidth -- HWHM for gaussian. Effective only for 
+       gwidth -- HWHM for gaussian. Effective only for
                  'GAUSS' and 'GJINC'.
            default: '-1' (use default for each gridfunction)
            example: 3, '20arcsec', '3pixel'
-       jwidth -- Width of jinc function. Effective only for 
+       jwidth -- Width of jinc function. Effective only for
                  'GJINC'.
            default: '-1' (use default for each gridfunction)
            example: 3, '20arcsec', '3pixel'
@@ -658,9 +661,9 @@ cell -- x and y cell size. default unit arcmin
         default: '' (= 1/3 of FWHM of primary beam)
         example: cell=['0.2arcmin, 0.2arcmin']
                  cell='0.2arcmin' (equivalent to example above)
-phasecenter -- image center: direction measure, field ID, or 
+phasecenter -- image center: direction measure, field ID, or
                ephemerides source information for moving source (solar system objects)
-        default: '' (= the center of pointing directions in 
+        default: '' (= the center of pointing directions in
                      POINTING table of infiles)
         example: phasecenter=6 (field ID)
                  phasecenter='J2000 13h44m00 -17d02m00'
@@ -669,55 +672,58 @@ phasecenter -- image center: direction measure, field ID, or
                  phasecenter='myComet_ephem.tab'
                  phasecenter='TRACKFIELD'
 
-        If the phasecenter is the name known major solar system object 
-        ('MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 
-        'NEPTUNE', 'PLUTO', 'SUN', 'MOON') or is an ephemerides table 
-        then that source is tracked and the background sources get smeared. 
-        There is a special case, when phasecenter='TRACKFIELD', which 
-        will use the ephemerides or polynomial phasecenter in the FIELD 
-        table of the MS's as the source center to track. 
+        If the phasecenter is the name known major solar system object
+        ('MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN', 'URANUS',
+        'NEPTUNE', 'PLUTO', 'SUN', 'MOON') or is an ephemerides table
+        then that source is tracked and the background sources get smeared.
+        There is a special case, when phasecenter='TRACKFIELD', which
+        will use the ephemerides or polynomial phasecenter in the FIELD
+        table of the MS's as the source center to track.
 
-        When moving source correction is applied, the source is fixed to 
-        the position at the beginning of on-source observations in the data. 
-        Direction reference frame of output image refers phasecenter ('J2000' 
-        if phasecenter is empty). 
+        When moving source correction is applied, the source is fixed to
+        the position at the beginning of on-source observations in the data.
+        Direction reference frame of output image refers phasecenter ('J2000'
+        if phasecenter is empty).
 
-        Caution: in case of specifying ephemeris table name, its name or path 
-                 must not start with known major solar system object listed 
-                 above (case-insensitive), otherwise, CASA will use its 
-                 internal ephemeris data for phasecenter instead. In such case 
-                 you need to add './' at the beginning so that the specified 
-                 table will be used. For example, if you wish to explicitly 
-                 specify ephemeris table attached to the input MS 'SunObs.ms', 
-                 set phasecenter like './SunObs.ms/FIELD/ephemtab_name.tab'. 
-                 
+        Caution: in case of specifying ephemeris table name, its name or path
+                 must not start with known major solar system object listed
+                 above (case-insensitive), otherwise, CASA will use its
+                 internal ephemeris data for phasecenter instead. In such case
+                 you need to add './' at the beginning so that the specified
+                 table will be used. For example, if you wish to explicitly
+                 specify ephemeris table attached to the input MS 'SunObs.ms',
+                 set phasecenter like './SunObs.ms/FIELD/ephemtab_name.tab'.
+
 projection -- map projection type. See Calabretta &amp; Greisen (2002) for detail.
-        default: 'SIN' 
+        default: 'SIN'
         options: 'SIN', 'CAR', 'TAN', 'SFL'
 pointingcolumn -- pointing data column to use
-        option: 'direction', 'target', 'pointing_offset', 'source_offset', encoder' 
+        option: 'direction', 'target', 'pointing_offset', 'source_offset', encoder'
         default: 'direction'
 restfreq -- specify rest frequency to use for output image
         default: '' (refer input data)
         example: 1.0e11, '100GHz'
 stokes -- Stokes Planes to make
         default='I'; example: stokes='XXYY';
-        options: 'I','Q','U','V','IV','QU','IQ','UV','IQUV','RR','LL','XX','YY','RRLL','XXYY','pseudoI' 
+        options: 'I','Q','U','V','IV','QU','IQ','UV','IQUV','RR','LL','XX','YY','RRLL','XXYY','pseudoI'
         Note : The 'pseudoI' option is a partial solution, allowing Stokes I imaging
-               when either of the parallel-hand correlations are unflagged. 
+               when either of the parallel-hand correlations are unflagged.
 
-minweight -- Minimum weight ratio to the median of weight used in 
+minweight -- Minimum weight ratio to the median of weight used in
              weight correction and weight based masking
         default: 0.1
         example: minweight = 0.
-brightnessunit -- Overwrite the brightness unit in image.
+brightnessunit -- Overwrite the brightness unit in image [\'K\' or \'Jy/beam\'].
+            If no unit is provided, the task examines unit keywords ('UNIT' and 'QuantumUnits' in turn) of data columns.
+            Order of the examination is 'CORRECTED_DATA' - 'FLOAT_DATA' - 'DATA'. The order also represents the priority.
+            When unit string is found, it will be used as brightness unit.
         default: '' (use the unit in MS)
         Options: '', 'K' (Kelvin), 'Jy/beam'
-clipminmax -- Clip minimum and maximum value from each pixel. 
-              Note the benefit of clipping is lost when the number of 
-              integrations contributing to each gridded pixel is small, 
-              or where the incidence of spurious datapoints is 
-              approximately or greater than the number of beams (in area) 
+clipminmax -- Clip minimum and maximum value from each pixel.
+              Note the benefit of clipping is lost when the number of
+              integrations contributing to each gridded pixel is small,
+              or where the incidence of spurious datapoints is
+              approximately or greater than the number of beams (in area)
               encompassed by expected image.
         default: False
         option: True, False
@@ -744,38 +750,38 @@ where Jinc(x) = J_1(pi*x/c)/(pi*x/c) with a first order Bessel function
 J_1, and 'PB' (Primary Beam). For 'PB', correct antenna informations
 should be included in input file.
 
-There are four subparameters for gridfunction: convsupport, truncate, 
-gwidth, and jwidth. The convsupport is an integer specifying cut-off 
-radius for 'SF' in units of pixel. By default (convsupport=-1), 
-the cut-off radius is set to 3 pixels. The truncate is a cut-off 
-radius for 'GAUSS' or 'GJINC'. It accepts integer, float, and 
-string values of numeric plus unit. Allowed units are angular 
-units such as 'deg', 'arcmin', 'arcsec', and 'pixel'. Default unit 
-is 'pixel' so that string without unit or numerical values (integer 
-or float) will be interpreted as radius in pixel. Default value 
-for truncate, which is used when negative radius is set, is 3*HWHM 
-for 'GAUSS' and radius at first null for 'GJINC'. The gwidth is 
-the HWHM of gaussian for 'GAUSS' and 'GJINC'. Default value is 
-sqrt(log(2)) pixel for 'GAUSS' and 2.52*sqrt(log(2)) pixel for 
-'GJINC'. The jwidth specifies width of the jinc function (parameter 
-'c' in the definition above). Default is 1.55 pixel. Both gwidth 
-jwidth allows integer, float, or string of numeric plus unit. 
-Default values for gwidth and jwidth are taken from Mangum et al. 
-(2007). Formula for 'GAUSS' and 'GJINC' are taken from Table 1 in 
-the paper, and are written as below using gwidth and jwidth: 
+There are four subparameters for gridfunction: convsupport, truncate,
+gwidth, and jwidth. The convsupport is an integer specifying cut-off
+radius for 'SF' in units of pixel. By default (convsupport=-1),
+the cut-off radius is set to 3 pixels. The truncate is a cut-off
+radius for 'GAUSS' or 'GJINC'. It accepts integer, float, and
+string values of numeric plus unit. Allowed units are angular
+units such as 'deg', 'arcmin', 'arcsec', and 'pixel'. Default unit
+is 'pixel' so that string without unit or numerical values (integer
+or float) will be interpreted as radius in pixel. Default value
+for truncate, which is used when negative radius is set, is 3*HWHM
+for 'GAUSS' and radius at first null for 'GJINC'. The gwidth is
+the HWHM of gaussian for 'GAUSS' and 'GJINC'. Default value is
+sqrt(log(2)) pixel for 'GAUSS' and 2.52*sqrt(log(2)) pixel for
+'GJINC'. The jwidth specifies width of the jinc function (parameter
+'c' in the definition above). Default is 1.55 pixel. Both gwidth
+jwidth allows integer, float, or string of numeric plus unit.
+Default values for gwidth and jwidth are taken from Mangum et al.
+(2007). Formula for 'GAUSS' and 'GJINC' are taken from Table 1 in
+the paper, and are written as below using gwidth and jwidth:
 
    GAUSS: exp[-log(2)*(|r|/gwidth)**2]
 
    GJINC: J_1(pi*|r|/jwidth)/(pi*|r|/jwidth)
-             * exp[-log(2)*(|r|/gwidth)^2]  
+             * exp[-log(2)*(|r|/gwidth)^2]
 
 
-Reference: Mangum, et al. 2007, A&amp;A, 474, 679-687 
+Reference: Mangum, et al. 2007, A&amp;A, 474, 679-687
 
 --------------------
 Mask in Output Image
 --------------------
-The parameter minweight defines a threshold of weight values 
+The parameter minweight defines a threshold of weight values
 to mask. The pixels in outfile whose weight is smaller than
 minweight*median(weight) are masked out. The task also creates
 a weight image with the name outfile.weight.

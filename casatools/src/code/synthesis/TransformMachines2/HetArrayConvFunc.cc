@@ -73,7 +73,7 @@
 #include <synthesis/MeasurementEquations/VPManager.h>
 
 #include <casacore/casa/OS/Timer.h>
-
+#include <iomanip>
 
 
 using namespace casacore;
@@ -974,8 +974,9 @@ void HetArrayConvFunc::findConvFunction(const ImageInterface<Complex>& iimage,
      pixFieldDir(0)=pixFieldDir(0)- Double(nx_p / 2);
     pixFieldDir(1)=pixFieldDir(1)- Double(ny_p / 2);
     pixFieldDir(0)=-pixFieldDir(0)*2.0*C::pi/Double(nx_p)/Double(convSampling);
-    pixFieldDir(1)=-pixFieldDir(1)*2.0*C::pi/Double(ny_p)/Double(convSampling);
-    Int nconvrow=convFunc.shape()(4);
+    pixFieldDir(1) = -pixFieldDir(1) * 2.0 * C::pi / Double(ny_p) / Double(convSampling);
+    //cerr << std::setprecision(12) << "fid " << vb.fieldId()(0) << " POINT Shift " << pixFieldDir << endl;
+    Int nconvrow = convFunc.shape()(4);
     Int nconvchan=convFunc.shape()(3);
     Int nconvpol=convFunc.shape()(2);
     Int convsize=convFunc.shape()(0);

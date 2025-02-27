@@ -731,8 +731,10 @@ To find the nearest optimal imsize to that desired by the user, please use the f
 
 
     <param type="string" name="gridder">
+
            <shortdescription>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)</shortdescription>
-<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2)
+<description>Gridding options (standard, wproject, widefield, mosaic, awproject, awp2, awphpg)
+
 
                        The following options choose different gridding convolution
                        functions for the process of convolutional resampling of the measured
@@ -842,10 +844,11 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                  as awp2 with specmode=&quot;mfs&quot; does not use  conjugate beams to remove the spectral
                                                  index of the primary beam.
 
-                                                 
+                       awphpg : Implementation of the high performance gridder (HPG; Pokorny, ngVLA Computing Memo #5).
+                                            For CASA 6.7.0 this mode is only available on the internal VLASS release of CASA.
+                                            It will be made available for general use in a future CASA release.
 
-                                       
-                      
+
                        imagemosaic : (untested implementation).
 
                                                Grid and iFT each pointing separately and combine the
@@ -910,7 +913,8 @@ To find the nearest optimal imsize to that desired by the user, please use the f
               <value>imagemosaic</value>
               <value>awproject</value>
               <value>awprojectft</value>
-              <value>awp2</value>  
+               <value>awphpg</value>
+               <value>awp2</value> 
       </allowed>
     </param>
 
@@ -2755,6 +2759,15 @@ to use the correct direction in which the antenna is pointing with respect to th
 	 <default param="mosweight"><value>False</value></default>
 	 <default param="usepointing"><value>False</value></default>
        </equals>
+       
+       <equals value="awphpg" type="string">
+	 <default param="wprojplanes"><value>1</value></default>
+	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>	 
+	 <default param="pblimit"><value>0.2</value></default>
+	 <default param="mosweight"><value>False</value></default>
+	 <default param="usepointing"><value>False</value></default>
+       </equals>
+       
        <equals type="string" value="awprojectft">
 	 <default param="wprojplanes"><value>1</value></default>
 	 <default param="normtype"><value>&quot;flatnoise&quot;</value></default>
