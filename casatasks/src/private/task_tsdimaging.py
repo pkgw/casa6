@@ -898,21 +898,26 @@ def get_ms_column_unit(tb, colname):
     col_unit = ''
     if colname in tb.colnames():
         cdkw = tb.getcoldesc(colname)['keywords']
-        if 'QuantumUnits' in cdkw:
-            u = cdkw['QuantumUnits']
-            if isinstance(u, str):
-                col_unit = u.strip()
-            elif isinstance(u, list):
-                col_unit = u[0].strip()
+        for key in ['UNIT', 'QuantumUnits']:
+            if key in cdkw:
+                u = cdkw[key]
+                if isinstance(u, str):
+                    col_unit = u.strip()
+                elif isinstance(u, (list, numpy.ndarray)) and len(u) > 0:
+                    col_unit = u[0].strip()
+            if col_unit:
+                break
     return col_unit
 
 
 def get_brightness_unit_from_ms(msname):
     image_unit = ''
     with sdutil.table_manager(msname) as tb:
-        image_unit = get_ms_column_unit(tb, 'DATA')
-        if image_unit == '':
-            image_unit = get_ms_column_unit(tb, 'FLOAT_DATA')
+        for column in ['CORRECTED_DATA', 'FLOAT_DATA', 'DATA']:
+            image_unit = get_ms_column_unit(tb, column)
+            if image_unit:
+                break
+
     if image_unit.upper() == 'K':
         image_unit = 'K'
     else:
