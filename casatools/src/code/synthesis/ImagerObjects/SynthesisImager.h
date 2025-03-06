@@ -244,6 +244,11 @@ class SynthesisImager
 
   virtual bool unlockImages();
   virtual void cleanupTempFiles();
+   // Check if code is build with USE_HPG flag
+  virtual bool hpg_enabled(){return false;};
+  // init the hpg/kokkos for use. Will also return False if the code is not
+  // compatible with gpu available
+  virtual bool inithpg(){return false;};
 protected:
  
   /////////////// Internal Functions

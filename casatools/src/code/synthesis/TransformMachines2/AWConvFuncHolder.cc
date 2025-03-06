@@ -36,6 +36,7 @@
 #include <synthesis/TransformMachines2/AWConvFunc.h>
 #include <synthesis/TransformMachines2/EVLAAperture.h>
 #include <synthesis/TransformMachines2/AWConvFuncHolder.h>
+
 #include <casacore/coordinates/Coordinates/TabularCoordinate.h>
 #include <iomanip>
 #include <casacore/casa/OS/Timer.h>
@@ -61,6 +62,8 @@ AWConvFuncHolder::AWConvFuncHolder(const CoordinateSystem& csys, const int nx, c
   rowAxisAntennaPair_p.resize();
   convSizes_p.resize();
   convSupport_p.resize();
+  convSizesHPG_p.resize();
+  convSupportHPG_p.resize();
   aterm_p = std::make_shared<refim::EVLAAperture>();
   aterm_p->cacheVBInfo(obs,  25.0);
   
@@ -99,9 +102,15 @@ AWConvFuncHolder& AWConvFuncHolder::operator=(const AWConvFuncHolder& other) {
     rowAxisAntennaPair_p.resize();
     rowAxisAntennaPair_p = other.rowAxisAntennaPair_p;
     convSizes_p.resize();
+    convSizesHPG_p.resize();
     convSizes_p = other.convSizes_p;
+    convSizesHPG_p = other.convSizesHPG_p;
+
     convSupport_p.resize();
+    convSupport_p.resize();
+    convSupportHPG_p.resize();
     convSupport_p = other.convSupport_p;
+    convSupportHPG_p = other.convSupportHPG_p;
     aterm_p = other.aterm_p;
     isSingleField_p = other.isSingleField_p;
   }
@@ -152,6 +161,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
   calcNpix_p = min(nx_p,  ny_p);
   //cerr << "PAVALS " <<  paVals_p <<  " dosquint " << dosquint_p <<  endl;
   //cerr << "FREQS " << freqsToCalc << endl;
+
   for (uint k = 0; k < paVals_p.nelements(); ++k) {
     calcNpix_p = min(nx_p,  ny_p);
     calcCsys_p = outcsys_p;
@@ -178,6 +188,7 @@ bool AWConvFuncHolder::addConvFunc(const casacore::Vector<casacore::Double>& fre
       convFunc_p.resize(shp, true);
       wgtConvFunc_p.resize(shp, true);
     }
+
   }
 
  return true;;
@@ -267,10 +278,12 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
       lastplane.put(newAWConv(elblc, eltrc).nonDegenerate());
     
     //////
-    }*/       
+    } 
+    */      
   // have to slice if not zero
   //cerr << "convFunc nelements " << convFunc_p.nelements() << endl;
   if (convFunc_p.nelements() == 0) {
+
     Int npix = min(newAWConv.shape()[0], newAWConv.shape()[1]);
     //cerr << "####npix " << npix << " " << 2*max(awsupport)*oversamp_p << " oversamp " << oversamp_p << endl;
     if(npix < (2*max(awsupport+1)*oversamp_p)){
@@ -289,7 +302,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     }
     else{
       npix=2*(max(awsupport)+1)*oversamp_p;
-      //cerr << "getmiddle npix " << npix << " shape " << newAWConv.shape() << endl;
+
       convFunc_p = MathUtils::getMiddle(newAWConv,  npix,  npix);
       wgtConvFunc_p = MathUtils::getMiddle(newWtConv,  npix,  npix);
 
@@ -303,6 +316,7 @@ void AWConvFuncHolder::appendConvFuncs(const Array<Complex>& awConv,  const Arra
     //in case support is bigger for this PA.
 
     IPosition newshp = convFunc_p.shape();
+
     if (newshp[0] < (2 * (max(awsupport) + 1) * oversamp_p)){
       //cerr << "@@@@RESHAPING " << endl;
       IPosition elshp = newshp;
@@ -374,6 +388,77 @@ Vector<Int> AWConvFuncHolder::getConvSupports() {
  return convSupport_p; 
 }
 
+Array<Complex> &AWConvFuncHolder::getConvFuncHPG() { return convFuncHPG_p; }
+Array<Complex> &AWConvFuncHolder::getWeightConvFuncHPG() { return wgtConvFuncHPG_p; }
+void AWConvFuncHolder::resetHPGConvFuncs(const vi::VisBuffer2 &vb){
+  // A given set for hph will hold all w's
+  wValsHPG_p.resize();
+  wValsHPG_p = wVals_p;
+  freqValsHPG_p.resize(freqVals_p.nelements(), False);
+  Double fmin = min(vb.getFrequencies(0));
+  Double fmax = max(vb.getFrequencies(0));
+  uint indx = 0;
+  vector<bool> usedfreq(freqVals_p.nelements());
+  std::fill(usedfreq.begin(), usedfreq.end(), false);
+  //cerr << "fmin " << fmin << " fmax " << fmax << "  freqs " << freqVals_p << "   " << (freqVals_p[0] >= fmin) << "   " <<(freqVals_p[0] <= fmax) << endl;
+  if(freqVals_p.nelements() >1){
+  for (uint k = 0; k < freqVals_p.nelements(); ++k) {
+    if(freqVals_p[k] >= fmin && freqVals_p[k] <= fmax){
+      freqValsHPG_p[indx] = freqVals_p[k];
+      usedfreq[k] = true;
+      ++indx;
+    }
+    
+  }
+  if(indx==0){ //some single channel spw will do this
+    Double diffFreq=1e40;
+    for (uint k = 0; k < freqVals_p.nelements(); ++k) {
+      if(abs(fmax-freqVals_p[k]) < diffFreq){
+        diffFreq=abs(fmax-freqVals_p[k]);
+        freqValsHPG_p[0]=freqVals_p[k];
+        std::fill(usedfreq.begin(),usedfreq.end(), false);
+        usedfreq[k]=true;
+        indx=1;
+      }
+    }
+
+  }
+  }
+  else{
+    //only one freq so it has to match
+    usedfreq[0]=true;
+    indx=1;
+
+  }
+  freqValsHPG_p.resize(indx, True);
+  IPosition cshap = convFunc_p.shape();
+  cshap[3] = indx;
+  wgtConvFuncHPG_p.resize(cshap);
+  convFuncHPG_p.resize(cshap);
+  //cerr << "spw " << vb.spectralWindows()(0) << " CSHAP " << cshap << " orig " << convFunc_p.shape() << endl;
+  IPosition blcin(5, 0);
+  IPosition trcin = convFunc_p.shape() - 1;
+  IPosition blcout(5,  0);
+  IPosition trcout = cshap - 1;
+  indx = 0;
+  for (uint k = 0; k < freqVals_p.nelements(); ++k) {
+    if(usedfreq[k]){
+      blcin[3] = k;
+      trcin[3] = k;
+      blcout[3] = indx;
+      trcout[3] = indx;
+      for (uint j = 0; j < wVals_p.nelements(); ++j) {
+        blcin[4] = j;
+        trcin[4] = j;
+        blcout[4] = j;
+        trcout[4] = j;
+        wgtConvFuncHPG_p(blcout, trcout) = wgtConvFunc_p(blcin, trcin);
+        convFuncHPG_p(blcout, trcout) = convFunc_p(blcin, trcin);
+      }
+      ++indx;
+    }
+  }
+}
 
 /////////////////////
 void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
@@ -389,6 +474,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   Vector<Int> cmap;
   Vector<Int> pmap;
   Vector<Int> rmap;
+
   getConvIndices(pmap, cmap, rmap, vb, rotuvw, interpFreqs, predictMode, ispsf);
   //cerr << "pmap "<< pmap << endl;
   //cerr << "MIN Max rmap" << min(rmap) << "  " << max(rmap) << endl;
@@ -411,7 +497,8 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
     rmapused.erase(last, rmapused.end());
   }
   {
-    vector<Int> cpRmapUsed=rmapused;
+    vector<Int> cpRmapUsed = rmapused;
+
     // lets move the -ve values to the end  -ve means -w which means we have to
     // conjugate the plane
     vector<int>::iterator it = remove_if(rmapused.begin(), rmapused.end(),
@@ -487,6 +574,7 @@ void AWConvFuncHolder::getConvFuncs(Vector<Int> &polMap, Vector<Int> &chanMap,
   
 
 //////////////////////  
+
 void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap, Vector<Int>& rowMap,  const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const Vector<Double>& interpFreqs, 
   const Bool predictMode, const bool ispsf) {
   // Lets do the polmap
@@ -580,6 +668,113 @@ void AWConvFuncHolder::getConvIndices(Vector<Int>& polMap, Vector<Int>& chanMap,
   // A little dab will d'ya
   
 }
+
+
+void AWConvFuncHolder::getConvIndicesHPG(Vector<Int> &polMap, Vector<Int> &chanMap,
+                                     Vector<Int> &rowMap,
+                                     const vi::VisBuffer2 &vb,
+                                     const Matrix<Double> &rotuvw) {
+  Vector<Stokes::StokesTypes> visPolMap(vb.getCorrelationTypesSelected());
+  polMap.resize(visPolMap.nelements());
+  //HPG is doing I single plane gridding
+  polMap.set(0);
+  // Lets do chanMap 
+  chanMap.resize(vb.nChannels());
+  chanMap.set(-1);
+  Vector<Double> visFreq = vb.getFrequencies(0);
+  for (uint k = 0; k < chanMap.nelements(); ++k) {
+    Double minDiff = 1e40;
+    Int indexF = -1;
+    for (uint j = 0; j < freqValsHPG_p.nelements(); ++j) {
+      if (fabs(freqValsHPG_p[j] - visFreq[k]) < minDiff) {
+        minDiff = fabs(freqValsHPG_p[j] - visFreq[k]);
+        indexF = j;
+      }
+    }
+    chanMap[k] = indexF;
+  }
+  //As there is no PA or antenna pair to deal with HPG...windex should be rowMap
+  Vector<Int> wIndex(vb.nRows(), 0);
+  Double invlamda = mean(vb.getFrequencies(0)) / C::c;
+  for (uint k = 0; k < vb.nRows(); ++k) {
+    Double minDiff = 1e40;
+    Int tmpWInd = -1;
+    Double w = rotuvw.row(2)[k] * invlamda;
+    for (uint j = 0; j < wValsHPG_p.nelements(); ++j) {
+      if (fabs(fabs(w) - wValsHPG_p[j]) < minDiff) {
+        minDiff = fabs(fabs(w) - wValsHPG_p[j]);
+        tmpWInd = j;
+      }
+    }
+    wIndex[k] = tmpWInd;
+  }
+  rowMap.resize();
+  rowMap = wIndex;
+  //cerr << "FID " << vb.fieldId()(0) << " SPID " << vb.spectralWindows()(0) << " winDex " << wIndex << endl;
+}
+
+  Vector<Double> AWConvFuncHolder::getPointingPhaseShift(
+      const vi::VisBuffer2 &vb, bool usePointingTable) {
+    Bool hasValidPointing = False;
+    if (vbutil_p.use_count() == 0)
+      vbutil_p = std::make_shared<VisBufferUtil>(vb);
+    MDirection ant1PointVal;
+    if(Table::isReadable(vb.ms().pointingTableName())){
+      hasValidPointing=usePointingTable &&  (vb.ms().pointing().nrow() >0);
+    }
+    DirectionCoordinate dc=outcsys_p.directionCoordinate(0);
+   
+    if(hasValidPointing){
+      //ant1PointingCache_p[val]=vb.direction1()[0];
+      ant1PointVal=vbutil_p->getPointingDir(vb, vb.antenna1()(0), 0, dc.directionType());
+    }
+    else
+      ant1PointVal=vbutil_p->getPhaseCenter(vb);
+    MSColumns mscol(vb.ms());
+    String tel;
+    if (vb.subtableColumns().observation().nrow() > 0) {
+      tel =vb.subtableColumns().observation().telescopeName()(mscol.observationId()(0));
+      }
+    MEpoch::Types timeMType;
+    casacore::Unit timeUnit;
+    timeMType=MEpoch::castType(mscol.timeMeas()(0).getRef().getType());
+    timeUnit=Unit(mscol.timeMeas().measDesc().getUnits()(0).getName());
+    MPosition pos;
+    MDirection dirOnImage;
+    MeasTable::Observatory(pos,tel);
+    //need to conver antpoint frame to image frame
+    if(dc.directionType() !=  MDirection::castType(ant1PointVal.getRef().getType())){
+    	
+      MEpoch timenow(Quantity(vb.time()(0), timeUnit), timeMType);
+      MeasFrame pointFrame(timenow, pos);
+      MDirection::Ref elRef(dc.directionType(), pointFrame);
+      dirOnImage=MDirection::Convert(ant1PointVal, elRef)();
+      
+    }
+    else{
+      dirOnImage=ant1PointVal;
+    
+    }
+    
+    Vector<Double> thePix(2);
+    dc.toPixel(thePix, dirOnImage);
+    //shift from center
+    thePix(0) = thePix(0) - Double(nx_p / 2);
+    thePix(1) = thePix(1) - Double(ny_p / 2);
+
+    //phase gradient per pixel to apply
+    thePix(0) = -thePix(0)*2.0*C::pi/Double(nx_p)/Double(oversamp_p);
+    thePix(1) = -thePix(1) * 2.0 * C::pi / Double(ny_p) / Double(oversamp_p);
+    //cerr << std::setprecision(12) << "fid " << vb.fieldId()(0) << " POINT shift " << thePix << endl;
+
+    return thePix;
+
+    
+    
+    
+    
+}
+
 } // # namespace refim ends
 }//namespace CASA ends
 
