@@ -431,7 +431,7 @@ namespace LibAIR2 {
   ALMAAbsProcessor(const ALMAAbsInpL &inp,
 		   ALMAResBaseList &r)
   {
-    assert(inp.size == r.ptr_list.size());
+    assert(inp.size() == r.ptr_list.size());
 
     std::unique_ptr<dTdLCoeffsBase> res;
     if (inp.size()>0){

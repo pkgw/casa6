@@ -58,15 +58,16 @@ using namespace std;
 using namespace casacore;
 namespace casa { //# NAMESPACE CASA - BEGIN
   
-  SynthesisNormalizer::SynthesisNormalizer() : 
-				       itsImages(std::shared_ptr<SIImageStore>()),
-				       itsPartImages(Vector<std::shared_ptr<SIImageStore> >()),
-                                       itsImageName(""),
-                                       itsPartImageNames(Vector<String>(0)),
-				       itsPBLimit(0.2),
-				       itsMapperType("default"),
-				       itsNTaylorTerms(1),
-                                       itsNFacets(1)
+  SynthesisNormalizer::SynthesisNormalizer() :
+      itsImages(std::shared_ptr<SIImageStore>()),
+      itsPartImages(Vector<std::shared_ptr<SIImageStore> >()),
+      itsImageName(""),
+      itsPartImageNames(Vector<String>(0)),
+      itsPBLimit(0.2),
+      itsMapperType("default"),
+      itsNTaylorTerms(1),
+      itsNFacets(1),
+      itsIsSingleDish(False)
   {
     itsFacetImageStores.resize(0);
     itsPBLimit = 0.35;
@@ -85,82 +86,93 @@ namespace casa { //# NAMESPACE CASA - BEGIN
   {
     LogIO os( LogOrigin("SynthesisNormalizer","setupNormalizer",WHERE) );
 
-    try
-      {
-        if( normpars.isDefined("psfcutoff") )  // A single string
-        {
-            normpars.get( RecordFieldId("psfcutoff") , itsPsfcutoff  );
-        }else
-        {
-          itsPsfcutoff=0.35;
-        }
-          
-          
-
-      if( normpars.isDefined("imagename") )  // A single string
-	{ itsImageName = normpars.asString( RecordFieldId("imagename")); }
-      else
-	{throw( AipsError("imagename not specified")); }
-
-      if( normpars.isDefined("partimagenames") )  // A vector of strings
-	{ normpars.get( RecordFieldId("partimagenames") , itsPartImageNames ); }
-      else
-	{ itsPartImageNames.resize(0); }
-
-      if( normpars.isDefined("pblimit") )
-	{
-	  normpars.get( RecordFieldId("pblimit") , itsPBLimit );
-	}
-      else
-	{ itsPBLimit = 0.2; }
-
-      if( normpars.isDefined("normtype") )  // A single string
-	{ itsNormType = normpars.asString( RecordFieldId("normtype")); }
-      else
-	{ itsNormType = "flatnoise";} // flatnoise, flatsky
-
-      //      cout << "Chosen normtype : " << itsNormType << endl;
-
-      // For multi-term choices. Try to eliminate, after making imstores hold aux descriptive info.
-      /*
-      if( normpars.isDefined("mtype") )  // A single string
-	{ itsMapperType = normpars.asString( RecordFieldId("mtype")); }
-      else
-	{ itsMapperType = "default";}
-      */
-
-      if( normpars.isDefined("deconvolver") )  // A single string
-	{ String dec = normpars.asString( RecordFieldId("deconvolver")); 
-	  if (dec == "mtmfs") { itsMapperType="multiterm"; }
-	  else itsMapperType="default";
-	}
-      else
-	{ itsMapperType = "default";}
-
-      if( normpars.isDefined("nterms") )  // A single int
-	{ itsNTaylorTerms = normpars.asuInt( RecordFieldId("nterms")); }
-      else
-	{ itsNTaylorTerms = 1;}
-
-      if( normpars.isDefined("facets") )  // A single int
-	{ itsNFacets = normpars.asuInt( RecordFieldId("facets")); }
-      else
-	{ itsNFacets = 1;}
-
-      if( normpars.isDefined("restoringbeam") ) 
-        { 
-          if (normpars.dataType("restoringbeam")==TpString) {
-            itsUseBeam = normpars.asString( RecordFieldId("restoringbeam") ); }          
-          else 
-            { itsUseBeam = "";} 
-        }
+    try {
+      if ( normpars.isDefined("psfcutoff") ) { // A single string
+        normpars.get( RecordFieldId("psfcutoff") , itsPsfcutoff );
+      } else {
+        itsPsfcutoff=0.35;
       }
-    catch(AipsError &x)
-      {
-	throw( AipsError("Error in reading gather/scatter parameters: "+x.getMesg()) );
+
+      if ( normpars.isDefined("imagename") ) { // A single string
+        itsImageName = normpars.asString( RecordFieldId("imagename")); 
+      } else {
+        throw AipsError("imagename not specified");
       }
-    
-  }//end of setupParSync
+
+      if ( normpars.isDefined("partimagenames") ) { // A vector of strings
+        normpars.get( RecordFieldId("partimagenames") , itsPartImageNames );
+      } else {
+        itsPartImageNames.resize(0);
+      }
+
+      if ( normpars.isDefined("pblimit") ) {
+        normpars.get( RecordFieldId("pblimit") , itsPBLimit );
+      } else {
+        itsPBLimit = 0.2;
+      }
+
+      if ( normpars.isDefined("normtype") ) { // A single string
+        itsNormType = normpars.asString( RecordFieldId("normtype"));
+      } else {
+        itsNormType = "flatnoise"; // flatnoise, flatsky
+      }
+
+      { // Debug comments
+        //      cout << "Chosen normtype : " << itsNormType << endl;
+
+        // For multi-term choices.
+        // Try to eliminate, after making imstores hold aux descriptive info.
+        /*
+        if ( normpars.isDefined("mtype") )  // A single string
+          { itsMapperType = normpars.asString( RecordFieldId("mtype")); }
+        else
+          { itsMapperType = "default";}
+        */
+      }
+
+      if ( normpars.isDefined("deconvolver") ) { // A single string
+        String dec = normpars.asString( RecordFieldId("deconvolver"));
+        if (dec == "mtmfs") { itsMapperType="multiterm"; }
+        else itsMapperType="default";
+      } else {
+        itsMapperType = "default";
+      }
+
+      if ( normpars.isDefined("nterms") ) { // A single int
+        itsNTaylorTerms = normpars.asuInt( RecordFieldId("nterms")); }
+      else {
+        itsNTaylorTerms = 1;
+      }
+
+      if ( normpars.isDefined("facets") ) { // A single int
+        itsNFacets = normpars.asuInt( RecordFieldId("facets"));
+      } else { 
+        itsNFacets = 1;
+      }
+
+      if ( normpars.isDefined("restoringbeam") ) {
+        if (normpars.dataType("restoringbeam") == TpString) {
+          itsUseBeam = normpars.asString( RecordFieldId("restoringbeam") );
+        } else {
+          itsUseBeam = "";
+        } 
+      } // else: keep itsUseBeam unchanged
+
+      if ( normpars.isDefined("makesingledishnormalizer") ) { // A single bool
+        itsIsSingleDish =
+          normpars.asBool( RecordFieldId("makesingledishnormalizer") );
+      } else { 
+        itsIsSingleDish = False;
+      }
+
+    }
+    catch (AipsError &x) {
+      throw AipsError(
+          "Error in reading gather/scatter parameters: " + x.getMesg()
+        );
+    }
+
+  } // end of setupNormalizer
 
 
   void SynthesisNormalizer::gatherImages(Bool dopsf, Bool doresidual, Bool dodensity)
@@ -547,207 +559,247 @@ void SynthesisNormalizer::gatherWeightDensity(){
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-  Bool SynthesisNormalizer::setupImagesOnDisk() 
-  {
+  Bool SynthesisNormalizer::setupImagesOnDisk() {
     LogIO os( LogOrigin("SynthesisNormalizer","setupImagesOnDisk",WHERE) );
 
-    Bool needToGatherImages=false;
+    Bool needToGatherImages = false;
 
     String err("");
 
     // Check if full images exist, and open them if possible.
-    Bool foundFullImage=false;
-    try
-      {
-	itsImages = makeImageStore( itsImageName );
-  //if( (itsImages->hasPsf() || itsImages->hasResidual() || itsImages->hasPB() ))
-	foundFullImage = true;
-  //else
-  //  itsImages = nullptr;
-    } catch (AipsError &x) {
-      // throw( AipsError("Error in constructing a Deconvolver : "+x.getMesg())
-      // );
+    Bool foundFullImage = false;
+    try {
+      itsImages = makeImageStore( itsImageName );
+      foundFullImage = true;
+    }
+    catch (AipsError &x) {
+      //throw( AipsError("Error in constructing a Deconvolver : "+x.getMesg()) );
       err = err += String(x.getMesg()) + "\n";
       foundFullImage = false;
     }
 
-    os << LogIO::DEBUG2 << " Found full images : " << foundFullImage << LogIO::POST;
+    os << LogIO::DEBUG2
+      << " Found full images : " << foundFullImage
+      << LogIO::POST;
 
     // Check if part images exist
-    Bool foundPartImages = itsPartImageNames.nelements()>0 ? true : false ;
+    Bool foundPartImages = itsPartImageNames.nelements() > 0 ? true : false ;
     itsPartImages.resize( itsPartImageNames.nelements() );
 
-    for ( uInt part=0; part < itsPartImageNames.nelements() ; part++ )
-      {
-	try
-	  {
-	    itsPartImages[part] = makeImageStore ( itsPartImageNames[part] );
-	    foundPartImages |= true;
-	  }
-	catch(AipsError &x)
-	  {
-	    //throw( AipsError("Error in constructing a Deconvolver : "+x.getMesg()) );
-	    err = err += String(x.getMesg()) + "\n";
-	    foundPartImages = false;
-	  }
+    for ( uInt part=0; part < itsPartImageNames.nelements() ; part++ ) {
+      try {
+        itsPartImages[part] = makeImageStore ( itsPartImageNames[part] );
+        foundPartImages |= true;
+      }
+      catch (AipsError &x) {
+        // throw AipsError(
+        //        "Error in constructing a Deconvolver : " + x.getMesg()
+        //       );
+        err = err += String(x.getMesg()) + "\n";
+        foundPartImages = false;
+      }
+    }
+
+    os << LogIO::DEBUG2
+      << " Found part images : " << foundPartImages
+      << LogIO::POST;
+
+    if ( not foundPartImages ) {
+      if ( foundFullImage and itsPartImageNames.nelements() > 0 ) {
+        // Pick the coordsys, etc from fullImage,
+        // and construct new/fresh partial images.
+        os << LogIO::DEBUG2
+          << "Found full image, but no partial images."
+          << " Making partImStores for : " << itsPartImageNames
+          << LogIO::POST;
+
+        String imopen = itsImages->getName() + ".residual"
+          + ( (itsMapperType == "multiterm") ? ".tt0" : "" );
+        Directory imdir( imopen );
+        if ( not imdir.exists() ) {
+          imopen = itsImages->getName() + ".psf"
+          + ( (itsMapperType == "multiterm") ? ".tt0" : "" );
+          Directory imdir2( imopen );
+          if ( not imdir2.exists() )
+            throw AipsError(
+              "Cannot find partial image psf or residual for "
+              + itsImages->getName() + err
+            );
+        }
+
+        PagedImage<Float> temppart(imopen);
+
+        Bool useweightimage =
+          itsImages->getUseWeightImage( *(itsImages->sumwt()) );
+        for ( uInt part=0; part<itsPartImageNames.nelements(); part++ ) {
+          itsPartImages[part] = makeImageStore(
+            itsPartImageNames[part], temppart, useweightimage);
+        }
+        foundPartImages = True;
+      } else {
+        itsPartImages.resize(0); 
+        foundPartImages = False;
+      }
+    } else { // Check that all have the same shape.
+      AlwaysAssert( itsPartImages.nelements() > 0 , AipsError );
+      IPosition tempshape = itsPartImages[0]->getShape();
+      for ( uInt part=1; part<itsPartImages.nelements(); part++ ) {
+        if ( tempshape != itsPartImages[part]->getShape() ) {
+          throw AipsError(
+            "Shapes of partial images to be combined, do not match" + err
+          );
+        }
+      }
+    }
+
+    // Make sure all images exist and are consistent with each other.
+    // At the end, itsImages should be valid
+    if ( foundPartImages ) { // Partial Images exist. Check that 'full' exists,
+                             // and do the gather. 
+      if ( foundFullImage ) { // Full image exists.
+                              // Just check that shapes match with parts.
+        os << LogIO::DEBUG2
+          << "Partial and Full images exist."
+          << "Checking if part images have the same shape as the full image : ";
+
+        IPosition fullshape = itsImages->getShape();
+        for ( uInt part=0; part < itsPartImages.nelements() ; part++ ) {
+          IPosition partshape = itsPartImages[part]->getShape();
+          if ( partshape != fullshape ) {
+            os << LogIO::DEBUG2
+              << "NO" << LogIO::POST;
+            throw AipsError(
+              "Shapes of the partial and full images on disk do not match."
+              " Cannot gather" + err
+            );
+          }
+        }
+        os << LogIO::DEBUG2 << "Yes" << LogIO::POST;
+
+      } else { // Full image does not exist. 
+               // Need to make it, using the shape and coords of part[0]
+        os << LogIO::DEBUG2 
+          << "Only partial images exist. Need to make full images"
+            << LogIO::POST  ;
+
+        AlwaysAssert( itsPartImages.nelements() > 0, AipsError );
+
+        // Find an image to open and pick csys,shape from.
+        String imopen = itsPartImageNames[0] + ".residual"
+          + ( (itsMapperType == "multiterm") ? ".tt0" : "" );
+        Directory imdir( imopen );
+        if ( not imdir.exists() ) {
+          imopen = itsPartImageNames[0] + ".psf"
+            + ( (itsMapperType == "multiterm") ? ".tt0" : "" );
+          Directory imdir2( imopen );
+          if ( not imdir2.exists() ) {
+            imopen = itsPartImageNames[0] + ".gridwt";
+            Directory imdir3( imopen );
+            if ( not imdir3.exists() )
+              throw AipsError(
+                "Cannot find partial image psf or residual or gridwt for "
+                + itsPartImageNames[0] + err
+              );
+          }
+        }
+
+        PagedImage<Float> temppart( imopen );
+
+        Bool useweightimage =
+          itsPartImages[0]->getUseWeightImage( *(itsPartImages[0]->sumwt()) );
+        itsImages = makeImageStore (itsImageName, temppart, useweightimage);
+        foundFullImage = true;
       }
 
-    os << LogIO::DEBUG2 << " Found part images : " << foundPartImages << LogIO::POST;
+      // By now, all partial images and the full images exist on disk,
+      // and have the same shape.
+      needToGatherImages = true;
+    } else { // No partial images supplied. Operating only with full images.
 
-    if( foundPartImages == false) 
-      { 
-	if( foundFullImage == true && itsPartImageNames.nelements()>0 )
-	  {
-	    // Pick the coordsys, etc from fullImage, and construct new/fresh partial images. 
-	    os << LogIO::DEBUG2 << "Found full image, but no partial images. Make partImStores for : " << itsPartImageNames << LogIO::POST;
-	    
-	    String imopen = itsImages->getName()+".residual"+((itsMapperType=="multiterm")?".tt0":"");
-	    Directory imdir( imopen );
-	    if( ! imdir.exists() )
-	      {
-		imopen = itsImages->getName()+".psf"+((itsMapperType=="multiterm")?".tt0":"");
-		Directory imdir2( imopen );
-		if( ! imdir2.exists() )
-		  throw(AipsError("Cannot find partial image psf or residual for  " +itsImages->getName() +err));
-	      }
-
-	    PagedImage<Float> temppart(imopen);
-
-	    Bool useweightimage = itsImages->getUseWeightImage( *(itsImages->sumwt()) );
-	    for( uInt part=0; part<itsPartImageNames.nelements(); part++ )
-	      {
-		itsPartImages[part] = makeImageStore (itsPartImageNames[part], temppart,
-                                                      useweightimage);
-	      }
-	    foundPartImages = True;
-	  }
-	else
-	  {
-	    itsPartImages.resize(0); 
-	    foundPartImages = False;
-	  }
+      if ( foundFullImage ) {
+          os << LogIO::DEBUG2
+            << "Full images exist : " << itsImageName
+            << LogIO::POST;
       }
-    else // Check that all have the same shape.
-      {
-	AlwaysAssert( itsPartImages.nelements() > 0 , AipsError );
-	IPosition tempshape = itsPartImages[0]->getShape();
-	for( uInt part=1; part<itsPartImages.nelements(); part++ )
-	  {
-	    if( tempshape != itsPartImages[part]->getShape() )
-	      {
-		throw( AipsError("Shapes of partial images to be combined, do not match" + err) );
-	      }
-	  }
+      else { // No full image on disk either. Error.
+          throw AipsError(
+            "No images named " + itsImageName 
+            + " found on disk. No partial images found either." + err
+          );
       }
+    }
 
-
-    // Make sure all images exist and are consistent with each other. At the end, itsImages should be valid
-    if( foundPartImages == true ) // Partial Images exist. Check that 'full' exists, and do the gather. 
-      {
-	if ( foundFullImage == true ) // Full image exists. Just check that shapes match with parts.
-	  {
-	    os << LogIO::DEBUG2 << "Partial and Full images exist. Checking if part images have the same shape as the full image : ";
-	    IPosition fullshape = itsImages->getShape();
-	    
-	    for ( uInt part=0; part < itsPartImages.nelements() ; part++ )
-	      {
-		IPosition partshape = itsPartImages[part]->getShape();
-		if( partshape != fullshape )
-		  {
-		    os << LogIO::DEBUG2<< "NO" << LogIO::POST;
-		    throw( AipsError("Shapes of the partial and full images on disk do not match. Cannot gather" + err) );
-		  }
-	      }
-	    os << LogIO::DEBUG2 << "Yes" << LogIO::POST;
-
-	  }
-	else // Full image does not exist. Need to make it, using the shape and coords of part[0]
-	  {
-	    os << LogIO::DEBUG2 << "Only partial images exist. Need to make full images" << LogIO::POST;
-
-	    AlwaysAssert( itsPartImages.nelements() > 0, AipsError );
-
-	    // Find an image to open and pick csys,shape from.
-	    String imopen = itsPartImageNames[0]+".residual"+((itsMapperType=="multiterm")?".tt0":"");
-	    Directory imdir( imopen );
-	    if( ! imdir.exists() )
-	      {
-		imopen = itsPartImageNames[0]+".psf"+((itsMapperType=="multiterm")?".tt0":"");
-		Directory imdir2( imopen );
-		if( ! imdir2.exists() )
-		  {
-		    imopen = itsPartImageNames[0]+".gridwt";
-		    Directory imdir3( imopen );
-		    if( ! imdir3.exists() )
-		      throw(AipsError("Cannot find partial image psf or residual or gridwt for  " + itsPartImageNames[0]+err));
-		  }
-
-	      }
-      
-	    PagedImage<Float> temppart( imopen );
-      
-	    Bool useweightimage = itsPartImages[0]->getUseWeightImage( *(itsPartImages[0]->sumwt()) );
-            //cerr << "@@@@ image" << imopen << " useweight " << useweightimage << endl;
-            itsImages = makeImageStore(itsImageName, temppart, useweightimage);
-            foundFullImage = true;
-	  }
-
-	// By now, all partial images and the full images exist on disk, and have the same shape.
-	needToGatherImages=true;
-
-      }
-    else // No partial images supplied. Operating only with full images.
-      {
-	if ( foundFullImage == true ) 
-	  {
-	    os << LogIO::DEBUG2 << "Full images exist : " << itsImageName << LogIO::POST;
-	  }
-	else // No full image on disk either. Error.
-	  {
-	    throw( AipsError("No images named " + itsImageName + " found on disk. No partial images found either."+err) );
-	  }
-      }
-
-    // Remove ? 
+    // Remove ?
     itsImages->psf();
+
     itsImages->validate();
 
     // Set up facet Imstores..... if needed
-    if( itsNFacets>1 )
-      {
+    if ( itsNFacets > 1 ) {
+      // First, make sure that full images have been allocated
+      // before trying to make references.....
+      //    if ( not itsImages->checkValidity(
+      //                true/*psf*/,
+      //                true/*res*/,
+      //                true/*wgt*/,
+      //                true/*model*/,
+      //                false/*image*/,
+      //                false/*mask*/,
+      //                true/*sumwt*/ ) ) {
+      //      throw AipsError(
+      //        "Internal Error : Invalid ImageStore for "
+      //         + itsImages->getName())
+      //      );
+      //    }
+
+      //        Array<Float> ttt;
+      //        (itsImages->sumwt())->get(ttt);
+      //        cout << "SUMWT full : " << ttt <<  endl;
         
-        // First, make sure that full images have been allocated before trying to make references.....
-	//        if( ! itsImages->checkValidity(true/*psf*/, true/*res*/,true/*wgt*/,true/*model*/,false/*image*/,false/*mask*/,true/*sumwt*/ ) ) 
-	//	    { throw(AipsError("Internal Error : Invalid ImageStore for " + itsImages->getName())); }
-
-        //        Array<Float> ttt;
-        //        (itsImages->sumwt())->get(ttt);
-        //        cout << "SUMWT full : " << ttt <<  endl;
-        
-        itsFacetImageStores.resize( itsNFacets*itsNFacets );
-        for( uInt facet=0; facet<itsNFacets*itsNFacets; ++facet )
-          {
-            itsFacetImageStores[facet] = itsImages->getSubImageStore(facet, itsNFacets);
-
-            //Array<Float> qqq;
-            //itsFacetImageStores[facet]->sumwt()->get(qqq);
-            //            cout << "SUMWTs for " << facet << " : " << qqq << endl;
-
-          }
+      itsFacetImageStores.resize( itsNFacets*itsNFacets );
+      for ( uInt facet=0; facet<itsNFacets*itsNFacets; ++facet ) {
+        itsFacetImageStores[facet] =
+          itsImages->getSubImageStore(facet, itsNFacets);
+        // Array<Float> qqq;
+        // itsFacetImageStores[facet]->sumwt()->get(qqq);
+        // cout << "SUMWTs for " << facet << " : " << qqq << endl;
       }
-  os << LogIO::DEBUG2 << "Need to Gather ? " << needToGatherImages << LogIO::POST;
-  itsImages->releaseLocks();
-  return needToGatherImages;
-  }// end of setupImagesOnDisk
+    }
+
+    os << LogIO::DEBUG2
+      << "Need to Gather ? " << needToGatherImages
+      << LogIO::POST;
+
+    itsImages->releaseLocks();
+
+    return needToGatherImages;
+  } // end of setupImagesOnDisk
 
 
-  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(const String &imagename , const bool useweightimage)
+  std::shared_ptr<SIImageStore> SynthesisNormalizer::makeImageStore(
+    const String &imagename,
+    const bool useweightimage)
   {
-    //The constructors use ignoresumwt  so use the !useweightimage
-    if( itsMapperType == "multiterm" )
-      { return std::shared_ptr<SIImageStore>(new SIImageStoreMultiTerm( imagename, itsNTaylorTerms, true, !useweightimage ));   }
-    else
-      { return std::shared_ptr<SIImageStore>(new SIImageStore( imagename, true /*ignorefacets*/, !useweightimage ));   }
+    // The constructors use ignoresumwt so use the !useweightimage
+    if ( itsMapperType == "multiterm" ) {
+      return std::shared_ptr<SIImageStore>(
+        new SIImageStoreMultiTerm(
+          imagename,
+          itsNTaylorTerms,
+          /* ignorefacets= */ true,
+          /* ignoresumwt=  */ not useweightimage
+        )
+      );
+    } else {
+      return std::shared_ptr<SIImageStore>(
+        new SIImageStore(
+          imagename,
+          /* ignorefacets= */ true,
+          /* noRequireSumwt= */ not useweightimage,
+          /* makeSingleDishStore= */ itsIsSingleDish
+        )
+      );
+    }
     itsImages->releaseLocks();
   }
 

@@ -1075,141 +1075,184 @@ Bool SynthesisImagerVi2::defineImage(CountedPtr<SIImageStore> imstor,
        return true;
   }
 
-void SynthesisImagerVi2::appendToMapperList(String imagename,  
-					   CoordinateSystem& csys, 
-					   IPosition imshape,
-					    CountedPtr<refim::FTMachine>& ftm,
-					    CountedPtr<refim::FTMachine>& iftm,
-					   Quantity distance,
-					   Int facets,
-					   Int chanchunks,
-					   const Bool overwrite,
-					   String mappertype,
-					   Float padding,
-					   uInt ntaylorterms,
-					   const Vector<String> &startmodel)
-    {
-      LogIO log_l(LogOrigin("SynthesisImagerVi2", "appendToMapperList(ftm)"));
-      //---------------------------------------------
-      // Some checks..
+void SynthesisImagerVi2::appendToMapperList(
+        String imagename,
+        CoordinateSystem& csys, 
+        IPosition imshape,
+        CountedPtr<refim::FTMachine>& ftm,
+        CountedPtr<refim::FTMachine>& iftm,
+        Quantity distance,
+        Int facets,
+        Int chanchunks,
+        const Bool overwrite,
+        String mappertype,
+        Float padding,
+        uInt ntaylorterms,
+        const Vector<String> &startmodel) {
+  LogIO log_l(LogOrigin("SynthesisImagerVi2", "appendToMapperList(ftm)"));
+  // ---------------------------------------------
+  // Some checks..
       
-      if(facets > 1 && itsMappers.nMappers() > 0)
-	log_l << "Facetted image has to be the first of multifields" << LogIO::EXCEPTION;
+  if (facets > 1 and itsMappers.nMappers() > 0) {
+    log_l << "Facetted image has to be the first of multifields"
+          << LogIO::EXCEPTION;
+  }
 
-     TcleanProcessingInfo procInfo;
-     CompositeNumber cn(uInt(imshape[0] * 2));
-     // heuristic factors multiplied to imshape based on gridder
-     size_t fudge_factor = 15;
-     if (ftm->name()=="MosaicFTNew") {
-         fudge_factor = 20;
-     }
-     else if (ftm->name()=="GridFT") {
-         fudge_factor = 9;
-     }
-     std::tie(procInfo, std::ignore, std::ignore) =
-         nSubCubeFitInMemory(fudge_factor, imshape, padding);
+  TcleanProcessingInfo procInfo;
+  CompositeNumber cn(uInt(imshape[0] * 2));
+  // heuristic factors multiplied to imshape based on gridder
+  size_t fudge_factor = 15;
+  if (ftm->name() == "MosaicFTNew") {
+    fudge_factor = 20;
+  }
+  else if (ftm->name() == "GridFT") {
+    fudge_factor = 9;
+  }
+  std::tie(procInfo, std::ignore, std::ignore) =
+    nSubCubeFitInMemory(fudge_factor, imshape, padding);
 
-     // chanchunks auto-calculation block, for now still here for
-     // awproject (CAS-12204)
-     if (chanchunks < 1) {
-       log_l << "Automatically calculated chanchunks";
-       log_l << " using imshape : " << imshape << LogIO::POST;
+  // chanchunks auto-calculation block, for now still here for awproject
+  // (CAS-12204)
+  if (chanchunks < 1) {
+    log_l << "Automatically calculated chanchunks";
+    log_l << " using imshape : " << imshape << LogIO::POST;
 
-       // Do calculation here.
-       // This runs once per image field (for multi-field imaging)
-       // This runs once per cube partition, and will see only its own
-       // partition's shape
-       // chanchunks=1;
+    // Do calculation here.
+    // This runs once per image field (for multi-field imaging)
+    // This runs once per cube partition, and will see only
+    // its own partition's shape
+    // chanchunks=1;
 
-       chanchunks = procInfo.chnchnks;
+    chanchunks = procInfo.chnchnks;
 
-       /*log_l << "Required memory " << required_mem / nlocal_procs / 1024. /
-        1024. / 1024.
-        << "\nAvailable memory " << memory_avail / 1024. / 1024 / 1024.
-        << " (rc: memory fraction " << usr_memfrac << "% rc memory " << usr_mem
-        / 1024.
-        << ")\n" << nlocal_procs << " other processes on node\n"
-        << "Setting chanchunks to " << chanchunks << LogIO::POST;
-       */
-     }
-        //record this in gridpars_p
-	gridpars_p.chanchunks=chanchunks;
-      if( imshape.nelements()==4 && imshape[3]<chanchunks )
-	{
-	  log_l << LogIO::WARN << "An image with " << imshape[3] << " channel(s) cannot be divided into " << chanchunks << " chunks. Please set chanchunks=1 or choose chanchunks<nchan." << LogIO::EXCEPTION;
-	}
+    /* log_l << "Required memory "
+          << required_mem / nlocal_procs / 1024. / 1024. / 1024.
+          << "\nAvailable memory " << memory_avail / 1024. / 1024 / 1024.
+          << " (rc: memory fraction "
+          << usr_memfrac << "% rc memory " << usr_mem / 1024.
+          << ")\n" << nlocal_procs << " other processes on node\n"
+          << "Setting chanchunks to " << chanchunks << LogIO::POST;
+    */
+  }
+  // Record this in gridpars_p
+  gridpars_p.chanchunks = chanchunks;
 
-      if(chanchunks > 1 && itsMappers.nMappers() > 0)
-	log_l << "Channel chunking is currently not supported with multi(outlier)-fields. Please submit a feature request if needed." << LogIO::EXCEPTION;
+  if (imshape.nelements() == 4 and imshape[3] < chanchunks) {
+    log_l << LogIO::WARN
+      << "An image with " << imshape[3]
+      << " channel(s) cannot be divided into " << chanchunks
+      << " chunks. Please set chanchunks=1 or choose chanchunks<nchan."
+      << LogIO::EXCEPTION;
+  }
 
-      if(chanchunks > 1) itsDataLoopPerMapper=true;
-      
-      AlwaysAssert( ( ( ! (ftm->name()=="MosaicFTNew" && mappertype=="imagemosaic") )  && 
-		      ( ! (ftm->name()=="AWProjectWBFT" && mappertype=="imagemosaic") )) ,
-		    AipsError );
-      //---------------------------------------------
+  if (chanchunks > 1 and itsMappers.nMappers() > 0) {
+    log_l << "Channel chunking is currently not supported"
+      " with multi(outlier)-fields."
+      " Please submit a feature request if needed."
+      << LogIO::EXCEPTION;
+  }
 
-      // Create the ImageStore object
-      CountedPtr<SIImageStore> imstor;
-      MSColumns msc(*(mss_p[0]));
-      imstor = createIMStore(imagename, csys, imshape, overwrite,msc, mappertype, ntaylorterms, distance, procInfo, facets, iftm->useWeightImage(), startmodel );
+  if (chanchunks > 1) itsDataLoopPerMapper = true;
 
-      // Create the Mappers
-      if( facets<2 && chanchunks<2) // One facet. Just add the above imagestore to the mapper list.
-	{
-	  itsMappers.addMapper(  createSIMapper( mappertype, imstor, ftm, iftm, ntaylorterms) );
-	}
-      else // This field is facetted. Make a list of reference imstores, and add all to the mapper list.
-	{
+  AlwaysAssert(
+    (
+      (not (ftm->name() == "MosaicFTNew" and mappertype == "imagemosaic"))
+      and
+      (not (ftm->name() == "AWProjectWBFT" and mappertype == "imagemosaic"))
+    ),
+    AipsError
+  );
+  // End of checks -------------------------------
 
-	  if ( facets>1 && chanchunks==1 )
-	    {
-	      // Make and connect the list.
-	      Block<CountedPtr<SIImageStore> > imstorList = createFacetImageStoreList( imstor, facets );
-	      for( uInt facet=0; facet<imstorList.nelements(); facet++)
-		{
-		  CountedPtr<refim::FTMachine> new_ftm, new_iftm;
-		  if(facet==0){ new_ftm = ftm;  new_iftm = iftm; }
-		  else{ new_ftm=ftm->cloneFTM();  new_iftm=iftm->cloneFTM(); }
-// 		  imstorList[facet]->setDataPolFrame(imstor->getDataPolFrame());
-		  itsMappers.addMapper(createSIMapper( mappertype, imstorList[facet], new_ftm, new_iftm, ntaylorterms));
-		}
-	    }// facets
-	  else if ( facets==1 && chanchunks>1 )
-	    {
-	      // Make and connect the list.
-	      Block<CountedPtr<SIImageStore> > imstorList = createChanChunkImageStoreList( imstor, chanchunks );
-	      for( uInt chunk=0; chunk<imstorList.nelements(); chunk++)
-		{
-		  
-		  CountedPtr<refim::FTMachine> new_ftm, new_iftm;
-		  if(chunk==0){ 
-		    new_ftm = ftm;  
-		    new_iftm = iftm; }
-		  else{ 
-		    new_ftm=ftm->cloneFTM();  
-		    new_iftm=iftm->cloneFTM(); }
-		  imstorList[chunk]->setDataPolFrame(imstor->getDataPolFrame());
-		  itsMappers.addMapper(createSIMapper( mappertype, imstorList[chunk], new_ftm, new_iftm, ntaylorterms));
-		}
-	    }// chanchunks
-	  else
-	    {
-	      throw( AipsError("Error in requesting "+String::toString(facets)+" facets on a side with " + String::toString(chanchunks) + " channel chunks.  Support for faceting along with channel chunking is not yet available. Please submit a feature-request if you need multiple facets as well as chanchunks. ") );
-	    }
+  // Create the ImageStore object
+  CountedPtr<SIImageStore> imstor;
+  MSColumns msc(*(mss_p[0]));
+  // const auto makeSingleDishStore = ftm->isSD();
+  auto sdgrid = ftm.dynamic_ptr_cast<refim::SDGrid>();
+  const auto makeSingleDishStore = (not sdgrid.null());
 
-	}// facets or chunks
+  imstor = createIMStore(imagename, csys, imshape, overwrite,
+    msc, mappertype, ntaylorterms, distance, procInfo, facets,
+    iftm->useWeightImage(), startmodel,
+    makeSingleDishStore
+  );
 
+  // Create the Mappers
+  if (facets < 2 and chanchunks < 2) { // One facet.
+    // Just add the above imagestore to the mapper list.
+    itsMappers.addMapper(
+      createSIMapper( mappertype, imstor, ftm, iftm, ntaylorterms)
+    );
+  } else { // This field is facetted.
+    // Make a list of reference imstores, and add all to the mapper list.
+    if (facets > 1 and chanchunks == 1) {
+      // Make and connect the list.
+      Block<CountedPtr<SIImageStore> > imstorList =
+        createFacetImageStoreList(imstor, facets);
+
+      for (uInt facet=0; facet<imstorList.nelements(); facet++) {
+        CountedPtr<refim::FTMachine> new_ftm, new_iftm;
+        if (facet == 0) {
+          new_ftm = ftm;
+          new_iftm = iftm;
+        } else {
+          new_ftm=ftm->cloneFTM();
+          new_iftm=iftm->cloneFTM();
+        }
+        // imstorList[facet]->setDataPolFrame(imstor->getDataPolFrame());
+        itsMappers.addMapper(
+          createSIMapper(mappertype, imstorList[facet],
+            new_ftm, new_iftm, ntaylorterms
+          )
+        );
+      }
+    } // facets
+    else if (facets == 1 and chanchunks > 1) {
+      // Make and connect the list.
+      Block<CountedPtr<SIImageStore> > imstorList =
+        createChanChunkImageStoreList( imstor, chanchunks );
+
+      for( uInt chunk=0; chunk<imstorList.nelements(); chunk++) {
+        CountedPtr<refim::FTMachine> new_ftm, new_iftm;
+        if (chunk == 0) {
+          new_ftm = ftm;
+          new_iftm = iftm;
+        } else { 
+          new_ftm=ftm->cloneFTM();  
+          new_iftm=iftm->cloneFTM();
+        }
+        imstorList[chunk]->setDataPolFrame(imstor->getDataPolFrame());
+        itsMappers.addMapper(
+          createSIMapper(mappertype, imstorList[chunk],
+            new_ftm, new_iftm, ntaylorterms
+          )
+        );
+      }
+    } // chanchunks
+    else {
+      throw (
+        AipsError(
+          "Error in requesting " + String::toString(facets) +
+          " facets on a side with " + String::toString(chanchunks) +
+          " channel chunks."
+          "  Support for faceting along with channel chunking"
+          " is not yet available."
+          " Please submit a feature-request if you need multiple facets"
+          " as well as chanchunks. "
+        )
+      );
     }
+  } // facets or chunks
+}
 
-  /////////////////////////
-  /**
-   * Calculations of memory required / available -> nchunks .
-   *
-   * Returns a tuple with a TcleanProcessingInfo, vector of start channels per subchunk,
-   * vector of end channels.
-   */
-  std::tuple<TcleanProcessingInfo, Vector<Int>, Vector<Int> > SynthesisImagerVi2::nSubCubeFitInMemory(const Int fudge_factor, const IPosition& imshape, const Float padding){
+// Calculations of memory required / available -> nchunks .
+//
+// Returns a tuple with a TcleanProcessingInfo,
+// vector of start channels per subchunk,
+// vector of end channels.
+std::tuple<TcleanProcessingInfo, Vector<Int>, Vector<Int> >
+SynthesisImagerVi2::nSubCubeFitInMemory(const Int fudge_factor,
+  const IPosition& imshape, const Float padding) {
 	LogIO log_l(LogOrigin("SynthesisImagerVi2", "nSubCubeFitInMemory"));
 
 	Double required_mem = fudge_factor * sizeof(Float);
@@ -2002,35 +2045,32 @@ void SynthesisImagerVi2::appendToMapperList(String imagename,
     LogIO os( LogOrigin("SynthesisImagerVi2","makeSdImage",WHERE) );
 
     // Bool dopsf=false;
-    if(datacol_p==FTMachine::PSF) dopsf=true;
+    if (datacol_p == FTMachine::PSF) dopsf = true;
 
     {
-      vi::VisBuffer2* vb = vi_p->getVisBuffer();;
+      vi::VisBuffer2* vb = vi_p->getVisBuffer();
       vi_p->originChunks();
       vi_p->origin();
 
-      Double numberCoh=0;
-      for (uInt k=0; k< mss_p.nelements(); ++k)
-        numberCoh+=Double(mss_p[k]->nrow());
+      Double numberCoh = 0;
+      for (uInt k=0; k < mss_p.nelements(); ++k)
+        numberCoh += Double(mss_p[k]->nrow());
 
-      ProgressMeter pm(1.0, numberCoh, "Predict Model", "","","",true);
-      rownr_t cohDone=0;
+      ProgressMeter pm(1.0, numberCoh, "Predict Model", "", "", "", true);
+      rownr_t cohDone = 0;
 
       itsMappers.initializeGrid(*vi_p,dopsf);
-      for (vi_p->originChunks(); vi_p->moreChunks(); vi_p->nextChunk())
-      {
+      for (vi_p->originChunks(); vi_p->moreChunks(); vi_p->nextChunk()) {
         if (vi_p->getImpl()->isNewMs()) {
           itsMappers.handleNewMs(vi_p->ms());
         }
-        for (vi_p->origin(); vi_p->more(); vi_p->next())
-        {
+        for (vi_p->origin(); vi_p->more(); vi_p->next()) {
           itsMappers.grid(*vb, dopsf, (refim::FTMachine::Type)datacol_p);
           cohDone += vb->nRows();
           pm.update(Double(cohDone));
         }
       }
       itsMappers.finalizeGrid(*vb, dopsf);
-
     }
 
     unlockMSs();
