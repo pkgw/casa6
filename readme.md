@@ -493,7 +493,6 @@ Compile and install with cmake (you might change the build directory or the make
     # Note: we use '/opt/local/include' as location where to find the WCSLIB includes.
     $ PKG_CONFIG_PATH=$CASAINSTALL/lib/pkgconfig cmake \
          -DCMAKE_CXX_FLAGS="-ffp-contract=off -isystem /opt/local/include" \
-         -DCMAKE_SHARED_LINKER_FLAGS="-L /opt/local/lib -lgsl -lgslcblas -L /opt/casa/03/lib -lgsl -lgslcblas" \
          -DCMAKE_INSTALL_PREFIX=$CASAINSTALL \
          -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=$CASAINSTALL \
          -DCMAKE_CXX_FLAGS="-isystem /opt/local/include" \

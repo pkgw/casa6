@@ -41,9 +41,16 @@ target_sources(casacpp_synthesis
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::CASACORE)
 # Libsakura dependency
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::SAKURA)
+
+# Optional HPG dependency
+if(DEFINED hpg_FOUND AND ${hpg_FOUND})
+	target_link_libraries(casacpp_synthesis PUBLIC hpg::hpg)
+endif()
+
 # FFTW dependency
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::FFTW ${FFTW_DOUBLE_THREADS_LIB})
 target_link_libraries(casacpp_synthesis PUBLIC PkgConfig::FFTWF ${FFTW_FLOAT_THREADS_LIB})
+
 
 # Internal dependencies
 add_dependencies(casacpp_synthesis casacpp_mstransform casacpp_msvis casacpp_imageanalysis casacpp_casatools casacpp_asdmstman casacpp_stdcasa casacpp_atmosphere casacpp_protobuf_generated)

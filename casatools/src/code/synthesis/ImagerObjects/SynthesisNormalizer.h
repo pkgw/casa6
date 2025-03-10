@@ -35,9 +35,9 @@
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/measures/Measures/MDirection.h>
 
-#include<synthesis/ImagerObjects/SDAlgorithmBase.h>
-#include<synthesis/ImagerObjects/SDAlgorithmHogbomClean.h>
-#include<synthesis/ImagerObjects/SDMaskHandler.h>
+#include <synthesis/ImagerObjects/SDAlgorithmBase.h>
+#include <synthesis/ImagerObjects/SDAlgorithmHogbomClean.h>
+#include <synthesis/ImagerObjects/SDMaskHandler.h>
 #include <synthesis/ImagerObjects/SIMinorCycleController.h>
 
 #include <synthesis/ImagerObjects/SIImageStore.h>
@@ -94,12 +94,13 @@ class SynthesisNormalizer
   void makePSFBeamset();
   void divideModelByWeight();
   void multiplyModelByWeight();
+  void divideWeightBySumWt();
 
   void normalizePrimaryBeam();
 
 protected:
 
- // Normalize. This can later change to be more general, i.e. used for PB-correction too...
+  // Normalize. This can later change to be more general, i.e. used for PB-correction too...
   // Check if images exist on disk and are all the same shape
   casacore::Bool setupImagesOnDisk();
   casacore::Bool doImagesExist( casacore::String imagename );
@@ -110,6 +111,8 @@ protected:
                                            casacore::Bool useweightimage );
 
   void setPsfFromOneFacet();
+  //Merge the imageinfo from the part image weightdensities to the gathered weight density
+  void mergeWeightDensityInfo(casacore::Record &finalIminfo, const casacore::Record &partIminfo);
 
   /////////////// Member Objects
 
@@ -132,6 +135,8 @@ protected:
   casacore::String itsUseBeam;
 
   casacore::Float itsPsfcutoff;
+
+  casacore::Bool itsIsSingleDish;
 
 };
 

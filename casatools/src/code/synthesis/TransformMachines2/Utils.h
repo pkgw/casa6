@@ -36,6 +36,7 @@
 #include <casacore/images/Images/ImageOpener.h>
 #include <casacore/casa/Quanta/Quantum.h>
 #include <casacore/images/Images/ImageInterface.h>
+#include <casacore/images/Images/ImageOpener.h>
 //#include <ms/MeasurementSets/MeasurementSet.h>
 #include <msvis/MSVis/VisibilityIterator2.h>
 #include <casacore/ms/MeasurementSets/MSColumns.h>

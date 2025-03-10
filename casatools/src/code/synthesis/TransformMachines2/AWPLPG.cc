@@ -78,24 +78,49 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
   
  
   //oversample if image is small
-  //But not more than 5000 pixels
- convSampling=(max(nx, ny) < 50) ? 100: Int(ceil(5000.0/max(nx, ny)));
+  //But not more than 10000 pixels
+ convSampling=(max(nx, ny) < 100) ? 100: Int(ceil(10000.0/max(nx, ny)));
+
   if(convSampling <4) 
     convSampling=4;
- // TESTOO
-  //convSampling = 1;
+  //For multiple pa angle reduce mem consumed
+  //if(doSquint_p)
+  //  convSampling = 2;
   // TESTOO
+  // convSampling = 1;
+  // TESTOO
+
+  CoordinateSystem cs=image->coordinates();
+   
+  SpectralCoordinate spCS = cs.spectralCoordinate(cs.findCoordinate(Coordinate::SPECTRAL));
+    double f1, f2;
+   { //Lets get the frame to convert to
+    MFrequency::Types fframe;
+   
+    Int spw = vb.spectralWindows()(0);
+    MDirection d;
+    cs.directionCoordinate(0).toWorld(d, Vector<Double>(2,0));
+    MPosition p= cs.obsInfo().telescopePosition();
+    MEpoch e = cs.obsInfo().obsDate();
+    fframe=(MFrequency::Types)vb.subtableColumns().spectralWindow().measFreqRef()(spw);
+    spCS.setReferenceConversion(fframe, e, p, d);
   
-  
-  
+   }
+    
+    nchan = image->shape()(3);
+    spCS.toWorld(f1, double(-0.5));
+    spCS.toWorld(f2, double(nchan)-0.5);
+    auto frange=std::make_pair(f1, f2);
+
+    if (pbConvFunc_p.null())
+      pbConvFunc_p=new HetArrayConvFunc();
+  awConvs_p=pbConvFunc_p->getAWConvFuncHolder();
   if(awConvs_p.use_count()==0){
      String observatory=(vb.subtableColumns().observation()).telescopeName()(0);
     awConvs_p=std::make_shared<AWConvFuncHolder>((*image).coordinates(), nx, ny, 
                    doSquint_p, paInc_p, observatory, convSampling);
     vi::VisibilityIterator2 *vi= const_cast<VisibilityIterator2 *>(vb.getVi());
     
-    if(pbConvFunc_p.null())
-      pbConvFunc_p=new HetArrayConvFunc();
     if(sj_p)
       pbConvFunc_p->setSkyJones(sj_p.get());
       
@@ -106,28 +131,55 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       pbConvFunc_p->setVBUtil(vbutil_p);
     }
     std::vector<Double> freqs;
+    std::set<Int> fields;
     std::vector<Double> pAs;
     Double maxW=0.0;
     for (vi->originChunks(); vi->moreChunks(); vi->nextChunk()) {
           for (vi->origin(); vi->more(); vi->next()) {
               std::vector<Double> chunkfreq;
-              pbConvFunc_p->findUsefulChannels(chunkfreq, vb);
+
+              fields.insert(vb.fieldId()(0));
+              pbConvFunc_p->findUsefulChannels(chunkfreq, vb, frange);
               //cerr <<  "chunkfreq " <<  chunkfreq <<  endl;
-              std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
-              if(doSquint_p)
+              if (chunkfreq.size() > 0) {
+                //cerr << "SPW " << vb.spectralWindows()(0) << " freqs " << Vector<Double>(chunkfreq) << endl;
+                std::move(chunkfreq.begin(), chunkfreq.end(), std::back_inserter(freqs));
+                double maxfreqused = *(std::max_element(chunkfreq.begin(), chunkfreq.end()));
+                if (nw_p > 1) {
+                  // 	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+                  maxW = max(maxW, max(abs(vb.uvw().row(2) * maxfreqused)) / C::c);
+                }
+              }
+              if (doSquint_p)
                 pAs.push_back(getPA(vb));
-              if(nw_p > 1)
-                	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
+              //if(nw_p > 1)
+              //  	maxW=max(maxW, max(abs(vb.uvw().row(2)*max(vb.getFrequencies(0))))/C::c);
           }
     }
-    
+    ///TESTOO
+    //Double imMaxW = 0.25 / abs(cs.increment()(0));
+    //cerr << " maxW " << maxW << " imMaxW " << imMaxW << endl;
+
+    ////
     //return vi to origin
     vi->originChunks(); vi->origin();
-    
-    std::sort(freqs.begin(),  freqs.end());
+    //cerr << "FREQS " << Vector<Double>(freqs) << endl;
+    std::sort(freqs.begin(), freqs.end());
     auto last = std::unique(freqs.begin(),  freqs.end());
     freqs.erase(last,  freqs.end());
-    
+
+    if(freqs.size()==0){
+      cerr << "No matching frequency in data in freq range of image " +
+                  String::toString(f1) + " to " + String::toString(f2)
+           << endl;
+           //Falling in a gap...channels in image does not match any data used
+           //for now just calc pb for mid freq
+      freqs.push_back((f1 + f2) / 2.0);
+    }
+    // tell holder it is a single field or not
+    (*awConvs_p).setSingleField((fields.size()==1) && (nw_p==1));
+
+
     Double paMax=0.0;
     if(pAs.size()>1){
       std::sort(pAs.begin(), pAs.end());
@@ -141,7 +193,7 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       }
     }
     
-    cerr <<  "PAMax in data " <<  paMax <<  endl;
+
     if (nw_p == 0)
       nw_p = 1;
     Vector<Double> wVals(nw_p,0);
@@ -151,19 +203,38 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
         wVals[k]=Double(k*k)*st;
     }
     (*awConvs_p).addConvFunc(Vector<Double>(freqs), wVals, paMax);
-    
+
+    pbConvFunc_p->setAWConvFuncHolder(awConvs_p);
+
   }
   
 }
   
- void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw ){
+ void AWPLPG::findConvFunction(const ImageInterface<Complex>& iimage, const vi::VisBuffer2& vb, const Matrix<Double>& rotuvw, const bool ispsf ){
   //
-  // pbConvFunc_p.phasegradient
-    convFunc.resize();
-    convFunc.assign(awConvs_p->getConvFunc());
- 
-    weightConvFunc_p.resize();
-    weightConvFunc_p.assign(awConvs_p->getWeightConvFunc());
+  // pbConvFunc_p.phasegradient=
+  //double time0=omp_get_wtime();
+  //Complex *oWgtPtr, *oConPtr;
+  //Bool isCopy;
+  //if(convFunc.size()==0 || (convFunc.shape() != awConvs_p->getConvFunc().shape())){
+   // convFunc.resize(awConvs_p->getConvFunc().shape());
+   // weightConvFunc_p.resize(awConvs_p->getWeightConvFunc().shape());
+  
+  //}
+  //oWgtPtr=awConvs_p->getWeightConvFunc().getStorage(isCopy);
+  //oConPtr=awConvs_p->getConvFunc().getStorage(isCopy);
+    //convFunc.resize();
+    //convFunc=(awConvs_p->getConvFunc());
+    //Bool isCopy1, isCopy2;
+    //cerr << "SIZEOF " <<  sizeof convFunc << " size elem wise " << convFunc.nelements() << endl;
+    //Complex* convFuncPtr=convFunc.getStorage(isCopy1);
+    // Complex* wgtFuncPtr=weightConvFunc_p.getStorage(isCopy2);
+    //weightConvFunc_p.resize();
+    //weightConvFunc_p=(awConvs_p->getWeightConvFunc());
+    //std::memcpy(convFuncPtr, oConPtr, sizeof(Complex)*convFunc.nelements());
+    //std::memcpy(wgtFuncPtr, oWgtPtr, sizeof(Complex)*weightConvFunc_p.nelements());
+    //convFunc.putStorage(convFuncPtr, isCopy1);
+    //weightConvFunc_p.putStorage(wgtFuncPtr, isCopy2);
     /*{ 
       ////TESTOO
       IPosition elshp = convFunc.shape().getFirst(4);
@@ -185,13 +256,22 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       lastplaneW.put(weightConvFunc_p(elblc,  eltrc).nonDegenerate());
     //////
     } */  
+
+
+    awConvs_p->getConvFuncs(convPolMap_p,  convChanMap_p,  convRowMap_p, convFunc,  
+                             weightConvFunc_p, vb, rotuvw, interpVisFreq_p, toVis_p, ispsf);
+
+    //double time1=omp_get_wtime();
+    //cerr << " assign time " << time1-time0 << endl;
     convSizePlanes_p.resize();
     convSizePlanes_p = awConvs_p->getConvSizes();
     convSupportPlanes_p.resize();
     convSupportPlanes_p = awConvs_p->getConvSupports();
-    awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
+
+    //awConvs_p->getConvIndices(convPolMap_p,  convChanMap_p,  convRowMap_p,  vb, rotuvw);
     //cerr <<  "min max convrowmap " <<  min(convRowMap_p) <<  "  " <<  max(convRowMap_p) <<  " supp " <<   max(convSupportPlanes_p) <<  " csize " << max(convSizePlanes_p) <<  " convchanmap "<< min(convChanMap_p) <<  "    " << max(convChanMap_p) << " convsamp " << convSampling << endl;
-    std::vector<Int> pmapused=convPolMap_p.tovector();
+    //cerr << "LENGTHS bef" << convRowMap_p.size() << "  " << convChanMap_p.size()   << "   " << convPolMap_p.size() << endl;
+    std::vector<Int> pmapused = convPolMap_p.tovector();
     {
       std::sort(pmapused.begin(),  pmapused.end());
       auto last = std::unique(pmapused.begin(),  pmapused.end());
@@ -209,12 +289,20 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
       auto last = std::unique(rmapused.begin(),  rmapused.end());
       rmapused.erase(last,  rmapused.end());
     }
-    //cerr << "pmap " << Vector<Int>(pmapused) << " cmp " << Vector<Int>(cmapused) << " rmap " << Vector<Int>(rmapused) << endl;
-    pbConvFunc_p->rephaseConvFunc(iimage, vb, convSampling,  convFunc, weightConvFunc_p, pmapused, cmapused, rmapused,  MVDirection(-(movingDirShift_p.getAngle())), fixMovingSource_p);
+
+    pbConvFunc_p->rephaseConvFunc(
+        iimage, vb, convSampling, convFunc, weightConvFunc_p, pmapused,
+        cmapused, rmapused, MVDirection(-(movingDirShift_p.getAngle())),
+        fixMovingSource_p);
     convSupport =max(convSupportPlanes_p);
     convSize = max(convSizePlanes_p);
-   
-    
+    if(convFunc.nelements()==0){
+      convSupport = 0;
+      convSize = 0;
+    }
+    //cerr << "csup " << convSupport << " csize "<< convSize << " csamp " << convSampling << endl;
+ 
+
  }
  
   /////==============================================
@@ -226,6 +314,18 @@ void AWPLPG::init(const vi::VisBuffer2& vb){
 #define gmoswgtd2 gmoswgtd2_
 #define locuvw locuvw_
 #endif
+
+
+  /////==============================================
+  //// some fortran defn
+#define NEED_UNDERSCORES
+#if defined(NEED_UNDERSCORES)
+#define sectgmosd3 sectgmosd3_
+#define sectdmos3 sectdmos3_
+#define gmoswgtd2 gmoswgtd2_
+#define locuvw locuvw_
+#endif
+
 
 extern "C" { 
   void locuvw(const Double*, const Double*, const Double*, const Int*, const Double*, const Double*, const Int*, 
