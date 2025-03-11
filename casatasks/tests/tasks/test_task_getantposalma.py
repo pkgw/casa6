@@ -183,20 +183,8 @@ class getantposalma_test(unittest.TestCase):
                 snr=-1, hosts=["http://good.example.com"]
             )
         self.exception_verification(
-            cm, "Parameter snr (-1.0) must be non-negative."
+            cm, "If a number, parameter snr (-1) must be non-negative."
         )
-        """
-        with self.assertRaises(ValueError) as cm: 
-            getantposalma(
-                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
-                search="sr", hosts=["good.example.com"]
-            )
-        self.exception_verification(
-            cm,
-            "Parameter search (=sr) must have a value of either 'both_latest' "
-            "or 'both_closest'."
-        )
-        """
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
                 outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",

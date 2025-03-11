@@ -251,9 +251,9 @@ Parameter Details
     if isinstance(snr, str):
         if snr != "default":
             raise ValueError("If snr is a string, it's only permissible value is 'default'")
-    elif snr < 0:
+    elif snr < 0.0:
         raise ValueError(f"If a number, parameter snr ({snr}) must be non-negative.")
-    elif snr >= 0:
+    elif snr >= 0.0:
         parms["snr"] = snr
     if search:
         parms['search'] = search

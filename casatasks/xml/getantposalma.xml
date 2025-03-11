@@ -46,7 +46,7 @@ Example: outfile='my_alma_antenna_positions.json'
         default: "default" (the current default value as defined by the web service will be used) 
         Example: snr=5.0
       </description>
-      <value>default</value>
+      <value type="string">default</value>
       <any type="variant" listtypes="int double"/>
     </param>
 
