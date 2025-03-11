@@ -35,7 +35,7 @@ def _query(url):
 
 
 def getantposalma(
-    outfile='', overwrite=False, asdm='', tw='', snr=0, search='both_latest',
+    outfile='', overwrite=False, asdm='', tw='', snr="default", search='both_latest',
     hosts=['tbd1.alma.cl', 'tbd2.alma.cl']
 ):
     r"""
@@ -248,9 +248,12 @@ Parameter Details
                 f"Parameter tw, start time ({z[0]}) must be less than end time ({z[1]})."
             )
         parms["tw"] = tw
-    if snr < 0:
-        raise ValueError(f"Parameter snr ({snr}) must be non-negative.")
-    elif snr > 0:
+    if isinstance(snr, str):
+        if snr != "default":
+            raise ValueError("If snr is a string, it's only permissible value is 'default'")
+    elif snr < 0:
+        raise ValueError(f"If a number, parameter snr ({snr}) must be non-negative.")
+    elif snr >= 0:
         parms["snr"] = snr
     if search:
         parms['search'] = search
