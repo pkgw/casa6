@@ -43,7 +43,7 @@ Example: outfile='my_alma_antenna_positions.json'
     <param name="snr" type="any">
       <shortdescription>Optional signal-to-noise.</shortdescription>
       <description>Optional signal-to-noise. Antenna positions which have corrections with S/N less than this value will not be retrieved nor written. If not specified, the default value used by the web service will be used, and that may change over time.
-        default: 0 (no snr constraint will be used) 
+        default: "default" (the current default value as defined by the web service will be used) 
         Example: snr=5.0
       </description>
       <value>default</value>
