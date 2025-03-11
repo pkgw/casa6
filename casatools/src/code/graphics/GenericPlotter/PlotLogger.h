@@ -84,10 +84,10 @@ protected:
 };
 
 
-// Used to report time and memory measurements.  This functionality can be
+// Used to report time measurements.  This functionality can be
 // accessed either directly with a PlotLogMeasurement object or indirectly
 // through the PlotLogger class.  Message is:
-// END.\tTime: [time] [timeUnits].  casacore::Memory: [memory] [memoryUnits].
+// END.\tTime: [time] [timeUnits].
 // If the measurement has not been ended, calls stopMeasurement() first.
 class PlotLogMeasurement : public PlotLogMessage {
 public:
@@ -99,31 +99,23 @@ public:
         SECOND
     };
     
-    // Available memory units.
-    enum MemoryUnit {
-        BYTE, KILOBYTE, MEGABYTE
-    };
-    
     // Default units.
     // <group>
     static const TimeUnit DEFAULT_TIME_UNIT;
-    static const MemoryUnit DEFAULT_MEMORY_UNIT;
     // </group>
     
-    // Get a string representation of the given time/memory unit.
+    // Get a string representation of the given time unit.
     // <group>
     static casacore::String timeUnits(TimeUnit t);   
-    static casacore::String memoryUnits(MemoryUnit m);
     // </group>
     
     
     // Non-Static //
     
-    // Constructor which takes the origin(s), optional time and memory
+    // Constructor which takes the origin(s), optional time
     // units, and an optional priority.  Also calls startMeasurement().
     PlotLogMeasurement(const casacore::String& origin1, const casacore::String& origin2,
                        TimeUnit timeUnit = DEFAULT_TIME_UNIT,
-                       MemoryUnit memoryUnit = DEFAULT_MEMORY_UNIT,
                        int eventType = DEFAULT_EVENT_TYPE);
     
     // Copy constructor.
@@ -133,27 +125,24 @@ public:
     ~PlotLogMeasurement();
     
     
-    // Returns the time/memory when the measurement started.
+    // Returns the time when the measurement started.
     // <group>
     time_t startTime() const;
-    unsigned int startMemory() const;
     // </group>
     
-    // Returns the time/memory difference between when the measurement started
+    // Returns the time difference between when the measurement started
     // and when the measurement ended.  Invalid if the measurement was never
     // started and ended.
     // <group>
     double time() const;    
-    double memory() const;
     // </group>
     
-    // Returns the time/memory units for this measurement.
+    // Returns the time units for this measurement.
     // <group>
     TimeUnit timeUnit() const;
-    MemoryUnit memoryUnit() const;
     // </group>
    
-    // Starts the measurement by setting the start time and memory.
+    // Starts the measurement by setting the start time.
     // Measurement automatically begins when the object is constructed, but
     // can be restarted as desired.
     void startMeasurement();
@@ -166,17 +155,12 @@ private:
     // Start time
     time_t m_startTime;
     
-    // Start memory
-    unsigned int m_startMemory;
-    
-    // casacore::Time and memory differences
-    double m_time, m_memory;
-    
+    // casacore::Time difference
+    double m_time;
+
     // casacore::Time unit
     TimeUnit m_timeUnit;
     
-    // casacore::Memory unit
-    MemoryUnit m_memoryUnit;
 };
 
 
@@ -484,7 +468,7 @@ public:
     
     // Measurement Methods //
     
-    // Marks the logger to begin a time/memory measurement.  Measurement marks
+    // Marks the logger to begin a time measurement.  Measurement marks
     // can be recursive.  Returns a generic message saying that measurement has
     // begun, which will be also posted to the log if postStartMessage is true.
     PlotLogMessage markMeasurement(const casacore::String& origin1,const casacore::String& origin2,
