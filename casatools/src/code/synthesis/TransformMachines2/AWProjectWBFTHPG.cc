@@ -439,7 +439,7 @@ void AWProjectWBFTHPG::initializeToVisNew(const VisBuffer2 &vb,
   //TESTOO
    
     convSampling=10;
-    if (min(nx, ny) > 200)
+    if (min(nx, ny) > 600)
       convSampling = 4;
     ///////
 

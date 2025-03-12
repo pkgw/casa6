@@ -54,46 +54,54 @@ class SIImageStore
 {
  public:
   enum IMAGE_IDS {MASK=0,PSF,MODEL,RESIDUAL,WEIGHT,IMAGE,SUMWT,GRIDWT,PB,FORWARDGRID,BACKWARDGRID, IMAGEPBCOR, MAX_IMAGE_IDS};
-  // Default constructor
 
+  // Default constructor
   SIImageStore();
 
-  SIImageStore(const casacore::String &imagename,
-               const casacore::Bool ignorefacets=casacore::False,
-	       const casacore::Bool noRequireSumwt=casacore::False);
+  // Construct an Image Store from images on disk
+  SIImageStore(
+    const casacore::String &imagename,
+    const casacore::Bool ignorefacets=casacore::False,
+    const casacore::Bool noRequireSumwt=casacore::False,
+    const casacore::Bool makeSingleDishStore=casacore::False
+  );
 
-  SIImageStore(const casacore::String &imagename,
-	       const casacore::CoordinateSystem &imcoordsys,
-	       const casacore::IPosition &imshape,
-	       const casacore::String &objectname,
-               const casacore::Record &miscinfo,
-	       // const casacore::Int nfacets=1,
-	       const casacore::Bool overwrite=casacore::False,
-	       const casacore::Bool useweightimage=casacore::False);
+  SIImageStore(
+    const casacore::String &imagename,
+    const casacore::CoordinateSystem &imcoordsys,
+    const casacore::IPosition &imshape,
+    const casacore::String &objectname,
+    const casacore::Record &miscinfo,
+    // const casacore::Int nfacets=1,
+    const casacore::Bool overwrite=casacore::False,
+    const casacore::Bool useweightimage=casacore::False,
+    const casacore::Bool issingledishstore=casacore::False
+  );
 
-  SIImageStore(const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &modelim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &residim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &psfim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &weightim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &restoredim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &maskim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &sumwtim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &gridwtim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &pbim,
-	       const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &restoredpbcorim,
-               const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &tempworkim,
-	       const casacore::CoordinateSystem &csys,
-	       const casacore::IPosition &imshape,
-	       const casacore::String &imagename,
-	       const casacore::String &objectname,
-	       const casacore::Record &miscinfo,
-	       const casacore::Int facet=0, const casacore::Int nfacets=1,
-	       const casacore::Int chan=0, const casacore::Int nchanchunks=1,
-	       const casacore::Int pol=0, const casacore::Int npolchunks=1,
-	       const casacore::Bool useweightimage=casacore::False);
+  SIImageStore(
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &modelim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &residim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &psfim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &weightim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &restoredim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &maskim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &sumwtim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &gridwtim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &pbim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &restoredpbcorim,
+    const std::shared_ptr<casacore::ImageInterface<casacore::Float> > &tempworkim,
+    const casacore::CoordinateSystem &csys,
+    const casacore::IPosition &imshape,
+    const casacore::String &imagename,
+    const casacore::String &objectname,
+    const casacore::Record &miscinfo,
+    const casacore::Int facet=0, const casacore::Int nfacets=1,
+    const casacore::Int chan=0, const casacore::Int nchanchunks=1,
+    const casacore::Int pol=0, const casacore::Int npolchunks=1,
+    const casacore::Bool useweightimage=casacore::False
+  );
 
-  
-    
+
   virtual void init();
 
   virtual ~SIImageStore();
@@ -101,6 +109,7 @@ class SIImageStore
 
   casacore::IPosition getShape();
   casacore::String getName();
+  casacore::String imageFullName(IMAGE_IDS imageId);
 
   virtual casacore::String getType(){return "default";}
 
@@ -316,6 +325,10 @@ protected:
   casacore::ImageBeamSet itsRestoredBeams;
 
   casacore::Float itsPSFSideLobeLevel;
+
+  // Is this Synthesis Imager imagestore intended to deal with single-dish
+  // images ?
+  casacore::Bool itsIsSingleDishStore;
 
   //
   //------------------------------------------

@@ -31,12 +31,15 @@ import numpy
 import unittest
 
 from casatools import ctsys, ms, table
-from casatasks import importfitsidi
+from casatasks import importfitsidi, casalog
 
 _ms = ms( )
 _tb = table( )
 
+logpath = casalog.logfile()
+
 datapath = ctsys.resolve('unittest/importfitsidi/')
+filepath = ctsys.resolve('testlog.log')
 
 myname = 'importfitsidi-unit-test'
 
@@ -46,7 +49,8 @@ my_dataset_names = ['n09q2_1_1-shortened.IDI1',
                     'n09q2_1_1-shortened-part2.IDI1',
                     'emerlin_multiuv.IDI1',
                     '1331_3030_C-Band_5GHz__64.000_128.fits',
-                    'VLBA_TL015A_tl015arecor_BIN0_SRC0_1_201020T164655.idifits']
+                    'VLBA_TL015A_tl015arecor_BIN0_SRC0_1_201020T164655.idifits',
+                    'VLBA_VSN000397_file69.uvfits']
 
 # name of the resulting MS
 msname = my_dataset_names[0]+'.ms'
@@ -110,6 +114,9 @@ class test_importfitsidi(unittest.TestCase):
             shutil.copy(datasetPath, fname)
         
     def tearDown(self):
+        casalog.setlogfile(logpath)
+        if os.path.exists(filepath):
+            os.remove(filepath)
         for fname in my_dataset_names:
             os.remove(fname)
         shutil.rmtree(msname,ignore_errors=True)
@@ -1159,6 +1166,181 @@ class test_importfitsidi(unittest.TestCase):
                 retValue['error_msgs']=retValue['error_msgs']+'Check of table '+name+' failed'
 
         self.assertTrue(retValue['success'])
+
+    def test9(self):
+        '''fitsidi-import: Test import from multiple arrays'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }
+
+        casalog.setlogfile('testlog.log')
+        self.res = importfitsidi([my_dataset_names[0],my_dataset_names[6]], msname,
+                                 constobsid=True, scanreindexgap_s=5)
+        print(myname, ": Success! Now checking output ...")
+        print(myname, ": MS exists. All tables present. Try opening as MS ...")
+        try:
+            _ms.open(msname)
+        except:
+            print(myname, ": Error  Cannot open MS table", tablename)
+            retValue['success']=False
+            retValue['error_msgs']=retValue['error_msgs']+'Cannot open MS table '+tablename
+        else:
+            _ms.close()
+            print(myname, ": OK. Checking tables in detail ...")
+            retValue['success']=True
+
+            # Test that observation IDs are different (despite constobsid=True)
+            # Test data from both observations to verify that digital
+            # corrections are applied correctly.
+            name = ""
+            expected = [
+                         ['OBSERVATION_ID', 638, 0, 0],
+                         ['UVW',       638, [171529.37575288, -786712.70341456, 210321.20978818], 1E-8],
+                         ['EXPOSURE',  638,  2.0, 1E-8],
+                         ['DATA',      638, [[-0.00224198+0.00067056j,
+                                              -0.00475123+0.0024323j,
+                                              -0.00416393+0.00212671j,
+                                              -0.00565350+0.00340364j,
+                                              -0.00527357+0.00011977j,
+                                              -0.00292699+0.00131954j,
+                                              -0.00429945+0.00035823j,
+                                              -0.00545671-0.00033945j,
+                                              -0.00646004+0.00037293j,
+                                              -0.00419376-0.00115011j,
+                                              -0.00508117+0.00045939j,
+                                              -0.00501660-0.00047975j,
+                                              -0.00444734-0.00101535j,
+                                              -0.00384988-0.00102731j,
+                                              -0.00551326+0.00101364j,
+                                              -0.00337701+0.00080481j]], 1E-8],
+                         ['OBSERVATION_ID', 8511, 1, 0],
+                         ['UVW',      8511, [828914.03079271, 439115.74358212, -3087211.83269717], 1E-8],
+                         ['EXPOSURE', 8511,  2.0971519947052, 1E-8],
+                         ['DATA',     8511, [[-0.0005048021+0.0006272711j,
+                                               0.0004651772-0.0004499542j,
+                                               0.0002667628-0.0001897688j,
+                                              -0.0009842832-0.0005429656j,
+                                              -0.0001268085-0.0007897264j,
+                                              -0.0004823971-0.0002412655j,
+                                               0.0009139312+0.0002414373j,
+                                               0.0000649303-0.0012320010j,
+                                              -0.0002075107-0.0009946608j,
+                                              -0.0004472813+0.0009435851j,
+                                               0.0011783736-0.0003215929j,
+                                               0.0003143105-0.0002393110j,
+                                              -0.0007472970-0.0006453455j,
+                                              -0.0002369661-0.0000927994j,
+                                               0.0007526718+0.0009522775j,
+                                               0.0006285428-0.0002970326j]], 1E-8],
+                         ]
+            results = checktable(name, expected)
+            if not results:
+                retValue['success']=False
+                retValue['error_msgs']=retValue['error_msgs']+'Check of table '+name+' failed'
+
+        self.assertTrue(retValue['success'])
+
+        with open('testlog.log') as logf:
+            success = ('The input files stem from different telescopes.' in logf.read())
+        self.assertTrue(success)
+
+    def test10(self):
+        '''fitsidi-import: Test import of VLBA archival data'''
+        retValue = {'success': True, 'msgs': "", 'error_msgs': '' }
+
+        casalog.setlogfile('testlog.log')
+        self.res = importfitsidi(my_dataset_names[6], msname)
+        print(myname, ": Success! Now checking output ...")
+        mscomponents = set(["table.dat",
+#                            "table.f0",
+                            "table.f1",
+                            "table.f2",
+                            "table.f3",
+                            "table.f4",
+                            "table.f5",
+                            "table.f6",
+                            "table.f7",
+                            "table.f8",
+                            "ANTENNA/table.dat",
+                            "DATA_DESCRIPTION/table.dat",
+                            "FEED/table.dat",
+                            "FIELD/table.dat",
+                            "FLAG_CMD/table.dat",
+                            "HISTORY/table.dat",
+                            "OBSERVATION/table.dat",
+                            "POINTING/table.dat",
+                            "POLARIZATION/table.dat",
+                            "PROCESSOR/table.dat",
+                            "SPECTRAL_WINDOW/table.dat",
+                            "STATE/table.dat",
+                            "ANTENNA/table.f0",
+                            "DATA_DESCRIPTION/table.f0",
+                            "FEED/table.f0",
+                            "FIELD/table.f0",
+                            "FLAG_CMD/table.f0",
+                            "HISTORY/table.f0",
+                            "OBSERVATION/table.f0",
+                            "POINTING/table.f0",
+                            "POLARIZATION/table.f0",
+                            "PROCESSOR/table.f0",
+                            "SPECTRAL_WINDOW/table.f0",
+                            "STATE/table.f0"
+                            ])
+        for name in mscomponents:
+            if not os.access(msname+"/"+name, os.F_OK):
+                print(myname, ": Error  ", msname+"/"+name, "doesn't exist ...")
+                retValue['success']=False
+                retValue['error_msgs']=retValue['error_msgs']+msname+'/'+name+' does not exist'
+            else:
+                print(myname, ": ", name, "present.")
+        print(myname, ": MS exists. All tables present. Try opening as MS ...")
+        try:
+            _ms.open(msname)
+        except:
+            print(myname, ": Error  Cannot open MS table", tablename)
+            retValue['success']=False
+            retValue['error_msgs']=retValue['error_msgs']+'Cannot open MS table '+tablename
+        else:
+            _ms.close()
+            print(myname, ": OK. Checking tables in detail ...")
+            retValue['success']=True
+
+            # check main table first
+            name = ""
+            #             col name, row number, expected value, tolerance
+            expected = [
+                         ['UVW',        15, [828914.03079271, 439115.74358212, -3087211.83269717], 1E-8],
+                         ['EXPOSURE',   15,  2.0971519947052, 1E-8],
+                         ['DATA',       15, [[-0.0005048021+0.0006272711j,
+                                               0.0004651772-0.0004499542j,
+                                               0.0002667628-0.0001897688j,
+                                              -0.0009842832-0.0005429656j,
+                                              -0.0001268085-0.0007897264j,
+                                              -0.0004823971-0.0002412655j,
+                                               0.0009139312+0.0002414373j,
+                                               0.0000649303-0.0012320010j,
+                                              -0.0002075107-0.0009946608j,
+                                              -0.0004472813+0.0009435851j,
+                                               0.0011783736-0.0003215929j,
+                                               0.0003143105-0.0002393110j,
+                                              -0.0007472970-0.0006453455j,
+                                              -0.0002369661-0.0000927994j,
+                                               0.0007526718+0.0009522775j,
+                                               0.0006285428-0.0002970326j]], 1E-8],
+                         ]
+            results = checktable(name, expected)
+            if not results:
+                retValue['success']=False
+                retValue['error_msgs']=retValue['error_msgs']+'Check of table '+name+' failed'
+
+        self.assertTrue(retValue['success'])
+
+        # Check that appropriate warnings are issued for unimplemented functionality
+        with open('testlog.log') as logf:
+            success = ('Data needs FFT artifact corrections' in logf.read())
+        self.assertTrue(success)
+        with open('testlog.log') as logf:
+            success = ('Data was correlated with HANNING taper' in logf.read())
+        self.assertTrue(success)
+
 
 if __name__ == '__main__':
     unittest.main()

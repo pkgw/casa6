@@ -1297,106 +1297,120 @@ bool SynthesisImager::unlockImages()
       }
     return true;
   }
-  
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  ////    Internal Functions start here.  These are not visible to the tool layer.
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////
-  ////////////This should be called  at each defineimage
-  CountedPtr<SIImageStore> SynthesisImager::createIMStore(String imageName, 
-							  CoordinateSystem& cSys,
-							  IPosition imShape, 
-							  const Bool overwrite,
-							  MSColumns& msc,
-							  String mappertype,
-							  uInt ntaylorterms,
-							  Quantity distance,
-							  const TcleanProcessingInfo& procInfo,
-							  uInt facets,
-							  Bool useweightimage,
-							  const Vector<String> &startmodel)
+
+  //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+
+  //////////////////////////////////////////////////////////////////////////////
+  ////   Internal Functions start here. These are not visible to the tool layer.
+  //////////////////////////////////////////////////////////////////////////////
+
+  // This should be called  at each defineimage
+  CountedPtr<SIImageStore> SynthesisImager::createIMStore(
+    String imageName,
+    CoordinateSystem& cSys,
+    IPosition imShape,
+    const Bool overwrite,
+    MSColumns& msc,
+    String mappertype,
+    uInt ntaylorterms,
+    Quantity distance,
+    const TcleanProcessingInfo& procInfo,
+    uInt facets,
+    Bool useweightimage,
+    const Vector<String> &startmodel,
+    const Bool makeSingleDishStore)
   {
     LogIO os( LogOrigin("SynthesisImager","createIMStore",WHERE) );
 
     CountedPtr<SIImageStore> imstor;
 
-    try
-      {
-	// Prepare miscellaneous image information
-	auto objectName = msc.field().name()(msc.fieldId()(0));
-	///// misc info for ImageStore. This will go to the 'miscinfo' table keyword
-	Record miscInfo;
-	auto telescop=msc.observation().telescopeName()(0);
-	miscInfo.define("INSTRUME", telescop);
-	miscInfo.define("distance", distance.get("m").getValue());
-        miscInfo.define("mpiprocs", procInfo.mpiprocs);
-        miscInfo.define("chnchnks", procInfo.chnchnks);
-        miscInfo.define("memreq", procInfo.memreq);
-        miscInfo.define("memavail", procInfo.memavail);
-	
-	if( mappertype=="default" || mappertype=="imagemosaic" )
-	  {
-            imstor = std::make_shared<SIImageStore>(imageName, cSys, imShape, objectName,
-                                                    miscInfo, overwrite,
-                                                    (useweightimage || (mappertype=="imagemosaic")
-                                                     ));
-	  }
-	else if (mappertype == "multiterm" )  // Currently does not support imagemosaic.
-	  {
-            // upcast with shared_ptr and then assign to CountedPtr<SIImageStore>
-            std::shared_ptr<SIImageStore> multiTermStore =
-                std::make_shared<SIImageStoreMultiTerm>(imageName, cSys, imShape,
-                                                        objectName, miscInfo, facets,
-                                                        overwrite, ntaylorterms, useweightimage);
+    try {
+      // Prepare miscellaneous image information
+      auto objectName = msc.field().name()(msc.fieldId()(0));
+      // Misc info for ImageStore. This will go to the 'miscinfo' table keyword
+      Record miscInfo;
+      auto telescop=msc.observation().telescopeName()(0);
+      miscInfo.define("INSTRUME", telescop);
+      miscInfo.define("distance", distance.get("m").getValue());
+      miscInfo.define("mpiprocs", procInfo.mpiprocs);
+      miscInfo.define("chnchnks", procInfo.chnchnks);
+      miscInfo.define("memreq", procInfo.memreq);
+      miscInfo.define("memavail", procInfo.memavail);
+
+      if (mappertype == "default" or mappertype == "imagemosaic") {
+            imstor = std::make_shared<SIImageStore>(
+              imageName, cSys, imShape, objectName,
+              miscInfo, overwrite,
+              (useweightimage or mappertype == "imagemosaic"),
+              makeSingleDishStore
+            );
+      }
+      else if (mappertype == "multiterm") {
+            // Upcast with shared_ptr and then ...
+            std::shared_ptr<SIImageStore>
+            multiTermStore = std::make_shared<SIImageStoreMultiTerm>(
+              imageName, cSys, imShape,
+              objectName, miscInfo, facets,
+              overwrite, ntaylorterms, useweightimage
+            );
+            // ... assign to CountedPtr<SIImageStore>
             imstor = multiTermStore;
-	  }
-	else
-	  {
-	    throw(AipsError("Internal Error : Invalid mapper type in SynthesisImager::createIMStore"));
-	  }
-
-	// Get polRep from 'msc' here, and send to imstore. 
-	StokesImageUtil::PolRep polRep(StokesImageUtil::CIRCULAR);
-	Vector<String> polType=msc.feed().polarizationType()(0);
-	if (polType(0)!="X" && polType(0)!="Y" &&  polType(0)!="R" && polType(0)!="L") {
-	  os << LogIO::WARN << "Unknown stokes types in feed table: ["
-	     << polType(0) << ", " << polType(1) << "]" << endl
-	     << "Results open to question!" << LogIO::POST;
-	}
-	
-	if (polType(0)=="X" || polType(0)=="Y") {
-	  polRep=StokesImageUtil::LINEAR;
-	  os << LogIO::DEBUG1 << "Preferred polarization representation is linear" << LogIO::POST;
-	}
-	else {
-	  polRep=StokesImageUtil::CIRCULAR;
-	  os << LogIO::DEBUG1 << "Preferred polarization representation is circular" << LogIO::POST;
-	}
-	/// end of reading polRep info
-	
-	///////// Send this info into ImageStore.
-	imstor->setDataPolFrame(polRep);
-
-	///////// Set Starting model if it exists.
-	//cout << "In SI, set starting model to : " << startmodel << endl;
-	if( startmodel.nelements()>0 ) 
-	  {
-	    imstor->setModelImage( startmodel );
-	  }
-
-	imstor->releaseLocks();
-
       }
-    catch(AipsError &x)
-      {
-	throw(AipsError("Error in createImStore : " + x.getMesg() ) );
+      else  { // imagemosaic currently not supported
+        throw(
+          AipsError(
+            "Internal Error : Invalid mapper type in"
+            " SynthesisImager::createIMStore"
+          )
+        );
       }
-    
-    
+
+      // Get polRep from 'msc' here, and send to imstore.
+      StokesImageUtil::PolRep polRep(StokesImageUtil::CIRCULAR);
+      Vector<String> polType=msc.feed().polarizationType()(0);
+      if (polType(0) != "X" and polType(0) != "Y" and
+          polType(0) != "R" and polType(0) != "L") {
+        os << LogIO::WARN << "Unknown stokes types in feed table: ["
+           << polType(0) << ", " << polType(1) << "]" << endl
+           << "Results open to question!" << LogIO::POST;
+      }
+
+      if (polType(0) == "X" or polType(0) == "Y") {
+        polRep=StokesImageUtil::LINEAR;
+        os << LogIO::DEBUG1
+           << "Preferred polarization representation is linear"
+           << LogIO::POST;
+      }
+      else {
+        polRep=StokesImageUtil::CIRCULAR;
+        os << LogIO::DEBUG1
+           << "Preferred polarization representation is circular"
+           << LogIO::POST;
+      }
+      // End of reading polRep info
+
+      // Send this info into ImageStore.
+      imstor->setDataPolFrame(polRep);
+
+      // Set Starting model if it exists.
+      // cout << "In SI, set starting model to : " << startmodel << endl;
+      if (startmodel.nelements() > 0) {
+        imstor->setModelImage(startmodel);
+      }
+
+      imstor->releaseLocks();
+
+    }
+    catch (AipsError &x) {
+      throw(
+        AipsError(
+          "Error in createImStore : " + x.getMesg()
+        )
+      );
+    }
+
     return imstor;
   }
   

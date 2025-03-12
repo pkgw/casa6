@@ -7679,11 +7679,6 @@ Bool SubMS::writeSomeMainRows(const Vector<MS::PredefinedColumns>& colNames)
   LogIO os(LogOrigin("SubMS", "writeSomeMainRows()"));
   Bool retval = true;
     
-  os << LogIO::DEBUG1 // helpdesk ticket in from Oleg Smirnov (ODU-232630)
-     << "Before fillAntIndexer(): "
-     << Memory::allocatedMemoryInBytes() / (1024.0 * 1024.0) << " MB"
-     << LogIO::POST;
-
   // A set of maps from input ID to output ID, keyed by VisBufferComponent.
   std::map<VisBufferComponents::EnumType, std::map<Int, Int> > vbmaps;
   fill_vbmaps(vbmaps);
@@ -8732,10 +8727,6 @@ Bool SubMS::doChannelMods(const Vector<MS::PredefinedColumns>& datacols)
   //ROTiledStManAccessor tacc(mssel_p, cdesc.dataManagerGroup());
   //tacc.showCacheStatistics(cerr);  // A 99.x% hit rate is good.  0% is bad.
 
-  os << LogIO::DEBUG1 // helpdesk ticket in from Oleg Smirnov (ODU-232630)
-     << "Post binning memory: " << Memory::allocatedMemoryInBytes() / (1024.0 * 1024.0) << " MB"
-     << LogIO::POST;
-
   return true;
 }
 
@@ -8958,11 +8949,6 @@ Bool SubMS::doTimeAver(const Vector<MS::PredefinedColumns>& dataColNames,
     return false;
   }
 
-  os << LogIO::DEBUG1 // helpdesk ticket from Oleg Smirnov (ODU-232630)
-     << "Before msOut_p.addRow(): "
-     << Memory::allocatedMemoryInBytes() / (1024.0 * 1024.0) << " MB"
-     << LogIO::POST;
-
   Vector<MS::PredefinedColumns> cmplxColLabels;
   const Bool doFloat = sepFloat(dataColNames, cmplxColLabels);
   const uInt nCmplx = cmplxColLabels.nelements();
@@ -9146,10 +9132,6 @@ Bool SubMS::doTimeAver(const Vector<MS::PredefinedColumns>& dataColNames,
   //ROTiledStManAccessor tacc(mssel_p, cdesc.dataManagerGroup());
   //tacc.showCacheStatistics(cerr);  // A 99.x% hit rate is good.  0% is bad.
 
-  os << LogIO::DEBUG1 // helpdesk ticket in from Oleg Smirnov (ODU-232630)
-     << "Post binning memory: " << Memory::allocatedMemoryInBytes() / (1024.0 * 1024.0) << " MB"
-     << LogIO::POST;
-
   if(rowsdone < 1){
     os << LogIO::WARN
        << "No rows were written.  Is all the selected input flagged?"
@@ -9171,11 +9153,6 @@ Bool SubMS::doTimeAverVisIterator(const Vector<MS::PredefinedColumns>& dataColNa
     throw(AipsError("Simultaneous time and channel averaging is not handled."));
     return false;
   }
-
-  os << LogIO::DEBUG1 // helpdesk ticket from Oleg Smirnov (ODU-232630)
-     << "Before msOut_p.addRow(): "
-     << Memory::allocatedMemoryInBytes() / (1024.0 * 1024.0) << " MB"
-     << LogIO::POST;
 
   Vector<MS::PredefinedColumns> cmplxColLabels;
   const Bool doFloat = sepFloat(dataColNames, cmplxColLabels);
@@ -9349,10 +9326,6 @@ Bool SubMS::doTimeAverVisIterator(const Vector<MS::PredefinedColumns>& dataColNa
   }   // End of for(vi.originChunks(); vi.moreChunks(); vi.nextChunk())
   delete [] outCmplxCols;
   os << LogIO::NORMAL << "Data binned." << LogIO::POST;
-
-  os << LogIO::DEBUG1 // helpdesk ticket in from Oleg Smirnov (ODU-232630)
-     << "Post binning memory: " << Memory::allocatedMemoryInBytes() / (1024.0 * 1024.0) << " MB"
-     << LogIO::POST;
 
   if(rowsdone < 1){
     os << LogIO::WARN

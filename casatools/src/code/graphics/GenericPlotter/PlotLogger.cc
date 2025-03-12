@@ -29,7 +29,6 @@
 #include <casacore/casa/Logging/LogFilter.h>
 #include <casacore/casa/Logging/LogSink.h>
 #include <casacore/casa/Logging/StreamLogSink.h>
-#include <casacore/casa/OS/Memory.h>
 #include <graphics/GenericPlotter/Plotter.h>
 
 #include <fstream>
@@ -83,8 +82,6 @@ int PlotLogMessage::eventType() const { return m_eventType; }
 
 const PlotLogMeasurement::TimeUnit PlotLogMeasurement::DEFAULT_TIME_UNIT =
     SECOND;
-const PlotLogMeasurement::MemoryUnit PlotLogMeasurement::DEFAULT_MEMORY_UNIT =
-    KILOBYTE;
 
 String PlotLogMeasurement::timeUnits(TimeUnit t) {
     switch(t) {
@@ -94,65 +91,44 @@ String PlotLogMeasurement::timeUnits(TimeUnit t) {
     }
 }
 
-String PlotLogMeasurement::memoryUnits(MemoryUnit m) {
-    switch(m) {
-    case BYTE:     return "bytes";
-    case KILOBYTE: return "kilobytes";
-    case MEGABYTE: return "megabytes";
-    
-    default: return "";
-    }
-}
-
 
 // Non-Static //
 
 PlotLogMeasurement::PlotLogMeasurement(const String& origin1,
-        const String& origin2, TimeUnit timeUnit, MemoryUnit memoryUnit,
+        const String& origin2, TimeUnit timeUnit,
         int eventType) : PlotLogMessage(origin1, origin2, eventType),
-        m_time(-1), m_memory(0), m_timeUnit(timeUnit),m_memoryUnit(memoryUnit){
+        m_time(-1), m_timeUnit(timeUnit){
     startMeasurement();
 }
 
 PlotLogMeasurement::PlotLogMeasurement(const PlotLogMeasurement& copy) :
         PlotLogMessage(copy), m_startTime(copy.m_startTime),
-        m_startMemory(copy.m_startMemory), m_time(copy.m_time),
-        m_memory(copy.m_memory), m_timeUnit(copy.m_timeUnit),
-        m_memoryUnit(copy.m_memoryUnit) { }
+        m_time(copy.m_time),
+        m_timeUnit(copy.m_timeUnit) { }
 
 PlotLogMeasurement::~PlotLogMeasurement() { }
 
 
 time_t PlotLogMeasurement::startTime() const { return m_startTime; }
-unsigned int PlotLogMeasurement::startMemory() const { return m_startMemory; }
 double PlotLogMeasurement::time() const { return m_time; }
-double PlotLogMeasurement::memory() const { return m_memory; }
 PlotLogMeasurement::TimeUnit PlotLogMeasurement::timeUnit() const {
     return m_timeUnit; }
-PlotLogMeasurement::MemoryUnit PlotLogMeasurement::memoryUnit() const {
-    return m_memoryUnit; }
 
 void PlotLogMeasurement::startMeasurement() {
     m_startTime = std::time(NULL);
-    m_startMemory = Memory::allocatedMemoryInBytes();
 }
 
 void PlotLogMeasurement::stopMeasurement() {
     // Get measurement values.
     time_t t = std::time(NULL);
     m_time = t - m_startTime;
-    m_memory = ((double)Memory::allocatedMemoryInBytes()) - m_startMemory;
-    if(m_memoryUnit == KILOBYTE)      m_memory /= 1024;
-    else if(m_memoryUnit == MEGABYTE) m_memory /= 1024 * 1024;
     
     // Set string message.
     stringstream ss;
     ss << "END       Time: ";
     if(m_time >= 0) ss << "+" << m_time << " " << timeUnits(m_timeUnit);
     else ss << "unreported";
-    ss << ".  Memory: ";
-    if(m_memory >= 0) ss << "+";
-    ss << m_memory << " " << memoryUnits(m_memoryUnit) << '.';    
+    ss << ".";
     message(ss.str(), true);
 
     startMeasurement();
@@ -588,14 +564,10 @@ void PlotLogger::postMessage(const String& origin1, const String& origin2,
 PlotLogMessage PlotLogger::markMeasurement(const String& origin1,
         const String& origin2, int eventType, bool postStartMessage) {
     PlotLogMessage startMessage(origin1, origin2,
-            "START     Current memory usage: " +
-            String::toString(Memory::allocatedMemoryInBytes()/1024.0) + " " +
-            PlotLogMeasurement::memoryUnits(PlotLogMeasurement::KILOBYTE)+".",
-            eventType);
+            "START: ", eventType);
     if(postStartMessage) postMessage(startMessage);
     m_measurements.push_back(PlotLogMeasurement(origin1, origin2,
-            PlotLogMeasurement::DEFAULT_TIME_UNIT,
-            PlotLogMeasurement::DEFAULT_MEMORY_UNIT, eventType));
+            PlotLogMeasurement::DEFAULT_TIME_UNIT, eventType));
     return startMessage;
 }
 

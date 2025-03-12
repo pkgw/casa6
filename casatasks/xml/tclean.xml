@@ -844,10 +844,11 @@ To find the nearest optimal imsize to that desired by the user, please use the f
                                                  as awp2 with specmode=&quot;mfs&quot; does not use  conjugate beams to remove the spectral
                                                  index of the primary beam.
 
-                                                 
+                       awphpg : Implementation of the high performance gridder (HPG; Pokorny, ngVLA Computing Memo #5).
+                                            For CASA 6.7.0 this mode is only available on the internal VLASS release of CASA.
+                                            It will be made available for general use in a future CASA release.
 
-                                       
-                      
+
                        imagemosaic : (untested implementation).
 
                                                Grid and iFT each pointing separately and combine the
