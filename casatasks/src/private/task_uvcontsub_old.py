@@ -5,10 +5,6 @@ import time
 import tempfile
 import numpy as np
 
-# shutil.copytree is useless with directories created by tempfile
-# (or any directories that already exist).
-from distutils.dir_util import copy_tree
-
 from casatools import calibrater, ms, table
 from casatasks import casalog, virtualconcat
 
@@ -216,7 +212,7 @@ def uvcontsub_old(vis, field, fitspw, excludechans, combine, solint, fitorder, s
         else:
             # This takes almost 30s/GB.  (lustre, 8/2011)
             casalog.post('Copying ' + vis + ' to ' + csvis + ' with cp.')
-            copy_tree(vis, csvis, preserve_symlinks=True)
+            shutil.copytree(vis, csvis, symlinks=True, dirs_exist_ok=True)
 
         # It is less confusing if we write the history now that the "root" MS
         # is made, but before cb adds its messages.
