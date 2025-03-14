@@ -98,25 +98,19 @@ print (args.version)
 
 module_name = 'casatasks'
 
-pyversion = float(sys.version_info[0]) + float(sys.version_info[1]) / 10.0
+pyversion = ".".join(tuple(str(x) for x in sys.version_info[0:2]))
 
-if pyversion < 3:
-    str_encode = str
-    str_decode = str
-    def pipe_decode(output):
-        return output
-else:
-    def str_encode(s):
-        return bytes(s,sys.getdefaultencoding())
-    def str_decode(bs):
-        return bs.decode(sys.getdefaultencoding(),"strict")
-    def pipe_decode(output):
-        if isinstance(output,bytes) or isinstance(output,bytearray):
-            return str_decode(output)
-        elif isinstance(output,tuple):
-            return (str_decode(output[0]),str_decode(output[1]))
-        else:
-            return ("","")
+def str_encode(s):
+    return bytes(s,sys.getdefaultencoding())
+def str_decode(bs):
+    return bs.decode(sys.getdefaultencoding(),"strict")
+def pipe_decode(output):
+    if isinstance(output,bytes) or isinstance(output,bytearray):
+        return str_decode(output)
+    elif isinstance(output,tuple):
+        return (str_decode(output[0]),str_decode(output[1]))
+    else:
+        return ("","")
 
 def compute_version( ):
     if (args.version != None ):
@@ -283,23 +277,17 @@ xml_files = [ 'xml/imhead.xml',
               'xml/wvrgcal.xml',
 ]
 
-if pyversion < 3:
-    str_encode = str
-    str_decode = str
-    def pipe_decode(output):
-        return output
-else:
-    def str_encode(s):
-        return bytes(s,sys.getdefaultencoding())
-    def str_decode(bs):
-        return bs.decode(sys.getdefaultencoding(),"strict")
-    def pipe_decode(output):
-        if isinstance(output,bytes) or isinstance(output,bytearray):
-            return str_decode(output)
-        elif isinstance(output,tuple):
-            return ( None if output[0] is None else str_decode(output[0]), None if output[1] is None else str_decode(output[1]) )
-        else:
-            return ("","")
+def str_encode(s):
+    return bytes(s,sys.getdefaultencoding())
+def str_decode(bs):
+    return bs.decode(sys.getdefaultencoding(),"strict")
+def pipe_decode(output):
+    if isinstance(output,bytes) or isinstance(output,bytearray):
+        return str_decode(output)
+    elif isinstance(output,tuple):
+        return ( None if output[0] is None else str_decode(output[0]), None if output[1] is None else str_decode(output[1]) )
+    else:
+        return ("","")
 
 if sys.platform == 'darwin':
     def islib(l):
