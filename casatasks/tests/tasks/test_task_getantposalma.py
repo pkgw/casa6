@@ -183,20 +183,8 @@ class getantposalma_test(unittest.TestCase):
                 snr=-1, hosts=["http://good.example.com"]
             )
         self.exception_verification(
-            cm, "Parameter snr (-1.0) must be non-negative."
+            cm, "If a number, parameter snr (-1) must be non-negative."
         )
-        """
-        with self.assertRaises(ValueError) as cm: 
-            getantposalma(
-                outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
-                search="sr", hosts=["good.example.com"]
-            )
-        self.exception_verification(
-            cm,
-            "Parameter search (=sr) must have a value of either 'both_latest' "
-            "or 'both_closest'."
-        )
-        """
         with self.assertRaises(ValueError) as cm: 
             getantposalma(
                 outfile="myants.json", asdm="uid://A002/X10ac6bc/X896d",
@@ -220,40 +208,50 @@ class getantposalma_test(unittest.TestCase):
     def test_json_file_writing(self):
         """Test successful writing of json file of antenna positions"""
         hosts = [self.hostname]
-        self._query_server(
-            lambda: getantposalma(
-                self.outfile, asdm="uid://A002/X10ac6bc/X896d", hosts=hosts
+        for snr in ("default", 5):
+            self._query_server(
+                lambda: getantposalma(
+                    self.outfile, asdm="uid://A002/X10ac6bc/X896d",
+                    hosts=hosts, snr=snr
+                )
             )
-        )
-        self.assertTrue(os.path.exists(self.outfile))
-        with open(self.outfile, "r") as f:
-            res_dict = json.load(f)
-        self.assertTrue(
-            "data" in res_dict and "metadata" in res_dict,
-            "Incorrect data structure"
-        )
-        antpos = res_dict["data"]
-        md = res_dict["metadata"]
-        self.assertEqual(type(antpos), dict, "Wrong data type")
-        self.assertEqual(len(antpos), 3, "Wrong number of antennas")
-        self.assertTrue(
-            "description" in md, "metadata lacks required description key"
-        )
-        self.assertTrue(
-            "product_code" in md and md["product_code"] == "antposalma",
-            "metadata either does not contains required product_code key "
-            "or the value associated with that key is incorrect. It must "
-            "be 'antposalma'"
-        )
-        self.assertEqual(
-            md["outfile"], self.outfile, "Wrong outfile name in metadata"
-        )
-        self.assertEqual(
-            md["asdm"], "uid://A002/X10ac6bc/X896d", "Wrong asdm name in metadata"
-        )
-        self.assertEqual(
-            md["caltype"], "ALMA antenna positions", "Incorrect metadata caltype"
-        )
+            self.assertTrue(os.path.exists(self.outfile))
+            with open(self.outfile, "r") as f:
+                res_dict = json.load(f)
+            self.assertTrue(
+                "data" in res_dict and "metadata" in res_dict,
+                "Incorrect data structure"
+            )
+            antpos = res_dict["data"]
+            md = res_dict["metadata"]
+            self.assertEqual(type(antpos), dict, "Wrong data type")
+            self.assertEqual(len(antpos), 3, "Wrong number of antennas")
+            self.assertTrue(
+                "description" in md, "metadata lacks required description key"
+            )
+            self.assertTrue(
+                "product_code" in md and md["product_code"] == "antposalma",
+                "metadata either does not contains required product_code key "
+                "or the value associated with that key is incorrect. It must "
+                "be 'antposalma'"
+            )
+            self.assertEqual(
+                md["outfile"], self.outfile, "Wrong outfile name in metadata"
+            )
+            self.assertEqual(
+                md["asdm"], "uid://A002/X10ac6bc/X896d", "Wrong asdm name in metadata"
+            )
+            if snr == "default":
+                self.assertTrue(
+                    "snr" not in md,
+                    "snr incorrectly in meetadata when default value used"
+                )
+            else:
+                self.assertEqual(md["snr"], 5, "Wrong value for snr")
+            self.assertEqual(
+                md["caltype"], "ALMA antenna positions", "Incorrect metadata caltype"
+            )
+            os.remove(self.outfile)
 
 
 if __name__ == '__main__':

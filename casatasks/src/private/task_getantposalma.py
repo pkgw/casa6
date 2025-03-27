@@ -35,7 +35,7 @@ def _query(url):
 
 
 def getantposalma(
-    outfile='', overwrite=False, asdm='', tw='', snr=0, search='both_latest',
+    outfile='', overwrite=False, asdm='', tw='', snr="default", search='both_latest',
     hosts=['tbd1.alma.cl', 'tbd2.alma.cl']
 ):
     r"""
@@ -91,9 +91,15 @@ are required, specified as a comma separated pair. Times are UTC and are
 expressed in YY-MM-DDThh:mm:ss.sss format. The end time must be later than
 the begin time.
 
-snr is an optional parameter. It is the signal-to-noise ratio. Antenna
+snr is an optional parameter. If changed from the default value "default", 
+it must be a nonnegative number representing the signal-to-noise ratio. Antenna
 positions which have corrections less than this value will not be written.
-If not specified, positions of all antennas will be written.
+If not specified, the default snr as defined by the web service will be used.
+The server side default value may change over time as determined by the server
+side (non-CASA) team. As of this writing (March 2025), the web service team has
+not provided publicly facing documentation on the details of how the default
+value is chosen. The most recent information they have provided to us is that
+the default value is 5.0.
 
 tw and search are optional parameters and are coupled as follows. search
 indicates the search algorithm to use to find the desired antenna positions.
@@ -248,9 +254,12 @@ Parameter Details
                 f"Parameter tw, start time ({z[0]}) must be less than end time ({z[1]})."
             )
         parms["tw"] = tw
-    if snr < 0:
-        raise ValueError(f"Parameter snr ({snr}) must be non-negative.")
-    elif snr > 0:
+    if isinstance(snr, str):
+        if snr != "default":
+            raise ValueError("If snr is a string, it's only permissible value is 'default'")
+    elif snr < 0.0:
+        raise ValueError(f"If a number, parameter snr ({snr}) must be non-negative.")
+    elif snr >= 0.0:
         parms["snr"] = snr
     if search:
         parms['search'] = search
