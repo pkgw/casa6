@@ -24,10 +24,6 @@
 # Minimum cmake required version
 cmake_minimum_required(VERSION 3.12)
 
-execute_process(COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../../scripts/version
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTPUT_VARIABLE CASACPP_VERSION)
-string(REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)" CASACPP_VERSION ${CASACPP_VERSION})
 message("CASACPP version: " ${CASACPP_VERSION})
 
 project(
