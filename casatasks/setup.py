@@ -443,7 +443,7 @@ class BuildCasa(build):
         for x in xml_files:
             copy2(x,xmldir)
 
-        os.makedirs(os.path.join(moduledir, 'tests'))
+        os.makedirs(os.path.join(moduledir, 'tests'), exist_ok=True)
         f = open("{}/__init__.py".format(os.path.join(moduledir, 'tests')), "w")
         f.close()
         copy2('tests/test_casatasks.py',os.path.join(moduledir, 'tests'))
