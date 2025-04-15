@@ -89,13 +89,6 @@ from os.path import isfile, join, islink
 from itertools import chain
 import argparse
 
-parser=argparse.ArgumentParser()
-parser.add_argument('--version', help='version')
-parser.add_argument('bdist_wheel', help='bdist_wheel')
-args=parser.parse_args()
-
-print (args.version)
-
 module_name = 'casatasks'
 
 pyversion = ".".join(tuple(str(x) for x in sys.version_info[0:2]))
@@ -113,9 +106,8 @@ def pipe_decode(output):
         return ("","")
 
 def compute_version( ):
-    if (args.version != None ):
-        print (args.version.split("."))
-        (major, minor, patch, feature) = args.version.split(".")
+    if True:
+        (major, minor, patch, feature) = os.environ["PKG_VERSION"].split(".")
         return(int(major), int(minor), int(patch), int(feature),"","","")
     else:
         proc = Popen( [ "./version" ], stdout=PIPE, stderr=PIPE )
