@@ -2010,6 +2010,7 @@ namespace casac {
                 infostream << v.size() << " of them in the selected exec blocks / scans ... ";
 
             info(infostream.str()); 
+            info("debug 1");
 
             for (unsigned int i = 0; i < nHistory; i++) {
                 r = v.at(i);
@@ -2023,21 +2024,28 @@ namespace casac {
  
                 for ( map<AtmPhaseCorrectionMod::AtmPhaseCorrection, ASDM2MSFiller*>::iterator iter = msFillers.begin();
                       iter != msFillers.end(); ++iter ) {
+
+                    info("debug 2");
                     iter->second->addHistory( time, r->getExecBlockId().getTagValue(), message,
                                               priority, origin, -1, application, cliCommand,
                                               appParams );
                 }
             }
+
+            info("debug 3");
+
             if (nHistory) {
                 infostream.str("");
                 infostream << "converted in " << msFillers.begin()->second->ms()->history().nrow() << " history(s) in the measurement set(s)." ;
                 info(infostream.str());
             }
         } catch (ConversionException e) {
+            info("debug 4");
             errstream.str("");
             errstream << e.getMessage();
             error(errstream.str());
         } catch ( std::exception & e) {
+            info("debug 5");
             errstream.str("");
             errstream << e.what();
             error(errstream.str());      
@@ -2048,8 +2056,12 @@ namespace casac {
         // Issues :
         // - pointingModelId , phaseTracking, sourceOffset and overTheTop not taken into account.
 
+        info("debug 6");
+
         if (processPointing) 
             try {
+                info("debug 7");
+
                 const PointingTable& pointingT = ds->getPointing();
                 infostream.str("");
                 infostream << "The dataset has " << pointingT.size() << " pointing(s)...";
@@ -2293,20 +2305,25 @@ namespace casac {
                     }
                 }
             } catch (ConversionException e) {
+                info("debug 8");
                 errstream.str("");
                 errstream << e.getMessage();
                 error(errstream.str());
             } catch ( std::exception & e) {
+                info("debug 9");
                 errstream.str("");
                 errstream << e.what();
                 error(errstream.str());      
             }
 
-    
+        info("debug 10");
+
         // Process the processor table.
         //
 
         try {
+            info("debug 11");
+
             ProcessorTable& processorT = ds->getProcessor();
             ProcessorRow* r = 0;
             unsigned int nProcessor = processorT.size();
@@ -2359,15 +2376,21 @@ namespace casac {
                 info(infostream.str());
             } 
         } catch (ConversionException e) {
+            info("debug 11b");
+
             errstream.str("");
             errstream << e.getMessage();
             error(errstream.str());
         } catch ( std::exception & e) {
+            info("debug 11c");
+
             errstream.str("");
             errstream << e.what();
             error(errstream.str());      
         }
   
+        info("debug 12");
+
         // Process the Source table.
         //
         const SourceTable& sourceT = ds->getSource();
@@ -2517,6 +2540,8 @@ namespace casac {
             errstream << e.getMessage();
             error(errstream.str());
         }
+
+        info("debug 13");
 
         //
         // Process the SysCal table.
